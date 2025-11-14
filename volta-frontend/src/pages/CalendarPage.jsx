@@ -1,0 +1,116 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { mockEvents } from '../data/mockData';
+
+const CalendarPage = () => {
+
+	const formatDate = (dateString) => {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('ro-RO', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+		});
+	};
+
+	const formatTime = (dateString) => {
+		const date = new Date(dateString);
+		return date.toLocaleTimeString('ro-RO', {
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+	};
+
+	const getEventTypeColor = (type) => {
+		const colors = {
+			curs: 'rgba(139, 93, 255, 0.2)',
+			workshop: 'rgba(77, 245, 201, 0.2)',
+			examen: 'rgba(255, 107, 107, 0.2)',
+			webinar: 'rgba(255, 206, 84, 0.2)',
+		};
+		return colors[type] || 'rgba(139, 93, 255, 0.2)';
+	};
+
+	const getEventTypeBorder = (type) => {
+		const borders = {
+			curs: 'rgba(139, 93, 255, 0.4)',
+			workshop: 'rgba(77, 245, 201, 0.4)',
+			examen: 'rgba(255, 107, 107, 0.4)',
+			webinar: 'rgba(255, 206, 84, 0.4)',
+		};
+		return borders[type] || 'rgba(139, 93, 255, 0.4)';
+	};
+
+	const getEventTypeLabel = (type) => {
+		const labels = {
+			curs: 'Curs',
+			workshop: 'Workshop',
+			examen: 'Examen',
+			webinar: 'Webinar',
+		};
+		return labels[type] || 'Eveniment';
+	};
+
+	const sortedEvents = [...mockEvents].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+	return (
+		<div className="va-stack">
+			<div className="va-calendar-header">
+				<div>
+					<h1 className="va-page-title">Calendar</h1>
+					<p className="va-muted">
+						Vezi toate evenimentele planificate: cursuri, workshop-uri, examene și webinar-uri.
+					</p>
+				</div>
+				<Link to="/calendar/view" className="va-btn va-btn-primary">
+					<span>Deschide calendar vizual</span>
+					<span className="va-btn-icon">📅</span>
+				</Link>
+			</div>
+
+			<div className="va-events-grid">
+				{sortedEvents.map((event) => (
+					<div
+						key={event.id}
+						className="va-event-card"
+						style={{
+							background: getEventTypeColor(event.type),
+							borderColor: getEventTypeBorder(event.type),
+						}}
+					>
+						<div className="va-event-header">
+							<div className="va-event-date">
+								<div className="va-event-day">{new Date(event.startDate).getDate()}</div>
+								<div className="va-event-month">
+									{new Date(event.startDate).toLocaleDateString('ro-RO', { month: 'short' })}
+								</div>
+							</div>
+							<div className="va-event-type-badge">{getEventTypeLabel(event.type)}</div>
+						</div>
+						<div className="va-event-body">
+							<h3 className="va-event-title">{event.title}</h3>
+							<p className="va-event-description">{event.description}</p>
+							<div className="va-event-meta">
+								<div className="va-event-time">
+									<span className="va-event-icon">🕐</span>
+									<span>
+										{formatTime(event.startDate)} - {formatTime(event.endDate)}
+									</span>
+								</div>
+								{event.location && (
+									<div className="va-event-location">
+										<span className="va-event-icon">📍</span>
+										<span>{event.location}</span>
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+};
+
+export default CalendarPage;
+
