@@ -1,35 +1,79 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { mockCourses, mockProfile } from '../data/mockData';
+import { dashboardService } from '../services/api';
+import '../styles/modern-enhancements.css';
 
 const DashboardPage = () => {
-	const stats = useMemo(() => {
-		const totalCourses = mockCourses.length;
-		const totalLessons = mockCourses.reduce((sum, course) => sum + course.lessons.length, 0);
-		const completedLessons = mockProfile.progress.reduce(
-			(sum, p) => sum + p.completedLessons.length,
-			0
-		);
-		const completedQuizzes = mockProfile.progress.filter((p) => p.quizPassed).length;
-		const inProgressCourses = mockProfile.progress.filter(
-			(p) => p.completedLessons.length > 0 && p.completedLessons.length < mockCourses.find((c) => c.id === p.courseId)?.lessons.length
-		).length;
-		const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+	const [dashboardData, setDashboardData] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-		return {
-			totalCourses,
-			totalLessons,
-			completedLessons,
-			completedQuizzes,
-			inProgressCourses,
-			progressPercentage,
+	useEffect(() => {
+		const fetchDashboard = async () => {
+			try {
+				setLoading(true);
+				setError(null);
+				const data = await dashboardService.getDashboard();
+				console.log('Dashboard data received:', data);
+				setDashboardData(data);
+			} catch (err) {
+				console.error('Error fetching dashboard:', err);
+				console.error('Error details:', err.response?.data || err.message);
+				setError(`Nu s-a putut încărca dashboard-ul: ${err.response?.data?.message || err.message || 'Eroare necunoscută'}`);
+			} finally {
+				setLoading(false);
+			}
 		};
+		fetchDashboard();
 	}, []);
 
+	const stats = useMemo(() => {
+		if (!dashboardData) {
+			return {
+				totalCourses: 0,
+				totalLessons: 0,
+				completedLessons: 0,
+				completedQuizzes: 0,
+				assignedCourses: 0, // Cursuri atribuite în loc de inProgressCourses
+				progressPercentage: 0,
+			};
+		}
+		return dashboardData.stats;
+	}, [dashboardData]);
+
+	if (loading) {
+		return (
+			<div className="va-main fade-in">
+				<div className="skeleton-card" style={{ marginBottom: '2rem' }}>
+					<div className="skeleton skeleton-title"></div>
+					<div className="skeleton skeleton-text"></div>
+					<div className="skeleton skeleton-text" style={{ width: '80%' }}></div>
+				</div>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+					{[1, 2, 3, 4].map(i => (
+						<div key={i} className="skeleton-card">
+							<div className="skeleton skeleton-text" style={{ height: '2rem', marginBottom: '1rem' }}></div>
+							<div className="skeleton skeleton-text" style={{ height: '3rem', marginBottom: '0.5rem' }}></div>
+							<div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	if (error || !dashboardData) {
+		return (
+			<div className="va-main">
+				<p style={{ color: 'red' }}>{error || 'Eroare la încărcarea datelor'}</p>
+			</div>
+		);
+	}
+
 	return (
-		<div className="va-main">
+		<div className="va-main fade-in">
 			{/* HERO — o coloană completă */}
-			<section className="va-hero" style={{ gridColumn: '1 / -1' }}>
+			<section className="va-hero fade-in-up" style={{ gridColumn: '1 / -1' }}>
 				<div className="va-hero-background">
 					<div className="va-hero-orb va-hero-orb-1"></div>
 					<div className="va-hero-orb va-hero-orb-2"></div>
@@ -40,7 +84,7 @@ const DashboardPage = () => {
 					<div className="va-hero-header">
 						<div className="va-hero-badge">
 							<span className="va-hero-badge-icon">✨</span>
-							<span>Bun venit înapoi, {mockProfile.name}!</span>
+							<span>Bun venit înapoi, {dashboardData.user?.name || 'Utilizator'}!</span>
 						</div>
 						<h1 className="va-hero-title">
 							<span className="va-hero-title-line">Învață.</span>
@@ -59,8 +103,8 @@ const DashboardPage = () => {
 								<div className="va-hero-stat-label">Module finalizate</div>
 							</div>
 							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.inProgressCourses}</div>
-								<div className="va-hero-stat-label">Cursuri în progres</div>
+								<div className="va-hero-stat-value">{stats.assignedCourses || 0}</div>
+								<div className="va-hero-stat-label">Cursuri atribuite</div>
 							</div>
 							<div className="va-hero-stat">
 								<div className="va-hero-stat-value">{stats.completedQuizzes}</div>

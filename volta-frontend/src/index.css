@@ -1,42 +1,175 @@
-/* reset minimal */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
+/* Auth styles */
+.va-auth-container {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+	background:
+		radial-gradient(1200px 800px at -10% -30%, rgba(139, 93, 255, 0.25), transparent 60%),
+		radial-gradient(1100px 800px at 120% 0%, rgba(77, 245, 201, 0.18), transparent 65%),
+		linear-gradient(180deg, #02030a 0%, #060714 40%, #05060f 100%);
 }
 
-body {
-  background-color: #f4f4f4;
-  color: #333;
-}
-.lesson-card {
-  background: #fff;
-  padding: 15px 20px;
-  margin-bottom: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+.va-auth-card {
+	background: rgba(15, 18, 34, 0.9);
+	border: 1px solid rgba(140, 159, 255, 0.22);
+	border-radius: 32px;
+	padding: 2.5rem;
+	width: 100%;
+	max-width: 400px;
+	box-shadow: 0 30px 70px rgba(8, 10, 24, 0.55), 0 0 80px rgba(139, 93, 255, 0.25);
 }
 
-.lesson-card h2 {
-  font-size: 1.3rem;
-  margin-bottom: 5px;
+.va-auth-header {
+	text-align: center;
+	margin-bottom: 2rem;
 }
 
-.lesson-card p {
-  font-size: 0.95rem;
-  margin-bottom: 10px;
+.va-auth-title {
+	font-size: 1.875rem;
+	font-weight: 700;
+	color: #ffffff;
+	margin-bottom: 0.5rem;
 }
 
-.lesson-card button {
-  background-color: #facc15;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+.va-auth-subtitle {
+	color: #b0b9e4;
+	font-size: 0.875rem;
 }
 
-.lesson-card button:hover {
-  background-color: #eab308;
+.va-auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.va-form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.va-form-label {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #b0b9e4;
+}
+
+.va-form-input {
+	padding: 0.75rem;
+	border: 1px solid rgba(140, 159, 255, 0.22);
+	border-radius: 0.75rem;
+	font-size: 1rem;
+	background: rgba(24, 30, 52, 0.5);
+	color: #ffffff;
+	transition: all 0.2s;
+}
+
+.va-form-input:focus {
+	outline: none;
+	border-color: rgba(139, 93, 255, 0.7);
+	box-shadow: 0 0 0 3px rgba(139, 93, 255, 0.1), 0 0 20px rgba(139, 93, 255, 0.2);
+}
+
+.va-form-input::placeholder {
+	color: rgba(176, 185, 228, 0.5);
+}
+
+.va-form-hint {
+	font-size: 0.75rem;
+	color: #b0b9e4;
+}
+
+.va-auth-error {
+	background: rgba(220, 38, 38, 0.2);
+	color: #ff7d9b;
+	padding: 0.75rem;
+	border-radius: 0.75rem;
+	font-size: 0.875rem;
+	border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.va-btn-block {
+	width: 100%;
+}
+
+.va-auth-footer {
+	text-align: center;
+	margin-top: 1.5rem;
+	color: #b0b9e4;
+	font-size: 0.875rem;
+}
+
+.va-auth-link {
+	color: #8b5dff;
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.va-auth-link:hover {
+	text-decoration: underline;
+	color: #7041f4;
+}
+
+.va-auth-demo {
+	margin-top: 1.5rem;
+	padding: 1rem;
+	background: rgba(24, 30, 52, 0.5);
+	border: 1px solid rgba(140, 159, 255, 0.15);
+	border-radius: 0.75rem;
+	font-size: 0.875rem;
+}
+
+.va-auth-demo-title {
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: #ffffff;
+}
+
+.va-auth-demo-info {
+	color: #b0b9e4;
+	margin: 0.25rem 0;
+}
+
+.va-sidebar-user {
+	padding: 1rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	margin-top: 1rem;
+}
+
+.va-sidebar-user-info {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.va-sidebar-user-avatar {
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 600;
+	color: white;
+	font-size: 0.875rem;
+}
+
+.va-sidebar-user-details {
+	flex: 1;
+}
+
+.va-sidebar-user-name {
+	font-weight: 500;
+	color: white;
+	font-size: 0.875rem;
+	margin: 0;
+}
+
+.va-sidebar-user-role {
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 0.75rem;
+	margin: 0;
 }

@@ -1,12 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getLesson } from '../data/mockData';
+import { lessonsService } from '../services/api';
 
 const LessonDetailPage = () => {
 	const { courseId, lessonId } = useParams();
-	const lesson = getLesson(courseId, lessonId);
+	const [lesson, setLesson] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	if (!lesson) return <p>Lecția nu a fost găsită.</p>;
+	useEffect(() => {
+		const fetchLesson = async () => {
+			try {
+				setLoading(true);
+				const data = await lessonsService.getById(lessonId);
+				setLesson(data);
+			} catch (err) {
+				console.error('Error fetching lesson:', err);
+				setError('Lecția nu a fost găsită');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchLesson();
+	}, [lessonId]);
+
+	if (loading) { return null; }
+
+	if (error || !lesson) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error || 'Lecția nu a fost găsită'}</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="va-stack">

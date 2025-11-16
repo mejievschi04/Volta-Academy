@@ -1,0 +1,441 @@
+/* ============================================
+   ADMIN PANEL STYLES - Optimized & Conflict-Free
+   ============================================ */
+
+/* ============================================
+   PARENT OVERRIDES - Prevent conflicts with va-shell-main grid
+   ============================================ */
+
+/* Disable parent grid layouts when admin-container is present */
+main:has(.admin-container),
+main.va-main:has(.admin-container),
+.va-main:has(.admin-container) {
+	display: block !important;
+	grid-template-columns: none !important;
+	grid-auto-rows: auto !important;
+}
+
+.va-shell-main:has(.admin-container) {
+	display: block !important;
+	grid-template-columns: none !important;
+	grid-gap: 0 !important;
+}
+
+/* ============================================
+   ADMIN CONTAINER
+   ============================================ */
+
+.admin-container {
+	width: 100%;
+	max-width: 1400px;
+	display: block;
+	position: relative;
+	margin: 0 auto;
+	padding: 0 24px 24px;
+}
+
+/* Users page needs full width */
+.admin-container.admin-container--wide {
+	max-width: 100%;
+	padding-left: 0;
+	padding-right: 0;
+}
+/* Override va-stack if used inside admin */
+.admin-container .va-stack {
+	display: block;
+	gap: 0;
+}
+
+/* Ensure admin-grid displays as flexbox with 3 columns */
+.admin-container .admin-grid {
+	display: flex !important;
+	flex-wrap: wrap !important;
+}
+
+.admin-container .admin-grid > .admin-card {
+	flex: 0 0 calc(33.333% - 0.833rem) !important;
+	min-width: 280px !important;
+	max-width: 100% !important;
+}
+
+/* ============================================
+   ADMIN PAGE HEADER
+   ============================================ */
+
+.admin-page-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.admin-page-title {
+	margin-bottom: 0.5rem;
+}
+
+.admin-page-subtitle {
+	color: var(--va-muted);
+}
+
+/* ============================================
+   ADMIN FLEXBOX LAYOUT - Core
+   ============================================ */
+
+.admin-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.25rem;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+/* Ensure flexbox works inside any parent */
+main .admin-grid,
+main.va-main .admin-grid,
+.va-main .admin-grid,
+.admin-container > .admin-grid {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+/* Each card takes 1/3 of the width minus gap */
+.admin-grid > .admin-card {
+	flex: 0 0 calc(33.333% - 0.833rem);
+	min-width: 280px;
+	max-width: 100%;
+}
+
+/* ============================================
+   ADMIN CARDS
+   ============================================ */
+
+.admin-card {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	border-radius: 16px;
+	overflow: hidden;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	background: var(--va-surface);
+	border: 1px solid var(--va-border);
+	position: relative;
+	align-items: center; /* centru pe axa orizontală */
+	text-align: center; /* aliniere text la mijloc */
+}
+
+.admin-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, var(--va-primary), var(--va-accent));
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.admin-card:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 12px 24px rgba(139, 93, 255, 0.15),
+		0 0 40px rgba(139, 93, 255, 0.1);
+	border-color: rgba(139, 93, 255, 0.4);
+}
+
+.admin-card:hover::before {
+	opacity: 1;
+}
+
+/* Override va-card styles for admin cards */
+.admin-grid > .va-card.admin-card {
+	display: flex;
+	flex-direction: column;
+	/* Width is controlled by flex property above */
+}
+
+.admin-card-body {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center; /* conținut centrat */
+	text-align: center;
+	padding: 1rem; /* mai mic */
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.admin-card-title {
+	margin: 0 0 0.5rem 0; /* mai compact */
+	font-size: 1.125rem; /* puțin mai mic */
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--va-text);
+}
+
+.admin-card-description {
+	color: var(--va-muted);
+	margin: 0 0 0.75rem 0; /* mai compact */
+	flex: 1;
+	min-height: auto; /* permite înălțime mai mică */
+	font-size: 0.9rem;
+	line-height: 1.5;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.admin-card-info {
+	font-size: 0.875rem;
+	color: var(--va-muted);
+	margin: 0 0 1rem 0;
+	line-height: 1.6;
+}
+
+.admin-card-actions {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	justify-content: center; /* butoanele pe mijloc */
+	margin-top: auto;
+	padding-top: 0.75rem; /* mai compact */
+}
+
+/* ============================================
+   ADMIN DASHBOARD STATS
+   ============================================ */
+
+.admin-stats-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.25rem;
+	margin-bottom: 2.5rem;
+	width: 100%;
+}
+
+/* Each stat card takes 1/3 of the width minus gap */
+.admin-stats-grid > .admin-stat-card {
+	flex: 0 0 calc(33.333% - 0.833rem);
+	min-width: 280px;
+}
+
+.admin-stat-card {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	padding: 1.5rem;
+	border-radius: 16px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	overflow: hidden;
+}
+
+.admin-stat-card::after {
+	content: '';
+	position: absolute;
+	top: -50%;
+	right: -50%;
+	width: 200%;
+	height: 200%;
+	background: radial-gradient(
+		circle,
+		rgba(255, 255, 255, 0.1) 0%,
+		transparent 70%
+	);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.admin-stat-card:hover {
+	transform: translateY(-6px) scale(1.02);
+	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2),
+		0 0 40px rgba(139, 93, 255, 0.3);
+}
+
+.admin-stat-card:hover::after {
+	opacity: 1;
+}
+
+.admin-stat-card:hover .admin-stat-icon {
+	transform: scale(1.1) rotate(5deg);
+}
+
+.admin-stat-icon {
+	font-size: 2.5rem;
+	opacity: 0.9;
+	margin-bottom: 1rem;
+	line-height: 1;
+	transition: transform 0.3s ease;
+}
+
+.admin-stat-value {
+	font-size: 2.5rem;
+	font-weight: bold;
+	margin: 0 0 0.5rem 0;
+	line-height: 1;
+}
+
+.admin-stat-label {
+	font-size: 0.95rem;
+	opacity: 0.95;
+	font-weight: 500;
+	margin: 0;
+}
+
+/* ============================================
+   ADMIN ACTIVITY CARDS
+   ============================================ */
+
+.admin-activity-card {
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--va-surface);
+	border: 1px solid var(--va-border);
+}
+
+.admin-activity-header {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	padding: 1.25rem;
+}
+
+.admin-activity-header h2 {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+
+.admin-activity-body {
+	padding: 1.5rem;
+}
+
+.admin-activity-item {
+	padding: 1rem;
+	border: 2px solid var(--va-border);
+	border-radius: 12px;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	cursor: pointer;
+	margin-bottom: 0.75rem;
+	background: var(--va-surface);
+}
+
+.admin-activity-item:last-child {
+	margin-bottom: 0;
+}
+
+.admin-activity-item:hover {
+	border-color: var(--va-primary);
+	background: rgba(139, 93, 255, 0.05);
+	transform: translateX(4px);
+	box-shadow: 0 4px 12px rgba(139, 93, 255, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1200px) {
+	.admin-grid > .admin-card {
+		flex: 0 0 calc(50% - 0.625rem);
+	}
+}
+
+@media (max-width: 768px) {
+	.admin-grid > .admin-card {
+		flex: 0 0 100%;
+		min-width: 100%;
+	}
+	
+	.admin-stats-grid > .admin-stat-card {
+		flex: 0 0 calc(50% - 0.625rem);
+	}
+	
+	.admin-page-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+	
+	.admin-card-body {
+		padding: 1.25rem;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-stats-grid > .admin-stat-card {
+		flex: 0 0 100%;
+		min-width: 100%;
+	}
+	
+	.admin-stat-card {
+		padding: 1.25rem;
+	}
+	
+	.admin-stat-value {
+		font-size: 2rem;
+	}
+}
+
+/* ============================================
+   ADMIN TABLE STYLES
+   ============================================ */
+
+.admin-container table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--va-surface);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.admin-container table thead {
+	background: var(--va-surface-2);
+}
+
+.admin-container table th {
+	padding: 0.75rem 1rem;
+	text-align: left;
+	font-weight: 600;
+	color: var(--va-text);
+	border-bottom: 2px solid var(--va-border);
+}
+
+.admin-container table th[style*="cursor: pointer"] {
+	user-select: none;
+	transition: color 0.2s ease;
+}
+
+.admin-container table th[style*="cursor: pointer"]:hover {
+	color: var(--va-primary);
+}
+
+.admin-container table td {
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--va-border);
+	color: var(--va-text);
+}
+
+.admin-container table tbody tr {
+	transition: background 0.2s ease;
+}
+
+.admin-container table tbody tr:hover {
+	background: rgba(139, 93, 255, 0.05);
+}
+
+.admin-container table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+/* ============================================
+   ADMIN CONTAINER WIDTH OVERRIDE
+   Expand root width on admin pages so wide tables can fit on one line
+   ============================================ */
+#root:has(.admin-container) {
+	max-width: 100% !important;
+	padding: 0 !important;
+	text-align: initial !important;
+}

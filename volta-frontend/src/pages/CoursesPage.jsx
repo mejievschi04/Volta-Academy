@@ -1,10 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockCourseCategories, getCoursesForCategory } from '../data/mockData';
+import { coursesService } from '../services/api';
 
 const CoursesPage = () => {
 	const navigate = useNavigate();
 	const [expandedCategories, setExpandedCategories] = useState(new Set());
+	const [courses, setCourses] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		const fetchCourses = async () => {
+			try {
+				setLoading(true);
+				const data = await coursesService.getAll();
+				setCourses(data);
+			} catch (err) {
+				console.error('Error fetching courses:', err);
+				setError('Nu s-au putut încărca cursurile');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchCourses();
+	}, []);
+
+	// Group courses by category (for now, we'll create a simple grouping)
+	// In a real app, you'd have categories in the database
+	const mockCourseCategories = [
+		{
+			id: 'all',
+			title: 'Toate cursurile',
+			description: 'Explorează toate cursurile disponibile.',
+			accent: '#7dd3fc',
+			courseIds: courses.map(c => c.id.toString()),
+		},
+	];
+
+	const getCoursesForCategory = (categoryId) => {
+		if (categoryId === 'all') return courses;
+		const category = mockCourseCategories.find(c => c.id === categoryId);
+		if (!category) return [];
+		return category.courseIds
+			.map(courseId => courses.find(c => c.id.toString() === courseId))
+			.filter(Boolean);
+	};
 
 	const toggleCategory = (categoryId) => {
 		const newExpanded = new Set(expandedCategories);
@@ -17,6 +57,17 @@ const CoursesPage = () => {
 	};
 
 	const modulesCountLabel = (count) => `Modul${count === 1 ? '' : 'e'} · ${count}`;
+
+	if (loading) { return null; }
+
+	if (error) {
+		return (
+			<div className="va-stack">
+				<h1 className="va-page-title">Toate cursurile</h1>
+				<p className="va-muted" style={{ color: 'red' }}>{error}</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="va-stack">
@@ -72,7 +123,7 @@ const CoursesPage = () => {
 															<div className="va-course-title-row">
 																<h3 className="va-course-title">{course.title}</h3>
 																<div className="va-course-meta-inline">
-																	<span>{modulesCountLabel(course.lessons.length)}</span>
+																	<span>{modulesCountLabel(course.lessons ? course.lessons.length : 0)}</span>
 																</div>
 															</div>
 															<p className="va-course-description">{course.description}</p>

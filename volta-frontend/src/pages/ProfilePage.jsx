@@ -1,70 +1,46 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockProfile, mockCourses, mockRewards, getCourseById } from '../data/mockData';
+import { profileService, rewardsService } from '../services/api';
 
 const ProfilePage = () => {
-	const progressMap = useMemo(
-		() => Object.fromEntries(mockProfile.progress.map((p) => [p.courseId, p])),
-		[]
-	);
+	const [profileData, setProfileData] = useState(null);
+	const [rewards, setRewards] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const stats = useMemo(() => {
-		const totalCourses = mockCourses.length;
-		const totalLessons = mockCourses.reduce((sum, course) => sum + course.lessons.length, 0);
-		const completedLessons = mockProfile.progress.reduce(
-			(sum, p) => sum + p.completedLessons.length,
-			0
-		);
-		const completedQuizzes = mockProfile.progress.filter((p) => p.quizPassed).length;
-		const inProgressCourses = mockProfile.progress.filter(
-			(p) =>
-				p.completedLessons.length > 0 &&
-				p.completedLessons.length < (getCourseById(p.courseId)?.lessons.length || 0)
-		).length;
-		const completedCourses = mockProfile.progress.filter(
-			(p) => p.completedLessons.length === (getCourseById(p.courseId)?.lessons.length || 0) && p.quizPassed
-		).length;
-		const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-
-		return {
-			totalCourses,
-			totalLessons,
-			completedLessons,
-			completedQuizzes,
-			inProgressCourses,
-			completedCourses,
-			progressPercentage,
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setLoading(true);
+				const [profile, rewardsData] = await Promise.all([
+					profileService.getProfile(),
+					rewardsService.getAll(),
+				]);
+				setProfileData(profile);
+				setRewards(rewardsData);
+			} catch (err) {
+				console.error('Error fetching profile:', err);
+				setError('Nu s-a putut încărca profilul');
+			} finally {
+				setLoading(false);
+			}
 		};
+		fetchData();
 	}, []);
 
-	const coursesInProgress = useMemo(() => {
-		return mockProfile.progress
-			.filter(
-				(p) =>
-					p.completedLessons.length > 0 &&
-					p.completedLessons.length < (getCourseById(p.courseId)?.lessons.length || 0)
-			)
-			.map((p) => {
-				const course = getCourseById(p.courseId);
-				if (!course) return null;
-				const progress = Math.round((p.completedLessons.length / course.lessons.length) * 100);
-				return { ...course, progress, progressData: p };
-			})
-			.filter(Boolean);
-	}, []);
+	if (loading) { return null; }
 
-	const coursesCompleted = useMemo(() => {
-		return mockProfile.progress
-			.filter(
-				(p) =>
-					p.completedLessons.length === (getCourseById(p.courseId)?.lessons.length || 0) && p.quizPassed
-			)
-			.map((p) => {
-				const course = getCourseById(p.courseId);
-				return course ? { ...course, progressData: p } : null;
-			})
-			.filter(Boolean);
-	}, []);
+	if (error || !profileData) {
+		return (
+			<div className="va-profile-container">
+				<p style={{ color: 'red' }}>{error || 'Eroare la încărcarea profilului'}</p>
+			</div>
+		);
+	}
+
+	const stats = profileData.stats;
+	const coursesInProgress = profileData.coursesInProgress || [];
+	const coursesCompleted = profileData.coursesCompleted || [];
 
 	return (
 		<div className="va-profile-container">
@@ -74,7 +50,7 @@ const ProfilePage = () => {
 				<div className="va-profile-info">
 					<div className="va-profile-avatar">
 						<div className="va-profile-avatar-inner">
-							{mockProfile.name
+							{profileData.user.name
 								.split(' ')
 								.map((n) => n[0])
 								.join('')
@@ -82,11 +58,11 @@ const ProfilePage = () => {
 						</div>
 					</div>
 					<div className="va-profile-details">
-						<h1 className="va-profile-name">{mockProfile.name}</h1>
+						<h1 className="va-profile-name">{profileData.user.name}</h1>
 						<p className="va-profile-role">Student VoltaAcademy</p>
 						<div className="va-profile-badges">
-							<span className="va-profile-badge">Nivel: Începător</span>
-							<span className="va-profile-badge">Membru din 2024</span>
+							<span className="va-profile-badge">Nivel: {profileData.user.level}</span>
+							<span className="va-profile-badge">Puncte: {profileData.user.points}</span>
 						</div>
 					</div>
 				</div>
@@ -155,7 +131,7 @@ const ProfilePage = () => {
 									</div>
 									<div className="va-course-card-meta">
 										<span>
-											{course.progressData.completedLessons.length} / {course.lessons.length} module
+											{course.completedLessons} / {course.totalLessons} module
 										</span>
 									</div>
 									<Link
@@ -193,7 +169,7 @@ const ProfilePage = () => {
 									</div>
 									<p className="va-course-card-description">{course.description}</p>
 									<div className="va-course-card-meta">
-										<span>Quiz: {course.progressData.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
+										<span>Quiz: {course.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
 									</div>
 								</div>
 							))
@@ -214,15 +190,9 @@ const ProfilePage = () => {
 						</Link>
 					</div>
 					<div className="va-achievements-grid">
-						{mockRewards.slice(0, 4).map((reward) => (
+						{rewards.slice(0, 4).map((reward) => (
 							<div className="va-achievement-card" key={reward.id}>
-								<div className="va-achievement-icon">
-									{reward.id === 'streak-3' && '🔥'}
-									{reward.id === 'promo-champ' && '🏆'}
-									{reward.id === 'security-guardian' && '🛡️'}
-									{reward.id === 'sales-closer' && '💼'}
-									{reward.id === 'product-master' && '⭐'}
-								</div>
+								<div className="va-achievement-icon">✨</div>
 								<div className="va-achievement-content">
 									<h4 className="va-achievement-title">{reward.title}</h4>
 									<p className="va-achievement-description">{reward.description}</p>

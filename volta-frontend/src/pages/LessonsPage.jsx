@@ -1,18 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getCourseById, mockCourseCategories } from '../data/mockData';
+import { coursesService } from '../services/api';
 
 const LessonsPage = () => {
 	const { courseId } = useParams();
-	const course = getCourseById(courseId);
+	const [course, setCourse] = useState(null);
 	const [expandedLessons, setExpandedLessons] = useState(new Set());
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	if (!course) return <p>Cursul nu a fost găsit.</p>;
+	useEffect(() => {
+		const fetchCourse = async () => {
+			try {
+				setLoading(true);
+				const data = await coursesService.getById(courseId);
+				setCourse(data);
+			} catch (err) {
+				console.error('Error fetching course:', err);
+				setError('Cursul nu a fost găsit');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchCourse();
+	}, [courseId]);
 
-	const courseCategory = mockCourseCategories.find((cat) => cat.courseIds.includes(courseId));
-	const testSummary = course.quiz
-		? `${course.quiz.questions.length} întrebări pentru validarea finală`
-		: 'Fără test configurat';
+	if (loading) { return null; }
+
+	if (error || !course) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error || 'Cursul nu a fost găsit'}</p>
+			</div>
+		);
+	}
+
+	const testSummary = 'Test final disponibil după finalizarea modulelor';
 
 	const toggleLesson = (lessonId) => {
 		const newExpanded = new Set(expandedLessons);
@@ -30,7 +53,7 @@ const LessonsPage = () => {
 				<h1 className="va-page-title">{course.title}</h1>
 				<p className="va-muted">{course.description}</p>
 				<div className="va-course-header-meta">
-					<span>{course.lessons.length} module</span>
+					<span>{course.lessons ? course.lessons.length : 0} module</span>
 				</div>
 			</div>
 
@@ -39,7 +62,7 @@ const LessonsPage = () => {
 				<div className="va-lessons-section">
 					<h2 className="va-lessons-section-title">Module</h2>
 					<div className="va-lessons-list">
-						{course.lessons.map((lesson, index) => {
+						{course.lessons && course.lessons.map((lesson, index) => {
 							const isExpanded = expandedLessons.has(lesson.id);
 							return (
 								<div key={lesson.id} className="va-lesson-section">
@@ -49,9 +72,7 @@ const LessonsPage = () => {
 										onClick={() => toggleLesson(lesson.id)}
 										style={{
 											borderColor: isExpanded
-												? courseCategory
-													? `${courseCategory.accent}44`
-													: 'rgba(139, 93, 255, 0.3)'
+												? 'rgba(139, 93, 255, 0.3)'
 												: 'transparent',
 										}}
 									>
@@ -60,7 +81,6 @@ const LessonsPage = () => {
 												<div className="va-lesson-title-row">
 													<div className="va-lesson-index">{index + 1}</div>
 													<h3 className="va-lesson-title">{lesson.title}</h3>
-													<span className="va-lesson-duration-inline">{lesson.durationMinutes} min</span>
 												</div>
 												{isExpanded && (
 													<p className="va-lesson-content-preview">{lesson.content}</p>
@@ -97,7 +117,7 @@ const LessonsPage = () => {
 				<div className="va-lessons-test-section">
 					<h2 className="va-lessons-section-title">Test final</h2>
 					<div className="va-test-card">
-						<h3 className="va-test-title">{course.quiz?.title ?? 'Test indisponibil'}</h3>
+						<h3 className="va-test-title">Test final</h3>
 						<p className="va-test-summary">{testSummary}</p>
 						<div className="va-test-actions">
 							<Link to={`/courses/${courseId}/quiz`} className="va-btn va-btn-primary">

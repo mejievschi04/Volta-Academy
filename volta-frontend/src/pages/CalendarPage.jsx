@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockEvents } from '../data/mockData';
+import { eventsService } from '../services/api';
 
 const CalendarPage = () => {
 
@@ -51,7 +51,37 @@ const CalendarPage = () => {
 		return labels[type] || 'Eveniment';
 	};
 
-	const sortedEvents = [...mockEvents].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+	const [events, setEvents] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		const fetchEvents = async () => {
+			try {
+				setLoading(true);
+				const data = await eventsService.getAll();
+				setEvents(data);
+			} catch (err) {
+				console.error('Error fetching events:', err);
+				setError('Nu s-au putut încărca evenimentele');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchEvents();
+	}, []);
+
+	if (loading) { return null; }
+
+	if (error) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error}</p>
+			</div>
+		);
+	}
+
+	const sortedEvents = [...events].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
 	return (
 		<div className="va-stack">

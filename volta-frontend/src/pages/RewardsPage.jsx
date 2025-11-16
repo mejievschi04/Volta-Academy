@@ -1,7 +1,32 @@
-import React from 'react';
-import { mockRewards, mockProfile } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { rewardsService, profileService } from '../services/api';
 
 const RewardsPage = () => {
+	const [rewards, setRewards] = useState([]);
+	const [profile, setProfile] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setLoading(true);
+				const [rewardsData, profileData] = await Promise.all([
+					rewardsService.getAll(),
+					profileService.getProfile(),
+				]);
+				setRewards(rewardsData);
+				setProfile(profileData);
+			} catch (err) {
+				console.error('Error fetching rewards:', err);
+				setError('Nu s-au putut încărca recompensele');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+	}, []);
+
 	const getRewardIcon = (id) => {
 		const icons = {
 			'streak-3': '🔥',
@@ -24,6 +49,16 @@ const RewardsPage = () => {
 		return gradients[index % gradients.length];
 	};
 
+	if (loading) { return null; }
+
+	if (error) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error}</p>
+			</div>
+		);
+	}
+
 	return (
 		<div className="va-stack">
 			<div className="va-rewards-header">
@@ -35,7 +70,7 @@ const RewardsPage = () => {
 			</div>
 
 			<div className="va-certificates-grid">
-				{mockRewards.map((reward, index) => (
+				{rewards.map((reward, index) => (
 					<div
 						key={reward.id}
 						className="va-certificate"
@@ -58,6 +93,9 @@ const RewardsPage = () => {
 							</div>
 							<div className="va-certificate-body">
 								<p className="va-certificate-description">{reward.description}</p>
+								{reward.points_required && (
+									<p className="va-certificate-points">Puncte necesare: {reward.points_required}</p>
+								)}
 							</div>
 							<div className="va-certificate-footer">
 								<div className="va-certificate-seal">
@@ -66,7 +104,7 @@ const RewardsPage = () => {
 									</div>
 								</div>
 								<div className="va-certificate-signature">
-									<p className="va-certificate-name">{mockProfile.name}</p>
+									<p className="va-certificate-name">{profile?.user?.name || 'Student'}</p>
 									<p className="va-certificate-date">VoltaAcademy</p>
 								</div>
 							</div>

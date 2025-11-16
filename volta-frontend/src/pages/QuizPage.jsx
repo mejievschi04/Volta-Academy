@@ -1,22 +1,52 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getCourseById } from '../data/mockData';
+import { quizService } from '../services/api';
 
 const QuizPage = () => {
 	const { courseId } = useParams();
-	const course = getCourseById(courseId);
-	const quiz = course?.quiz;
+	const [quiz, setQuiz] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
+	const [result, setResult] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const score = useMemo(() => {
-		if (!submitted || !quiz) return 0;
-		return quiz.questions.reduce((acc, q) => {
-			return acc + (answers[q.id] === q.answerIndex ? 1 : 0);
-		}, 0);
-	}, [submitted, answers, quiz]);
+	useEffect(() => {
+		const fetchQuiz = async () => {
+			try {
+				setLoading(true);
+				const data = await quizService.getQuiz(courseId);
+				setQuiz(data);
+			} catch (err) {
+				console.error('Error fetching quiz:', err);
+				setError('Quiz-ul nu a fost găsit');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchQuiz();
+	}, [courseId]);
 
-	if (!course || !quiz) return <p>Quiz-ul nu a fost găsit.</p>;
+	const handleSubmit = async () => {
+		try {
+			const resultData = await quizService.submitQuiz(courseId, answers);
+			setResult(resultData);
+			setSubmitted(true);
+		} catch (err) {
+			console.error('Error submitting quiz:', err);
+			setError('Eroare la trimiterea quiz-ului');
+		}
+	};
+
+	if (loading) { return null; }
+
+	if (error || !quiz) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error || 'Quiz-ul nu a fost găsit'}</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="va-stack">
@@ -42,9 +72,9 @@ const QuizPage = () => {
 									</label>
 								))}
 							</div>
-							{submitted && (
+							{submitted && result && (
 								<div className={answers[q.id] === q.answerIndex ? 'va-correct' : 'va-wrong'}>
-									{answers[q.id] === q.answerIndex ? 'Corect' : 'Incorect'}
+									{answers[q.id] === q.answerIndex ? '✓ Corect' : '✗ Incorect'}
 								</div>
 							)}
 						</div>
@@ -54,13 +84,23 @@ const QuizPage = () => {
 
 			<div className="va-actions">
 				{!submitted ? (
-					<button className="va-btn va-btn-primary" onClick={() => setSubmitted(true)}>
+					<button className="va-btn va-btn-primary" onClick={handleSubmit}>
 						Trimite
 					</button>
 				) : (
 					<div className="va-quiz-result">
-						<span>Scor: {score} / {quiz.questions.length}</span>
-						<button className="va-btn va-btn-secondary" onClick={() => { setSubmitted(false); setAnswers({}); }}>
+						<span>Scor: {result?.score || 0} / {result?.total || quiz.questions.length}</span>
+						{result && (
+							<div>
+								<p>Procentaj: {result.percentage}%</p>
+								<p>{result.passed ? '✓ Promovat' : '✗ Nepromovat'}</p>
+							</div>
+						)}
+						<button className="va-btn va-btn-secondary" onClick={() => { 
+							setSubmitted(false); 
+							setAnswers({}); 
+							setResult(null);
+						}}>
 							Reia
 						</button>
 					</div>

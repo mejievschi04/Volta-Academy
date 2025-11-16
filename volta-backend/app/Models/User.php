@@ -20,6 +20,7 @@ class User extends Authenticatable
         'level',
         'points',
         'role',
+        'must_change_password',
     ];
 
     public function courses() {
@@ -28,6 +29,12 @@ class User extends Authenticatable
 
     public function teams() {
         return $this->belongsToMany(Team::class);
+    }
+
+    public function assignedCourses() {
+        return $this->belongsToMany(Course::class, 'course_user')
+                    ->withPivot('is_mandatory', 'assigned_at')
+                    ->withTimestamps();
     }
 
     public function lessonsProgress()

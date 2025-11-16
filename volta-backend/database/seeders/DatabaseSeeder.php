@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Reward;
+use App\Models\Category;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,6 +17,56 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // --- Admin User ---
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@volta.academy'],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('voltaadmin'),
+                'role' => 'admin',
+                'avatar' => null,
+                'bio' => 'Administrator al platformei Volta Academy',
+            
+            ]
+        );
+        
+        // Update password if admin already exists
+            if ($admin->wasRecentlyCreated === false) {
+                $admin->update(['password' => Hash::make('voltaadmin')]);
+            }
+
+            // --- Categories (Compartimente) ---
+            $categories = [
+                [
+                    'name' => 'Produse Noi',
+                    'description' => 'Cursuri despre produsele noi lansate',
+                    'icon' => '🆕',
+                    'color' => '#667eea',
+                    'order' => 1,
+                ],
+                [
+                    'name' => 'Formare Generală',
+                    'description' => 'Cursuri de formare generală',
+                    'icon' => '📚',
+                    'color' => '#43e97b',
+                    'order' => 2,
+                ],
+                [
+                    'name' => 'Tehnologie',
+                    'description' => 'Cursuri despre tehnologie și inovații',
+                    'icon' => '💻',
+                    'color' => '#4facfe',
+                    'order' => 3,
+                ],
+            ];
+
+            foreach ($categories as $categoryData) {
+                Category::firstOrCreate(
+                    ['name' => $categoryData['name']],
+                    $categoryData
+                );
+            }
+
         // --- Users ---
         $teachers = collect([
             [
@@ -48,8 +99,11 @@ class DatabaseSeeder extends Seeder
             );
         })->values();
 
+        // Delete Maria if exists
+        User::where('email', 'maria@example.com')->delete();
+        
         $students = collect([
-            ['email' => 'maria@example.com', 'name' => 'Maria Student'],
+            ['email' => 'ion.mejiesvschi@example.com', 'name' => 'Ion Mejiesvschi'],
             ['email' => 'andrei@example.com', 'name' => 'Andrei Student'],
         ])->map(function (array $data) {
             return User::firstOrCreate(
