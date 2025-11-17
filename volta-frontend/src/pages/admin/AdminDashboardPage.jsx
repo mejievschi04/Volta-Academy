@@ -56,38 +56,32 @@ const AdminDashboardPage = () => {
 		{ 
 			label: 'Cursuri Disponibile', 
 			value: stats.available_courses || 0, 
-			icon: '📚', 
-			bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+			icon: '📚'
 		},
 		{ 
 			label: 'Cursuri Finalizate', 
 			value: stats.completed_courses || 0, 
-			icon: '✅', 
-			bgGradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' 
+			icon: '✅'
 		},
 		{ 
 			label: 'Utilizatori', 
 			value: stats.total_users || 0, 
-			icon: '👥', 
-			bgGradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+			icon: '👥'
 		},
 		{ 
 			label: 'Evenimente', 
 			value: stats.total_events || 0, 
-			icon: '📅', 
-			bgGradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' 
+			icon: '📅'
 		},
 		{ 
 			label: 'Echipe', 
 			value: stats.total_teams || 0, 
-			icon: '👥', 
-			bgGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' 
+			icon: '👥'
 		},
 		{ 
 			label: '% Realizare Curs', 
 			value: `${stats.average_completion || 0}%`, 
-			icon: '📊', 
-			bgGradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)' 
+			icon: '📊'
 		},
 	];
 
@@ -97,7 +91,7 @@ const AdminDashboardPage = () => {
 				<h1 className="va-page-title gradient-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>
 					Panou de Administrare
 				</h1>
-				<p className="va-muted" style={{ fontSize: '1.1rem' }}>Bun venit în panoul de administrare V Academy</p>
+				<p className="va-muted" style={{ fontSize: '1.1rem' }}>Bine ai revenit în panoul de administrare V Academy</p>
 			</div>
 
 			{/* Statistics Grid */}
@@ -106,7 +100,6 @@ const AdminDashboardPage = () => {
 					<div
 						key={index}
 						className="admin-stat-card stagger-item"
-						style={{ background: stat.bgGradient }}
 					>
 						<div className="admin-stat-icon">{stat.icon}</div>
 						<div className="admin-stat-value">{stat.value}</div>
@@ -118,7 +111,7 @@ const AdminDashboardPage = () => {
 			{/* Recent Activity Grid */}
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
 				<div className="va-card-enhanced admin-activity-card slide-in-right">
-					<div className="admin-activity-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+					<div className="admin-activity-header">
 						<h2>📚 Cursuri Recente</h2>
 					</div>
 					<div className="admin-activity-body">
@@ -148,7 +141,7 @@ const AdminDashboardPage = () => {
 				</div>
 
 				<div className="va-card-enhanced admin-activity-card slide-in-right" style={{ animationDelay: '0.2s' }}>
-					<div className="admin-activity-header" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+					<div className="admin-activity-header">
 						<h2>👥 Utilizatori Recenti</h2>
 					</div>
 					<div className="admin-activity-body">

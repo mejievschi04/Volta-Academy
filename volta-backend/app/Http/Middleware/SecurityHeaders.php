@@ -25,7 +25,8 @@ class SecurityHeaders
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
         
         // Content Security Policy (adjust based on your needs)
-        $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:8000;";
+        // Relaxed CSP for development to allow cookies
+        $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:8000 http://localhost:5173 http://localhost:5174 http://localhost:5175;";
         $response->headers->set('Content-Security-Policy', $csp);
 
         // Strict Transport Security (only for HTTPS in production)

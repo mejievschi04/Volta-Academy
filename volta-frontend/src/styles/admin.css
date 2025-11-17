@@ -140,9 +140,9 @@ main.va-main .admin-grid,
 
 .admin-card:hover {
 	transform: translateY(-4px);
-	box-shadow: 0 12px 24px rgba(139, 93, 255, 0.15),
-		0 0 40px rgba(139, 93, 255, 0.1);
-	border-color: rgba(139, 93, 255, 0.4);
+	box-shadow: 0 12px 24px rgba(255, 238, 0, 0.15),
+		0 0 40px rgba(255, 238, 0, 0.1);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .admin-card:hover::before {
@@ -221,8 +221,9 @@ main.va-main .admin-grid,
 }
 
 .admin-stat-card {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: white;
+	background: rgba(0, 0, 0, 0.9);
+	border: 1px solid rgba(255, 238, 0, 0.22);
+	color: #ffffff;
 	padding: 1.5rem;
 	border-radius: 16px;
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -253,7 +254,7 @@ main.va-main .admin-grid,
 .admin-stat-card:hover {
 	transform: translateY(-6px) scale(1.02);
 	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2),
-		0 0 40px rgba(139, 93, 255, 0.3);
+		0 0 40px rgba(255, 238, 0, 0.3);
 }
 
 .admin-stat-card:hover::after {
@@ -277,13 +278,15 @@ main.va-main .admin-grid,
 	font-weight: bold;
 	margin: 0 0 0.5rem 0;
 	line-height: 1;
+	color: var(--va-primary);
 }
 
 .admin-stat-label {
 	font-size: 0.95rem;
-	opacity: 0.95;
+	opacity: 0.9;
 	font-weight: 500;
 	margin: 0;
+	color: var(--va-text);
 }
 
 /* ============================================
@@ -298,8 +301,9 @@ main.va-main .admin-grid,
 }
 
 .admin-activity-header {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: white;
+	background: rgba(0, 0, 0, 0.9);
+	border-bottom: 1px solid rgba(255, 238, 0, 0.22);
+	color: #ffffff;
 	padding: 1.25rem;
 }
 
@@ -307,6 +311,7 @@ main.va-main .admin-grid,
 	margin: 0;
 	font-size: 1.25rem;
 	font-weight: 600;
+	color: var(--va-primary);
 }
 
 .admin-activity-body {
@@ -329,9 +334,9 @@ main.va-main .admin-grid,
 
 .admin-activity-item:hover {
 	border-color: var(--va-primary);
-	background: rgba(139, 93, 255, 0.05);
+	background: rgba(255, 238, 0, 0.05);
 	transform: translateX(4px);
-	box-shadow: 0 4px 12px rgba(139, 93, 255, 0.1);
+	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.1);
 }
 
 /* ============================================
@@ -423,7 +428,7 @@ main.va-main .admin-grid,
 }
 
 .admin-container table tbody tr:hover {
-	background: rgba(139, 93, 255, 0.05);
+	background: rgba(255, 238, 0, 0.05);
 }
 
 .admin-container table tbody tr:last-child td {

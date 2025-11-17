@@ -13,6 +13,7 @@ class Exam extends Model
         'course_id',
         'title',
         'max_score',
+        'max_attempts',
     ];
 
     public function course()
@@ -23,5 +24,10 @@ class Exam extends Model
     public function questions()
     {
         return $this->hasMany(ExamQuestion::class)->orderBy('order');
+    }
+
+    public function results()
+    {
+        return $this->hasMany(ExamResult::class);
     }
 }

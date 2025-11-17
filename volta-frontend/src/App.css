@@ -1,16 +1,16 @@
 /* VoltaAcademy minimal design system */
 :root {
-	--va-bg: #05060f;
-	--va-surface: rgba(15, 18, 34, 0.9);
-	--va-surface-2: rgba(24, 30, 52, 0.92);
+	--va-bg: #000000;
+	--va-surface: rgba(0, 0, 0, 0.9);
+	--va-surface-2: rgba(20, 20, 20, 0.92);
 	--va-text: #ffffff;
-	--va-muted: #b0b9e4;
-	--va-primary: #8b5dff;
-	--va-primary-700: #7041f4;
-	--va-accent: #4df5c9;
-	--va-border: rgba(140, 159, 255, 0.22);
-	--va-neon: rgba(139, 93, 255, 0.5);
-	--va-card-shadow: 0 25px 60px rgba(8, 10, 24, 0.55);
+	--va-muted: #cccccc;
+	--va-primary: #ffee00;
+	--va-primary-700: #ffd700;
+	--va-accent: #ffcc00;
+	--va-border: rgba(255, 238, 0, 0.22);
+	--va-neon: rgba(255, 238, 0, 0.5);
+	--va-card-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -18,9 +18,9 @@ html, body, #root { height: 100%; margin: 0; }
 body {
 	font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 	background:
-		radial-gradient(1200px 800px at -10% -30%, rgba(139, 93, 255, 0.25), transparent 60%),
-		radial-gradient(1100px 800px at 120% 0%, rgba(77, 245, 201, 0.18), transparent 65%),
-		linear-gradient(180deg, #02030a 0%, #060714 40%, #05060f 100%);
+		radial-gradient(1200px 800px at -10% -30%, rgba(255, 238, 0, 0.15), transparent 60%),
+		radial-gradient(1100px 800px at 120% 0%, rgba(255, 204, 0, 0.12), transparent 65%),
+		linear-gradient(180deg, #000000 0%, #0a0a0a 40%, #000000 100%);
 	color: var(--va-text);
 }
 
@@ -39,13 +39,13 @@ body {
 	width: 260px;
 	padding: 26px 20px 32px;
 	border-right: 1px solid var(--va-border);
-	background: rgba(6, 8, 20, 0.85);
+	background: rgba(0, 0, 0, 0.85);
 	backdrop-filter: blur(14px);
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
 	align-items: center;
-	box-shadow: inset -1px 0 0 rgba(255,255,255,0.02);
+	box-shadow: inset -1px 0 0 rgba(255, 238, 0, 0.05);
 	z-index: 1001;
 }
 
@@ -53,7 +53,7 @@ body {
 	position: absolute;
 	inset: 0;
 	border-radius: 0;
-	background: linear-gradient(135deg, rgba(139, 93, 255, 0.16), rgba(77, 245, 201, 0.05));
+	background: linear-gradient(135deg, rgba(255, 238, 0, 0.1), rgba(255, 204, 0, 0.05));
 	filter: blur(40px);
 	z-index: 0;
 }
@@ -69,19 +69,17 @@ body {
 	width: 100%;
 }
 
-.va-logo-orb {
-	width: 18px;
-	height: 18px;
-	border-radius: 50%;
-	background: radial-gradient(circle at 30% 30%, #fff, rgba(139, 93, 255, 0.4));
-	box-shadow: 0 0 25px rgba(139, 93, 255, 0.6), 0 0 45px rgba(77, 245, 201, 0.35);
-}
-
 .va-logo-text {
 	font-weight: 700;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	color: var(--va-text);
+	font-size: 1.5rem;
+}
+
+.va-logo-v {
+	color: var(--va-primary);
+	font-size: 1.5rem;
 }
 
 .va-sidebar-nav {
@@ -100,25 +98,25 @@ body {
 	text-decoration: none;
 	color: #fff;
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.18);
-	box-shadow: 0 0 0 rgba(139, 93, 255, 0.1);
+	border: 1px solid rgba(255, 238, 0, 0.18);
+	box-shadow: 0 0 0 rgba(255, 238, 0, 0.1);
 	transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, color 0.2s ease;
 }
 
 .va-nav-btn:hover {
 	color: #fff;
-	border-color: rgba(139, 93, 255, 0.3);
-	box-shadow: 0 6px 18px rgba(139, 93, 255, 0.2);
+	border-color: rgba(255, 238, 0, 0.3);
+	box-shadow: 0 6px 18px rgba(255, 238, 0, 0.2);
 	transform: translateY(-1px);
 }
 
 .va-nav-btn.is-active {
 	color: #fff;
-	background: linear-gradient(135deg, rgba(139, 93, 255, 0.25), rgba(77, 245, 201, 0.12));
-	border-color: rgba(139, 93, 255, 0.5);
+	background: linear-gradient(135deg, rgba(255, 238, 0, 0.25), rgba(255, 204, 0, 0.12));
+	border-color: rgba(255, 238, 0, 0.5);
 	box-shadow:
-		0 0 12px rgba(139, 93, 255, 0.3),
-		0 0 20px rgba(77, 245, 201, 0.15);
+		0 0 12px rgba(255, 238, 0, 0.3),
+		0 0 20px rgba(255, 204, 0, 0.15);
 }
 
 .va-nav-icon {
@@ -128,10 +126,10 @@ body {
 	width: 34px;
 	height: 34px;
 	border-radius: 12px;
-	background: rgba(139, 93, 255, 0.15);
+	background: rgba(255, 238, 0, 0.15);
 	color: var(--va-primary);
 	flex-shrink: 0;
-	box-shadow: 0 0 20px rgba(139, 93, 255, 0.3);
+	box-shadow: 0 0 20px rgba(255, 238, 0, 0.3);
 	transition: all 0.3s ease;
 }
 
@@ -142,17 +140,17 @@ body {
 }
 
 .va-nav-btn:hover .va-nav-icon {
-	background: rgba(139, 93, 255, 0.25);
-	box-shadow: 0 0 30px rgba(139, 93, 255, 0.5);
+	background: rgba(255, 238, 0, 0.25);
+	box-shadow: 0 0 30px rgba(255, 238, 0, 0.5);
 	transform: scale(1.05);
 }
 
 .va-nav-btn.is-active .va-nav-icon {
-	background: linear-gradient(135deg, rgba(139, 93, 255, 0.4), rgba(77, 245, 201, 0.3));
+	background: linear-gradient(135deg, rgba(255, 238, 0, 0.4), rgba(255, 204, 0, 0.3));
 	color: var(--va-accent);
 	box-shadow: 
-		0 0 30px rgba(139, 93, 255, 0.6),
-		0 0 50px rgba(77, 245, 201, 0.3);
+		0 0 30px rgba(255, 238, 0, 0.6),
+		0 0 50px rgba(255, 204, 0, 0.3);
 }
 
 .va-nav-label { font-weight: 600; letter-spacing: 0.03em; }
@@ -194,7 +192,7 @@ body {
 	position: absolute;
 	inset: 30px;
 	border-radius: 36px;
-	background: linear-gradient(145deg, rgba(139, 93, 255, 0.12), rgba(77, 245, 201, 0.05));
+	background: linear-gradient(145deg, rgba(255, 238, 0, 0.12), rgba(255, 204, 0, 0.05));
 	filter: blur(40px);
 	z-index: 0;
 }
@@ -210,34 +208,34 @@ body {
 	inset: -1px;
 	border-radius: inherit;
 	pointer-events: none;
-	background: radial-gradient(120% 120% at 10% 0%, rgba(139,93,255,0.18), transparent 60%), radial-gradient(120% 120% at 100% 100%, rgba(77,245,201,0.12), transparent 60%);
+	background: radial-gradient(120% 120% at 10% 0%, rgba(255,238,0,0.18), transparent 60%), radial-gradient(120% 120% at 100% 100%, rgba(255,204,0,0.12), transparent 60%);
 	box-shadow:
-		0 0 10px rgba(139, 93, 255, 0.25),
-		0 0 18px rgba(139, 93, 255, 0.18),
-		0 0 26px rgba(77, 245, 201, 0.12);
+		0 0 10px rgba(255, 238, 0, 0.25),
+		0 0 18px rgba(255, 238, 0, 0.18),
+		0 0 26px rgba(255, 204, 0, 0.12);
 	animation: va-neon-border-pulse 3.2s ease-in-out infinite;
 	z-index: -1;
 }
 @keyframes va-neon-border-pulse {
 	0% {
 		box-shadow:
-			0 0 8px rgba(139, 93, 255, 0.18),
-			0 0 14px rgba(139, 93, 255, 0.14),
-			0 0 20px rgba(77, 245, 201, 0.08);
+			0 0 8px rgba(255, 238, 0, 0.18),
+			0 0 14px rgba(255, 238, 0, 0.14),
+			0 0 20px rgba(255, 204, 0, 0.08);
 		opacity: 0.7;
 	}
 	50% {
 		box-shadow:
-			0 0 14px rgba(139, 93, 255, 0.32),
-			0 0 24px rgba(139, 93, 255, 0.24),
-			0 0 36px rgba(77, 245, 201, 0.18);
+			0 0 14px rgba(255, 238, 0, 0.32),
+			0 0 24px rgba(255, 238, 0, 0.24),
+			0 0 36px rgba(255, 204, 0, 0.18);
 		opacity: 1;
 	}
 	100% {
 		box-shadow:
-			0 0 8px rgba(139, 93, 255, 0.18),
-			0 0 14px rgba(139, 93, 255, 0.14),
-			0 0 20px rgba(77, 245, 201, 0.08);
+			0 0 8px rgba(255, 238, 0, 0.18),
+			0 0 14px rgba(255, 238, 0, 0.14),
+			0 0 20px rgba(255, 204, 0, 0.08);
 		opacity: 0.7;
 	}
 }
@@ -259,14 +257,14 @@ main.va-main:has(.admin-container) {
 .va-hero {
 	border: 1px solid var(--va-border);
 	background:
-		radial-gradient(680px 260px at 15% -40%, rgba(139, 93, 255, 0.28), transparent 70%),
-		radial-gradient(620px 260px at 120% -10%, rgba(77, 245, 201, 0.22), transparent 70%),
+		radial-gradient(680px 260px at 15% -40%, rgba(255, 238, 0, 0.28), transparent 70%),
+		radial-gradient(620px 260px at 120% -10%, rgba(255, 204, 0, 0.22), transparent 70%),
 		var(--va-surface);
 	border-radius: 32px;
 	padding: 0;
 	box-shadow:
 		0 30px 70px rgba(8, 10, 24, 0.55),
-		0 0 80px rgba(139, 93, 255, 0.25),
+		0 0 80px rgba(255, 238, 0, 0.25),
 		inset 0 0 35px rgba(255, 255, 255, 0.02);
 	position: relative;
 	overflow: hidden;
@@ -291,7 +289,7 @@ main.va-main:has(.admin-container) {
 .va-hero-orb-1 {
 	width: 400px;
 	height: 400px;
-	background: radial-gradient(circle, rgba(139, 93, 255, 0.6), transparent 70%);
+	background: radial-gradient(circle, rgba(255, 238, 0, 0.6), transparent 70%);
 	top: -150px;
 	left: -100px;
 	animation-delay: 0s;
@@ -300,7 +298,7 @@ main.va-main:has(.admin-container) {
 .va-hero-orb-2 {
 	width: 350px;
 	height: 350px;
-	background: radial-gradient(circle, rgba(77, 245, 201, 0.5), transparent 70%);
+	background: radial-gradient(circle, rgba(255, 204, 0, 0.5), transparent 70%);
 	bottom: -100px;
 	right: -80px;
 	animation-delay: 7s;
@@ -309,7 +307,7 @@ main.va-main:has(.admin-container) {
 .va-hero-orb-3 {
 	width: 280px;
 	height: 280px;
-	background: radial-gradient(circle, rgba(139, 93, 255, 0.4), transparent 70%);
+	background: radial-gradient(circle, rgba(255, 238, 0, 0.4), transparent 70%);
 	top: 50%;
 	right: 20%;
 	animation-delay: 14s;
@@ -342,14 +340,14 @@ main.va-main:has(.admin-container) {
 	gap: 10px;
 	padding: 10px 18px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
-	border: 1px solid rgba(139, 93, 255, 0.3);
+	background: rgba(255, 238, 0, 0.15);
+	border: 1px solid rgba(255, 238, 0, 0.3);
 	width: fit-content;
 	font-size: 14px;
 	font-weight: 600;
 	color: var(--va-text);
 	backdrop-filter: blur(10px);
-	box-shadow: 0 4px 20px rgba(139, 93, 255, 0.2);
+	box-shadow: 0 4px 20px rgba(255, 238, 0, 0.2);
 	margin: 0 auto;
 }
 
@@ -402,10 +400,10 @@ main.va-main:has(.admin-container) {
 	gap: 20px;
 	padding: 32px;
 	border-radius: 24px;
-	background: rgba(15, 18, 34, 0.6);
+	background: rgba(0, 0, 0, 0.6);
 	backdrop-filter: blur(20px);
-	border: 1px solid rgba(139, 93, 255, 0.2);
-	box-shadow: inset 0 0 40px rgba(139, 93, 255, 0.1);
+	border: 1px solid rgba(255, 238, 0, 0.2);
+	box-shadow: inset 0 0 40px rgba(255, 238, 0, 0.1);
 	max-width: 1000px;
 	margin: 0 auto;
 }
@@ -427,7 +425,7 @@ main.va-main:has(.admin-container) {
 	grid-column: 1 / -1;
 	text-align: center;
 	padding-top: 16px;
-	border-top: 1px solid rgba(139, 93, 255, 0.2);
+	border-top: 1px solid rgba(255, 238, 0, 0.2);
 }
 
 .va-hero-stat-value {
@@ -452,7 +450,7 @@ main.va-main:has(.admin-container) {
 	width: 100%;
 	height: 8px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
+	background: rgba(255, 238, 0, 0.15);
 	margin-top: 12px;
 	overflow: hidden;
 	position: relative;
@@ -462,7 +460,7 @@ main.va-main:has(.admin-container) {
 	height: 100%;
 	background: linear-gradient(90deg, var(--va-primary) 0%, var(--va-accent) 100%);
 	border-radius: 999px;
-	box-shadow: 0 0 20px rgba(139, 93, 255, 0.6);
+	box-shadow: 0 0 20px rgba(255, 238, 0, 0.6);
 	transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 }
@@ -494,6 +492,7 @@ main.va-main:has(.admin-container) {
 	display: inline-flex;
 	align-items: center;
 	gap: 10px;
+	color: #000000 !important;
 }
 
 .va-btn-icon {
@@ -571,10 +570,10 @@ main.va-main:has(.admin-container) {
 
 .va-card:hover {
 	transform: translateY(-4px);
-	border-color: rgba(139, 93, 255, 0.35);
+	border-color: rgba(255, 238, 0, 0.35);
 	box-shadow:
 		0 20px 50px rgba(8, 10, 24, 0.5),
-		0 0 30px rgba(139, 93, 255, 0.2);
+		0 0 30px rgba(255, 238, 0, 0.2);
 }
 
 .va-card-body { padding: 20px; }
@@ -681,14 +680,14 @@ main.va-main:has(.admin-container) {
 
 .va-course-section {
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.15);
+	border: 1px solid rgba(255, 238, 0, 0.15);
 	border-radius: 16px;
 	overflow: hidden;
 	transition: border-color 0.3s ease;
 }
 
 .va-course-section:hover {
-	border-color: rgba(139, 93, 255, 0.3);
+	border-color: rgba(255, 238, 0, 0.3);
 }
 
 .va-course-header {
@@ -762,7 +761,7 @@ main.va-main:has(.admin-container) {
 	padding: 0 24px 24px;
 	display: grid;
 	gap: 24px;
-	border-top: 1px solid rgba(139, 93, 255, 0.15);
+	border-top: 1px solid rgba(255, 238, 0, 0.15);
 	margin-top: 0;
 	animation: slideDown 0.3s ease;
 }
@@ -787,10 +786,10 @@ main.va-main:has(.admin-container) {
 }
 
 .va-test-card {
-	border: 1px dashed rgba(139, 93, 255, 0.4);
+	border: 1px dashed rgba(255, 238, 0, 0.4);
 	border-radius: 16px;
 	padding: 20px;
-	background: rgba(139, 93, 255, 0.05);
+	background: rgba(255, 238, 0, 0.05);
 }
 
 .va-test-title {
@@ -812,7 +811,7 @@ main.va-main:has(.admin-container) {
 	gap: 12px;
 	flex-wrap: wrap;
 	padding-top: 16px;
-	border-top: 1px solid rgba(139, 93, 255, 0.15);
+	border-top: 1px solid rgba(255, 238, 0, 0.15);
 }
 
 .va-module-title {
@@ -869,14 +868,14 @@ main.va-main:has(.admin-container) {
 
 .va-lesson-section {
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.15);
+	border: 1px solid rgba(255, 238, 0, 0.15);
 	border-radius: 16px;
 	overflow: hidden;
 	transition: border-color 0.3s ease;
 }
 
 .va-lesson-section:hover {
-	border-color: rgba(139, 93, 255, 0.3);
+	border-color: rgba(255, 238, 0, 0.3);
 }
 
 .va-lesson-header {
@@ -914,7 +913,7 @@ main.va-main:has(.admin-container) {
 	width: 36px;
 	height: 36px;
 	border-radius: 12px;
-	background: rgba(139, 93, 255, 0.25);
+	background: rgba(255, 238, 0, 0.25);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -961,7 +960,7 @@ main.va-main:has(.admin-container) {
 	padding: 0 24px 24px;
 	display: grid;
 	gap: 20px;
-	border-top: 1px solid rgba(139, 93, 255, 0.15);
+	border-top: 1px solid rgba(255, 238, 0, 0.15);
 	margin-top: 0;
 	animation: slideDown 0.3s ease;
 }
@@ -1020,7 +1019,7 @@ main.va-main:has(.admin-container) {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(139, 93, 255, 0.05));
+	background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255, 238, 0, 0.05));
 	opacity: 0.8;
 	pointer-events: none;
 }
@@ -1045,7 +1044,7 @@ main.va-main:has(.admin-container) {
 }
 
 .va-folder-toggle:focus-visible {
-	outline: 2px solid rgba(77, 245, 201, 0.4);
+	outline: 2px solid rgba(255, 204, 0, 0.4);
 	border-radius: 22px;
 }
 
@@ -1096,7 +1095,7 @@ main.va-main:has(.admin-container) {
 	max-height: 90vh;
 	overflow-y: auto;
 	background: rgba(10, 12, 30, 0.95);
-	border: 1px solid rgba(139, 93, 255, 0.4);
+	border: 1px solid rgba(255, 238, 0, 0.4);
 	border-radius: 32px;
 	box-shadow: 0 30px 120px rgba(5, 6, 15, 0.85);
 	padding: 32px 34px 38px;
@@ -1160,7 +1159,7 @@ main.va-main:has(.admin-container) {
 	display: flex;
 	gap: 14px;
 	padding: 16px 18px;
-	border: 1px solid rgba(139, 93, 255, 0.25);
+	border: 1px solid rgba(255, 238, 0, 0.25);
 	border-radius: 18px;
 	background: rgba(255, 255, 255, 0.03);
 }
@@ -1169,7 +1168,7 @@ main.va-main:has(.admin-container) {
 	width: 36px;
 	height: 36px;
 	border-radius: 12px;
-	background: rgba(139, 93, 255, 0.25);
+	background: rgba(255, 238, 0, 0.25);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1191,7 +1190,7 @@ main.va-main:has(.admin-container) {
 }
 
 .va-test-card {
-	border: 1px dashed rgba(139, 93, 255, 0.4);
+	border: 1px dashed rgba(255, 238, 0, 0.4);
 	border-radius: 18px;
 	padding: 16px 20px;
 	background: rgba(8, 10, 24, 0.6);
@@ -1222,7 +1221,7 @@ main.va-main:has(.admin-container) {
 }
 
 .va-chapter-toggle:focus-visible {
-	outline: 2px solid rgba(139, 93, 255, 0.6);
+	outline: 2px solid rgba(255, 238, 0, 0.6);
 	border-radius: 22px;
 }
 
@@ -1240,14 +1239,14 @@ main.va-main:has(.admin-container) {
 	width: 36px;
 	height: 36px;
 	border-radius: 12px;
-	background: rgba(139, 93, 255, 0.18);
+	background: rgba(255, 238, 0, 0.18);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-size: 26px;
 	line-height: 1;
 	color: #fff;
-	box-shadow: inset 0 0 12px rgba(139, 93, 255, 0.35);
+	box-shadow: inset 0 0 12px rgba(255, 238, 0, 0.35);
 }
 
 .va-chapter-content {
@@ -1263,7 +1262,7 @@ main.va-main:has(.admin-container) {
 	flex-wrap: wrap;
 	gap: 16px;
 	justify-content: space-between;
-	border: 1px solid rgba(139, 93, 255, 0.2);
+	border: 1px solid rgba(255, 238, 0, 0.2);
 	border-radius: 18px;
 	padding: 18px 20px;
 	background: rgba(255, 255, 255, 0.02);
@@ -1301,20 +1300,23 @@ main.va-main:has(.admin-container) {
 	text-decoration: none;
 	transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, color 0.2s ease;
 }
-.va-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(139, 93, 255, 0.25); }
+.va-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.25); }
 .va-btn-primary {
 	background: linear-gradient(135deg, var(--va-primary), var(--va-primary-700));
-	color: #fff;
+	color: #000000 !important;
 	box-shadow:
-		0 16px 30px rgba(139, 93, 255, 0.35),
-		0 0 40px rgba(139, 93, 255, 0.35);
+		0 16px 30px rgba(255, 238, 0, 0.35),
+		0 0 40px rgba(255, 238, 0, 0.35);
 }
-.va-btn-primary:hover { transform: translateY(-2px); }
+.va-btn-primary:hover { 
+	transform: translateY(-2px);
+	color: #000000 !important;
+}
 .va-btn-secondary {
 	background: var(--va-surface-2);
 	color: var(--va-text);
-	border-color: rgba(139, 93, 255, 0.25);
-	box-shadow: inset 0 0 18px rgba(139, 93, 255, 0.1);
+	border-color: rgba(255, 238, 0, 0.25);
+	box-shadow: inset 0 0 18px rgba(255, 238, 0, 0.1);
 }
 .va-btn-secondary:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .va-btn-link { background: transparent; color: var(--va-primary); text-decoration: none; }
@@ -1324,13 +1326,13 @@ main.va-main:has(.admin-container) {
 	display: inline-block;
 	padding: 4px 10px;
 	border-radius: 999px;
-	background: rgba(77, 245, 201, 0.15);
+	background: rgba(255, 204, 0, 0.15);
 	color: var(--va-accent);
-	border: 1px solid rgba(77, 245, 201, 0.35);
+	border: 1px solid rgba(255, 204, 0, 0.35);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.3px;
-	box-shadow: 0 0 18px rgba(77, 245, 201, 0.2);
+	box-shadow: 0 0 18px rgba(255, 204, 0, 0.2);
 }
 
 .va-list { list-style: none; padding: 0; margin: 0; }
@@ -1365,15 +1367,15 @@ main.va-main:has(.admin-container) {
 	padding: 12px 14px;
 	border-radius: 12px;
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.18);
+	border: 1px solid rgba(255, 238, 0, 0.18);
 	transition: border 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .va-radio input:checked + span, .va-radio input:checked ~ span { color: #fff; }
 .va-radio input:focus-visible { outline: none; }
 .va-radio:has(input:checked) {
-	border-color: rgba(139, 93, 255, 0.7);
-	background: rgba(139, 93, 255, 0.15);
-	box-shadow: 0 0 28px rgba(139, 93, 255, 0.32);
+	border-color: rgba(255, 238, 0, 0.7);
+	background: rgba(255, 238, 0, 0.15);
+	box-shadow: 0 0 28px rgba(255, 238, 0, 0.32);
 }
 .va-correct { color: #38efb1; font-weight: 600; }
 .va-wrong { color: #ff7d9b; font-weight: 600; }
@@ -1486,7 +1488,7 @@ main.va-main:has(.admin-container) {
 
 .va-certificate:hover {
 	transform: translateY(-8px) scale(1.02);
-	box-shadow: 0 35px 80px rgba(8, 10, 24, 0.7), 0 0 40px rgba(139, 93, 255, 0.3);
+	box-shadow: 0 35px 80px rgba(8, 10, 24, 0.7), 0 0 40px rgba(255, 238, 0, 0.3);
 }
 
 .va-certificate-border {
@@ -1573,8 +1575,8 @@ main.va-main:has(.admin-container) {
 
 .va-certificate-body {
 	padding: 20px 0;
-	border-top: 1px dashed rgba(139, 93, 255, 0.2);
-	border-bottom: 1px dashed rgba(139, 93, 255, 0.2);
+	border-top: 1px dashed rgba(255, 238, 0, 0.2);
+	border-bottom: 1px dashed rgba(255, 238, 0, 0.2);
 }
 
 .va-certificate-description {
@@ -1629,8 +1631,8 @@ main.va-main:has(.admin-container) {
 	justify-content: center;
 	font-weight: 800;
 	font-size: 20px;
-	color: #fff;
-	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	color: #000000;
+	text-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
 	position: relative;
 	z-index: 1;
 }
@@ -1674,7 +1676,7 @@ main.va-main:has(.admin-container) {
 
 .va-profile-cover {
 	height: 180px;
-	background: linear-gradient(135deg, rgba(139, 93, 255, 0.4) 0%, rgba(77, 245, 201, 0.3) 100%);
+	background: linear-gradient(135deg, rgba(255, 238, 0, 0.4) 0%, rgba(255, 204, 0, 0.3) 100%);
 	position: relative;
 }
 
@@ -1741,8 +1743,8 @@ main.va-main:has(.admin-container) {
 .va-profile-badge {
 	padding: 6px 14px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
-	border: 1px solid rgba(139, 93, 255, 0.3);
+	background: rgba(255, 238, 0, 0.15);
+	border: 1px solid rgba(255, 238, 0, 0.3);
 	color: var(--va-text);
 	font-size: 13px;
 	font-weight: 600;
@@ -1807,7 +1809,7 @@ main.va-main:has(.admin-container) {
 	width: 100%;
 	height: 6px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
+	background: rgba(255, 238, 0, 0.15);
 	overflow: hidden;
 	margin-top: 8px;
 }
@@ -1852,7 +1854,7 @@ main.va-main:has(.admin-container) {
 .va-section-count {
 	padding: 4px 12px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
+	background: rgba(255, 238, 0, 0.15);
 	color: var(--va-primary);
 	font-size: 13px;
 	font-weight: 700;
@@ -1877,7 +1879,7 @@ main.va-main:has(.admin-container) {
 
 .va-course-card {
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.2);
+	border: 1px solid rgba(255, 238, 0, 0.2);
 	border-radius: 18px;
 	padding: 20px;
 	transition: transform 0.2s ease, border-color 0.2s ease;
@@ -1885,12 +1887,12 @@ main.va-main:has(.admin-container) {
 
 .va-course-card:hover {
 	transform: translateY(-2px);
-	border-color: rgba(139, 93, 255, 0.4);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .va-course-card-completed {
-	border-color: rgba(77, 245, 201, 0.3);
-	background: rgba(77, 245, 201, 0.05);
+	border-color: rgba(255, 204, 0, 0.3);
+	background: rgba(255, 204, 0, 0.05);
 }
 
 .va-course-card-header {
@@ -1921,7 +1923,7 @@ main.va-main:has(.admin-container) {
 .va-course-card-badge {
 	padding: 4px 10px;
 	border-radius: 999px;
-	background: rgba(77, 245, 201, 0.2);
+	background: rgba(255, 204, 0, 0.2);
 	color: var(--va-accent);
 	font-size: 12px;
 	font-weight: 700;
@@ -1938,7 +1940,7 @@ main.va-main:has(.admin-container) {
 	width: 100%;
 	height: 6px;
 	border-radius: 999px;
-	background: rgba(139, 93, 255, 0.15);
+	background: rgba(255, 238, 0, 0.15);
 	overflow: hidden;
 	margin-bottom: 16px;
 }
@@ -1984,7 +1986,7 @@ main.va-main:has(.admin-container) {
 
 .va-achievement-card {
 	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(139, 93, 255, 0.2);
+	border: 1px solid rgba(255, 238, 0, 0.2);
 	border-radius: 16px;
 	padding: 16px;
 	display: grid;
@@ -1995,7 +1997,7 @@ main.va-main:has(.admin-container) {
 
 .va-achievement-card:hover {
 	transform: translateY(-2px);
-	border-color: rgba(139, 93, 255, 0.4);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .va-achievement-icon {
@@ -2105,6 +2107,7 @@ main.va-main:has(.admin-container) {
 	border-radius: 20px;
 	padding: 24px;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	color: #000000;
 }
 
 .va-event-card:hover {
@@ -2130,7 +2133,7 @@ main.va-main:has(.admin-container) {
 .va-event-day {
 	font-size: 32px;
 	font-weight: 800;
-	color: var(--va-text);
+	color: #000000;
 	line-height: 1;
 }
 
@@ -2138,7 +2141,8 @@ main.va-main:has(.admin-container) {
 	font-size: 12px;
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
-	color: var(--va-muted);
+	color: #000000;
+	opacity: 0.7;
 	font-weight: 600;
 	margin-top: 4px;
 }
@@ -2146,11 +2150,11 @@ main.va-main:has(.admin-container) {
 .va-event-type-badge {
 	padding: 6px 12px;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.2);
+	background: rgba(0, 0, 0, 0.1);
+	border: 1px solid rgba(0, 0, 0, 0.2);
 	font-size: 12px;
 	font-weight: 600;
-	color: var(--va-text);
+	color: #000000;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
@@ -2164,13 +2168,14 @@ main.va-main:has(.admin-container) {
 	margin: 0;
 	font-size: 20px;
 	font-weight: 700;
-	color: var(--va-text);
+	color: #000000;
 }
 
 .va-event-description {
 	margin: 0;
 	font-size: 14px;
-	color: var(--va-muted);
+	color: #000000;
+	opacity: 0.8;
 	line-height: 1.6;
 }
 
@@ -2186,7 +2191,8 @@ main.va-main:has(.admin-container) {
 	align-items: center;
 	gap: 8px;
 	font-size: 13px;
-	color: var(--va-muted);
+	color: #000000;
+	opacity: 0.7;
 }
 
 .va-event-icon {
@@ -2258,7 +2264,7 @@ main.va-main:has(.admin-container) {
 .va-calendar-day {
 	min-height: 90px;
 	padding: 8px;
-	border: 1px solid rgba(139, 93, 255, 0.1);
+	border: 1px solid rgba(255, 238, 0, 0.1);
 	border-radius: 12px;
 	background: rgba(255, 255, 255, 0.02);
 	display: flex;
@@ -2268,8 +2274,8 @@ main.va-main:has(.admin-container) {
 }
 
 .va-calendar-day:hover {
-	background: rgba(139, 93, 255, 0.05);
-	border-color: rgba(139, 93, 255, 0.2);
+	background: rgba(255, 238, 0, 0.05);
+	border-color: rgba(255, 238, 0, 0.2);
 }
 
 .va-calendar-day-empty {
@@ -2278,8 +2284,8 @@ main.va-main:has(.admin-container) {
 }
 
 .va-calendar-day-today {
-	background: rgba(139, 93, 255, 0.1);
-	border-color: rgba(139, 93, 255, 0.4);
+	background: rgba(255, 238, 0, 0.1);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .va-calendar-day-number {

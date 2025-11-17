@@ -30,15 +30,14 @@ const DashboardPage = () => {
 	const stats = useMemo(() => {
 		if (!dashboardData) {
 			return {
-				totalCourses: 0,
-				totalLessons: 0,
+				assignedCourses: 0,
+				completedCourses: 0,
 				completedLessons: 0,
 				completedQuizzes: 0,
-				assignedCourses: 0, // Cursuri atribuite în loc de inProgressCourses
 				progressPercentage: 0,
 			};
 		}
-		return dashboardData.stats;
+		return dashboardData.stats || {};
 	}, [dashboardData]);
 
 	if (loading) {
@@ -84,7 +83,7 @@ const DashboardPage = () => {
 					<div className="va-hero-header">
 						<div className="va-hero-badge">
 							<span className="va-hero-badge-icon">✨</span>
-							<span>Bun venit înapoi, {dashboardData.user?.name || 'Utilizator'}!</span>
+							<span>Bine ai revenit, {dashboardData.user?.name || 'Utilizator'}!</span>
 						</div>
 						<h1 className="va-hero-title">
 							<span className="va-hero-title-line">Învață.</span>
@@ -99,25 +98,25 @@ const DashboardPage = () => {
 					<div className="va-hero-stats">
 						<div className="va-hero-stats-top">
 							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedLessons}</div>
-								<div className="va-hero-stat-label">Module finalizate</div>
-							</div>
-							<div className="va-hero-stat">
 								<div className="va-hero-stat-value">{stats.assignedCourses || 0}</div>
 								<div className="va-hero-stat-label">Cursuri atribuite</div>
 							</div>
 							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedQuizzes}</div>
+								<div className="va-hero-stat-value">{stats.completedCourses || 0}</div>
+								<div className="va-hero-stat-label">Cursuri finalizate</div>
+							</div>
+							<div className="va-hero-stat">
+								<div className="va-hero-stat-value">{stats.completedQuizzes || 0}</div>
 								<div className="va-hero-stat-label">Teste promovate</div>
 							</div>
 						</div>
 						<div className="va-hero-stat va-hero-stat-progress">
-							<div className="va-hero-stat-value">{stats.progressPercentage}%</div>
+							<div className="va-hero-stat-value">{stats.progressPercentage || 0}%</div>
 							<div className="va-hero-stat-label">Progres general</div>
 							<div className="va-hero-progress-bar">
 								<div
 									className="va-hero-progress-fill"
-									style={{ width: `${stats.progressPercentage}%` }}
+									style={{ width: `${stats.progressPercentage || 0}%` }}
 								></div>
 							</div>
 						</div>
@@ -139,3 +138,4 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+

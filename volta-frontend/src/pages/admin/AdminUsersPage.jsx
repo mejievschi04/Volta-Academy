@@ -264,7 +264,7 @@ const AdminUsersPage = () => {
 											transition: 'background 0.2s ease',
 										}}
 										onMouseEnter={(e) => {
-											e.currentTarget.style.background = 'rgba(139, 93, 255, 0.05)';
+											e.currentTarget.style.background = 'rgba(255, 238, 0, 0.05)';
 										}}
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = 'transparent';

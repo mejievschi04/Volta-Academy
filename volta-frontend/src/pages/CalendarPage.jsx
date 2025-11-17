@@ -23,22 +23,22 @@ const CalendarPage = () => {
 
 	const getEventTypeColor = (type) => {
 		const colors = {
-			curs: 'rgba(139, 93, 255, 0.2)',
-			workshop: 'rgba(77, 245, 201, 0.2)',
+			curs: 'rgba(255, 238, 0, 0.2)',
+			workshop: 'rgba(255, 204, 0, 0.2)',
 			examen: 'rgba(255, 107, 107, 0.2)',
 			webinar: 'rgba(255, 206, 84, 0.2)',
 		};
-		return colors[type] || 'rgba(139, 93, 255, 0.2)';
+		return colors[type] || 'rgba(255, 238, 0, 0.2)';
 	};
 
 	const getEventTypeBorder = (type) => {
 		const borders = {
-			curs: 'rgba(139, 93, 255, 0.4)',
-			workshop: 'rgba(77, 245, 201, 0.4)',
+			curs: 'rgba(255, 238, 0, 0.4)',
+			workshop: 'rgba(255, 204, 0, 0.4)',
 			examen: 'rgba(255, 107, 107, 0.4)',
 			webinar: 'rgba(255, 206, 84, 0.4)',
 		};
-		return borders[type] || 'rgba(139, 93, 255, 0.4)';
+		return borders[type] || 'rgba(255, 238, 0, 0.4)';
 	};
 
 	const getEventTypeLabel = (type) => {

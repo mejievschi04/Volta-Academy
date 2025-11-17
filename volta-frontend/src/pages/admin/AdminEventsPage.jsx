@@ -352,7 +352,7 @@ const AdminEventsPage = () => {
 													}}
 													style={{
 														background: isToday ? 'rgba(255,255,255,0.3)' : 'var(--va-primary)',
-														color: isToday ? 'white' : 'white',
+														color: isToday ? 'white' : '#000000',
 														padding: '0.1rem 0.2rem',
 														borderRadius: '4px',
 														fontSize: '0.68rem',

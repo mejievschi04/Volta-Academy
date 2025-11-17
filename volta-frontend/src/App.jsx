@@ -13,6 +13,7 @@ import './styles/loading.css';
 // Lazy load pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const LessonsPage = lazy(() => import('./pages/LessonsPage'));
+const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
 const LessonDetailPage = lazy(() => import('./pages/LessonDetailPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
@@ -27,6 +28,7 @@ const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
 const AdminCourseDetailPage = lazy(() => import('./pages/admin/AdminCourseDetailPage'));
 const AdminRewardsPage = lazy(() => import('./pages/admin/AdminRewardsPage'));
 const CategoryDetailPage = lazy(() => import('./pages/admin/CategoryDetailPage'));
+const AdminCategoriesPage = lazy(() => import('./pages/admin/AdminCategoriesPage'));
 const AdminEventsPage = lazy(() => import('./pages/admin/AdminEventsPage'));
 const AdminTeamsPage = lazy(() => import('./pages/admin/AdminTeamsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
@@ -139,11 +141,11 @@ function Layout({ children }) {
 			)
 		},
 		{
-			path: '/admin/courses',
+			path: '/admin/categories',
 			label: 'Cursuri',
 			icon: (
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H20V18M20 18V21M9 7H15M9 11H15M9 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+					<path d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
 			)
 		},
@@ -197,8 +199,9 @@ function Layout({ children }) {
 			
 			<aside className="va-sidebar">
 				<div className="va-sidebar-brand">
-					<div className="va-logo-orb" />
-					<span className="va-logo-text">V Academy</span>
+					<span className="va-logo-text">
+						<span className="va-logo-v">V</span> Academy
+					</span>
 				</div>
 
 				<nav className="va-sidebar-nav">
@@ -311,6 +314,16 @@ function App() {
 										}
 									/>
 									<Route
+										path="/courses/:courseId"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<CourseDetailPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
 										path="/courses/:courseId/lessons"
 										element={
 											<UserRoute>
@@ -382,21 +395,11 @@ function App() {
 										}
 									/>
 									<Route
-										path="/admin/courses"
+										path="/admin/categories"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<AdminCoursesPage />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
-									<Route
-										path="/admin/courses/:id"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminCourseDetailPage />
+													<AdminCategoriesPage />
 												</Suspense>
 											</AdminRoute>
 										}

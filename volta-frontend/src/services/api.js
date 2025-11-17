@@ -1,5 +1,12 @@
 import api from '../api.js';
 
+export const categoriesService = {
+  getAll: async () => {
+    const response = await api.get('/categories');
+    return response.data;
+  },
+};
+
 export const coursesService = {
   getAll: async () => {
     const response = await api.get('/courses');

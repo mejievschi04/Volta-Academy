@@ -33,7 +33,7 @@ class User extends Authenticatable
 
     public function assignedCourses() {
         return $this->belongsToMany(Course::class, 'course_user')
-                    ->withPivot('is_mandatory', 'assigned_at')
+                    ->withPivot('is_mandatory', 'assigned_at', 'enrolled', 'enrolled_at', 'started_at', 'completed_at', 'progress_percentage')
                     ->withTimestamps();
     }
 

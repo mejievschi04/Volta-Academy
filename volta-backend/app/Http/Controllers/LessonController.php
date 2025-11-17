@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Lesson;
 use App\Models\Course;
+use App\Models\Exam;
+use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,53 @@ class LessonController extends Controller
                 $pointsPerLesson = $course->reward_points / $course->lessons->count();
                 $user->points += round($pointsPerLesson);
                 $user->save();
+            }
+            
+            // Update course progress in course_user table
+            if ($course) {
+                $courseLessons = $course->lessons->pluck('id')->toArray();
+                $completedLessons = DB::table('lesson_progress')
+                    ->where('user_id', $user->id)
+                    ->where('completed', true)
+                    ->whereIn('lesson_id', $courseLessons)
+                    ->count();
+                
+                $totalLessons = count($courseLessons);
+                $progressPercentage = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100) : 0;
+                
+                // Check if exam exists for this course
+                $exam = Exam::where('course_id', $course->id)->first();
+                $examPassed = false;
+                
+                if ($exam) {
+                    // Check if user has passed the exam
+                    $examResult = ExamResult::where('exam_id', $exam->id)
+                        ->where('user_id', $user->id)
+                        ->where('passed', true)
+                        ->orderBy('attempt_number', 'desc')
+                        ->first();
+                    
+                    $examPassed = $examResult !== null;
+                }
+                
+                // Course is completed only if all lessons are done AND exam is passed (if exam exists)
+                $allLessonsCompleted = $completedLessons >= $totalLessons && $totalLessons > 0;
+                $isCompleted = $allLessonsCompleted && ($exam ? $examPassed : true);
+                
+                // Update or create course_user entry
+                DB::table('course_user')
+                    ->updateOrInsert(
+                        [
+                            'course_id' => $course->id,
+                            'user_id' => $user->id,
+                        ],
+                        [
+                            'progress_percentage' => $progressPercentage,
+                            'completed_at' => $isCompleted ? now() : null,
+                            'started_at' => DB::raw('COALESCE(started_at, NOW())'),
+                            'updated_at' => now(),
+                        ]
+                    );
             }
             
             // Invalidate cache for dashboard and profile

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api", // endpoint Laravel
+  baseURL: "/api", // Proxied through Vite to backend
   withCredentials: true, // dacă folosești cookie-uri / sesiuni
   timeout: 10000, // 10 secunde timeout
   headers: {

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\RewardController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\Admin\UserAdminController;
 use App\Http\Controllers\Api\Admin\CategoryAdminController;
 
 // Public routes
+Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'index']);
 Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/{id}', [CourseController::class, 'show']);
 Route::get('/lessons', [LessonController::class, 'index']);
@@ -27,6 +29,24 @@ Route::get('/rewards/{id}', [RewardController::class, 'show']);
 Route::get('/events', [EventController::class, 'index']);
 Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
 Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
+
+// CSRF cookie endpoint (needed for session-based auth with CORS)
+Route::get('/csrf-cookie', function () {
+    return response()->json(['message' => 'CSRF cookie set']);
+})->middleware('web');
+
+// Test endpoint to check if cookies are working
+Route::get('/test-session', function (Request $request) {
+    $sessionId = $request->session()->getId();
+    $request->session()->put('test', 'value');
+    
+    return response()->json([
+        'session_id' => $sessionId,
+        'has_session' => $request->hasSession(),
+        'cookies_received' => array_keys($request->cookies->all()),
+        'cookie_header' => $request->header('Cookie'),
+    ]);
+});
 
 // Auth routes with rate limiting (prevent brute force attacks)
 Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 attempts per minute

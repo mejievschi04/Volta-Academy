@@ -13,8 +13,12 @@ class Course extends Model
 
     protected $fillable = ['title','description','image','teacher_id','reward_points','category_id'];
 
+    public function sections() {
+        return $this->hasMany(Section::class)->orderBy('order');
+    }
+
     public function lessons() {
-        return $this->hasMany(Lesson::class);
+        return $this->hasMany(Lesson::class)->orderBy('order');
     }
 
     public function teacher() {
@@ -31,7 +35,7 @@ class Course extends Model
 
     public function assignedUsers() {
         return $this->belongsToMany(User::class, 'course_user')
-                    ->withPivot('is_mandatory', 'assigned_at')
+                    ->withPivot('is_mandatory', 'assigned_at', 'enrolled', 'enrolled_at', 'started_at', 'completed_at', 'progress_percentage')
                     ->withTimestamps();
     }
 }

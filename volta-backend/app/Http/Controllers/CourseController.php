@@ -39,8 +39,12 @@ class CourseController extends Controller
 
     public function show($id)
     {
-        // For single course, include full content
-        $course = Course::with(['lessons', 'teacher:id,name'])->findOrFail($id);
+        // For single course, include full content with sections
+        $course = Course::with([
+            'sections.lessons',
+            'lessons.section',
+            'teacher:id,name'
+        ])->findOrFail($id);
         
         return response()->json($course);
     }

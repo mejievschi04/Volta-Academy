@@ -199,7 +199,7 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', null), // null allows cookies in cross-origin (localhost with different ports)
+    'same_site' => env('SESSION_SAME_SITE', null), // null allows cookies between different localhost ports
 
     /*
     |--------------------------------------------------------------------------

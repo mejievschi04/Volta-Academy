@@ -19,9 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SecurityHeaders::class,
             \Illuminate\Session\Middleware\StartSession::class,
         ]);
-        $middleware->api(append: [
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
-        ]);
+        // AuthenticateSession can cause issues with API routes, so we'll handle auth differently
+        // $middleware->api(append: [
+        //     \Illuminate\Session\Middleware\AuthenticateSession::class,
+        // ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -40,11 +40,11 @@ const RewardsPage = () => {
 
 	const getRewardGradient = (index) => {
 		const gradients = [
-			'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-			'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-			'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-			'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-			'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+			'linear-gradient(135deg, #ffee00 0%, #ffd700 100%)',
+			'linear-gradient(135deg, #ffd700 0%, #ffcc00 100%)',
+			'linear-gradient(135deg, #ffee00 0%, #ffaa00 100%)',
+			'linear-gradient(135deg, #ffcc00 0%, #ffd700 100%)',
+			'linear-gradient(135deg, #ffd700 0%, #ffee00 100%)',
 		];
 		return gradients[index % gradients.length];
 	};

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Lesson;
+use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,30 +26,26 @@ class DashboardController extends Controller
         
         // Try to get cached stats (cache for 5 minutes)
         $cachedStats = Cache::remember($cacheKey . '_stats', 300, function () use ($user) {
-            // Get assigned courses (courses assigned directly to user)
-            $assignedCourses = $user->assignedCourses()->with(['lessons:id,course_id,title,order', 'teacher:id,name'])->get();
+            // Get assigned courses with progress from course_user pivot table
+            $assignedCourses = $user->assignedCourses()
+                ->withPivot('progress_percentage', 'completed_at', 'enrolled', 'started_at')
+                ->with(['lessons:id,course_id,title,order', 'teacher:id,name'])
+                ->wherePivot('enrolled', true)
+                ->get();
+            
             $assignedCourseIds = $assignedCourses->pluck('id')->toArray();
             
-            // Get all courses for total calculation
-            $allCourses = Course::with(['lessons:id,course_id,title,order'])->get();
+            // Calculate completed courses (where completed_at is not null)
+            $completedCourses = $assignedCourses->filter(function($course) {
+                return $course->pivot->completed_at !== null;
+            });
             
-            // Get user progress in one query
-            $progress = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('completed', true)
-                ->pluck('lesson_id')
-                ->toArray();
-
-            // Calculate stats - use assigned courses for lesson counting
-            $assignedCourseIdsSet = collect($assignedCourseIds);
-            $assignedLessons = $allCourses
-                ->filter(function($course) use ($assignedCourseIdsSet) {
-                    return $assignedCourseIdsSet->contains($course->id);
-                })
-                ->sum(function($course) {
-                    return $course->lessons->count();
-                });
+            // Calculate total lessons in assigned courses
+            $totalLessonsInAssigned = $assignedCourses->sum(function($course) {
+                return $course->lessons->count();
+            });
             
+            // Get completed lessons count from lesson_progress
             $completedLessons = DB::table('lesson_progress')
                 ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
                 ->where('lesson_progress.user_id', $user->id)
@@ -56,38 +53,46 @@ class DashboardController extends Controller
                 ->whereIn('lessons.course_id', $assignedCourseIds)
                 ->count();
             
-            $progressPercentage = $assignedLessons > 0 ? round(($completedLessons / $assignedLessons) * 100) : 0;
+            // Calculate real progress percentage from course_user pivot table
+            // Average of all assigned courses' progress_percentage
+            $totalProgress = $assignedCourses->sum(function($course) {
+                return $course->pivot->progress_percentage ?? 0;
+            });
+            $progressPercentage = $assignedCourses->count() > 0 
+                ? round($totalProgress / $assignedCourses->count()) 
+                : 0;
 
-            // Get courses in progress (from assigned courses)
-            $courseProgress = [];
-            foreach ($assignedCourses as $course) {
-                $courseLessons = $course->lessons->pluck('id')->toArray();
-                $completedCourseLessons = array_intersect($courseLessons, $progress);
-                $courseCompleted = count($completedCourseLessons);
-                $courseTotal = count($courseLessons);
-                
-                if ($courseCompleted > 0 && $courseCompleted < $courseTotal) {
-                    $courseProgress[] = [
-                        'courseId' => $course->id,
-                        'completedLessons' => array_values($completedCourseLessons),
-                        'quizPassed' => false,
-                    ];
-                }
-            }
+            // Get completed quizzes (passed exams) - count unique exams passed
+            $completedQuizzes = ExamResult::where('user_id', $user->id)
+                ->where('passed', true)
+                ->distinct('exam_id')
+                ->count('exam_id');
+
+            // Get courses in progress (assigned but not completed)
+            $inProgressCourses = $assignedCourses->filter(function($course) {
+                return $course->pivot->completed_at === null && 
+                       ($course->pivot->progress_percentage ?? 0) > 0;
+            });
 
             return [
                 'stats' => [
-                    'totalCourses' => $allCourses->count(),
-                    'totalLessons' => $allCourses->sum(function($course) {
-                        return $course->lessons->count();
-                    }),
-                    'assignedCourses' => $assignedCourses->count(), // Numărul de cursuri atribuite
+                    'assignedCourses' => $assignedCourses->count(),
+                    'completedCourses' => $completedCourses->count(),
                     'completedLessons' => $completedLessons,
-                    'completedQuizzes' => 0,
-                    'inProgressCourses' => count($courseProgress),
+                    'totalLessonsInAssigned' => $totalLessonsInAssigned,
+                    'completedQuizzes' => $completedQuizzes,
+                    'inProgressCourses' => $inProgressCourses->count(),
                     'progressPercentage' => $progressPercentage,
                 ],
-                'progress' => $courseProgress,
+                'assignedCourses' => $assignedCourses->map(function($course) {
+                    return [
+                        'id' => $course->id,
+                        'title' => $course->title,
+                        'progress_percentage' => $course->pivot->progress_percentage ?? 0,
+                        'completed_at' => $course->pivot->completed_at,
+                        'started_at' => $course->pivot->started_at,
+                    ];
+                }),
             ];
         });
 
@@ -123,7 +128,7 @@ class DashboardController extends Controller
                 'points' => $user->points,
             ],
             'stats' => $cachedStats['stats'],
-            'progress' => $cachedStats['progress'],
+            'assignedCourses' => $cachedStats['assignedCourses'],
             'courses' => $courses,
         ]);
     }

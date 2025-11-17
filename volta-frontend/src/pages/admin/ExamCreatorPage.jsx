@@ -16,6 +16,7 @@ const ExamCreatorPage = () => {
 		course_id: courseId || '',
 		title: '',
 		max_score: 100,
+		max_attempts: null,
 		questions: [],
 	});
 
@@ -59,6 +60,7 @@ const ExamCreatorPage = () => {
 				course_id: exam.course_id,
 				title: exam.title,
 				max_score: exam.max_score || 100,
+				max_attempts: exam.max_attempts || null,
 				questions: exam.questions || [],
 			});
 		} catch (err) {
@@ -297,6 +299,21 @@ const ExamCreatorPage = () => {
 								min="1"
 								placeholder="100"
 							/>
+						</div>
+
+						<div className="va-form-group">
+							<label className="va-form-label">Limită Încercări</label>
+							<input
+								type="number"
+								className="va-form-input"
+								value={formData.max_attempts || ''}
+								onChange={(e) => setFormData({ ...formData, max_attempts: e.target.value ? parseInt(e.target.value) : null })}
+								min="1"
+								placeholder="Nelimitat (lăsați gol)"
+							/>
+							<small className="va-muted" style={{ display: 'block', marginTop: '0.5rem' }}>
+								Lăsați gol pentru nelimitat. Setează numărul maxim de încercări permise pentru acest test.
+							</small>
 						</div>
 
 						{/* Questions Section */}

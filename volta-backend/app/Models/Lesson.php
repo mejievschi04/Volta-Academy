@@ -10,10 +10,29 @@ class Lesson extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['course_id','title','content','order'];
+    protected $fillable = [
+        'course_id', 
+        'section_id', 
+        'title', 
+        'content', 
+        'video_url', 
+        'resources', 
+        'duration_minutes', 
+        'order', 
+        'is_preview'
+    ];
+
+    protected $casts = [
+        'resources' => 'array',
+        'is_preview' => 'boolean',
+    ];
 
     public function course() {
         return $this->belongsTo(Course::class);
+    }
+
+    public function section() {
+        return $this->belongsTo(Section::class);
     }
 
     public function usersProgress()

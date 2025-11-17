@@ -79,14 +79,19 @@ class AuthController extends Controller
             $mustChangePassword = $user->must_change_password ?? false;
             
             // Log successful login
+            $sessionId = $request->session()->getId();
+            $sessionName = $request->session()->getName();
+            
             Log::info('User logged in', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
+                'session_id' => $sessionId,
+                'session_name' => $sessionName,
             ]);
             
-            return response()->json([
+            $response = response()->json([
                 'message' => 'Autentificare reușită',
                 'user' => [
                     'id' => $user->id,
@@ -97,7 +102,18 @@ class AuthController extends Controller
                     'points' => $user->points,
                     'must_change_password' => (bool)$mustChangePassword,
                 ],
+                'debug' => [
+                    'session_id' => $sessionId,
+                    'session_name' => $sessionName,
+                ],
             ]);
+            
+            // Log response headers to see if cookies are set
+            Log::info('Login response headers', [
+                'set_cookie_header' => $response->headers->get('Set-Cookie'),
+            ]);
+            
+            return $response;
         }
 
         // Log failed login attempt
@@ -125,10 +141,35 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        // Debug logging
+        $cookies = $request->cookies->all();
+        $cookieHeader = $request->header('Cookie');
+        
+        Log::info('Auth me check', [
+            'session_id' => $request->session()->getId(),
+            'has_session' => $request->hasSession(),
+            'auth_check' => Auth::check(),
+            'user_id' => Auth::id(),
+            'cookies_received' => array_keys($cookies),
+            'cookie_header' => $cookieHeader ? 'present' : 'missing',
+        ]);
+        
         $user = Auth::user();
         
         if (!$user) {
-            return response()->json(['error' => 'Neautentificat'], 401);
+            Log::warning('Auth me failed - no user', [
+                'session_id' => $request->session()->getId(),
+                'cookies_received' => array_keys($cookies),
+                'cookie_header' => $cookieHeader ? 'present' : 'missing',
+            ]);
+            return response()->json([
+                'error' => 'Neautentificat',
+                'debug' => [
+                    'has_session' => $request->hasSession(),
+                    'session_id' => $request->session()->getId(),
+                    'cookies_received' => array_keys($cookies),
+                ]
+            ], 401);
         }
 
         return response()->json([

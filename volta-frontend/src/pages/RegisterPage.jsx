@@ -6,6 +6,7 @@ const RegisterPage = () => {
 	const [name, setName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 	const { register } = useAuth();
@@ -35,8 +36,8 @@ const RegisterPage = () => {
 					borderRadius: 22,
 					border: '1px solid transparent',
 					backgroundImage:
-						'linear-gradient(rgba(15,18,34,0.86), rgba(15,18,34,0.86)),' +
-						'linear-gradient(135deg, rgba(139,93,255,0.28), rgba(77,245,201,0.18))',
+						'linear-gradient(rgba(0,0,0,0.86), rgba(0,0,0,0.86)),' +
+						'linear-gradient(135deg, rgba(255,238,0,0.28), rgba(255,204,0,0.18))',
 					backgroundOrigin: 'border-box',
 					backgroundClip: 'padding-box, border-box',
 					backdropFilter: 'blur(16px)',
@@ -70,7 +71,7 @@ const RegisterPage = () => {
 								padding: '12px 14px',
 								borderRadius: 12,
 								background: 'rgba(255,255,255,0.03)',
-								border: '1px solid rgba(139,93,255,0.14)',
+								border: '1px solid rgba(255,238,0,0.14)',
 								color: '#fff'
 							}}
 						/>
@@ -91,7 +92,7 @@ const RegisterPage = () => {
 								padding: '12px 14px',
 								borderRadius: 12,
 								background: 'rgba(255,255,255,0.03)',
-								border: '1px solid rgba(139,93,255,0.14)',
+								border: '1px solid rgba(255,238,0,0.14)',
 								color: '#fff'
 							}}
 						/>
@@ -99,24 +100,58 @@ const RegisterPage = () => {
 
 					<div className="va-form-group">
 						<label htmlFor="password" className="va-form-label" style={{ display: 'block', marginBottom: 6, color: 'var(--va-muted)', fontSize: 13, fontWeight: 600 }}>Parolă</label>
-						<input
-							type="password"
-							id="password"
-							className="va-form-input"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							required
-							minLength={6}
-							placeholder="••••••••"
-							style={{
-								width: '100%',
-								padding: '12px 14px',
-								borderRadius: 12,
-								background: 'rgba(255,255,255,0.03)',
-								border: '1px solid rgba(139,93,255,0.14)',
-								color: '#fff'
-							}}
-						/>
+						<div style={{ position: 'relative' }}>
+							<input
+								type={showPassword ? 'text' : 'password'}
+								id="password"
+								className="va-form-input"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								required
+								minLength={6}
+								placeholder="••••••••"
+								style={{
+									width: '100%',
+									padding: '12px 42px 12px 14px',
+									borderRadius: 12,
+									background: 'rgba(255,255,255,0.03)',
+									border: '1px solid rgba(255,238,0,0.14)',
+									color: '#fff'
+								}}
+							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								style={{
+									position: 'absolute',
+									right: '12px',
+									top: '50%',
+									transform: 'translateY(-50%)',
+									background: 'transparent',
+									border: 'none',
+									cursor: 'pointer',
+									padding: '4px',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									color: 'var(--va-muted)',
+								}}
+								onMouseEnter={(e) => e.currentTarget.style.color = 'var(--va-primary)'}
+								onMouseLeave={(e) => e.currentTarget.style.color = 'var(--va-muted)'}
+							>
+								{showPassword ? (
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+										<line x1="1" y1="1" x2="23" y2="23"></line>
+									</svg>
+								) : (
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+										<circle cx="12" cy="12" r="3"></circle>
+									</svg>
+								)}
+							</button>
+						</div>
 						<small className="va-form-hint" style={{ color: 'var(--va-muted)' }}>Minim 6 caractere</small>
 					</div>
 
@@ -124,7 +159,7 @@ const RegisterPage = () => {
 						type="submit"
 						className="va-btn va-btn-primary va-btn-block"
 						disabled={loading}
-						style={{ width: '100%', borderRadius: 12, padding: '12px 16px', fontWeight: 800, letterSpacing: '0.06em' }}
+						style={{ width: '100%', borderRadius: 12, padding: '12px 16px', fontWeight: 800, letterSpacing: '0.06em', color: '#000000' }}
 					>
 						{loading ? 'Se creează contul...' : 'Înregistrare'}
 					</button>

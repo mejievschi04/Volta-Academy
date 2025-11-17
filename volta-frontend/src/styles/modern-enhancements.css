@@ -19,7 +19,7 @@
 	background: linear-gradient(
 		90deg,
 		var(--va-surface-2) 0%,
-		rgba(139, 93, 255, 0.1) 50%,
+		rgba(255, 238, 0, 0.1) 50%,
 		var(--va-surface-2) 100%
 	);
 	background-size: 200% 100%;
@@ -72,9 +72,9 @@
 
 .va-card-enhanced:hover {
 	transform: translateY(-4px);
-	box-shadow: 0 12px 24px rgba(139, 93, 255, 0.15),
-		0 0 40px rgba(139, 93, 255, 0.1);
-	border-color: rgba(139, 93, 255, 0.4);
+	box-shadow: 		0 12px 24px rgba(255, 238, 0, 0.15),
+		0 0 40px rgba(255, 238, 0, 0.1);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .va-card-enhanced:hover::before {
@@ -110,7 +110,7 @@
 
 .va-btn-enhanced:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 8px 16px rgba(139, 93, 255, 0.3);
+	box-shadow: 0 8px 16px rgba(255, 238, 0, 0.3);
 }
 
 .va-btn-enhanced:active {
@@ -226,7 +226,7 @@
 	height: 200%;
 	background: radial-gradient(
 		circle,
-		rgba(139, 93, 255, 0.1) 0%,
+		rgba(255, 238, 0, 0.1) 0%,
 		transparent 70%
 	);
 	opacity: 0;
@@ -235,8 +235,8 @@
 
 .stat-card-modern:hover {
 	transform: translateY(-4px);
-	box-shadow: 0 12px 24px rgba(139, 93, 255, 0.15);
-	border-color: rgba(139, 93, 255, 0.4);
+	box-shadow: 0 12px 24px rgba(255, 238, 0, 0.15);
+	border-color: rgba(255, 238, 0, 0.4);
 }
 
 .stat-card-modern:hover::after {
@@ -295,8 +295,8 @@
 .form-input-modern select:focus {
 	outline: none;
 	border-color: var(--va-primary);
-	box-shadow: 0 0 0 4px rgba(139, 93, 255, 0.1),
-		0 0 20px rgba(139, 93, 255, 0.2);
+	box-shadow: 0 0 0 4px rgba(255, 238, 0, 0.1),
+		0 0 20px rgba(255, 238, 0, 0.2);
 	background: var(--va-surface);
 }
 
@@ -478,7 +478,7 @@ html {
    GLASSMORPHISM EFFECT
    ============================================ */
 .glass {
-	background: rgba(15, 18, 34, 0.7);
+	background: rgba(0, 0, 0, 0.7);
 	backdrop-filter: blur(20px);
 	border: 1px solid rgba(255, 255, 255, 0.1);
 }
