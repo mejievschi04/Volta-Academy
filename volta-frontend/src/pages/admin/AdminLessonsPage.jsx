@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
 import { coursesService } from '../../services/api';
 
 const AdminLessonsPage = () => {
@@ -169,15 +168,33 @@ const AdminLessonsPage = () => {
 						justifyContent: 'center',
 						zIndex: 1000,
 					}}
-					onClick={() => setShowModal(false)}
 				>
 					<div
 						className="va-card"
-						style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}
-						onClick={(e) => e.stopPropagation()}
+						style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto', position: 'relative' }}
 					>
-						<div className="va-card-header">
+						<div className="va-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 							<h2>{editingLesson ? 'Editează Lecție' : 'Adaugă Lecție Nouă'}</h2>
+							<button
+								type="button"
+								onClick={() => setShowModal(false)}
+								style={{
+									background: 'transparent',
+									border: 'none',
+									color: '#fff',
+									fontSize: '1.5rem',
+									cursor: 'pointer',
+									padding: '0.25rem 0.5rem',
+									lineHeight: 1,
+									opacity: 0.7,
+									transition: 'opacity 0.2s',
+								}}
+								onMouseEnter={(e) => e.target.style.opacity = 1}
+								onMouseLeave={(e) => e.target.style.opacity = 0.7}
+								title="Închide"
+							>
+								×
+							</button>
 						</div>
 						<div className="va-card-body">
 							<form onSubmit={handleSubmit} className="va-stack">

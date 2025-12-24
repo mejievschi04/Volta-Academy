@@ -13,7 +13,14 @@ const api = axios.create({
 // Interceptor pentru request-uri
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    // If data is FormData, remove Content-Type header to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    // Don't log /auth/me requests (they're called frequently and 401 is normal when not authenticated)
+    if (config.url !== '/auth/me') {
+      console.log('API Request:', config.method?.toUpperCase(), config.url);
+    }
     return config;
   },
   (error) => {
@@ -25,18 +32,27 @@ api.interceptors.request.use(
 // Interceptor pentru răspunsuri
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.status, response.config.url);
+    // Don't log /auth/me responses (they're called frequently)
+    if (response.config?.url !== '/auth/me') {
+      console.log('API Response:', response.status, response.config.url);
+    }
     return response;
   },
   (error) => {
-    console.error('API Response Error:', error);
-    if (error.code === 'ECONNABORTED') {
-      console.error('Request timeout - serverul nu răspunde');
-    } else if (error.code === 'ERR_NETWORK') {
-      console.error('Network error - verifică dacă backend-ul rulează');
-    } else if (error.response) {
-      console.error('Server error:', error.response.status, error.response.data);
+    // Don't log 401 errors for /auth/me - this is normal when user is not authenticated
+    const isAuthMe401 = error.response?.status === 401 && error.config?.url === '/auth/me';
+    
+    if (!isAuthMe401) {
+      console.error('API Response Error:', error);
+      if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout - serverul nu răspunde');
+      } else if (error.code === 'ERR_NETWORK') {
+        console.error('Network error - verifică dacă backend-ul rulează');
+      } else if (error.response) {
+        console.error('Server error:', error.response.status, error.response.data);
+      }
     }
+    // For /auth/me 401, silently reject (this is expected behavior)
     return Promise.reject(error);
   }
 );

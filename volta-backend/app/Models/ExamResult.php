@@ -19,12 +19,19 @@ class ExamResult extends Model
         'passed',
         'answers',
         'completed_at',
+        'needs_manual_review',
+        'manual_review_scores',
+        'reviewed_at',
+        'reviewed_by',
     ];
 
     protected $casts = [
         'answers' => 'array',
         'passed' => 'boolean',
         'completed_at' => 'datetime',
+        'needs_manual_review' => 'boolean',
+        'manual_review_scores' => 'array',
+        'reviewed_at' => 'datetime',
     ];
 
     public function exam()

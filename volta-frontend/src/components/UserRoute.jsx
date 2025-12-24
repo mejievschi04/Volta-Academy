@@ -11,10 +11,8 @@ const UserRoute = ({ children }) => {
 		return <Navigate to="/login" replace />;
 	}
 
-	// Redirect admins to admin dashboard
-	if (user.role === 'admin') {
-		return <Navigate to="/admin" replace />;
-	}
+	// Allow admins to view user pages (for preview purposes)
+	// They can navigate back to admin via the sidebar button
 
 	return children;
 };

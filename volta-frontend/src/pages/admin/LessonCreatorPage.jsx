@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
+import RichTextEditor from '../../components/RichTextEditor';
 
 // Template blocks for lessons
 const lessonBlocks = [
@@ -108,13 +108,16 @@ const LessonCreatorPage = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const courseId = searchParams.get('course_id');
-	const categoryId = searchParams.get('category_id');
+	const moduleId = searchParams.get('module_id');
 
 	const [loading, setLoading] = useState(false);
 	const [courses, setCourses] = useState([]);
 	const [showBlockSelector, setShowBlockSelector] = useState(false);
+	const [errors, setErrors] = useState({});
+	const [touched, setTouched] = useState({});
 	const [formData, setFormData] = useState({
 		course_id: courseId || '',
+		module_id: moduleId || '',
 		title: '',
 		content: '',
 		order: 0,
@@ -129,20 +132,23 @@ const LessonCreatorPage = () => {
 		}
 		
 		fetchCourses();
-		if (id) {
+		// Only fetch lesson if id exists and is not "new"
+		if (id && id !== 'new') {
 			fetchLesson();
-		} else if (courseId) {
-			// Set course_id if provided via URL
-			setFormData(prev => ({ ...prev, course_id: courseId }));
+		} else {
+			// Set course_id and module_id if provided via URL
+			setFormData(prev => ({
+				...prev,
+				course_id: courseId || prev.course_id,
+				module_id: moduleId || prev.module_id,
+			}));
 		}
-	}, [id, courseId]);
+	}, [id, courseId, moduleId]);
 
 	const fetchCourses = async () => {
 		try {
 			const allCourses = await adminService.getCourses();
-			const filteredCourses = categoryId
-				? allCourses.filter(c => c.category_id == categoryId)
-				: allCourses;
+			const filteredCourses = allCourses;
 			setCourses(filteredCourses);
 			if (courseId && !formData.course_id) {
 				setFormData(prev => ({ ...prev, course_id: courseId }));
@@ -157,9 +163,10 @@ const LessonCreatorPage = () => {
 			setLoading(true);
 			const lesson = await adminService.getLesson(id);
 			setFormData({
-				course_id: lesson.course_id,
-				title: lesson.title,
-				content: lesson.content,
+				course_id: lesson.course_id || courseId || '',
+				module_id: lesson.module_id || moduleId || '',
+				title: lesson.title || '',
+				content: lesson.content || '',
 				order: lesson.order || 0,
 			});
 		} catch (err) {
@@ -170,28 +177,84 @@ const LessonCreatorPage = () => {
 		}
 	};
 
+
+	// Convert Markdown to HTML for Quill
+	const markdownToHtml = (markdown) => {
+		let html = markdown;
+		// Headers
+		html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+		html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+		html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+		// Bold
+		html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+		// Italic
+		html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+		// Code blocks
+		html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+		// Inline code
+		html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+		// Links
+		html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+		// Lists
+		html = html.replace(/^\- (.+)$/gim, '<li>$1</li>');
+		html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+		// Line breaks
+		html = html.replace(/\n/g, '<br>');
+		return html;
+	};
+
 	const insertBlock = (block) => {
 		const currentContent = formData.content;
-		const separator = currentContent ? '\n\n---\n\n' : '';
+		const separator = currentContent ? '<br><br><hr><br><br>' : '';
+		const blockHtml = markdownToHtml(block.template);
 		setFormData({
 			...formData,
-			content: currentContent + separator + block.template,
+			content: currentContent + separator + blockHtml,
 		});
 		setShowBlockSelector(false);
+	};
+
+	// Validate form
+	const validate = () => {
+		const newErrors = {};
+		if (!formData.course_id) {
+			newErrors.course_id = 'Trebuie să selectezi un curs';
+		}
+		if (!formData.title || formData.title.trim().length < 3) {
+			newErrors.title = 'Titlul trebuie să aibă minim 3 caractere';
+		}
+		// Strip HTML tags for validation
+		const textContent = formData.content ? formData.content.replace(/<[^>]*>/g, '').trim() : '';
+		if (!formData.content || textContent.length < 20) {
+			newErrors.content = 'Conținutul trebuie să aibă minim 20 caractere';
+		}
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
+
+	// Calculate form completion percentage
+	const completionPercentage = () => {
+		let completed = 0;
+		const total = 3;
+		if (formData.course_id) completed++;
+		if (formData.title && formData.title.trim().length >= 3) completed++;
+		const textContent = formData.content ? formData.content.replace(/<[^>]*>/g, '').trim() : '';
+		if (textContent.length >= 20) completed++;
+		return Math.round((completed / total) * 100);
 	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		
-		// Validate that course_id is required
-		if (!formData.course_id) {
-			alert('Trebuie să selectezi un curs!');
+		// Validate before submit
+		if (!validate()) {
+			alert('Te rugăm să completezi toate câmpurile obligatorii corect!');
 			return;
 		}
 		
 		try {
 			setLoading(true);
-			if (id) {
+			if (id && id !== 'new') {
 				await adminService.updateLesson(id, formData);
 				alert('Lecție actualizată cu succes!');
 			} else {
@@ -204,176 +267,249 @@ const LessonCreatorPage = () => {
 				navigate(`/admin/courses/${formData.course_id}`);
 			} else {
 				navigate('/admin/courses');
+			} else {
+				navigate('/admin/courses');
 			}
 		} catch (err) {
 			console.error('Error saving lesson:', err);
-			alert('Eroare la salvarea lecției');
+			alert('Eroare la salvarea lecției: ' + (err.response?.data?.message || err.message || 'Eroare necunoscută'));
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	if (loading && id) {
+	if (loading && id && id !== 'new') {
 		return (
-			<div className="admin-container">
-				<p>Se încarcă...</p>
+			<div className="admin-lesson-creator-page">
+				<div className="admin-loading-state">
+					<p>Se încarcă...</p>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="admin-container">
-			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">
-						{id ? 'Editează Lecție' : 'Creează Lecție Nouă'}
-					</h1>
-					<p className="va-muted admin-page-subtitle">
-						Completează informațiile pentru {id ? 'actualizarea' : 'crearea'} lecției
-					</p>
+		<div className="admin-lesson-creator-page">
+			<div className="admin-lesson-creator-container">
+				<div className="admin-page-header">
+					<div>
+						<h1 className="admin-page-title">
+							{id && id !== 'new' ? 'Editează Lecție' : 'Creează Lecție Nouă'}
+						</h1>
+						<p className="admin-page-subtitle">
+							Completează informațiile pentru {id && id !== 'new' ? 'actualizarea' : 'crearea'} lecției
+						</p>
+					</div>
+					<button 
+						className="admin-btn admin-btn-secondary" 
+						onClick={() => {
+							if (categoryId) {
+								navigate(`/admin/categories/${categoryId}`);
+							} else if (formData.course_id) {
+								navigate(`/admin/courses/${formData.course_id}`);
+							} else {
+								navigate('/admin/courses');
+							}
+						}}
+					>
+						← Înapoi
+					</button>
 				</div>
-				<button className="va-btn" onClick={() => {
-					if (categoryId) {
-						navigate(`/admin/categories/${categoryId}`);
-					} else {
-						navigate('/admin/courses');
-					}
-				}}>
-					Înapoi
-				</button>
-			</div>
 
-			<div className="va-card">
-				<div className="va-card-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Curs *</label>
+				<div className="admin-form">
+					<div className="admin-form-body">
+					<form onSubmit={handleSubmit} className="admin-lesson-form">
+						{/* Progress Indicator */}
+						<div className="admin-form-progress">
+							<div className="admin-form-progress-header">
+								<span className="admin-form-progress-label">Progres completare</span>
+								<span className="admin-form-progress-value">{completionPercentage()}%</span>
+							</div>
+							<div className="admin-form-progress-bar">
+								<div 
+									className="admin-form-progress-fill"
+									style={{ width: `${completionPercentage()}%` }}
+								/>
+							</div>
+						</div>
+
+						{/* Course Selection */}
+						<div className="admin-form-group">
+							<label className="admin-label admin-label-with-icon">
+								<span>📚</span>
+								<span>Curs</span>
+								{formData.course_id && (
+									<span className="admin-form-check">✓</span>
+								)}
+							</label>
 							<select
-								className="va-form-input"
+								className={`admin-form-select ${errors.course_id ? 'error' : ''} ${formData.course_id ? 'has-value' : ''}`}
 								value={formData.course_id}
-								onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
+								onChange={(e) => {
+									setFormData({ ...formData, course_id: e.target.value });
+									if (touched.course_id) validate();
+								}}
+								onBlur={() => {
+									setTouched({ ...touched, course_id: true });
+									validate();
+								}}
 								required
 								disabled={!!courseId}
 							>
-								<option value="">Selectează curs</option>
+								<option value="">Selectează curs...</option>
 								{courses.map((course) => (
 									<option key={course.id} value={course.id}>
 										{course.title}
 									</option>
 								))}
 							</select>
+							{errors.course_id && touched.course_id && (
+								<p className="admin-form-error">{errors.course_id}</p>
+							)}
 							{courses.length === 0 && (
-								<small style={{ color: 'var(--va-danger)', display: 'block', marginTop: '0.5rem' }}>
-									Nu există cursuri disponibile. Creează mai întâi un curs!
-								</small>
+								<div className="admin-form-info">
+									💡 Nu există cursuri disponibile. Creează mai întâi un curs!
+								</div>
 							)}
 						</div>
 
-						<div className="va-form-group">
-							<label className="va-form-label">Titlu Lecție *</label>
+						{/* Title Field */}
+						<div className="admin-form-group">
+							<label className="admin-label admin-label-with-icon">
+								<span>📝</span>
+								<span>Titlu Lecție <span className="admin-form-required">*</span></span>
+								{formData.title && formData.title.trim().length >= 3 && (
+									<span className="admin-form-check">✓</span>
+								)}
+							</label>
 							<input
 								type="text"
-								className="va-form-input"
+								className={`admin-form-input ${errors.title ? 'error' : ''} ${formData.title && formData.title.trim().length >= 3 ? 'has-value' : ''}`}
 								value={formData.title}
-								onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+								onChange={(e) => {
+									setFormData({ ...formData, title: e.target.value });
+									if (touched.title) validate();
+								}}
+								onBlur={() => {
+									setTouched({ ...touched, title: true });
+									validate();
+								}}
 								placeholder="Ex: Introducere în React"
 								required
 							/>
+							{errors.title && touched.title && (
+								<p className="admin-form-error">{errors.title}</p>
+							)}
+							{formData.title && formData.title.trim().length > 0 && formData.title.trim().length < 3 && (
+								<p className="admin-form-help-text">
+									💡 Minim 3 caractere necesare ({formData.title.trim().length}/3)
+								</p>
+							)}
 						</div>
 
-						<div className="va-form-group">
-							<label className="va-form-label">Ordine</label>
+						{/* Order Field */}
+						<div className="admin-form-group">
+							<label className="admin-label admin-label-with-icon">
+								<span>🔢</span>
+								<span>Ordine</span>
+							</label>
 							<input
 								type="number"
-								className="va-form-input"
+								className="admin-form-input"
 								value={formData.order}
 								onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
 								min="0"
 								placeholder="Ordinea în care apare lecția în curs"
 							/>
-							<small className="va-muted" style={{ marginTop: '0.25rem', display: 'block' }}>
-								Lecțiile vor fi afișate în ordinea crescătoare a acestui număr
-							</small>
+							<p className="admin-form-help-text">
+								💡 Lecțiile vor fi afișate în ordinea crescătoare a acestui număr (0 = prima lecție)
+							</p>
 						</div>
 
-						<div className="va-form-group">
-							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-								<label className="va-form-label">Conținut Lecție *</label>
+						{/* Content Field */}
+						<div className="admin-form-group">
+							<div className="admin-form-group-header">
+								<label className="admin-label admin-label-with-icon">
+									<span>📄</span>
+									<span>Conținut Lecție <span className="admin-form-required">*</span></span>
+									{formData.content && formData.content.replace(/<[^>]*>/g, '').trim().length >= 20 && (
+										<span className="admin-form-check">✓</span>
+									)}
+								</label>
 								<button
 									type="button"
-									className="va-btn va-btn-sm va-btn-primary"
+									className="admin-btn admin-btn-sm admin-btn-primary"
 									onClick={() => setShowBlockSelector(!showBlockSelector)}
 								>
-									+ Adaugă Bloc
+									<span>➕</span>
+									<span>Adaugă Bloc</span>
 								</button>
 							</div>
 
 							{showBlockSelector && (
-								<div style={{
-									marginBottom: '1rem',
-									padding: '1rem',
-									background: 'var(--va-surface-2)',
-									borderRadius: '8px',
-									border: '1px solid var(--va-border)',
-								}}>
-									<h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '0.95rem' }}>
+								<div className="admin-block-selector">
+									<h4 className="admin-block-selector-title">
 										Selectează un bloc pentru a-l adăuga:
 									</h4>
-									<div style={{
-										display: 'grid',
-										gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-										gap: '0.75rem',
-									}}>
+									<div className="admin-block-grid">
 										{lessonBlocks.map((block) => (
 											<button
 												key={block.id}
 												type="button"
-												className="va-btn"
+												className="admin-block-card"
 												onClick={() => insertBlock(block)}
-												style={{
-													display: 'flex',
-													flexDirection: 'column',
-													alignItems: 'center',
-													gap: '0.5rem',
-													padding: '1rem',
-													textAlign: 'center',
-												}}
 											>
-												<span style={{ fontSize: '2rem' }}>{block.icon}</span>
-												<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{block.name}</span>
+												<span className="admin-block-icon">{block.icon}</span>
+												<span className="admin-block-name">{block.name}</span>
 											</button>
 										))}
 									</div>
 								</div>
 							)}
 
-							<textarea
-								className="va-form-input"
-								value={formData.content}
-								onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-								placeholder="Scrie conținutul lecției aici sau adaugă blocuri gata făcute..."
-								required
-								rows={20}
-								style={{
-									fontFamily: 'monospace',
-									fontSize: '0.95rem',
-									lineHeight: '1.6',
-									resize: 'vertical',
-									minHeight: '400px',
-								}}
-							/>
-							<small className="va-muted" style={{ marginTop: '0.25rem', display: 'block' }}>
-								Poți folosi formatare Markdown pentru text (bold, italic, liste, etc.) sau adaugă blocuri gata făcute folosind butonul de mai sus.
-							</small>
+							<div className={`admin-form-editor-wrapper ${errors.content ? 'has-error' : ''} ${formData.content && formData.content.replace(/<[^>]*>/g, '').trim().length >= 20 ? 'has-value' : ''}`}>
+								<RichTextEditor
+									value={formData.content}
+									onChange={(value) => {
+										setFormData({ ...formData, content: value });
+										if (touched.content) validate();
+									}}
+									onBlur={() => {
+										setTouched({ ...touched, content: true });
+										validate();
+									}}
+									placeholder="Scrie conținutul lecției aici sau adaugă blocuri gata făcute folosind butonul de mai sus..."
+								/>
+							</div>
+							{errors.content && touched.content && (
+								<p className="admin-form-error">{errors.content}</p>
+							)}
+							{formData.content && (() => {
+								const textContent = formData.content.replace(/<[^>]*>/g, '').trim();
+								return (
+									<p className={`admin-form-help-text ${textContent.length >= 20 ? 'success' : ''}`}>
+										{textContent.length >= 20 ? (
+											<>✓ {textContent.length} caractere</>
+										) : (
+											<>💡 Minim 20 caractere necesare ({textContent.length}/20)</>
+										)}
+									</p>
+								);
+							})()}
+							<div className="admin-form-info">
+								💡 Poți folosi formatare Markdown pentru text (bold, italic, liste, etc.) sau adaugă blocuri gata făcute folosind butonul de mai sus.
+							</div>
 						</div>
 
-						<div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+						<div className="admin-form-actions">
 							<button
 								type="button"
-								className="va-btn"
+								className="admin-btn admin-btn-secondary"
 								onClick={() => {
 									if (categoryId) {
 										navigate(`/admin/categories/${categoryId}`);
+									} else if (formData.course_id) {
+										navigate(`/admin/courses/${formData.course_id}`);
 									} else {
 										navigate('/admin/courses');
 									}
@@ -384,13 +520,29 @@ const LessonCreatorPage = () => {
 							</button>
 							<button
 								type="submit"
-								className="va-btn va-btn-primary"
-								disabled={loading}
+								className={`admin-btn admin-btn-primary ${completionPercentage() < 100 ? 'disabled' : ''}`}
+								disabled={loading || completionPercentage() < 100}
 							>
-								{loading ? 'Se salvează...' : id ? 'Actualizează Lecție' : 'Creează Lecție'}
+								{loading ? (
+									<>
+										<span>⏳</span>
+										<span>Se salvează...</span>
+									</>
+								) : completionPercentage() < 100 ? (
+									<>
+										<span>⚠️</span>
+										<span>Completează toate câmpurile</span>
+									</>
+								) : (
+									<>
+										<span>💾</span>
+										<span>{id && id !== 'new' ? 'Actualizează Lecție' : 'Creează Lecție'}</span>
+									</>
+								)}
 							</button>
 						</div>
 					</form>
+					</div>
 				</div>
 			</div>
 		</div>

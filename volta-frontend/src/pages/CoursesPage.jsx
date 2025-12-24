@@ -1,341 +1,313 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { categoriesService } from '../services/api';
+import { coursesService, dashboardService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CoursesPage = () => {
 	const navigate = useNavigate();
-	const [categories, setCategories] = useState([]);
-	const [selectedFolder, setSelectedFolder] = useState(null);
+	const { user } = useAuth();
+	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const fetchingRef = useRef(false);
+	const progressFetchingRef = useRef(false);
+	
+	// Filter and sort states
+	const [searchQuery, setSearchQuery] = useState('');
+	const [statusFilter, setStatusFilter] = useState('all'); // all, in-progress, completed, not-started
+	const [sortBy, setSortBy] = useState('recent'); // recent, alphabetical, progress, duration
+	const [courseProgress, setCourseProgress] = useState({});
+
+	// Debug loading/data state in console to trace stuck spinner issues
+	useEffect(() => {
+		console.log('[CoursesPage] loading:', loading, 'courses:', courses.length, 'error:', error);
+	}, [loading, courses, error]);
 
 	useEffect(() => {
-		const fetchCategories = async () => {
+		// Prevent multiple fetches
+		if (fetchingRef.current) return;
+		
+		const fetchCourses = async () => {
+			if (fetchingRef.current) return;
+			fetchingRef.current = true;
+			
 			try {
 				setLoading(true);
-				const data = await categoriesService.getAll();
-				setCategories(data);
-			} catch (err) {
-				console.error('Error fetching categories:', err);
-				setError('Nu s-au putut încărca categoriile');
-			} finally {
+				const data = await coursesService.getAll();
+				
+				console.log('[CoursesPage] Received data from API:', data);
+				console.log('[CoursesPage] Data type:', typeof data);
+				console.log('[CoursesPage] Is array:', Array.isArray(data));
+				console.log('[CoursesPage] Data length:', data?.length);
+				
+				// Always update state - React handles unmounted component warnings
+				console.log('[CoursesPage] Setting courses:', data);
+				setCourses(data || []);
 				setLoading(false);
+			} catch (err) {
+				console.error('Error fetching courses:', err);
+				setError('Nu s-au putut încărca cursurile');
+				setLoading(false);
+			} finally {
+				fetchingRef.current = false;
 			}
 		};
-		fetchCategories();
-	}, []);
+		
+		fetchCourses();
+	}, []); // Empty dependency array - fetch only once on mount
+
+	// Fetch progress separately when user becomes available (if not already fetched)
+	useEffect(() => {
+		if (!user?.id || !courses.length || progressFetchingRef.current || Object.keys(courseProgress).length > 0) return;
+		
+		const fetchProgress = async () => {
+			progressFetchingRef.current = true;
+			
+			try {
+				const progressPromises = courses.map(course =>
+					dashboardService.getProgress(course.id, user.id)
+						.then(progress => ({ courseId: course.id, progress }))
+						.catch(() => ({ courseId: course.id, progress: null }))
+				);
+				
+				const progressResults = await Promise.all(progressPromises);
+				const progressMap = {};
+				progressResults.forEach(({ courseId, progress }) => {
+					progressMap[courseId] = progress;
+				});
+				
+				// Always update state - React handles unmounted component warnings
+				setCourseProgress(progressMap);
+			} catch (err) {
+				console.error('Error fetching progress:', err);
+			} finally {
+				progressFetchingRef.current = false;
+			}
+		};
+		
+		fetchProgress();
+	}, [user?.id, courses.length]); // Only when user.id or courses change
+
+	// Calculate course status and progress
+	const getCourseStatus = (course) => {
+		// Course is completed if completed_at is set (when exam is passed)
+		// Check if completed_at exists and is not empty/null
+		if (course.completed_at && course.completed_at !== null && course.completed_at !== undefined && course.completed_at !== '') {
+			return 'completed';
+		}
+		
+		const progress = courseProgress[course.id];
+		if (!progress || !progress.progress_percentage) {
+			return 'not-started';
+		}
+		const progressPercentage = progress.progress_percentage || 0;
+		
+		if (progressPercentage > 0) return 'in-progress';
+		return 'not-started';
+	};
+
+	const getCourseProgressPercentage = (course) => {
+		const progress = courseProgress[course.id];
+		return progress?.progress_percentage || 0;
+	};
+
+	// Filter and sort courses
+	const filteredAndSortedCourses = useMemo(() => {
+		let filteredCourses = [...courses];
+		
+		// Search filter
+		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
+			filteredCourses = filteredCourses.filter(course => 
+				course.title?.toLowerCase().includes(query) ||
+				course.description?.toLowerCase().includes(query)
+			);
+		}
+		
+		// Status filter
+		if (statusFilter !== 'all') {
+			filteredCourses = filteredCourses.filter(course => getCourseStatus(course) === statusFilter);
+		}
+		
+		// Sort
+		filteredCourses.sort((a, b) => {
+			switch (sortBy) {
+				case 'alphabetical':
+					return (a.title || '').localeCompare(b.title || '');
+				case 'progress':
+					return getCourseProgressPercentage(b) - getCourseProgressPercentage(a);
+				case 'duration':
+					const aDuration = a.total_duration_minutes || 0;
+					const bDuration = b.total_duration_minutes || 0;
+					return aDuration - bDuration;
+				case 'recent':
+				default:
+					// Sort by ID descending (assuming higher ID = more recent)
+					return (b.id || 0) - (a.id || 0);
+			}
+		});
+		
+		return filteredCourses;
+	}, [courses, searchQuery, statusFilter, sortBy, courseProgress]);
 
 	if (loading) {
 		return (
-			<div className="va-stack" style={{ padding: '2rem', textAlign: 'center' }}>
-				<p className="va-muted">Se încarcă...</p>
+			<div className="courses-page">
+				<div className="courses-loading">
+					<p>Se încarcă...</p>
+				</div>
 			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="va-stack" style={{ padding: '2rem' }}>
-				<p style={{ color: 'var(--va-primary)' }}>{error}</p>
+			<div className="courses-page">
+				<div className="courses-empty-state">
+					<p style={{ color: 'var(--color-error)' }}>{error}</p>
+				</div>
 			</div>
 		);
 	}
 
-	// If a folder is selected, show courses in that folder
-	if (selectedFolder) {
-		const folder = categories.find(cat => cat.id === selectedFolder);
-		if (!folder) {
-			setSelectedFolder(null);
-			return null;
-		}
-
-		return (
-			<div className="va-stack" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-				{/* Breadcrumb */}
-				<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-					<button
-						type="button"
-						onClick={() => setSelectedFolder(null)}
-						style={{
-							display: 'flex',
-							alignItems: 'center',
-							gap: '0.5rem',
-							background: 'rgba(255,255,255,0.05)',
-							border: '1px solid rgba(255,238,0,0.22)',
-							borderRadius: '12px',
-							padding: '0.75rem 1.25rem',
-							color: 'var(--va-text)',
-							cursor: 'pointer',
-							fontSize: '0.95rem',
-							fontWeight: 600,
-							transition: 'all 0.3s ease'
-						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.background = 'rgba(255,238,0,0.12)';
-							e.currentTarget.style.borderColor = 'rgba(255,238,0,0.35)';
-							e.currentTarget.style.transform = 'translateX(-4px)';
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-							e.currentTarget.style.borderColor = 'rgba(255,238,0,0.22)';
-							e.currentTarget.style.transform = 'translateX(0)';
-						}}
-					>
-						<span>←</span>
-						<span>Înapoi la foldere</span>
-					</button>
-					<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-					<span style={{ color: 'var(--va-primary)', fontWeight: 600 }}>
-						{folder.name}
-					</span>
-				</div>
-
-				{/* Folder Header */}
-				<div className="va-course-detail-header" style={{
-					background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-					border: '1px solid rgba(255,238,0,0.3)',
-					borderRadius: '24px',
-					padding: '3rem',
-					marginBottom: '2.5rem',
-					boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.15) inset',
-					position: 'relative',
-					overflow: 'hidden'
-				}}>
-					<div style={{
-						position: 'absolute',
-						top: '-30%',
-						right: '-10%',
-						width: '400px',
-						height: '400px',
-						background: 'radial-gradient(circle, rgba(255,238,0,0.12), transparent)',
-						pointerEvents: 'none'
-					}} />
-					<div style={{ position: 'relative', zIndex: 1 }}>
-						<h1 className="va-page-title" style={{
-							background: 'linear-gradient(135deg, #fff, #ffee00)',
-							WebkitBackgroundClip: 'text',
-							WebkitTextFillColor: 'transparent',
-							fontSize: '2.5rem',
-							letterSpacing: '-0.02em',
-							lineHeight: 1.2,
-							marginBottom: '0.75rem'
-						}}>
-							{folder.name}
-						</h1>
-						{folder.description && (
-							<p className="va-muted" style={{ fontSize: '1.15rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.7)' }}>
-								{folder.description}
-							</p>
-						)}
-					</div>
-				</div>
-
-				{/* Courses Grid */}
-				{folder.courses && folder.courses.length > 0 ? (
-					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-						{folder.courses.map((course) => (
-							<button
-								key={course.id}
-								type="button"
-								onClick={() => navigate(`/courses/${course.id}`)}
-								className="va-course-detail-header"
-								style={{
-									width: '100%',
-									background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-									border: '1px solid rgba(255,238,0,0.3)',
-									borderRadius: '24px',
-									padding: '2.5rem',
-									cursor: 'pointer',
-									transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-									display: 'flex',
-									flexDirection: 'column',
-									textAlign: 'left',
-									color: 'var(--va-text)',
-									boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.15) inset',
-									position: 'relative',
-									overflow: 'hidden'
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.12), rgba(255,238,0,0.08))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
-									e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-									e.currentTarget.style.boxShadow = '0 16px 48px rgba(255,238,0,0.2), 0 0 0 1px rgba(255,238,0,0.2) inset';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.3)';
-									e.currentTarget.style.transform = 'translateY(0) scale(1)';
-									e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.15) inset';
-								}}
-							>
-								<div style={{
-									position: 'absolute',
-									top: '-30%',
-									right: '-10%',
-									width: '300px',
-									height: '300px',
-									background: 'radial-gradient(circle, rgba(255,238,0,0.12), transparent)',
-									pointerEvents: 'none'
-								}} />
-								<div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
-									<h3 style={{
-										color: 'var(--va-text)',
-										fontSize: '1.5rem',
-										fontWeight: 700,
-										margin: 0,
-										marginBottom: '1rem',
-										lineHeight: 1.3
-									}}>
-										{course.title}
-									</h3>
-									{course.description && (
-										<p style={{
-											color: 'var(--va-muted)',
-											fontSize: '1rem',
-											margin: 0,
-											marginBottom: '1.5rem',
-											lineHeight: 1.6
-										}}>
-											{course.description}
-										</p>
-									)}
-									<div style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										color: 'var(--va-muted)',
-										fontSize: '0.9rem',
-										marginTop: 'auto',
-										paddingTop: '1.5rem',
-										borderTop: '1px solid rgba(255,238,0,0.15)'
-									}}>
-										<span>📖</span>
-										<span>{course.lessons_count || course.lessons?.length || 0} module</span>
-									</div>
-								</div>
-							</button>
-						))}
-					</div>
-				) : (
-					<div style={{
-						padding: '2rem',
-						textAlign: 'center',
-						color: 'var(--va-muted)',
-						background: 'rgba(0,0,0,0.9)',
-						border: '1px solid rgba(255,238,0,0.22)',
-						borderRadius: '16px'
-					}}>
-						Nu există cursuri în acest folder.
-					</div>
-				)}
-			</div>
-		);
-	}
-
-	// Show folders
+	// Show courses directly
 	return (
-		<div className="va-stack" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-			<div style={{ marginBottom: '2.5rem' }}>
-				<h1 className="va-page-title" style={{
-					background: 'linear-gradient(135deg, #fff, #ffee00)',
-					WebkitBackgroundClip: 'text',
-					WebkitTextFillColor: 'transparent',
-					marginBottom: '0.5rem'
-				}}>
+		<div className="courses-page">
+			<div className="courses-page-header">
+				<h1 className="courses-page-title">
 					Cursuri
 				</h1>
-				<p className="va-muted" style={{ fontSize: '1.05rem' }}>
-					Selectează un folder pentru a vedea cursurile disponibile
+				<p className="courses-page-subtitle">
+					Explorează toate cursurile disponibile
 				</p>
 			</div>
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-				{categories.map((category) => (
+			{/* Filters and Search */}
+			<div className="va-courses-filters">
+				<div className="va-search-bar">
+					<input
+						type="text"
+						placeholder="Caută cursuri..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
+				</div>
+				<div className="va-filter-buttons">
 					<button
-						key={category.id}
-						type="button"
-						onClick={() => setSelectedFolder(category.id)}
-						className="va-course-detail-header"
-						style={{
-							width: '100%',
-							background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-							border: '1px solid rgba(255,238,0,0.3)',
-							borderRadius: '24px',
-							padding: '2.5rem',
-							cursor: 'pointer',
-							transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-							display: 'flex',
-							flexDirection: 'column',
-							textAlign: 'left',
-							color: 'var(--va-text)',
-							boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.15) inset',
-							position: 'relative',
-							overflow: 'hidden'
-						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.12), rgba(255,238,0,0.08))';
-							e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
-							e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-							e.currentTarget.style.boxShadow = '0 16px 48px rgba(255,238,0,0.2), 0 0 0 1px rgba(255,238,0,0.2) inset';
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))';
-							e.currentTarget.style.borderColor = 'rgba(255,238,0,0.3)';
-							e.currentTarget.style.transform = 'translateY(0) scale(1)';
-							e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.15) inset';
-						}}
+						className={`va-filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+						onClick={() => setStatusFilter('all')}
 					>
-						<div style={{
-							position: 'absolute',
-							top: '-30%',
-							right: '-10%',
-							width: '300px',
-							height: '300px',
-							background: 'radial-gradient(circle, rgba(255,238,0,0.12), transparent)',
-							pointerEvents: 'none'
-						}} />
-						<div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
-							<h3 style={{
-								color: 'var(--va-text)',
-								fontSize: '1.5rem',
-								fontWeight: 700,
-								margin: 0,
-								marginBottom: '1rem',
-								lineHeight: 1.3
-							}}>
-								{category.name}
-							</h3>
-							{category.description && (
-								<p style={{
-									color: 'var(--va-muted)',
-									fontSize: '1rem',
-									margin: 0,
-									marginBottom: '1.5rem',
-									lineHeight: 1.6
-								}}>
-									{category.description}
-								</p>
-							)}
-							<div style={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: '0.5rem',
-								color: 'var(--va-muted)',
-								fontSize: '0.9rem',
-								marginTop: 'auto',
-								paddingTop: '1.5rem',
-								borderTop: '1px solid rgba(255,238,0,0.15)'
-							}}>
-								<span>📁</span>
-								<span>{category.courses?.length || 0} {category.courses?.length === 1 ? 'curs' : 'cursuri'}</span>
-							</div>
-						</div>
+						Toate
 					</button>
-				))}
+					<button
+						className={`va-filter-btn ${statusFilter === 'in-progress' ? 'active' : ''}`}
+						onClick={() => setStatusFilter('in-progress')}
+					>
+						În progres
+					</button>
+					<button
+						className={`va-filter-btn ${statusFilter === 'completed' ? 'active' : ''}`}
+						onClick={() => setStatusFilter('completed')}
+					>
+						Finalizate
+					</button>
+					<button
+						className={`va-filter-btn ${statusFilter === 'not-started' ? 'active' : ''}`}
+						onClick={() => setStatusFilter('not-started')}
+					>
+						Neîncepute
+					</button>
+				</div>
+				<div className="va-sort-dropdown">
+					<select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+						<option value="recent">Recente</option>
+						<option value="alphabetical">Alfabetic</option>
+						<option value="progress">Progres</option>
+						<option value="duration">Durată</option>
+					</select>
+				</div>
 			</div>
+
+			{/* Courses Grid */}
+			{filteredAndSortedCourses.length > 0 ? (
+				<div className="va-courses-grid-rectangular">
+					{filteredAndSortedCourses.map((course) => {
+						const status = getCourseStatus(course);
+						const progressPercentage = getCourseProgressPercentage(course);
+						const totalModules = course.modules_count || course.modules?.length || 0;
+							
+							return (
+								<button
+									key={course.id}
+									type="button"
+									onClick={() => navigate(`/courses/${course.id}`)}
+									className="va-course-card-rectangular"
+								>
+									{/* Left side - Content */}
+									<div className="va-course-card-content">
+									{/* Status Badge */}
+									<div className="va-course-card-badge-container">
+										{status === 'completed' && (
+											<span className="course-status-badge completed">✓ Finalizat</span>
+										)}
+										{status === 'in-progress' && (
+											<span className="course-status-badge in-progress">⏸ În progres</span>
+										)}
+										{status === 'not-started' && (
+											<span className="course-status-badge not-started">🆕 Nou</span>
+										)}
+									</div>
+
+									{/* Title */}
+									<h3 className="va-course-card-title-rectangular">
+										{course.title}
+									</h3>
+
+									{/* Description */}
+									{course.description && (
+										<p className="va-course-card-description-rectangular">
+											{course.description}
+										</p>
+									)}
+
+									{/* Meta Info */}
+									<div className="va-course-meta-rectangular">
+										<div className="course-meta-item">
+											<span>📖</span>
+											<span>{totalModules} {totalModules === 1 ? 'modul' : 'module'}</span>
+										</div>
+										{status !== 'not-started' && (
+											<div className="course-meta-item progress">
+												<span>📊</span>
+												<span>{progressPercentage}% completat</span>
+											</div>
+										)}
+									</div>
+									</div>
+
+									{/* Right side - Image */}
+									<div className="va-course-card-image">
+										{course.image_url ? (
+											<img src={course.image_url} alt={course.title} />
+										) : (
+											<div className="va-course-card-image-placeholder">
+												<span>📚</span>
+											</div>
+										)}
+									</div>
+								</button>
+							);
+						})}
+					</div>
+				) : (
+					<div className="courses-empty-state">
+						{searchQuery || statusFilter !== 'all' 
+							? 'Nu s-au găsit cursuri care să corespundă filtrelor.' 
+							: 'Nu există cursuri disponibile.'}
+					</div>
+				)}
 		</div>
 	);
 };
 
 export default CoursesPage;
-

@@ -6,9 +6,19 @@ return [
     'allowed_methods' => ['*'],
 
     // pune exact URL-ul frontend-ului tău aici
-    'allowed_origins' => ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+    'allowed_origins' => [
+        'http://localhost:5173', 
+        'http://localhost:5174', 
+        'http://localhost:5175',
+    ],
+    
+    // Permite toate domeniile ngrok
+    'allowed_origins_patterns' => [
+        '#^https?://.*\.ngrok-free\.app$#',
+        '#^https?://.*\.ngrok\.io$#',
+        '#^https?://.*\.ngrok\.app$#',
+    ],
 
-    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 

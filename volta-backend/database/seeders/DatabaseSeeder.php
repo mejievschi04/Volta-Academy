@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\Lesson;
-use App\Models\Reward;
 use App\Models\Category;
 
 class DatabaseSeeder extends Seeder
@@ -209,26 +208,6 @@ class DatabaseSeeder extends Seeder
                     ]
                 );
             }
-        }
-
-        // --- Rewards ---
-        $rewards = [
-            ['title' => 'Primii pași', 'description' => 'Completează prima lecție.', 'points_required' => 50],
-            ['title' => 'Eroul Laravel', 'description' => 'Completează liniile de bază ale cursului Laravel.', 'points_required' => 200],
-            ['title' => 'Starul React', 'description' => 'Finalizează toate lecțiile cursului React.', 'points_required' => 250],
-            ['title' => 'Maestrul Node', 'description' => 'Finalizează cursul Node.js și rulează primul API.', 'points_required' => 260],
-            ['title' => 'Designer cu Viziune', 'description' => 'Finalizează cursul de Design UX și prezintă un prototip.', 'points_required' => 180],
-            ['title' => 'Analistul de Date', 'description' => 'Analizează un dataset complex și livrează un raport.', 'points_required' => 320],
-        ];
-
-        foreach ($rewards as $reward) {
-            Reward::firstOrCreate(
-                ['title' => $reward['title']],
-                [
-                    'description' => $reward['description'],
-                    'points_required' => $reward['points_required'],
-                ]
-            );
         }
 
         // --- Level up some students with bonus points ---

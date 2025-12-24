@@ -21,10 +21,27 @@ class User extends Authenticatable
         'points',
         'role',
         'must_change_password',
+        'status',
+        'permissions',
+        'last_login_at',
+        'last_activity_at',
+        'suspended_reason',
+        'suspended_until',
+    ];
+
+    protected $casts = [
+        'permissions' => 'array',
+        'last_login_at' => 'datetime',
+        'last_activity_at' => 'datetime',
+        'suspended_until' => 'datetime',
     ];
 
     public function courses() {
         return $this->hasMany(Course::class, 'teacher_id');
+    }
+
+    public function events() {
+        return $this->hasMany(Event::class, 'instructor_id');
     }
 
     public function teams() {

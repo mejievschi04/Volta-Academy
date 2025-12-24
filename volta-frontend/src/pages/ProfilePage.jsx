@@ -1,23 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { profileService, rewardsService } from '../services/api';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { profileService, adminService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfilePage = () => {
+	const { userId } = useParams(); // Optional user ID from URL
+	const navigate = useNavigate();
+	const { user: currentUser } = useAuth();
 	const [profileData, setProfileData] = useState(null);
-	const [rewards, setRewards] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setLoading(true);
-				const [profile, rewardsData] = await Promise.all([
-					profileService.getProfile(),
-					rewardsService.getAll(),
-				]);
+				let profile;
+				
+				if (isViewingOtherUser) {
+					// Admin viewing another user's profile
+					const userData = await adminService.getUser(userId);
+					// Construct profile from user data
+					profile = {
+						user: userData,
+						stats: {
+							completedLessons: userData.completed_lessons || 0,
+							completedQuizzes: userData.completed_quizzes || 0,
+							inProgressCourses: userData.in_progress_courses || 0,
+							progressPercentage: userData.completion_percentage || 0,
+						},
+						coursesInProgress: userData.courses_in_progress || [],
+						coursesCompleted: userData.courses_completed || [],
+					};
+				} else {
+					// Current user viewing their own profile
+					profile = await profileService.getProfile();
+				}
+				
 				setProfileData(profile);
-				setRewards(rewardsData);
 			} catch (err) {
 				console.error('Error fetching profile:', err);
 				setError('Nu s-a putut încărca profilul');
@@ -26,7 +47,7 @@ const ProfilePage = () => {
 			}
 		};
 		fetchData();
-	}, []);
+	}, [userId, isViewingOtherUser]);
 
 	if (loading) { return null; }
 
@@ -44,6 +65,40 @@ const ProfilePage = () => {
 
 	return (
 		<div className="va-profile-container">
+			{/* Back Button for Admin */}
+			{isViewingOtherUser && (
+				<div style={{ marginBottom: '2rem' }}>
+					<button
+						onClick={() => navigate('/admin/users')}
+						style={{
+							display: 'inline-flex',
+							alignItems: 'center',
+							gap: '0.5rem',
+							padding: '0.75rem 1.5rem',
+							background: 'rgba(var(--color-light-rgb), 0.05)',
+							border: '1px solid rgba(var(--color-dark-rgb), 0.2)',
+							borderRadius: '12px',
+							color: 'var(--color-light)',
+							fontWeight: 600,
+							cursor: 'pointer',
+							transition: 'all 0.3s ease',
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = 'rgba(var(--color-dark-rgb), 0.1)';
+							e.currentTarget.style.borderColor = 'rgba(var(--color-dark-rgb), 0.4)';
+							e.currentTarget.style.transform = 'translateX(-4px)';
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = 'rgba(var(--color-light-rgb), 0.05)';
+							e.currentTarget.style.borderColor = 'rgba(var(--color-dark-rgb), 0.2)';
+							e.currentTarget.style.transform = 'translateX(0)';
+						}}
+					>
+						<span>←</span>
+						<span>Înapoi la Utilizatori</span>
+					</button>
+				</div>
+			)}
 			{/* Profile Header */}
 			<div className="va-profile-header">
 				<div className="va-profile-cover"></div>
@@ -59,11 +114,19 @@ const ProfilePage = () => {
 					</div>
 					<div className="va-profile-details">
 						<h1 className="va-profile-name">{profileData.user.name}</h1>
-						<p className="va-profile-role">Student VoltaAcademy</p>
-						<div className="va-profile-badges">
-							<span className="va-profile-badge">Nivel: {profileData.user.level}</span>
-							<span className="va-profile-badge">Puncte: {profileData.user.points}</span>
-						</div>
+						<p className="va-profile-role">
+							{isViewingOtherUser 
+								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator VoltaAcademy')
+								: 'Student VoltaAcademy'
+							}
+						</p>
+						{isViewingOtherUser && (
+							<div className="va-profile-badges">
+								<span className="va-profile-badge" style={{ background: 'rgba(var(--color-dark-rgb), 0.2)', color: 'var(--color-dark)' }}>
+									👤 {profileData.user.email}
+								</span>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
@@ -73,7 +136,7 @@ const ProfilePage = () => {
 				<div className="va-stat-card">
 					<div className="va-stat-icon">📚</div>
 					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.completedLessons}</div>
+						<div className="va-stat-value">{stats.completedModules || stats.completedLessons || 0}</div>
 						<div className="va-stat-label">Module finalizate</div>
 					</div>
 				</div>
@@ -131,7 +194,7 @@ const ProfilePage = () => {
 									</div>
 									<div className="va-course-card-meta">
 										<span>
-											{course.completedLessons} / {course.totalLessons} module
+											{course.completedModules || course.completedLessons || 0} / {course.totalModules || course.totalLessons || 0} module
 										</span>
 									</div>
 									<Link
@@ -181,26 +244,6 @@ const ProfilePage = () => {
 					</div>
 				</div>
 
-				{/* Achievements Preview */}
-				<div className="va-profile-section">
-					<div className="va-section-header">
-						<h2 className="va-section-title">Realizări recente</h2>
-						<Link to="/rewards" className="va-section-link">
-							Vezi toate →
-						</Link>
-					</div>
-					<div className="va-achievements-grid">
-						{rewards.slice(0, 4).map((reward) => (
-							<div className="va-achievement-card" key={reward.id}>
-								<div className="va-achievement-icon">✨</div>
-								<div className="va-achievement-content">
-									<h4 className="va-achievement-title">{reward.title}</h4>
-									<p className="va-achievement-description">{reward.description}</p>
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
 			</div>
 		</div>
 	);

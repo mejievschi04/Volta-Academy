@@ -1,178 +1,262 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
-import '../../styles/modern-enhancements.css';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatCurrency, getDefaultCurrency } from '../../utils/currency';
+import DashboardHeader from '../../components/admin/DashboardHeader';
+import KPICard from '../../components/admin/KPICard';
+import MetricSelector from '../../components/admin/MetricSelector';
+import ChartSection from '../../components/admin/ChartSection';
 
 const AdminDashboardPage = () => {
-	const [stats, setStats] = useState(null);
+	const { user } = useAuth();
+	const navigate = useNavigate();
+	const [dashboardData, setDashboardData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [period, setPeriod] = useState('month');
+	const [searchQuery, setSearchQuery] = useState('');
+	const [selectedChartMetric, setSelectedChartMetric] = useState('enrollments');
+	const [showMetricSelector, setShowMetricSelector] = useState(false);
+	const [currency, setCurrency] = useState(getDefaultCurrency());
 
 	useEffect(() => {
-		const fetchStats = async () => {
+		const handleCurrencyChange = (e) => {
+			setCurrency(e.detail);
+		};
+		window.addEventListener('currencyChanged', handleCurrencyChange);
+		setCurrency(getDefaultCurrency());
+		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
+	}, []);
+
+	// Available metrics for KPI selection
+	const availableMetrics = [
+		{ id: 'active_users', label: 'Utilizatori Activi', icon: '👥' },
+		{ id: 'new_enrollments', label: 'Înscrieri Noi', icon: '📈' },
+		{ id: 'revenue_gross', label: 'Venituri Brut', icon: '💰' },
+		{ id: 'revenue_net', label: 'Venituri Net', icon: '💵' },
+		{ id: 'completion_rate', label: 'Rată Finalizare', icon: '✅' },
+		{ id: 'engagement', label: 'Engagement', icon: '🔥' },
+		{ id: 'issues', label: 'Probleme/Tichete', icon: '⚠️' },
+	];
+
+	// Default selected metrics (can be saved to localStorage)
+	const [selectedMetrics, setSelectedMetrics] = useState(() => {
+		const saved = localStorage.getItem('admin_selected_metrics');
+		return saved ? JSON.parse(saved) : [
+			'active_users',
+			'new_enrollments',
+			'revenue_gross',
+			'completion_rate',
+			'engagement',
+			'issues'
+		];
+	});
+
+	useEffect(() => {
+		localStorage.setItem('admin_selected_metrics', JSON.stringify(selectedMetrics));
+	}, [selectedMetrics]);
+
+	useEffect(() => {
+		const fetchDashboard = async () => {
 			try {
 				setLoading(true);
-				const data = await adminService.getDashboard();
-				setStats(data);
+				setError(null);
+				const data = await adminService.getDashboard({ period });
+				setDashboardData(data);
 			} catch (err) {
 				console.error('Error fetching admin dashboard:', err);
-				setError('Nu s-au putut încărca statisticile');
+				setError('Nu s-au putut încărca datele dashboard-ului');
 			} finally {
 				setLoading(false);
 			}
 		};
-		fetchStats();
-	}, []);
+		fetchDashboard();
+	}, [period]);
 
-	if (loading) {
+	const toggleMetric = (metricId) => {
+		setSelectedMetrics(prev => {
+			if (prev.includes(metricId)) {
+				return prev.filter(id => id !== metricId);
+			} else {
+				return [...prev, metricId];
+			}
+		});
+	};
+
+	// Filter KPIs based on selected metrics
+	const displayedKPIs = useMemo(() => {
+		if (!dashboardData?.kpis) return [];
+		
+		return availableMetrics
+			.filter(metric => selectedMetrics.includes(metric.id))
+			.map(metric => {
+				const kpiData = dashboardData.kpis[metric.id];
+				if (!kpiData) return null;
+				
+				// Format revenue values with currency
+				let formattedValue = kpiData.value;
+				if (metric.id === 'revenue_gross' || metric.id === 'revenue_net') {
+					// Handle both number and string (for backward compatibility)
+					if (typeof kpiData.value === 'number') {
+						formattedValue = formatCurrency(kpiData.value, currency);
+					} else if (typeof kpiData.value === 'string') {
+						// If it's already a string, try to extract the number and reformat
+						const match = kpiData.value.match(/[\d,]+/);
+						if (match) {
+							const numValue = parseFloat(match[0].replace(/,/g, ''));
+							formattedValue = formatCurrency(numValue, currency);
+						} else {
+							formattedValue = kpiData.value;
+						}
+					}
+				}
+				
+				// Format trend value if it's a revenue metric
+				let formattedTrendValue = kpiData.trendValue;
+				if ((metric.id === 'revenue_gross' || metric.id === 'revenue_net') && kpiData.trendValue) {
+					if (typeof kpiData.trendValue === 'string') {
+						// Try to extract number from trend value (e.g., "+100" or "-50" or "100%")
+						const match = kpiData.trendValue.match(/[+-]?\d+(\.\d+)?/);
+						if (match) {
+							const numValue = parseFloat(match[0]);
+							// Keep the sign and percentage if present
+							const sign = kpiData.trendValue.includes('-') ? '-' : (kpiData.trendValue.includes('+') ? '+' : '');
+							const hasPercent = kpiData.trendValue.includes('%');
+							formattedTrendValue = sign + formatCurrency(Math.abs(numValue), currency) + (hasPercent ? '%' : '');
+						}
+					}
+				}
+				
+				return {
+					id: metric.id,
+					label: metric.label,
+					icon: metric.icon,
+					value: formattedValue,
+					trend: kpiData.trend,
+					trendValue: formattedTrendValue,
+					color: kpiData.color || 'var(--va-primary)',
+				};
+			})
+			.filter(Boolean);
+	}, [dashboardData, selectedMetrics, currency]);
+
+	if (error) {
 		return (
 			<div className="admin-container fade-in">
-				<div className="skeleton-card" style={{ marginBottom: '2rem' }}>
-					<div className="skeleton skeleton-title"></div>
-					<div className="skeleton skeleton-text"></div>
-				</div>
-				<div className="admin-stats-grid">
-					{[1, 2, 3, 4, 5, 6].map(i => (
-						<div key={i} className="skeleton-card">
-							<div className="skeleton skeleton-text" style={{ height: '2rem', marginBottom: '1rem' }}></div>
-							<div className="skeleton skeleton-text" style={{ height: '3rem', marginBottom: '0.5rem' }}></div>
-							<div className="skeleton skeleton-text" style={{ width: '70%' }}></div>
-						</div>
-					))}
+				<div className="va-stack">
+					<p style={{ color: 'var(--va-error)', fontSize: '1.1rem' }}>{error}</p>
 				</div>
 			</div>
 		);
 	}
-
-	if (error || !stats) {
-		return (
-			<div className="va-stack">
-				<p style={{ color: 'red' }}>{error || 'Eroare la încărcarea dashboard-ului'}</p>
-			</div>
-		);
-	}
-
-	const statCards = [
-		{ 
-			label: 'Cursuri Disponibile', 
-			value: stats.available_courses || 0, 
-			icon: '📚'
-		},
-		{ 
-			label: 'Cursuri Finalizate', 
-			value: stats.completed_courses || 0, 
-			icon: '✅'
-		},
-		{ 
-			label: 'Utilizatori', 
-			value: stats.total_users || 0, 
-			icon: '👥'
-		},
-		{ 
-			label: 'Evenimente', 
-			value: stats.total_events || 0, 
-			icon: '📅'
-		},
-		{ 
-			label: 'Echipe', 
-			value: stats.total_teams || 0, 
-			icon: '👥'
-		},
-		{ 
-			label: '% Realizare Curs', 
-			value: `${stats.average_completion || 0}%`, 
-			icon: '📊'
-		},
-	];
 
 	return (
-		<div className="admin-container fade-in">
-			<div className="fade-in-up" style={{ marginBottom: '2.5rem' }}>
-				<h1 className="va-page-title gradient-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>
-					Panou de Administrare
-				</h1>
-				<p className="va-muted" style={{ fontSize: '1.1rem' }}>Bine ai revenit în panoul de administrare V Academy</p>
-			</div>
+		<div className="admin-dashboard-page">
+			<DashboardHeader
+				period={period}
+				onPeriodChange={setPeriod}
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				notifications={dashboardData?.notifications || []}
+				user={user}
+			/>
 
-			{/* Statistics Grid */}
-			<div className="admin-stats-grid">
-				{statCards.map((stat, index) => (
-					<div
-						key={index}
-						className="admin-stat-card stagger-item"
+			<div className="admin-dashboard-content">
+				{/* Metric Selector Toggle */}
+				<div className="admin-dashboard-actions">
+					<button 
+						className="admin-metric-selector-toggle"
+						onClick={() => setShowMetricSelector(!showMetricSelector)}
 					>
-						<div className="admin-stat-icon">{stat.icon}</div>
-						<div className="admin-stat-value">{stat.value}</div>
-						<div className="admin-stat-label">{stat.label}</div>
-					</div>
-				))}
-			</div>
-
-			{/* Recent Activity Grid */}
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-				<div className="va-card-enhanced admin-activity-card slide-in-right">
-					<div className="admin-activity-header">
-						<h2>📚 Cursuri Recente</h2>
-					</div>
-					<div className="admin-activity-body">
-						{stats.recent_courses && stats.recent_courses.length > 0 ? (
-							<div className="va-stack" style={{ gap: '0.75rem' }}>
-								{stats.recent_courses.map((course, idx) => (
-									<div 
-										key={course.id} 
-										className="admin-activity-item stagger-item"
-										style={{ animationDelay: `${idx * 0.1}s` }}
-									>
-										<div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: '1rem' }}>{course.title}</div>
-										<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-											👤 {course.teacher?.name || 'N/A'} • 📚 {course.lessons?.length || 0} lecții
-										</div>
-									</div>
-								))}
-							</div>
-						) : (
-							<div className="empty-state">
-								<div className="empty-state-icon">📚</div>
-								<div className="empty-state-title">Nu există cursuri</div>
-								<div className="empty-state-description">Cursurile recente vor apărea aici</div>
-							</div>
-						)}
-					</div>
+						⚙️ Configurare Metrici
+					</button>
 				</div>
 
-				<div className="va-card-enhanced admin-activity-card slide-in-right" style={{ animationDelay: '0.2s' }}>
-					<div className="admin-activity-header">
-						<h2>👥 Utilizatori Recenti</h2>
+				{/* Metric Selector Modal */}
+				{showMetricSelector && (
+					<div className="admin-metric-selector-overlay" onClick={() => setShowMetricSelector(false)}>
+						<div className="admin-metric-selector-modal" onClick={(e) => e.stopPropagation()}>
+							<MetricSelector
+								availableMetrics={availableMetrics}
+								selectedMetrics={selectedMetrics}
+								onToggleMetric={toggleMetric}
+							/>
+							<button 
+								className="admin-metric-selector-close"
+								onClick={() => setShowMetricSelector(false)}
+							>
+								Închide
+							</button>
+						</div>
 					</div>
-					<div className="admin-activity-body">
-						{stats.recent_users && stats.recent_users.length > 0 ? (
-							<div className="va-stack" style={{ gap: '0.75rem' }}>
-								{stats.recent_users.map((user, idx) => (
-									<div 
-										key={user.id} 
-										className="admin-activity-item stagger-item"
-										style={{ animationDelay: `${idx * 0.1}s` }}
-									>
-										<div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: '1rem' }}>{user.name}</div>
-										<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-											📧 {user.email} • 🎭 {user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? 'Profesor' : 'Student'}
-										</div>
-									</div>
-								))}
-							</div>
-						) : (
-							<div className="empty-state">
-								<div className="empty-state-icon">👥</div>
-								<div className="empty-state-title">Nu există utilizatori</div>
-								<div className="empty-state-description">Utilizatorii recenti vor apărea aici</div>
-							</div>
-						)}
-					</div>
+				)}
+
+				{/* KPI Cards Grid */}
+				<div className="admin-kpi-grid">
+					{loading ? (
+						Array.from({ length: 6 }).map((_, i) => (
+							<div key={i} className="skeleton-card" style={{ height: '150px' }}></div>
+						))
+					) : (
+						displayedKPIs.map((kpi) => (
+							<KPICard
+								key={kpi.id}
+								label={kpi.label}
+								value={kpi.value}
+								trend={kpi.trend}
+								trendValue={kpi.trendValue}
+								icon={kpi.icon}
+								color={kpi.color}
+							/>
+						))
+					)}
 				</div>
+
+				{/* Quick Access Buttons - Above Chart */}
+				<div className="admin-quick-access-buttons">
+					<button 
+						className="admin-quick-access-btn"
+						onClick={() => navigate('/admin/top-courses')}
+					>
+						📚 Top Cursuri
+					</button>
+					<button 
+						className="admin-quick-access-btn"
+						onClick={() => navigate('/admin/problematic-courses')}
+					>
+						⚠️ Problemice
+					</button>
+					<button 
+						className="admin-quick-access-btn"
+						onClick={() => navigate('/admin/activity')}
+					>
+						📋 Activitate Recentă
+					</button>
+					<button 
+						className="admin-quick-access-btn"
+						onClick={() => navigate('/admin/alerts')}
+					>
+						🔔 Alerte
+					</button>
+					<button 
+						className="admin-quick-access-btn"
+						onClick={() => navigate('/admin/tasks')}
+					>
+						✅ Taskuri
+					</button>
+				</div>
+
+				{/* Main Chart Section */}
+				<ChartSection
+					data={dashboardData?.chart_data || []}
+					selectedMetric={selectedChartMetric}
+					onMetricChange={setSelectedChartMetric}
+					loading={loading}
+				/>
 			</div>
 		</div>
 	);
 };
 
 export default AdminDashboardPage;
-

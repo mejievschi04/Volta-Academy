@@ -1,0 +1,421 @@
+/* ============================================
+   MODERN FORMS & INPUTS
+   Premium, Enterprise-Ready
+   ============================================ */
+
+/* ============================================
+   FORM CONTAINERS
+   ============================================ */
+.modern-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+}
+
+.modern-form-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	padding: var(--space-6);
+	background: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+}
+
+.modern-form-section-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+}
+
+/* ============================================
+   FORM GROUPS
+   ============================================ */
+.modern-form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.modern-form-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: var(--space-4);
+}
+
+/* ============================================
+   LABELS
+   ============================================ */
+.modern-form-label {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.modern-form-label-required::after {
+	content: '*';
+	color: var(--color-error-500);
+	margin-left: var(--space-1);
+}
+
+.modern-form-helper {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin-top: var(--space-1);
+}
+
+.modern-form-error {
+	font-size: var(--font-size-xs);
+	color: var(--color-error-600);
+	margin-top: var(--space-1);
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+/* ============================================
+   INPUTS - Minimal Borders
+   ============================================ */
+.modern-input {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--font-size-base);
+	font-family: var(--font-family-sans);
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-fast);
+	outline: none;
+}
+
+.modern-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.modern-input:hover {
+	border-color: var(--border-hover);
+}
+
+.modern-input:focus {
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+	background: var(--bg-elevated);
+}
+
+.modern-input:disabled {
+	background: var(--bg-secondary);
+	color: var(--text-disabled);
+	cursor: not-allowed;
+	border-color: var(--border-primary);
+}
+
+.modern-input-error {
+	border-color: var(--border-error);
+}
+
+.modern-input-error:focus {
+	border-color: var(--color-error-600);
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* ============================================
+   TEXTAREA
+   ============================================ */
+.modern-textarea {
+	width: 100%;
+	min-height: 120px;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--font-size-base);
+	font-family: var(--font-family-sans);
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-fast);
+	outline: none;
+	resize: vertical;
+	line-height: var(--line-height-relaxed);
+}
+
+.modern-textarea::placeholder {
+	color: var(--text-tertiary);
+}
+
+.modern-textarea:hover {
+	border-color: var(--border-hover);
+}
+
+.modern-textarea:focus {
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+	background: var(--bg-elevated);
+}
+
+/* ============================================
+   SELECT
+   ============================================ */
+.modern-select {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--font-size-base);
+	font-family: var(--font-family-sans);
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-fast);
+	outline: none;
+	cursor: pointer;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right var(--space-3) center;
+	padding-right: var(--space-10);
+}
+
+.modern-select:hover {
+	border-color: var(--border-hover);
+}
+
+.modern-select:focus {
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+}
+
+/* ============================================
+   CHECKBOX & RADIO
+   ============================================ */
+.modern-checkbox-wrapper,
+.modern-radio-wrapper {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-3);
+	cursor: pointer;
+}
+
+.modern-checkbox,
+.modern-radio {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	margin-top: 2px;
+	cursor: pointer;
+	accent-color: var(--color-primary-500);
+}
+
+.modern-checkbox-label,
+.modern-radio-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	cursor: pointer;
+	user-select: none;
+}
+
+/* ============================================
+   TOGGLE SWITCH
+   ============================================ */
+.modern-toggle {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	cursor: pointer;
+}
+
+.modern-toggle-input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.modern-toggle-slider {
+	position: relative;
+	width: 44px;
+	height: 24px;
+	background: var(--color-neutral-300);
+	border-radius: var(--radius-full);
+	transition: background var(--transition-fast);
+}
+
+.modern-toggle-slider::before {
+	content: '';
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	left: 2px;
+	top: 2px;
+	background: var(--color-neutral-0);
+	border-radius: var(--radius-full);
+	transition: transform var(--transition-fast);
+	box-shadow: var(--shadow-sm);
+}
+
+.modern-toggle-input:checked + .modern-toggle-slider {
+	background: var(--color-primary-500);
+}
+
+.modern-toggle-input:checked + .modern-toggle-slider::before {
+	transform: translateX(20px);
+}
+
+.modern-toggle-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	user-select: none;
+}
+
+/* ============================================
+   BUTTONS - Modern Style
+   ============================================ */
+.modern-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	font-family: var(--font-family-sans);
+	color: var(--text-inverse);
+	background: var(--color-primary-500);
+	border: none;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	outline: none;
+	white-space: nowrap;
+}
+
+.modern-btn:hover {
+	background: var(--color-primary-600);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-md);
+}
+
+.modern-btn:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-sm);
+}
+
+.modern-btn:focus-visible {
+	box-shadow: var(--shadow-focus);
+}
+
+.modern-btn:disabled {
+	background: var(--color-neutral-300);
+	color: var(--text-disabled);
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+/* Button Variants */
+.modern-btn-secondary {
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	border: 1px solid var(--border-primary);
+}
+
+.modern-btn-secondary:hover {
+	background: var(--bg-secondary);
+	border-color: var(--border-hover);
+}
+
+.modern-btn-ghost {
+	background: transparent;
+	color: var(--text-primary);
+	border: 1px solid transparent;
+}
+
+.modern-btn-ghost:hover {
+	background: var(--bg-secondary);
+}
+
+.modern-btn-danger {
+	background: var(--color-error-500);
+}
+
+.modern-btn-danger:hover {
+	background: var(--color-error-600);
+}
+
+/* Button Sizes */
+.modern-btn-sm {
+	padding: var(--space-2) var(--space-4);
+	font-size: var(--font-size-xs);
+}
+
+.modern-btn-lg {
+	padding: var(--space-4) var(--space-6);
+	font-size: var(--font-size-base);
+}
+
+/* ============================================
+   AUTO-SAVE INDICATOR
+   ============================================ */
+.modern-autosave {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	padding: var(--space-2) var(--space-3);
+}
+
+.modern-autosave-saving {
+	color: var(--color-warning-600);
+}
+
+.modern-autosave-saved {
+	color: var(--color-success-600);
+}
+
+.modern-autosave-error {
+	color: var(--color-error-600);
+}
+
+.modern-autosave-icon {
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+}
+
+/* ============================================
+   INLINE VALIDATION
+   ============================================ */
+.modern-form-group-has-error .modern-input,
+.modern-form-group-has-error .modern-textarea,
+.modern-form-group-has-error .modern-select {
+	border-color: var(--border-error);
+}
+
+.modern-form-group-has-error .modern-input:focus,
+.modern-form-group-has-error .modern-textarea:focus,
+.modern-form-group-has-error .modern-select:focus {
+	border-color: var(--color-error-600);
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.modern-form-group-has-success .modern-input,
+.modern-form-group-has-success .modern-textarea,
+.modern-form-group-has-success .modern-select {
+	border-color: var(--color-success-500);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .modern-input,
+[data-theme="dark"] .modern-textarea,
+[data-theme="dark"] .modern-select {
+	background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .modern-toggle-slider {
+	background: var(--color-neutral-700);
+}
+

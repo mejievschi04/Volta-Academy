@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
 
 const AdminUsersPage = () => {
+	const navigate = useNavigate();
 	const [users, setUsers] = useState([]);
 	const [teams, setTeams] = useState([]);
 	const [filteredUsers, setFilteredUsers] = useState([]);
@@ -12,7 +13,7 @@ const AdminUsersPage = () => {
 	const [editingUser, setEditingUser] = useState(null);
 	const [sortBy, setSortBy] = useState('role'); // 'role', 'name', 'email'
 	const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
-	const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'admin', 'teacher', 'student'
+	const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'admin', 'student'
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -38,9 +39,8 @@ const AdminUsersPage = () => {
 		try {
 			setLoading(true);
 			const data = await adminService.getUsers();
-			// Filter out admin users
-			const nonAdminUsers = data.filter(user => user.role !== 'admin');
-			setUsers(nonAdminUsers);
+			// Include all users including admins
+			setUsers(data);
 		} catch (err) {
 			console.error('Error fetching users:', err);
 			setError('Nu s-au putut încărca utilizatorii');
@@ -176,10 +176,9 @@ const AdminUsersPage = () => {
 	const getRoleLabel = (role) => {
 		const roles = {
 			admin: 'Administrator',
-			teacher: 'Profesor',
-			student: 'Student',
+			student: 'Utilizator',
 		};
-		return roles[role] || role;
+		return roles[role] || 'Utilizator';
 	};
 
 	if (loading) { return null; }
@@ -204,154 +203,137 @@ const AdminUsersPage = () => {
 			</div>
 
 			{error && (
-				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1rem' }}>
+				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
 					{error}
 				</div>
 			)}
 
 			{/* Filters */}
-			<div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-					<label style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>Filtrează după rol:</label>
+			<div className="admin-users-filters">
+				<div className="admin-users-filter-group">
+					<label className="admin-users-filter-label">Filtrează după rol:</label>
 					<select
-						className="va-form-input"
+						className="va-form-input admin-events-filter"
 						value={roleFilter}
 						onChange={(e) => setRoleFilter(e.target.value)}
-						style={{ padding: '0.5rem', fontSize: '0.875rem' }}
 					>
 						<option value="all">Toate</option>
-						<option value="teacher">Profesor</option>
-						<option value="student">Student</option>
+						<option value="student">Utilizatori</option>
+						<option value="admin">Administratori</option>
 					</select>
 				</div>
 			</div>
 
 			{/* Table */}
-			<div style={{ overflowX: 'auto' }}>
-				<table style={{ width: '100%', minWidth: '1400px', borderCollapse: 'collapse', background: 'var(--va-surface)', borderRadius: '8px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+			<div className="admin-users-table-wrapper">
+				<table className="admin-users-table">
 					<thead>
-						<tr style={{ background: 'var(--va-surface-2)', borderBottom: '2px solid var(--va-border)' }}>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, cursor: 'pointer' }} onClick={() => handleSort('name')}>
-								Nume {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+						<tr>
+							<th className={`sortable ${sortBy === 'name' ? (sortOrder === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`} onClick={() => handleSort('name')}>
+								Utilizator
 							</th>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, cursor: 'pointer' }} onClick={() => handleSort('email')}>
-								Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
+							<th className={`sortable ${sortBy === 'email' ? (sortOrder === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`} onClick={() => handleSort('email')}>
+								Email
 							</th>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, cursor: 'pointer' }} onClick={() => handleSort('role')}>
-								Rol {sortBy === 'role' && (sortOrder === 'asc' ? '↑' : '↓')}
+							<th className={`sortable ${sortBy === 'role' ? (sortOrder === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`} onClick={() => handleSort('role')}>
+								Rol
 							</th>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, cursor: 'pointer' }} onClick={() => handleSort('team')}>
-								Echipă {sortBy === 'team' && (sortOrder === 'asc' ? '↑' : '↓')}
+							<th className={`sortable ${sortBy === 'team' ? (sortOrder === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`} onClick={() => handleSort('team')}>
+								Echipă
 							</th>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Cursuri Finalizate</th>
-							<th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Procentaj</th>
-							<th style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>Acțiuni</th>
+							<th>Cursuri Finalizate</th>
+							<th>Procentaj</th>
+							<th className="admin-users-table-cell-center">Acțiuni</th>
 						</tr>
 					</thead>
 					<tbody>
 						{filteredUsers.length > 0 ? (
 							filteredUsers.map((user) => {
+								const isAdmin = user.role === 'admin';
 								const totalCourses = user.total_courses || 0;
 								const completedCourses = user.completed_courses || 0;
 								const percentage = user.completion_percentage || 0;
-								const color = getCompletionColor(percentage);
-
+								const progressClass = percentage >= 80 ? 'high' : percentage >= 50 ? 'medium' : 'low';
+								const initials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
+								
 								return (
 									<tr
 										key={user.id}
-										style={{
-											borderBottom: '1px solid var(--va-border)',
-											transition: 'background 0.2s ease',
-										}}
-										onMouseEnter={(e) => {
-											e.currentTarget.style.background = 'rgba(255, 238, 0, 0.05)';
-										}}
-										onMouseLeave={(e) => {
-											e.currentTarget.style.background = 'transparent';
-										}}
+										onClick={() => navigate(`/admin/users/${user.id}/profile`)}
 									>
-										<td style={{ padding: '1rem' }}>
-											<div style={{ fontWeight: 500 }}>{user.name}</div>
-											{user.bio && (
-												<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginTop: '0.25rem' }}>
-													{user.bio.substring(0, 50)}{user.bio.length > 50 ? '...' : ''}
+										<td>
+											<div className="admin-users-table-cell-user">
+												<div className="admin-users-table-avatar">
+													{user.avatar ? (
+														<img src={user.avatar} alt={user.name} />
+													) : (
+														initials
+													)}
 												</div>
-											)}
+												<div>
+													<div className="admin-users-table-cell-name">{user.name}</div>
+													{user.bio && (
+														<div className="admin-users-table-cell-bio">
+															{user.bio.substring(0, 50)}{user.bio.length > 50 ? '...' : ''}
+														</div>
+													)}
+												</div>
+											</div>
 										</td>
-										<td style={{ padding: '1rem', color: 'var(--va-muted)' }}>{user.email}</td>
-										<td style={{ padding: '1rem' }}>
-											<span
-												style={{
-													display: 'inline-block',
-													padding: '0.25rem 0.75rem',
-													borderRadius: '12px',
-													fontSize: '0.875rem',
-													fontWeight: 500,
-													background:
-														user.role === 'admin'
-															? 'rgba(239, 68, 68, 0.2)'
-															: user.role === 'teacher'
-															? 'rgba(59, 130, 246, 0.2)'
-															: 'rgba(16, 185, 129, 0.2)',
-													color:
-														user.role === 'admin'
-															? '#ef4444'
-															: user.role === 'teacher'
-															? '#3b82f6'
-															: '#10b981',
-												}}
-											>
+										<td className="admin-users-table-cell-email">{user.email}</td>
+										<td>
+											<span className={`admin-users-role-badge ${user.role}`}>
 												{getRoleLabel(user.role)}
 											</span>
 										</td>
-										<td style={{ padding: '1rem' }}>
+										<td>
 											{Array.isArray(user.teams) && user.teams.length > 0
 												? user.teams.map(t => t?.name).filter(Boolean).join(', ')
 												: '-'}
 										</td>
-										<td style={{ padding: '1rem' }}>
-											<span style={{ color: color, fontWeight: 600, fontSize: '1rem' }}>
-												{completedCourses}/{totalCourses}
-											</span>
-										</td>
-										<td style={{ padding: '1rem' }}>
-											<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-												<div
-													style={{
-														flex: 1,
-														height: '8px',
-														background: 'var(--va-border)',
-														borderRadius: '4px',
-														overflow: 'hidden',
-													}}
-												>
-													<div
-														style={{
-															height: '100%',
-															width: `${percentage}%`,
-															background: color,
-															transition: 'width 0.3s ease',
-														}}
-													/>
-												</div>
-												<span style={{ color: color, fontWeight: 600, minWidth: '45px', fontSize: '0.875rem' }}>
-													{percentage}%
+										<td>
+											{isAdmin ? (
+												<span style={{ color: 'rgba(var(--color-light-rgb), 0.65)' }}>-</span>
+											) : (
+												<span style={{ color: getCompletionColor(percentage), fontWeight: 600 }}>
+													{completedCourses}/{totalCourses}
 												</span>
-											</div>
+											)}
 										</td>
-										<td style={{ padding: '1rem', textAlign: 'center' }}>
-											<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+										<td>
+											{isAdmin ? (
+												<span style={{ color: 'rgba(var(--color-light-rgb), 0.65)' }}>-</span>
+											) : (
+												<div className="admin-users-progress-container">
+													<div className="admin-users-progress-bar">
+														<div
+															className={`admin-users-progress-fill ${progressClass}`}
+															style={{ width: `${percentage}%` }}
+														/>
+													</div>
+													<span className={`admin-users-progress-text ${progressClass}`}>
+														{percentage}%
+													</span>
+												</div>
+											)}
+										</td>
+										<td className="admin-users-table-cell-center">
+											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
 												<button
 													className="va-btn va-btn-sm"
-													onClick={() => handleEdit(user)}
-													style={{ padding: '0.5rem 1rem' }}
+													onClick={(e) => {
+														e.stopPropagation();
+														handleEdit(user);
+													}}
 												>
 													Editează
 												</button>
 												<button
 													className="va-btn va-btn-sm va-btn-danger"
-													onClick={() => handleDelete(user.id)}
-													style={{ padding: '0.5rem 1rem' }}
+													onClick={(e) => {
+														e.stopPropagation();
+														handleDelete(user.id);
+													}}
 												>
 													Șterge
 												</button>
@@ -362,8 +344,12 @@ const AdminUsersPage = () => {
 							})
 						) : (
 							<tr>
-								<td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: 'var(--va-muted)' }}>
-									Nu există utilizatori
+								<td colSpan="7" className="admin-users-empty">
+									<div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>👥</div>
+									<h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Nu există utilizatori</h3>
+									<p style={{ margin: 0, color: 'rgba(var(--color-light-rgb), 0.5)' }}>
+										Nu există utilizatori care să corespundă filtrelor selectate.
+									</p>
 								</td>
 							</tr>
 						)}
@@ -373,30 +359,24 @@ const AdminUsersPage = () => {
 
 			{/* Modal */}
 			{showModal && (
-				<div
-					style={{
-						position: 'fixed',
-						top: 0,
-						left: 0,
-						right: 0,
-						bottom: 0,
-						background: 'rgba(0,0,0,0.5)',
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						zIndex: 1000,
-					}}
-					onClick={() => setShowModal(false)}
-				>
-					<div
-						className="va-card"
-						style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="va-card-header">
-							<h2>{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
+				<div className="admin-users-modal-overlay" onClick={(e) => {
+					if (e.target === e.currentTarget) {
+						setShowModal(false);
+					}
+				}}>
+					<div className="admin-users-modal" onClick={(e) => e.stopPropagation()}>
+						<div className="admin-users-modal-header">
+							<h2 className="admin-users-modal-title">{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
+							<button
+								type="button"
+								className="admin-users-modal-close"
+								onClick={() => setShowModal(false)}
+								title="Închide"
+							>
+								×
+							</button>
 						</div>
-						<div className="va-card-body">
+						<div className="admin-users-modal-body">
 							<form onSubmit={handleSubmit} className="va-stack">
 								<div className="va-form-group">
 									<label className="va-form-label">Nume</label>
@@ -457,8 +437,7 @@ const AdminUsersPage = () => {
 										onChange={(e) => setFormData({ ...formData, role: e.target.value })}
 										required
 									>
-										<option value="student">Student</option>
-										<option value="teacher">Profesor</option>
+										<option value="student">Utilizator</option>
 										<option value="admin">Administrator</option>
 									</select>
 								</div>
@@ -471,7 +450,7 @@ const AdminUsersPage = () => {
 										rows={3}
 									/>
 								</div>
-								<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+								<div className="admin-users-modal-footer">
 									<button
 										type="button"
 										className="va-btn"

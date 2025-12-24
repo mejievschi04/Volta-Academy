@@ -25,5 +25,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Suppress Laravel 12 ServeCommand parsing errors (non-critical)
+        // These errors occur when parsing PHP server output and don't affect functionality
+        $exceptions->reportable(function (\Throwable $e) {
+            // Ignore non-critical ServeCommand parsing errors
+            if ($e instanceof \ErrorException 
+                && str_contains($e->getMessage(), 'Undefined array key') 
+                && str_contains($e->getFile(), 'ServeCommand.php')) {
+                return false; // Don't report this error
+            }
+        });
     })->create();

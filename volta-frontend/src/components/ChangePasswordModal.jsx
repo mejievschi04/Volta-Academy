@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/modern-enhancements.css';
 
 const ChangePasswordModal = () => {
 	useEffect(() => {
@@ -66,85 +65,92 @@ const ChangePasswordModal = () => {
 				bottom: 0,
 				display: 'flex',
 				alignItems: 'center',
-				justifyContent: 'center'
+				justifyContent: 'center',
+				background: 'var(--bg-overlay)',
+				backdropFilter: 'blur(8px)',
 			}}
 			onClick={(e) => {
 				// Prevent closing modal by clicking backdrop - password change is mandatory
 				e.stopPropagation();
 			}}
 		>
-			<div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+			<div 
+				className="modal" 
+				style={{ maxWidth: '500px' }} 
+				onClick={(e) => e.stopPropagation()}
+			>
 				<div className="modal-header">
 					<h2 className="modal-title">Schimbă parola</h2>
 				</div>
-				<div className="va-card-body">
-					<p style={{ marginBottom: '1.5rem', color: 'var(--va-muted)' }}>
+				<div className="modal-body">
+					<p style={{ marginBottom: 'var(--space-6)', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-base)' }}>
 						Pentru securitate, trebuie să îți setezi o parolă nouă înainte de a continua.
 					</p>
 
 					{error && (
 						<div style={{ 
-							padding: '0.75rem', 
-							background: 'rgba(220, 38, 38, 0.2)', 
-							color: '#ff7d9b', 
-							borderRadius: '8px', 
-							marginBottom: '1rem',
-							border: '1px solid rgba(220, 38, 38, 0.3)'
+							padding: 'var(--space-3)', 
+							background: 'rgba(239, 68, 68, 0.2)', 
+							color: 'var(--color-error)', 
+							borderRadius: 'var(--radius-lg)', 
+							marginBottom: 'var(--space-4)',
+							border: '1px solid rgba(239, 68, 68, 0.3)',
+							fontSize: 'var(--font-size-sm)',
 						}}>
 							{error}
 						</div>
 					)}
 
-					<form onSubmit={handleSubmit} className="va-stack" style={{ gap: '1rem' }}>
-						<div className="form-input-modern">
-							<label htmlFor="currentPassword" className="va-form-label">Parola curentă</label>
+					<form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+						<div className="form-group">
+							<label htmlFor="currentPassword" className="form-label">Parola curentă</label>
 							<input
 								type="password"
 								id="currentPassword"
-								className="va-form-input"
+								className="form-input"
 								value={formData.currentPassword}
 								onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
 								required
 								placeholder="volta2025"
 								autoFocus
 							/>
-							<p style={{ fontSize: '0.75rem', color: 'var(--va-muted)', marginTop: '0.25rem' }}>
+							<p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-1)' }}>
 								Parola implicită este: <strong>volta2025</strong>
 							</p>
 						</div>
 
-						<div className="form-input-modern">
-							<label htmlFor="newPassword" className="va-form-label">Parola nouă</label>
+						<div className="form-group">
+							<label htmlFor="newPassword" className="form-label">Parola nouă</label>
 							<input
 								type="password"
 								id="newPassword"
-								className="va-form-input"
+								className="form-input"
 								value={formData.newPassword}
 								onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
 								required
-								minLength={6}
-								placeholder="Minim 6 caractere"
+								minLength={8}
+								placeholder="Minim 8 caractere"
 							/>
 						</div>
 
-						<div className="form-input-modern">
-							<label htmlFor="newPasswordConfirmation" className="va-form-label">Confirmă parola nouă</label>
+						<div className="form-group">
+							<label htmlFor="newPasswordConfirmation" className="form-label">Confirmă parola nouă</label>
 							<input
 								type="password"
 								id="newPasswordConfirmation"
-								className="va-form-input"
+								className="form-input"
 								value={formData.newPasswordConfirmation}
 								onChange={(e) => setFormData({ ...formData, newPasswordConfirmation: e.target.value })}
 								required
-								minLength={6}
+								minLength={8}
 								placeholder="Repetă parola"
 							/>
 						</div>
 
-						<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+						<div className="modal-footer">
 							<button 
 								type="submit" 
-								className="va-btn va-btn-primary va-btn-enhanced"
+								className="btn btn-primary"
 								disabled={loading}
 							>
 								{loading ? 'Se salvează...' : 'Schimbă parola'}

@@ -1,0 +1,380 @@
+/* ============================================
+   ACHIEVEMENTS PAGE STYLES
+   ============================================ */
+
+.student-achievements-page {
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: var(--space-6);
+}
+
+.student-achievements-loading,
+.student-achievements-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 400px;
+	gap: var(--space-4);
+	text-align: center;
+}
+
+.student-achievements-loading p,
+.student-achievements-error p {
+	color: var(--text-secondary);
+	font-size: var(--font-size-base);
+}
+
+.student-achievements-header {
+	margin-bottom: var(--space-8);
+	padding-bottom: var(--space-6);
+	border-bottom: 1px solid var(--border-secondary);
+}
+
+.student-achievements-title {
+	font-size: var(--font-size-4xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+	letter-spacing: -0.02em;
+}
+
+.student-achievements-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	line-height: var(--line-height-relaxed);
+}
+
+.student-achievements-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.student-achievements-stat-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	transition: all var(--transition-base);
+	position: relative;
+	overflow: hidden;
+}
+
+.student-achievements-stat-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg, var(--color-primary-500), var(--color-primary-600));
+	opacity: 0;
+	transition: opacity var(--transition-base);
+}
+
+.student-achievements-stat-card:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+}
+
+.student-achievements-stat-card:hover::before {
+	opacity: 1;
+}
+
+.student-achievements-stat-icon {
+	font-size: var(--font-size-4xl);
+	width: 64px;
+	height: 64px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(var(--color-dark-rgb), 0.1);
+	border-radius: var(--radius-lg);
+	flex-shrink: 0;
+	box-shadow: 0 0 15px rgba(var(--color-dark-rgb), 0.2);
+}
+
+.student-achievements-stat-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.student-achievements-stat-value {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-1);
+	line-height: 1;
+}
+
+.student-achievements-stat-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: var(--font-weight-medium);
+}
+
+.student-achievements-section {
+	margin-bottom: var(--space-8);
+}
+
+.student-achievements-section-title {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-6);
+}
+
+.student-achievements-section-icon {
+	font-size: var(--font-size-2xl);
+}
+
+.student-certificates-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+	gap: var(--space-6);
+}
+
+.student-certificate-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	overflow: hidden;
+	transition: all var(--transition-base);
+}
+
+.student-certificate-card:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-lg);
+	transform: translateY(-4px);
+}
+
+.student-certificate-thumbnail {
+	width: 100%;
+	height: 200px;
+	object-fit: cover;
+	background: var(--bg-tertiary);
+}
+
+.student-certificate-content {
+	padding: var(--space-6);
+}
+
+.student-certificate-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+}
+
+.student-certificate-category {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin-bottom: var(--space-4);
+}
+
+.student-certificate-meta {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin-bottom: var(--space-4);
+}
+
+.student-certificate-date,
+.student-certificate-id {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.student-certificate-download-btn {
+	width: 100%;
+	padding: var(--space-4);
+	background: var(--color-primary-500);
+	color: var(--color-light);
+	border: none;
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+}
+
+.student-certificate-download-btn:hover {
+	background: var(--color-primary-600);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.student-achievements-empty {
+	text-align: center;
+	padding: var(--space-12) var(--space-4);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+}
+
+.student-achievements-empty-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-top: var(--space-4);
+	color: var(--color-primary-500);
+	text-decoration: none;
+	font-weight: var(--font-weight-semibold);
+	transition: color var(--transition-fast);
+}
+
+.student-achievements-empty-link:hover {
+	color: var(--color-primary-600);
+}
+
+.student-badges-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: var(--space-6);
+}
+
+.student-badge-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	text-align: center;
+	transition: all var(--transition-base);
+}
+
+.student-badge-card:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-lg);
+	transform: translateY(-4px);
+}
+
+.student-badge-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-4);
+}
+
+.student-badge-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+}
+
+.student-badge-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin-bottom: var(--space-3);
+	line-height: var(--line-height-relaxed);
+}
+
+.student-badge-date {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.student-milestones-timeline {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	position: relative;
+	padding-left: var(--space-8);
+}
+
+.student-milestones-timeline::before {
+	content: '';
+	position: absolute;
+	left: 24px;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: var(--border-primary);
+}
+
+.student-milestone-item {
+	display: flex;
+	gap: var(--space-4);
+	position: relative;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-5);
+	transition: all var(--transition-base);
+}
+
+.student-milestone-item:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-md);
+	transform: translateX(4px);
+}
+
+.student-milestone-icon {
+	width: 48px;
+	height: 48px;
+	border-radius: var(--radius-lg);
+	background: rgba(var(--color-dark-rgb), 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-xl);
+	flex-shrink: 0;
+	position: relative;
+	z-index: 1;
+	box-shadow: 0 0 12px rgba(var(--color-dark-rgb), 0.2);
+}
+
+.student-milestone-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.student-milestone-title {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-1);
+}
+
+.student-milestone-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin-bottom: var(--space-2);
+	line-height: var(--line-height-relaxed);
+}
+
+.student-milestone-date {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+	.student-achievements-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.student-certificates-grid,
+	.student-badges-grid {
+		grid-template-columns: 1fr;
+	}
+}
+

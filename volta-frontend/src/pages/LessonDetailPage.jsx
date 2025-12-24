@@ -1,19 +1,28 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { lessonsService, coursesService, dashboardService } from '../services/api';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { lessonsService, coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useAutoSave } from '../hooks/useAutoSave';
+import LessonProgressIndicator from '../components/student/LessonProgressIndicator';
+import LessonNotes from '../components/student/LessonNotes';
 
 const LessonDetailPage = () => {
 	const { courseId, lessonId } = useParams();
 	const { user } = useAuth();
+	const navigate = useNavigate();
 	const [lesson, setLesson] = useState(null);
 	const [course, setCourse] = useState(null);
 	const [progress, setProgress] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [completed, setCompleted] = useState(false);
-	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [lessonProgress, setLessonProgress] = useState(0);
+	const [timeSpent, setTimeSpent] = useState(0);
+	const [sidebarOpen, setSidebarOpen] = useState(false); // Hidden by default for focused experience
 	const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+	const startTimeRef = useRef(null);
+	const progressIntervalRef = useRef(null);
+	const videoRef = useRef(null);
 
 	useEffect(() => {
 		const handleResize = () => {
@@ -30,21 +39,26 @@ const LessonDetailPage = () => {
 				const [lessonData, courseData, progressData] = await Promise.all([
 					lessonsService.getById(lessonId),
 					coursesService.getById(courseId),
-					user ? dashboardService.getProgress(courseId, user.id).catch(() => null) : null
+					user ? courseProgressService.getCourseProgress(courseId).catch(() => null) : null
 				]);
 				setLesson(lessonData);
 				setCourse(courseData);
 				setProgress(progressData);
 				
-				// Automatically mark lesson as completed when viewed
-				try {
-					await lessonsService.complete(lessonId);
+				// Check if lesson is already completed
+				if (progressData) {
+				const lessonProgressData = progressData?.modules
+					?.flatMap(m => m.lessons || [])
+					?.find(l => l.id === parseInt(lessonId));
+				
+				if (lessonProgressData?.completed) {
 					setCompleted(true);
-				} catch (err) {
-					console.error('Error completing lesson:', err);
+					setLessonProgress(100);
+					}
 				}
 			} catch (err) {
 				console.error('Error fetching data:', err);
+				console.error('Error details:', err.response?.data);
 				setError('Lecția nu a fost găsită');
 			} finally {
 				setLoading(false);
@@ -53,10 +67,150 @@ const LessonDetailPage = () => {
 		fetchData();
 	}, [lessonId, courseId, user]);
 
-	// Get all lessons (modules) from course
+	// Debug: Log lesson data when it changes
+	useEffect(() => {
+		if (lesson) {
+			console.log('Lesson data loaded:', {
+				id: lesson.id,
+				title: lesson.title,
+				content: lesson.content ? `${lesson.content.substring(0, 50)}...` : 'NO CONTENT',
+				content_type: lesson.content_type,
+				type: lesson.type,
+				video_url: lesson.video_url,
+				hasContent: !!lesson.content,
+				hasVideo: !!lesson.video_url,
+			});
+		}
+	}, [lesson]);
+
+	// Track time spent and progress
+	useEffect(() => {
+		if (!lesson || completed) return;
+
+		startTimeRef.current = Date.now();
+
+		// Update time spent every second
+		const timeInterval = setInterval(() => {
+			if (startTimeRef.current) {
+				const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+				setTimeSpent(elapsed);
+			}
+		}, 1000);
+
+		// Track video progress if video exists
+		if (lesson.video_url && videoRef.current) {
+			const video = videoRef.current;
+			
+			const updateVideoProgress = () => {
+				if (video.duration) {
+					const progress = (video.currentTime / video.duration) * 100;
+					setLessonProgress(Math.min(100, progress));
+				}
+			};
+
+			video.addEventListener('timeupdate', updateVideoProgress);
+			
+			return () => {
+				clearInterval(timeInterval);
+				video.removeEventListener('timeupdate', updateVideoProgress);
+			};
+		}
+
+		// For text lessons, track scroll progress
+		const isTextLesson = lesson.type === 'text' || lesson.content_type === 'text' || (!lesson.video_url && lesson.content);
+		if (isTextLesson) {
+			const updateScrollProgress = () => {
+				const windowHeight = window.innerHeight;
+				const documentHeight = document.documentElement.scrollHeight;
+				const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+				const progress = ((scrollTop + windowHeight) / documentHeight) * 100;
+				setLessonProgress(Math.min(100, Math.max(0, progress)));
+			};
+
+			window.addEventListener('scroll', updateScrollProgress);
+			updateScrollProgress(); // Initial check
+
+			return () => {
+				clearInterval(timeInterval);
+				window.removeEventListener('scroll', updateScrollProgress);
+			};
+		}
+
+		return () => {
+			clearInterval(timeInterval);
+		};
+	}, [lesson, completed]);
+
+	// Auto-save progress
+	const { saveStatus: saveProgressStatus } = useAutoSave(
+		{ lessonId, progress: lessonProgress, timeSpent },
+		async (data) => {
+			// Auto-save progress to backend (without marking as completed)
+			try {
+				// Update progress in lesson_progress table
+				// This is a lightweight update, not completion
+				await courseProgressService.updateLessonProgress(data.lessonId, {
+					progress_percentage: data.progress,
+					time_spent_seconds: data.timeSpent,
+				});
+			} catch (err) {
+				console.error('Error auto-saving progress:', err);
+			}
+		},
+		5000 // Save every 5 seconds
+	);
+
+	// Handle mark as completed
+	const handleMarkAsCompleted = useCallback(async () => {
+		try {
+			await courseProgressService.completeLesson(lessonId);
+			setCompleted(true);
+			setLessonProgress(100);
+			
+			// Refresh course progress
+			if (user) {
+				const updatedProgress = await courseProgressService.getCourseProgress(courseId);
+				setProgress(updatedProgress);
+			}
+		} catch (err) {
+			console.error('Error completing lesson:', err);
+			alert('Eroare la finalizarea lecției. Te rugăm să încerci din nou.');
+		}
+	}, [lessonId, courseId, user]);
+
+	// Get next lesson
+	const nextLesson = useMemo(() => {
+		if (!allLessons || allLessons.length === 0) return null;
+		
+		const currentIndex = allLessons.findIndex(l => l.id === parseInt(lessonId));
+			
+		if (currentIndex >= 0 && currentIndex < allLessons.length - 1) {
+			return allLessons[currentIndex + 1];
+		}
+		
+		return null;
+	}, [allLessons, lessonId]);
+
+	// Get all lessons from course modules
 	const allLessons = useMemo(() => {
-		if (!course) return [];
-		return (course.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+		if (!course || !course.modules) return [];
+		// Flatten lessons from all modules
+		const lessons = course.modules.flatMap(module => 
+			(module.lessons || []).map(lesson => ({
+				...lesson,
+				moduleId: module.id,
+				moduleTitle: module.title
+			}))
+		);
+		return lessons.sort((a, b) => {
+			// First sort by module order, then by lesson order
+			const moduleA = course.modules.find(m => m.id === a.moduleId);
+			const moduleB = course.modules.find(m => m.id === b.moduleId);
+			if (moduleA?.order !== moduleB?.order) {
+				return (moduleA?.order || 0) - (moduleB?.order || 0);
+			}
+			return (a.order || 0) - (b.order || 0);
+		});
 	}, [course]);
 	
 	const currentLessonIndex = useMemo(() => 
@@ -82,10 +236,10 @@ const LessonDetailPage = () => {
 	return (
 		<div style={{
 			display: 'flex',
-			gap: '2rem',
-			maxWidth: '1600px',
+			gap: '1.5rem',
+			maxWidth: '1800px',
 			margin: '0 auto',
-			padding: isMobile ? '1rem' : '2rem',
+			padding: isMobile ? '0 1rem 1rem 1rem' : '0 2rem 2rem 2rem',
 			flexDirection: isMobile ? 'column' : 'row'
 		}}>
 			{/* Sidebar Navigation */}
@@ -188,62 +342,16 @@ const LessonDetailPage = () => {
 									{allLessons.map((l, index) => {
 										const isCompleted = completedLessonIds.includes(l.id);
 										const isCurrent = l.id === parseInt(lessonId);
+										// Check if lesson is in progress (current lesson being viewed)
+										const isInProgress = isCurrent && !isCompleted;
 										
 										return (
 											<Link
 												key={l.id}
 												to={`/courses/${courseId}/lessons/${l.id}`}
-												style={{
-													display: 'flex',
-													alignItems: 'center',
-													gap: '0.75rem',
-													padding: '0.875rem 1rem',
-													background: isCurrent 
-														? 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))'
-														: 'rgba(255,255,255,0.03)',
-													border: `1px solid ${isCurrent ? 'rgba(255,238,0,0.4)' : 'rgba(255,238,0,0.15)'}`,
-													borderRadius: '12px',
-													textDecoration: 'none',
-													color: 'var(--va-text)',
-													transition: 'all 0.2s ease',
-													position: 'relative',
-													opacity: 1,
-													cursor: 'pointer',
-													pointerEvents: 'auto'
-												}}
-												onMouseEnter={(e) => {
-													if (!isCurrent) {
-														e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.12), rgba(255,238,0,0.08))';
-														e.currentTarget.style.borderColor = 'rgba(255,238,0,0.3)';
-														e.currentTarget.style.transform = 'translateX(4px)';
-													}
-												}}
-												onMouseLeave={(e) => {
-													if (!isCurrent) {
-														e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-														e.currentTarget.style.borderColor = 'rgba(255,238,0,0.15)';
-														e.currentTarget.style.transform = 'translateX(0)';
-													}
-												}}
+												className={`va-lesson-list-item ${isCurrent ? 'current' : ''}`}
 											>
-												<div style={{
-													width: '32px',
-													height: '32px',
-													borderRadius: '8px',
-													background: isCompleted
-														? 'linear-gradient(135deg, #ffee00, #ffd700)'
-														: isCurrent
-															? 'rgba(255,238,0,0.2)'
-															: 'rgba(255,238,0,0.1)',
-													border: isCurrent ? '2px solid rgba(255,238,0,0.4)' : '1px solid rgba(255,238,0,0.2)',
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'center',
-													fontSize: '0.85rem',
-													fontWeight: 700,
-													color: isCompleted ? '#000' : 'var(--va-primary)',
-													flexShrink: 0
-												}}>
+												<div className={`va-lesson-number ${isCompleted ? 'completed' : isCurrent ? 'current' : 'available'}`}>
 													{isCompleted ? '✓' : index + 1}
 												</div>
 												<div style={{ flex: 1, minWidth: 0 }}>
@@ -251,12 +359,23 @@ const LessonDetailPage = () => {
 														fontSize: '0.9rem',
 														fontWeight: isCurrent ? 700 : 600,
 														marginBottom: '0.25rem',
-														color: isCurrent ? 'var(--va-primary)' : 'var(--va-text)',
+														color: isCompleted ? '#4ade80' : isInProgress ? '#ffc107' : isCurrent ? 'var(--va-primary)' : 'var(--va-text)',
 														overflow: 'hidden',
 														textOverflow: 'ellipsis',
-														whiteSpace: 'nowrap'
+														whiteSpace: 'nowrap',
+														display: 'flex',
+														alignItems: 'center',
+														gap: '0.5rem'
 													}}>
-														{l.title || `Modul ${index + 1}`}
+														<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+															{l.title || `Modul ${index + 1}`}
+														</span>
+														{isCompleted && (
+															<span className="va-lesson-status-icon va-lesson-status-completed" title="Lecție completată">✓</span>
+														)}
+														{isInProgress && (
+															<span className="va-lesson-status-icon va-lesson-status-progress" title="Lecție în progres">⏸</span>
+														)}
 													</div>
 													{l.duration_minutes && (
 														<div style={{
@@ -328,79 +447,39 @@ const LessonDetailPage = () => {
 				</button>
 			)}
 
-			{/* Main Content */}
-			<div className="va-stack" style={{ flex: 1, maxWidth: sidebarOpen && !isMobile ? 'calc(100% - 360px)' : '100%', minWidth: 0 }}>
+			{/* Main Content - Focused Experience */}
+			<div className="student-lesson-content">
 				{/* Breadcrumb */}
-				<div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-					<Link 
-						to="/courses"
-						style={{
-							color: 'var(--va-muted)',
-							textDecoration: 'none',
-							fontSize: '0.95rem',
-							transition: 'color 0.2s ease'
-						}}
-						onMouseEnter={(e) => e.currentTarget.style.color = 'var(--va-primary)'}
-						onMouseLeave={(e) => e.currentTarget.style.color = 'var(--va-muted)'}
-					>
-						Cursuri
-					</Link>
-					<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-					<Link 
-						to={`/courses/${courseId}`}
-						style={{
-							color: 'var(--va-muted)',
-							textDecoration: 'none',
-							fontSize: '0.95rem',
-							transition: 'color 0.2s ease'
-						}}
-						onMouseEnter={(e) => e.currentTarget.style.color = 'var(--va-primary)'}
-						onMouseLeave={(e) => e.currentTarget.style.color = 'var(--va-muted)'}
-					>
+				<div className="student-lesson-breadcrumb">
+					<Link to="/courses" className="student-lesson-breadcrumb-link">Cursuri</Link>
+					<span className="student-lesson-breadcrumb-separator">/</span>
+					<Link to={`/courses/${courseId}`} className="student-lesson-breadcrumb-link">
 						{course?.title || 'Curs'}
 					</Link>
-					<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-					<span style={{ color: 'var(--va-primary)', fontWeight: 600 }}>
-						{lesson.title || `Modul ${currentLessonIndex + 1}`}
+					<span className="student-lesson-breadcrumb-separator">/</span>
+					<span className="student-lesson-breadcrumb-current">
+						{lesson.title || 'Lecție'}
 					</span>
 				</div>
 
+				{/* Completion Badge */}
 				{completed && (
-					<div style={{
-						background: 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))',
-						border: '1px solid rgba(255,238,0,0.35)',
-						borderRadius: '16px',
-						padding: '1.25rem 1.5rem',
-						marginBottom: '2rem',
-						display: 'flex',
-						alignItems: 'center',
-						gap: '1rem',
-						boxShadow: '0 4px 16px rgba(255,238,0,0.15)'
-					}}>
-						<div style={{
-							width: '40px',
-							height: '40px',
-							borderRadius: '12px',
-							background: 'linear-gradient(135deg, #ffee00, #ffd700)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							fontSize: '1.5rem',
-							color: '#000',
-							fontWeight: 700,
-							boxShadow: '0 4px 12px rgba(255,238,0,0.3)'
-						}}>
-							✓
-						</div>
+					<div className="student-lesson-completion-badge">
+						<div className="student-lesson-completion-icon">✓</div>
 						<div>
-							<div style={{ color: 'var(--va-primary)', fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.25rem' }}>
-								Modul completat!
-							</div>
-							<div style={{ color: 'var(--va-muted)', fontSize: '0.85rem' }}>
-								Ai finalizat cu succes acest modul
-							</div>
+							<div className="student-lesson-completion-title">Lecție completată!</div>
+							<div className="student-lesson-completion-subtitle">Ai finalizat cu succes această lecție</div>
 						</div>
 					</div>
+				)}
+
+				{/* Progress Indicator */}
+				{!completed && (
+					<LessonProgressIndicator 
+						progress={lessonProgress}
+						duration={lesson.duration_minutes}
+						timeSpent={timeSpent}
+					/>
 				)}
 			
 				{/* Lesson Header */}
@@ -458,17 +537,13 @@ const LessonDetailPage = () => {
 					)}
 				</div>
 			
+				{/* Video Content */}
 				{lesson.video_url && (
-					<div style={{
-						marginBottom: '2.5rem',
-						borderRadius: '20px',
-						overflow: 'hidden',
-						boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-						border: '1px solid rgba(255,238,0,0.2)'
-					}}>
+					<div className="student-lesson-video-container">
 						<video 
+							ref={videoRef}
 							controls 
-							style={{ width: '100%', maxHeight: '600px', display: 'block' }}
+							className="student-lesson-video"
 							src={lesson.video_url}
 						>
 							Browser-ul tău nu suportă tag-ul video.
@@ -476,6 +551,7 @@ const LessonDetailPage = () => {
 					</div>
 				)}
 			
+			{/* Text Content - Always show */}
 				<div className="va-prose" style={{
 					background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
 					border: '1px solid rgba(255,238,0,0.25)',
@@ -484,187 +560,105 @@ const LessonDetailPage = () => {
 					lineHeight: 1.9,
 					color: 'var(--va-text)',
 					boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset',
-					fontSize: '1.05rem'
+					fontSize: '1.05rem',
+					width: '100%',
+					maxWidth: '100%',
+					boxSizing: 'border-box',
+					overflow: 'hidden',
+					wordWrap: 'break-word',
+				overflowWrap: 'break-word',
+				minHeight: '200px'
 				}}>
-					<div style={{ whiteSpace: 'pre-wrap' }}>{lesson.content}</div>
+				{lesson.content ? (
+					<div style={{ 
+						whiteSpace: 'pre-wrap',
+						wordWrap: 'break-word',
+						overflowWrap: 'break-word',
+						maxWidth: '100%',
+						overflow: 'hidden'
+					}}>{lesson.content}</div>
+				) : (
+					<div style={{
+						padding: '2rem',
+						textAlign: 'center',
+						color: 'var(--va-text-muted)',
+						fontStyle: 'italic'
+					}}>
+						<p>Conținutul lecției nu este disponibil momentan.</p>
+						{lesson.description && (
+							<p style={{ marginTop: '1rem', fontStyle: 'normal', color: 'var(--va-text)' }}>{lesson.description}</p>
+						)}
+						{!lesson.video_url && !lesson.content && (
+							<p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+								Te rugăm să revii mai târziu sau contactează administratorul.
+							</p>
+						)}
+					</div>
+				)}
 				</div>
 
+				{/* Resources */}
 				{lesson.resources && lesson.resources.length > 0 && (
-					<div style={{
-						background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-						border: '1px solid rgba(255,238,0,0.25)',
-						borderRadius: '20px',
-						padding: '2rem',
-						marginTop: '2.5rem',
-						boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset'
-					}}>
-						<h3 style={{
-							color: 'var(--va-text)',
-							marginBottom: '1.5rem',
-							fontSize: '1.3rem',
-							fontWeight: 700,
-							display: 'flex',
-							alignItems: 'center',
-							gap: '0.75rem'
-						}}>
+					<div className="student-lesson-resources">
+						<h3 className="student-lesson-resources-title">
 							<span>📎</span>
 							<span>Resurse</span>
 						</h3>
-						<div style={{ display: 'grid', gap: '1rem' }}>
+						<div className="student-lesson-resources-list">
 							{lesson.resources.map((resource, idx) => (
 								<a
 									key={idx}
 									href={resource.url || resource}
 									target="_blank"
 									rel="noopener noreferrer"
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '1rem',
-										padding: '1.25rem 1.5rem',
-										background: 'rgba(255,255,255,0.04)',
-										border: '1px solid rgba(255,238,0,0.18)',
-										borderRadius: '16px',
-										textDecoration: 'none',
-										color: 'var(--va-text)',
-										transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-										position: 'relative',
-										overflow: 'hidden'
-									}}
-									onMouseEnter={(e) => {
-										e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.12), rgba(255,238,0,0.08))';
-										e.currentTarget.style.borderColor = 'rgba(255,238,0,0.35)';
-										e.currentTarget.style.transform = 'translateX(6px)';
-										e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,238,0,0.15)';
-									}}
-									onMouseLeave={(e) => {
-										e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-										e.currentTarget.style.borderColor = 'rgba(255,238,0,0.18)';
-										e.currentTarget.style.transform = 'translateX(0)';
-										e.currentTarget.style.boxShadow = 'none';
-									}}
+									className="student-lesson-resource-item"
 								>
-									<div style={{
-										width: '44px',
-										height: '44px',
-										borderRadius: '12px',
-										background: 'rgba(255,238,0,0.12)',
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										fontSize: '1.5rem',
-										flexShrink: 0
-									}}>
-										📎
-									</div>
-									<div style={{ flex: 1 }}>
-										<div style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: '1.05rem' }}>
+									<div className="student-lesson-resource-icon">📎</div>
+									<div className="student-lesson-resource-content">
+										<div className="student-lesson-resource-title">
 											{resource.title || resource.name || `Resursă ${idx + 1}`}
 										</div>
 										{resource.url && (
-											<div style={{ color: 'var(--va-muted)', fontSize: '0.85rem' }}>
+											<div className="student-lesson-resource-url">
 												{typeof resource.url === 'string' ? resource.url : 'Link resursă'}
 											</div>
 										)}
 									</div>
-									<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>→</span>
+									<span style={{ color: 'var(--student-lesson-text-muted)', fontSize: '1.2rem' }}>→</span>
 								</a>
 							))}
 						</div>
 					</div>
 				)}
 
-				<div className="va-actions" style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-					<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-						{currentLessonIndex > 0 && (
-							<Link 
-								to={`/courses/${courseId}/lessons/${allLessons[currentLessonIndex - 1].id}`}
-								className="va-btn va-btn-secondary"
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: '0.5rem',
-									padding: '0.875rem 1.75rem',
-									borderRadius: '12px',
-									fontWeight: 600,
-									transition: 'all 0.3s ease'
-								}}
+				{/* Lesson Notes */}
+				<LessonNotes lessonId={lessonId} />
+
+				{/* Action Buttons */}
+				<div className="student-lesson-actions">
+					<div className="student-lesson-actions-primary">
+						{!completed && (
+							<button
+								onClick={handleMarkAsCompleted}
+								className="student-lesson-btn student-lesson-btn-complete"
 							>
-								<span>←</span>
-								<span>Modulul anterior</span>
-							</Link>
+								<span className="student-lesson-btn-icon">✓</span>
+								<span>Marchează ca finalizat</span>
+							</button>
 						)}
-						{currentLessonIndex < allLessons.length - 1 && (
-							<Link 
-								to={`/courses/${courseId}/lessons/${allLessons[currentLessonIndex + 1].id}`}
-								className="va-btn va-btn-primary"
-								style={{
-									color: '#000000',
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: '0.5rem',
-									padding: '0.875rem 1.75rem',
-									borderRadius: '12px',
-									fontWeight: 600,
-									background: 'linear-gradient(135deg, #ffee00, #ffd700)',
-									boxShadow: '0 4px 16px rgba(255,238,0,0.3)',
-									transition: 'all 0.3s ease'
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.transform = 'translateY(-2px)';
-									e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,238,0,0.4)';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.transform = 'translateY(0)';
-									e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,238,0,0.3)';
-								}}
+						{nextLesson && (
+							<Link
+								to={`/courses/${courseId}/lessons/${nextLesson.id}`}
+								className="student-lesson-btn student-lesson-btn-next"
 							>
-								<span>Modulul următor</span>
-								<span>→</span>
-							</Link>
-						)}
-						{currentLessonIndex === allLessons.length - 1 && (
-							<Link 
-								to={`/courses/${courseId}/quiz`}
-								className="va-btn va-btn-primary"
-								style={{
-									color: '#000000',
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: '0.5rem',
-									padding: '0.875rem 1.75rem',
-									borderRadius: '12px',
-									fontWeight: 600,
-									background: 'linear-gradient(135deg, #ffee00, #ffd700)',
-									boxShadow: '0 4px 16px rgba(255,238,0,0.3)',
-									transition: 'all 0.3s ease'
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.transform = 'translateY(-2px)';
-									e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,238,0,0.4)';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.transform = 'translateY(0)';
-									e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,238,0,0.3)';
-								}}
-							>
-								<span>📝</span>
-								<span>Mergi la test final</span>
+								<span>Lecția următoare</span>
+								<span className="student-lesson-btn-icon">→</span>
 							</Link>
 						)}
 					</div>
 					<Link 
 						to={`/courses/${courseId}`}
-						className="va-btn va-btn-secondary"
-						style={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							gap: '0.5rem',
-							padding: '0.875rem 1.75rem',
-							borderRadius: '12px',
-							fontWeight: 600,
-							transition: 'all 0.3s ease'
-						}}
+						className="student-lesson-btn student-lesson-btn-back"
 					>
 						<span>←</span>
 						<span>Înapoi la curs</span>

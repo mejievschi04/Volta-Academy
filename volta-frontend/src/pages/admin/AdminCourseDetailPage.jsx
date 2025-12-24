@@ -1,286 +1,256 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
+import CourseOverview from '../../components/admin/courses/CourseOverview';
+import CourseStructureBuilder from '../../components/admin/courses/CourseStructureBuilder';
 
 const AdminCourseDetailPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const [course, setCourse] = useState(null);
-	const [lessons, setLessons] = useState([]);
-	const [exams, setExams] = useState([]);
+	const [modules, setModules] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [activeTab, setActiveTab] = useState('lessons'); // 'lessons', 'exams'
+	const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'structure'
+	const [actionLoading, setActionLoading] = useState(null);
 
 	useEffect(() => {
-		fetchCourse();
-		fetchLessons();
-		fetchExams();
+		fetchCourseData();
 	}, [id]);
 
-	const fetchCourse = async () => {
+	// Reload data when page becomes visible (user returns from creating test/lesson)
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				fetchCourseData();
+			}
+		};
+
+		const handleFocus = () => {
+			fetchCourseData();
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('focus', handleFocus);
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('focus', handleFocus);
+		};
+	}, [id]);
+
+	const fetchCourseData = async () => {
 		try {
 			setLoading(true);
-			const data = await adminService.getCourse(id);
-			setCourse(data);
+			setError(null);
+			const courseData = await adminService.getCourse(id);
+			setCourse(courseData);
+			// Use modules from courseData (which includes tests) instead of separate API call
+			// Sort modules by order
+			const modulesList = (courseData.modules || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+			setModules(modulesList);
+			console.log('[AdminCourseDetailPage] Loaded modules:', modulesList.map(m => ({
+				id: m.id,
+				title: m.title,
+				lessons_count: m.lessons?.length || 0,
+			})));
+			console.log('[AdminCourseDetailPage] Full courseData:', {
+				course_id: courseData.id,
+				modules_count: courseData.modules?.length || 0,
+			});
 		} catch (err) {
-			console.error('Error fetching course:', err);
+			console.error('Error fetching course data:', err);
 			setError('Nu s-a putut încărca cursul');
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const fetchLessons = async () => {
+	const handleQuickAction = async (action) => {
+		// Special handling for delete action
+		if (action === 'delete') {
+			if (!confirm(`Sigur dorești să ștergi complet cursul "${course.title}"?\n\nAceastă acțiune este ireversibilă și va șterge:\n- Toate modulele\n- Toate lecțiile\n- Toate legăturile cu testele\n- Toate înscrierile\n- Toate progresele\n\nAceastă acțiune NU poate fi anulată!`)) {
+				return;
+			}
+			
+			// Double confirmation for delete
+			if (!confirm(`ATENȚIE! Ești sigur că vrei să ștergi definitiv cursul "${course.title}"?\n\nApasă OK doar dacă ești 100% sigur!`)) {
+				return;
+			}
+		}
+		
+		setActionLoading(action);
 		try {
-			const data = await adminService.getLessons(id);
-			setLessons(data);
+			if (action === 'delete') {
+				await adminService.deleteCourse(id);
+				alert('Curs șters cu succes!');
+				navigate('/admin/courses');
+			} else {
+				await adminService.courseQuickAction(id, action);
+				await fetchCourseData();
+			}
 		} catch (err) {
-			console.error('Error fetching lessons:', err);
+			console.error(`Error ${action} course:`, err);
+			alert(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
+		} finally {
+			setActionLoading(null);
 		}
 	};
 
-	const fetchExams = async () => {
+	const handleReorderModules = async (reorderedModules) => {
 		try {
-			const data = await adminService.getExams();
-			const courseExams = data.filter(e => e.course_id == id);
-			setExams(courseExams);
+			await adminService.reorderModules(id, reorderedModules.map(m => m.id));
+			setModules(reorderedModules);
 		} catch (err) {
-			console.error('Error fetching exams:', err);
+			console.error('Error reordering modules:', err);
+			alert('Eroare la reordonare: ' + (err.response?.data?.message || err.message));
+			await fetchCourseData(); // Revert on error
 		}
 	};
 
-
-	const handleEditLesson = (lesson) => {
-		// Navigate to lesson creator page with course_id
-		navigate(`/admin/lessons/${lesson.id}?course_id=${id}`);
+	const handleEditModule = (moduleId) => {
+		navigate(`/admin/modules/${moduleId}?course_id=${id}`);
 	};
 
-	const handleEditExam = async (examId) => {
-		// Navigate to exam creator page with course_id
-		navigate(`/admin/exams/${examId}?course_id=${id}`);
-	};
+	const handleDeleteModule = async (moduleId) => {
+		if (!confirm('Sigur dorești să ștergi acest modul? Această acțiune este ireversibilă.')) {
+			return;
+		}
 
-	const handleDeleteLesson = async (lessonId) => {
-		if (!confirm('Sigur dorești să ștergi această lecție?')) return;
-
+		setActionLoading(`delete-module-${moduleId}`);
 		try {
-			await adminService.deleteLesson(lessonId);
-			fetchLessons();
+			await adminService.deleteModule(moduleId);
+			await fetchCourseData();
 		} catch (err) {
-			console.error('Error deleting lesson:', err);
-			alert('Eroare la ștergerea lecției');
+			console.error('Error deleting module:', err);
+			alert('Eroare la ștergerea modulului: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setActionLoading(null);
 		}
 	};
 
-	const handleDeleteExam = async (examId) => {
-		if (!confirm('Sigur dorești să ștergi acest test?')) return;
-
+	const handleToggleModuleLock = async (moduleId) => {
+		setActionLoading(`toggle-lock-${moduleId}`);
 		try {
-			await adminService.deleteExam(examId);
-			fetchExams();
+			await adminService.toggleModuleLock(moduleId);
+			await fetchCourseData();
 		} catch (err) {
-			console.error('Error deleting exam:', err);
-			alert('Eroare la ștergerea testului');
+			console.error('Error toggling module lock:', err);
+			alert('Eroare: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setActionLoading(null);
 		}
 	};
 
-	if (loading) { return null; }
+	const handleAddModule = () => {
+		navigate(`/admin/modules/new?course_id=${id}`);
+	};
+
+	const handleAddLesson = (moduleId) => {
+		navigate(`/admin/lessons/new?module_id=${moduleId}&course_id=${id}`);
+	};
+
+	const handleAddTest = () => {
+		// Navigate to Test Builder - tests are standalone and attached in Step4Tests
+		navigate('/admin/tests/new/builder');
+	};
+
+	if (loading) {
+		return (
+			<div className="admin-container">
+				<div className="admin-loading-state">
+					<div className="admin-loading-spinner"></div>
+					<p>Se încarcă cursul...</p>
+				</div>
+			</div>
+		);
+	}
 
 	if (error || !course) {
 		return (
-			<div className="va-stack">
-				<p style={{ color: 'red' }}>{error || 'Cursul nu a fost găsit'}</p>
-				<button className="va-btn" onClick={() => navigate(-1)}>
-					Înapoi
+			<div className="admin-container">
+				<div className="admin-error-message">
+					<strong>Eroare:</strong> {error || 'Cursul nu a fost găsit'}
+				</div>
+				<button className="admin-btn" onClick={() => navigate('/admin/courses')}>
+					Înapoi la Cursuri
 				</button>
 			</div>
 		);
 	}
 
-	// Get category ID from course for navigation
-	const categoryId = course.category_id;
-
 	return (
-		<div className="admin-container">
-			<div className="admin-page-header">
-				<div>
-					<button
-						className="va-btn va-btn-sm"
-						onClick={() => navigate(categoryId ? `/admin/categories/${categoryId}` : '/admin/courses')}
-						style={{ marginBottom: '1rem' }}
-					>
-						← Înapoi
-					</button>
-					<h1 className="va-page-title admin-page-title">{course.title}</h1>
-					<p className="va-muted admin-page-subtitle">{course.description || 'Gestionare curs'}</p>
-					<div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-						{course.teacher && (
-							<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-								👤 Profesor: <strong>{course.teacher.name}</strong>
-							</div>
-						)}
-						<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-							📚 Lecții: <strong>{lessons.length}</strong>
+		<div className="admin-course-detail-page">
+			<div className="admin-course-detail-container">
+				{/* Header */}
+				<div className="admin-course-detail-header">
+					<div className="admin-course-detail-header-left">
+						<button
+							className="admin-btn admin-btn-back"
+							onClick={() => navigate('/admin/courses')}
+						>
+							← Înapoi
+						</button>
+						<div className="admin-course-detail-title-section">
+							<h1 className="admin-course-detail-title">{course.title}</h1>
+							<p className="admin-course-detail-subtitle">
+								{course.short_description || course.description || 'Gestionare curs'}
+							</p>
 						</div>
-						<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-							📝 Teste: <strong>{exams.length}</strong>
-						</div>
-						{course.reward_points > 0 && (
-							<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-								⭐ Puncte: <strong>{course.reward_points}</strong>
-							</div>
-						)}
+					</div>
+					<div className="admin-course-detail-header-right">
+						<button
+							className="admin-btn admin-btn-secondary"
+							onClick={() => navigate(`/admin/courses/${id}/builder`)}
+						>
+							✏️ Editează Curs
+						</button>
 					</div>
 				</div>
-			</div>
 
-			{/* Tabs */}
-			<div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--va-border)' }}>
-				<button
-					className="va-btn"
-					onClick={() => setActiveTab('lessons')}
-					style={{
-						borderBottom: activeTab === 'lessons' ? '2px solid var(--va-primary)' : 'none',
-						borderRadius: 0,
-					}}
-				>
-					📚 Lecții (Module) ({lessons.length})
-				</button>
-				<button
-					className="va-btn"
-					onClick={() => setActiveTab('exams')}
-					style={{
-						borderBottom: activeTab === 'exams' ? '2px solid var(--va-primary)' : 'none',
-						borderRadius: 0,
-					}}
-				>
-					📝 Teste ({exams.length})
-				</button>
-			</div>
+				{/* Tabs */}
+				<div className="admin-course-detail-tabs">
+					<button
+						className={`admin-course-detail-tab ${activeTab === 'overview' ? 'active' : ''}`}
+						onClick={() => setActiveTab('overview')}
+					>
+						📊 Overview
+					</button>
+					<button
+						className={`admin-course-detail-tab ${activeTab === 'structure' ? 'active' : ''}`}
+						onClick={() => setActiveTab('structure')}
+					>
+						🏗️ Structură
+					</button>
+				</div>
 
-			{/* Lessons Tab */}
-			{activeTab === 'lessons' && (
-				<>
-					<div style={{ marginBottom: '1.5rem' }}>
-						<button
-							className="va-btn va-btn-primary"
-							onClick={() => {
-								// Navigate to lesson creator page with course_id
-								navigate(`/admin/lessons?course_id=${id}`);
-							}}
-						>
-							+ Adaugă Lecție (Modul)
-						</button>
-					</div>
-
-					{lessons.length > 0 ? (
-						<div className="admin-grid">
-							{lessons
-								.sort((a, b) => (a.order || 0) - (b.order || 0))
-								.map((lesson) => (
-									<div key={lesson.id} className="va-card admin-card">
-										<div className="admin-card-body">
-											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-												<h3 className="admin-card-title">{lesson.title}</h3>
-												<span style={{ fontSize: '0.75rem', color: 'var(--va-muted)', padding: '0.25rem 0.5rem', background: 'var(--va-surface-2)', borderRadius: '4px' }}>
-													#{lesson.order || 0}
-												</span>
-											</div>
-											<p className="admin-card-description">
-												{lesson.content?.substring(0, 150)}{lesson.content?.length > 150 ? '...' : ''}
-											</p>
-											<div className="admin-card-actions">
-												<button
-													className="va-btn va-btn-sm"
-													onClick={() => handleEditLesson(lesson)}
-												>
-													Editează
-												</button>
-												<button
-													className="va-btn va-btn-sm va-btn-danger"
-													onClick={() => handleDeleteLesson(lesson.id)}
-												>
-													Șterge
-												</button>
-											</div>
-										</div>
-									</div>
-								))}
-						</div>
-					) : (
-						<div className="va-card">
-							<div className="va-card-body">
-								<p className="va-muted">Nu există lecții în acest curs. Adaugă prima lecție!</p>
-							</div>
-						</div>
+				{/* Content */}
+				<div className="admin-course-detail-content">
+					{activeTab === 'overview' && (
+						<CourseOverview
+							course={course}
+							onQuickAction={handleQuickAction}
+						/>
 					)}
-				</>
-			)}
 
-			{/* Exams Tab */}
-			{activeTab === 'exams' && (
-				<>
-					<div style={{ marginBottom: '1.5rem' }}>
-						<button
-							className="va-btn va-btn-primary"
-							onClick={() => {
-								// Navigate to exam creator page with course_id
-								navigate(`/admin/exams?course_id=${id}`);
-							}}
-						>
-							+ Adaugă Test
-						</button>
-					</div>
-
-					{exams.length > 0 ? (
-						<div className="admin-grid">
-							{exams.map((exam) => (
-								<div key={exam.id} className="va-card admin-card">
-									<div className="admin-card-body">
-										<h3 className="admin-card-title">{exam.title}</h3>
-										<p className="admin-card-description">
-											{exam.description?.substring(0, 150) || 'Fără descriere'}
-											{exam.description?.length > 150 ? '...' : ''}
-										</p>
-										<div className="admin-card-info">
-											<div>❓ <strong>{exam.questions?.length || 0}</strong> întrebări</div>
-											{exam.max_score && (
-												<div>⭐ <strong>{exam.max_score}</strong> puncte maxime</div>
-											)}
-										</div>
-										<div className="admin-card-actions">
-											<button
-												className="va-btn va-btn-sm"
-												onClick={() => handleEditExam(exam.id)}
-											>
-												Editează
-											</button>
-											<button
-												className="va-btn va-btn-sm va-btn-danger"
-												onClick={() => handleDeleteExam(exam.id)}
-											>
-												Șterge
-											</button>
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					) : (
-						<div className="va-card">
-							<div className="va-card-body">
-								<p className="va-muted">Nu există teste în acest curs. Adaugă primul test!</p>
-							</div>
-						</div>
+					{activeTab === 'structure' && (
+						<CourseStructureBuilder
+							course={course}
+							modules={modules}
+							onReorderModules={handleReorderModules}
+							onEditModule={handleEditModule}
+							onDeleteModule={handleDeleteModule}
+							onToggleModuleLock={handleToggleModuleLock}
+							onAddModule={handleAddModule}
+							onAddLesson={handleAddLesson}
+							onAddTest={handleAddTest}
+							loading={actionLoading !== null}
+						/>
 					)}
-				</>
-			)}
-
+				</div>
+			</div>
 		</div>
 	);
 };
 
 export default AdminCourseDetailPage;
-

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
-use App\Models\Lesson;
+use App\Models\Module;
 use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +29,7 @@ class DashboardController extends Controller
             // Get assigned courses with progress from course_user pivot table
             $assignedCourses = $user->assignedCourses()
                 ->withPivot('progress_percentage', 'completed_at', 'enrolled', 'started_at')
-                ->with(['lessons:id,course_id,title,order', 'teacher:id,name'])
+                ->with(['modules:id,course_id,title,order', 'teacher:id,name'])
                 ->wherePivot('enrolled', true)
                 ->get();
             
@@ -40,18 +40,13 @@ class DashboardController extends Controller
                 return $course->pivot->completed_at !== null;
             });
             
-            // Calculate total lessons in assigned courses
-            $totalLessonsInAssigned = $assignedCourses->sum(function($course) {
-                return $course->lessons->count();
+            // Calculate total modules in assigned courses
+            $totalModulesInAssigned = $assignedCourses->sum(function($course) {
+                return $course->modules->count();
             });
             
-            // Get completed lessons count from lesson_progress
-            $completedLessons = DB::table('lesson_progress')
-                ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
-                ->where('lesson_progress.user_id', $user->id)
-                ->where('lesson_progress.completed', true)
-                ->whereIn('lessons.course_id', $assignedCourseIds)
-                ->count();
+            // Modules don't have individual completion tracking - use course progress instead
+            $completedModules = 0; // Not tracked individually
             
             // Calculate real progress percentage from course_user pivot table
             // Average of all assigned courses' progress_percentage
@@ -78,8 +73,8 @@ class DashboardController extends Controller
                 'stats' => [
                     'assignedCourses' => $assignedCourses->count(),
                     'completedCourses' => $completedCourses->count(),
-                    'completedLessons' => $completedLessons,
-                    'totalLessonsInAssigned' => $totalLessonsInAssigned,
+                    'completedModules' => $completedModules,
+                    'totalModulesInAssigned' => $totalModulesInAssigned,
                     'completedQuizzes' => $completedQuizzes,
                     'inProgressCourses' => $inProgressCourses->count(),
                     'progressPercentage' => $progressPercentage,
@@ -96,8 +91,8 @@ class DashboardController extends Controller
             ];
         });
 
-        // Get courses list (lightweight, without full lesson content)
-        $courses = Course::with(['lessons:id,course_id,title,order', 'teacher:id,name'])
+        // Get courses list (lightweight, without full module content)
+        $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])
             ->select('id', 'title', 'description', 'reward_points', 'teacher_id')
             ->get()
             ->map(function($course) {
@@ -106,11 +101,11 @@ class DashboardController extends Controller
                     'title' => $course->title,
                     'description' => $course->description,
                     'reward_points' => $course->reward_points,
-                    'lessons' => $course->lessons->map(function($lesson) {
+                    'modules' => $course->modules->map(function($module) {
                         return [
-                            'id' => $lesson->id,
-                            'title' => $lesson->title,
-                            'order' => $lesson->order,
+                            'id' => $module->id,
+                            'title' => $module->title,
+                            'order' => $module->order,
                         ];
                     }),
                     'teacher' => $course->teacher ? [

@@ -12,6 +12,7 @@ class ExamQuestion extends Model
     protected $fillable = [
         'exam_id',
         'question_text',
+        'question_type',
         'order',
         'points',
     ];

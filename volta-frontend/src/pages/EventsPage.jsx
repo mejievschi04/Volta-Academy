@@ -1,29 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
-import '../styles/modern-enhancements.css';
+import { formatCurrency, getDefaultCurrency } from '../utils/currency';
 
 const EventsPage = () => {
+	const navigate = useNavigate();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [currentDate, setCurrentDate] = useState(new Date());
-	const [viewMode, setViewMode] = useState('list'); // 'calendar' or 'list' - default 'list'
+	const [filters, setFilters] = useState({
+		type: 'all',
+		access_type: 'all',
+		date_filter: 'all', // all, upcoming, past, live
+	});
+	const [currency, setCurrency] = useState(getDefaultCurrency());
 
 	useEffect(() => {
 		fetchEvents();
-	}, []);
+		
+		// Listen for currency changes
+		const handleCurrencyChange = () => {
+			setCurrency(getDefaultCurrency());
+		};
+		window.addEventListener('currencyChanged', handleCurrencyChange);
+		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
+	}, [filters]);
 
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			const data = await eventsService.getAll();
-			// Map events to match admin format (start_date, end_date instead of startDate, endDate)
-			const mappedEvents = data.map(event => ({
-				...event,
-				start_date: event.startDate || event.start_date,
-				end_date: event.endDate || event.end_date,
-			}));
-			setEvents(mappedEvents);
+			const data = await eventsService.getAll(filters);
+			// Handle pagination if present
+			const eventsList = Array.isArray(data) ? data : (data?.data || []);
+			setEvents(eventsList);
 		} catch (err) {
 			console.error('Error fetching events:', err);
 			setError('Nu s-au putut încărca evenimentele');
@@ -56,67 +65,46 @@ const EventsPage = () => {
 		return `${hour}:${minute}`;
 	};
 
-	// Calendar functions
-	const getDaysInMonth = (date) => {
-		const year = date.getFullYear();
-		const month = date.getMonth();
-		const firstDay = new Date(year, month, 1);
-		const lastDay = new Date(year, month + 1, 0);
-		const daysInMonth = lastDay.getDate();
-		// Adjust for Monday = 0 (in Romania, week starts on Monday)
-		let startingDayOfWeek = firstDay.getDay() - 1;
-		if (startingDayOfWeek < 0) startingDayOfWeek = 6; // Sunday becomes 6
-
-		const days = [];
-		// Add empty cells for days before the first day of the month
-		for (let i = 0; i < startingDayOfWeek; i++) {
-			days.push(null);
-		}
-		// Add days of the month
-		for (let day = 1; day <= daysInMonth; day++) {
-			days.push(new Date(year, month, day));
-		}
-		return days;
-	};
-
-	const getMonthName = (date) => {
-		return date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
-	};
-
-	const getEventsForDate = (date) => {
-		if (!date) return [];
-		// Compare dates without timezone conversion
-		const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-		return events.filter(event => {
-			// Parse event.start_date directly (format: YYYY-MM-DD HH:mm:ss)
-			const eventDateMatch = event.start_date?.match(/(\d{4})-(\d{2})-(\d{2})/);
-			if (!eventDateMatch) return false;
-			const eventDateStr = `${eventDateMatch[1]}-${eventDateMatch[2]}-${eventDateMatch[3]}`;
-			return eventDateStr === dateStr;
-		});
-	};
-
-	const navigateMonth = (direction) => {
-		setCurrentDate(prev => {
-			const newDate = new Date(prev);
-			newDate.setMonth(prev.getMonth() + direction);
-			return newDate;
-		});
-	};
-
-	const goToToday = () => {
-		setCurrentDate(new Date());
-	};
 
 	const getEventTypeLabel = (type) => {
 		const labels = {
-			curs: 'Curs',
-			workshop: 'Workshop',
-			examen: 'Examen',
+			live_online: 'Live Online',
+			physical: 'Fizic',
 			webinar: 'Webinar',
-			eveniment: 'Eveniment',
+			workshop: 'Workshop',
 		};
-		return labels[type] || 'Eveniment';
+		return labels[type] || type;
+	};
+
+	const getAccessTypeLabel = (accessType) => {
+		const labels = {
+			free: 'Gratuit',
+			paid: 'Plătit',
+			course_included: 'Inclus în curs',
+		};
+		return labels[accessType] || accessType;
+	};
+
+	const getStatusBadge = (status) => {
+		const badges = {
+			published: { label: 'Publicat', color: '#10b981' },
+			upcoming: { label: 'Viitor', color: '#3b82f6' },
+			live: { label: 'Live', color: '#ef4444' },
+			completed: { label: 'Finalizat', color: '#8b5cf6' },
+		};
+		return badges[status] || null;
+	};
+
+	const handleRegister = async (eventId, e) => {
+		e.stopPropagation();
+		try {
+			await eventsService.register(eventId);
+			await fetchEvents(); // Refresh to update registration status
+			alert('Te-ai înscris cu succes la eveniment!');
+		} catch (err) {
+			console.error('Error registering:', err);
+			alert(err.response?.data?.message || 'Eroare la înscriere');
+		}
 	};
 
 	if (loading) {
@@ -127,12 +115,7 @@ const EventsPage = () => {
 					<div className="skeleton skeleton-text"></div>
 				</div>
 				<div className="skeleton-card">
-					<div className="skeleton skeleton-text" style={{ height: '2rem', marginBottom: '1rem' }}></div>
-					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
-						{[...Array(35)].map((_, i) => (
-							<div key={i} className="skeleton skeleton-text" style={{ aspectRatio: '1', minHeight: '80px' }}></div>
-						))}
-					</div>
+					<div className="skeleton skeleton-text" style={{ height: '200px' }}></div>
 				</div>
 			</div>
 		);
@@ -147,182 +130,203 @@ const EventsPage = () => {
 				</p>
 			</div>
 
+			{/* Filters */}
+			<div style={{ 
+				display: 'flex', 
+				gap: '1rem', 
+				marginBottom: '1.5rem', 
+				flexWrap: 'wrap',
+				alignItems: 'center',
+			}}>
+				<select
+					value={filters.type}
+					onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+					style={{
+						padding: '0.75rem 1rem',
+						background: 'var(--va-surface-2)',
+						border: '1px solid var(--va-border)',
+						borderRadius: '8px',
+						color: 'var(--va-text)',
+						fontSize: '0.9rem',
+					}}
+				>
+					<option value="all">Toate tipurile</option>
+					<option value="live_online">Live Online</option>
+					<option value="physical">Fizic</option>
+					<option value="webinar">Webinar</option>
+					<option value="workshop">Workshop</option>
+				</select>
+				<select
+					value={filters.access_type}
+					onChange={(e) => setFilters({ ...filters, access_type: e.target.value })}
+					style={{
+						padding: '0.75rem 1rem',
+						background: 'var(--va-surface-2)',
+						border: '1px solid var(--va-border)',
+						borderRadius: '8px',
+						color: 'var(--va-text)',
+						fontSize: '0.9rem',
+					}}
+				>
+					<option value="all">Toate accesurile</option>
+					<option value="free">Gratuit</option>
+					<option value="paid">Plătit</option>
+					<option value="course_included">Inclus în curs</option>
+				</select>
+				<select
+					value={filters.date_filter}
+					onChange={(e) => setFilters({ ...filters, date_filter: e.target.value })}
+					style={{
+						padding: '0.75rem 1rem',
+						background: 'var(--va-surface-2)',
+						border: '1px solid var(--va-border)',
+						borderRadius: '8px',
+						color: 'var(--va-text)',
+						fontSize: '0.9rem',
+					}}
+				>
+					<option value="all">Toate</option>
+					<option value="upcoming">Viitoare</option>
+					<option value="live">Live</option>
+					<option value="past">Trecute</option>
+				</select>
+			</div>
+
 			{error && (
 				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1.5rem' }}>
 					{error}
 				</div>
 			)}
 
-			<div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'var(--va-surface-2)', padding: '0.25rem', borderRadius: '8px', width: 'fit-content' }}>
-				<button
-					className={`va-btn va-btn-sm ${viewMode === 'list' ? 'va-btn-primary' : ''}`}
-					onClick={() => setViewMode('list')}
-				>
-					📋 Listă
-				</button>
-				<button
-					className={`va-btn va-btn-sm ${viewMode === 'calendar' ? 'va-btn-primary' : ''}`}
-					onClick={() => setViewMode('calendar')}
-				>
-					📅 Calendar
-				</button>
-			</div>
-
-			{viewMode === 'calendar' ? (
-				<div className="va-card fade-in-up" style={{ marginBottom: '1.5rem' }}>
-					<div className="va-card-body">
-						<div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-							<button className="va-btn" onClick={() => navigateMonth(-1)}>
-								← Anterior
-							</button>
-							<h2 style={{ margin: 0, textTransform: 'capitalize' }}>{getMonthName(currentDate)}</h2>
-							<div style={{ display: 'flex', gap: '0.5rem' }}>
-								<button className="va-btn" onClick={goToToday}>
-									Astăzi
-								</button>
-								<button className="va-btn" onClick={() => navigateMonth(1)}>
-									Următor →
-								</button>
-							</div>
-						</div>
-
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
-							{['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum'].map(day => (
-								<div key={day} style={{ 
-									padding: '0.75rem', 
-									textAlign: 'center', 
-									fontWeight: 'bold',
-									color: 'var(--va-muted)',
-									fontSize: '0.875rem'
-								}}>
-									{day}
-								</div>
-							))}
-
-							{getDaysInMonth(currentDate).map((date, index) => {
-								if (!date) {
-									return <div key={`empty-${index}`} style={{ aspectRatio: '1', minHeight: '80px' }} />;
-								}
-
-								const dayEvents = getEventsForDate(date);
-								const isToday = date.toDateString() === new Date().toDateString();
-								const isCurrentMonth = date.getMonth() === currentDate.getMonth();
-
+			{events.length > 0 ? (
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+							{events.map((event) => {
+								const statusBadge = getStatusBadge(event.status);
+								const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
+								
 								return (
 									<div
-										key={date.toISOString()}
-										style={{
-											aspectRatio: '1',
-											minHeight: '80px',
-											border: `1px solid var(--va-border)`,
-											borderRadius: '8px',
-											padding: '0.5rem',
-											cursor: dayEvents.length > 0 ? 'pointer' : 'default',
-											background: isToday ? 'var(--va-primary)' : 'var(--va-surface)',
-											color: isToday ? 'white' : isCurrentMonth ? 'var(--va-text)' : 'var(--va-muted)',
-											transition: 'all 0.2s',
-											position: 'relative',
-											display: 'flex',
-											flexDirection: 'column',
-											gap: '0.25rem',
-										}}
-										onMouseEnter={(e) => {
-											if (dayEvents.length > 0) {
-												e.currentTarget.style.background = isToday ? 'var(--va-primary)' : 'var(--va-surface-2)';
-												e.currentTarget.style.transform = 'scale(1.02)';
-											}
-										}}
-										onMouseLeave={(e) => {
-											e.currentTarget.style.background = isToday ? 'var(--va-primary)' : 'var(--va-surface)';
-											e.currentTarget.style.transform = 'scale(1)';
-										}}
+										key={event.id}
+										className="va-card-enhanced stagger-item"
+										style={{ cursor: 'pointer' }}
+										onClick={() => navigate(`/events/${event.id}`)}
 									>
-										<div style={{ 
-											fontWeight: 'bold', 
-											fontSize: '1.1rem',
-											marginBottom: '0.25rem'
-										}}>
-											{date.getDate()}
-										</div>
-										<div style={{ 
-											flex: 1, 
-											display: 'flex', 
-											flexDirection: 'column', 
-											gap: '0.125rem',
-											overflow: 'hidden'
-										}}>
-											{dayEvents.slice(0, 2).map(event => (
-												<div
-													key={event.id}
-													style={{
-														background: isToday ? 'rgba(255,255,255,0.3)' : 'var(--va-primary)',
-														color: isToday ? 'white' : 'white',
-														padding: '0.125rem 0.25rem',
-														borderRadius: '4px',
-														fontSize: '0.7rem',
-														overflow: 'hidden',
-														textOverflow: 'ellipsis',
-														whiteSpace: 'nowrap',
-													}}
-													title={event.title}
-												>
-													{event.title}
-												</div>
-											))}
-											{dayEvents.length > 2 && (
-												<div style={{
-													fontSize: '0.7rem',
-													color: isToday ? 'rgba(255,255,255,0.8)' : 'var(--va-muted)',
-												}}>
-													+{dayEvents.length - 2} mai multe
-												</div>
-											)}
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					</div>
-				</div>
-			) : null}
-
-			{viewMode === 'list' && (
-				<>
-					{events.length > 0 ? (
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-							{events.map((event) => (
-								<div
-									key={event.id}
-									className="va-card-enhanced stagger-item"
-								>
-									<div className="va-card-body">
-										<h3 className="va-card-title" style={{ marginBottom: '0.75rem' }}>
-											📅 {event.title}
-										</h3>
-										<p style={{ color: 'var(--va-muted)', marginBottom: '1rem', lineHeight: '1.6' }}>
-											{event.description?.substring(0, 150)}{event.description?.length > 150 ? '...' : ''}
-										</p>
-										<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8' }}>
-											<div style={{ marginBottom: '0.5rem' }}>
-												🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong>
-											</div>
-											{event.location && (
-												<div style={{ marginBottom: '0.5rem' }}>
-													📍 <strong style={{ color: 'var(--va-text)' }}>{event.location}</strong>
-												</div>
-											)}
-											<div style={{ fontSize: '0.8rem' }}>
-												🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
-												{event.end_date && (
-													<span style={{ marginLeft: '0.5rem' }}>
-														- {formatTime(event.end_date)}
+										{event.thumbnail && (
+											<div style={{
+												width: '100%',
+												height: '200px',
+												backgroundImage: `url(${event.thumbnail})`,
+												backgroundSize: 'cover',
+												backgroundPosition: 'center',
+												borderRadius: '8px 8px 0 0',
+											}} />
+										)}
+										<div className="va-card-body">
+											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+												<h3 className="va-card-title" style={{ marginBottom: 0, flex: 1 }}>
+													📅 {event.title}
+												</h3>
+												{statusBadge && (
+													<span style={{
+														padding: '0.25rem 0.75rem',
+														borderRadius: '12px',
+														fontSize: '0.75rem',
+														fontWeight: 'bold',
+														background: statusBadge.color,
+														color: '#fff',
+													}}>
+														{statusBadge.label}
 													</span>
+												)}
+											</div>
+											{event.short_description && (
+												<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
+													{event.short_description}
+												</p>
+											)}
+											<p style={{ color: 'var(--va-muted)', marginBottom: '1rem', lineHeight: '1.6' }}>
+												{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
+											</p>
+											<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
+												<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+													<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
+													{event.access_type && (
+														<span>💰 <strong style={{ color: 'var(--va-text)' }}>
+															{getAccessTypeLabel(event.access_type)}
+															{event.access_type === 'paid' && event.price && (
+																<span> - {formatCurrency(event.price, event.currency || currency)}</span>
+															)}
+														</strong></span>
+													)}
+												</div>
+												{event.instructor && (
+													<div style={{ marginBottom: '0.5rem' }}>
+														👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
+													</div>
+												)}
+												<div style={{ marginBottom: '0.5rem' }}>
+													📍 <strong style={{ color: 'var(--va-text)' }}>
+														{event.location || event.live_link || 'N/A'}
+													</strong>
+												</div>
+												<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+													🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
+													{event.end_date && (
+														<span style={{ marginLeft: '0.5rem' }}>
+															- {formatTime(event.end_date)}
+														</span>
+													)}
+												</div>
+												{event.max_capacity && (
+													<div style={{ marginBottom: '0.5rem' }}>
+														👥 <strong style={{ color: 'var(--va-text)' }}>
+															{event.registrations_count || 0} / {event.max_capacity} înscriși
+															{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
+														</strong>
+													</div>
+												)}
+											</div>
+											<div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+												<button
+													className="va-btn va-btn-primary"
+													onClick={(e) => {
+														e.stopPropagation();
+														navigate(`/events/${event.id}`);
+													}}
+													style={{ flex: 1 }}
+												>
+													Vezi Detalii
+												</button>
+												{!event.user_registered && !isFull && event.status !== 'completed' && event.status !== 'cancelled' && (
+													<button
+														className="va-btn"
+														onClick={(e) => handleRegister(event.id, e)}
+														style={{ 
+															background: event.access_type === 'paid' ? '#f59e0b' : '#10b981',
+															color: '#fff',
+														}}
+													>
+														{event.access_type === 'paid' ? '💳 Plătește' : '✓ Înscrie-te'}
+													</button>
+												)}
+												{event.user_registered && (
+													<button
+														className="va-btn"
+														disabled
+														style={{ 
+															background: '#10b981',
+															color: '#fff',
+															cursor: 'not-allowed',
+														}}
+													>
+														✓ Înscris
+													</button>
 												)}
 											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					) : (
 						<div className="va-card">
@@ -335,8 +339,6 @@ const EventsPage = () => {
 							</div>
 						</div>
 					)}
-				</>
-			)}
 		</div>
 	);
 };

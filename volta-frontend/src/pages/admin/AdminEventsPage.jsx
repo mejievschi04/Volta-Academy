@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../services/api';
-import '../../styles/admin.css';
+import { formatCurrency, getDefaultCurrency } from '../../utils/currency';
 
 const AdminEventsPage = () => {
 	const [events, setEvents] = useState([]);
@@ -10,48 +10,334 @@ const AdminEventsPage = () => {
 	const [editingEvent, setEditingEvent] = useState(null);
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [viewMode, setViewMode] = useState('list'); // 'calendar' or 'list' - default 'list'
+	
+	// Filters and search
+	const [searchQuery, setSearchQuery] = useState('');
+	const [filters, setFilters] = useState({
+		status: 'all',
+		type: 'all',
+		access_type: 'all',
+		instructor: 'all',
+		date_from: '',
+		date_to: '',
+	});
+	const [sortBy, setSortBy] = useState('start_date');
+	const [sortDirection, setSortDirection] = useState('asc');
+	
+	// Bulk actions
+	const [selectedEvents, setSelectedEvents] = useState(new Set());
+	const [actionLoading, setActionLoading] = useState(null);
+	
+	// Insights
+	const [insights, setInsights] = useState(null);
+	const [instructors, setInstructors] = useState([]);
+	
+	// Currency
+	const [currency, setCurrency] = useState(getDefaultCurrency());
+	
+	// Form data - extended with all new fields
 	const [formData, setFormData] = useState({
 		title: '',
 		description: '',
-		type: 'eveniment',
+		short_description: '',
+		type: 'live_online',
+		status: 'draft',
 		start_date: '',
 		end_date: '',
+		timezone: 'Europe/Bucharest',
 		location: '',
+		live_link: '',
+		max_capacity: null,
+		instructor_id: null,
+		access_type: 'free',
+		price: null,
+		currency: 'RON',
+		course_id: null,
+		replay_url: '',
+		thumbnail: '',
 	});
+	const [errors, setErrors] = useState({});
+	const [touched, setTouched] = useState({});
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+	
+	// Courses list for course_included access type
+	const [courses, setCourses] = useState([]);
 
 	useEffect(() => {
 		fetchEvents();
+		fetchInsights();
+		fetchInstructors();
+		fetchCourses();
+		
+		// Listen for currency changes
+		const handleCurrencyChange = () => {
+			setCurrency(getDefaultCurrency());
+		};
+		window.addEventListener('currencyChanged', handleCurrencyChange);
+		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
 	}, []);
 
-	const fetchEvents = async () => {
+	// Fetch courses for course_included access type
+	const fetchCourses = async () => {
+		try {
+			const data = await adminService.getCourses({ per_page: 1000 });
+			setCourses(Array.isArray(data) ? data : (data?.data || []));
+		} catch (err) {
+			console.error('Error fetching courses:', err);
+		}
+	};
+
+	// Fetch instructors
+	const fetchInstructors = async () => {
+		try {
+			const data = await adminService.getEventInstructors();
+			setInstructors(Array.isArray(data) ? data : []);
+		} catch (err) {
+			console.error('Error fetching instructors:', err);
+		}
+	};
+
+	// Fetch insights
+	const fetchInsights = async () => {
+		try {
+			const data = await adminService.getEventInsights();
+			setInsights(data);
+		} catch (err) {
+			console.error('Error fetching insights:', err);
+		}
+	};
+
+	// Fetch events with filters
+	const fetchEvents = useCallback(async () => {
 		try {
 			setLoading(true);
-			const data = await adminService.getEvents();
-			setEvents(data);
+			const params = {
+				search: searchQuery,
+				status: filters.status !== 'all' ? filters.status : null,
+				type: filters.type !== 'all' ? filters.type : null,
+				access_type: filters.access_type !== 'all' ? filters.access_type : null,
+				instructor: filters.instructor !== 'all' ? filters.instructor : null,
+				date_from: filters.date_from || null,
+				date_to: filters.date_to || null,
+				sort_by: sortBy,
+				sort_direction: sortDirection,
+			};
+			const data = await adminService.getEvents(params);
+			setEvents(Array.isArray(data) ? data : (data?.data || []));
 		} catch (err) {
 			console.error('Error fetching events:', err);
 			setError('Nu s-au putut încărca evenimentele');
 		} finally {
 			setLoading(false);
 		}
+	}, [searchQuery, filters, sortBy, sortDirection]);
+
+	// Update events when filters change
+	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			fetchEvents();
+		}, 300); // Debounce search
+
+		return () => clearTimeout(timeoutId);
+	}, [fetchEvents]);
+
+	// Quick actions
+	const handleQuickAction = async (eventId, action) => {
+		setActionLoading(eventId);
+		try {
+			await adminService.eventQuickAction(eventId, action);
+			await fetchEvents();
+			await fetchInsights();
+		} catch (err) {
+			console.error(`Error ${action} event:`, err);
+			alert(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
+		} finally {
+			setActionLoading(null);
+		}
+	};
+
+	// Bulk actions
+	const handleBulkAction = async (action) => {
+		if (selectedEvents.size === 0) return;
+		
+		if (!confirm(`Sigur dorești să ${action} ${selectedEvents.size} eveniment(e)?`)) {
+			return;
+		}
+
+		setActionLoading('bulk');
+		try {
+			await adminService.eventBulkAction(action, Array.from(selectedEvents));
+			setSelectedEvents(new Set());
+			await fetchEvents();
+			await fetchInsights();
+		} catch (err) {
+			console.error(`Error bulk ${action}:`, err);
+			alert(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
+		} finally {
+			setActionLoading(null);
+		}
+	};
+
+	// Select events
+	const handleSelectEvent = (eventId, checked) => {
+		setSelectedEvents(prev => {
+			const newSet = new Set(prev);
+			if (checked) {
+				newSet.add(eventId);
+			} else {
+				newSet.delete(eventId);
+			}
+			return newSet;
+		});
+	};
+
+	const handleSelectAll = (checked) => {
+		if (checked) {
+			setSelectedEvents(new Set(events.map(e => e.id)));
+		} else {
+			setSelectedEvents(new Set());
+		}
+	};
+
+	// Validate form
+	const validate = () => {
+		const newErrors = {};
+		if (!formData.title || formData.title.trim().length < 3) {
+			newErrors.title = 'Titlul trebuie să aibă minim 3 caractere';
+		}
+		if (!formData.description || formData.description.trim().length < 10) {
+			newErrors.description = 'Descrierea trebuie să aibă minim 10 caractere';
+		}
+		if (!formData.start_date) {
+			newErrors.start_date = 'Data și ora de început este obligatorie';
+		}
+		if (!formData.end_date) {
+			newErrors.end_date = 'Data și ora de sfârșit este obligatorie';
+		}
+		if (formData.start_date && formData.end_date) {
+			const start = new Date(formData.start_date);
+			const end = new Date(formData.end_date);
+			if (end <= start) {
+				newErrors.end_date = 'Data de sfârșit trebuie să fie după data de început';
+			}
+		}
+		if (formData.access_type === 'paid' && (!formData.price || formData.price <= 0)) {
+			newErrors.price = 'Prețul este obligatoriu pentru evenimente plătite';
+		}
+		if (formData.access_type === 'course_included' && !formData.course_id) {
+			newErrors.course_id = 'Cursul este obligatoriu pentru evenimente incluse în curs';
+		}
+		if (formData.max_capacity && formData.max_capacity < 1) {
+			newErrors.max_capacity = 'Capacitatea maximă trebuie să fie cel puțin 1';
+		}
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
+
+	// Calculate form completion percentage
+	const completionPercentage = () => {
+		let completed = 0;
+		const total = 8; // Updated total
+		if (formData.title && formData.title.trim().length >= 3) completed++;
+		if (formData.description && formData.description.trim().length >= 10) completed++;
+		if (formData.type) completed++;
+		if (formData.start_date) completed++;
+		if (formData.end_date) completed++;
+		if (formData.status) completed++;
+		if (formData.access_type) completed++;
+		if (formData.access_type !== 'paid' || (formData.price && formData.price > 0)) completed++;
+		if (formData.access_type !== 'course_included' || formData.course_id) completed++;
+		return Math.round((completed / total) * 100);
 	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
+		
+		// Validate before submit
+		if (!validate()) {
+			return;
+		}
+
 		try {
+			// Format dates for backend (YYYY-MM-DDTHH:mm format - datetime-local format)
+			// Backend expects this format and will convert it to YYYY-MM-DD HH:mm:ss
+			const formatDateForBackend = (dateString) => {
+				if (!dateString) return null;
+				// If already in YYYY-MM-DDTHH:mm format, return as is
+				if (dateString.includes('T')) {
+					return dateString;
+				}
+				// Otherwise parse and format
+				const date = new Date(dateString);
+				const year = date.getFullYear();
+				const month = String(date.getMonth() + 1).padStart(2, '0');
+				const day = String(date.getDate()).padStart(2, '0');
+				const hours = String(date.getHours()).padStart(2, '0');
+				const minutes = String(date.getMinutes()).padStart(2, '0');
+				return `${year}-${month}-${day}T${hours}:${minutes}`;
+			};
+			
+			// Prepare data to send - include all new fields
+			const dataToSend = {
+				title: formData.title.trim(),
+				description: formData.description.trim(),
+				short_description: formData.short_description?.trim() || null,
+				type: formData.type,
+				status: formData.status,
+				start_date: formatDateForBackend(formData.start_date),
+				end_date: formatDateForBackend(formData.end_date),
+				timezone: formData.timezone,
+				location: formData.location?.trim() || null,
+				live_link: formData.live_link?.trim() || null,
+				max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : null,
+				instructor_id: formData.instructor_id || null,
+				access_type: formData.access_type,
+				price: formData.access_type === 'paid' && formData.price ? parseFloat(formData.price) : null,
+				currency: formData.currency,
+				course_id: formData.access_type === 'course_included' && formData.course_id ? parseInt(formData.course_id) : null,
+				replay_url: formData.replay_url?.trim() || null,
+				thumbnail: formData.thumbnail?.trim() || null,
+			};
+
 			if (editingEvent) {
-				await adminService.updateEvent(editingEvent.id, formData);
+				await adminService.updateEvent(editingEvent.id, dataToSend);
 			} else {
-				await adminService.createEvent(formData);
+				await adminService.createEvent(dataToSend);
 			}
 
 			setShowModal(false);
 			setEditingEvent(null);
-			setFormData({ title: '', description: '', type: 'eveniment', start_date: '', end_date: '', location: '' });
+			setFormData({
+				title: '',
+				description: '',
+				short_description: '',
+				type: 'live_online',
+				status: 'draft',
+				start_date: '',
+				end_date: '',
+				timezone: 'Europe/Bucharest',
+				location: '',
+				live_link: '',
+				max_capacity: null,
+				instructor_id: null,
+				access_type: 'free',
+				price: null,
+				currency: 'RON',
+				course_id: null,
+				replay_url: '',
+				thumbnail: '',
+			});
+			setErrors({});
+			setTouched({});
 			fetchEvents();
+			fetchInsights();
 		} catch (err) {
 			console.error('Error saving event:', err);
-			alert('Eroare la salvarea evenimentului');
+			const errorMessage = err.response?.data?.message || 
+				(err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : null) ||
+				err.message || 
+				'Eroare necunoscută';
+			alert('Eroare la salvarea evenimentului: ' + errorMessage);
 		}
 	};
 
@@ -75,7 +361,6 @@ const AdminEventsPage = () => {
 		}
 		
 		if (event.end_date) {
-			// Parse directly from string without timezone conversion
 			const match = event.end_date.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
 			if (match) {
 				const [, year, month, day, hour, minute] = match;
@@ -86,21 +371,38 @@ const AdminEventsPage = () => {
 		}
 		
 		setFormData({
-			title: event.title,
-			description: event.description,
-			type: event.type,
+			title: event.title || '',
+			description: event.description || '',
+			short_description: event.short_description || '',
+			type: event.type || 'live_online',
+			status: event.status || 'draft',
 			start_date: startDate,
 			end_date: endDate,
+			timezone: event.timezone || 'Europe/Bucharest',
 			location: event.location || '',
+			live_link: event.live_link || '',
+			max_capacity: event.max_capacity || null,
+			instructor_id: event.instructor_id || null,
+			access_type: event.access_type || 'free',
+			price: event.price || null,
+			currency: event.currency || 'RON',
+			course_id: event.course_id || null,
+			replay_url: event.replay_url || '',
+			thumbnail: event.thumbnail || '',
 		});
 		setShowModal(true);
 	};
 
 	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi acest eveniment?')) return;
+		setShowDeleteConfirm(id);
+	};
+
+	const confirmDelete = async () => {
+		if (!showDeleteConfirm) return;
 
 		try {
-			await adminService.deleteEvent(id);
+			await adminService.deleteEvent(showDeleteConfirm);
+			setShowDeleteConfirm(null);
 			fetchEvents();
 		} catch (err) {
 			console.error('Error deleting event:', err);
@@ -130,6 +432,41 @@ const AdminEventsPage = () => {
 		const [, , , , hour, minute] = parts;
 		// Return time as HH:mm (no timezone conversion)
 		return `${hour}:${minute}`;
+	};
+
+	const calculateDuration = (startDateString, endDateString) => {
+		if (!startDateString || !endDateString) return '';
+		
+		try {
+			// Parse dates directly without timezone conversion
+			const startMatch = startDateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
+			const endMatch = endDateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
+			
+			if (!startMatch || !endMatch) return '';
+			
+			const start = new Date(
+				parseInt(startMatch[1]), parseInt(startMatch[2]) - 1, parseInt(startMatch[3]),
+				parseInt(startMatch[4]), parseInt(startMatch[5])
+			);
+			const end = new Date(
+				parseInt(endMatch[1]), parseInt(endMatch[2]) - 1, parseInt(endMatch[3]),
+				parseInt(endMatch[4]), parseInt(endMatch[5])
+			);
+			
+			const durationMinutes = Math.round((end - start) / 60000);
+			const hours = Math.floor(durationMinutes / 60);
+			const minutes = durationMinutes % 60;
+			
+			if (hours > 0 && minutes > 0) {
+				return `${hours}h ${minutes}m`;
+			} else if (hours > 0) {
+				return `${hours}h`;
+			} else {
+				return `${minutes}m`;
+			}
+		} catch (err) {
+			return '';
+		}
 	};
 
 	// Calendar functions
@@ -198,7 +535,8 @@ const AdminEventsPage = () => {
 			description: '',
 			type: 'eveniment',
 			start_date: formatForInput(startDate),
-			end_date: formatForInput(endDate),
+			duration: 60,
+			is_online: true,
 			location: '',
 		});
 		setEditingEvent(null);
@@ -220,14 +558,47 @@ const AdminEventsPage = () => {
 	if (loading) { return null; }
 
 	return (
-		<div className="admin-container">
+		<div className="admin-container admin-events-page">
 			<div className="admin-page-header">
 				<div>
 					<h1 className="va-page-title admin-page-title">Gestionare Evenimente</h1>
 					<p className="va-muted admin-page-subtitle">Gestionează toate evenimentele din platformă</p>
 				</div>
-				<div style={{ display: 'flex', gap: '0.5rem' }}>
-					<div style={{ display: 'flex', gap: '0.5rem', background: 'var(--va-surface-2)', padding: '0.25rem', borderRadius: '8px' }}>
+				<div className="admin-events-header-actions">
+					{/* Search */}
+					<input
+						type="text"
+						className="admin-events-search"
+						placeholder="Caută evenimente..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
+					{/* Filters */}
+					<select
+						className="admin-events-filter"
+						value={filters.status}
+						onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+					>
+						<option value="all">Toate statusurile</option>
+						<option value="draft">Draft</option>
+						<option value="published">Publicat</option>
+						<option value="upcoming">Viitor</option>
+						<option value="live">Live</option>
+						<option value="completed">Finalizat</option>
+						<option value="cancelled">Anulat</option>
+					</select>
+					<select
+						className="admin-events-filter"
+						value={filters.type}
+						onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+					>
+						<option value="all">Toate tipurile</option>
+						<option value="live_online">Live Online</option>
+						<option value="physical">Fizic</option>
+						<option value="webinar">Webinar</option>
+						<option value="workshop">Workshop</option>
+					</select>
+					<div className="admin-events-view-toggle">
 						<button
 							className={`va-btn va-btn-sm ${viewMode === 'list' ? 'va-btn-primary' : ''}`}
 							onClick={() => setViewMode('list')}
@@ -245,18 +616,114 @@ const AdminEventsPage = () => {
 						className="va-btn va-btn-primary"
 						onClick={() => {
 							setEditingEvent(null);
-							setFormData({ title: '', description: '', type: 'eveniment', start_date: '', end_date: '', location: '' });
+							setFormData({
+								title: '',
+								description: '',
+								short_description: '',
+								type: 'live_online',
+								status: 'draft',
+								start_date: '',
+								end_date: '',
+								timezone: 'Europe/Bucharest',
+								location: '',
+								live_link: '',
+								max_capacity: null,
+								instructor_id: null,
+								access_type: 'free',
+								price: null,
+								currency: 'RON',
+								course_id: null,
+								replay_url: '',
+								thumbnail: '',
+							});
+							setErrors({});
+							setTouched({});
 							setShowModal(true);
 						}}
 					>
-						+ Adaugă Eveniment
+						<span>➕</span>
+						<span>Adaugă Eveniment Nou</span>
 					</button>
 				</div>
 			</div>
 
 			{error && (
-				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1rem' }}>
+				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
 					{error}
+				</div>
+			)}
+
+			{/* Insights Section */}
+			{insights && (
+				<div className="admin-events-insights">
+					<h3 className="admin-events-insights-title">📊 Statistici Evenimente</h3>
+					<div className="admin-events-insights-grid">
+						<div className="admin-events-insight-item">
+							<div className="admin-events-insight-label">Total Evenimente</div>
+							<div className="admin-events-insight-value">{insights.total_events || 0}</div>
+						</div>
+						<div className="admin-events-insight-item">
+							<div className="admin-events-insight-label">Publicate</div>
+							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.published_events || 0}</div>
+						</div>
+						<div className="admin-events-insight-item">
+							<div className="admin-events-insight-label">Viitoare</div>
+							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.upcoming_events || 0}</div>
+						</div>
+						<div className="admin-events-insight-item">
+							<div className="admin-events-insight-label">Total Înscrieri</div>
+							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.total_registrations || 0}</div>
+						</div>
+						<div className="admin-events-insight-item">
+							<div className="admin-events-insight-label">Prezență Medie</div>
+							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.average_attendance_rate || 0}%</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Bulk Actions Toolbar */}
+			{selectedEvents.size > 0 && (
+				<div className="admin-events-bulk-toolbar">
+					<div className="admin-events-bulk-count">
+						{selectedEvents.size} eveniment(e) selectat(e)
+					</div>
+					<div className="admin-events-bulk-actions">
+						<button
+							className="va-btn va-btn-sm"
+							onClick={() => handleBulkAction('publish')}
+							disabled={actionLoading === 'bulk'}
+						>
+							Publică
+						</button>
+						<button
+							className="va-btn va-btn-sm"
+							onClick={() => handleBulkAction('unpublish')}
+							disabled={actionLoading === 'bulk'}
+						>
+							Retrage
+						</button>
+						<button
+							className="va-btn va-btn-sm"
+							onClick={() => handleBulkAction('cancel')}
+							disabled={actionLoading === 'bulk'}
+						>
+							Anulează
+						</button>
+						<button
+							className="va-btn va-btn-sm admin-btn-danger"
+							onClick={() => handleBulkAction('delete')}
+							disabled={actionLoading === 'bulk'}
+						>
+							Șterge
+						</button>
+						<button
+							className="va-btn va-btn-sm"
+							onClick={() => setSelectedEvents(new Set())}
+						>
+							Anulează
+						</button>
+					</div>
 				</div>
 			)}
 
@@ -264,42 +731,35 @@ const AdminEventsPage = () => {
 				const days = getDaysInMonth(currentDate);
 				const weeks = Math.ceil(days.length / 7);
 				return (
-				<div
-					className="va-card"
-					style={{
-						margin: '0 auto 1rem',
-						height: 'calc(100vh - 180px)',
-						maxWidth: '1000px'
-					}}
-				>
-					<div className="va-card-body" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-						<div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-							<button className="va-btn" onClick={() => navigateMonth(-1)}>
+				<div className="admin-events-calendar">
+					<div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+						<div className="admin-events-calendar-header">
+							<button className="va-btn va-btn-sm" onClick={() => navigateMonth(-1)}>
 								← Anterior
 							</button>
-							<h2 style={{ margin: 0, textTransform: 'capitalize', fontSize: '1.1rem' }}>{getMonthName(currentDate)}</h2>
+							<h2 className="admin-events-calendar-month">{getMonthName(currentDate)}</h2>
 							<div style={{ display: 'flex', gap: '0.375rem' }}>
-								<button className="va-btn" onClick={goToToday}>
+								<button className="va-btn va-btn-sm" onClick={goToToday}>
 									Astăzi
 								</button>
-								<button className="va-btn" onClick={() => navigateMonth(1)}>
+								<button className="va-btn va-btn-sm" onClick={() => navigateMonth(1)}>
 									Următor →
 								</button>
 							</div>
 						</div>
 
 						{/* Weekday header */}
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.375rem', marginBottom: '0.375rem' }}>
+						<div className="admin-events-calendar-weekdays">
 							{['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum'].map(day => (
-								<div key={day} style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 'bold', color: 'var(--va-muted)', fontSize: '0.8rem' }}>{day}</div>
+								<div key={day} className="admin-events-calendar-weekday">{day}</div>
 							))}
 						</div>
 
 						{/* Days grid fills remaining height exactly */}
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: `repeat(${weeks}, 1fr)`, gap: '0.375rem', flex: 1, minHeight: 0 }}>
+						<div className="admin-events-calendar-days" style={{ gridTemplateRows: `repeat(${weeks}, 1fr)` }}>
 							{days.map((date, index) => {
 								if (!date) {
-									return <div key={`empty-${index}`} style={{ borderRadius: '8px' }} />;
+									return <div key={`empty-${index}`} />;
 								}
 
 								const dayEvents = getEventsForDate(date);
@@ -309,57 +769,20 @@ const AdminEventsPage = () => {
 								return (
 									<div
 										key={date.toISOString()}
+										className={`admin-events-calendar-day ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}`}
 										onClick={() => handleDayClick(date)}
-										style={{
-											border: `1px solid var(--va-border)`,
-											borderRadius: '8px',
-											padding: '0.375rem',
-											cursor: 'pointer',
-											background: isToday ? 'var(--va-primary)' : 'var(--va-surface)',
-											color: isToday ? 'white' : isCurrentMonth ? 'var(--va-text)' : 'var(--va-muted)',
-											transition: 'all 0.2s',
-											position: 'relative',
-											display: 'flex',
-											flexDirection: 'column',
-											gap: '0.2rem',
-											overflow: 'hidden'
-										}}
-										onMouseEnter={(e) => {
-											e.currentTarget.style.background = isToday ? 'var(--va-primary)' : 'var(--va-surface-2)';
-											e.currentTarget.style.transform = 'scale(1.02)';
-										}}
-										onMouseLeave={(e) => {
-											e.currentTarget.style.background = isToday ? 'var(--va-primary)' : 'var(--va-surface)';
-											e.currentTarget.style.transform = 'scale(1)';
-										}}
 									>
-										<div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.2rem' }}>
+										<div className="admin-events-calendar-day-number">
 											{date.getDate()}
 										</div>
-										<div style={{ 
-											flex: 1, 
-											display: 'flex', 
-											flexDirection: 'column', 
-											gap: '0.1rem',
-											overflow: 'hidden'
-										}}>
+										<div className="admin-events-calendar-day-events">
 											{dayEvents.slice(0, 2).map(event => (
 												<div
 													key={event.id}
+													className="admin-events-calendar-day-event"
 													onClick={(e) => {
 														e.stopPropagation();
 														handleEdit(event);
-													}}
-													style={{
-														background: isToday ? 'rgba(255,255,255,0.3)' : 'var(--va-primary)',
-														color: isToday ? 'white' : '#000000',
-														padding: '0.1rem 0.2rem',
-														borderRadius: '4px',
-														fontSize: '0.68rem',
-														overflow: 'hidden',
-														textOverflow: 'ellipsis',
-														whiteSpace: 'nowrap',
-														cursor: 'pointer',
 													}}
 													title={event.title}
 												>
@@ -367,10 +790,7 @@ const AdminEventsPage = () => {
 												</div>
 											))}
 											{dayEvents.length > 2 && (
-												<div style={{
-													fontSize: '0.7rem',
-													color: isToday ? 'rgba(255,255,255,0.8)' : 'var(--va-muted)',
-												}}>
+												<div className="admin-events-calendar-day-more">
 													+{dayEvents.length - 2} mai multe
 												</div>
 											)}
@@ -387,45 +807,189 @@ const AdminEventsPage = () => {
 				<>
 					{events.length > 0 ? (
 						<div className="admin-grid">
-							{events.map((event) => (
-								<div
-									key={event.id}
-									className="va-card admin-card"
-								>
-									<div className="admin-card-body">
-										<h3 className="admin-card-title">📅 {event.title}</h3>
-										<p className="admin-card-description">
-											{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
-										</p>
-										<div className="admin-card-info">
-											<div style={{ marginBottom: '0.5rem' }}>🏷️ <strong>{event.type}</strong></div>
-											<div style={{ marginBottom: '0.5rem' }}>📍 <strong>{event.location || 'N/A'}</strong></div>
-											<div style={{ fontSize: '0.8rem' }}>
-												🕐 <strong>{formatDate(event.start_date)}</strong>
-												{event.end_date && (
-													<span style={{ marginLeft: '0.5rem' }}>
-														- {formatTime(event.end_date)}
+							{events.map((event) => {
+								const getStatusColor = (status) => {
+									const colors = {
+									draft: 'var(--color-dark)',
+									published: 'var(--color-dark)',
+									upcoming: 'var(--color-dark)',
+									live: 'var(--color-dark)',
+									completed: 'var(--color-dark)',
+									cancelled: 'var(--color-dark)',
+								};
+								return colors[status] || 'var(--color-dark)';
+								};
+
+								const getStatusLabel = (status) => {
+									const labels = {
+										draft: 'Draft',
+										published: 'Publicat',
+										upcoming: 'Viitor',
+										live: 'Live',
+										completed: 'Finalizat',
+										cancelled: 'Anulat',
+									};
+									return labels[status] || status;
+								};
+
+								const getTypeLabel = (type) => {
+									const labels = {
+										live_online: 'Live Online',
+										physical: 'Fizic',
+										webinar: 'Webinar',
+										workshop: 'Workshop',
+									};
+									return labels[type] || type;
+								};
+
+								const getAccessTypeLabel = (accessType) => {
+									const labels = {
+										free: 'Gratuit',
+										paid: 'Plătit',
+										course_included: 'Inclus în curs',
+									};
+									return labels[accessType] || accessType;
+								};
+
+								return (
+									<div
+										key={event.id}
+										className="admin-event-card"
+									>
+										{/* Checkbox for bulk selection */}
+										<input
+											type="checkbox"
+											className="admin-event-card-checkbox"
+											checked={selectedEvents.has(event.id)}
+											onChange={(e) => handleSelectEvent(event.id, e.target.checked)}
+										/>
+										<div className="admin-card-body">
+											<div className="admin-event-header">
+												<h3 className="admin-event-title">📅 {event.title}</h3>
+												{event.status && (
+													<span className={`admin-event-status ${event.status}`}>
+														{getStatusLabel(event.status)}
 													</span>
 												)}
 											</div>
-										</div>
-										<div className="admin-card-actions">
-											<button
-												className="va-btn va-btn-sm"
-												onClick={() => handleEdit(event)}
-											>
-												Editează
-											</button>
-											<button
-												className="va-btn va-btn-sm va-btn-danger"
-												onClick={() => handleDelete(event.id)}
-											>
-												Șterge
-											</button>
+											{event.short_description && (
+												<p className="admin-event-description" style={{ marginBottom: '0.5rem' }}>
+													{event.short_description}
+												</p>
+											)}
+											<p className="admin-event-description">
+												{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
+											</p>
+											<div className="admin-event-info">
+												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>
+													<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
+													{event.access_type && (
+														<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
+															{event.access_type === 'paid' && event.price && (
+																<span> - {formatCurrency(event.price, event.currency || currency)}</span>
+															)}
+														</span>
+													)}
+												</div>
+												{event.instructor && (
+													<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>👤 <strong>{event.instructor.name}</strong></div>
+												)}
+												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>📍 <strong>{event.location || event.live_link || 'N/A'}</strong></div>
+												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>
+													🕐 <strong>{formatDate(event.start_date)}</strong>
+													{event.end_date && (
+														<span style={{ marginLeft: '0.5rem' }}>
+															⏱️ {calculateDuration(event.start_date, event.end_date)}
+														</span>
+													)}
+												</div>
+												{/* KPI Metrics */}
+												<div className="admin-event-kpis">
+													<div className="admin-event-kpi">
+														<div className="admin-event-kpi-label">Înscrieri</div>
+														<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
+															{event.registrations_count || 0}
+															{event.max_capacity && ` / ${event.max_capacity}`}
+														</div>
+													</div>
+													<div className="admin-event-kpi">
+														<div className="admin-event-kpi-label">Prezență</div>
+														<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
+															{event.attendance_count || 0}
+														</div>
+													</div>
+													{event.replay_views_count > 0 && (
+														<div className="admin-event-kpi">
+															<div className="admin-event-kpi-label">Replay</div>
+															<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
+																{event.replay_views_count}
+															</div>
+														</div>
+													)}
+												</div>
+											</div>
+											<div className="admin-card-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+												{/* Quick Actions */}
+												{event.status === 'draft' && (
+													<button
+														className="va-btn va-btn-sm"
+														onClick={() => handleQuickAction(event.id, 'publish')}
+														disabled={actionLoading === event.id}
+														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
+													>
+														Publică
+													</button>
+												)}
+												{(event.status === 'published' || event.status === 'upcoming') && (
+													<button
+														className="va-btn va-btn-sm"
+														onClick={() => handleQuickAction(event.id, 'unpublish')}
+														disabled={actionLoading === event.id}
+														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
+													>
+														Retrage
+													</button>
+												)}
+												{!['completed', 'cancelled'].includes(event.status) && (
+													<button
+														className="va-btn va-btn-sm"
+														onClick={() => handleQuickAction(event.id, 'cancel')}
+														disabled={actionLoading === event.id}
+														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
+													>
+														Anulează
+													</button>
+												)}
+												{['published', 'upcoming', 'live'].includes(event.status) && (
+													<button
+														className="va-btn va-btn-sm"
+														onClick={() => handleQuickAction(event.id, 'complete')}
+														disabled={actionLoading === event.id}
+														style={{ background: '#8b5cf6', color: '#fff' }}
+													>
+														Finalizează
+													</button>
+												)}
+												<button
+													className="va-btn va-btn-sm"
+													onClick={() => handleEdit(event)}
+												>
+													Editează
+												</button>
+												<button
+													className="va-btn va-btn-sm va-btn-danger"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleDelete(event.id);
+													}}
+												>
+													Șterge
+												</button>
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					) : (
 						<div className="va-card">
@@ -445,102 +1009,1011 @@ const AdminEventsPage = () => {
 						left: 0,
 						right: 0,
 						bottom: 0,
-						background: 'rgba(0,0,0,0.5)',
+						background: 'rgba(0,0,0,0.7)',
+						backdropFilter: 'blur(8px)',
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'center',
 						zIndex: 1000,
+						padding: '1rem',
 					}}
-					onClick={() => setShowModal(false)}
+					onClick={(e) => {
+						if (e.target === e.currentTarget) {
+							setShowModal(false);
+							setErrors({});
+							setTouched({});
+						}
+					}}
 				>
 					<div
 						className="va-card"
-						style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}
-						onClick={(e) => e.stopPropagation()}
+						style={{ 
+							width: '100%', 
+							maxWidth: '700px', 
+							maxHeight: '90vh', 
+							overflow: 'auto', 
+							position: 'relative',
+							background: 'linear-gradient(145deg, rgba(15,15,20,0.98), rgba(25,25,35,0.98))',
+							backdropFilter: 'blur(20px)',
+							border: '1px solid rgba(255,238,0,0.2)',
+							borderRadius: '24px',
+							boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,238,0,0.1) inset',
+						}}
 					>
-						<div className="va-card-header">
-							<h2>{editingEvent ? 'Editează Eveniment' : 'Adaugă Eveniment Nou'}</h2>
+						<div className="va-card-header" style={{ 
+							display: 'flex', 
+							justifyContent: 'space-between', 
+							alignItems: 'center',
+							padding: '2rem 2rem 1rem 2rem',
+							borderBottom: '1px solid rgba(255,238,0,0.1)',
+						}}>
+							<h2 style={{
+								margin: 0,
+								background: 'linear-gradient(135deg, #ffffff, #ffee00)',
+								WebkitBackgroundClip: 'text',
+								WebkitTextFillColor: 'transparent',
+								backgroundClip: 'text',
+								fontSize: '1.75rem',
+								fontWeight: 800,
+								letterSpacing: '-0.02em',
+							}}>
+								{editingEvent ? '✏️ Editează Eveniment' : '➕ Adaugă Eveniment Nou'}
+							</h2>
+							<button
+								type="button"
+								onClick={() => {
+									setShowModal(false);
+									setErrors({});
+									setTouched({});
+								}}
+								style={{
+									background: 'rgba(255,255,255,0.05)',
+									border: '1px solid rgba(255,255,255,0.1)',
+									borderRadius: '10px',
+									color: '#fff',
+									fontSize: '1.5rem',
+									cursor: 'pointer',
+									padding: '0.5rem 0.75rem',
+									lineHeight: 1,
+									transition: 'all 0.3s ease',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.background = 'rgba(255,107,107,0.2)';
+									e.currentTarget.style.borderColor = 'rgba(255,107,107,0.4)';
+									e.currentTarget.style.transform = 'rotate(90deg)';
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+									e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+									e.currentTarget.style.transform = 'rotate(0deg)';
+								}}
+								title="Închide"
+							>
+								×
+							</button>
 						</div>
-						<div className="va-card-body">
+						<div className="va-card-body" style={{ padding: '2rem' }}>
 							<form onSubmit={handleSubmit} className="va-stack">
+								{/* Progress Indicator */}
+								<div style={{ marginBottom: '2rem' }}>
+									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+										<span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+											Progres completare
+										</span>
+										<span style={{ fontSize: '0.9rem', color: '#ffee00', fontWeight: 700 }}>
+											{completionPercentage()}%
+										</span>
+									</div>
+									<div style={{
+										width: '100%',
+										height: '8px',
+										background: 'rgba(255,255,255,0.1)',
+										borderRadius: '8px',
+										overflow: 'hidden',
+									}}>
+										<div style={{
+											width: `${completionPercentage()}%`,
+											height: '100%',
+											background: 'linear-gradient(90deg, #ffee00, #ffcc00)',
+											borderRadius: '8px',
+											transition: 'width 0.3s ease',
+											boxShadow: '0 0 12px rgba(255,238,0,0.4)',
+										}} />
+									</div>
+								</div>
+
+								{/* Title Field */}
 								<div className="va-form-group">
-									<label className="va-form-label">Titlu</label>
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>📝</span>
+										<span>Titlu</span>
+										{formData.title && formData.title.trim().length >= 3 && (
+											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
+										)}
+									</label>
 									<input
 										type="text"
 										className="va-form-input"
 										value={formData.title}
-										onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+										onChange={(e) => {
+											setFormData({ ...formData, title: e.target.value });
+											if (touched.title) validate();
+										}}
+										onBlur={() => {
+											setTouched({ ...touched, title: true });
+											validate();
+										}}
+										placeholder="Ex: Workshop React Advanced"
 										required
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: errors.title
+												? '1px solid rgba(255,107,107,0.5)'
+												: formData.title && formData.title.trim().length >= 3
+												? '1px solid rgba(74, 222, 128, 0.5)'
+												: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											transition: 'all 0.3s ease',
+										}}
 									/>
+									{errors.title && touched.title && (
+										<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+											{errors.title}
+										</div>
+									)}
+									{formData.title && formData.title.trim().length > 0 && formData.title.trim().length < 3 && (
+										<div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+											💡 Minim 3 caractere necesare ({formData.title.trim().length}/3)
+										</div>
+									)}
 								</div>
+
+								{/* Description Field */}
 								<div className="va-form-group">
-									<label className="va-form-label">Descriere</label>
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>📄</span>
+										<span>Descriere</span>
+										{formData.description && formData.description.trim().length >= 10 && (
+											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
+										)}
+									</label>
 									<textarea
 										className="va-form-input"
 										value={formData.description}
-										onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+										onChange={(e) => {
+											setFormData({ ...formData, description: e.target.value });
+											if (touched.description) validate();
+										}}
+										onBlur={() => {
+											setTouched({ ...touched, description: true });
+											validate();
+										}}
+										placeholder="Descrie evenimentul în detaliu..."
 										required
 										rows={4}
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: errors.description
+												? '1px solid rgba(255,107,107,0.5)'
+												: formData.description && formData.description.trim().length >= 10
+												? '1px solid rgba(74, 222, 128, 0.5)'
+												: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											transition: 'all 0.3s ease',
+											resize: 'vertical',
+											fontFamily: 'inherit',
+										}}
 									/>
+									{errors.description && touched.description && (
+										<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+											{errors.description}
+										</div>
+									)}
+									{formData.description && (
+										<div style={{ 
+											marginTop: '0.5rem', 
+											color: formData.description.trim().length >= 10 ? '#4ade80' : 'rgba(255,255,255,0.6)', 
+											fontSize: '0.85rem' 
+										}}>
+											{formData.description.trim().length >= 10 ? (
+												<span>✓ {formData.description.trim().length} caractere</span>
+											) : (
+												<span>💡 Minim 10 caractere necesare ({formData.description.trim().length}/10)</span>
+											)}
+										</div>
+									)}
 								</div>
+
+								{/* Type Field */}
 								<div className="va-form-group">
-									<label className="va-form-label">Tip</label>
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>🏷️</span>
+										<span>Tip Eveniment</span>
+										{formData.type && (
+											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
+										)}
+									</label>
 									<select
 										className="va-form-input"
 										value={formData.type}
 										onChange={(e) => setFormData({ ...formData, type: e.target.value })}
 										required
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: formData.type
+												? '1px solid rgba(74, 222, 128, 0.5)'
+												: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											transition: 'all 0.3s ease',
+											cursor: 'pointer',
+										}}
 									>
-										<option value="curs">Curs</option>
-										<option value="workshop">Workshop</option>
-										<option value="examen">Examen</option>
-										<option value="webinar">Webinar</option>
-										<option value="eveniment">Eveniment</option>
+										<option value="live_online" style={{ background: '#1a1a1a', color: '#fff' }}>💻 Live Online</option>
+										<option value="physical" style={{ background: '#1a1a1a', color: '#fff' }}>🏢 Fizic</option>
+										<option value="webinar" style={{ background: '#1a1a1a', color: '#fff' }}>📹 Webinar</option>
+										<option value="workshop" style={{ background: '#1a1a1a', color: '#fff' }}>🔧 Workshop</option>
 									</select>
 								</div>
+
+								{/* Short Description */}
 								<div className="va-form-group">
-									<label className="va-form-label">Data și Ora Început</label>
-									<input
-										type="datetime-local"
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>📋</span>
+										<span>Descriere Scurtă</span>
+									</label>
+									<textarea
 										className="va-form-input"
-										value={formData.start_date}
-										onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-										required
+										value={formData.short_description}
+										onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+										placeholder="Descriere scurtă pentru preview..."
+										rows={2}
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											transition: 'all 0.3s ease',
+											resize: 'vertical',
+											fontFamily: 'inherit',
+										}}
 									/>
 								</div>
+
+								{/* Status */}
 								<div className="va-form-group">
-									<label className="va-form-label">Data și Ora Sfârșit</label>
-									<input
-										type="datetime-local"
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>📊</span>
+										<span>Status</span>
+									</label>
+									<select
 										className="va-form-input"
-										value={formData.end_date}
-										onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-										required
-									/>
+										value={formData.status}
+										onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											cursor: 'pointer',
+										}}
+									>
+										<option value="draft" style={{ background: '#1a1a1a', color: '#fff' }}>Draft</option>
+										<option value="published" style={{ background: '#1a1a1a', color: '#fff' }}>Publicat</option>
+										<option value="upcoming" style={{ background: '#1a1a1a', color: '#fff' }}>Viitor</option>
+										<option value="live" style={{ background: '#1a1a1a', color: '#fff' }}>Live</option>
+										<option value="completed" style={{ background: '#1a1a1a', color: '#fff' }}>Finalizat</option>
+										<option value="cancelled" style={{ background: '#1a1a1a', color: '#fff' }}>Anulat</option>
+									</select>
 								</div>
+
+								{/* Start Date and End Date */}
+								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+									{/* Start Date */}
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>🕐</span>
+											<span>Data și Ora Început</span>
+											{formData.start_date && (
+												<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
+											)}
+										</label>
+										<input
+											type="datetime-local"
+											className="va-form-input"
+											value={formData.start_date}
+											onChange={(e) => {
+												setFormData({ ...formData, start_date: e.target.value });
+												if (touched.start_date) validate();
+											}}
+											onBlur={() => {
+												setTouched({ ...touched, start_date: true });
+												validate();
+											}}
+											required
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: errors.start_date
+													? '1px solid rgba(255,107,107,0.5)'
+													: formData.start_date
+													? '1px solid rgba(74, 222, 128, 0.5)'
+													: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+												transition: 'all 0.3s ease',
+											}}
+										/>
+										{errors.start_date && touched.start_date && (
+											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+												{errors.start_date}
+											</div>
+										)}
+									</div>
+
+									{/* End Date */}
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>🕐</span>
+											<span>Data și Ora Sfârșit</span>
+											{formData.end_date && (
+												<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
+											)}
+										</label>
+										<input
+											type="datetime-local"
+											className="va-form-input"
+											value={formData.end_date}
+											onChange={(e) => {
+												setFormData({ ...formData, end_date: e.target.value });
+												if (touched.end_date) validate();
+											}}
+											onBlur={() => {
+												setTouched({ ...touched, end_date: true });
+												validate();
+											}}
+											required
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: errors.end_date
+													? '1px solid rgba(255,107,107,0.5)'
+													: formData.end_date
+													? '1px solid rgba(74, 222, 128, 0.5)'
+													: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+												transition: 'all 0.3s ease',
+											}}
+										/>
+										{errors.end_date && touched.end_date && (
+											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+												{errors.end_date}
+											</div>
+										)}
+									</div>
+								</div>
+
+								{/* Timezone */}
 								<div className="va-form-group">
-									<label className="va-form-label">Locație</label>
-									<input
-										type="text"
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>🌍</span>
+										<span>Timezone</span>
+									</label>
+									<select
 										className="va-form-input"
-										value={formData.location}
-										onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-										placeholder="Online sau adresă fizică"
-									/>
+										value={formData.timezone}
+										onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											cursor: 'pointer',
+										}}
+									>
+										<option value="Europe/Bucharest" style={{ background: '#1a1a1a', color: '#fff' }}>Europe/Bucharest (RO)</option>
+										<option value="Europe/Chisinau" style={{ background: '#1a1a1a', color: '#fff' }}>Europe/Chisinau (MD)</option>
+										<option value="UTC" style={{ background: '#1a1a1a', color: '#fff' }}>UTC</option>
+									</select>
 								</div>
-								<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+
+								{/* Location and Live Link */}
+								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>📍</span>
+											<span>Locație (Fizic)</span>
+										</label>
+										<input
+											type="text"
+											className="va-form-input"
+											value={formData.location}
+											onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+											placeholder="Ex: Strada Exemplu nr. 123, București"
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+											}}
+										/>
+									</div>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>🔗</span>
+											<span>Link Live (Online)</span>
+										</label>
+										<input
+											type="url"
+											className="va-form-input"
+											value={formData.live_link}
+											onChange={(e) => setFormData({ ...formData, live_link: e.target.value })}
+											placeholder="https://..."
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+											}}
+										/>
+									</div>
+								</div>
+
+								{/* Max Capacity and Instructor */}
+								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>👥</span>
+											<span>Capacitate Maximă</span>
+										</label>
+										<input
+											type="number"
+											className="va-form-input"
+											value={formData.max_capacity || ''}
+											onChange={(e) => setFormData({ ...formData, max_capacity: e.target.value ? parseInt(e.target.value) : null })}
+											placeholder="Lăsat gol = nelimitat"
+											min="1"
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: errors.max_capacity
+													? '1px solid rgba(255,107,107,0.5)'
+													: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+											}}
+										/>
+										{errors.max_capacity && (
+											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+												{errors.max_capacity}
+											</div>
+										)}
+									</div>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>👤</span>
+											<span>Instructor/Speaker</span>
+										</label>
+										<select
+											className="va-form-input"
+											value={formData.instructor_id || ''}
+											onChange={(e) => setFormData({ ...formData, instructor_id: e.target.value ? parseInt(e.target.value) : null })}
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+												cursor: 'pointer',
+											}}
+										>
+											<option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Selectează instructor</option>
+											{instructors.map(instructor => (
+												<option key={instructor.id} value={instructor.id} style={{ background: '#1a1a1a', color: '#fff' }}>
+													{instructor.name}
+												</option>
+											))}
+										</select>
+									</div>
+								</div>
+
+								{/* Access Type */}
+								<div className="va-form-group">
+									<label className="va-form-label" style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.5rem',
+										marginBottom: '0.75rem',
+										fontWeight: 600,
+									}}>
+										<span>💰</span>
+										<span>Tip Acces</span>
+									</label>
+									<select
+										className="va-form-input"
+										value={formData.access_type}
+										onChange={(e) => {
+											setFormData({ 
+												...formData, 
+												access_type: e.target.value,
+												price: e.target.value !== 'paid' ? null : formData.price,
+												course_id: e.target.value !== 'course_included' ? null : formData.course_id,
+											});
+											if (touched.access_type) validate();
+										}}
+										onBlur={() => {
+											setTouched({ ...touched, access_type: true });
+											validate();
+										}}
+										style={{
+											padding: '1rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: '1px solid rgba(255,238,0,0.2)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontSize: '1rem',
+											cursor: 'pointer',
+										}}
+									>
+										<option value="free" style={{ background: '#1a1a1a', color: '#fff' }}>Gratuit</option>
+										<option value="paid" style={{ background: '#1a1a1a', color: '#fff' }}>Plătit</option>
+										<option value="course_included" style={{ background: '#1a1a1a', color: '#fff' }}>Inclus în curs</option>
+									</select>
+								</div>
+
+								{/* Price (if paid) */}
+								{formData.access_type === 'paid' && (
+									<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+										<div className="va-form-group">
+											<label className="va-form-label" style={{
+												display: 'flex',
+												alignItems: 'center',
+												gap: '0.5rem',
+												marginBottom: '0.75rem',
+												fontWeight: 600,
+											}}>
+												<span>💵</span>
+												<span>Preț</span>
+											</label>
+											<input
+												type="number"
+												className="va-form-input"
+												value={formData.price || ''}
+												onChange={(e) => setFormData({ ...formData, price: e.target.value ? parseFloat(e.target.value) : null })}
+												placeholder="0.00"
+												min="0"
+												step="0.01"
+												required={formData.access_type === 'paid'}
+												style={{
+													padding: '1rem',
+													background: 'rgba(255,255,255,0.05)',
+													border: errors.price
+														? '1px solid rgba(255,107,107,0.5)'
+														: '1px solid rgba(255,238,0,0.2)',
+													borderRadius: '12px',
+													color: '#fff',
+													fontSize: '1rem',
+												}}
+											/>
+											{errors.price && (
+												<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+													{errors.price}
+												</div>
+											)}
+										</div>
+										<div className="va-form-group">
+											<label className="va-form-label" style={{
+												display: 'flex',
+												alignItems: 'center',
+												gap: '0.5rem',
+												marginBottom: '0.75rem',
+												fontWeight: 600,
+											}}>
+												<span>💱</span>
+												<span>Valută</span>
+											</label>
+											<select
+												className="va-form-input"
+												value={formData.currency}
+												onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+												style={{
+													padding: '1rem',
+													background: 'rgba(255,255,255,0.05)',
+													border: '1px solid rgba(255,238,0,0.2)',
+													borderRadius: '12px',
+													color: '#fff',
+													fontSize: '1rem',
+													cursor: 'pointer',
+												}}
+											>
+												<option value="MDL" style={{ background: '#1a1a1a', color: '#fff' }}>MDL</option>
+												<option value="RON" style={{ background: '#1a1a1a', color: '#fff' }}>RON</option>
+												<option value="USD" style={{ background: '#1a1a1a', color: '#fff' }}>USD</option>
+												<option value="EUR" style={{ background: '#1a1a1a', color: '#fff' }}>EUR</option>
+											</select>
+										</div>
+									</div>
+								)}
+
+								{/* Course (if course_included) */}
+								{formData.access_type === 'course_included' && (
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>📚</span>
+											<span>Curs Asociat</span>
+										</label>
+										<select
+											className="va-form-input"
+											value={formData.course_id || ''}
+											onChange={(e) => {
+												setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : null });
+												if (touched.course_id) validate();
+											}}
+											onBlur={() => {
+												setTouched({ ...touched, course_id: true });
+												validate();
+											}}
+											required={formData.access_type === 'course_included'}
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: errors.course_id
+													? '1px solid rgba(255,107,107,0.5)'
+													: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+												cursor: 'pointer',
+											}}
+										>
+											<option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Selectează curs</option>
+											{courses.map(course => (
+												<option key={course.id} value={course.id} style={{ background: '#1a1a1a', color: '#fff' }}>
+													{course.title}
+												</option>
+											))}
+										</select>
+										{errors.course_id && (
+											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+												{errors.course_id}
+											</div>
+										)}
+									</div>
+								)}
+
+								{/* Replay URL and Thumbnail */}
+								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>🎬</span>
+											<span>URL Replay</span>
+										</label>
+										<input
+											type="url"
+											className="va-form-input"
+											value={formData.replay_url}
+											onChange={(e) => setFormData({ ...formData, replay_url: e.target.value })}
+											placeholder="https://..."
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+											}}
+										/>
+									</div>
+									<div className="va-form-group">
+										<label className="va-form-label" style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+											marginBottom: '0.75rem',
+											fontWeight: 600,
+										}}>
+											<span>🖼️</span>
+											<span>Thumbnail URL</span>
+										</label>
+										<input
+											type="url"
+											className="va-form-input"
+											value={formData.thumbnail}
+											onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+											placeholder="https://..."
+											style={{
+												padding: '1rem',
+												background: 'rgba(255,255,255,0.05)',
+												border: '1px solid rgba(255,238,0,0.2)',
+												borderRadius: '12px',
+												color: '#fff',
+												fontSize: '1rem',
+											}}
+										/>
+									</div>
+								</div>
+
+								<div style={{ 
+									display: 'flex', 
+									gap: '1rem', 
+									justifyContent: 'flex-end', 
+									marginTop: '2rem',
+									paddingTop: '2rem',
+									borderTop: '1px solid rgba(255,238,0,0.1)',
+								}}>
 									<button
 										type="button"
-										className="va-btn"
-										onClick={() => setShowModal(false)}
+										onClick={() => {
+											setShowModal(false);
+											setErrors({});
+											setTouched({});
+										}}
+										style={{
+											padding: '0.875rem 2rem',
+											background: 'rgba(255,255,255,0.05)',
+											border: '1px solid rgba(255,255,255,0.15)',
+											borderRadius: '12px',
+											color: '#fff',
+											fontWeight: 600,
+											transition: 'all 0.3s ease',
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+											e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+											e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+										}}
 									>
 										Anulează
 									</button>
-									<button type="submit" className="va-btn va-btn-primary">
-										Salvează
+									<button 
+										type="submit" 
+										disabled={completionPercentage() < 100}
+										style={{
+											padding: '0.875rem 2rem',
+											background: completionPercentage() < 100
+												? 'rgba(255,255,255,0.05)'
+												: 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))',
+											backdropFilter: 'blur(10px)',
+											border: completionPercentage() < 100
+												? '1px solid rgba(255,255,255,0.1)'
+												: '1px solid rgba(255,238,0,0.4)',
+											borderRadius: '12px',
+											color: completionPercentage() < 100 ? 'rgba(255,255,255,0.5)' : '#ffee00',
+											fontWeight: 700,
+											boxShadow: completionPercentage() < 100 ? 'none' : '0 4px 16px rgba(255,238,0,0.2)',
+											transition: 'all 0.3s ease',
+											cursor: completionPercentage() < 100 ? 'not-allowed' : 'pointer',
+											display: 'inline-flex',
+											alignItems: 'center',
+											gap: '0.5rem',
+										}}
+										onMouseEnter={(e) => {
+											if (completionPercentage() >= 100) {
+												e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.3), rgba(255,238,0,0.2))';
+												e.currentTarget.style.borderColor = 'rgba(255,238,0,0.5)';
+												e.currentTarget.style.transform = 'translateY(-2px)';
+												e.currentTarget.style.boxShadow = '0 6px 24px rgba(255,238,0,0.3)';
+											}
+										}}
+										onMouseLeave={(e) => {
+											if (completionPercentage() >= 100) {
+												e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))';
+												e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
+												e.currentTarget.style.transform = 'translateY(0)';
+												e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,238,0,0.2)';
+											}
+										}}
+									>
+										{completionPercentage() < 100 ? (
+											<>
+												<span>⚠️</span>
+												<span>Completează toate câmpurile</span>
+											</>
+										) : (
+											<>
+												<span>💾</span>
+												<span>{editingEvent ? 'Actualizează Eveniment' : 'Creează Eveniment'}</span>
+											</>
+										)}
 									</button>
 								</div>
 							</form>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Delete Confirmation Modal */}
+			{showDeleteConfirm && (
+				<div
+					style={{
+						position: 'fixed',
+						top: 0,
+						left: 0,
+						right: 0,
+						bottom: 0,
+						background: 'rgba(0,0,0,0.7)',
+						backdropFilter: 'blur(8px)',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						zIndex: 10001,
+						padding: '1rem',
+					}}
+					onClick={() => setShowDeleteConfirm(null)}
+				>
+					<div
+						style={{
+							background: 'linear-gradient(145deg, rgba(15,15,20,0.98), rgba(25,25,35,0.98))',
+							backdropFilter: 'blur(20px)',
+							border: '1px solid rgba(255,238,0,0.2)',
+							borderRadius: '20px',
+							boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+							padding: '2rem',
+							maxWidth: '400px',
+							width: '100%',
+						}}
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3 style={{
+							margin: '0 0 1rem 0',
+							color: '#ffee00',
+							fontSize: '1.25rem',
+							fontWeight: 700,
+						}}>
+							⚠️ Confirmare Ștergere
+						</h3>
+						<p style={{
+							margin: '0 0 1.5rem 0',
+							color: 'rgba(255,255,255,0.8)',
+							fontSize: '1rem',
+						}}>
+							Ești sigur că vrei să ștergi acest eveniment? Această acțiune nu poate fi anulată.
+						</p>
+						<div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+							<button
+								type="button"
+								onClick={() => setShowDeleteConfirm(null)}
+								style={{
+									padding: '0.75rem 1.5rem',
+									background: 'rgba(255,255,255,0.05)',
+									border: '1px solid rgba(255,255,255,0.15)',
+									borderRadius: '10px',
+									color: '#fff',
+									fontWeight: 600,
+									cursor: 'pointer',
+								}}
+							>
+								Anulează
+							</button>
+							<button
+								type="button"
+								onClick={confirmDelete}
+								style={{
+									padding: '0.75rem 1.5rem',
+									background: 'rgba(255,107,107,0.2)',
+									border: '1px solid rgba(255,107,107,0.4)',
+									borderRadius: '10px',
+									color: '#ff6b6b',
+									fontWeight: 700,
+									cursor: 'pointer',
+								}}
+							>
+								Șterge
+							</button>
 						</div>
 					</div>
 				</div>

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/api';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const useAuth = () => {
 	const context = useContext(AuthContext);
@@ -22,8 +22,9 @@ export const AuthProvider = ({ children }) => {
 	const checkAuth = async () => {
 		try {
 			const data = await authService.me();
-			setUser(data.user);
+			setUser(data?.user || null);
 		} catch (error) {
+			// Silently handle auth check failures (401 is expected when not logged in)
 			setUser(null);
 		} finally {
 			setLoading(false);

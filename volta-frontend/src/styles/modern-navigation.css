@@ -1,0 +1,360 @@
+/* ============================================
+   MODERN NAVIGATION
+   Premium, Enterprise-Ready
+   Clear separation: Learning / Creation / Management
+   ============================================ */
+
+/* ============================================
+   SIDEBAR - Modern Design
+   ============================================ */
+.modern-sidebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 280px;
+	padding: var(--space-6) var(--space-4);
+	background: var(--bg-elevated);
+	border-right: 1px solid var(--border-primary);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	z-index: var(--z-fixed);
+	overflow-y: auto;
+	overflow-x: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.modern-sidebar::-webkit-scrollbar {
+	width: 6px;
+}
+
+.modern-sidebar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.modern-sidebar::-webkit-scrollbar-thumb {
+	background: var(--color-neutral-300);
+	border-radius: var(--radius-full);
+}
+
+.modern-sidebar::-webkit-scrollbar-thumb:hover {
+	background: var(--color-neutral-400);
+}
+
+/* ============================================
+   SIDEBAR BRAND
+   ============================================ */
+.modern-sidebar-brand {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	border-radius: var(--radius-lg);
+	transition: all var(--transition-fast);
+}
+
+.modern-sidebar-brand:hover {
+	background: var(--bg-secondary);
+}
+
+.modern-sidebar-logo {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	letter-spacing: -0.02em;
+	color: var(--color-primary-600);
+}
+
+/* ============================================
+   NAVIGATION SECTIONS
+   Clear separation: Learning / Creation / Management
+   ============================================ */
+.modern-nav {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	flex: 1;
+}
+
+.modern-nav-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.modern-nav-section-title {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-tertiary);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: var(--space-2) var(--space-4);
+	margin-bottom: var(--space-1);
+}
+
+.modern-nav-section-divider {
+	height: 1px;
+	background: var(--border-primary);
+	margin: var(--space-4) 0;
+	border: none;
+}
+
+/* ============================================
+   NAVIGATION ITEMS
+   ============================================ */
+.modern-nav-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border-radius: var(--radius-lg);
+	color: var(--text-secondary);
+	text-decoration: none;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	transition: all var(--transition-fast);
+	position: relative;
+}
+
+.modern-nav-item:hover {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.modern-nav-item.active {
+	background: var(--color-primary-50);
+	color: var(--color-primary-700);
+	font-weight: var(--font-weight-semibold);
+}
+
+.modern-nav-item.active::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 3px;
+	height: 60%;
+	background: var(--color-primary-500);
+	border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+
+.modern-nav-item-icon {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: inherit;
+}
+
+.modern-nav-item-label {
+	flex: 1;
+}
+
+/* ============================================
+   TOP NAVIGATION
+   ============================================ */
+.modern-topnav {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 64px;
+	background: var(--bg-elevated);
+	border-bottom: 1px solid var(--border-primary);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--space-6);
+	z-index: var(--z-fixed);
+	box-shadow: var(--shadow-sm);
+}
+
+.modern-topnav-brand {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--color-primary-600);
+}
+
+.modern-topnav-nav {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	flex: 1;
+	justify-content: center;
+}
+
+.modern-topnav-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-md);
+	color: var(--text-secondary);
+	text-decoration: none;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	transition: all var(--transition-fast);
+}
+
+.modern-topnav-item:hover {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.modern-topnav-item.active {
+	background: var(--color-primary-50);
+	color: var(--color-primary-700);
+	font-weight: var(--font-weight-semibold);
+}
+
+.modern-topnav-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+/* ============================================
+   SEARCH IN NAVIGATION
+   ============================================ */
+.modern-nav-search {
+	position: relative;
+	margin: var(--space-4) var(--space-4) 0;
+}
+
+.modern-nav-search-input {
+	width: 100%;
+	padding: var(--space-2) var(--space-3) var(--space-2) var(--space-10);
+	font-size: var(--font-size-sm);
+	font-family: var(--font-family-sans);
+	color: var(--text-primary);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-fast);
+	outline: none;
+}
+
+.modern-nav-search-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.modern-nav-search-input:focus {
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+	background: var(--bg-elevated);
+}
+
+.modern-nav-search-icon {
+	position: absolute;
+	left: var(--space-3);
+	top: 50%;
+	transform: translateY(-50%);
+	width: 16px;
+	height: 16px;
+	color: var(--text-tertiary);
+	pointer-events: none;
+}
+
+.modern-nav-search-shortcut {
+	position: absolute;
+	right: var(--space-2);
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	gap: 2px;
+}
+
+.modern-nav-search-shortcut kbd {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-sm);
+	padding: 2px 4px;
+	font-size: 10px;
+	font-family: var(--font-family-mono);
+	color: var(--text-tertiary);
+	line-height: 1;
+}
+
+/* ============================================
+   COLLAPSIBLE SIDEBAR
+   ============================================ */
+.modern-sidebar-collapsed {
+	width: 80px;
+}
+
+.modern-sidebar-collapsed .modern-nav-item-label,
+.modern-sidebar-collapsed .modern-nav-section-title {
+	display: none;
+}
+
+.modern-sidebar-collapsed .modern-nav-item {
+	justify-content: center;
+	padding: var(--space-3);
+}
+
+.modern-sidebar-toggle {
+	position: absolute;
+	top: var(--space-4);
+	right: var(--space-4);
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	color: var(--text-secondary);
+}
+
+.modern-sidebar-toggle:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+/* ============================================
+   CONTEXTUAL SUBMENUS
+   ============================================ */
+.modern-nav-submenu {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin-left: var(--space-8);
+	margin-top: var(--space-2);
+	padding-left: var(--space-4);
+	border-left: 1px solid var(--border-primary);
+}
+
+.modern-nav-submenu-item {
+	padding: var(--space-2) var(--space-3);
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.modern-nav-submenu-item:hover {
+	color: var(--text-primary);
+	background: var(--bg-secondary);
+}
+
+.modern-nav-submenu-item.active {
+	color: var(--color-primary-700);
+	font-weight: var(--font-weight-medium);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .modern-sidebar {
+	background: var(--bg-elevated);
+	border-right-color: var(--border-primary);
+}
+
+[data-theme="dark"] .modern-topnav {
+	background: var(--bg-elevated);
+	border-bottom-color: var(--border-primary);
+}
+

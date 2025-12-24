@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -57,18 +58,21 @@ class QuizController extends Controller
             $answers = $question->answers;
             $correctAnswerIndex = null;
             
-            // Find correct answer index
-            foreach ($answers as $idx => $answer) {
-                if ($answer->is_correct) {
-                    $correctAnswerIndex = $idx;
-                    break;
+            // Find correct answer index (only for multiple choice)
+            if ($question->question_type === 'multiple_choice') {
+                foreach ($answers as $idx => $answer) {
+                    if ($answer->is_correct) {
+                        $correctAnswerIndex = $idx;
+                        break;
+                    }
                 }
             }
             
             return [
                 'id' => $question->id,
                 'text' => $question->question_text,
-                'options' => $answers->pluck('answer_text')->toArray(),
+                'type' => $question->question_type ?? 'multiple_choice',
+                'options' => $question->question_type === 'multiple_choice' ? $answers->pluck('answer_text')->toArray() : [],
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
             ];
@@ -98,7 +102,7 @@ class QuizController extends Controller
 
     public function submit(Request $request, $courseId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::with('modules')->findOrFail($courseId);
         $answers = $request->input('answers', []);
         
         // Load exam with questions and answers
@@ -134,28 +138,41 @@ class QuizController extends Controller
         // Calculate score based on correct answers
         $score = 0;
         $totalPoints = 0;
+        $needsManualReview = false;
+        $openTextQuestions = [];
         
         foreach ($exam->questions as $question) {
-            $questionAnswers = $question->answers->values(); // Reset keys to 0,1,2,3...
             $totalPoints += $question->points ?? 1;
             
-            // Find correct answer index
-            $correctAnswerIndex = null;
-            foreach ($questionAnswers as $idx => $answer) {
-                if ($answer->is_correct) {
-                    $correctAnswerIndex = $idx;
-                    break;
+            // Check if question is open_text type
+            if ($question->question_type === 'open_text') {
+                $needsManualReview = true;
+                $openTextQuestions[] = $question->id;
+                // For open_text questions, don't calculate score automatically
+                // Score will be set to 0 initially, to be updated after manual review
+            } else {
+                // Multiple choice question - calculate score automatically
+                $questionAnswers = $question->answers->values(); // Reset keys to 0,1,2,3...
+                
+                // Find correct answer index
+                $correctAnswerIndex = null;
+                foreach ($questionAnswers as $idx => $answer) {
+                    if ($answer->is_correct) {
+                        $correctAnswerIndex = $idx;
+                        break;
+                    }
                 }
-            }
-            
-            // Check if user's answer matches correct answer
-            if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
-                $score += $question->points ?? 1;
+                
+                // Check if user's answer matches correct answer
+                if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
+                    $score += $question->points ?? 1;
+                }
             }
         }
         
         $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100) : 0;
-        $passed = $percentage >= 50; // Pass if at least 50%
+        // Don't mark as passed if manual review is needed
+        $passed = !$needsManualReview && $percentage >= 50; // Pass if at least 50% and no manual review needed
         
         // Save quiz result to database
         if ($user) {
@@ -166,7 +183,7 @@ class QuizController extends Controller
             $currentAttempt = $existingResults->count() > 0 ? $existingResults->max('attempt_number') : 0;
             $nextAttempt = $currentAttempt + 1;
             
-            ExamResult::create([
+            $examResult = ExamResult::create([
                 'exam_id' => $exam->id,
                 'user_id' => $user->id,
                 'attempt_number' => $nextAttempt,
@@ -176,38 +193,91 @@ class QuizController extends Controller
                 'passed' => $passed,
                 'answers' => $answers,
                 'completed_at' => now(),
+                'needs_manual_review' => $needsManualReview,
+            ]);
+            
+            // Log activity: user completed exam
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'completed_exam',
+                'model_type' => 'Exam',
+                'model_id' => $exam->id,
+                'description' => "{$user->name} a finalizat testul \"{$exam->title}\" pentru cursul \"{$course->title}\" cu scorul {$score}/{$totalPoints} ({$percentage}%)",
+                'new_values' => [
+                    'exam_id' => $exam->id,
+                    'exam_title' => $exam->title,
+                    'course_id' => $course->id,
+                    'course_title' => $course->title,
+                    'score' => $score,
+                    'total_points' => $totalPoints,
+                    'percentage' => $percentage,
+                    'passed' => $passed,
+                    'attempt_number' => $nextAttempt,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
             
             // Update course progress if exam is passed
+            // Course is completed when exam is passed (modules don't need individual completion)
             if ($passed) {
-                $courseLessons = $course->lessons->pluck('id')->toArray();
-                $completedLessons = DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('completed', true)
-                    ->whereIn('lesson_id', $courseLessons)
-                    ->count();
+                // Calculate progress percentage (always 100% when course is completed)
+                $progressPercentage = 100;
                 
-                $totalLessons = count($courseLessons);
-                $progressPercentage = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100) : 0;
-                
-                // Course is completed only if all lessons are done AND exam is passed
-                $allLessonsCompleted = $completedLessons >= $totalLessons && $totalLessons > 0;
-                $isCompleted = $allLessonsCompleted && $passed;
+                // Course is completed
+                $isCompleted = true;
                 
                 // Update course_user entry
-                DB::table('course_user')
-                    ->updateOrInsert(
-                        [
-                            'course_id' => $course->id,
-                            'user_id' => $user->id,
-                        ],
-                        [
+                $existingRecord = DB::table('course_user')
+                    ->where('course_id', $course->id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if ($existingRecord) {
+                    // Update existing record
+                    DB::table('course_user')
+                        ->where('course_id', $course->id)
+                        ->where('user_id', $user->id)
+                        ->update([
                             'progress_percentage' => $progressPercentage,
                             'completed_at' => $isCompleted ? now() : null,
-                            'started_at' => DB::raw('COALESCE(started_at, NOW())'),
+                            'started_at' => $existingRecord->started_at ?: now(),
                             'updated_at' => now(),
-                        ]
-                    );
+                        ]);
+                } else {
+                    // Insert new record
+                    DB::table('course_user')
+                        ->insert([
+                            'course_id' => $course->id,
+                            'user_id' => $user->id,
+                            'progress_percentage' => $progressPercentage,
+                            'completed_at' => $isCompleted ? now() : null,
+                            'started_at' => now(),
+                            'is_mandatory' => false,
+                            'enrolled' => true,
+                            'enrolled_at' => now(),
+                            'assigned_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                }
+                
+                // Log activity: user completed course
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'completed_course',
+                    'model_type' => 'Course',
+                    'model_id' => $course->id,
+                    'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
+                    'new_values' => [
+                        'course_id' => $course->id,
+                        'course_title' => $course->title,
+                        'progress_percentage' => 100,
+                        'completed_at' => now()->toDateTimeString(),
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
                 
                 // Invalidate cache for dashboard and profile
                 Cache::forget("dashboard_user_{$user->id}_stats");
@@ -223,5 +293,7 @@ class QuizController extends Controller
             'percentage' => $percentage,
         ]);
     }
+
+    // Removed: showCategoryQuiz and submitCategoryQuiz - categories are no longer supported
 }
 

@@ -1,9 +1,16 @@
-import React, { useMemo, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { dashboardService } from '../services/api';
-import '../styles/modern-enhancements.css';
+import { useAuth } from '../contexts/AuthContext';
+import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
+import CourseProgressWidget from '../components/student/CourseProgressWidget';
+import IncompleteLessonsWidget from '../components/student/IncompleteLessonsWidget';
+import PendingExamsWidget from '../components/student/PendingExamsWidget';
+import BadgesWidget from '../components/student/BadgesWidget';
 
 const DashboardPage = () => {
+	const { user } = useAuth();
+	const navigate = useNavigate();
 	const [dashboardData, setDashboardData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -13,12 +20,10 @@ const DashboardPage = () => {
 			try {
 				setLoading(true);
 				setError(null);
-				const data = await dashboardService.getDashboard();
-				console.log('Dashboard data received:', data);
+				const data = await dashboardService.getStudentDashboard();
 				setDashboardData(data);
 			} catch (err) {
 				console.error('Error fetching dashboard:', err);
-				console.error('Error details:', err.response?.data || err.message);
 				setError(`Nu s-a putut încărca dashboard-ul: ${err.response?.data?.message || err.message || 'Eroare necunoscută'}`);
 			} finally {
 				setLoading(false);
@@ -27,35 +32,12 @@ const DashboardPage = () => {
 		fetchDashboard();
 	}, []);
 
-	const stats = useMemo(() => {
-		if (!dashboardData) {
-			return {
-				assignedCourses: 0,
-				completedCourses: 0,
-				completedLessons: 0,
-				completedQuizzes: 0,
-				progressPercentage: 0,
-			};
-		}
-		return dashboardData.stats || {};
-	}, [dashboardData]);
-
 	if (loading) {
 		return (
-			<div className="va-main fade-in">
-				<div className="skeleton-card" style={{ marginBottom: '2rem' }}>
-					<div className="skeleton skeleton-title"></div>
-					<div className="skeleton skeleton-text"></div>
-					<div className="skeleton skeleton-text" style={{ width: '80%' }}></div>
-				</div>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-					{[1, 2, 3, 4].map(i => (
-						<div key={i} className="skeleton-card">
-							<div className="skeleton skeleton-text" style={{ height: '2rem', marginBottom: '1rem' }}></div>
-							<div className="skeleton skeleton-text" style={{ height: '3rem', marginBottom: '0.5rem' }}></div>
-							<div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
-						</div>
-					))}
+			<div className="student-dashboard-page">
+				<div className="student-dashboard-loading">
+					<div className="student-loading-spinner"></div>
+					<p>Se încarcă dashboard-ul...</p>
 				</div>
 			</div>
 		);
@@ -63,79 +45,151 @@ const DashboardPage = () => {
 
 	if (error || !dashboardData) {
 		return (
-			<div className="va-main">
-				<p style={{ color: 'red' }}>{error || 'Eroare la încărcarea datelor'}</p>
+			<div className="student-dashboard-page">
+				<div className="student-dashboard-error">
+					<p>{error || 'Eroare la încărcarea datelor'}</p>
+					<button onClick={() => window.location.reload()}>Reîncearcă</button>
+				</div>
 			</div>
 		);
 	}
 
-	return (
-		<div className="va-main fade-in">
-			{/* HERO — o coloană completă */}
-			<section className="va-hero fade-in-up" style={{ gridColumn: '1 / -1' }}>
-				<div className="va-hero-background">
-					<div className="va-hero-orb va-hero-orb-1"></div>
-					<div className="va-hero-orb va-hero-orb-2"></div>
-					<div className="va-hero-orb va-hero-orb-3"></div>
-				</div>
+	const { 
+		global_progress, 
+		active_courses, 
+		next_lesson, 
+		learning_time, 
+		incomplete_lessons, 
+		pending_exams, 
+		badges,
+		stats 
+	} = dashboardData;
 
-				<div className="va-hero-content">
-					<div className="va-hero-header">
-						<div className="va-hero-badge">
-							<span className="va-hero-badge-icon">✨</span>
-							<span>Bine ai revenit, {dashboardData.user?.name || 'Utilizator'}!</span>
+	return (
+		<div className="student-dashboard-page">
+			{/* Hero Section */}
+			<section className="student-dashboard-hero">
+				<div className="student-dashboard-hero-content">
+					<div className="student-dashboard-hero-header">
+						<div className="student-dashboard-welcome">
+							<span className="student-dashboard-welcome-icon">✨</span>
+							<span>Bine ai revenit, {user?.name || 'Utilizator'}!</span>
 						</div>
-						<h1 className="va-hero-title">
-							<span className="va-hero-title-line">Învață.</span>
-							<span className="va-hero-title-line">Exersează.</span>
-							<span className="va-hero-title-line va-hero-title-accent">Evoluează.</span>
+						<h1 className="student-dashboard-title">
+							Continuă-ți călătoria de învățare
 						</h1>
-						<p className="va-hero-subtitle">
-							Pornește pe un traseu structurat și urmărește-ți progresul în toate cursurile. Fiecare modul completat te aduce mai aproape de excelență.
+						<p className="student-dashboard-subtitle">
+							Urmărește-ți progresul și finalizează cursurile pentru a obține certificări
 						</p>
 					</div>
 
-					<div className="va-hero-stats">
-						<div className="va-hero-stats-top">
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.assignedCourses || 0}</div>
-								<div className="va-hero-stat-label">Cursuri atribuite</div>
-							</div>
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedCourses || 0}</div>
-								<div className="va-hero-stat-label">Cursuri finalizate</div>
-							</div>
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedQuizzes || 0}</div>
-								<div className="va-hero-stat-label">Teste promovate</div>
+					{/* Global Progress */}
+					<div className="student-dashboard-global-progress">
+						<div className="student-global-progress-header">
+							<h2>Progres Global</h2>
+							<div className="student-global-progress-stats">
+								<div className="student-global-progress-stat">
+									<span className="student-global-progress-stat-value">
+										{global_progress.completed_courses}
+									</span>
+									<span className="student-global-progress-stat-label">din {global_progress.total_courses} cursuri</span>
+								</div>
+								<div className="student-global-progress-stat">
+									<span className="student-global-progress-stat-value">
+										{global_progress.completed_lessons}
+									</span>
+									<span className="student-global-progress-stat-label">din {global_progress.total_lessons} lecții</span>
+								</div>
 							</div>
 						</div>
-						<div className="va-hero-stat va-hero-stat-progress">
-							<div className="va-hero-stat-value">{stats.progressPercentage || 0}%</div>
-							<div className="va-hero-stat-label">Progres general</div>
-							<div className="va-hero-progress-bar">
-								<div
-									className="va-hero-progress-fill"
-									style={{ width: `${stats.progressPercentage || 0}%` }}
+						<div className="student-global-progress-bar-container">
+							<div className="student-global-progress-bar">
+								<div 
+									className="student-global-progress-fill"
+									style={{ width: `${global_progress.percentage}%` }}
 								></div>
+							</div>
+							<div className="student-global-progress-percentage">
+								{global_progress.percentage}%
 							</div>
 						</div>
 					</div>
 
-					<div className="va-hero-actions">
-						<Link to="/courses" className="va-btn va-btn-primary va-btn-hero">
-							<span>Explorează cursurile</span>
-							<span className="va-btn-icon">→</span>
-						</Link>
-						<Link to="/profile" className="va-btn va-btn-secondary va-btn-hero">
-							<span>Vezi profilul</span>
-						</Link>
+					{/* Quick Stats */}
+					<div className="student-dashboard-quick-stats">
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">📚</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.total_courses}</div>
+								<div className="student-quick-stat-label">Cursuri</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">✅</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.completed_courses_count}</div>
+								<div className="student-quick-stat-label">Finalizate</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">📖</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.total_lessons_completed}</div>
+								<div className="student-quick-stat-label">Lecții</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">⏱️</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{learning_time.formatted}</div>
+								<div className="student-quick-stat-label">Timp învățare</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
+
+			{/* Main Content */}
+			<div className="student-dashboard-content">
+				{/* Left Column */}
+				<div className="student-dashboard-left">
+					{/* Resume Learning */}
+					<ResumeLearningWidget nextLesson={next_lesson} />
+
+					{/* Active Courses */}
+					<div className="student-widget student-active-courses-widget">
+						<div className="student-widget-header">
+							<h3>Cursuri Active</h3>
+							<span className="student-widget-count">{active_courses.length}</span>
+						</div>
+						<div className="student-widget-content">
+							{active_courses.length === 0 ? (
+								<p className="student-widget-empty">Nu ai cursuri active momentan.</p>
+							) : (
+								<div className="student-active-courses-grid">
+									{active_courses.map((course) => (
+										<CourseProgressWidget key={course.id} course={course} />
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* Right Column */}
+				<div className="student-dashboard-right">
+					{/* Incomplete Lessons */}
+					<IncompleteLessonsWidget lessons={incomplete_lessons} />
+
+					{/* Pending Exams */}
+					<PendingExamsWidget exams={pending_exams} />
+
+					{/* Badges */}
+					<BadgesWidget badges={badges} />
+				</div>
+			</div>
 		</div>
 	);
 };
 
 export default DashboardPage;
-

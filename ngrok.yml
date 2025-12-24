@@ -1,0 +1,11 @@
+version: "2"
+authtoken: # Adaugă aici token-ul tău ngrok (opțional, dacă vrei să-l salvezi aici)
+tunnels:
+  volta-academy:
+    proto: http
+    addr: 5173
+    bind_tls: true
+    inspect: false
+    # Opțional: folosește un domeniu static dacă ai planul ngrok
+    # domain: your-static-domain.ngrok-free.app
+

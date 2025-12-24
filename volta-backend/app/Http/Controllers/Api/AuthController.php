@@ -97,9 +97,9 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role,
-                    'level' => $user->level,
-                    'points' => $user->points,
+                    'role' => $user->role ?? 'student',
+                    'level' => $user->level ?? 1,
+                    'points' => $user->points ?? 0,
                     'must_change_password' => (bool)$mustChangePassword,
                 ],
                 'debug' => [
@@ -141,48 +141,57 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        // Debug logging
-        $cookies = $request->cookies->all();
-        $cookieHeader = $request->header('Cookie');
-        
-        Log::info('Auth me check', [
-            'session_id' => $request->session()->getId(),
-            'has_session' => $request->hasSession(),
-            'auth_check' => Auth::check(),
-            'user_id' => Auth::id(),
-            'cookies_received' => array_keys($cookies),
-            'cookie_header' => $cookieHeader ? 'present' : 'missing',
-        ]);
-        
-        $user = Auth::user();
-        
-        if (!$user) {
-            Log::warning('Auth me failed - no user', [
+        try {
+            // Debug logging
+            $cookies = $request->cookies->all();
+            $cookieHeader = $request->header('Cookie');
+            
+            Log::info('Auth me check', [
                 'session_id' => $request->session()->getId(),
+                'has_session' => $request->hasSession(),
+                'auth_check' => Auth::check(),
+                'user_id' => Auth::id(),
                 'cookies_received' => array_keys($cookies),
                 'cookie_header' => $cookieHeader ? 'present' : 'missing',
             ]);
-            return response()->json([
-                'error' => 'Neautentificat',
-                'debug' => [
-                    'has_session' => $request->hasSession(),
+            
+            $user = Auth::user();
+            
+            if (!$user) {
+                Log::warning('Auth me failed - no user', [
                     'session_id' => $request->session()->getId(),
                     'cookies_received' => array_keys($cookies),
-                ]
-            ], 401);
-        }
+                    'cookie_header' => $cookieHeader ? 'present' : 'missing',
+                ]);
+                return response()->json([
+                    'error' => 'Neautentificat',
+                    'debug' => [
+                        'has_session' => $request->hasSession(),
+                        'session_id' => $request->session()->getId(),
+                        'cookies_received' => array_keys($cookies),
+                    ]
+                ], 401);
+            }
 
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'level' => $user->level,
-                'points' => $user->points,
-                'must_change_password' => (bool)($user->must_change_password ?? false),
-            ],
-        ]);
+            return response()->json([
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role ?? 'student',
+                    'level' => $user->level ?? 1,
+                    'points' => $user->points ?? 0,
+                    'must_change_password' => (bool)($user->must_change_password ?? false),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Auth me error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'error' => 'Eroare la verificarea autentificării: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function changePassword(Request $request)
