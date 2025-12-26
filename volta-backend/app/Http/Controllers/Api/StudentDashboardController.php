@@ -7,10 +7,12 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Exam;
+use App\Models\CourseTest;
 use App\Services\CourseProgressService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
@@ -312,30 +314,103 @@ class StudentDashboardController extends Controller
             $modules = $course->modules()->where('status', 'published')->get();
             
             foreach ($modules as $module) {
-                $exams = $module->exams()->where('status', 'published')->get();
+                // Get tests linked to this module via CourseTest
+                $module->load(['courseTests' => function($q) {
+                    $q->where('scope', 'module');
+                }, 'courseTests.test' => function($q) {
+                    $q->where('status', 'published');
+                }]);
                 
-                foreach ($exams as $exam) {
-                    // Check if exam is unlocked
-                    $isUnlocked = $this->progressService->isExamUnlocked($user, $exam, $module);
+                // Also get course-level tests
+                $courseTests = \App\Models\CourseTest::where('course_id', $course->id)
+                    ->where('scope', 'course')
+                    ->with(['test' => function($q) {
+                        $q->where('status', 'published');
+                    }])
+                    ->get();
+                
+                // Process module-level tests
+                foreach ($module->courseTests as $courseTest) {
+                    if (!$courseTest->test || $courseTest->test->status !== 'published') {
+                        continue;
+                    }
+                    
+                    $test = $courseTest->test;
+                    
+                    // Check if test is unlocked
+                    try {
+                        $isUnlocked = $this->progressService->isTestUnlocked($user, $test, $course);
+                    } catch (\Exception $e) {
+                        Log::warning('Error checking if test is unlocked', [
+                            'test_id' => $test->id,
+                            'user_id' => $user->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        // For now, assume unlocked if test exists
+                        $isUnlocked = true;
+                    }
                     
                     if ($isUnlocked) {
-                        // Check if exam has been passed
-                        $hasPassed = DB::table('exam_results')
+                        // Check if test has been passed
+                        $hasPassed = DB::table('test_results')
                             ->where('user_id', $user->id)
-                            ->where('exam_id', $exam->id)
-                            ->where('score', '>=', $exam->passing_score ?? 70)
+                            ->where('test_id', $test->id)
+                            ->where('percentage', '>=', $courseTest->passing_score ?? 70)
                             ->exists();
 
                         if (!$hasPassed) {
                             $pendingExams[] = [
-                                'id' => $exam->id,
-                                'title' => $exam->title,
+                                'id' => $test->id,
+                                'title' => $test->title,
                                 'course_id' => $course->id,
                                 'course_title' => $course->title,
                                 'module_id' => $module->id,
                                 'module_title' => $module->title,
-                                'passing_score' => $exam->passing_score ?? 70,
-                                'is_required' => $exam->is_required ?? false,
+                                'passing_score' => $courseTest->passing_score ?? 70,
+                                'is_required' => $courseTest->required ?? false,
+                            ];
+                        }
+                    }
+                }
+                
+                // Process course-level tests
+                foreach ($courseTests as $courseTest) {
+                    if (!$courseTest->test || $courseTest->test->status !== 'published') {
+                        continue;
+                    }
+                    
+                    $test = $courseTest->test;
+                    
+                    // For course-level tests
+                    try {
+                        $isUnlocked = $this->progressService->isTestUnlocked($user, $test, $course);
+                    } catch (\Exception $e) {
+                        Log::warning('Error checking if course test is unlocked', [
+                            'test_id' => $test->id,
+                            'user_id' => $user->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        $isUnlocked = true;
+                    }
+                    
+                    if ($isUnlocked) {
+                        // Check if test has been passed
+                        $hasPassed = DB::table('test_results')
+                            ->where('user_id', $user->id)
+                            ->where('test_id', $test->id)
+                            ->where('percentage', '>=', $courseTest->passing_score ?? 70)
+                            ->exists();
+
+                        if (!$hasPassed) {
+                            $pendingExams[] = [
+                                'id' => $test->id,
+                                'title' => $test->title,
+                                'course_id' => $course->id,
+                                'course_title' => $course->title,
+                                'module_id' => null,
+                                'module_title' => null,
+                                'passing_score' => $courseTest->passing_score ?? 70,
+                                'is_required' => $courseTest->required ?? false,
                             ];
                         }
                     }

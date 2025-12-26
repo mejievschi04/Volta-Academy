@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,6 +11,11 @@ const RegisterPage = () => {
 	const [loading, setLoading] = useState(false);
 	const { register } = useAuth();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		// Force light theme for register page
+		document.documentElement.setAttribute('data-theme', 'light');
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();

@@ -64,7 +64,27 @@ class TestBuilderService
             }
         }
 
+        // Extract questions from data if present
+        $questions = $data['questions'] ?? null;
+        unset($data['questions']);
+
+        // Update test fields
         $test->update($data);
+        
+        // Refresh to get updated question_source if it was changed
+        $test->refresh();
+
+        // Handle questions update if provided and test uses direct questions
+        if ($questions !== null && $test->question_source === 'direct') {
+            // Delete existing questions
+            $test->questions()->delete();
+            
+            // Add new questions
+            if (!empty($questions)) {
+                $this->addQuestionsToTest($test, $questions);
+            }
+        }
+
         return $test->fresh();
     }
 

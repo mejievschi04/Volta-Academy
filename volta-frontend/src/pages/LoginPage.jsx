@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +10,11 @@ const LoginPage = () => {
 	const [loading, setLoading] = useState(false);
 	const { login } = useAuth();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		// Force light theme for login page
+		document.documentElement.setAttribute('data-theme', 'light');
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -36,7 +41,7 @@ const LoginPage = () => {
 			<div className="va-auth-card">
 				<div className="va-auth-header">
 					<h1 className="va-auth-title">Autentificare</h1>
-					<p className="va-auth-subtitle">Bine ai revenit la V Academy</p>
+					<p className="va-auth-subtitle">Bine ai revenit la formely</p>
 				</div>
 
 				<form onSubmit={handleSubmit} className="va-auth-form">

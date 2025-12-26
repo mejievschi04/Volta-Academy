@@ -30,7 +30,7 @@ const ThemeToggle = () => {
 					left: '2px',
 					width: '26px',
 					height: '26px',
-					background: 'var(--color-primary-500)',
+					background: 'var(--btn-primary-bg)',
 					borderRadius: 'var(--radius-full)',
 					transition: 'transform var(--transition-base)',
 					display: 'flex',
@@ -38,6 +38,7 @@ const ThemeToggle = () => {
 					justifyContent: 'center',
 					fontSize: 'var(--font-size-sm)',
 					transform: theme === 'light' ? 'translateX(24px)' : 'translateX(0)',
+					color: 'var(--btn-primary-text)',
 				}}
 			>
 				{theme === 'dark' ? (
@@ -56,4 +57,3 @@ const ThemeToggle = () => {
 };
 
 export default ThemeToggle;
-

@@ -328,6 +328,7 @@ const TestBuilderStep2 = ({ testId, data, onUpdate, errors }) => {
 						)}
 					</div>
 				</div>
+				)}
 
 				{/* Questions List */}
 				<div className="admin-form-section">
@@ -449,7 +450,6 @@ const TestBuilderStep2 = ({ testId, data, onUpdate, errors }) => {
 						</div>
 					)}
 				</div>
-				)}
 
 				{/* Question Bank Info */}
 				{data.question_source === 'bank' && data.question_set_id && (

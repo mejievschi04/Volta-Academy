@@ -132,7 +132,7 @@
         
         <div class="certificate-header">
             <h1 class="certificate-title">Certificat de Finalizare</h1>
-            <p class="certificate-subtitle">Volta Academy</p>
+            <p class="certificate-subtitle">formely</p>
         </div>
         
         <div class="certificate-body">

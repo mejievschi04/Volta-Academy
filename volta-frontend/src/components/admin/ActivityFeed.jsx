@@ -31,6 +31,7 @@ const ActivityFeed = ({ activities, loading }) => {
 			course_created: '📚',
 			user_registered: '🆕',
 			exam_submitted: '📝',
+			test: '📝',
 		};
 		return icons[type] || '📋';
 	};

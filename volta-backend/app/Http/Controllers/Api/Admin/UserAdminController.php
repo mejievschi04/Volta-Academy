@@ -10,6 +10,7 @@ use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserAdminController extends Controller
 {
@@ -76,22 +77,41 @@ class UserAdminController extends Controller
                 $user->total_courses = null;
                 $user->completed_courses = null;
                 $user->completion_percentage = null;
+                $user->completed_modules = null;
+                $user->total_modules = null;
                 return $user;
             }
             
             $userProgress = $allProgress->get($user->id, collect());
             $completedCourses = 0;
+            $totalModules = 0;
+            $completedModules = 0;
             
-            // Calculate completed courses (based on completed_at in course_user table)
+            // Calculate completed courses and modules (based on completed_at and progress_percentage in course_user table)
             foreach ($allCourses as $course) {
                 $progress = $userProgress->get($course->id);
-                if ($progress && $progress->completed_at) {
-                    $completedCourses++;
+                $moduleCount = $course->modules ? $course->modules->count() : 0;
+                $totalModules += $moduleCount;
+                
+                if ($progress) {
+                    // If course is completed, all modules are considered completed
+                    if ($progress->completed_at) {
+                        $completedCourses++;
+                        $completedModules += $moduleCount;
+                    } else {
+                        // Calculate completed modules based on progress percentage
+                        $courseProgressPercentage = $progress->progress_percentage ?? 0;
+                        if ($courseProgressPercentage > 0) {
+                            $completedModules += round(($courseProgressPercentage / 100) * $moduleCount);
+                        }
+                    }
                 }
             }
             
             $user->total_courses = $totalCourses;
             $user->completed_courses = $completedCourses;
+            $user->total_modules = $totalModules;
+            $user->completed_modules = $completedModules;
             $user->completion_percentage = $totalCourses > 0 
                 ? round(($completedCourses / $totalCourses) * 100, 1) 
                 : 0;
@@ -107,99 +127,143 @@ class UserAdminController extends Controller
 
     public function show($id)
     {
-        $user = User::with(['teams', 'courses'])->findOrFail($id);
-        
-        // Get courses with modules (optimized query)
-        $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])->get();
-        
-        // Get user progress from course_user pivot table
-        $courseProgress = DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->where('enrolled', true)
-            ->get()
-            ->keyBy('course_id');
-
-        // Get all exams for courses and their latest results for this user
-        $courseIds = $courses->pluck('id')->toArray();
-        $exams = Exam::whereIn('course_id', $courseIds)->get();
-        $examIds = $exams->pluck('id')->toArray();
-        
-        // Get the latest exam result for each exam for this user
-        $latestExamResults = ExamResult::whereIn('exam_id', $examIds)
-            ->where('user_id', $user->id)
-            ->orderBy('exam_id')
-            ->orderBy('attempt_number', 'desc')
-            ->get()
-            ->unique('exam_id')
-            ->keyBy('exam_id');
-        
-        // Create a map of course_id => has_passed_exam (based on latest result)
-        $courseExamMap = [];
-        foreach ($exams as $exam) {
-            $latestResult = $latestExamResults->get($exam->id);
-            if ($latestResult && $latestResult->passed === true) {
-                $courseExamMap[$exam->course_id] = true;
-            }
-        }
-        
-        // Count passed quizzes
-        $passedExamResults = $latestExamResults->filter(function($result) {
-            return $result->passed === true;
-        });
-
-        // Calculate stats using modules instead of lessons
-        $totalCourses = $courses->count();
-        $totalModules = $courses->sum(function($course) {
-            return $course->modules->count();
-        });
-        $completedModules = $courses->sum(function($course) use ($courseProgress) {
-            $progress = $courseProgress->get($course->id);
-            // If course is completed, all modules are considered completed
-            return ($progress && $progress->completed_at) ? $course->modules->count() : 0;
-        });
-        $completedQuizzes = $passedExamResults->count();
-        $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
-
-        // Get courses in progress
-        $coursesInProgress = [];
-        $coursesCompleted = [];
-        
-        foreach ($courses as $course) {
-            $progress = $courseProgress->get($course->id);
-            $courseProgressPercentage = $progress ? ($progress->progress_percentage ?? 0) : 0;
-            $isCompleted = $progress && $progress->completed_at;
+        try {
+            $user = User::with(['teams', 'courses'])->findOrFail($id);
             
-            // Check if user has passed the exam for this course
-            $quizPassed = isset($courseExamMap[$course->id]) && $courseExamMap[$course->id] === true;
-            
-            if ($courseProgressPercentage > 0 && !$isCompleted) {
-                $coursesInProgress[] = [
-                    'id' => $course->id,
-                    'title' => $course->title,
-                    'description' => $course->description,
-                    'progress' => $courseProgressPercentage,
-                    'completedModules' => round(($courseProgressPercentage / 100) * $course->modules->count()),
-                    'totalModules' => $course->modules->count(),
-                ];
-            } elseif ($isCompleted) {
-                $coursesCompleted[] = [
-                    'id' => $course->id,
-                    'title' => $course->title,
-                    'description' => $course->description,
-                    'quizPassed' => $quizPassed,
-                ];
+            // Get courses with modules (optimized query)
+            // Use try-catch to handle potential issues with column selection
+            try {
+                $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])->get();
+            } catch (\Exception $e) {
+                // Fallback: get courses without column selection if it fails
+                $courses = Course::with(['modules', 'teacher'])->get();
             }
+            
+            // Get user progress from course_user pivot table
+            $courseProgress = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('enrolled', true)
+                ->get()
+                ->keyBy('course_id');
+
+            // Get all exams for courses and their latest results for this user
+            $courseIds = $courses->pluck('id')->toArray();
+            $exams = [];
+            $examIds = [];
+            
+            if (!empty($courseIds)) {
+                try {
+                    $exams = Exam::whereIn('course_id', $courseIds)->get();
+                    $examIds = $exams->pluck('id')->toArray();
+                } catch (\Exception $e) {
+                    // If exams table doesn't exist or has issues, continue without exams
+                    Log::warning('Error fetching exams for user profile', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
+            
+            // Get the latest exam result for each exam for this user
+            $latestExamResults = collect();
+            if (!empty($examIds)) {
+                try {
+                    $latestExamResults = ExamResult::whereIn('exam_id', $examIds)
+                        ->where('user_id', $user->id)
+                        ->orderBy('exam_id')
+                        ->orderBy('attempt_number', 'desc')
+                        ->get()
+                        ->unique('exam_id')
+                        ->keyBy('exam_id');
+                } catch (\Exception $e) {
+                    Log::warning('Error fetching exam results for user profile', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
+            
+            // Create a map of course_id => has_passed_exam (based on latest result)
+            $courseExamMap = [];
+            foreach ($exams as $exam) {
+                $latestResult = $latestExamResults->get($exam->id);
+                if ($latestResult && isset($latestResult->passed) && $latestResult->passed === true) {
+                    $courseExamMap[$exam->course_id] = true;
+                }
+            }
+            
+            // Count passed quizzes
+            $passedExamResults = $latestExamResults->filter(function($result) {
+                return isset($result->passed) && $result->passed === true;
+            });
+
+            // Calculate stats using modules instead of lessons
+            $totalCourses = $courses->count();
+            $totalModules = $courses->sum(function($course) {
+                return $course->modules ? $course->modules->count() : 0;
+            });
+            $completedModules = $courses->sum(function($course) use ($courseProgress) {
+                $progress = $courseProgress->get($course->id);
+                // If course is completed, all modules are considered completed
+                $moduleCount = $course->modules ? $course->modules->count() : 0;
+                return ($progress && isset($progress->completed_at) && $progress->completed_at) ? $moduleCount : 0;
+            });
+            $completedQuizzes = $passedExamResults->count();
+            $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
+
+            // Get courses in progress
+            $coursesInProgress = [];
+            $coursesCompleted = [];
+            
+            foreach ($courses as $course) {
+                $progress = $courseProgress->get($course->id);
+                $courseProgressPercentage = $progress && isset($progress->progress_percentage) ? ($progress->progress_percentage ?? 0) : 0;
+                $isCompleted = $progress && isset($progress->completed_at) && $progress->completed_at;
+                
+                // Check if user has passed the exam for this course
+                $quizPassed = isset($courseExamMap[$course->id]) && $courseExamMap[$course->id] === true;
+                
+                $moduleCount = $course->modules ? $course->modules->count() : 0;
+                
+                if ($courseProgressPercentage > 0 && !$isCompleted) {
+                    $coursesInProgress[] = [
+                        'id' => $course->id,
+                        'title' => $course->title ?? '',
+                        'description' => $course->description ?? '',
+                        'progress' => $courseProgressPercentage,
+                        'completedModules' => round(($courseProgressPercentage / 100) * $moduleCount),
+                        'totalModules' => $moduleCount,
+                    ];
+                } elseif ($isCompleted) {
+                    $coursesCompleted[] = [
+                        'id' => $course->id,
+                        'title' => $course->title ?? '',
+                        'description' => $course->description ?? '',
+                        'quizPassed' => $quizPassed,
+                    ];
+                }
+            }
+            
+            // Add profile data to user object
+            $user->completed_modules = $completedModules;
+            $user->completed_quizzes = $completedQuizzes;
+            $user->in_progress_courses = count($coursesInProgress);
+            $user->completion_percentage = $progressPercentage;
+            $user->courses_in_progress = $coursesInProgress;
+            $user->courses_completed = $coursesCompleted;
+            
+            return response()->json($user);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Utilizatorul nu a fost găsit',
+                'error' => $e->getMessage()
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error fetching user profile', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Eroare la încărcarea profilului utilizatorului',
+                'error' => config('app.debug') ? $e->getMessage() : 'Eroare internă'
+            ], 500);
         }
-        
-        // Add profile data to user object
-        $user->completed_modules = $completedModules;
-        $user->completed_quizzes = $completedQuizzes;
-        $user->in_progress_courses = count($coursesInProgress);
-        $user->completion_percentage = $progressPercentage;
-        $user->courses_in_progress = $coursesInProgress;
-        $user->courses_completed = $coursesCompleted;
-        
-        return response()->json($user);
     }
 
     public function store(Request $request)

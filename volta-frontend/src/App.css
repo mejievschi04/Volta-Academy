@@ -1,5 +1,5 @@
 /* ============================================
-   VOLTA ACADEMY - MAIN APPLICATION STYLES
+   FORMELY - MAIN APPLICATION STYLES
    Built on Design System
    ============================================ */
 
@@ -69,10 +69,7 @@
 	font-size: var(--font-size-2xl);
 	font-weight: var(--font-weight-extrabold);
 	letter-spacing: -0.02em;
-	background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
+	color: var(--text-primary);
 }
 
 .sidebar-nav {
@@ -115,9 +112,10 @@
 }
 
 .nav-item.active {
-	background: rgba(var(--color-dark-rgb), 0.1);
-	color: var(--color-dark);
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
+	border-left: 3px solid var(--border-primary);
 }
 
 .nav-item.active::before {
@@ -178,30 +176,64 @@
 .va-sidebar-brand {
 	padding: var(--space-4);
 	margin-bottom: var(--space-2);
+	overflow: visible;
 }
 
 .va-logo-text {
 	font-size: var(--font-size-2xl);
-	font-weight: var(--font-weight-extrabold);
-	letter-spacing: -0.02em;
+	font-weight: var(--font-weight-bold);
+	letter-spacing: 0.05em;
 	color: var(--text-primary);
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	gap: var(--space-3);
+	font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+	text-transform: lowercase;
+	line-height: 1;
+	overflow: visible;
 }
 
-.va-logo-v {
-	display: inline-flex;
+.va-logo-icon {
+	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: 40px;
 	height: 40px;
-	background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
-	color: var(--color-light);
-	border-radius: var(--radius-lg);
-	font-weight: var(--font-weight-extrabold);
-	font-size: var(--font-size-xl);
-	box-shadow: var(--shadow-md);
+	flex-shrink: 0;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+}
+
+.va-logo-icon svg {
+	width: 100%;
+	height: 100%;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	filter: drop-shadow(0 2px 4px rgba(0, 70, 67, 0.2));
+}
+
+.va-logo-icon svg rect {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.va-logo-name {
+	font-weight: var(--font-weight-bold);
+	letter-spacing: 0.08em;
+	transition: color 0.3s ease;
+	font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+	font-variant-numeric: tabular-nums;
+}
+
+.va-logo-text:hover .va-logo-icon {
+	transform: translateY(-1px) scale(1.05);
+}
+
+.va-logo-text:hover .va-logo-icon svg {
+	filter: drop-shadow(0 4px 8px rgba(0, 70, 67, 0.3));
+}
+
+.va-logo-text:hover .va-logo-icon svg rect {
+	fill: var(--btn-primary-bg);
+	opacity: 0.95;
 }
 
 .va-sidebar-nav {
@@ -210,14 +242,15 @@
 	gap: var(--space-1);
 	flex: 1;
 	overflow-y: auto;
+	padding: var(--space-2) 0;
 }
 
 .va-nav-btn {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
-	padding: var(--space-3) var(--space-4);
-	border-radius: var(--radius-lg);
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-md);
 	color: var(--text-secondary);
 	text-decoration: none;
 	font-size: var(--font-size-sm);
@@ -239,23 +272,22 @@
 	transform: translateY(-50%);
 	width: 3px;
 	height: 0;
-	background: var(--color-dark);
-	box-shadow: 0 0 10px rgba(var(--color-dark-rgb), 0.6);
+	background: var(--border-primary);
 	border-radius: 0 var(--radius-full) var(--radius-full) 0;
 	transition: height var(--transition-base);
 }
 
 .va-nav-btn:hover {
-	background: rgba(var(--color-dark-rgb), 0.05);
-	color: var(--color-dark);
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
 	transform: translateX(4px);
 }
 
 .va-nav-btn.is-active {
-	background: rgba(var(--color-dark-rgb), 0.1);
-	color: var(--color-dark);
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
-	box-shadow: 0 0 15px rgba(var(--color-dark-rgb), 0.2);
+	border-left: 3px solid var(--border-primary);
 }
 
 .va-nav-btn.is-active::before {
@@ -263,8 +295,8 @@
 }
 
 .va-nav-icon {
-	width: 20px;
-	height: 20px;
+	width: 18px;
+	height: 18px;
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
@@ -309,9 +341,11 @@
 	position: relative;
 	height: 140px;
 	display: block;
-	/* Box shadow on container, not on rotating faces */
-	box-shadow: 0 4px 20px rgba(var(--color-dark-rgb), 0.15);
+	box-shadow: var(--shadow-sm);
 	border-radius: var(--radius-xl);
+	border: 1px solid var(--border-primary);
+	background: var(--bg-elevated);
+	transition: all var(--transition-base);
 }
 
 .va-business-card-container-topnav {
@@ -363,167 +397,77 @@
 	align-items: center;
 	justify-content: flex-start;
 	gap: var(--space-3);
-	/* No box-shadow on rotating faces */
-	border: 2px solid transparent;
-	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	background: var(--bg-elevated);
 	transition: border-color 0.3s ease;
 	overflow: hidden;
 	margin: 0;
 	transform-origin: 50% 50%;
 	will-change: transform;
 	box-sizing: border-box;
-	/* Ensure identical dimensions */
 	min-width: 0;
 	min-height: 0;
 }
 
-/* Decorative background pattern */
-.va-business-card-front::before,
-.va-business-card-back::before {
-	content: '';
-	position: absolute;
-	
-	width: 200%;
-	height: 200%;
-	background: radial-gradient(circle, rgba(var(--color-dark-rgb), 0.1) 0%, transparent 70%);
-	opacity: 0;
-	transition: opacity 0.3s ease;
-	pointer-events: none;
-}
-
-.va-business-card-front::after,
-.va-business-card-back::after {
-	content: '';
-	position: absolute;
-	
-	background: radial-gradient(circle, rgba(var(--color-light-rgb), 0.08) 0%, transparent 70%);
-	opacity: 0;
-	transition: opacity 0.3s ease;
-	pointer-events: none;
-}
-
-.va-business-card-container:hover .va-business-card-front::before,
-.va-business-card-container:hover .va-business-card-back::before,
-.va-business-card-container:hover .va-business-card-front::after,
-.va-business-card-container:hover .va-business-card-back::after {
-	opacity: 1;
-}
-
 .va-business-card-front {
-	border-color: rgba(var(--color-dark-rgb), 0.3);
-	background: 
-		linear-gradient(135deg, rgba(var(--color-dark-rgb), 0.05) 0%, var(--bg-elevated) 50%, rgba(var(--color-light-rgb), 0.05) 100%),
-		radial-gradient(circle at 20% 30%, rgba(var(--color-dark-rgb), 0.03) 0%, transparent 50%),
-		radial-gradient(circle at 80% 70%, rgba(var(--color-light-rgb), 0.03) 0%, transparent 50%);
+	border-color: var(--border-primary);
+	background: var(--bg-elevated);
 	position: relative;
-}
-
-/* Decorative corner accent */
-.va-business-card-front::after {
-	content: '';
-	position: absolute;
-	top: 0;
-	right: 0;
-	width: 60px;
-	height: 60px;
-	background: linear-gradient(135deg, rgba(var(--color-dark-rgb), 0.2), transparent);
-	border-radius: 0 var(--radius-xl) 0 100%;
-	opacity: 0.5;
 }
 
 .va-business-card-back {
 	transform: rotateY(180deg);
-	border-color: rgba(var(--color-dark-rgb), 0.5);
-	background: 
-		linear-gradient(135deg, var(--bg-elevated) 0%, rgba(var(--color-dark-rgb), 0.1) 100%),
-		radial-gradient(circle at center, rgba(var(--color-dark-rgb), 0.05) 0%, transparent 70%);
-	/* Identical layout geometry as front - but justify-content center for button centering */
+	border-color: var(--border-primary);
+	background: var(--bg-elevated);
 	justify-content: center;
 	align-items: center;
 	flex-direction: column;
-	/* Ensure identical dimensions */
 	width: 100%;
 	height: 100%;
 	padding: var(--space-4);
-	border: 2px solid transparent;
+	border: 1px solid var(--border-primary);
 	box-sizing: border-box;
 }
 
-/* Decorative lines on back */
-.va-business-card-back::after {
-	content: '';
-	position: absolute;
-	top: 20%;
-	left: 10%;
-	width: 2px;
-	height: 40%;
-	background: linear-gradient(180deg, transparent, rgba(var(--color-dark-rgb), 0.3), transparent);
-	border-radius: var(--radius-full);
-}
-
 .va-business-card-container:hover .va-business-card-front {
-	border-color: rgba(var(--color-dark-rgb), 0.6);
+	border-color: var(--border-accent);
 }
 
 .va-business-card-container:hover .va-business-card-back {
-	border-color: rgba(var(--color-dark-rgb), 0.7);
+	border-color: var(--border-accent);
 }
 
 .va-business-card-container:hover {
-	box-shadow: 
-		0 4px 20px rgba(var(--color-dark-rgb), 0.15),
-		0 8px 30px rgba(var(--color-dark-rgb), 0.2),
-		0 0 40px rgba(var(--color-dark-rgb), 0.1);
+	box-shadow: var(--shadow-lg);
+	border-color: var(--border-accent);
+	transform: translateY(-2px);
 }
 
 .va-business-card-avatar {
 	width: 56px;
 	height: 56px;
 	border-radius: var(--radius-full);
-	background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
-	color: var(--color-light);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-weight: var(--font-weight-bold);
 	font-size: var(--font-size-lg);
 	flex-shrink: 0;
-	box-shadow: 
-		0 4px 15px rgba(var(--color-dark-rgb), 0.4),
-		0 0 20px rgba(var(--color-dark-rgb), 0.2),
-		inset 0 2px 4px rgba(var(--color-light-rgb), 0.2);
-	border: 3px solid rgba(var(--color-dark-rgb), 0.3);
-	transition: border-color 0.3s ease, opacity 0.3s ease;
+	box-shadow: var(--shadow-md);
+	border: 2px solid var(--btn-primary-border);
+	transition: all 0.3s ease;
 	position: relative;
 	z-index: 1;
 	margin: 0;
 	transform: translateZ(0);
 }
 
-/* Decorative ring around avatar */
-.va-business-card-avatar::before {
-	content: '';
-	position: absolute;
-	inset: -4px;
-	border-radius: var(--radius-full);
-	border: 2px solid rgba(var(--color-dark-rgb), 0.2);
-	opacity: 0;
-	transition: opacity 0.3s ease;
-}
-
 .va-business-card-container:hover .va-business-card-avatar {
-	/* Remove scale to prevent movement - only rotate slightly */
 	transform: rotate(5deg) translateZ(0);
-	/* Keep same shadow to prevent movement */
-	box-shadow: 
-		0 4px 15px rgba(var(--color-dark-rgb), 0.4),
-		0 0 20px rgba(var(--color-dark-rgb), 0.2),
-		inset 0 2px 4px rgba(var(--color-light-rgb), 0.2);
-	border-color: rgba(var(--color-dark-rgb), 0.7);
-}
-
-.va-business-card-container:hover .va-business-card-avatar::before {
-	opacity: 1;
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-lg);
 }
 
 .va-business-card-topnav .va-business-card-avatar {
@@ -552,18 +496,11 @@
 	text-overflow: ellipsis;
 	letter-spacing: -0.01em;
 	position: relative;
-	background: linear-gradient(135deg, var(--text-primary), rgba(var(--color-dark-rgb), 0.8));
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
 	transition: all 0.3s ease;
 }
 
 .va-business-card-container:hover .va-business-card-name {
-	background: linear-gradient(135deg, var(--text-primary), var(--color-primary-400));
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
+	color: var(--text-primary);
 }
 
 .va-business-card-role {
@@ -571,7 +508,6 @@
 	color: var(--text-secondary);
 	margin: 0;
 	font-weight: var(--font-weight-medium);
-	opacity: 0.8;
 	position: relative;
 	padding-left: var(--space-2);
 	transition: all 0.3s ease;
@@ -582,7 +518,7 @@
 	content: '●';
 	position: absolute;
 	left: 0;
-	color: rgba(var(--color-dark-rgb), 0.5);
+	color: var(--border-primary);
 	font-size: 0.5em;
 	top: 50%;
 	transform: translateY(-50%);
@@ -590,12 +526,11 @@
 }
 
 .va-business-card-container:hover .va-business-card-role {
-	opacity: 1;
-	color: rgba(var(--color-dark-rgb), 0.9);
+	color: var(--text-primary);
 }
 
 .va-business-card-container:hover .va-business-card-role::before {
-	color: rgba(var(--color-dark-rgb), 0.8);
+	color: var(--border-accent);
 	transform: translateY(-50%);
 }
 
@@ -603,17 +538,15 @@
 	width: auto;
 	min-width: 120px;
 	padding: var(--space-2) var(--space-4);
-	background: var(--color-dark);
-	color: var(--color-light);
-	border: 1px solid var(--color-dark);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border: 1px solid var(--btn-primary-border);
 	border-radius: var(--radius-lg);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	cursor: pointer;
 	transition: all 0.3s ease;
-	box-shadow: 
-		0 4px 15px rgba(var(--color-dark-rgb), 0.3),
-		0 0 20px rgba(var(--color-dark-rgb), 0.1);
+	box-shadow: var(--shadow-md);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	position: relative;
@@ -621,35 +554,14 @@
 	z-index: 1;
 }
 
-/* Shine effect on button */
-.va-business-card-logout-btn::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, rgba(var(--color-light-rgb), 0.3), transparent);
-	transition: left 0.5s ease;
-}
-
-.va-business-card-logout-btn:hover::before {
-	left: 100%;
-}
-
 .va-business-card-logout-btn:hover {
 	transform: scale(1.02);
-	box-shadow: 
-		0 6px 25px rgba(var(--color-dark-rgb), 0.5),
-		0 0 30px rgba(var(--color-dark-rgb), 0.2);
-	background: rgba(var(--color-dark-rgb), 0.9);
+	box-shadow: var(--shadow-lg);
 }
 
 .va-business-card-logout-btn:active {
 	transform: scale(0.98);
-	box-shadow: 
-		0 2px 10px rgba(var(--color-dark-rgb), 0.3),
-		0 0 15px rgba(var(--color-dark-rgb), 0.1);
+	box-shadow: var(--shadow-sm);
 }
 
 .va-sidebar-view-user-btn {
@@ -662,7 +574,7 @@
 	background: var(--bg-tertiary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-lg);
-	color: var(--color-primary-500);
+	color: var(--text-primary);
 	cursor: pointer;
 	transition: all var(--transition-base);
 }
@@ -670,7 +582,7 @@
 .va-sidebar-view-user-btn:hover {
 	background: var(--bg-elevated);
 	border-color: var(--border-accent);
-	color: var(--color-primary-400);
+	color: var(--text-primary);
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-md);
 }
@@ -775,7 +687,7 @@
 	transform: translateX(-50%);
 	width: 0;
 	height: 2px;
-	background: var(--color-primary-500);
+	background: var(--border-primary);
 	border-radius: var(--radius-full);
 	transition: width var(--transition-base);
 }
@@ -786,12 +698,13 @@
 }
 
 .va-topnav-btn.is-active {
-	color: var(--color-primary-500);
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
 }
 
 .va-topnav-btn.is-active::after {
 	width: 80%;
+	background: var(--border-primary);
 }
 
 .va-topnav-icon {
@@ -817,18 +730,18 @@
 .va-topnav-user {
 	display: flex;
 	align-items: center;
-	gap: var(--space-4);
+	gap: var(--space-3);
 	flex-shrink: 0;
 }
 
 /* Topnav business card adjustments */
 .va-business-card-container-topnav {
-	width: 200px;
-	height: 80px;
+	width: 160px;
+	height: 64px;
 }
 
 .va-business-card-container-topnav .va-business-card {
-	height: 80px;
+	height: 64px;
 }
 
 .va-business-card-container-topnav .va-business-card-front,
@@ -836,18 +749,27 @@
 	padding: var(--space-2) var(--space-3);
 }
 
-.va-business-card-container-topnav .va-business-card-name {
+.va-business-card-container-topnav .va-business-card-avatar {
+	width: 40px;
+	height: 40px;
 	font-size: var(--font-size-sm);
 }
 
-.va-business-card-container-topnav .va-business-card-role {
+.va-business-card-container-topnav .va-business-card-name {
 	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+}
+
+.va-business-card-container-topnav .va-business-card-role {
+	font-size: 0.625rem;
+	line-height: 1.2;
 }
 
 .va-business-card-container-topnav .va-business-card-logout-btn {
-	padding: calc(var(--space-1) + 2px) var(--space-3);
+	padding: var(--space-2) var(--space-4);
 	font-size: var(--font-size-xs);
-	min-width: 100px;
+	min-width: 90px;
+	font-weight: var(--font-weight-medium);
 }
 
 /* ============================================

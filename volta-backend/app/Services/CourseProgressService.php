@@ -56,14 +56,27 @@ class CourseProgressService
 
         $progress = ($completedLessons / $totalLessons) * 100;
         
-        // Update course_user progress
+        // Check if course is complete (100% progress + all required tests passed)
+        $isComplete = false;
+        if ($progress >= 100) {
+            $isComplete = $this->isCourseComplete($user, $course);
+        }
+        
+        // Update course_user progress and completion status
+        $updateData = [
+            'progress_percentage' => round($progress, 2),
+            'updated_at' => Carbon::now(),
+        ];
+        
+        // If course is complete, mark it as completed
+        if ($isComplete) {
+            $updateData['completed_at'] = Carbon::now();
+        }
+        
         DB::table('course_user')
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
-            ->update([
-                'progress_percentage' => round($progress, 2),
-                'updated_at' => Carbon::now(),
-            ]);
+            ->update($updateData);
 
         return round($progress, 2);
     }

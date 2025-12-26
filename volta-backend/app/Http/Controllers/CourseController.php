@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\ActivityLog;
+use App\Models\CourseTest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,97 +12,216 @@ class CourseController extends Controller
 {
     public function index(Request $request)
     {
-        // Get only necessary fields for listing (no full content)
-        $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])
-            ->select('id', 'title', 'description', 'image', 'reward_points', 'teacher_id')
-            ->get()
-            ->map(function($course) {
-                return [
-                    'id' => $course->id,
-                    'title' => $course->title,
-                    'description' => $course->description,
-                    'image' => $course->image,
-                    'image_url' => $course->image_url,
-                    'reward_points' => $course->reward_points,
-                    'modules_count' => $course->modules->count(),
-                    'modules' => $course->modules->map(function($module) {
+        try {
+            // Get only necessary fields for listing (no full content)
+            // Note: Don't use select() with eager loading as it can cause issues
+            $courses = Course::with([
+                'modules' => function($query) {
+                    $query->select('id', 'course_id', 'title', 'order');
+                },
+                'teacher' => function($query) {
+                    $query->select('id', 'name');
+                }
+            ])
+                ->get()
+                ->map(function($course) {
+                    try {
                         return [
-                            'id' => $module->id,
-                            'title' => $module->title,
-                            'order' => $module->order,
+                            'id' => $course->id,
+                            'title' => $course->title ?? '',
+                            'description' => $course->description ?? null,
+                            'image' => $course->image ?? null,
+                            'image_url' => $course->image_url ?? null,
+                            'reward_points' => $course->reward_points ?? 0,
+                            'modules_count' => $course->modules ? $course->modules->count() : 0,
+                            'modules' => $course->modules ? $course->modules->map(function($module) {
+                                return [
+                                    'id' => $module->id ?? null,
+                                    'title' => $module->title ?? '',
+                                    'order' => $module->order ?? 0,
+                                ];
+                            })->toArray() : [],
+                            'teacher' => $course->teacher ? [
+                                'id' => $course->teacher->id ?? null,
+                                'name' => $course->teacher->name ?? '',
+                            ] : null,
                         ];
-                    }),
-                    'teacher' => $course->teacher ? [
-                        'id' => $course->teacher->id,
-                        'name' => $course->teacher->name,
-                    ] : null,
-                ];
-            });
-        
-        return response()->json($courses);
+                    } catch (\Exception $e) {
+                        \Log::error('Error mapping course in CourseController::index', [
+                            'course_id' => $course->id ?? null,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                        // Return minimal course data if mapping fails
+                        return [
+                            'id' => $course->id ?? null,
+                            'title' => $course->title ?? 'Unknown Course',
+                            'description' => null,
+                            'image' => null,
+                            'image_url' => null,
+                            'reward_points' => 0,
+                            'modules_count' => 0,
+                            'modules' => [],
+                            'teacher' => null,
+                        ];
+                    }
+                });
+            
+            return response()->json($courses);
+        } catch (\Exception $e) {
+            \Log::error('Error in CourseController::index', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Nu s-au putut încărca cursurile',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function show(Request $request, $id)
     {
-        // For single course, include full content with modules, lessons, and exams
-        $course = Course::with([
-            'modules' => function($q) {
-                $q->orderBy('order');
-            },
-            'modules.lessons' => function($q) {
-                $q->orderBy('order');
-            },
-            'modules.exams' => function($q) {
-                $q->orderBy('id');
-            },
-            'teacher:id,name'
-        ])->findOrFail($id);
-        
-        // Get exam for this course (legacy support - single exam at course level)
-        $exam = \App\Models\Exam::where('course_id', $course->id)
-            ->whereNull('module_id')
-            ->first();
-        if ($exam) {
-            $course->exam = $exam;
-        }
-        
-        // Add user progress if user is authenticated
-        $user = $request->user();
-        if ($user) {
-            $courseUser = DB::table('course_user')
-                ->where('course_id', $course->id)
-                ->where('user_id', $user->id)
-                ->first();
+        try {
+            // For single course, include full content with modules, lessons, and tests
+            // Note: exams relationship doesn't exist on Module, use courseTests instead
+            $course = Course::with([
+                'modules' => function($q) {
+                    $q->orderBy('order');
+                },
+                'modules.lessons' => function($q) {
+                    $q->orderBy('order');
+                },
+                'modules.courseTests' => function($q) {
+                    $q->orderBy('order');
+                },
+                'modules.courseTests.test' => function($q) {
+                    $q->select('id', 'title', 'description', 'type', 'status');
+                },
+                'teacher' => function($q) {
+                    $q->select('id', 'name');
+                }
+            ])->findOrFail($id);
             
-            $course->progress_percentage = $courseUser ? ($courseUser->progress_percentage ?? 0) : 0;
-            $course->completed_at = $courseUser ? $courseUser->completed_at : null;
-            $course->started_at = $courseUser ? $courseUser->started_at : null;
-            $course->is_assigned = $courseUser !== null;
-        }
-        
-        // Debug: Log exams in modules before returning
-        \Log::info('CourseController::show - Course data before JSON', [
-            'course_id' => $course->id,
-            'modules_count' => $course->modules->count(),
-            'modules' => $course->modules->map(function($module) {
-                return [
-                    'id' => $module->id,
-                    'title' => $module->title,
-                    'exams_loaded' => isset($module->exams),
-                    'exams_count' => $module->exams ? $module->exams->count() : 0,
-                    'exams' => $module->exams ? $module->exams->map(function($exam) {
+            // Transform courseTests to exams format for frontend compatibility
+            // Add exams array to each module
+            foreach ($course->modules as $module) {
+                $module->exams = $module->courseTests->map(function($courseTest) {
+                    if ($courseTest->test) {
                         return [
-                            'id' => $exam->id,
-                            'title' => $exam->title,
-                            'course_id' => $exam->course_id,
-                            'module_id' => $exam->module_id,
+                            'id' => $courseTest->test->id,
+                            'title' => $courseTest->test->title,
+                            'description' => $courseTest->test->description,
+                            'type' => $courseTest->test->type,
+                            'status' => $courseTest->test->status,
+                            'module_id' => $courseTest->scope_id,
+                            'course_id' => $course->id,
+                            'required' => $courseTest->required ?? false,
+                            'passing_score' => $courseTest->passing_score ?? null,
+                            'order' => $courseTest->order ?? 0,
                         ];
-                    })->toArray() : [],
-                ];
-            })->toArray(),
-        ]);
-        
-        return response()->json($course);
+                    }
+                    return null;
+                })->filter()->values()->toArray();
+            }
+            
+            // Collect all exams from all modules for course.exams
+            $allExams = [];
+            foreach ($course->modules as $module) {
+                if (isset($module->exams) && is_array($module->exams)) {
+                    $allExams = array_merge($allExams, $module->exams);
+                }
+            }
+            
+            // Also get course-level tests
+            try {
+                $courseLevelTests = CourseTest::where('course_id', $course->id)
+                    ->where('scope', 'course')
+                    ->with('test')
+                    ->get();
+                
+                foreach ($courseLevelTests as $courseTest) {
+                    if ($courseTest->test) {
+                        $allExams[] = [
+                            'id' => $courseTest->test->id,
+                            'title' => $courseTest->test->title,
+                            'description' => $courseTest->test->description,
+                            'type' => $courseTest->test->type,
+                            'status' => $courseTest->test->status,
+                            'module_id' => null,
+                            'course_id' => $course->id,
+                            'required' => $courseTest->required ?? false,
+                            'passing_score' => $courseTest->passing_score ?? null,
+                            'order' => $courseTest->order ?? 0,
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Error loading course-level tests', [
+                    'course_id' => $course->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            
+            // Set course.exams array
+            $course->exams = $allExams;
+            
+            // Get exam for this course (legacy support - single exam at course level)
+            try {
+                $exam = \App\Models\Exam::where('course_id', $course->id)
+                    ->whereNull('module_id')
+                    ->first();
+                if ($exam) {
+                    $course->exam = $exam;
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Error loading exam for course', [
+                    'course_id' => $course->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            
+            // Add user progress if user is authenticated
+            $user = $request->user();
+            if ($user) {
+                try {
+                    $courseUser = DB::table('course_user')
+                        ->where('course_id', $course->id)
+                        ->where('user_id', $user->id)
+                        ->first();
+                    
+                    $course->progress_percentage = $courseUser ? ($courseUser->progress_percentage ?? 0) : 0;
+                    $course->completed_at = $courseUser ? $courseUser->completed_at : null;
+                    $course->started_at = $courseUser ? $courseUser->started_at : null;
+                    $course->is_assigned = $courseUser !== null;
+                } catch (\Exception $e) {
+                    \Log::warning('Error loading user progress for course', [
+                        'course_id' => $course->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Set defaults if progress loading fails
+                    $course->progress_percentage = 0;
+                    $course->completed_at = null;
+                    $course->started_at = null;
+                    $course->is_assigned = false;
+                }
+            }
+            
+            return response()->json($course);
+        } catch (\Exception $e) {
+            \Log::error('Error in CourseController::show', [
+                'course_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Nu s-a putut încărca cursul',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function complete(Request $request, $id)

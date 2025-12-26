@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { examResultsService } from '../services/api';
+import '../styles/exam-results.css';
 
 const ExamResultsPage = () => {
 	const [results, setResults] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [selectedResult, setSelectedResult] = useState(null);
+	const [loadingDetails, setLoadingDetails] = useState(false);
 
 	useEffect(() => {
 		fetchResults();
@@ -25,25 +27,49 @@ const ExamResultsPage = () => {
 		}
 	};
 
-	const handleSelectResult = (result) => {
-		setSelectedResult(result);
+	const handleSelectResult = async (result) => {
+		try {
+			setLoadingDetails(true);
+			// Load full details with questions
+			const fullDetails = await examResultsService.getById(result.id);
+			setSelectedResult(fullDetails);
+		} catch (err) {
+			console.error('Error fetching result details:', err);
+			// Fallback to basic result if detail fetch fails
+			setSelectedResult(result);
+		} finally {
+			setLoadingDetails(false);
+		}
 	};
 
-	const getUserAnswer = (questionId) => {
+	const getUserAnswer = (question) => {
+		// Check if question already has user_answer from backend
+		if (question.user_answer !== undefined) {
+			return question.user_answer;
+		}
+		// Fallback to old method
 		if (!selectedResult || !selectedResult.answers) return null;
-		return selectedResult.answers[questionId];
+		return selectedResult.answers[question.id];
 	};
 
 	const getQuestionType = (question) => {
-		return question.question_type || 'multiple_choice';
+		return question.question_type || question.type || 'multiple_choice';
 	};
 
-	const isCorrectAnswer = (question, userAnswer) => {
-		if (getQuestionType(question) === 'open_text') {
+	const isCorrectAnswer = (question) => {
+		// Check if backend already calculated this
+		if (question.is_correct !== undefined) {
+			return question.is_correct;
+		}
+		// Fallback to old calculation
+		if (getQuestionType(question) === 'open_text' || getQuestionType(question) === 'short_answer') {
 			return null; // Open text questions need manual review
 		}
 		
-		const correctAnswerIndex = question.answers.findIndex(a => a.is_correct);
+		const userAnswer = getUserAnswer(question);
+		if (userAnswer === null) return false;
+		
+		const correctAnswerIndex = question.answers?.findIndex(a => a.is_correct) ?? -1;
 		return userAnswer === correctAnswerIndex;
 	};
 
@@ -64,12 +90,12 @@ const ExamResultsPage = () => {
 	}
 
 	return (
-		<div className="va-main fade-in">
-			<div className="fade-in-up" style={{ marginBottom: '2.5rem' }}>
-				<h1 className="va-page-title gradient-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>
+		<div className="exam-results-page">
+			<div style={{ marginBottom: '2.5rem' }}>
+				<h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
 					Rezultate Teste
 				</h1>
-				<p className="va-muted" style={{ fontSize: '1.1rem' }}>
+				<p style={{ fontSize: '1.1rem', color: 'var(--text-tertiary)' }}>
 					Vezi toate testele completate și răspunsurile tale
 				</p>
 			</div>
@@ -77,101 +103,51 @@ const ExamResultsPage = () => {
 			{error && (
 				<div style={{
 					padding: '1rem',
-					background: 'rgba(255, 0, 0, 0.1)',
-					border: '1px solid rgba(255, 0, 0, 0.3)',
+					background: 'var(--bg-tertiary)',
+					border: '1px solid var(--border-primary)',
 					borderRadius: '8px',
 					marginBottom: '1.5rem',
-					color: '#ff4444'
+					color: 'var(--text-primary)'
 				}}>
 					{error}
 				</div>
 			)}
 
-			<div style={{ display: 'grid', gridTemplateColumns: selectedResult ? '1fr 2fr' : '1fr', gap: '2rem' }}>
+			<div className="exam-results-grid">
 				{/* Results List */}
-				<div className="va-card-enhanced" style={{ padding: '1.5rem' }}>
-					<h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>Teste Completate</h2>
+				<div>
+					<h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Teste Completate</h2>
 					{results.length > 0 ? (
-						<div className="va-stack" style={{ gap: '1rem' }}>
+						<div className="exam-results-list">
 							{results.map((result) => (
 								<button
 									key={result.id}
 									type="button"
 									onClick={() => handleSelectResult(result)}
-									style={{
-										width: '100%',
-										padding: '1rem',
-										background: selectedResult?.id === result.id ? 'rgba(255, 238, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)',
-										border: selectedResult?.id === result.id ? '2px solid #ffee00' : '1px solid rgba(255, 238, 0, 0.2)',
-										borderRadius: '12px',
-										textAlign: 'left',
-										cursor: 'pointer',
-										transition: 'all 0.2s',
-									}}
-									onMouseEnter={(e) => {
-										if (selectedResult?.id !== result.id) {
-											e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (selectedResult?.id !== result.id) {
-											e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)';
-										}
-									}}
+									className={`exam-result-item ${selectedResult?.id === result.id ? 'selected' : ''}`}
 								>
-									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-										<div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+									<div className="exam-result-header">
+										<div className="exam-result-title">
 											{result.exam?.title || 'Test'}
 										</div>
-										<div style={{
-											padding: '0.25rem 0.75rem',
-											borderRadius: '12px',
-											fontSize: '0.75rem',
-											fontWeight: 700,
-											background: result.passed 
-												? 'rgba(76, 175, 80, 0.2)' 
-												: 'rgba(255, 107, 107, 0.2)',
-											color: result.passed ? '#4CAF50' : '#ff6b6b',
-											border: `1px solid ${result.passed ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 107, 107, 0.3)'}`,
-										}}>
+										<div className={`exam-result-status-badge ${result.passed ? 'passed' : 'failed'}`}>
 											{result.passed ? '✓ Promovat' : '✗ Ne promovat'}
 										</div>
 									</div>
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.5rem' }}>
-										📚 {result.exam?.course?.title || 'Curs'}
+									<div className="exam-result-meta">
+										<div>📚 {result.exam?.course?.title || 'Curs'}</div>
+										<div>🕐 {new Date(result.completed_at).toLocaleString('ro-RO')}</div>
 									</div>
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.5rem' }}>
-										🕐 {new Date(result.completed_at).toLocaleString('ro-RO')}
-									</div>
-									<div style={{ 
-										display: 'flex', 
-										justifyContent: 'space-between', 
-										alignItems: 'center',
-										marginTop: '0.75rem',
-										paddingTop: '0.75rem',
-										borderTop: '1px solid rgba(255, 238, 0, 0.1)',
-									}}>
-										<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
+									<div className="exam-result-score">
+										<div className="exam-result-score-label">
 											Scor:
 										</div>
-										<div style={{ 
-											fontSize: '1.1rem', 
-											fontWeight: 700,
-											color: '#ffee00',
-										}}>
+										<div className="exam-result-score-value">
 											{result.score} / {result.total_points} ({result.percentage}%)
 										</div>
 									</div>
 									{result.needs_manual_review && !result.reviewed_at && (
-										<div style={{
-											marginTop: '0.5rem',
-											padding: '0.5rem',
-											background: 'rgba(255, 238, 0, 0.1)',
-											borderRadius: '6px',
-											fontSize: '0.75rem',
-											color: '#ffee00',
-											textAlign: 'center',
-										}}>
+										<div className="exam-result-manual-review pending">
 											⏳ În așteptarea verificării
 										</div>
 									)}
@@ -179,7 +155,7 @@ const ExamResultsPage = () => {
 							))}
 						</div>
 					) : (
-						<div style={{ padding: '3rem', textAlign: 'center', color: 'var(--va-muted)' }}>
+						<div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
 							<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
 							<div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Nu ai completat niciun test</div>
 							<div style={{ fontSize: '0.9rem' }}>Completează teste pentru a vedea rezultatele aici</div>
@@ -189,212 +165,140 @@ const ExamResultsPage = () => {
 
 				{/* Result Details */}
 				{selectedResult && (
-					<div className="va-card-enhanced" style={{ padding: '1.5rem' }}>
-						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-							<h2 style={{ margin: 0, fontSize: '1.5rem' }}>Detalii Rezultat</h2>
+					<div className="exam-result-details">
+						<div className="exam-result-details-header">
+							<h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>Detalii Rezultat</h2>
 							<button
 								type="button"
 								onClick={() => setSelectedResult(null)}
 								className="va-btn va-btn-sm"
+								disabled={loadingDetails}
 							>
 								Închide
 							</button>
 						</div>
+						
+						{loadingDetails && (
+							<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+								<div>Se încarcă detaliile...</div>
+							</div>
+						)}
+						
+						{!loadingDetails && (
+							<>
 
 						{/* Summary */}
-						<div style={{ 
-							marginBottom: '2rem', 
-							padding: '1.5rem', 
-							background: 'rgba(0, 0, 0, 0.3)', 
-							borderRadius: '12px',
-							border: '1px solid rgba(255, 238, 0, 0.2)',
-						}}>
-							<div style={{ marginBottom: '1rem' }}>
+						<div className="exam-result-summary">
+							<div className="exam-result-summary-item">
 								<strong>Test:</strong> {selectedResult.exam?.title}
 							</div>
-							<div style={{ marginBottom: '1rem' }}>
+							<div className="exam-result-summary-item">
 								<strong>Curs:</strong> {selectedResult.exam?.course?.title}
 							</div>
-							<div style={{ marginBottom: '1rem' }}>
+							<div className="exam-result-summary-item">
 								<strong>Data completării:</strong> {new Date(selectedResult.completed_at).toLocaleString('ro-RO')}
 							</div>
-							<div style={{ marginBottom: '1rem' }}>
+							<div className="exam-result-summary-item">
 								<strong>Încercare:</strong> #{selectedResult.attempt_number || 1}
 							</div>
-							<div style={{
-								display: 'flex',
-								justifyContent: 'space-between',
-								alignItems: 'center',
-								padding: '1rem',
-								background: 'rgba(255, 238, 0, 0.1)',
-								borderRadius: '8px',
-								border: '1px solid rgba(255, 238, 0, 0.3)',
-							}}>
-								<div>
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>
+							<div className="exam-result-score-display">
+								<div className="exam-result-score-display-item">
+									<div className="exam-result-score-display-label">
 										Scor Final
 									</div>
-									<div style={{ fontSize: '2rem', fontWeight: 700, color: '#ffee00' }}>
+									<div className="exam-result-score-display-value">
 										{selectedResult.score} / {selectedResult.total_points}
 									</div>
 								</div>
-								<div style={{ textAlign: 'right' }}>
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>
+								<div className="exam-result-score-display-item" style={{ textAlign: 'right' }}>
+									<div className="exam-result-score-display-label">
 										Procentaj
 									</div>
-									<div style={{ fontSize: '2rem', fontWeight: 700, color: selectedResult.passed ? '#4CAF50' : '#ff6b6b' }}>
+									<div className={`exam-result-score-display-value percentage ${selectedResult.passed ? 'passed' : 'failed'}`}>
 										{selectedResult.percentage}%
 									</div>
 								</div>
 							</div>
-							<div style={{ marginTop: '1rem', textAlign: 'center' }}>
-								<div style={{
-									display: 'inline-block',
-									padding: '0.5rem 1.5rem',
-									borderRadius: '20px',
-									fontWeight: 700,
-									background: selectedResult.passed 
-										? 'rgba(76, 175, 80, 0.2)' 
-										: 'rgba(255, 107, 107, 0.2)',
-									color: selectedResult.passed ? '#4CAF50' : '#ff6b6b',
-									border: `2px solid ${selectedResult.passed ? 'rgba(76, 175, 80, 0.5)' : 'rgba(255, 107, 107, 0.5)'}`,
-								}}>
-									{selectedResult.passed ? '✓ TEST PROMOVAT' : '✗ TEST NE PROMOVAT'}
-								</div>
+							<div className={`exam-result-status-display ${selectedResult.passed ? 'passed' : 'failed'}`}>
+								{selectedResult.passed ? '✓ TEST PROMOVAT' : '✗ TEST NE PROMOVAT'}
 							</div>
 						</div>
 
 						{/* Questions and Answers */}
-						{selectedResult.exam?.questions && selectedResult.exam.questions.length > 0 && (
+						{selectedResult.exam?.questions && selectedResult.exam.questions.length > 0 ? (
 							<div>
-								<h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Răspunsurile Tale</h3>
-								<div className="va-stack" style={{ gap: '1.5rem' }}>
+								<h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', color: 'var(--text-primary)' }}>Răspunsurile Tale</h3>
+								<div className="exam-result-questions">
 									{selectedResult.exam.questions.map((question, index) => {
-										const userAnswer = getUserAnswer(question.id);
-										const isOpenText = getQuestionType(question) === 'open_text';
-										const isCorrect = !isOpenText ? isCorrectAnswer(question, userAnswer) : null;
+										const userAnswer = getUserAnswer(question);
+										const isOpenText = getQuestionType(question) === 'open_text' || getQuestionType(question) === 'short_answer';
+										const isCorrect = !isOpenText ? isCorrectAnswer(question) : null;
 										const manualScore = getManualReviewScore(question.id);
 										const maxPoints = question.points || 1;
+										const correctAnswerIndex = question.correct_answer_index ?? question.answers?.findIndex(a => a.is_correct) ?? -1;
 
 										return (
 											<div
 												key={question.id}
-												style={{
-													padding: '1.5rem',
-													background: 'rgba(0, 0, 0, 0.3)',
-													border: `1px solid ${isCorrect === true ? 'rgba(76, 175, 80, 0.3)' : isCorrect === false ? 'rgba(255, 107, 107, 0.3)' : 'rgba(255, 238, 0, 0.2)'}`,
-													borderRadius: '12px',
-												}}
+												className={`exam-result-question ${isCorrect === true ? 'correct' : isCorrect === false ? 'incorrect' : ''}`}
 											>
-												<div style={{ marginBottom: '1rem' }}>
-													<div style={{ 
-														display: 'flex', 
-														justifyContent: 'space-between', 
-														alignItems: 'flex-start',
-														marginBottom: '0.75rem',
-													}}>
-														<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-															Întrebare {index + 1} ({maxPoints} puncte)
+												<div className="exam-result-question-header">
+													<div className="exam-result-question-number">
+														Întrebare {index + 1} ({maxPoints} puncte)
+													</div>
+													{isCorrect !== null && (
+														<div className={`exam-result-question-status ${isCorrect ? 'correct' : 'incorrect'}`}>
+															{isCorrect ? '✓ Corect' : '✗ Incorect'}
 														</div>
-														{isCorrect !== null && (
-															<div style={{
-																padding: '0.25rem 0.75rem',
-																borderRadius: '8px',
-																fontSize: '0.75rem',
-																fontWeight: 700,
-																background: isCorrect 
-																	? 'rgba(76, 175, 80, 0.2)' 
-																	: 'rgba(255, 107, 107, 0.2)',
-																color: isCorrect ? '#4CAF50' : '#ff6b6b',
-															}}>
-																{isCorrect ? '✓ Corect' : '✗ Incorect'}
-															</div>
-														)}
-														{isOpenText && manualScore !== null && (
-															<div style={{
-																padding: '0.25rem 0.75rem',
-																borderRadius: '8px',
-																fontSize: '0.75rem',
-																fontWeight: 700,
-																background: 'rgba(255, 238, 0, 0.2)',
-																color: '#ffee00',
-															}}>
-																{manualScore} / {maxPoints} puncte
-															</div>
-														)}
-													</div>
-													<div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
-														{question.question_text}
-													</div>
+													)}
+													{isOpenText && manualScore !== null && (
+														<div className="exam-result-question-status">
+															{manualScore} / {maxPoints} puncte
+														</div>
+													)}
+												</div>
+												<div className="exam-result-question-text">
+													{question.question_text || question.content}
 												</div>
 
 												{isOpenText ? (
 													<div>
-														<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.5rem' }}>
+														<div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
 															Răspunsul tău:
 														</div>
-														<div style={{
-															padding: '1rem',
-															background: 'rgba(0, 0, 0, 0.5)',
-															borderRadius: '8px',
-															border: '1px solid rgba(255, 238, 0, 0.1)',
-															minHeight: '80px',
-															whiteSpace: 'pre-wrap',
-															wordWrap: 'break-word',
-															marginBottom: '0.5rem',
-														}}>
-															{userAnswer || <em style={{ color: 'var(--va-muted)' }}>Fără răspuns</em>}
+														<div className={`exam-result-open-text-answer ${!userAnswer ? 'empty' : ''}`}>
+															{userAnswer || <em>Fără răspuns</em>}
 														</div>
 														{manualScore !== null ? (
-															<div style={{
-																padding: '0.75rem',
-																background: 'rgba(255, 238, 0, 0.1)',
-																borderRadius: '8px',
-																fontSize: '0.9rem',
-																color: '#ffee00',
-															}}>
+															<div className="exam-result-manual-review">
 																✓ Evaluat manual: {manualScore} / {maxPoints} puncte
 															</div>
 														) : (
-															<div style={{
-																padding: '0.75rem',
-																background: 'rgba(255, 238, 0, 0.1)',
-																borderRadius: '8px',
-																fontSize: '0.9rem',
-																color: '#ffee00',
-															}}>
+															<div className="exam-result-manual-review pending">
 																⏳ În așteptarea evaluării manuale
 															</div>
 														)}
 													</div>
 												) : (
 													<div>
-														<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', marginBottom: '0.75rem' }}>
+														<div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '0.75rem' }}>
 															Răspunsurile tale:
 														</div>
-														<div className="va-stack" style={{ gap: '0.5rem' }}>
-															{question.answers.map((answer, answerIndex) => {
+														<div className="exam-result-answers">
+															{question.answers && question.answers.map((answer, answerIndex) => {
 																const isSelected = userAnswer === answerIndex;
-																const isCorrectAnswer = answer.is_correct;
+																const isCorrectAnswer = answer.is_correct || answer.is_correct === true;
+																const answerText = answer.answer_text || answer.text || answer.content || '';
 
 																return (
 																	<div
 																		key={answerIndex}
-																		style={{
-																			padding: '0.75rem 1rem',
-																			borderRadius: '8px',
-																			background: isSelected 
-																				? (isCorrectAnswer ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 107, 107, 0.2)')
-																				: (isCorrectAnswer ? 'rgba(76, 175, 80, 0.1)' : 'rgba(0, 0, 0, 0.3)'),
-																			border: `1px solid ${
-																				isSelected 
-																					? (isCorrectAnswer ? 'rgba(76, 175, 80, 0.5)' : 'rgba(255, 107, 107, 0.5)')
-																					: (isCorrectAnswer ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 238, 0, 0.2)')
-																			}`,
-																			display: 'flex',
-																			alignItems: 'center',
-																			gap: '0.75rem',
-																		}}
+																		className={`exam-result-answer ${
+																			isSelected && isCorrectAnswer ? 'correct' 
+																			: isSelected && !isCorrectAnswer ? 'user-incorrect'
+																			: isCorrectAnswer ? 'correct'
+																			: 'default'
+																		}`}
 																	>
 																		{isSelected && (
 																			<span style={{ fontSize: '1.2rem' }}>
@@ -402,23 +306,13 @@ const ExamResultsPage = () => {
 																			</span>
 																		)}
 																		{isCorrectAnswer && !isSelected && (
-																			<span style={{ fontSize: '1.2rem', color: '#4CAF50' }}>✓</span>
+																			<span style={{ fontSize: '1.2rem' }}>✓</span>
 																		)}
-																		<span style={{ 
-																			flex: 1,
-																			color: isSelected 
-																				? (isCorrectAnswer ? '#4CAF50' : '#ff6b6b')
-																				: (isCorrectAnswer ? '#4CAF50' : 'var(--va-text)'),
-																			fontWeight: isSelected || isCorrectAnswer ? 600 : 400,
-																		}}>
-																			{answer.answer_text}
+																		<span className="exam-result-answer-text">
+																			{answerText}
 																		</span>
 																		{isCorrectAnswer && (
-																			<span style={{ 
-																				fontSize: '0.75rem', 
-																				color: '#4CAF50',
-																				fontWeight: 700,
-																			}}>
+																			<span className="exam-result-answer-label">
 																				Răspuns corect
 																			</span>
 																		)}
@@ -426,6 +320,20 @@ const ExamResultsPage = () => {
 																);
 															})}
 														</div>
+														{/* Show correct answer if user's answer was wrong */}
+														{isCorrect === false && correctAnswerIndex >= 0 && question.answers && question.answers[correctAnswerIndex] && (
+															<div className="exam-result-answer correct" style={{ marginTop: '0.75rem' }}>
+																<span style={{ fontSize: '1.2rem' }}>✓</span>
+																<span style={{ flex: 1, fontWeight: 600 }}>
+																	Răspunsul corect:
+																</span>
+																<span className="exam-result-answer-text">
+																	{question.answers[correctAnswerIndex].answer_text || 
+																	 question.answers[correctAnswerIndex].text || 
+																	 question.answers[correctAnswerIndex].content}
+																</span>
+															</div>
+														)}
 													</div>
 												)}
 											</div>
@@ -433,6 +341,16 @@ const ExamResultsPage = () => {
 									})}
 								</div>
 							</div>
+						) : (
+							<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+								<div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
+								<div>Nu sunt disponibile întrebări pentru acest rezultat.</div>
+								<div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+									{selectedResult.exam ? `Test: ${selectedResult.exam.title}` : 'Detaliile testului nu sunt disponibile.'}
+								</div>
+							</div>
+						)}
+							</>
 						)}
 					</div>
 				)}

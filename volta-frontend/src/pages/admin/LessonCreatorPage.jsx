@@ -267,8 +267,6 @@ const LessonCreatorPage = () => {
 				navigate(`/admin/courses/${formData.course_id}`);
 			} else {
 				navigate('/admin/courses');
-			} else {
-				navigate('/admin/courses');
 			}
 		} catch (err) {
 			console.error('Error saving lesson:', err);

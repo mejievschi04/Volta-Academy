@@ -4,29 +4,31 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
-// use App\Models\Lesson; // Removed - lessons table no longer exists
-use App\Models\Exam;
-use App\Models\ExamResult;
+use App\Models\Test;
+use App\Models\TestResult;
+use App\Models\CourseTest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        
-        if (!$user) {
-            return response()->json(['error' => 'Neautentificat'], 401);
-        }
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Neautentificat'], 401);
+            }
 
-        // Cache key for user-specific profile data
-        $cacheKey = "profile_user_{$user->id}";
-        
-        // Try to get cached data (cache for 5 minutes)
-        $cachedData = Cache::remember($cacheKey, 300, function () use ($user) {
+            // Cache key for user-specific profile data
+            $cacheKey = "profile_user_{$user->id}";
+            
+            // Try to get cached data (cache for 5 minutes)
+            $cachedData = Cache::remember($cacheKey, 300, function () use ($user) {
             // Get courses with modules (optimized query)
             $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])->get();
             
@@ -37,31 +39,41 @@ class ProfileController extends Controller
                 ->get()
                 ->keyBy('course_id');
 
-            // Get all exams for courses and their latest results for this user
+            // Get all tests for courses through CourseTest pivot and their latest results for this user
             $courseIds = $courses->pluck('id')->toArray();
-            $exams = Exam::whereIn('course_id', $courseIds)->get();
-            $examIds = $exams->pluck('id')->toArray();
             
-            // Get the latest exam result for each exam for this user
-            $latestExamResults = ExamResult::whereIn('exam_id', $examIds)
-                ->where('user_id', $user->id)
-                ->orderBy('exam_id')
-                ->orderBy('attempt_number', 'desc')
-                ->get()
-                ->unique('exam_id')
-                ->keyBy('exam_id');
+            // Get CourseTest entries for these courses
+            $courseTests = CourseTest::whereIn('course_id', $courseIds)
+                ->with('test')
+                ->get();
             
-            // Create a map of course_id => has_passed_exam (based on latest result)
-            $courseExamMap = [];
-            foreach ($exams as $exam) {
-                $latestResult = $latestExamResults->get($exam->id);
-                if ($latestResult && $latestResult->passed === true) {
-                    $courseExamMap[$exam->course_id] = true;
+            $testIds = $courseTests->pluck('test_id')->filter()->unique()->toArray();
+            
+            // Get the latest test result for each test for this user
+            $latestTestResults = collect();
+            if (!empty($testIds)) {
+                $latestTestResults = TestResult::whereIn('test_id', $testIds)
+                    ->where('user_id', $user->id)
+                    ->orderBy('test_id')
+                    ->orderBy('attempt_number', 'desc')
+                    ->get()
+                    ->unique('test_id')
+                    ->keyBy('test_id');
+            }
+            
+            // Create a map of course_id => has_passed_test (based on latest result)
+            $courseTestMap = [];
+            foreach ($courseTests as $courseTest) {
+                if ($courseTest->test_id) {
+                    $latestResult = $latestTestResults->get($courseTest->test_id);
+                    if ($latestResult && $latestResult->passed === true) {
+                        $courseTestMap[$courseTest->course_id] = true;
+                    }
                 }
             }
             
-            // Count passed quizzes
-            $passedExamResults = $latestExamResults->filter(function($result) {
+            // Count passed tests/quizzes
+            $passedTestResults = $latestTestResults->filter(function($result) {
                 return $result->passed === true;
             });
 
@@ -75,7 +87,7 @@ class ProfileController extends Controller
                 // If course is completed, all modules are considered completed
                 return ($progress && $progress->completed_at) ? $course->modules->count() : 0;
             });
-            $completedQuizzes = $passedExamResults->count();
+            $completedQuizzes = $passedTestResults->count();
             $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
 
             // Get courses in progress
@@ -87,8 +99,8 @@ class ProfileController extends Controller
                 $courseProgressPercentage = $progress ? ($progress->progress_percentage ?? 0) : 0;
                 $isCompleted = $progress && $progress->completed_at;
                 
-                // Check if user has passed the exam for this course
-                $quizPassed = isset($courseExamMap[$course->id]) && $courseExamMap[$course->id] === true;
+                // Check if user has passed the test for this course
+                $quizPassed = isset($courseTestMap[$course->id]) && $courseTestMap[$course->id] === true;
                 
                 if ($courseProgressPercentage > 0 && !$isCompleted) {
                     $coursesInProgress[] = [
@@ -141,6 +153,16 @@ class ProfileController extends Controller
             'coursesInProgress' => $cachedData['coursesInProgress'],
             'coursesCompleted' => $cachedData['coursesCompleted'],
         ]);
+        } catch (\Exception $e) {
+            Log::error('ProfileController error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'user_id' => Auth::id(),
+            ]);
+            return response()->json([
+                'error' => 'Eroare la încărcarea profilului',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 

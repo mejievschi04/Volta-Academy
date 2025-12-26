@@ -168,9 +168,8 @@ const AdminUsersPage = () => {
 	};
 
 	const getCompletionColor = (percentage) => {
-		if (percentage >= 80) return '#10b981'; // Verde
-		if (percentage >= 50) return '#f59e0b'; // Galben
-		return '#ef4444'; // Roșu
+		// Use only the two colors - Cyprus Green for all progress
+		return 'var(--text-primary)';
 	};
 
 	const getRoleLabel = (role) => {
@@ -242,6 +241,7 @@ const AdminUsersPage = () => {
 								Echipă
 							</th>
 							<th>Cursuri Finalizate</th>
+							<th>Module Finalizate</th>
 							<th>Procentaj</th>
 							<th className="admin-users-table-cell-center">Acțiuni</th>
 						</tr>
@@ -252,6 +252,8 @@ const AdminUsersPage = () => {
 								const isAdmin = user.role === 'admin';
 								const totalCourses = user.total_courses || 0;
 								const completedCourses = user.completed_courses || 0;
+								const totalModules = user.total_modules || 0;
+								const completedModules = user.completed_modules || 0;
 								const percentage = user.completion_percentage || 0;
 								const progressClass = percentage >= 80 ? 'high' : percentage >= 50 ? 'medium' : 'low';
 								const initials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
@@ -293,16 +295,25 @@ const AdminUsersPage = () => {
 										</td>
 										<td>
 											{isAdmin ? (
-												<span style={{ color: 'rgba(var(--color-light-rgb), 0.65)' }}>-</span>
+												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
 											) : (
-												<span style={{ color: getCompletionColor(percentage), fontWeight: 600 }}>
+												<span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
 													{completedCourses}/{totalCourses}
 												</span>
 											)}
 										</td>
 										<td>
 											{isAdmin ? (
-												<span style={{ color: 'rgba(var(--color-light-rgb), 0.65)' }}>-</span>
+												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
+											) : (
+												<span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+													{completedModules}/{totalModules}
+												</span>
+											)}
+										</td>
+										<td>
+											{isAdmin ? (
+												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
 											) : (
 												<div className="admin-users-progress-container">
 													<div className="admin-users-progress-bar">
@@ -344,10 +355,10 @@ const AdminUsersPage = () => {
 							})
 						) : (
 							<tr>
-								<td colSpan="7" className="admin-users-empty">
-									<div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>👥</div>
-									<h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Nu există utilizatori</h3>
-									<p style={{ margin: 0, color: 'rgba(var(--color-light-rgb), 0.5)' }}>
+								<td colSpan="8" className="admin-users-empty">
+									<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+									<h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', color: 'var(--text-primary)' }}>Nu există utilizatori</h3>
+									<p style={{ margin: 0, color: 'var(--text-tertiary)' }}>
 										Nu există utilizatori care să corespundă filtrelor selectate.
 									</p>
 								</td>

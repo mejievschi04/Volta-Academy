@@ -33,48 +33,43 @@
 }
 
 .btn-primary {
-	background: #132a13;
-	color: #faf4d3;
-	border-color: #132a13;
-	box-shadow: var(--shadow-sm), var(--shadow-glow-soft);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text) !important;
+	border-color: var(--btn-primary-border);
+	box-shadow: var(--shadow-sm);
 	transition: all var(--transition-base);
 }
 
 .btn-primary:hover:not(:disabled) {
-	background: rgba(19, 42, 19, 0.9);
-	border-color: #132a13;
-	color: #faf4d3;
-	box-shadow: var(--shadow-md), var(--shadow-glow-purple);
+	background: var(--btn-primary-bg);
+	border-color: var(--btn-primary-border);
+	color: var(--btn-primary-text) !important;
+	box-shadow: var(--shadow-md);
 	transform: translateY(-2px) scale(1.02);
 }
 
 .btn-primary:active:not(:disabled) {
 	transform: translateY(0) scale(0.98);
-	box-shadow: var(--shadow-sm), var(--shadow-glow-soft);
-}
-
-.btn-primary:focus-visible {
-	outline: 2px solid var(--color-primary-500);
-	outline-offset: 2px;
-}
-
-.btn-primary:active:not(:disabled) {
-	transform: translateY(0);
 	box-shadow: var(--shadow-sm);
 }
 
+.btn-primary:focus-visible {
+	outline: 2px solid var(--border-focus);
+	outline-offset: 2px;
+}
+
 .btn-secondary {
-	background: #132a13;
-	color: #faf4d3;
-	border: 1px solid #132a13;
+	background: var(--btn-secondary-bg);
+	color: var(--btn-secondary-text);
+	border: 1px solid var(--btn-secondary-border);
 	transition: all var(--transition-base);
 }
 
 .btn-secondary:hover:not(:disabled) {
-	background: rgba(19, 42, 19, 0.9);
-	border-color: #132a13;
-	color: #faf4d3;
-	box-shadow: 0 0 15px rgba(19, 42, 19, 0.3);
+	background: var(--btn-secondary-bg);
+	border-color: var(--btn-secondary-border);
+	color: var(--btn-secondary-text);
+	box-shadow: var(--shadow-md);
 	transform: translateY(-2px) scale(1.02);
 }
 
@@ -83,27 +78,27 @@
 }
 
 .btn-ghost {
-	background: #132a13;
-	color: #faf4d3;
+	background: transparent;
+	color: var(--text-primary);
 	border-color: transparent;
 }
 
 .btn-ghost:hover:not(:disabled) {
-	background: rgba(19, 42, 19, 0.9);
-	border-color: #132a13;
-	color: #faf4d3;
+	background: var(--bg-tertiary);
+	border-color: var(--border-primary);
+	color: var(--text-primary);
 }
 
 .btn-danger {
-	background: #132a13;
-	color: #faf4d3;
-	border-color: #132a13;
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border-color: var(--btn-primary-border);
 }
 
 .btn-danger:hover:not(:disabled) {
-	background: rgba(19, 42, 19, 0.9);
-	border-color: #132a13;
-	color: #faf4d3;
+	background: var(--btn-primary-bg);
+	border-color: var(--btn-primary-border);
+	color: var(--btn-primary-text);
 	box-shadow: var(--shadow-md);
 	transform: translateY(-1px);
 }
@@ -138,28 +133,29 @@
 }
 
 .va-btn-primary {
-	background: #132a13;
-	color: #faf4d3;
-	border-color: #132a13;
-	box-shadow: var(--shadow-sm), var(--shadow-glow-soft);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text) !important;
+	border-color: var(--btn-primary-border);
+	box-shadow: var(--shadow-sm);
 	transition: all var(--transition-base);
+	font-weight: var(--font-weight-semibold);
 }
 
 .va-btn-primary:hover:not(:disabled) {
-	background: rgba(19, 42, 19, 0.9);
-	border-color: #132a13;
-	color: #faf4d3;
-	box-shadow: var(--shadow-md), var(--shadow-glow-purple);
+	background: var(--btn-primary-bg);
+	border-color: var(--btn-primary-border);
+	color: var(--btn-primary-text) !important;
+	box-shadow: var(--shadow-md);
 	transform: translateY(-2px) scale(1.02);
 }
 
 .va-btn-primary:active:not(:disabled) {
 	transform: translateY(0) scale(0.98);
-	box-shadow: var(--shadow-sm), var(--shadow-glow-soft);
+	box-shadow: var(--shadow-sm);
 }
 
 .va-btn-primary:focus-visible {
-	outline: 2px solid var(--color-primary-500);
+	outline: 2px solid var(--border-focus);
 	outline-offset: 2px;
 }
 
@@ -169,9 +165,9 @@
 }
 
 .va-btn-danger {
-	background: #132a13;
-	color: #faf4d3;
-	border-color: #132a13;
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border-color: var(--btn-primary-border);
 }
 
 /* ============================================
@@ -187,8 +183,8 @@
 }
 
 .card:hover {
-	border-color: rgba(19, 42, 19, 0.4); /* Neon Cyan border on hover */
-	box-shadow: var(--shadow-card), var(--shadow-glow-soft);
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-card);
 	transform: translateY(-4px) scale(1.01);
 }
 

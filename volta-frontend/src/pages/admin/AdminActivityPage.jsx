@@ -10,20 +10,21 @@ const AdminActivityPage = () => {
 	const [error, setError] = useState(null);
 
 	useEffect(() => {
-		const fetchDashboard = async () => {
+		const fetchActivity = async () => {
 			try {
 				setLoading(true);
 				setError(null);
 				const data = await adminService.getDashboard({ period: 'month' });
+				console.log('Dashboard data:', data);
 				setDashboardData(data);
 			} catch (err) {
 				console.error('Error fetching activity:', err);
-				setError('Nu s-au putut încărca datele');
+				setError('Nu s-au putut încărca datele: ' + (err.response?.data?.message || err.message));
 			} finally {
 				setLoading(false);
 			}
 		};
-		fetchDashboard();
+		fetchActivity();
 	}, []);
 
 	return (
@@ -46,10 +47,12 @@ const AdminActivityPage = () => {
 					<p>{error}</p>
 				</div>
 			)}
-			<ActivityFeed 
-				activities={dashboardData?.recent_activities || []} 
-				loading={loading}
-			/>
+			{!loading && dashboardData && (
+				<ActivityFeed 
+					activities={dashboardData.recent_activities || []} 
+					loading={loading}
+				/>
+			)}
 		</div>
 	);
 };

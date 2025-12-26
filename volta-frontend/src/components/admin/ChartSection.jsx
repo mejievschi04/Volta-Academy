@@ -14,10 +14,22 @@ const ChartSection = ({ data, selectedMetric, onMetricChange, loading }) => {
 		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
 	}, []);
 
+	// Get chart color from CSS variable
+	const getChartColor = () => {
+		if (typeof window !== 'undefined') {
+			const root = document.documentElement;
+			const color = getComputedStyle(root).getPropertyValue('--btn-primary-bg').trim();
+			return color || '#004643'; // Fallback to Cyprus Green
+		}
+		return '#004643';
+	};
+
+	const chartColor = getChartColor();
+
 	const metrics = [
-		{ id: 'enrollments', label: 'Înscrieri', color: '#09A86B' },
-		{ id: 'revenue', label: 'Venituri', color: '#09A86B' },
-		{ id: 'users', label: 'Utilizatori', color: '#09A86B' },
+		{ id: 'enrollments', label: 'Înscrieri', color: chartColor },
+		{ id: 'revenue', label: 'Venituri', color: chartColor },
+		{ id: 'users', label: 'Utilizatori', color: chartColor },
 	];
 
 	const currentMetric = metrics.find(m => m.id === selectedMetric) || metrics[0];
@@ -66,7 +78,7 @@ const ChartSection = ({ data, selectedMetric, onMetricChange, loading }) => {
 								<stop offset="95%" stopColor={currentMetric.color} stopOpacity={0.1}/>
 							</linearGradient>
 						</defs>
-						<CartesianGrid strokeDasharray="3 3" stroke="rgba(105, 110, 121, 0.2)" />
+						<CartesianGrid strokeDasharray="3 3" stroke="var(--border-secondary)" />
 						<XAxis 
 							dataKey="date" 
 							stroke="var(--text-tertiary)"

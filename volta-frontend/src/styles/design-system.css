@@ -1,120 +1,120 @@
 /* ============================================
-   VOLTA ACADEMY - MODERN DESIGN SYSTEM
-   Premium, Enterprise-Ready, Professional
+   FORMELY - TWO-COLOR DESIGN SYSTEM
+   Cyprus Green (#004643) & Cloud White (#FAFAFA)
+   Perfect Light/Dark Inversion
    ============================================ */
 
 /* ============================================
-   DESIGN TOKENS - Modern Color System
+   COLOR DEFINITIONS
    ============================================ */
 :root {
-	/* ============================================
-	   PRIMARY COLORS - Calm & Confident
-	   ============================================ */
-	/* Indigo/Blue Primary - Calm but confident */
-	--color-primary-50: #eef2ff;
-	--color-primary-100: #e0e7ff;
-	--color-primary-200: #c7d2fe;
-	--color-primary-300: #a5b4fc;
-	--color-primary-400: #818cf8;
-	--color-primary-500: #6366f1; /* Main Primary - Indigo */
-	--color-primary-600: #4f46e5;
-	--color-primary-700: #4338ca;
-	--color-primary-800: #3730a3;
-	--color-primary-900: #312e81;
-	--color-primary-950: #1e1b4b;
+	/* Primary Colors - ONLY TWO COLORS */
+	--color-cyprus-green: #004643;
+	--color-cloud-white: #FAFAFA;
 
-	/* RGB values for rgba() usage */
-	--color-primary-500-rgb: 99, 102, 241;
+	/* RGB values for rgba() usage (if needed, but we avoid opacity) */
+	--color-cyprus-green-rgb: 0, 70, 67;
+	--color-cloud-white-rgb: 250, 250, 250;
 
 	/* ============================================
-	   NEUTRAL COLORS - Light & Dark
+	   LIGHT THEME
 	   ============================================ */
-	--color-neutral-0: #ffffff;
-	--color-neutral-50: #f9fafb;
-	--color-neutral-100: #f3f4f6;
-	--color-neutral-200: #e5e7eb;
-	--color-neutral-300: #d1d5db;
-	--color-neutral-400: #9ca3af;
-	--color-neutral-500: #6b7280;
-	--color-neutral-600: #4b5563;
-	--color-neutral-700: #374151;
-	--color-neutral-800: #1f2937;
-	--color-neutral-900: #111827;
-	--color-neutral-950: #030712;
+	/* Backgrounds */
+	--bg-primary: var(--color-cloud-white);
+	--bg-secondary: var(--color-cloud-white);
+	--bg-tertiary: var(--color-cloud-white);
+	--bg-elevated: var(--color-cloud-white);
+	--bg-surface: var(--color-cloud-white);
+	--bg-overlay: var(--color-cyprus-green);
 
-	/* RGB values for neutral */
-	--color-neutral-900-rgb: 17, 24, 39;
-	--color-neutral-100-rgb: 243, 244, 246;
+	/* Text */
+	--text-primary: var(--color-cyprus-green);
+	--text-secondary: var(--color-cyprus-green);
+	--text-tertiary: var(--color-cyprus-green);
+	--text-disabled: var(--color-cyprus-green);
+	--text-inverse: var(--color-cloud-white);
+	--text-link: var(--color-cyprus-green);
+	--text-link-hover: var(--color-cyprus-green);
 
-	/* ============================================
-	   SEMANTIC COLORS - Muted & Accessible
-	   ============================================ */
-	/* Success - Muted Green */
-	--color-success-50: #f0fdf4;
-	--color-success-100: #dcfce7;
-	--color-success-500: #22c55e;
-	--color-success-600: #16a34a;
-	--color-success-700: #15803d;
-	--color-success: var(--color-success-600);
+	/* Borders */
+	--border-primary: var(--color-cyprus-green);
+	--border-secondary: var(--color-cyprus-green);
+	--border-accent: var(--color-cyprus-green);
+	--border-focus: var(--color-cyprus-green);
+	--border-hover: var(--color-cyprus-green);
+	--border-error: var(--color-cyprus-green);
 
-	/* Error - Soft Red */
-	--color-error-50: #fef2f2;
-	--color-error-100: #fee2e2;
-	--color-error-500: #ef4444;
-	--color-error-600: #dc2626;
-	--color-error-700: #b91c1c;
-	--color-error: var(--color-error-600);
+	/* Buttons - Light Theme */
+	--btn-primary-bg: var(--color-cyprus-green);
+	--btn-primary-text: var(--color-cloud-white);
+	--btn-primary-border: var(--color-cyprus-green);
+	--btn-secondary-bg: var(--color-cloud-white);
+	--btn-secondary-text: var(--color-cyprus-green);
+	--btn-secondary-border: var(--color-cyprus-green);
 
-	/* Warning - Warm Amber */
-	--color-warning-50: #fffbeb;
-	--color-warning-100: #fef3c7;
-	--color-warning-500: #f59e0b;
-	--color-warning-600: #d97706;
-	--color-warning-700: #b45309;
-	--color-warning: var(--color-warning-600);
+	/* Legacy support (mapped to new colors) */
+	--color-dark: var(--color-cyprus-green);
+	--color-light: var(--color-cloud-white);
+	--color-dark-rgb: var(--color-cyprus-green-rgb);
+	--color-light-rgb: var(--color-cloud-white-rgb);
+	--color-primary-500: var(--color-cyprus-green);
+	--color-primary-600: var(--color-cyprus-green);
+	--color-primary-400: var(--color-cyprus-green);
+	--color-primary-700: var(--color-cyprus-green);
+}
 
-	/* Info - Desaturated Blue */
-	--color-info-50: #eff6ff;
-	--color-info-100: #dbeafe;
-	--color-info-500: #3b82f6;
-	--color-info-600: #2563eb;
-	--color-info-700: #1d4ed8;
-	--color-info: var(--color-info-600);
+/* ============================================
+   DARK THEME - PERFECT INVERSION
+   ============================================ */
+[data-theme="dark"] {
+	/* Backgrounds - Inverted */
+	--bg-primary: var(--color-cyprus-green);
+	--bg-secondary: var(--color-cyprus-green);
+	--bg-tertiary: var(--color-cyprus-green);
+	--bg-elevated: var(--color-cyprus-green);
+	--bg-surface: var(--color-cyprus-green);
+	--bg-overlay: var(--color-cloud-white);
 
-	/* ============================================
-	   BACKGROUND COLORS
-	   ============================================ */
-	--bg-primary: var(--color-neutral-50); /* Off-white / very light gray */
-	--bg-secondary: var(--color-neutral-100);
-	--bg-tertiary: var(--color-neutral-200);
-	--bg-elevated: var(--color-neutral-0); /* Cards, panels - slightly darker than bg */
-	--bg-overlay: rgba(0, 0, 0, 0.5);
-	--bg-surface: var(--color-neutral-0);
+	/* Text - Inverted */
+	--text-primary: var(--color-cloud-white);
+	--text-secondary: var(--color-cloud-white);
+	--text-tertiary: var(--color-cloud-white);
+	--text-disabled: var(--color-cloud-white);
+	--text-inverse: var(--color-cyprus-green);
+	--text-link: var(--color-cloud-white);
+	--text-link-hover: var(--color-cloud-white);
 
-	/* ============================================
-	   TEXT COLORS
-	   ============================================ */
-	--text-primary: var(--color-neutral-900); /* Dark neutral */
-	--text-secondary: var(--color-neutral-600); /* Muted gray */
-	--text-tertiary: var(--color-neutral-500);
-	--text-disabled: var(--color-neutral-400);
-	--text-inverse: var(--color-neutral-0); /* Text on dark background */
-	--text-link: var(--color-primary-600);
-	--text-link-hover: var(--color-primary-700);
+	/* Borders - Inverted */
+	--border-primary: var(--color-cloud-white);
+	--border-secondary: var(--color-cloud-white);
+	--border-accent: var(--color-cloud-white);
+	--border-focus: var(--color-cloud-white);
+	--border-hover: var(--color-cloud-white);
+	--border-error: var(--color-cloud-white);
 
-	/* ============================================
-	   BORDER COLORS
-	   ============================================ */
-	--border-primary: var(--color-neutral-200);
-	--border-secondary: var(--color-neutral-300);
-	--border-accent: var(--color-primary-500);
-	--border-focus: var(--color-primary-500);
-	--border-hover: var(--color-neutral-300);
-	--border-error: var(--color-error-500);
+	/* Buttons - Dark Theme (Inverted) */
+	--btn-primary-bg: var(--color-cloud-white);
+	--btn-primary-text: var(--color-cyprus-green);
+	--btn-primary-border: var(--color-cloud-white);
+	--btn-secondary-bg: var(--color-cyprus-green);
+	--btn-secondary-text: var(--color-cloud-white);
+	--btn-secondary-border: var(--color-cloud-white);
 
-	/* ============================================
-	   SPACING SYSTEM - 8px Base
-	   ============================================ */
+	/* Legacy support (mapped to new colors) */
+	--color-dark: var(--color-cloud-white);
+	--color-light: var(--color-cyprus-green);
+	--color-dark-rgb: var(--color-cloud-white-rgb);
+	--color-light-rgb: var(--color-cyprus-green-rgb);
+	--color-primary-500: var(--color-cloud-white);
+	--color-primary-600: var(--color-cloud-white);
+	--color-primary-400: var(--color-cloud-white);
+	--color-primary-700: var(--color-cloud-white);
+}
+
+/* ============================================
+   SPACING SYSTEM - 8px Base
+   ============================================ */
+:root {
 	--space-0: 0;
 	--space-1: 0.25rem;   /* 4px */
 	--space-2: 0.5rem;     /* 8px */
@@ -129,14 +129,16 @@
 	--space-20: 5rem;     /* 80px */
 	--space-24: 6rem;     /* 96px */
 	--space-32: 8rem;     /* 128px */
+}
 
-	/* ============================================
-	   TYPOGRAPHY - Inter / SF-like
-	   ============================================ */
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+:root {
 	--font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 	--font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
 
-	/* Font Sizes - Clear Scale */
+	/* Font Sizes */
 	--font-size-xs: 0.75rem;     /* 12px */
 	--font-size-sm: 0.875rem;    /* 14px */
 	--font-size-base: 1rem;      /* 16px */
@@ -148,22 +150,24 @@
 	--font-size-5xl: 3rem;        /* 48px */
 	--font-size-6xl: 3.75rem;     /* 60px */
 
-	/* Font Weights - Avoid Heavy */
+	/* Font Weights */
 	--font-weight-light: 300;
 	--font-weight-normal: 400;
 	--font-weight-medium: 500;
 	--font-weight-semibold: 600;
 	--font-weight-bold: 700;
-	/* Avoid: 800, 900 (too heavy) */
+	--font-weight-extrabold: 800;
 
 	/* Line Heights */
 	--line-height-tight: 1.25;
 	--line-height-normal: 1.5;
 	--line-height-relaxed: 1.75;
+}
 
-	/* ============================================
-	   BORDER RADIUS - Medium (8-12px)
-	   ============================================ */
+/* ============================================
+   BORDER RADIUS
+   ============================================ */
+:root {
 	--radius-none: 0;
 	--radius-sm: 0.375rem;   /* 6px */
 	--radius-md: 0.5rem;     /* 8px */
@@ -171,33 +175,51 @@
 	--radius-xl: 1rem;       /* 16px */
 	--radius-2xl: 1.5rem;    /* 24px */
 	--radius-full: 9999px;
+}
 
-	/* ============================================
-	   SHADOWS - Soft & Realistic
-	   ============================================ */
-	--shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-	--shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-	--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-	--shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+/* ============================================
+   SHADOWS - Using only the two colors
+   ============================================ */
+:root {
+	/* Light theme shadows - using Cyprus Green */
+	--shadow-xs: 0 1px 2px 0 var(--color-cyprus-green);
+	--shadow-sm: 0 1px 3px 0 var(--color-cyprus-green), 0 1px 2px -1px var(--color-cyprus-green);
+	--shadow-md: 0 4px 6px -1px var(--color-cyprus-green), 0 2px 4px -2px var(--color-cyprus-green);
+	--shadow-lg: 0 10px 15px -3px var(--color-cyprus-green), 0 4px 6px -4px var(--color-cyprus-green);
+	--shadow-xl: 0 20px 25px -5px var(--color-cyprus-green), 0 8px 10px -6px var(--color-cyprus-green);
+	--shadow-2xl: 0 25px 50px -12px var(--color-cyprus-green);
 	--shadow-card: var(--shadow-md);
 	--shadow-elevated: var(--shadow-lg);
+	--shadow-focus: 0 0 0 3px var(--color-cyprus-green);
+}
 
-	/* Focus Shadows */
-	--shadow-focus: 0 0 0 3px rgba(var(--color-primary-500-rgb), 0.1);
+[data-theme="dark"] {
+	/* Dark theme shadows - using Cloud White */
+	--shadow-xs: 0 1px 2px 0 var(--color-cloud-white);
+	--shadow-sm: 0 1px 3px 0 var(--color-cloud-white), 0 1px 2px -1px var(--color-cloud-white);
+	--shadow-md: 0 4px 6px -1px var(--color-cloud-white), 0 2px 4px -2px var(--color-cloud-white);
+	--shadow-lg: 0 10px 15px -3px var(--color-cloud-white), 0 4px 6px -4px var(--color-cloud-white);
+	--shadow-xl: 0 20px 25px -5px var(--color-cloud-white), 0 8px 10px -6px var(--color-cloud-white);
+	--shadow-2xl: 0 25px 50px -12px var(--color-cloud-white);
+	--shadow-card: var(--shadow-md);
+	--shadow-elevated: var(--shadow-lg);
+	--shadow-focus: 0 0 0 3px var(--color-cloud-white);
+}
 
-	/* ============================================
-	   TRANSITIONS - Smooth Micro-interactions
-	   ============================================ */
+/* ============================================
+   TRANSITIONS
+   ============================================ */
+:root {
 	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-	/* ============================================
-	   Z-INDEX SCALE
-	   ============================================ */
+/* ============================================
+   Z-INDEX SCALE
+   ============================================ */
+:root {
 	--z-base: 0;
 	--z-dropdown: 1000;
 	--z-sticky: 1020;
@@ -208,43 +230,6 @@
 	--z-tooltip: 1070;
 	--z-toast: 1080;
 	--z-command-palette: 1090;
-
-	/* ============================================
-	   LEGACY SUPPORT (Backward Compatibility)
-	   ============================================ */
-	--color-dark: var(--color-neutral-900);
-	--color-light: var(--color-neutral-0);
-	--color-dark-rgb: var(--color-neutral-900-rgb);
-	--color-light-rgb: var(--color-neutral-100-rgb);
-	--color-primary-500: var(--color-primary-500);
-	--color-primary-600: var(--color-primary-600);
-}
-
-/* ============================================
-   DARK MODE - Deep Neutrals
-   ============================================ */
-[data-theme="dark"] {
-	--bg-primary: var(--color-neutral-950);
-	--bg-secondary: var(--color-neutral-900);
-	--bg-tertiary: var(--color-neutral-800);
-	--bg-elevated: var(--color-neutral-900);
-	--bg-surface: var(--color-neutral-800);
-
-	--text-primary: var(--color-neutral-50);
-	--text-secondary: var(--color-neutral-400);
-	--text-tertiary: var(--color-neutral-500);
-	--text-disabled: var(--color-neutral-600);
-
-	--border-primary: var(--color-neutral-800);
-	--border-secondary: var(--color-neutral-700);
-	--border-hover: var(--color-neutral-700);
-
-	--shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-	--shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
-	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
-	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-	--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-	--shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 /* ============================================
@@ -320,7 +305,7 @@ h6 {
 
 p {
 	margin: 0;
-	color: var(--text-secondary);
+	color: var(--text-primary);
 	line-height: var(--line-height-relaxed);
 }
 
@@ -335,7 +320,7 @@ a:hover {
 }
 
 /* ============================================
-   ANIMATIONS - Smooth Micro-interactions
+   ANIMATIONS
    ============================================ */
 @keyframes fadeIn {
 	from {
@@ -420,32 +405,20 @@ a:hover {
    LOADING SKELETONS
    ============================================ */
 .skeleton {
-	background: linear-gradient(
-		90deg,
-		var(--color-neutral-200) 0%,
-		var(--color-neutral-100) 50%,
-		var(--color-neutral-200) 100%
-	);
-	background-size: 200% 100%;
-	animation: shimmer 1.5s ease-in-out infinite;
+	background: var(--color-cyprus-green);
 	border-radius: var(--radius-md);
+	animation: shimmer 1.5s ease-in-out infinite;
 }
 
 [data-theme="dark"] .skeleton {
-	background: linear-gradient(
-		90deg,
-		var(--color-neutral-800) 0%,
-		var(--color-neutral-700) 50%,
-		var(--color-neutral-800) 100%
-	);
-	background-size: 200% 100%;
+	background: var(--color-cloud-white);
 }
 
 /* ============================================
    FOCUS STYLES - Accessibility
    ============================================ */
 *:focus-visible {
-	outline: 2px solid var(--color-primary-500);
+	outline: 2px solid var(--border-focus);
 	outline-offset: 2px;
 	border-radius: var(--radius-sm);
 }
@@ -463,18 +436,10 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: var(--color-neutral-300);
+	background: var(--border-primary);
 	border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--color-neutral-400);
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-	background: var(--color-neutral-700);
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-	background: var(--color-neutral-600);
+	background: var(--border-hover);
 }

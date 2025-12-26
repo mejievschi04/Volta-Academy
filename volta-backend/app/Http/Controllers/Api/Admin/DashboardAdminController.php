@@ -8,6 +8,8 @@ use App\Models\Module;
 use App\Models\User;
 use App\Models\Event;
 use App\Models\Team;
+use App\Models\Test;
+use App\Models\TestResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -362,44 +364,54 @@ class DashboardAdminController extends Controller
     {
         $activities = [];
 
-        // Recent enrollments
-        $recentEnrollments = DB::table('course_user')
-            ->where('enrolled', true)
-            ->orderBy('enrolled_at', 'desc')
-            ->take(10)
-            ->get();
-
-        foreach ($recentEnrollments as $enrollment) {
-            $course = Course::find($enrollment->course_id);
-            $user = User::find($enrollment->user_id);
-            
-            if ($course && $user) {
-                $activities[] = [
-                    'id' => 'enrollment_' . $enrollment->id,
-                    'type' => 'enrollment',
-                    'description' => "{$user->name} s-a înscris la cursul \"{$course->title}\"",
-                    'created_at' => $enrollment->enrolled_at,
-                ];
-            }
-        }
-
-        // Recent completions
+        // Recent course completions
         $recentCompletions = DB::table('course_user')
             ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
-            ->take(10)
+            ->take(15)
             ->get();
 
         foreach ($recentCompletions as $completion) {
             $course = Course::find($completion->course_id);
             $user = User::find($completion->user_id);
             
-            if ($course && $user) {
+            if ($course && $user && $completion->completed_at) {
                 $activities[] = [
                     'id' => 'completion_' . $completion->id,
                     'type' => 'completion',
                     'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
-                    'created_at' => $completion->completed_at,
+                    'created_at' => is_string($completion->completed_at) 
+                        ? $completion->completed_at 
+                        : $completion->completed_at->format('Y-m-d H:i:s'),
+                ];
+            }
+        }
+
+        // Recent test completions
+        $recentTestResults = TestResult::with(['test', 'user'])
+            ->where(function($query) {
+                $query->whereNotNull('completed_at')
+                      ->orWhereNotNull('created_at');
+            })
+            ->orderByRaw('COALESCE(completed_at, created_at) DESC')
+            ->take(15)
+            ->get();
+
+        foreach ($recentTestResults as $testResult) {
+            if ($testResult->test && $testResult->user) {
+                $passedText = $testResult->passed ? 'a trecut' : 'a eșuat';
+                $scoreText = '';
+                if ($testResult->max_score > 0 && $testResult->score !== null) {
+                    $scoreText = " ({$testResult->score}/{$testResult->max_score})";
+                }
+                
+                $activityDate = $testResult->completed_at ?? $testResult->created_at;
+                
+                $activities[] = [
+                    'id' => 'test_' . $testResult->id,
+                    'type' => 'exam_submitted',
+                    'description' => "{$testResult->user->name} {$passedText} testul \"{$testResult->test->title}\"{$scoreText}",
+                    'created_at' => $activityDate ? $activityDate->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s'),
                 ];
             }
         }
@@ -409,7 +421,7 @@ class DashboardAdminController extends Controller
             return strtotime($b['created_at']) - strtotime($a['created_at']);
         });
 
-        return array_slice($activities, 0, 20);
+        return array_slice($activities, 0, 30);
     }
 
     private function getAlerts()

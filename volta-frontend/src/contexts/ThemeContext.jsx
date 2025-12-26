@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext(null);
 
@@ -11,13 +11,24 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
+	const [theme, setTheme] = useState(() => {
+		// Get theme from localStorage or default to 'light'
+		const savedTheme = localStorage.getItem('volta-theme');
+		return savedTheme === 'dark' ? 'dark' : 'light';
+	});
+
 	useEffect(() => {
-		// Set fixed theme - no switching
-		document.documentElement.setAttribute('data-theme', 'light');
-	}, []);
+		// Apply theme to document
+		document.documentElement.setAttribute('data-theme', theme);
+		localStorage.setItem('volta-theme', theme);
+	}, [theme]);
+
+	const toggleTheme = () => {
+		setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+	};
 
 	return (
-		<ThemeContext.Provider value={{ theme: 'light' }}>
+		<ThemeContext.Provider value={{ theme, toggleTheme }}>
 			{children}
 		</ThemeContext.Provider>
 	);

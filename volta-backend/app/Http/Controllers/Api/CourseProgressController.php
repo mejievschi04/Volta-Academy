@@ -25,69 +25,150 @@ class CourseProgressController extends Controller
      */
     public function getCourseProgress($courseId)
     {
-        $user = Auth::user();
-        $course = Course::findOrFail($courseId);
-
-        // Check if user is enrolled
-        $enrollment = \DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->where('course_id', $courseId)
-            ->where('enrolled', true)
-            ->first();
-
-        // If not enrolled, check if course is free and auto-enroll
-        if (!$enrollment) {
-            // For free courses, auto-enroll the user
-            if ($course->access_type === 'free') {
-                \DB::table('course_user')->updateOrInsert(
-                    [
-                        'user_id' => $user->id,
-                        'course_id' => $courseId,
-                    ],
-                    [
-                        'enrolled' => true,
-                        'enrolled_at' => now(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-            } else {
-                // For paid courses, return 403
+        try {
+            $user = Auth::user();
+            if (!$user) {
                 return response()->json([
-                    'message' => 'Nu ești înscris la acest curs',
-                ], 403);
+                    'message' => 'Utilizator neautentificat',
+                ], 401);
             }
+
+            $course = Course::findOrFail($courseId);
+
+            // Check if user is enrolled
+            $enrollment = \DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->where('enrolled', true)
+                ->first();
+
+            // If not enrolled, check if course is free and auto-enroll
+            if (!$enrollment) {
+                // Get access type from course settings or legacy field
+                $accessType = $course->access_type ?? ($course->settings['access']['type'] ?? 'free');
+                
+                // For free courses, auto-enroll the user
+                if ($accessType === 'free') {
+                    \DB::table('course_user')->updateOrInsert(
+                        [
+                            'user_id' => $user->id,
+                            'course_id' => $courseId,
+                        ],
+                        [
+                            'enrolled' => true,
+                            'enrolled_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+                } else {
+                    // For paid courses, return 403
+                    return response()->json([
+                        'message' => 'Nu ești înscris la acest curs',
+                    ], 403);
+                }
+            }
+
+            // Recalculate progress in real-time
+            try {
+                $this->progressService->calculateCourseProgress($user, $course);
+            } catch (\Exception $e) {
+                \Log::warning('Error calculating course progress', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Get access status (includes progress)
+            try {
+                $accessStatus = $this->progressService->getUserAccessStatus($user, $course);
+            } catch (\Exception $e) {
+                \Log::error('Error getting user access status', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Return minimal access status if service fails
+                $accessStatus = [
+                    'enrolled' => true,
+                    'progress_percentage' => 0,
+                    'can_progress' => false,
+                    'course_complete' => false,
+                ];
+            }
+
+            // Get next incomplete lesson (for resume functionality)
+            try {
+                $nextLesson = $this->progressService->getNextIncompleteLesson($user, $course);
+                $accessStatus['next_lesson'] = $nextLesson ? [
+                    'id' => $nextLesson->id,
+                    'title' => $nextLesson->title ?? '',
+                    'module_id' => $nextLesson->module_id ?? null,
+                ] : null;
+            } catch (\Exception $e) {
+                \Log::warning('Error getting next lesson', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $accessStatus['next_lesson'] = null;
+            }
+
+            // Get next incomplete test (using getNextIncompleteTest instead of getNextIncompleteExam)
+            try {
+                $nextTest = $this->progressService->getNextIncompleteTest($user, $course);
+                $accessStatus['next_exam'] = $nextTest ? [
+                    'id' => $nextTest->id,
+                    'title' => $nextTest->title ?? '',
+                    'module_id' => null, // Tests are linked via CourseTest, not directly to modules
+                ] : null;
+            } catch (\Exception $e) {
+                \Log::warning('Error getting next test', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $accessStatus['next_exam'] = null;
+            }
+
+            // Check if user can progress (all required exams passed)
+            try {
+                $accessStatus['can_progress'] = $this->progressService->canUserProgress($user, $course);
+            } catch (\Exception $e) {
+                \Log::warning('Error checking if user can progress', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $accessStatus['can_progress'] = false;
+            }
+
+            // Check if course is complete
+            try {
+                $accessStatus['course_complete'] = $this->progressService->isCourseComplete($user, $course);
+            } catch (\Exception $e) {
+                \Log::warning('Error checking if course is complete', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $accessStatus['course_complete'] = false;
+            }
+
+            return response()->json($accessStatus);
+        } catch (\Exception $e) {
+            \Log::error('Error in CourseProgressController::getCourseProgress', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Nu s-a putut încărca progresul cursului',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        // Recalculate progress in real-time
-        $this->progressService->calculateCourseProgress($user, $course);
-
-        // Get access status (includes progress)
-        $accessStatus = $this->progressService->getUserAccessStatus($user, $course);
-
-        // Get next incomplete lesson (for resume functionality)
-        $nextLesson = $this->progressService->getNextIncompleteLesson($user, $course);
-        $accessStatus['next_lesson'] = $nextLesson ? [
-            'id' => $nextLesson->id,
-            'title' => $nextLesson->title,
-            'module_id' => $nextLesson->module_id,
-        ] : null;
-
-        // Get next incomplete exam
-        $nextExam = $this->progressService->getNextIncompleteExam($user, $course);
-        $accessStatus['next_exam'] = $nextExam ? [
-            'id' => $nextExam->id,
-            'title' => $nextExam->title,
-            'module_id' => $nextExam->module_id,
-        ] : null;
-
-        // Check if user can progress (all required exams passed)
-        $accessStatus['can_progress'] = $this->progressService->canUserProgress($user, $course);
-
-        // Check if course is complete
-        $accessStatus['course_complete'] = $this->progressService->isCourseComplete($user, $course);
-
-        return response()->json($accessStatus);
     }
 
     /**

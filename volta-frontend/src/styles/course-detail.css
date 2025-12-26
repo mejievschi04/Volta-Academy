@@ -63,8 +63,8 @@
 }
 
 .va-course-sidebar-back:hover {
-	color: var(--color-dark);
-	text-shadow: 0 0 8px rgba(var(--color-dark-rgb), 0.5);
+	color: var(--text-primary);
+}
 }
 
 .va-course-sidebar-title {

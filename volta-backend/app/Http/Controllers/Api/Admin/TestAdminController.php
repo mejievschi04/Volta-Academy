@@ -136,6 +136,13 @@ class TestAdminController extends Controller
             'allow_review' => 'nullable|boolean',
             'question_source' => 'nullable|in:direct,bank',
             'question_set_id' => 'nullable|exists:question_banks,id',
+            'questions' => 'nullable|array',
+            'questions.*.type' => 'required|string',
+            'questions.*.content' => 'required|string',
+            'questions.*.answers' => 'required|array',
+            'questions.*.points' => 'nullable|integer|min:1',
+            'questions.*.order' => 'nullable|integer|min:0',
+            'questions.*.explanation' => 'nullable|string',
         ]);
 
         $test = $this->testBuilderService->updateTest($test, $validated);

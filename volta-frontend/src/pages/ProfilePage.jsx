@@ -70,28 +70,12 @@ const ProfilePage = () => {
 				<div style={{ marginBottom: '2rem' }}>
 					<button
 						onClick={() => navigate('/admin/users')}
+						className="va-btn-secondary"
 						style={{
 							display: 'inline-flex',
 							alignItems: 'center',
 							gap: '0.5rem',
 							padding: '0.75rem 1.5rem',
-							background: 'rgba(var(--color-light-rgb), 0.05)',
-							border: '1px solid rgba(var(--color-dark-rgb), 0.2)',
-							borderRadius: '12px',
-							color: 'var(--color-light)',
-							fontWeight: 600,
-							cursor: 'pointer',
-							transition: 'all 0.3s ease',
-						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.background = 'rgba(var(--color-dark-rgb), 0.1)';
-							e.currentTarget.style.borderColor = 'rgba(var(--color-dark-rgb), 0.4)';
-							e.currentTarget.style.transform = 'translateX(-4px)';
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.background = 'rgba(var(--color-light-rgb), 0.05)';
-							e.currentTarget.style.borderColor = 'rgba(var(--color-dark-rgb), 0.2)';
-							e.currentTarget.style.transform = 'translateX(0)';
 						}}
 					>
 						<span>←</span>
@@ -116,8 +100,8 @@ const ProfilePage = () => {
 						<h1 className="va-profile-name">{profileData.user.name}</h1>
 						<p className="va-profile-role">
 							{isViewingOtherUser 
-								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator VoltaAcademy')
-								: 'Student VoltaAcademy'
+								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator formely')
+								: 'Student formely'
 							}
 						</p>
 						{isViewingOtherUser && (

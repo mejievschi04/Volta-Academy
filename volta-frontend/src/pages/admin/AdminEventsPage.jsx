@@ -1003,146 +1003,44 @@ const AdminEventsPage = () => {
 
 			{showModal && (
 				<div
-					style={{
-						position: 'fixed',
-						top: 0,
-						left: 0,
-						right: 0,
-						bottom: 0,
-						background: 'rgba(0,0,0,0.7)',
-						backdropFilter: 'blur(8px)',
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						zIndex: 1000,
-						padding: '1rem',
-					}}
+					className="admin-event-modal-overlay"
 					onClick={(e) => {
 						if (e.target === e.currentTarget) {
 							setShowModal(false);
 							setErrors({});
 							setTouched({});
+							setCurrentStep(1);
 						}
 					}}
 				>
-					<div
-						className="va-card"
-						style={{ 
-							width: '100%', 
-							maxWidth: '700px', 
-							maxHeight: '90vh', 
-							overflow: 'auto', 
-							position: 'relative',
-							background: 'linear-gradient(145deg, rgba(15,15,20,0.98), rgba(25,25,35,0.98))',
-							backdropFilter: 'blur(20px)',
-							border: '1px solid rgba(255,238,0,0.2)',
-							borderRadius: '24px',
-							boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,238,0,0.1) inset',
-						}}
-					>
-						<div className="va-card-header" style={{ 
-							display: 'flex', 
-							justifyContent: 'space-between', 
-							alignItems: 'center',
-							padding: '2rem 2rem 1rem 2rem',
-							borderBottom: '1px solid rgba(255,238,0,0.1)',
-						}}>
-							<h2 style={{
-								margin: 0,
-								background: 'linear-gradient(135deg, #ffffff, #ffee00)',
-								WebkitBackgroundClip: 'text',
-								WebkitTextFillColor: 'transparent',
-								backgroundClip: 'text',
-								fontSize: '1.75rem',
-								fontWeight: 800,
-								letterSpacing: '-0.02em',
-							}}>
+					<div className="admin-event-modal">
+						<div className="admin-event-modal-header">
+							<h2 className="admin-event-modal-title">
 								{editingEvent ? '✏️ Editează Eveniment' : '➕ Adaugă Eveniment Nou'}
 							</h2>
 							<button
 								type="button"
+								className="admin-event-modal-close"
 								onClick={() => {
 									setShowModal(false);
 									setErrors({});
 									setTouched({});
-								}}
-								style={{
-									background: 'rgba(255,255,255,0.05)',
-									border: '1px solid rgba(255,255,255,0.1)',
-									borderRadius: '10px',
-									color: '#fff',
-									fontSize: '1.5rem',
-									cursor: 'pointer',
-									padding: '0.5rem 0.75rem',
-									lineHeight: 1,
-									transition: 'all 0.3s ease',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.background = 'rgba(255,107,107,0.2)';
-									e.currentTarget.style.borderColor = 'rgba(255,107,107,0.4)';
-									e.currentTarget.style.transform = 'rotate(90deg)';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-									e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-									e.currentTarget.style.transform = 'rotate(0deg)';
 								}}
 								title="Închide"
 							>
 								×
 							</button>
 						</div>
-						<div className="va-card-body" style={{ padding: '2rem' }}>
-							<form onSubmit={handleSubmit} className="va-stack">
-								{/* Progress Indicator */}
-								<div style={{ marginBottom: '2rem' }}>
-									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-										<span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-											Progres completare
-										</span>
-										<span style={{ fontSize: '0.9rem', color: '#ffee00', fontWeight: 700 }}>
-											{completionPercentage()}%
-										</span>
-									</div>
-									<div style={{
-										width: '100%',
-										height: '8px',
-										background: 'rgba(255,255,255,0.1)',
-										borderRadius: '8px',
-										overflow: 'hidden',
-									}}>
-										<div style={{
-											width: `${completionPercentage()}%`,
-											height: '100%',
-											background: 'linear-gradient(90deg, #ffee00, #ffcc00)',
-											borderRadius: '8px',
-											transition: 'width 0.3s ease',
-											boxShadow: '0 0 12px rgba(255,238,0,0.4)',
-										}} />
-									</div>
-								</div>
-
-								{/* Title Field */}
+						<div className="admin-event-modal-body">
+							<form onSubmit={handleSubmit} className="admin-event-form">
 								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
+									<label className="va-form-label">
 										<span>📝</span>
 										<span>Titlu</span>
-										{formData.title && formData.title.trim().length >= 3 && (
-											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
-										)}
 									</label>
 									<input
 										type="text"
-										className="va-form-input"
+										className="va-form-input admin-event-input"
 										value={formData.title}
 										onChange={(e) => {
 											setFormData({ ...formData, title: e.target.value });
@@ -1154,49 +1052,19 @@ const AdminEventsPage = () => {
 										}}
 										placeholder="Ex: Workshop React Advanced"
 										required
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: errors.title
-												? '1px solid rgba(255,107,107,0.5)'
-												: formData.title && formData.title.trim().length >= 3
-												? '1px solid rgba(74, 222, 128, 0.5)'
-												: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											transition: 'all 0.3s ease',
-										}}
 									/>
 									{errors.title && touched.title && (
-										<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-											{errors.title}
-										</div>
-									)}
-									{formData.title && formData.title.trim().length > 0 && formData.title.trim().length < 3 && (
-										<div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
-											💡 Minim 3 caractere necesare ({formData.title.trim().length}/3)
-										</div>
+										<div className="admin-event-error">{errors.title}</div>
 									)}
 								</div>
 
-								{/* Description Field */}
 								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
+									<label className="va-form-label">
 										<span>📄</span>
 										<span>Descriere</span>
-										{formData.description && formData.description.trim().length >= 10 && (
-											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
-										)}
 									</label>
 									<textarea
-										className="va-form-input"
+										className="va-form-input admin-event-input"
 										value={formData.description}
 										onChange={(e) => {
 											setFormData({ ...formData, description: e.target.value });
@@ -1209,169 +1077,39 @@ const AdminEventsPage = () => {
 										placeholder="Descrie evenimentul în detaliu..."
 										required
 										rows={4}
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: errors.description
-												? '1px solid rgba(255,107,107,0.5)'
-												: formData.description && formData.description.trim().length >= 10
-												? '1px solid rgba(74, 222, 128, 0.5)'
-												: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											transition: 'all 0.3s ease',
-											resize: 'vertical',
-											fontFamily: 'inherit',
-										}}
 									/>
 									{errors.description && touched.description && (
-										<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-											{errors.description}
-										</div>
-									)}
-									{formData.description && (
-										<div style={{ 
-											marginTop: '0.5rem', 
-											color: formData.description.trim().length >= 10 ? '#4ade80' : 'rgba(255,255,255,0.6)', 
-											fontSize: '0.85rem' 
-										}}>
-											{formData.description.trim().length >= 10 ? (
-												<span>✓ {formData.description.trim().length} caractere</span>
-											) : (
-												<span>💡 Minim 10 caractere necesare ({formData.description.trim().length}/10)</span>
-											)}
-										</div>
+										<div className="admin-event-error">{errors.description}</div>
 									)}
 								</div>
 
-								{/* Type Field */}
 								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
+									<label className="va-form-label">
 										<span>🏷️</span>
-										<span>Tip Eveniment</span>
-										{formData.type && (
-											<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
-										)}
+										<span>Tip</span>
 									</label>
 									<select
-										className="va-form-input"
+										className="va-form-input admin-event-input"
 										value={formData.type}
 										onChange={(e) => setFormData({ ...formData, type: e.target.value })}
 										required
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: formData.type
-												? '1px solid rgba(74, 222, 128, 0.5)'
-												: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											transition: 'all 0.3s ease',
-											cursor: 'pointer',
-										}}
 									>
-										<option value="live_online" style={{ background: '#1a1a1a', color: '#fff' }}>💻 Live Online</option>
-										<option value="physical" style={{ background: '#1a1a1a', color: '#fff' }}>🏢 Fizic</option>
-										<option value="webinar" style={{ background: '#1a1a1a', color: '#fff' }}>📹 Webinar</option>
-										<option value="workshop" style={{ background: '#1a1a1a', color: '#fff' }}>🔧 Workshop</option>
+										<option value="live_online">💻 Live Online</option>
+										<option value="physical">🏢 Fizic</option>
+										<option value="webinar">📹 Webinar</option>
+										<option value="workshop">🔧 Workshop</option>
 									</select>
 								</div>
 
-								{/* Short Description */}
-								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
-										<span>📋</span>
-										<span>Descriere Scurtă</span>
-									</label>
-									<textarea
-										className="va-form-input"
-										value={formData.short_description}
-										onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
-										placeholder="Descriere scurtă pentru preview..."
-										rows={2}
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											transition: 'all 0.3s ease',
-											resize: 'vertical',
-											fontFamily: 'inherit',
-										}}
-									/>
-								</div>
-
-								{/* Status */}
-								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
-										<span>📊</span>
-										<span>Status</span>
-									</label>
-									<select
-										className="va-form-input"
-										value={formData.status}
-										onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											cursor: 'pointer',
-										}}
-									>
-										<option value="draft" style={{ background: '#1a1a1a', color: '#fff' }}>Draft</option>
-										<option value="published" style={{ background: '#1a1a1a', color: '#fff' }}>Publicat</option>
-										<option value="upcoming" style={{ background: '#1a1a1a', color: '#fff' }}>Viitor</option>
-										<option value="live" style={{ background: '#1a1a1a', color: '#fff' }}>Live</option>
-										<option value="completed" style={{ background: '#1a1a1a', color: '#fff' }}>Finalizat</option>
-										<option value="cancelled" style={{ background: '#1a1a1a', color: '#fff' }}>Anulat</option>
-									</select>
-								</div>
-
-								{/* Start Date and End Date */}
 								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-									{/* Start Date */}
 									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
+										<label className="va-form-label">
 											<span>🕐</span>
-											<span>Data și Ora Început</span>
-											{formData.start_date && (
-												<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
-											)}
+											<span>Data Început</span>
 										</label>
 										<input
 											type="datetime-local"
-											className="va-form-input"
+											className="va-form-input admin-event-input"
 											value={formData.start_date}
 											onChange={(e) => {
 												setFormData({ ...formData, start_date: e.target.value });
@@ -1382,45 +1120,20 @@ const AdminEventsPage = () => {
 												validate();
 											}}
 											required
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: errors.start_date
-													? '1px solid rgba(255,107,107,0.5)'
-													: formData.start_date
-													? '1px solid rgba(74, 222, 128, 0.5)'
-													: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-												transition: 'all 0.3s ease',
-											}}
 										/>
 										{errors.start_date && touched.start_date && (
-											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-												{errors.start_date}
-											</div>
+											<div className="admin-event-error">{errors.start_date}</div>
 										)}
 									</div>
 
-									{/* End Date */}
 									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
+										<label className="va-form-label">
 											<span>🕐</span>
-											<span>Data și Ora Sfârșit</span>
-											{formData.end_date && (
-												<span style={{ color: '#4ade80', fontSize: '1rem' }}>✓</span>
-											)}
+											<span>Data Sfârșit</span>
 										</label>
 										<input
 											type="datetime-local"
-											className="va-form-input"
+											className="va-form-input admin-event-input"
 											value={formData.end_date}
 											onChange={(e) => {
 												setFormData({ ...formData, end_date: e.target.value });
@@ -1431,204 +1144,20 @@ const AdminEventsPage = () => {
 												validate();
 											}}
 											required
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: errors.end_date
-													? '1px solid rgba(255,107,107,0.5)'
-													: formData.end_date
-													? '1px solid rgba(74, 222, 128, 0.5)'
-													: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-												transition: 'all 0.3s ease',
-											}}
 										/>
 										{errors.end_date && touched.end_date && (
-											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-												{errors.end_date}
-											</div>
+											<div className="admin-event-error">{errors.end_date}</div>
 										)}
 									</div>
 								</div>
 
-								{/* Timezone */}
 								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
-										<span>🌍</span>
-										<span>Timezone</span>
-									</label>
-									<select
-										className="va-form-input"
-										value={formData.timezone}
-										onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											cursor: 'pointer',
-										}}
-									>
-										<option value="Europe/Bucharest" style={{ background: '#1a1a1a', color: '#fff' }}>Europe/Bucharest (RO)</option>
-										<option value="Europe/Chisinau" style={{ background: '#1a1a1a', color: '#fff' }}>Europe/Chisinau (MD)</option>
-										<option value="UTC" style={{ background: '#1a1a1a', color: '#fff' }}>UTC</option>
-									</select>
-								</div>
-
-								{/* Location and Live Link */}
-								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>📍</span>
-											<span>Locație (Fizic)</span>
-										</label>
-										<input
-											type="text"
-											className="va-form-input"
-											value={formData.location}
-											onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-											placeholder="Ex: Strada Exemplu nr. 123, București"
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-											}}
-										/>
-									</div>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>🔗</span>
-											<span>Link Live (Online)</span>
-										</label>
-										<input
-											type="url"
-											className="va-form-input"
-											value={formData.live_link}
-											onChange={(e) => setFormData({ ...formData, live_link: e.target.value })}
-											placeholder="https://..."
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-											}}
-										/>
-									</div>
-								</div>
-
-								{/* Max Capacity and Instructor */}
-								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>👥</span>
-											<span>Capacitate Maximă</span>
-										</label>
-										<input
-											type="number"
-											className="va-form-input"
-											value={formData.max_capacity || ''}
-											onChange={(e) => setFormData({ ...formData, max_capacity: e.target.value ? parseInt(e.target.value) : null })}
-											placeholder="Lăsat gol = nelimitat"
-											min="1"
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: errors.max_capacity
-													? '1px solid rgba(255,107,107,0.5)'
-													: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-											}}
-										/>
-										{errors.max_capacity && (
-											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-												{errors.max_capacity}
-											</div>
-										)}
-									</div>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>👤</span>
-											<span>Instructor/Speaker</span>
-										</label>
-										<select
-											className="va-form-input"
-											value={formData.instructor_id || ''}
-											onChange={(e) => setFormData({ ...formData, instructor_id: e.target.value ? parseInt(e.target.value) : null })}
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-												cursor: 'pointer',
-											}}
-										>
-											<option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Selectează instructor</option>
-											{instructors.map(instructor => (
-												<option key={instructor.id} value={instructor.id} style={{ background: '#1a1a1a', color: '#fff' }}>
-													{instructor.name}
-												</option>
-											))}
-										</select>
-									</div>
-								</div>
-
-								{/* Access Type */}
-								<div className="va-form-group">
-									<label className="va-form-label" style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										marginBottom: '0.75rem',
-										fontWeight: 600,
-									}}>
+									<label className="va-form-label">
 										<span>💰</span>
 										<span>Tip Acces</span>
 									</label>
 									<select
-										className="va-form-input"
+										className="va-form-input admin-event-input"
 										value={formData.access_type}
 										onChange={(e) => {
 											setFormData({ 
@@ -1643,111 +1172,61 @@ const AdminEventsPage = () => {
 											setTouched({ ...touched, access_type: true });
 											validate();
 										}}
-										style={{
-											padding: '1rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: '1px solid rgba(255,238,0,0.2)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontSize: '1rem',
-											cursor: 'pointer',
-										}}
 									>
-										<option value="free" style={{ background: '#1a1a1a', color: '#fff' }}>Gratuit</option>
-										<option value="paid" style={{ background: '#1a1a1a', color: '#fff' }}>Plătit</option>
-										<option value="course_included" style={{ background: '#1a1a1a', color: '#fff' }}>Inclus în curs</option>
+										<option value="free">Gratuit</option>
+										<option value="paid">Plătit</option>
+										<option value="course_included">Inclus în curs</option>
 									</select>
 								</div>
 
-								{/* Price (if paid) */}
 								{formData.access_type === 'paid' && (
 									<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
 										<div className="va-form-group">
-											<label className="va-form-label" style={{
-												display: 'flex',
-												alignItems: 'center',
-												gap: '0.5rem',
-												marginBottom: '0.75rem',
-												fontWeight: 600,
-											}}>
+											<label className="va-form-label">
 												<span>💵</span>
 												<span>Preț</span>
 											</label>
 											<input
 												type="number"
-												className="va-form-input"
+												className="va-form-input admin-event-input"
 												value={formData.price || ''}
 												onChange={(e) => setFormData({ ...formData, price: e.target.value ? parseFloat(e.target.value) : null })}
 												placeholder="0.00"
 												min="0"
 												step="0.01"
 												required={formData.access_type === 'paid'}
-												style={{
-													padding: '1rem',
-													background: 'rgba(255,255,255,0.05)',
-													border: errors.price
-														? '1px solid rgba(255,107,107,0.5)'
-														: '1px solid rgba(255,238,0,0.2)',
-													borderRadius: '12px',
-													color: '#fff',
-													fontSize: '1rem',
-												}}
 											/>
 											{errors.price && (
-												<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-													{errors.price}
-												</div>
+												<div className="admin-event-error">{errors.price}</div>
 											)}
 										</div>
 										<div className="va-form-group">
-											<label className="va-form-label" style={{
-												display: 'flex',
-												alignItems: 'center',
-												gap: '0.5rem',
-												marginBottom: '0.75rem',
-												fontWeight: 600,
-											}}>
+											<label className="va-form-label">
 												<span>💱</span>
 												<span>Valută</span>
 											</label>
 											<select
-												className="va-form-input"
+												className="va-form-input admin-event-input"
 												value={formData.currency}
 												onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-												style={{
-													padding: '1rem',
-													background: 'rgba(255,255,255,0.05)',
-													border: '1px solid rgba(255,238,0,0.2)',
-													borderRadius: '12px',
-													color: '#fff',
-													fontSize: '1rem',
-													cursor: 'pointer',
-												}}
 											>
-												<option value="MDL" style={{ background: '#1a1a1a', color: '#fff' }}>MDL</option>
-												<option value="RON" style={{ background: '#1a1a1a', color: '#fff' }}>RON</option>
-												<option value="USD" style={{ background: '#1a1a1a', color: '#fff' }}>USD</option>
-												<option value="EUR" style={{ background: '#1a1a1a', color: '#fff' }}>EUR</option>
+												<option value="MDL">MDL</option>
+												<option value="RON">RON</option>
+												<option value="USD">USD</option>
+												<option value="EUR">EUR</option>
 											</select>
 										</div>
 									</div>
 								)}
 
-								{/* Course (if course_included) */}
 								{formData.access_type === 'course_included' && (
 									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
+										<label className="va-form-label">
 											<span>📚</span>
 											<span>Curs Asociat</span>
 										</label>
 										<select
-											className="va-form-input"
+											className="va-form-input admin-event-input"
 											value={formData.course_id || ''}
 											onChange={(e) => {
 												setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : null });
@@ -1758,176 +1237,38 @@ const AdminEventsPage = () => {
 												validate();
 											}}
 											required={formData.access_type === 'course_included'}
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: errors.course_id
-													? '1px solid rgba(255,107,107,0.5)'
-													: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-												cursor: 'pointer',
-											}}
 										>
-											<option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Selectează curs</option>
+											<option value="">Selectează curs</option>
 											{courses.map(course => (
-												<option key={course.id} value={course.id} style={{ background: '#1a1a1a', color: '#fff' }}>
+												<option key={course.id} value={course.id}>
 													{course.title}
 												</option>
 											))}
 										</select>
 										{errors.course_id && (
-											<div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
-												{errors.course_id}
-											</div>
+											<div className="admin-event-error">{errors.course_id}</div>
 										)}
 									</div>
 								)}
 
-								{/* Replay URL and Thumbnail */}
-								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>🎬</span>
-											<span>URL Replay</span>
-										</label>
-										<input
-											type="url"
-											className="va-form-input"
-											value={formData.replay_url}
-											onChange={(e) => setFormData({ ...formData, replay_url: e.target.value })}
-											placeholder="https://..."
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-											}}
-										/>
-									</div>
-									<div className="va-form-group">
-										<label className="va-form-label" style={{
-											display: 'flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-											marginBottom: '0.75rem',
-											fontWeight: 600,
-										}}>
-											<span>🖼️</span>
-											<span>Thumbnail URL</span>
-										</label>
-										<input
-											type="url"
-											className="va-form-input"
-											value={formData.thumbnail}
-											onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-											placeholder="https://..."
-											style={{
-												padding: '1rem',
-												background: 'rgba(255,255,255,0.05)',
-												border: '1px solid rgba(255,238,0,0.2)',
-												borderRadius: '12px',
-												color: '#fff',
-												fontSize: '1rem',
-											}}
-										/>
-									</div>
-								</div>
-
-								<div style={{ 
-									display: 'flex', 
-									gap: '1rem', 
-									justifyContent: 'flex-end', 
-									marginTop: '2rem',
-									paddingTop: '2rem',
-									borderTop: '1px solid rgba(255,238,0,0.1)',
-								}}>
+								<div className="admin-event-form-actions">
 									<button
 										type="button"
+										className="admin-event-btn-secondary"
 										onClick={() => {
 											setShowModal(false);
 											setErrors({});
 											setTouched({});
-										}}
-										style={{
-											padding: '0.875rem 2rem',
-											background: 'rgba(255,255,255,0.05)',
-											border: '1px solid rgba(255,255,255,0.15)',
-											borderRadius: '12px',
-											color: '#fff',
-											fontWeight: 600,
-											transition: 'all 0.3s ease',
-										}}
-										onMouseEnter={(e) => {
-											e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-											e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-										}}
-										onMouseLeave={(e) => {
-											e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-											e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
 										}}
 									>
 										Anulează
 									</button>
 									<button 
 										type="submit" 
+										className="admin-event-btn-primary"
 										disabled={completionPercentage() < 100}
-										style={{
-											padding: '0.875rem 2rem',
-											background: completionPercentage() < 100
-												? 'rgba(255,255,255,0.05)'
-												: 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))',
-											backdropFilter: 'blur(10px)',
-											border: completionPercentage() < 100
-												? '1px solid rgba(255,255,255,0.1)'
-												: '1px solid rgba(255,238,0,0.4)',
-											borderRadius: '12px',
-											color: completionPercentage() < 100 ? 'rgba(255,255,255,0.5)' : '#ffee00',
-											fontWeight: 700,
-											boxShadow: completionPercentage() < 100 ? 'none' : '0 4px 16px rgba(255,238,0,0.2)',
-											transition: 'all 0.3s ease',
-											cursor: completionPercentage() < 100 ? 'not-allowed' : 'pointer',
-											display: 'inline-flex',
-											alignItems: 'center',
-											gap: '0.5rem',
-										}}
-										onMouseEnter={(e) => {
-											if (completionPercentage() >= 100) {
-												e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.3), rgba(255,238,0,0.2))';
-												e.currentTarget.style.borderColor = 'rgba(255,238,0,0.5)';
-												e.currentTarget.style.transform = 'translateY(-2px)';
-												e.currentTarget.style.boxShadow = '0 6px 24px rgba(255,238,0,0.3)';
-											}
-										}}
-										onMouseLeave={(e) => {
-											if (completionPercentage() >= 100) {
-												e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))';
-												e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
-												e.currentTarget.style.transform = 'translateY(0)';
-												e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,238,0,0.2)';
-											}
-										}}
 									>
-										{completionPercentage() < 100 ? (
-											<>
-												<span>⚠️</span>
-												<span>Completează toate câmpurile</span>
-											</>
-										) : (
-											<>
-												<span>💾</span>
-												<span>{editingEvent ? 'Actualizează Eveniment' : 'Creează Eveniment'}</span>
-											</>
-										)}
+										{editingEvent ? 'Actualizează' : 'Creează'}
 									</button>
 								</div>
 							</form>
@@ -1957,59 +1298,37 @@ const AdminEventsPage = () => {
 				>
 					<div
 						style={{
-							background: 'linear-gradient(145deg, rgba(15,15,20,0.98), rgba(25,25,35,0.98))',
-							backdropFilter: 'blur(20px)',
-							border: '1px solid rgba(255,238,0,0.2)',
-							borderRadius: '20px',
-							boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-							padding: '2rem',
+							background: 'var(--bg-elevated)',
+							border: '1px solid var(--border-primary)',
+							borderRadius: 'var(--radius-xl)',
+							boxShadow: 'var(--shadow-lg)',
+							padding: 'var(--space-6)',
 							maxWidth: '400px',
 							width: '100%',
 						}}
-						onClick={(e) => e.stopPropagation()}
 					>
-						<h3 style={{
-							margin: '0 0 1rem 0',
-							color: '#ffee00',
-							fontSize: '1.25rem',
-							fontWeight: 700,
-						}}>
-							⚠️ Confirmare Ștergere
+						<h3 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-primary)' }}>
+							Confirmă ștergerea
 						</h3>
-						<p style={{
-							margin: '0 0 1.5rem 0',
-							color: 'rgba(255,255,255,0.8)',
-							fontSize: '1rem',
-						}}>
+						<p style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-secondary)' }}>
 							Ești sigur că vrei să ștergi acest eveniment? Această acțiune nu poate fi anulată.
 						</p>
-						<div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+						<div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
 							<button
 								type="button"
+								className="admin-event-btn-secondary"
 								onClick={() => setShowDeleteConfirm(null)}
-								style={{
-									padding: '0.75rem 1.5rem',
-									background: 'rgba(255,255,255,0.05)',
-									border: '1px solid rgba(255,255,255,0.15)',
-									borderRadius: '10px',
-									color: '#fff',
-									fontWeight: 600,
-									cursor: 'pointer',
-								}}
 							>
 								Anulează
 							</button>
 							<button
 								type="button"
-								onClick={confirmDelete}
-								style={{
-									padding: '0.75rem 1.5rem',
-									background: 'rgba(255,107,107,0.2)',
-									border: '1px solid rgba(255,107,107,0.4)',
-									borderRadius: '10px',
-									color: '#ff6b6b',
-									fontWeight: 700,
-									cursor: 'pointer',
+								className="admin-event-btn-primary"
+								onClick={() => {
+									if (showDeleteConfirm) {
+										handleDelete(showDeleteConfirm);
+										setShowDeleteConfirm(null);
+									}
 								}}
 							>
 								Șterge

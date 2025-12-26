@@ -1,0 +1,472 @@
+/* ============================================
+   SPLASH SCREEN - FORMELY
+   ============================================ */
+
+.splash-screen {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #004643 0%, #006b66 50%, #004643 100%);
+	z-index: 10000;
+	overflow: hidden;
+}
+
+/* Animated background with gradient orbs */
+.splash-background {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	z-index: 0;
+}
+
+.splash-gradient-orb {
+	position: absolute;
+	border-radius: 50%;
+	filter: blur(100px);
+	opacity: 0.2;
+	animation: splashOrbFloat 25s ease-in-out infinite;
+}
+
+.splash-orb-1 {
+	width: 500px;
+	height: 500px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+	top: -250px;
+	left: -250px;
+	animation-delay: 0s;
+}
+
+.splash-orb-2 {
+	width: 400px;
+	height: 400px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+	bottom: -200px;
+	right: -200px;
+	animation-delay: 8s;
+}
+
+.splash-orb-3 {
+	width: 350px;
+	height: 350px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	animation-delay: 16s;
+}
+
+/* Floating particles */
+.splash-particles {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+}
+
+.splash-particle {
+	position: absolute;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.6);
+	opacity: 0.4;
+	animation: splashParticleFloat linear infinite;
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes splashOrbFloat {
+	0%, 100% {
+		transform: translate(0, 0) scale(1);
+	}
+	33% {
+		transform: translate(50px, 50px) scale(1.1);
+	}
+	66% {
+		transform: translate(-30px, 30px) scale(0.9);
+	}
+}
+
+@keyframes splashParticleFloat {
+	0% {
+		transform: translateY(100vh) translateX(0) rotate(0deg);
+		opacity: 0;
+	}
+	10% {
+		opacity: 0.4;
+	}
+	90% {
+		opacity: 0.4;
+	}
+	100% {
+		transform: translateY(-100px) translateX(50px) rotate(360deg);
+		opacity: 0;
+	}
+}
+
+.splash-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transform: translateY(20px);
+	transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+				transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	z-index: 2;
+}
+
+.splash-content.visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.splash-logo {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-6);
+	margin-bottom: var(--space-12);
+}
+
+.splash-logo-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 80px;
+	height: 80px;
+	flex-shrink: 0;
+	position: relative;
+	animation: splashIconFadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+	opacity: 0;
+	transform: scale(0.8);
+}
+
+.splash-icon-glow {
+	position: absolute;
+	inset: -20px;
+	border-radius: 50%;
+	background: #ffffff;
+	opacity: 0.3;
+	filter: blur(20px);
+	animation: splashIconGlow 2s ease-in-out infinite;
+	z-index: -1;
+}
+
+.splash-icon-pulse {
+	position: absolute;
+	inset: -10px;
+	border-radius: 50%;
+	border: 2px solid #ffffff;
+	opacity: 0.5;
+	animation: splashIconPulse 2s ease-in-out infinite;
+}
+
+.splash-logo-icon svg {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+	filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
+	position: relative;
+	z-index: 1;
+	animation: splashIconShine 3s ease-in-out infinite;
+}
+
+.splash-checkmark {
+	stroke-dasharray: 30;
+	stroke-dashoffset: 30;
+	animation: splashCheckmarkDraw 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+}
+
+.splash-logo-text {
+	display: flex;
+	gap: 4px;
+	font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+	justify-content: center;
+}
+
+.splash-letter {
+	font-size: 5rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	color: #ffffff;
+	display: inline-block;
+	position: relative;
+	text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.splash-letter-inner {
+	position: relative;
+	z-index: 1;
+	display: inline-block;
+	transition: transform 0.3s ease;
+}
+
+.splash-letter:hover .splash-letter-inner {
+	transform: translateY(-3px);
+}
+
+.splash-tagline {
+	font-size: 0.75rem;
+	color: rgba(255, 255, 255, 0.8);
+	margin-bottom: var(--space-12);
+	opacity: 0;
+	animation: splashFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) 1.2s forwards;
+	font-weight: var(--font-weight-medium);
+	letter-spacing: 0.05em;
+	position: relative;
+	text-transform: uppercase;
+}
+
+.splash-tagline-text {
+	position: relative;
+	z-index: 1;
+	display: inline-block;
+}
+
+.splash-button {
+	padding: var(--space-4) var(--space-10);
+	background: #ffffff;
+	color: #004643;
+	border: none;
+	border-radius: var(--radius-xl);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	opacity: 0;
+	transform: translateY(10px);
+	animation: splashFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) 1.4s forwards;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15);
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+	position: relative;
+	overflow: hidden;
+	letter-spacing: 0.05em;
+}
+
+.splash-button-text {
+	position: relative;
+	z-index: 1;
+	display: inline-block;
+	transition: transform 0.3s ease;
+}
+
+.splash-button-shine {
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 255, 255, 0.3),
+		transparent
+	);
+	transition: left 0.5s ease;
+}
+
+.splash-button:hover {
+	background: rgba(255, 255, 255, 0.95);
+	transform: translateY(-3px);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.splash-button:hover .splash-button-shine {
+	left: 100%;
+}
+
+.splash-button:hover .splash-button-text {
+	transform: scale(1.05);
+}
+
+.splash-button:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-card);
+}
+
+.splash-button:active .splash-button-text {
+	transform: scale(0.98);
+}
+
+/* Progress bar */
+.splash-progress-container {
+	width: 280px;
+	margin-bottom: var(--space-8);
+	opacity: 0;
+	animation: splashFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
+}
+
+.splash-progress-bar {
+	width: 100%;
+	height: 4px;
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	position: relative;
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.splash-progress-fill {
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		#ffffff,
+		rgba(255, 255, 255, 0.8),
+		#ffffff
+	);
+	background-size: 200% 100%;
+	border-radius: var(--radius-full);
+	transition: width 0.3s ease;
+	animation: splashProgressShimmer 2s linear infinite;
+	box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+}
+
+.splash-progress-glow {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: var(--btn-primary-bg);
+	opacity: 0.3;
+	filter: blur(8px);
+	border-radius: var(--radius-full);
+	animation: splashProgressGlow 2s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes splashIconFadeIn {
+	0% {
+		opacity: 0;
+		transform: scale(0.8) rotate(-10deg);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1) rotate(0deg);
+	}
+}
+
+@keyframes splashIconGlow {
+	0%, 100% {
+		opacity: 0.3;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.5;
+		transform: scale(1.2);
+	}
+}
+
+@keyframes splashIconPulse {
+	0%, 100% {
+		opacity: 0.5;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.8;
+		transform: scale(1.1);
+	}
+}
+
+@keyframes splashIconShine {
+	0%, 100% {
+		filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
+	}
+	50% {
+		filter: drop-shadow(0 4px 30px rgba(255, 255, 255, 0.5));
+	}
+}
+
+@keyframes splashCheckmarkDraw {
+	0% {
+		stroke-dashoffset: 30;
+		opacity: 0;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		stroke-dashoffset: 0;
+		opacity: 1;
+	}
+}
+
+@keyframes splashLetterFadeIn {
+	0% {
+		opacity: 0;
+		transform: translateY(10px) scale(0.9);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes splashLetterShine {
+	0% {
+		left: -100%;
+	}
+	50% {
+		left: 100%;
+	}
+	100% {
+		left: 100%;
+	}
+}
+
+@keyframes splashFadeIn {
+	0% {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes splashProgressShimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+@keyframes splashProgressGlow {
+	0%, 100% {
+		opacity: 0.3;
+	}
+	50% {
+		opacity: 0.6;
+	}
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.splash-logo-icon {
+		width: 64px;
+		height: 64px;
+	}
+	
+	.splash-letter {
+		font-size: 3.5rem;
+	}
+	
+	.splash-logo {
+		gap: var(--space-4);
+		margin-bottom: var(--space-10);
+	}
+	
+	.splash-tagline {
+		margin-bottom: var(--space-10);
+		font-size: 0.7rem;
+	}
+	
+	.splash-progress-container {
+		width: 240px;
+	}
+}
+
