@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Platformă LMS inteligentă pentru cursuri moderne. Creează, testează și gestionează cursuri cu ajutorul AI.">
+    <title>Formely - Platformă LMS Inteligentă</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo"><img src="Logo short.png" alt="Formely" /></span>
+            </div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Funcții</a>
+                <a href="#pricing" class="nav-link">Prețuri</a>
+                <a href="#how-it-works" class="nav-link">Cum funcționează</a>
+                <a href="#screenshots" class="nav-link">Demo</a>
+            </div>
+            <div class="nav-cta">
+                <a href="#cta" class="btn btn-secondary">Conectează-te</a>
+                <a href="#cta" class="btn btn-primary">Începe acum</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+            <div class="hero-grid"></div>
+        </div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Platformă LMS inteligentă<br>
+                        pentru cursuri moderne
+                    </h1>
+                    <p class="hero-subtitle">
+                        Creează, testează și gestionează cursuri cu ajutorul AI – totul într-un singur loc
+                    </p>
+                    <div class="hero-cta">
+                        <a href="#screenshots" class="btn btn-primary btn-large">
+                            <span>Vezi demo</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                        <a href="#cta" class="btn btn-secondary btn-large">
+                            <span>Creează curs</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-mockup">
+                        <div class="mockup-card mockup-card-1" data-tilt>
+                            <div class="mockup-header">
+                                <div class="mockup-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="mockup-content">
+                                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop&q=80" alt="Dashboard Admin" class="mockup-image" loading="lazy">
+                            </div>
+                        </div>
+                        <div class="mockup-card mockup-card-2" data-tilt>
+                            <div class="mockup-header">
+                                <div class="mockup-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="mockup-content">
+                                <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop&q=80" alt="Cursuri" class="mockup-image" loading="lazy">
+                            </div>
+                        </div>
+                        <div class="mockup-card mockup-card-3" data-tilt>
+                            <div class="mockup-header">
+                                <div class="mockup-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="mockup-content">
+                                <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&q=80" alt="Teste" class="mockup-image" loading="lazy">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">De ce Formely?</h2>
+                <p class="section-subtitle">Toate instrumentele de care ai nevoie pentru educație modernă</p>
+            </div>
+            <div class="benefits-grid">
+                <div class="benefit-card" data-tilt>
+                    <div class="benefit-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 4L4 10V16C4 22.627 9.373 28 16 28C22.627 28 28 22.627 28 16V10L16 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 16L12 12M16 16L20 12M16 16V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="benefit-title">Creare cursuri rapid</h3>
+                    <p class="benefit-description">Creează cursuri profesionale în minute, nu în zile. Interfață intuitivă și instrumente puternice.</p>
+                </div>
+                <div class="benefit-card" data-tilt>
+                    <div class="benefit-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 4L4 10V16C4 22.627 9.373 28 16 28C22.627 28 28 22.627 28 16V10L16 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 16L14 18L20 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="benefit-title">Teste inteligente</h3>
+                    <p class="benefit-description">Generează teste automat cu AI, evaluează răspunsuri instant și oferă feedback detaliat.</p>
+                </div>
+                <div class="benefit-card" data-tilt>
+                    <div class="benefit-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 4L4 10V16C4 22.627 9.373 28 16 28C22.627 28 28 22.627 28 16V10L16 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 20H20M16 16V24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="benefit-title">Analitică avansată</h3>
+                    <p class="benefit-description">Urmărește progresul studenților, identifică zone problematice și optimizează conținutul.</p>
+                </div>
+                <div class="benefit-card" data-tilt>
+                    <div class="benefit-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 4L4 10V16C4 22.627 9.373 28 16 28C22.627 28 28 22.627 28 16V10L16 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3 class="benefit-title">Experiență modernă</h3>
+                    <p class="benefit-description">Interfață elegantă și responsivă care oferă o experiență premium pentru toți utilizatorii.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Integration Section -->
+    <section class="ai-section" id="ai">
+        <div class="container">
+            <div class="ai-content">
+                <div class="ai-text">
+                    <div class="ai-badge">
+                        <span class="ai-badge-icon">✨</span>
+                        <span>Powered by AI</span>
+                    </div>
+                    <h2 class="ai-title">Inteligenta artificială pentru educație</h2>
+                    <p class="ai-description">
+                        Transformă modul în care creezi și gestionezi cursurile cu ajutorul AI. 
+                        De la generarea automată de teste până la evaluarea inteligentă, 
+                        AI-ul nostru te ajută să economisești timp și să oferi o experiență superioară.
+                    </p>
+                    <div class="ai-features">
+                        <div class="ai-feature-item">
+                            <div class="ai-feature-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Generare teste</h4>
+                                <p>AI generează teste relevante bazate pe conținutul cursului</p>
+                            </div>
+                        </div>
+                        <div class="ai-feature-item">
+                            <div class="ai-feature-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 6V12L16 14M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Creare cursuri</h4>
+                                <p>Asistent AI pentru structurarea și optimizarea conținutului</p>
+                            </div>
+                        </div>
+                        <div class="ai-feature-item">
+                            <div class="ai-feature-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Prezentări</h4>
+                                <p>Generează prezentări profesionale automat din materialele cursului</p>
+                            </div>
+                        </div>
+                        <div class="ai-feature-item">
+                            <div class="ai-feature-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 19C9 19.5523 9.44772 20 10 20H14C14.5523 20 15 19.5523 15 19V15H9V19ZM19 9H5V15H19V9ZM19 9C19 7.89543 18.1046 7 17 7H7C5.89543 7 5 7.89543 5 9V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Evaluări automate</h4>
+                                <p>Evaluează răspunsuri și oferă feedback instant și detaliat</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-visual">
+                    <div class="ai-glow-card" data-tilt>
+                        <div class="ai-glow"></div>
+                        <div class="ai-card-content">
+                            <div class="ai-image-wrapper">
+                                <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop&q=80" alt="AI Technology" class="ai-main-image" loading="lazy">
+                                <div class="ai-overlay-glow"></div>
+                            </div>
+                            <div class="ai-stats">
+                                <div class="ai-stat">
+                                    <div class="ai-stat-value">95%</div>
+                                    <div class="ai-stat-label">Precizie</div>
+                                </div>
+                                <div class="ai-stat">
+                                    <div class="ai-stat-value">10x</div>
+                                    <div class="ai-stat-label">Mai rapid</div>
+                                </div>
+                                <div class="ai-stat">
+                                    <div class="ai-stat-value">24/7</div>
+                                    <div class="ai-stat-label">Disponibil</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Alege planul potrivit</h2>
+                <p class="section-subtitle">Oferte flexibile pentru orice nevoie</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card" data-tilt>
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Starter</h3>
+                        <div class="pricing-price">
+                            <span class="pricing-amount">299</span>
+                            <span class="pricing-currency">lei</span>
+                            <span class="pricing-period">/lună</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Până la 50 de studenți</li>
+                        <li>5 cursuri active</li>
+                        <li>Teste de bază</li>
+                        <li>Suport email</li>
+                        <li>Rapoarte de bază</li>
+                    </ul>
+                    <a href="#cta" class="btn btn-secondary btn-block">Începe acum</a>
+                </div>
+                <div class="pricing-card pricing-card-featured" data-tilt>
+                    <div class="pricing-badge">Recomandat</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Pro</h3>
+                        <div class="pricing-price">
+                            <span class="pricing-amount">599</span>
+                            <span class="pricing-currency">lei</span>
+                            <span class="pricing-period">/lună</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Până la 200 de studenți</li>
+                        <li>Cursuri nelimitate</li>
+                        <li>Teste AI avansate</li>
+                        <li>Suport priorititar</li>
+                        <li>Analitică avansată</li>
+                        <li>Integrări API</li>
+                    </ul>
+                    <a href="#cta" class="btn btn-primary btn-block">Începe acum</a>
+                </div>
+                <div class="pricing-card" data-tilt>
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Business</h3>
+                        <div class="pricing-price">
+                            <span class="pricing-amount">999</span>
+                            <span class="pricing-currency">lei</span>
+                            <span class="pricing-period">/lună</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Până la 500 de studenți</li>
+                        <li>Cursuri nelimitate</li>
+                        <li>Toate funcțiile AI</li>
+                        <li>Suport dedicat</li>
+                        <li>Analitică completă</li>
+                        <li>Branding personalizat</li>
+                    </ul>
+                    <a href="#cta" class="btn btn-secondary btn-block">Începe acum</a>
+                </div>
+                <div class="pricing-card" data-tilt>
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Enterprise</h3>
+                        <div class="pricing-price">
+                            <span class="pricing-amount">Custom</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Studenți nelimitați</li>
+                        <li>Toate funcțiile</li>
+                        <li>AI personalizat</li>
+                        <li>Manager de cont dedicat</li>
+                        <li>On-premise opțional</li>
+                        <li>SLA garantat</li>
+                    </ul>
+                    <a href="#cta" class="btn btn-secondary btn-block">Contactează-ne</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Cum funcționează</h2>
+                <p class="section-subtitle">Începe în 3 pași simpli</p>
+            </div>
+            <div class="steps">
+                <div class="step-item" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Creezi cursul</h3>
+                        <p class="step-description">
+                            Adaugă conținut, materiale și resurse. Folosește editorul nostru intuitiv 
+                            sau lasă AI-ul să te ajute să structurezi cursul perfect.
+                        </p>
+                    </div>
+                </div>
+                <div class="step-item" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Adaugi teste & AI</h3>
+                        <p class="step-description">
+                            Creează teste personalizate sau lasă AI-ul să genereze întrebări relevante. 
+                            Configurează evaluarea automată și feedback-ul inteligent.
+                        </p>
+                    </div>
+                </div>
+                <div class="step-item" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Urmărești progresul</h3>
+                        <p class="step-description">
+                            Monitorizează performanța studenților în timp real, identifică zone 
+                            problematice și optimizează conținutul bazat pe date reale.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots" id="screenshots">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Explorează platforma</h2>
+                <p class="section-subtitle">Vezi cum arată aplicația în acțiune</p>
+            </div>
+            <div class="screenshots-carousel">
+                <div class="carousel-container">
+                    <div class="carousel-track" id="carouselTrack">
+                        <div class="screenshot-slide active">
+                            <div class="screenshot-image">
+                                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=700&fit=crop&q=80" alt="Dashboard Admin" loading="lazy">
+                                <div class="screenshot-overlay">
+                                    <span>Dashboard Admin</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="screenshot-slide">
+                            <div class="screenshot-image">
+                                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=700&fit=crop&q=80" alt="Gestionare Cursuri" loading="lazy">
+                                <div class="screenshot-overlay">
+                                    <span>Gestionare Cursuri</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="screenshot-slide">
+                            <div class="screenshot-image">
+                                <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=700&fit=crop&q=80" alt="Teste & Evaluări" loading="lazy">
+                                <div class="screenshot-overlay">
+                                    <span>Teste & Evaluări</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="screenshot-slide">
+                            <div class="screenshot-image">
+                                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=700&fit=crop&q=80" alt="Analitică & Rapoarte" loading="lazy">
+                                <div class="screenshot-overlay">
+                                    <span>Analitică & Rapoarte</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-controls">
+                    <button class="carousel-btn carousel-btn-prev" id="prevBtn" aria-label="Slide anterior">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-dots" id="carouselDots">
+                        <button class="carousel-dot active" data-slide="0" aria-label="Slide 1"></button>
+                        <button class="carousel-dot" data-slide="1" aria-label="Slide 2"></button>
+                        <button class="carousel-dot" data-slide="2" aria-label="Slide 3"></button>
+                        <button class="carousel-dot" data-slide="3" aria-label="Slide 4"></button>
+                    </div>
+                    <button class="carousel-btn carousel-btn-next" id="nextBtn" aria-label="Slide următor">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="cta-final" id="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Gata să transformi educația?</h2>
+                <p class="cta-subtitle">
+                    Alătură-te mii de organizații care folosesc Formely pentru training și educație modernă.
+                </p>
+                <a href="#cta" class="btn btn-cta btn-large">
+                    <span>Începe acum – Platformă LMS inteligentă</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">Formely</div>
+                    <p class="footer-tagline">Platformă LMS inteligentă pentru educație modernă</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Produs</h4>
+                        <a href="#features" class="footer-link">Funcții</a>
+                        <a href="#pricing" class="footer-link">Prețuri</a>
+                        <a href="#screenshots" class="footer-link">Demo</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Companie</h4>
+                        <a href="#" class="footer-link">Despre noi</a>
+                        <a href="#" class="footer-link">Blog</a>
+                        <a href="#" class="footer-link">Cariere</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Suport</h4>
+                        <a href="#" class="footer-link">Documentație</a>
+                        <a href="#" class="footer-link">Contact</a>
+                        <a href="#" class="footer-link">FAQ</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 Formely. Toate drepturile rezervate.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
