@@ -22,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
         if (config('database.default') === 'sqlite') {
             $databasePath = config('database.connections.sqlite.database');
 
+            // Skip file creation for in-memory database (used in tests)
+            if ($databasePath === ':memory:') {
+                return;
+            }
+
             if (is_string($databasePath) && ! file_exists($databasePath)) {
                 $directory = dirname($databasePath);
 

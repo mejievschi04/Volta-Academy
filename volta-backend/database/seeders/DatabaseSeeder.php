@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\Lesson;
-use App\Models\Reward;
+use App\Models\Category;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,6 +16,56 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // --- Admin User ---
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@volta.academy'],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('volta 2025'),
+                'role' => 'admin',
+                'avatar' => null,
+                'bio' => 'Administrator al platformei Volta Academy',
+            
+            ]
+        );
+        
+        // Update password if admin already exists
+            if ($admin->wasRecentlyCreated === false) {
+                $admin->update(['password' => Hash::make('volta 2025')]);
+            }
+
+            // --- Categories (Compartimente) ---
+            $categories = [
+                [
+                    'name' => 'Produse Noi',
+                    'description' => 'Cursuri despre produsele noi lansate',
+                    'icon' => '🆕',
+                    'color' => '#667eea',
+                    'order' => 1,
+                ],
+                [
+                    'name' => 'Formare Generală',
+                    'description' => 'Cursuri de formare generală',
+                    'icon' => '📚',
+                    'color' => '#43e97b',
+                    'order' => 2,
+                ],
+                [
+                    'name' => 'Tehnologie',
+                    'description' => 'Cursuri despre tehnologie și inovații',
+                    'icon' => '💻',
+                    'color' => '#4facfe',
+                    'order' => 3,
+                ],
+            ];
+
+            foreach ($categories as $categoryData) {
+                Category::firstOrCreate(
+                    ['name' => $categoryData['name']],
+                    $categoryData
+                );
+            }
+
         // --- Users ---
         $teachers = collect([
             [
@@ -48,8 +98,11 @@ class DatabaseSeeder extends Seeder
             );
         })->values();
 
+        // Delete Maria if exists
+        User::where('email', 'maria@example.com')->delete();
+        
         $students = collect([
-            ['email' => 'maria@example.com', 'name' => 'Maria Student'],
+            ['email' => 'ion.mejiesvschi@example.com', 'name' => 'Ion Mejiesvschi'],
             ['email' => 'andrei@example.com', 'name' => 'Andrei Student'],
         ])->map(function (array $data) {
             return User::firstOrCreate(
@@ -155,26 +208,6 @@ class DatabaseSeeder extends Seeder
                     ]
                 );
             }
-        }
-
-        // --- Rewards ---
-        $rewards = [
-            ['title' => 'Primii pași', 'description' => 'Completează prima lecție.', 'points_required' => 50],
-            ['title' => 'Eroul Laravel', 'description' => 'Completează liniile de bază ale cursului Laravel.', 'points_required' => 200],
-            ['title' => 'Starul React', 'description' => 'Finalizează toate lecțiile cursului React.', 'points_required' => 250],
-            ['title' => 'Maestrul Node', 'description' => 'Finalizează cursul Node.js și rulează primul API.', 'points_required' => 260],
-            ['title' => 'Designer cu Viziune', 'description' => 'Finalizează cursul de Design UX și prezintă un prototip.', 'points_required' => 180],
-            ['title' => 'Analistul de Date', 'description' => 'Analizează un dataset complex și livrează un raport.', 'points_required' => 320],
-        ];
-
-        foreach ($rewards as $reward) {
-            Reward::firstOrCreate(
-                ['title' => $reward['title']],
-                [
-                    'description' => $reward['description'],
-                    'points_required' => $reward['points_required'],
-                ]
-            );
         }
 
         // --- Level up some students with bonus points ---
