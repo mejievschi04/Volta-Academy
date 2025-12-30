@@ -76,6 +76,8 @@ AI_PROVIDER=groq
 GROQ_API_KEY=gsk_your-key-here
 ```
 
+> ⚠️ **Security note:** If you or anyone accidentally committed a real API key (e.g., in `.env`), rotate it immediately and remove it from repository history.
+
 4. Gata! Poți testa generarea de cursuri.
 
 ## Verificare configurare
