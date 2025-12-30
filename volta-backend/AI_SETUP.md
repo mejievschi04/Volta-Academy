@@ -80,6 +80,17 @@ GROQ_API_KEY=gsk_your-key-here
 
 4. Gata! Poți testa generarea de cursuri.
 
+---
+
+## Prevenire scurgeri de secrete (recomandat)
+
+Am adăugat un hook pre-commit care rulează `gitleaks` pentru a detecta secrete înainte de commit. Pentru a activa hook-urile local, rulează:
+
+- Linux/macOS: `sh scripts/setup-git-hooks.sh`
+- Windows PowerShell: `.\scripts\setup-git-hooks.ps1`
+
+Hook-ul va folosi `gitleaks` dacă este instalat sau îl va rula via Docker (dacă Docker este disponibil). Dacă nu ai `gitleaks` sau Docker, hook-ul va bloca commit-ul și va cere instalarea uneia dintre opțiuni.
+
 ## Verificare configurare
 
 După configurare, testează generarea unui curs prin interfața admin.
