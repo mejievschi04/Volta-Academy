@@ -47,12 +47,12 @@ const CalendarViewPage = () => {
 
 	const getEventTypeColor = (type) => {
 		const colors = {
-			curs: '#8b5dff',
-			workshop: '#4df5c9',
+			curs: '#ffee00',
+			workshop: '#ffcc00',
 			examen: '#ff6b6b',
 			webinar: '#ffce54',
 		};
-		return colors[type] || '#8b5dff';
+		return colors[type] || '#ffee00';
 	};
 
 	const prevMonth = () => {
@@ -145,11 +145,11 @@ const CalendarViewPage = () => {
 
 			<div className="va-calendar-legend">
 				<div className="va-calendar-legend-item">
-					<div className="va-calendar-legend-dot" style={{ backgroundColor: '#8b5dff' }}></div>
+					<div className="va-calendar-legend-dot" style={{ backgroundColor: '#ffee00' }}></div>
 					<span>Curs</span>
 				</div>
 				<div className="va-calendar-legend-item">
-					<div className="va-calendar-legend-dot" style={{ backgroundColor: '#4df5c9' }}></div>
+					<div className="va-calendar-legend-dot" style={{ backgroundColor: '#ffcc00' }}></div>
 					<span>Workshop</span>
 				</div>
 				<div className="va-calendar-legend-item">

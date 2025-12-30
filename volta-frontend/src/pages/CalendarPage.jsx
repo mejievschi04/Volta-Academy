@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockEvents } from '../data/mockData';
+import { eventsService } from '../services/api';
 
 const CalendarPage = () => {
 
@@ -23,22 +23,22 @@ const CalendarPage = () => {
 
 	const getEventTypeColor = (type) => {
 		const colors = {
-			curs: 'rgba(139, 93, 255, 0.2)',
-			workshop: 'rgba(77, 245, 201, 0.2)',
+			curs: 'rgba(255, 238, 0, 0.2)',
+			workshop: 'rgba(255, 204, 0, 0.2)',
 			examen: 'rgba(255, 107, 107, 0.2)',
 			webinar: 'rgba(255, 206, 84, 0.2)',
 		};
-		return colors[type] || 'rgba(139, 93, 255, 0.2)';
+		return colors[type] || 'rgba(255, 238, 0, 0.2)';
 	};
 
 	const getEventTypeBorder = (type) => {
 		const borders = {
-			curs: 'rgba(139, 93, 255, 0.4)',
-			workshop: 'rgba(77, 245, 201, 0.4)',
+			curs: 'rgba(255, 238, 0, 0.4)',
+			workshop: 'rgba(255, 204, 0, 0.4)',
 			examen: 'rgba(255, 107, 107, 0.4)',
 			webinar: 'rgba(255, 206, 84, 0.4)',
 		};
-		return borders[type] || 'rgba(139, 93, 255, 0.4)';
+		return borders[type] || 'rgba(255, 238, 0, 0.4)';
 	};
 
 	const getEventTypeLabel = (type) => {
@@ -51,7 +51,37 @@ const CalendarPage = () => {
 		return labels[type] || 'Eveniment';
 	};
 
-	const sortedEvents = [...mockEvents].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+	const [events, setEvents] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		const fetchEvents = async () => {
+			try {
+				setLoading(true);
+				const data = await eventsService.getAll();
+				setEvents(data);
+			} catch (err) {
+				console.error('Error fetching events:', err);
+				setError('Nu s-au putut încărca evenimentele');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchEvents();
+	}, []);
+
+	if (loading) { return null; }
+
+	if (error) {
+		return (
+			<div className="va-stack">
+				<p style={{ color: 'red' }}>{error}</p>
+			</div>
+		);
+	}
+
+	const sortedEvents = [...events].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
 	return (
 		<div className="va-stack">

@@ -1,95 +1,194 @@
-import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { mockCourses, mockProfile } from '../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { dashboardService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
+import CourseProgressWidget from '../components/student/CourseProgressWidget';
+import IncompleteLessonsWidget from '../components/student/IncompleteLessonsWidget';
+import PendingExamsWidget from '../components/student/PendingExamsWidget';
+import BadgesWidget from '../components/student/BadgesWidget';
 
 const DashboardPage = () => {
-	const stats = useMemo(() => {
-		const totalCourses = mockCourses.length;
-		const totalLessons = mockCourses.reduce((sum, course) => sum + course.lessons.length, 0);
-		const completedLessons = mockProfile.progress.reduce(
-			(sum, p) => sum + p.completedLessons.length,
-			0
-		);
-		const completedQuizzes = mockProfile.progress.filter((p) => p.quizPassed).length;
-		const inProgressCourses = mockProfile.progress.filter(
-			(p) => p.completedLessons.length > 0 && p.completedLessons.length < mockCourses.find((c) => c.id === p.courseId)?.lessons.length
-		).length;
-		const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+	const { user } = useAuth();
+	const navigate = useNavigate();
+	const [dashboardData, setDashboardData] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-		return {
-			totalCourses,
-			totalLessons,
-			completedLessons,
-			completedQuizzes,
-			inProgressCourses,
-			progressPercentage,
+	useEffect(() => {
+		const fetchDashboard = async () => {
+			try {
+				setLoading(true);
+				setError(null);
+				const data = await dashboardService.getStudentDashboard();
+				setDashboardData(data);
+			} catch (err) {
+				console.error('Error fetching dashboard:', err);
+				setError(`Nu s-a putut încărca dashboard-ul: ${err.response?.data?.message || err.message || 'Eroare necunoscută'}`);
+			} finally {
+				setLoading(false);
+			}
 		};
+		fetchDashboard();
 	}, []);
 
-	return (
-		<div className="va-main">
-			{/* HERO — o coloană completă */}
-			<section className="va-hero" style={{ gridColumn: '1 / -1' }}>
-				<div className="va-hero-background">
-					<div className="va-hero-orb va-hero-orb-1"></div>
-					<div className="va-hero-orb va-hero-orb-2"></div>
-					<div className="va-hero-orb va-hero-orb-3"></div>
+	if (loading) {
+		return (
+			<div className="student-dashboard-page">
+				<div className="student-dashboard-loading">
+					<div className="student-loading-spinner"></div>
+					<p>Se încarcă dashboard-ul...</p>
 				</div>
+			</div>
+		);
+	}
 
-				<div className="va-hero-content">
-					<div className="va-hero-header">
-						<div className="va-hero-badge">
-							<span className="va-hero-badge-icon">✨</span>
-							<span>Bun venit înapoi, {mockProfile.name}!</span>
-						</div>
-						<h1 className="va-hero-title">
-							<span className="va-hero-title-line">Învață.</span>
-							<span className="va-hero-title-line">Exersează.</span>
-							<span className="va-hero-title-line va-hero-title-accent">Evoluează.</span>
-						</h1>
-						<p className="va-hero-subtitle">
-							Pornește pe un traseu structurat și urmărește-ți progresul în toate cursurile. Fiecare modul completat te aduce mai aproape de excelență.
-						</p>
-					</div>
+	if (error || !dashboardData) {
+		return (
+			<div className="student-dashboard-page">
+				<div className="student-dashboard-error">
+					<p>{error || 'Eroare la încărcarea datelor'}</p>
+					<button onClick={() => window.location.reload()}>Reîncearcă</button>
+				</div>
+			</div>
+		);
+	}
 
-					<div className="va-hero-stats">
-						<div className="va-hero-stats-top">
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedLessons}</div>
-								<div className="va-hero-stat-label">Module finalizate</div>
-							</div>
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.inProgressCourses}</div>
-								<div className="va-hero-stat-label">Cursuri în progres</div>
-							</div>
-							<div className="va-hero-stat">
-								<div className="va-hero-stat-value">{stats.completedQuizzes}</div>
-								<div className="va-hero-stat-label">Teste promovate</div>
+	const { 
+		global_progress, 
+		active_courses, 
+		next_lesson, 
+		learning_time, 
+		incomplete_lessons, 
+		pending_exams, 
+		badges,
+		stats 
+	} = dashboardData;
+
+	return (
+		<div className="student-dashboard-page">
+			{/* Page Header */}
+			<div className="student-dashboard-header">
+				<div className="student-dashboard-welcome">
+					<span className="student-dashboard-welcome-icon">✨</span>
+					<span>Bine ai revenit, {user?.name || 'Utilizator'}!</span>
+				</div>
+				<h1 className="student-dashboard-title">
+					Continuă-ți călătoria de învățare
+				</h1>
+				<p className="student-dashboard-subtitle">
+					Urmărește-ți progresul și finalizează cursurile pentru a obține certificări
+				</p>
+			</div>
+
+			{/* Hero Section */}
+			<section className="student-dashboard-hero">
+				<div className="student-dashboard-hero-content">
+					{/* Global Progress */}
+					<div className="student-dashboard-global-progress">
+						<div className="student-global-progress-header">
+							<h2>Progres Global</h2>
+							<div className="student-global-progress-stats">
+								<div className="student-global-progress-stat">
+									<span className="student-global-progress-stat-value">
+										{global_progress.completed_courses}
+									</span>
+									<span className="student-global-progress-stat-label">din {global_progress.total_courses} cursuri</span>
+								</div>
+								<div className="student-global-progress-stat">
+									<span className="student-global-progress-stat-value">
+										{global_progress.completed_lessons}
+									</span>
+									<span className="student-global-progress-stat-label">din {global_progress.total_lessons} lecții</span>
+								</div>
 							</div>
 						</div>
-						<div className="va-hero-stat va-hero-stat-progress">
-							<div className="va-hero-stat-value">{stats.progressPercentage}%</div>
-							<div className="va-hero-stat-label">Progres general</div>
-							<div className="va-hero-progress-bar">
-								<div
-									className="va-hero-progress-fill"
-									style={{ width: `${stats.progressPercentage}%` }}
+						<div className="student-global-progress-bar-container">
+							<div className="student-global-progress-bar">
+								<div 
+									className="student-global-progress-fill"
+									style={{ width: `${global_progress.percentage}%` }}
 								></div>
 							</div>
+							<div className="student-global-progress-percentage">
+								{global_progress.percentage}%
+							</div>
 						</div>
 					</div>
 
-					<div className="va-hero-actions">
-						<Link to="/courses" className="va-btn va-btn-primary va-btn-hero">
-							<span>Explorează cursurile</span>
-							<span className="va-btn-icon">→</span>
-						</Link>
-						<Link to="/profile" className="va-btn va-btn-secondary va-btn-hero">
-							<span>Vezi profilul</span>
-						</Link>
+					{/* Quick Stats */}
+					<div className="student-dashboard-quick-stats">
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">📚</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.total_courses}</div>
+								<div className="student-quick-stat-label">Cursuri</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">✅</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.completed_courses_count}</div>
+								<div className="student-quick-stat-label">Finalizate</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">📖</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{stats.total_lessons_completed}</div>
+								<div className="student-quick-stat-label">Lecții</div>
+							</div>
+						</div>
+						<div className="student-quick-stat">
+							<div className="student-quick-stat-icon">⏱️</div>
+							<div className="student-quick-stat-content">
+								<div className="student-quick-stat-value">{learning_time.formatted}</div>
+								<div className="student-quick-stat-label">Timp învățare</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
+
+			{/* Main Content */}
+			<div className="student-dashboard-content">
+				{/* Left Column */}
+				<div className="student-dashboard-left">
+					{/* Resume Learning */}
+					<ResumeLearningWidget nextLesson={next_lesson} />
+
+					{/* Active Courses */}
+					<div className="student-widget student-active-courses-widget">
+						<div className="student-widget-header">
+							<h3>Cursuri Active</h3>
+							<span className="student-widget-count">{active_courses.length}</span>
+						</div>
+						<div className="student-widget-content">
+							{active_courses.length === 0 ? (
+								<p className="student-widget-empty">Nu ai cursuri active momentan.</p>
+							) : (
+								<div className="student-active-courses-grid">
+									{active_courses.map((course) => (
+										<CourseProgressWidget key={course.id} course={course} />
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* Right Column */}
+				<div className="student-dashboard-right">
+					{/* Incomplete Lessons */}
+					<IncompleteLessonsWidget lessons={incomplete_lessons} />
+
+					{/* Pending Exams */}
+					<PendingExamsWidget exams={pending_exams} />
+
+					{/* Badges */}
+					<BadgesWidget badges={badges} />
+				</div>
+			</div>
 		</div>
 	);
 };
