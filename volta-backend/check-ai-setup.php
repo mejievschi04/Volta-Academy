@@ -16,7 +16,7 @@ if ($apiKey) {
     echo "   ✅ HUGGINGFACE_API_KEY este setat (" . substr($apiKey, 0, 10) . "...)\n";
 } else {
     echo "   ❌ HUGGINGFACE_API_KEY NU este setat în .env\n";
-    echo "   Adaugă în .env: HUGGINGFACE_API_KEY=***REDACTED***\n";
+    echo "   Adaugă în .env: HUGGINGFACE_API_KEY=hf_your-token-here (do NOT commit real keys)\n";
 }
 echo "   ✅ HUGGINGFACE_API_URL: $apiUrl\n\n";
 
@@ -67,5 +67,4 @@ if ($allGood) {
         echo "2. Creează AIController.php\n";
     }
 }
-
 
