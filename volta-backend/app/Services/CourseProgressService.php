@@ -38,11 +38,18 @@ class CourseProgressService
             $totalLessons += $moduleLessons->count();
 
             foreach ($moduleLessons as $lesson) {
-                $isCompleted = DB::table('lesson_progress')
+                // Check if lesson is completed (either marked as completed OR has 100% progress)
+                $lessonProgress = DB::table('lesson_progress')
                     ->where('user_id', $user->id)
                     ->where('lesson_id', $lesson->id)
-                    ->where('completed', true)
-                    ->exists();
+                    ->first();
+                
+                $isCompleted = false;
+                if ($lessonProgress) {
+                    $progressPercentage = $lessonProgress->progress_percentage ?? 0;
+                    // Lesson is completed if marked as completed OR has 100% progress
+                    $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
+                }
 
                 if ($isCompleted) {
                     $completedLessons++;
@@ -94,11 +101,18 @@ class CourseProgressService
 
         $completed = 0;
         foreach ($lessons as $lesson) {
-            $isCompleted = DB::table('lesson_progress')
+            // Check if lesson is completed (either marked as completed OR has 100% progress)
+            $lessonProgress = DB::table('lesson_progress')
                 ->where('user_id', $user->id)
                 ->where('lesson_id', $lesson->id)
-                ->where('completed', true)
-                ->exists();
+                ->first();
+            
+            $isCompleted = false;
+            if ($lessonProgress) {
+                $progressPercentage = $lessonProgress->progress_percentage ?? 0;
+                // Lesson is completed if marked as completed OR has 100% progress
+                $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
+            }
 
             if ($isCompleted) {
                 $completed++;
@@ -502,16 +516,27 @@ class CourseProgressService
             $lessons = $module->lessons()->where('status', 'published')->orderBy('order')->get();
             foreach ($lessons as $lesson) {
                 $isLessonUnlocked = $this->isLessonUnlocked($user, $lesson, $module, $course);
-                $isCompleted = DB::table('lesson_progress')
+                
+                // Check if lesson is completed (either marked as completed OR has 100% progress)
+                $lessonProgress = DB::table('lesson_progress')
                     ->where('user_id', $user->id)
                     ->where('lesson_id', $lesson->id)
-                    ->where('completed', true)
-                    ->exists();
+                    ->first();
+                
+                $isCompleted = false;
+                $progressPercentage = 0;
+                
+                if ($lessonProgress) {
+                    $progressPercentage = $lessonProgress->progress_percentage ?? 0;
+                    // Lesson is completed if marked as completed OR has 100% progress
+                    $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
+                }
 
                 $moduleData['lessons'][] = [
                     'id' => $lesson->id,
                     'unlocked' => $isLessonUnlocked,
                     'completed' => $isCompleted,
+                    'progress_percentage' => $progressPercentage,
                     'is_preview' => $lesson->is_preview,
                 ];
             }

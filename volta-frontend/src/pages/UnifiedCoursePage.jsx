@@ -2,12 +2,17 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { coursesService, lessonsService, courseProgressService, examService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
+import { handleApiError } from '../utils/errorHandler';
+import AITutor from '../components/student/AITutor';
 
 const UnifiedCoursePage = () => {
 	const { courseId, lessonId, examId } = useParams();
 	const location = useLocation();
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const { error: showError } = useToast();
 	
 	// State management
 	const [course, setCourse] = useState(null);
@@ -47,11 +52,25 @@ const UnifiedCoursePage = () => {
 					coursesService.getById(courseId),
 					user ? courseProgressService.getCourseProgress(courseId).catch(() => null) : null
 				]);
+				
+				// Debug: Log course data with modules
+				logger.debug('[UnifiedCoursePage] Course data loaded:', {
+					courseId: courseData?.id,
+					title: courseData?.title,
+					modulesCount: courseData?.modules?.length || 0,
+					modules: courseData?.modules?.map(m => ({
+						id: m.id,
+						title: m.title,
+						lessonsCount: m.lessons?.length || 0,
+						lessons: m.lessons?.map(l => ({ id: l.id, title: l.title })) || []
+					})) || []
+				});
+				
 				setCourse(courseData);
 				setProgress(progressData);
 			} catch (err) {
-				console.error('Error fetching course:', err);
-				setError('Cursul nu a fost găsit');
+				const errorMessage = handleApiError(err, 'fetchCourse');
+				setError(errorMessage);
 			} finally {
 				setLoading(false);
 			}
@@ -59,64 +78,92 @@ const UnifiedCoursePage = () => {
 		fetchData();
 	}, [courseId, user]);
 
-	// Fetch lesson data and auto-mark next lesson as read
+	// Fetch lesson data
 	useEffect(() => {
 		if (viewMode === 'lesson' && lessonId) {
 			const fetchLesson = async () => {
 				try {
 					const lessonData = await lessonsService.getById(lessonId);
 					setCurrentLesson(lessonData);
-					
-					// Check if lesson is completed
-					if (progress) {
-						const lessonProgressData = progress?.modules
-							?.flatMap(m => m.lessons || [])
-							?.find(l => l.id === parseInt(lessonId));
-						
-						if (lessonProgressData?.completed) {
-							setCompleted(true);
-							setLessonProgress(100);
-						}
-					}
-					
-					// Auto-mark next lesson as read when accessing current lesson
-					if (user && course && course.modules && progress) {
-						const allLessons = course.modules.flatMap(m => m.lessons || []);
-						const currentIndex = allLessons.findIndex(l => l.id === parseInt(lessonId));
-						
-						if (currentIndex >= 0 && currentIndex < allLessons.length - 1) {
-							const nextLesson = allLessons[currentIndex + 1];
-							
-							// Check if next lesson is not already completed
-							const nextLessonCompleted = progress.modules
-								?.flatMap(m => m.lessons || [])
-								?.some(l => l.id === nextLesson.id && l.completed) || false;
-							
-							if (nextLesson && !nextLessonCompleted) {
-								try {
-									// Mark next lesson as read (completed)
-									await courseProgressService.completeLesson(nextLesson.id);
-									
-									// Refresh progress to reflect the change
-									const progressData = await courseProgressService.getCourseProgress(courseId);
-									setProgress(progressData);
-									
-									console.log(`Auto-marked next lesson ${nextLesson.id} as read`);
-								} catch (err) {
-									console.error('Error auto-marking next lesson as read:', err);
-									// Don't show error to user - this is a background operation
-								}
-							}
-						}
-					}
 				} catch (err) {
-					console.error('Error fetching lesson:', err);
-					setError('Lecția nu a fost găsită');
+					const errorMessage = handleApiError(err, 'fetchLesson');
+					setError(errorMessage);
 				}
 			};
 			fetchLesson();
+		} else {
+			// Reset lesson state when not in lesson view
+			setCurrentLesson(null);
 		}
-	}, [lessonId, viewMode, progress, user, course, courseId]);
+	}, [lessonId, viewMode]);
+
+	// Track if we're auto-completing to avoid loops
+	const autoCompletingRef = React.useRef(false);
+
+	// Update completion status when progress changes
+	useEffect(() => {
+		if (viewMode === 'lesson' && lessonId) {
+			if (progress) {
+				const lessonProgressData = progress?.modules
+					?.flatMap(m => m.lessons || [])
+					?.find(l => l.id === parseInt(lessonId));
+				
+				// Check if lesson is marked as completed
+				const isCompleted = lessonProgressData?.completed || false;
+				
+				// Check if progress percentage is 100% (should be marked as completed)
+				const progressPercentage = lessonProgressData?.progress_percentage || 0;
+				const isProgressComplete = progressPercentage >= 100;
+				
+				logger.debug('[updateCompletionStatus] Updating completion status:', {
+					lessonId,
+					isCompleted,
+					progressPercentage,
+					isProgressComplete,
+					hasProgressData: !!lessonProgressData,
+					autoCompleting: autoCompletingRef.current
+				});
+				
+				// If progress is 100% but lesson is not marked as completed, mark it automatically
+				// Backend should handle this, but we check here as a safety net
+				if (isProgressComplete && !isCompleted && user && lessonId && !autoCompletingRef.current) {
+					logger.debug('[updateCompletionStatus] Auto-completing lesson with 100% progress');
+					autoCompletingRef.current = true;
+					
+					// Mark as completed without user interaction
+					courseProgressService.completeLesson(lessonId)
+						.then(() => {
+							// Refresh progress after auto-completion
+							return courseProgressService.getCourseProgress(courseId);
+						})
+						.then((progressData) => {
+							setProgress(progressData);
+							setCompleted(true);
+							setLessonProgress(100);
+							autoCompletingRef.current = false;
+							logger.debug('[updateCompletionStatus] ✅ Lesson auto-completed successfully');
+						})
+						.catch((err) => {
+							handleApiError(err, 'autoCompleteLesson');
+							autoCompletingRef.current = false;
+						});
+					return; // Exit early, async operation will update state
+				}
+				
+				// Update state normally
+				setCompleted(isCompleted || isProgressComplete);
+				if (isCompleted || isProgressComplete) {
+					setLessonProgress(100);
+				} else {
+					setLessonProgress(progressPercentage);
+				}
+			} else {
+				// If no progress data yet, reset completion status
+				setCompleted(false);
+				setLessonProgress(0);
+			}
+		}
+	}, [lessonId, viewMode, progress, user, courseId]);
 
 	// Fetch exam data
 	useEffect(() => {
@@ -137,8 +184,8 @@ const UnifiedCoursePage = () => {
 						setStartTime(Date.now());
 					}
 				} catch (err) {
-					console.error('Error fetching exam:', err);
-					setError('Testul nu a fost găsit');
+					const errorMessage = handleApiError(err, 'fetchExam');
+					setError(errorMessage);
 				}
 			};
 			fetchExam();
@@ -168,6 +215,44 @@ const UnifiedCoursePage = () => {
 			}
 		};
 	}, [currentExam?.time_limit_minutes, examSubmitted, startTime]);
+
+	// Extract assessment mistakes from exam results
+	const assessmentMistakes = useMemo(() => {
+		if (!examResult || !examResult.exam || !examResult.exam.questions) {
+			return [];
+		}
+		
+		return examResult.exam.questions
+			.filter(question => {
+				// Include questions that are incorrect or need manual review
+				const isOpenText = (question.question_type || question.type) === 'open_text' || 
+								  (question.question_type || question.type) === 'short_answer';
+				
+				if (isOpenText) {
+					// For open text, include if manual review score is low or pending
+					const manualScore = examResult.manual_review_scores?.[question.id];
+					return manualScore === null || manualScore === undefined || manualScore < (question.points || 1);
+				}
+				
+				// For multiple choice, include if incorrect
+				return question.is_correct === false;
+			})
+			.map(question => {
+				const userAnswer = question.user_answer;
+				const correctAnswer = question.answers?.find(a => a.is_correct);
+				
+				return {
+					question: question.question_text || question.text || question.content,
+					userAnswer: typeof userAnswer === 'number' 
+						? question.answers?.[userAnswer]?.answer_text 
+						: userAnswer,
+					correctAnswer: correctAnswer?.answer_text || correctAnswer?.text,
+					explanation: question.explanation || null,
+					points: question.points || 1,
+					earnedPoints: question.earned_points || 0
+				};
+			});
+	}, [examResult]);
 
 	// Get all lessons from modules
 	const allLessons = useMemo(() => {
@@ -218,19 +303,61 @@ const UnifiedCoursePage = () => {
 
 	// Handle lesson completion
 	const handleCompleteLesson = async () => {
-		if (!user || !lessonId) return;
+		if (!user || !lessonId) {
+			console.warn('[handleCompleteLesson] Missing user or lessonId:', { user: !!user, lessonId });
+			return;
+		}
 		
 		try {
+			console.log('[handleCompleteLesson] Marking lesson as completed:', lessonId);
 			await courseProgressService.completeLesson(lessonId);
+			
+			// Update local state immediately
 			setCompleted(true);
 			setLessonProgress(100);
 			
-			// Refresh progress
+			// Refresh progress from server
 			const progressData = await courseProgressService.getCourseProgress(courseId);
 			setProgress(progressData);
+			
+			logger.debug('[handleCompleteLesson] ✅ Lesson marked as completed successfully');
 		} catch (err) {
-			console.error('Error completing lesson:', err);
-			alert('Eroare la completarea lecției: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'completeLesson');
+			showError('Eroare la completarea lecției: ' + errorMessage);
+		}
+	};
+
+	// Navigation helper: mark current lesson as completed (if needed) then navigate
+	const [navLoading, setNavLoading] = useState(false);
+
+	const handleNextNavigation = async (type, id) => {
+		if (!currentLesson) {
+			// Fallback navigation if no current lesson
+			if (type === 'lesson') navigate(`/courses/${courseId}/lessons/${id}`);
+			else navigate(`/courses/${courseId}/exams/${id}`);
+			return;
+		}
+
+		setNavLoading(true);
+		try {
+			// Complete current lesson if not already completed
+			if (user && !isLessonCompleted(currentLesson.id) && !completed) {
+				await courseProgressService.completeLesson(currentLesson.id);
+				setCompleted(true);
+				setLessonProgress(100);
+			}
+
+			// Refresh progress
+			if (user) {
+				const progressData = await courseProgressService.getCourseProgress(courseId);
+				setProgress(progressData);
+			}
+		} catch (err) {
+			handleApiError(err, 'markLessonComplete');
+		} finally {
+			setNavLoading(false);
+			if (type === 'lesson') navigate(`/courses/${courseId}/lessons/${id}`);
+			else navigate(`/courses/${courseId}/exams/${id}`);
 		}
 	};
 
@@ -253,8 +380,8 @@ const UnifiedCoursePage = () => {
 				setProgress(progressData);
 			}
 		} catch (err) {
-			console.error('Error submitting exam:', err);
-			setError('Eroare la trimiterea testului');
+			const errorMessage = handleApiError(err, 'submitExam');
+			setError('Eroare la trimiterea testului: ' + errorMessage);
 		}
 	};
 
@@ -323,8 +450,13 @@ const UnifiedCoursePage = () => {
 			?.flatMap(m => m.lessons || [])
 			?.find(l => l.id === lessonId);
 		
-		if (lessonProgressData?.completed) return 'completed';
-		if (lessonProgressData?.unlocked || lessonProgressData) return 'in-progress';
+		// Check if completed or has 100% progress
+		const isCompleted = lessonProgressData?.completed || false;
+		const progressPercentage = lessonProgressData?.progress_percentage || 0;
+		const isProgressComplete = progressPercentage >= 100;
+		
+		if (isCompleted || isProgressComplete) return 'completed';
+		if (lessonProgressData?.unlocked || lessonProgressData || progressPercentage > 0) return 'in-progress';
 		return 'not-started';
 	}, [progress]);
 
@@ -440,7 +572,7 @@ const UnifiedCoursePage = () => {
 												</div>
 												<div className="course-sidebar-modern-module-content">
 													<div className="course-sidebar-modern-module-title">
-														Modul {moduleIndex + 1}
+														{module.title || `Modul ${moduleIndex + 1}`}
 													</div>
 													{totalLessons > 0 && (
 														<div className="course-sidebar-modern-module-meta">
@@ -493,7 +625,7 @@ const UnifiedCoursePage = () => {
 																<div className="course-sidebar-modern-lesson-body">
 																	<div className="course-sidebar-modern-lesson-title">
 																		<span className="course-sidebar-modern-lesson-icon">{lessonIcon}</span>
-																		<span>Lectie {lessonIndex + 1}</span>
+																		<span>{lesson.title || `Lecție ${lessonIndex + 1}`}</span>
 																	</div>
 																	{lesson.duration_minutes && (
 																		<div className="course-sidebar-modern-lesson-time">
@@ -755,19 +887,20 @@ const UnifiedCoursePage = () => {
 							
 							<div className="premium-lesson-nav-right">
 								{nextLesson ? (
-									<Link
-										to={`/courses/${courseId}/lessons/${nextLesson.id}`}
+									<button
+										onClick={() => handleNextNavigation('lesson', nextLesson.id)}
 										className="premium-nav-button premium-nav-next"
+										disabled={navLoading}
 									>
 										<span className="premium-nav-text">
 											<span className="premium-nav-label">Următoarea lecție</span>
 											<span className="premium-nav-title">{nextLesson.title}</span>
 										</span>
 										<span className="premium-nav-icon">→</span>
-									</Link>
+									</button>
 								) : course.exams && course.exams.length > 0 ? (
 									<Link
-										to={`/courses/${courseId}/exams/${course.exams[0].id}`}
+										onClick={() => handleNextNavigation('exam', course.exams[0].id)}
 										className="premium-nav-button premium-nav-next"
 									>
 										<span className="premium-nav-text">
@@ -787,100 +920,177 @@ const UnifiedCoursePage = () => {
 				)}
 
 				{viewMode === 'exam' && currentExam && (
-					<div className="unified-course-exam-view">
+					<div className="modern-test-container">
 						{/* Exam Header */}
-						<div className="unified-course-exam-header">
-							<div className="unified-course-exam-breadcrumb">
+						<div className="modern-test-header">
+							<div className="modern-test-breadcrumb">
 								<Link to={`/courses/${courseId}`}>Curs</Link>
 								<span>/</span>
-								<span>{currentExam.title}</span>
+								<span>test</span>
 							</div>
-							<h1 className="unified-course-exam-title">{currentExam.title}</h1>
+							<h1 className="modern-test-title">{currentExam.title}</h1>
 							{currentExam.description && (
-								<p className="unified-course-exam-description">{currentExam.description}</p>
+								<p className="modern-test-description">{currentExam.description}</p>
 							)}
 							
-							{/* Timer */}
-							{timeRemaining !== null && !examSubmitted && (
-								<div className="unified-course-exam-timer">
-									<span>⏱</span>
-									<span>{formatTime(timeRemaining)}</span>
-								</div>
-							)}
+							{/* Progress & Timer */}
+							<div className="modern-test-header-info">
+								{!examSubmitted && currentExam.questions && (
+									<div className="modern-test-progress">
+										<div className="modern-test-progress-label">
+											Progres: {Object.keys(examAnswers).length} / {currentExam.questions.length} întrebări
+										</div>
+										<div className="modern-test-progress-bar">
+											<div 
+												className="modern-test-progress-fill"
+												style={{ width: `${(Object.keys(examAnswers).length / (currentExam.questions.length || 1)) * 100}%` }}
+											></div>
+										</div>
+									</div>
+								)}
+								{timeRemaining !== null && !examSubmitted && (
+									<div className={`modern-test-timer ${timeRemaining < 300 ? 'warning' : ''}`}>
+										<span className="modern-test-timer-icon">⏱</span>
+										<span className="modern-test-timer-value">{formatTime(timeRemaining)}</span>
+									</div>
+								)}
+							</div>
 						</div>
 
 						{/* Exam Questions */}
 						{!examSubmitted && (
-							<div className="unified-course-exam-questions">
-								{currentExam.questions && currentExam.questions.map((q, idx) => (
-									<div key={q.id} className="unified-course-exam-question">
-										<div className="unified-course-exam-question-header">
-											<span className="unified-course-exam-question-number">{idx + 1}</span>
-											<span className="unified-course-exam-question-text">{q.text}</span>
+							<div className="modern-test-questions">
+								{currentExam.questions && currentExam.questions.map((q, idx) => {
+									const isAnswered = examAnswers[q.id] !== undefined;
+									const questionAnswers = q.answers || q.options || [];
+									
+									return (
+										<div key={q.id} className={`modern-test-question ${isAnswered ? 'answered' : ''}`}>
+											<div className="modern-test-question-header">
+												<div className="modern-test-question-number">
+													{isAnswered && <span className="modern-test-question-check">✓</span>}
+													{!isAnswered && <span>{idx + 1}</span>}
+												</div>
+												<div className="modern-test-question-content">
+													<div className="modern-test-question-text">{q.question_text || q.text || q.content}</div>
+													<div className="modern-test-question-meta">
+														{q.points && (
+															<span className="modern-test-question-points">
+																{q.points} {q.points === 1 ? 'punct' : 'puncte'}
+															</span>
+														)}
+														{isAnswered && (
+															<span className="modern-test-question-status">Răspuns dat</span>
+														)}
+													</div>
+												</div>
+											</div>
+											<div className="modern-test-options">
+												{questionAnswers.map((opt, i) => {
+													const optionText = typeof opt === 'string' 
+														? opt 
+														: (opt.answer_text || opt.text || opt.content || '');
+													const isSelected = examAnswers[q.id] === i;
+													
+													return (
+														<label
+															key={i}
+															className={`modern-test-option ${isSelected ? 'selected' : ''}`}
+														>
+															<input
+																type="radio"
+																name={q.id}
+																checked={isSelected}
+																onChange={() => handleExamAnswerChange(q.id, i)}
+															/>
+															<span className="modern-test-option-letter">
+																{String.fromCharCode(65 + i)}
+															</span>
+															<span className="modern-test-option-text">{optionText}</span>
+															{isSelected && (
+																<span className="modern-test-option-check">✓</span>
+															)}
+														</label>
+													);
+												})}
+											</div>
 										</div>
-										<div className="unified-course-exam-question-options">
-											{q.options && q.options.map((opt, i) => (
-												<label
-													key={i}
-													className={`unified-course-exam-option ${examAnswers[q.id] === i ? 'selected' : ''}`}
-												>
-													<input
-														type="radio"
-														name={q.id}
-														checked={examAnswers[q.id] === i}
-														onChange={() => handleExamAnswerChange(q.id, i)}
-													/>
-													<span>{opt}</span>
-												</label>
-											))}
-										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 
 						{/* Exam Results */}
 						{examSubmitted && examResult && (
-							<div className="unified-course-exam-results">
-								<div className={`unified-course-exam-result-header ${examResult.passed ? 'passed' : 'failed'}`}>
-									{examResult.passed ? '✓ Test promovat!' : '✗ Test nepromovat'}
+							<div className="modern-test-results">
+								<div className={`modern-test-result-header ${examResult.passed ? 'passed' : 'failed'}`}>
+									<div className="modern-test-result-icon">
+										{examResult.passed ? '✓' : '✗'}
+									</div>
+									<div className="modern-test-result-title">
+										{examResult.passed ? 'Test promovat!' : 'Test nepromovat'}
+									</div>
+									<div className="modern-test-result-subtitle">
+										{examResult.passed 
+											? 'Felicitări! Ai promovat testul cu succes.'
+											: `Ai obținut ${examResult.percentage || 0}%, dar ai nevoie de minim ${currentExam.passing_score || 70}% pentru a promova.`
+										}
+									</div>
 								</div>
-								<div className="unified-course-exam-result-stats">
-									<div className="unified-course-exam-result-stat">
-										<span className="unified-course-exam-result-label">Scor</span>
-										<span className="unified-course-exam-result-value">
+								<div className="modern-test-result-stats">
+									<div className="modern-test-result-stat">
+										<span className="modern-test-result-stat-label">Scor</span>
+										<span className="modern-test-result-stat-value">
 											{examResult.score || 0} / {examResult.total_points || currentExam.questions?.length || 0}
 										</span>
 									</div>
-									<div className="unified-course-exam-result-stat">
-										<span className="unified-course-exam-result-label">Procentaj</span>
-										<span className="unified-course-exam-result-value">{examResult.percentage || 0}%</span>
+									<div className="modern-test-result-stat">
+										<span className="modern-test-result-stat-label">Procentaj</span>
+										<span className="modern-test-result-stat-value">{examResult.percentage || 0}%</span>
 									</div>
 								</div>
 							</div>
 						)}
 
 						{/* Exam Actions */}
-						<div className="unified-course-exam-actions">
+						<div className="modern-test-actions">
 							{!examSubmitted && (
 								<button
 									onClick={handleExamSubmit}
-									className="unified-course-exam-submit-button"
+									className="modern-test-submit-btn"
 									disabled={Object.keys(examAnswers).length === 0}
 								>
-									Trimite testul
+									<span>✓</span>
+									<span>Trimite testul</span>
 								</button>
 							)}
 							<Link
 								to={`/courses/${courseId}`}
-								className="unified-course-exam-back-button"
+								className="modern-test-back-btn"
 							>
-								Înapoi la curs
+								<span>←</span>
+								<span>Înapoi la curs</span>
 							</Link>
 						</div>
 					</div>
 				)}
 			</main>
+
+			{/* AI Tutor - Per course, per user */}
+			{user && course && (viewMode === 'lesson' || viewMode === 'overview') && (
+				<AITutor
+					tutorSettings={{
+						tone: course?.ai_tutor_tone || 'friendly',
+						depth: course?.ai_tutor_depth || 'medium',
+						allowed_topics: course?.ai_tutor_allowed_topics || [],
+						restricted_topics: course?.ai_tutor_restricted_topics || []
+					}}
+					course={course}
+					lesson={currentLesson}
+					progress={progress}
+					assessmentMistakes={assessmentMistakes}
+				/>
+			)}
 		</div>
 	);
 };

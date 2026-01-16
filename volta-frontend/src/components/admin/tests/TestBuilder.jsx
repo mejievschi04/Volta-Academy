@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminService } from '../../../services/api';
 import { useAutoSave } from '../../../hooks/useAutoSave';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useToast } from '../../../contexts/ToastContext';
+import UndoRedoControls from '../../common/UndoRedoControls';
+import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import TestBuilderStep1 from './TestBuilderSteps/Step1Basics';
 import TestBuilderStep2 from './TestBuilderSteps/Step2Questions';
 import TestBuilderStep3 from './TestBuilderSteps/Step3Settings';
 import TestBuilderStep4 from './TestBuilderSteps/Step4Review';
+import TestCreationModal from './TestCreationModal';
 
 const TestBuilder = () => {
 	const params = useParams();
@@ -17,7 +21,10 @@ const TestBuilder = () => {
 	const isEditMode = !!id;
 
 	const [currentStep, setCurrentStep] = useState(1);
-	const [testData, setTestData] = useState({
+	const [showModal, setShowModal] = useState(!isEditMode); // Show unified modal for new tests
+	
+	// Initial test data
+	const initialTestData = {
 		// Step 1: Test Basics
 		title: '',
 		description: '',
@@ -37,7 +44,10 @@ const TestBuilder = () => {
 		show_results_immediately: true,
 		show_correct_answers: false,
 		allow_review: true,
-	});
+	};
+	
+	// Use undo/redo for test data
+	const { state: testData, setState: setTestData, undo, redo, canUndo, canRedo } = useUndoRedo(initialTestData);
 
 	const [loading, setLoading] = useState(isEditMode);
 	const [error, setError] = useState(null);
@@ -86,7 +96,7 @@ const TestBuilder = () => {
 				});
 				if (saved.test?.id && !id) {
 					window.history.replaceState({}, '', `/admin/tests/${saved.test.id}/builder`);
-					window.location.reload();
+					// Don't reload - just continue with current step
 				}
 			} catch (err) {
 				console.error('Auto-save error:', err);
@@ -97,7 +107,12 @@ const TestBuilder = () => {
 	const hasValidTitle = testData.title && typeof testData.title === 'string' && testData.title.trim().length >= 3;
 	const autoSaveEnabled = currentStep > 1 && hasValidTitle;
 	
-	const { saveStatus, manualSave } = useAutoSave(testData, autoSaveFn, 2000, autoSaveEnabled);
+	const { saveStatus: autoSaveStatus, manualSave } = useAutoSave(testData, autoSaveFn, 2000, autoSaveEnabled);
+	
+	// Update save status
+	useEffect(() => {
+		setSaveStatus(autoSaveStatus);
+	}, [autoSaveStatus]);
 
 	const fetchTestData = async () => {
 		try {
@@ -121,6 +136,9 @@ const TestBuilder = () => {
 		setTestData(prev => ({ ...prev, ...updates }));
 		setValidationErrors({});
 	};
+	
+	// Auto-save status
+	const [saveStatus, setSaveStatus] = useState('idle');
 
 	const validateStep = (step) => {
 		const errors = {};
@@ -240,7 +258,7 @@ const TestBuilder = () => {
 		}
 	};
 
-	const handleSave = async () => {
+	const handleSaveDraft = async () => {
 		const validationResult = validateStep(currentStep);
 		if (!validationResult.isValid) {
 			setValidationErrors(validationResult.errors);
@@ -249,35 +267,8 @@ const TestBuilder = () => {
 
 		try {
 			setLoading(true);
-			
-			const dataToSend = {
-				title: testData.title.trim(),
-				description: testData.description || null,
-				type: testData.type || 'graded',
-				status: 'draft',
-				time_limit_minutes: testData.time_limit_minutes || null,
-				max_attempts: testData.max_attempts || null,
-				randomize_questions: testData.randomize_questions || false,
-				randomize_answers: testData.randomize_answers || false,
-				show_results_immediately: testData.show_results_immediately !== false,
-				show_correct_answers: testData.show_correct_answers || false,
-				allow_review: testData.allow_review !== false,
-				question_source: testData.question_source || 'direct',
-				question_set_id: testData.question_set_id || null,
-				questions: testData.questions || [],
-			};
-
-			if (isEditMode && id) {
-				await adminService.updateTest(id, dataToSend);
-				showToast('Test salvat cu succes!', 'success');
-			} else {
-				const saved = await adminService.createTest(dataToSend);
-				if (saved.test?.id) {
-					window.history.replaceState({}, '', `/admin/tests/${saved.test.id}/builder`);
-					showToast('Test creat cu succes!', 'success');
-					window.location.reload();
-				}
-			}
+			await manualSave();
+			showToast('Test salvat cu succes!', 'success');
 		} catch (err) {
 			console.error('Error saving test:', err);
 			const errorMsg = err.response?.data?.error || err.message || 'Eroare la salvarea testului';
@@ -299,153 +290,177 @@ const TestBuilder = () => {
 	}
 
 	const steps = [
-		{ number: 1, title: 'Informații de bază', component: TestBuilderStep1 },
-		{ number: 2, title: 'Întrebări', component: TestBuilderStep2 },
-		{ number: 3, title: 'Setări', component: TestBuilderStep3 },
-		{ number: 4, title: 'Revizuire', component: TestBuilderStep4 },
+		{ number: 1, title: 'Informații de bază', icon: '📝' },
+		{ number: 2, title: 'Întrebări', icon: '❓' },
+		{ number: 3, title: 'Setări', icon: '⚙️' },
+		{ number: 4, title: 'Revizuire', icon: '📋' },
 	];
 
-	const CurrentStepComponent = steps[currentStep - 1]?.component;
+	// Unified Modal for new tests
+	if (showModal && !isEditMode) {
+		return (
+			<TestCreationModal
+				onClose={() => navigate('/admin/tests')}
+				testData={testData}
+				onUpdate={updateTestData}
+				currentStep={currentStep}
+				onStepChange={setCurrentStep}
+				onValidationErrors={setValidationErrors}
+				validationErrors={validationErrors}
+				onSaveDraft={handleSaveDraft}
+				loading={loading}
+				testId={id}
+				onPublish={handlePublish}
+				undo={undo}
+				redo={redo}
+				canUndo={canUndo}
+				canRedo={canRedo}
+				saveStatus={saveStatus}
+			/>
+		);
+	}
 
 	return (
-		<div className="admin-container">
-			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">
-						{isEditMode ? 'Editează Test' : 'Creează Test Nou'}
-					</h1>
-					<p className="va-muted admin-page-subtitle">
-						Teste standalone care pot fi reutilizate în multiple cursuri
-					</p>
-				</div>
-				<div style={{ display: 'flex', gap: '0.5rem' }}>
-					<button
-						className="va-btn"
-						onClick={() => navigate('/admin/tests')}
-					>
-						← Înapoi
-					</button>
-					{saveStatus === 'saving' && (
-						<span className="va-muted" style={{ display: 'flex', alignItems: 'center', padding: '0 1rem' }}>
-							Se salvează...
-						</span>
-					)}
-					{saveStatus === 'saved' && (
-						<span className="va-muted" style={{ display: 'flex', alignItems: 'center', padding: '0 1rem' }}>
-							✓ Salvat
-						</span>
-					)}
-				</div>
-			</div>
-
-			{/* Progress Steps */}
-			<div style={{
-				display: 'flex',
-				justifyContent: 'space-between',
-				marginBottom: '2rem',
-				padding: '1rem',
-				background: 'rgba(0, 0, 0, 0.3)',
-				borderRadius: '8px',
-			}}>
-				{steps.map((step, index) => (
-					<div key={step.number} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-						<div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-							<div style={{
-								width: '40px',
-								height: '40px',
-								borderRadius: '50%',
-								background: currentStep >= step.number ? '#ffee00' : 'rgba(255, 238, 0, 0.2)',
-								color: currentStep >= step.number ? '#000' : '#fff',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								fontWeight: 'bold',
-								marginRight: '0.5rem',
-							}}>
-								{currentStep > step.number ? '✓' : step.number}
-							</div>
-							<div>
-								<div style={{ fontWeight: currentStep === step.number ? 600 : 400 }}>
-									Pas {step.number}
-								</div>
-								<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-									{step.title}
-								</div>
-							</div>
-						</div>
-						{index < steps.length - 1 && (
-							<div style={{
-								width: '100%',
-								height: '2px',
-								background: currentStep > step.number ? '#ffee00' : 'rgba(255, 238, 0, 0.2)',
-								margin: '0 1rem',
-							}} />
-						)}
-					</div>
-				))}
-			</div>
-
-			{error && (
-				<div style={{
-					padding: '1rem',
-					background: 'rgba(244, 67, 54, 0.1)',
-					color: '#f44336',
-					borderRadius: '8px',
-					marginBottom: '1rem',
-					border: '1px solid rgba(244, 67, 54, 0.3)',
-				}}>
-					{error}
-				</div>
-			)}
-
-			{CurrentStepComponent && (
-				<CurrentStepComponent
-					testId={id}
-					data={testData}
-					onUpdate={updateTestData}
-					errors={validationErrors}
-				/>
-			)}
-
-			{/* Navigation */}
-			<div style={{
-				display: 'flex',
-				justifyContent: 'space-between',
-				marginTop: '2rem',
-				paddingTop: '2rem',
-				borderTop: '1px solid rgba(255, 238, 0, 0.2)',
-			}}>
-				<button
-					className="va-btn"
-					onClick={handlePrevious}
-					disabled={currentStep === 1}
-				>
-					← Anterior
-				</button>
-				<div style={{ display: 'flex', gap: '0.5rem' }}>
-					<button
-						className="va-btn"
-						onClick={handleSave}
-						disabled={loading}
-					>
-						💾 Salvează Draft
-					</button>
-					{currentStep < 4 ? (
+		<div className="admin-course-builder">
+			<div className="admin-course-builder-container">
+				{/* Header */}
+				<div className="admin-course-builder-header">
+					<div className="admin-course-builder-header-left">
 						<button
-							className="va-btn va-btn-primary"
-							onClick={handleNext}
+							className="admin-btn admin-btn-back"
+							onClick={() => navigate('/admin/tests')}
 						>
-							Următor →
+							← Înapoi
 						</button>
-					) : (
+						<h1 className="admin-course-builder-title">
+							{isEditMode ? 'Editează Test' : 'Creează Test Nou'}
+						</h1>
+					</div>
+					<div className="admin-course-builder-header-right">
+						<UndoRedoControls
+							onUndo={undo}
+							onRedo={redo}
+							canUndo={canUndo}
+							canRedo={canRedo}
+							className="course-builder-undo-redo"
+						/>
+						<AutoSaveIndicator status={saveStatus} />
 						<button
-							className="va-btn va-btn-primary"
-							onClick={handlePublish}
+							className="admin-btn admin-btn-secondary"
+							onClick={handleSaveDraft}
 							disabled={loading}
 						>
-							📤 Publică Test
+							💾 Salvează Draft
 						</button>
+					</div>
+				</div>
+
+				{/* Progress Steps */}
+				<div className="admin-course-builder-steps">
+					{steps.map((step) => (
+						<div
+							key={step.number}
+							className={`admin-course-builder-step ${
+								step.number === currentStep ? 'active' : ''
+							} ${step.number < currentStep ? 'completed' : ''}`}
+						>
+							<div className="admin-course-builder-step-number">
+								{step.number < currentStep ? '✓' : step.number}
+							</div>
+							<div className="admin-course-builder-step-content">
+								<div className="admin-course-builder-step-icon">{step.icon}</div>
+								<div className="admin-course-builder-step-title">{step.title}</div>
+							</div>
+						</div>
+					))}
+				</div>
+
+				{/* Content */}
+				<div className="admin-course-builder-content">
+					{error && (
+						<div className="admin-error-message">
+							<strong>Eroare:</strong> {error}
+						</div>
 					)}
+
+					{/* Show validation errors summary */}
+					{Object.keys(validationErrors).length > 0 && (
+						<div className="admin-form-error-message">
+							<strong>⚠️ Erori de validare:</strong>
+							<ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
+								{Object.entries(validationErrors).map(([key, message]) => (
+									<li key={key}>{message}</li>
+								))}
+							</ul>
+						</div>
+					)}
+
+					{/* PASUL 1: Test Basics */}
+					{currentStep === 1 && (
+						<TestBuilderStep1
+							data={testData}
+							onUpdate={updateTestData}
+							errors={validationErrors}
+						/>
+					)}
+
+					{/* PASUL 2: Questions */}
+					{currentStep === 2 && (
+						<TestBuilderStep2
+							testId={id}
+							data={testData}
+							onUpdate={updateTestData}
+							errors={validationErrors}
+						/>
+					)}
+
+					{/* PASUL 3: Settings */}
+					{currentStep === 3 && (
+						<TestBuilderStep3
+							data={testData}
+							onUpdate={updateTestData}
+							errors={validationErrors}
+						/>
+					)}
+
+					{/* PASUL 4: Review */}
+					{currentStep === 4 && (
+						<TestBuilderStep4
+							testId={id}
+							data={testData}
+							onPublish={handlePublish}
+							loading={loading}
+						/>
+					)}
+				</div>
+
+				{/* Navigation */}
+				<div className="admin-course-builder-footer">
+					<button
+						className="admin-btn admin-btn-secondary"
+						onClick={handlePrevious}
+						disabled={currentStep === 1}
+					>
+						← Anterior
+					</button>
+					<div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+						{currentStep < 4 ? (
+							<button
+								className="admin-btn admin-btn-primary"
+								onClick={handleNext}
+							>
+								Următor →
+							</button>
+						) : (
+							<button
+								className="admin-btn admin-btn-primary"
+								onClick={handlePublish}
+								disabled={loading}
+							>
+								🚀 Publică Test
+							</button>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>

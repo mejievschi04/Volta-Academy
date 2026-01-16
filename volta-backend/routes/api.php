@@ -93,6 +93,15 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
     Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration']);
     Route::post('/events/{id}/mark-attendance', [EventController::class, 'markAttendance']);
     Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched']);
+    
+    // Messages
+    Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
+    Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
+    Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
+    Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
+    Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
+    Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
+    Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
 });
 
 // Admin routes (require admin role) with rate limiting
@@ -157,8 +166,10 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::delete('/question-banks/{id}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'destroy']);
     Route::get('/question-banks/{id}/questions', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'getQuestions']);
     Route::post('/question-banks/{id}/questions', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'addQuestion']);
+    Route::put('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'updateQuestion']);
     Route::delete('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'removeQuestion']);
     Route::post('/question-banks/{id}/generate-from-course', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromCourse']);
+    Route::post('/question-banks/{id}/generate-from-text', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromText']);
     
     // Progression Rules Management
     Route::get('/courses/{courseId}/progression-rules', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'index']);

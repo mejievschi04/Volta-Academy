@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { examResultsService } from '../services/api';
-import '../styles/exam-results.css';
+import { logger } from '../utils/logger';
+import { handleApiError } from '../utils/errorHandler';
 
 const ExamResultsPage = () => {
 	const [results, setResults] = useState([]);
@@ -20,7 +21,7 @@ const ExamResultsPage = () => {
 			const data = await examResultsService.getAll();
 			setResults(data);
 		} catch (err) {
-			console.error('Error fetching exam results:', err);
+			handleApiError(err, 'fetchExamResults');
 			setError('Nu s-au putut încărca rezultatele testelor');
 		} finally {
 			setLoading(false);
@@ -34,7 +35,7 @@ const ExamResultsPage = () => {
 			const fullDetails = await examResultsService.getById(result.id);
 			setSelectedResult(fullDetails);
 		} catch (err) {
-			console.error('Error fetching result details:', err);
+			handleApiError(err, 'fetchResultDetails');
 			// Fallback to basic result if detail fetch fails
 			setSelectedResult(result);
 		} finally {
@@ -91,11 +92,11 @@ const ExamResultsPage = () => {
 
 	return (
 		<div className="exam-results-page">
-			<div className="page-header">
-				<h1 className="va-page-title">
+			<div className="exam-results-page-header">
+				<h1 className="exam-results-page-title">
 					Rezultate Teste
 				</h1>
-				<p className="page-subtitle">
+				<p className="exam-results-page-subtitle">
 					Vezi toate testele completate și răspunsurile tale
 				</p>
 			</div>
@@ -116,7 +117,7 @@ const ExamResultsPage = () => {
 			<div className="exam-results-grid">
 				{/* Results List */}
 				<div>
-					<h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Teste Completate</h2>
+					<h2 className="exam-results-section-title">Teste Completate</h2>
 					{results.length > 0 ? (
 						<div className="exam-results-list">
 							{results.map((result) => (
@@ -171,7 +172,7 @@ const ExamResultsPage = () => {
 							<button
 								type="button"
 								onClick={() => setSelectedResult(null)}
-								className="va-btn va-btn-sm"
+								className="lms-btn-secondary lms-btn-sm"
 								disabled={loadingDetails}
 							>
 								Închide

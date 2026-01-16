@@ -1,4 +1,5 @@
 import api from '../api.js';
+import { logger } from '../utils/logger';
 
 // Categories are no longer supported
 
@@ -9,7 +10,7 @@ export const coursesService = {
     const raw = response?.data;
     const list = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
     if (!Array.isArray(list)) {
-      console.warn('coursesService.getAll: unexpected response shape', raw);
+      logger.warn('coursesService.getAll: unexpected response shape', raw);
     }
     return list;
   },
@@ -50,7 +51,7 @@ export const dashboardService = {
       const response = await api.get('/dashboard');
       return response.data;
     } catch (error) {
-      console.error('Dashboard API error:', error);
+      logger.error('Dashboard API error:', error);
       if (error.response) {
         throw new Error(error.response.data?.message || `Server error: ${error.response.status}`);
       } else if (error.request) {
@@ -66,7 +67,7 @@ export const dashboardService = {
       const response = await api.get('/student/dashboard');
       return response.data;
     } catch (error) {
-      console.error('Student Dashboard API error:', error);
+      logger.error('Student Dashboard API error:', error);
       if (error.response) {
         throw new Error(error.response.data?.message || `Server error: ${error.response.status}`);
       } else if (error.request) {
@@ -304,9 +305,9 @@ export const adminService = {
     // Handle paginated response (Laravel returns {data: [...], current_page, etc.})
     // or plain array response
     const data = response.data;
-    console.log('adminService.getCourses: Raw response:', data);
-    console.log('adminService.getCourses: Is array?', Array.isArray(data));
-    console.log('adminService.getCourses: Has data property?', data?.data);
+    logger.debug('adminService.getCourses: Raw response:', data);
+    logger.debug('adminService.getCourses: Is array?', Array.isArray(data));
+    logger.debug('adminService.getCourses: Has data property?', data?.data);
     
     // Laravel paginator returns {data: [...], current_page, per_page, total, ...}
     if (Array.isArray(data)) {
@@ -319,7 +320,7 @@ export const adminService = {
     }
     
     // Fallback: return empty array
-    console.warn('adminService.getCourses: Unexpected response format, returning empty array');
+    logger.warn('adminService.getCourses: Unexpected response format, returning empty array');
     return [];
   },
   
@@ -527,6 +528,27 @@ export const adminService = {
     return response.data;
   },
 
+  // Questions
+  getQuestions: async (testId) => {
+    const response = await api.get(`/admin/tests/${testId}/questions`);
+    return response.data;
+  },
+
+  createQuestion: async (testId, questionData) => {
+    const response = await api.post(`/admin/tests/${testId}/questions`, questionData);
+    return response.data;
+  },
+
+  updateQuestion: async (questionId, questionData) => {
+    const response = await api.put(`/admin/questions/${questionId}`, questionData);
+    return response.data;
+  },
+
+  deleteQuestion: async (questionId) => {
+    const response = await api.delete(`/admin/questions/${questionId}`);
+    return response.data;
+  },
+
   // Progression Rules
   getProgressionRules: async (courseId) => {
     const response = await api.get(`/admin/courses/${courseId}/progression-rules`);
@@ -597,6 +619,11 @@ export const adminService = {
     return response.data;
   },
 
+  updateQuestionInBank: async (bankId, questionId, questionData) => {
+    const response = await api.put(`/admin/question-banks/${bankId}/questions/${questionId}`, questionData);
+    return response.data;
+  },
+
   removeQuestionFromBank: async (bankId, questionId) => {
     const response = await api.delete(`/admin/question-banks/${bankId}/questions/${questionId}`);
     return response.data;
@@ -605,6 +632,14 @@ export const adminService = {
   generateQuestionsFromCourse: async (bankId, courseId, options = {}) => {
     const response = await api.post(`/admin/question-banks/${bankId}/generate-from-course`, {
       course_id: courseId,
+      ...options
+    });
+    return response.data;
+  },
+
+  generateQuestionsFromText: async (bankId, content, options = {}) => {
+    const response = await api.post(`/admin/question-banks/${bankId}/generate-from-text`, {
+      content: content,
       ...options
     });
     return response.data;
@@ -884,3 +919,91 @@ export const adminService = {
   },
 };
 
+export const messagesService = {
+  // Get all conversations for the current user
+  getConversations: async () => {
+    try {
+      const response = await api.get('/messages/conversations');
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      // If endpoint doesn't exist yet, return empty array (will use mock data)
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  // Get messages for a specific conversation
+  getMessages: async (conversationId) => {
+    try {
+      const response = await api.get(`/messages/conversations/${conversationId}/messages`);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  // Send a message
+  sendMessage: async (conversationId, content) => {
+    const response = await api.post(`/messages/conversations/${conversationId}/messages`, {
+      content,
+    });
+    return response.data?.data || response.data;
+  },
+
+  // Create a new conversation
+  createConversation: async (participantId) => {
+    const response = await api.post('/messages/conversations', {
+      participant_id: participantId,
+    });
+    return response.data?.data || response.data;
+  },
+
+  // Get available users for new conversation
+  getAvailableUsers: async (query = '') => {
+    try {
+      const response = await api.get('/messages/available-users', {
+        params: { q: query },
+      });
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  // Search conversations
+  searchConversations: async (query) => {
+    try {
+      const response = await api.get('/messages/conversations/search', {
+        params: { q: query },
+      });
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  // Mark messages as read
+  markAsRead: async (conversationId) => {
+    try {
+      const response = await api.post(`/messages/conversations/${conversationId}/read`);
+      return response.data;
+    } catch (error) {
+      // Silently fail if endpoint doesn't exist
+      if (error.response?.status === 404) {
+        return { success: true };
+      }
+      throw error;
+    }
+  },
+};

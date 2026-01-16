@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 
 const AdminTeamsPage = () => {
+	const { success: showSuccess, error: showError } = useToast();
 	const [teams, setTeams] = useState([]);
 	const [users, setUsers] = useState([]);
 	const [courses, setCourses] = useState([]);
@@ -69,9 +72,10 @@ const AdminTeamsPage = () => {
 			setEditingTeam(null);
 			setFormData({ name: '', description: '', owner_id: '' });
 			fetchTeams();
+			showSuccess('Echipă salvată cu succes!');
 		} catch (err) {
-			console.error('Error saving team:', err);
-			alert('Eroare la salvarea echipei');
+			logger.error('Error saving team:', err);
+			showError('Eroare la salvarea echipei: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -91,9 +95,10 @@ const AdminTeamsPage = () => {
 		try {
 			await adminService.deleteTeam(id);
 			fetchTeams();
+			showSuccess('Echipă ștearsă cu succes!');
 		} catch (err) {
-			console.error('Error deleting team:', err);
-			alert('Eroare la ștergerea echipei');
+			logger.error('Error deleting team:', err);
+			showError('Eroare la ștergerea echipei: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -103,9 +108,10 @@ const AdminTeamsPage = () => {
 			setShowUsersModal(false);
 			setSelectedTeam(null);
 			fetchTeams();
+			showSuccess('Utilizatori atașați cu succes!');
 		} catch (err) {
-			console.error('Error attaching users:', err);
-			alert('Eroare la atașarea utilizatorilor');
+			logger.error('Error attaching users:', err);
+			showError('Eroare la atașarea utilizatorilor: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -115,23 +121,32 @@ const AdminTeamsPage = () => {
 			setShowCoursesModal(false);
 			setSelectedTeam(null);
 			fetchTeams();
+			showSuccess('Cursuri atașate cu succes!');
 		} catch (err) {
-			console.error('Error attaching courses:', err);
-			alert('Eroare la atașarea cursurilor');
+			logger.error('Error attaching courses:', err);
+			showError('Eroare la atașarea cursurilor: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
-	if (loading) { return null; }
+	if (loading) {
+		return (
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="admin-container">
 			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">Gestionare Echipe</h1>
-					<p className="va-muted admin-page-subtitle">Gestionează echipele și atribuie-le cursuri</p>
+				<div className="admin-page-header-content">
+					<h1 className="admin-page-title">Gestionare Echipe</h1>
+					<p className="admin-page-subtitle">Gestionează echipele și atribuie-le cursuri</p>
 				</div>
 				<button
-					className="va-btn va-btn-primary"
+					className="lms-btn-primary"
 					onClick={() => {
 						setEditingTeam(null);
 						setFormData({ name: '', description: '', owner_id: '' });
@@ -143,121 +158,174 @@ const AdminTeamsPage = () => {
 			</div>
 
 			{error && (
-				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
+				<div className="lms-error-message">
 					{error}
 				</div>
 			)}
 
 			{teams.length > 0 ? (
-				<div className="admin-teams-grid">
+				<div className="admin-grid">
 					{teams.map((team) => (
-						<div key={team.id} className="admin-team-card">
-							{/* Animated background gradient */}
-							<div className="admin-team-card-bg-gradient" />
-							<div className="admin-team-card-bg-gradient-2" />
-							
-							{/* Action icons in top right corner */}
-							<div className="admin-team-card-actions">
-								<button
-									className="admin-team-card-action-btn"
-									onClick={() => handleEdit(team)}
-									title="Editează echipă"
-								>
-									✏️
-								</button>
-								<button
-									className="admin-team-card-action-btn delete"
-									onClick={() => handleDelete(team.id)}
-									title="Șterge echipă"
-								>
-									🗑️
-								</button>
-							</div>
-							
-							{/* Header */}
-							<div className="admin-team-card-header">
-								<div className="admin-team-card-header-content">
-									<div className="admin-team-card-icon">
-										👥
+						<div key={team.id} className="admin-card">
+							<div className="admin-card-body">
+								{/* Header with icon and actions */}
+								<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
+									<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flex: 1, minWidth: 0 }}>
+										<div style={{ 
+											width: '56px', 
+											height: '56px', 
+											borderRadius: 'var(--radius-xl)', 
+											background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', 
+											display: 'flex', 
+											alignItems: 'center', 
+											justifyContent: 'center',
+											fontSize: '28px',
+											flexShrink: 0,
+											boxShadow: 'var(--shadow-md)'
+										}}>
+											👥
+										</div>
+										<div style={{ flex: 1, minWidth: 0 }}>
+											<h3 className="admin-card-title" style={{ marginBottom: 'var(--space-2)' }}>
+												{team.name}
+											</h3>
+											{team.owner && (
+												<div className="admin-card-description" style={{ 
+													fontSize: 'var(--font-size-sm)', 
+													display: 'flex',
+													alignItems: 'center',
+													gap: 'var(--space-2)'
+												}}>
+													<span>Proprietar:</span>
+													<strong>{team.owner.name}</strong>
+												</div>
+											)}
+										</div>
 									</div>
-									<div style={{ flex: 1, minWidth: 0 }}>
-										<h3 className="admin-team-card-title">
-											{team.name}
-										</h3>
-										{team.owner && (
-											<div className="admin-team-card-owner">
-												<span className="admin-team-card-owner-dot" />
-												<span>Proprietar:</span>
-												<strong className="admin-team-card-owner-name">
-													{team.owner.name}
-												</strong>
-											</div>
-										)}
+									{/* Action icons */}
+									<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+										<button
+											className="admin-btn admin-btn-sm admin-btn-ghost"
+											onClick={() => handleEdit(team)}
+											title="Editează echipă"
+											style={{ minWidth: 'auto', padding: 'var(--space-2)', fontSize: '18px' }}
+										>
+											✏️
+										</button>
+										<button
+											className="admin-btn admin-btn-sm admin-btn-danger"
+											onClick={() => handleDelete(team.id)}
+											title="Șterge echipă"
+											style={{ minWidth: 'auto', padding: 'var(--space-2)', fontSize: '18px' }}
+										>
+											🗑️
+										</button>
 									</div>
 								</div>
 								
 								{team.description && (
-									<p className="admin-team-card-description">
+									<p className="admin-card-description" style={{ marginBottom: 'var(--space-5)' }}>
 										{team.description}
 									</p>
 								)}
-							</div>
 
-							{/* Stats */}
-							<div className="admin-team-card-stats">
-								<div className="admin-team-card-stat">
-									<div className="admin-team-card-stat-value">
-										{team.users?.length || 0}
+								{/* Stats - Large and prominent */}
+								<div style={{ 
+									display: 'grid', 
+									gridTemplateColumns: '1fr 1fr',
+									gap: 'var(--space-4)', 
+									padding: 'var(--space-6)', 
+									background: 'var(--bg-tertiary)', 
+									borderRadius: 'var(--radius-lg)',
+									border: '1px solid var(--border-primary)',
+									marginBottom: 'var(--space-5)'
+								}}>
+									<div style={{ textAlign: 'center' }}>
+										<div style={{ 
+											fontSize: '36px', 
+											fontWeight: 'var(--font-weight-bold)', 
+											color: 'var(--text-primary)',
+											lineHeight: 1,
+											marginBottom: 'var(--space-2)'
+										}}>
+											{team.users?.length || 0}
+										</div>
+										<div style={{ 
+											fontSize: 'var(--font-size-xs)', 
+											color: 'var(--text-secondary)',
+											textTransform: 'uppercase',
+											letterSpacing: '0.1em',
+											fontWeight: 'var(--font-weight-semibold)'
+										}}>
+											Membri
+										</div>
 									</div>
-									<div className="admin-team-card-stat-label">
-										Membri
+									<div style={{ textAlign: 'center' }}>
+										<div style={{ 
+											fontSize: '36px', 
+											fontWeight: 'var(--font-weight-bold)', 
+											color: 'var(--text-primary)',
+											lineHeight: 1,
+											marginBottom: 'var(--space-2)'
+										}}>
+											{team.courses?.length || 0}
+										</div>
+										<div style={{ 
+											fontSize: 'var(--font-size-xs)', 
+											color: 'var(--text-secondary)',
+											textTransform: 'uppercase',
+											letterSpacing: '0.1em',
+											fontWeight: 'var(--font-weight-semibold)'
+										}}>
+											Cursuri
+										</div>
 									</div>
 								</div>
-								<div className="admin-team-card-stat">
-									<div className="admin-team-card-stat-value">
-										{team.courses?.length || 0}
-									</div>
-									<div className="admin-team-card-stat-label">
-										Cursuri
-									</div>
-								</div>
-							</div>
 
-							{/* Actions */}
-							<div className="admin-team-card-actions-bottom">
-								<button
-									className="admin-team-card-action-button"
-									onClick={() => {
-										setSelectedTeam(team);
-										setShowUsersModal(true);
-									}}
-								>
-									👥 Membri
-								</button>
-								<button
-									className="admin-team-card-action-button"
-									onClick={() => {
-										setSelectedTeam(team);
-										setShowCoursesModal(true);
-									}}
-								>
-									📚 Cursuri
-								</button>
+								{/* Actions */}
+								<div className="admin-card-actions">
+									<button
+										className="admin-btn admin-btn-sm admin-btn-secondary"
+										onClick={() => {
+											setSelectedTeam(team);
+											setShowUsersModal(true);
+										}}
+									>
+										<span className="admin-btn-icon">👥</span>
+										<span>Membri</span>
+									</button>
+									<button
+										className="admin-btn admin-btn-sm admin-btn-secondary"
+										onClick={() => {
+											setSelectedTeam(team);
+											setShowCoursesModal(true);
+										}}
+									>
+										<span className="admin-btn-icon">📚</span>
+										<span>Cursuri</span>
+									</button>
+								</div>
 							</div>
 						</div>
 					))}
 				</div>
 			) : (
-				<div className="admin-teams-empty">
-					<div className="admin-teams-empty-icon">
-						👥
-					</div>
-					<h3 className="admin-teams-empty-title">
-						Nu există echipe
-					</h3>
-					<p className="admin-teams-empty-text">
+				<div className="lms-empty-state">
+					<div className="lms-empty-icon">👥</div>
+					<h3 className="lms-empty-title">Nu există echipe</h3>
+					<p className="lms-empty-description">
 						Începe prin a crea prima echipă
 					</p>
+					<button
+						className="lms-btn-primary"
+						onClick={() => {
+							setEditingTeam(null);
+							setFormData({ name: '', description: '', owner_id: '' });
+							setShowModal(true);
+						}}
+					>
+						+ Adaugă Echipă
+					</button>
 				</div>
 			)}
 
@@ -281,30 +349,30 @@ const AdminTeamsPage = () => {
 							</button>
 						</div>
 						<div className="admin-team-modal-body">
-							<form onSubmit={handleSubmit} className="va-stack">
-								<div className="va-form-group">
-									<label className="va-form-label">Nume</label>
+							<form onSubmit={handleSubmit} className="admin-team-modal-form">
+								<div className="admin-form-group">
+									<label className="admin-form-label">Nume</label>
 									<input
 										type="text"
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.name}
 										onChange={(e) => setFormData({ ...formData, name: e.target.value })}
 										required
 									/>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Descriere</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Descriere</label>
 									<textarea
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.description}
 										onChange={(e) => setFormData({ ...formData, description: e.target.value })}
 										rows={4}
 									/>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Proprietar</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Proprietar</label>
 									<select
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.owner_id}
 										onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
 										required
@@ -320,12 +388,12 @@ const AdminTeamsPage = () => {
 								<div className="admin-team-modal-footer">
 									<button
 										type="button"
-										className="va-btn"
+										className="lms-btn-secondary"
 										onClick={() => setShowModal(false)}
 									>
 										Anulează
 									</button>
-									<button type="submit" className="va-btn va-btn-primary">
+									<button type="submit" className="lms-btn-primary">
 										Salvează
 									</button>
 								</div>
@@ -391,45 +459,43 @@ const TeamUsersModal = ({ team, users, onClose, onSave }) => {
 					</button>
 				</div>
 				<div className="admin-team-modal-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Selectează Membri</label>
+					<form onSubmit={handleSubmit} className="admin-team-modal-form">
+						<div className="admin-form-group">
+							<label className="admin-form-label">Selectează Membri</label>
 							<div className="admin-team-modal-list">
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-									{users.map((user) => (
-										<label 
-											key={user.id}
-											className={`admin-team-modal-list-item ${selectedUserIds.includes(user.id) ? 'selected' : ''}`}
-										>
-											<input
-												type="checkbox"
-												checked={selectedUserIds.includes(user.id)}
-												onChange={(e) => {
-													if (e.target.checked) {
-														setSelectedUserIds([...selectedUserIds, user.id]);
-													} else {
-														setSelectedUserIds(selectedUserIds.filter(id => id !== user.id));
-													}
-												}}
-											/>
-											<div style={{ flex: 1 }}>
-												<div className={`admin-team-modal-list-item-label ${selectedUserIds.includes(user.id) ? 'selected' : ''}`}>
-													{user.name}
-												</div>
-												<div className="admin-team-modal-list-item-sublabel">
-													{user.email} • {user.role}
-												</div>
+								{users.map((user) => (
+									<label 
+										key={user.id}
+										className={`admin-team-modal-list-item ${selectedUserIds.includes(user.id) ? 'selected' : ''}`}
+									>
+										<input
+											type="checkbox"
+											checked={selectedUserIds.includes(user.id)}
+											onChange={(e) => {
+												if (e.target.checked) {
+													setSelectedUserIds([...selectedUserIds, user.id]);
+												} else {
+													setSelectedUserIds(selectedUserIds.filter(id => id !== user.id));
+												}
+											}}
+										/>
+										<div className="admin-team-modal-list-item-content">
+											<div className={`admin-team-modal-list-item-label ${selectedUserIds.includes(user.id) ? 'selected' : ''}`}>
+												{user.name}
 											</div>
-										</label>
-									))}
-								</div>
+											<div className="admin-team-modal-list-item-sublabel">
+												{user.email} • {user.role}
+											</div>
+										</div>
+									</label>
+								))}
 							</div>
 						</div>
 						<div className="admin-team-modal-footer">
-							<button type="button" className="va-btn" onClick={onClose}>
+							<button type="button" className="lms-btn-secondary" onClick={onClose}>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn va-btn-primary">
+							<button type="submit" className="lms-btn-primary">
 								Salvează
 							</button>
 						</div>
@@ -467,40 +533,38 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 					</button>
 				</div>
 				<div className="admin-team-modal-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Selectează Cursuri</label>
+					<form onSubmit={handleSubmit} className="admin-team-modal-form">
+						<div className="admin-form-group">
+							<label className="admin-form-label">Selectează Cursuri</label>
 							<div className="admin-team-modal-list">
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-									{courses.map((course) => (
-										<label 
-											key={course.id}
-											className={`admin-team-modal-list-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}
-										>
-											<input
-												type="checkbox"
-												checked={selectedCourseIds.includes(course.id)}
-												onChange={(e) => {
-													if (e.target.checked) {
-														setSelectedCourseIds([...selectedCourseIds, course.id]);
-													} else {
-														setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
-													}
-												}}
-											/>
-											<div className={`admin-team-modal-list-item-label ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}>
-												{course.title}
-											</div>
-										</label>
-									))}
-								</div>
+								{courses.map((course) => (
+									<label 
+										key={course.id}
+										className={`admin-team-modal-list-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}
+									>
+										<input
+											type="checkbox"
+											checked={selectedCourseIds.includes(course.id)}
+											onChange={(e) => {
+												if (e.target.checked) {
+													setSelectedCourseIds([...selectedCourseIds, course.id]);
+												} else {
+													setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
+												}
+											}}
+										/>
+										<div className={`admin-team-modal-list-item-label ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}>
+											{course.title}
+										</div>
+									</label>
+								))}
 							</div>
 						</div>
 						<div className="admin-team-modal-footer">
-							<button type="button" className="va-btn" onClick={onClose}>
+							<button type="button" className="lms-btn-secondary" onClick={onClose}>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn va-btn-primary">
+							<button type="submit" className="lms-btn-primary">
 								Salvează
 							</button>
 						</div>

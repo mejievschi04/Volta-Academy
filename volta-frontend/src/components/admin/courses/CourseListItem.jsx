@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, getDefaultCurrency } from '../../../utils/currency';
 
-const CourseListItem = ({
+const CourseListItem = React.memo(({
 	course,
 	selected,
 	onSelect,
@@ -59,7 +59,7 @@ const CourseListItem = ({
 		});
 	};
 
-	if (viewMode === 'table') {
+	if (viewMode === 'list' || viewMode === 'table') {
 		return (
 			<div
 				className={`admin-course-table-row ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
@@ -161,34 +161,24 @@ const CourseListItem = ({
 
 	return (
 		<div
-			className={`admin-course-list-item ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
-			onClick={() => navigate(`/admin/courses/${course.id}`)}
+			className={`admin-course-card ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
 		>
-			{/* Checkbox for bulk selection */}
-			<div className="admin-course-checkbox" onClick={(e) => e.stopPropagation()}>
-				<input
-					type="checkbox"
-					checked={selected}
-					onChange={(e) => {
-						e.stopPropagation();
-						onSelect(course.id, e.target.checked);
-					}}
-					className="admin-checkbox-input"
-				/>
-			</div>
-
-			{/* Thumbnail */}
-			<div className="admin-course-thumbnail">
-				{course.image_url ? (
-					<img src={course.image_url} alt={course.title} />
-				) : (
-					<div className="admin-course-thumbnail-placeholder">
-						📚
-					</div>
-				)}
+			{/* Card Header - Checkbox and Status Badge */}
+			<div className="admin-course-card-header">
+				<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
+					<input
+						type="checkbox"
+						checked={selected}
+						onChange={(e) => {
+							e.stopPropagation();
+							onSelect(course.id, e.target.checked);
+						}}
+						className="admin-checkbox-input"
+					/>
+				</div>
 				{statusBadge && (
 					<div
-						className="admin-course-status-badge"
+						className="admin-course-card-status-badge"
 						style={{
 							backgroundColor: statusBadge.bg,
 							color: statusBadge.color,
@@ -200,20 +190,34 @@ const CourseListItem = ({
 				)}
 			</div>
 
-			{/* Course Info */}
-			<div className="admin-course-info">
-				<div className="admin-course-header">
-					<h3 className="admin-course-title">{course.title}</h3>
-					{course.hasAlerts && (
-						<span className="admin-course-alert-indicator" title="Alerte active">
-							⚠️
-						</span>
-					)}
-					{/* Quick Action Buttons */}
-					<div className="admin-course-header-actions" onClick={(e) => e.stopPropagation()}>
+			{/* Course Thumbnail */}
+			<div 
+				className="admin-course-card-thumbnail"
+				onClick={() => navigate(`/admin/courses/${course.id}`)}
+			>
+				{course.image_url ? (
+					<img src={course.image_url} alt={course.title} />
+				) : (
+					<div className="admin-course-card-thumbnail-placeholder">
+						📚
+					</div>
+				)}
+			</div>
+
+			{/* Course Content */}
+			<div className="admin-course-card-content">
+				{/* Title and Actions */}
+				<div className="admin-course-card-title-section">
+					<h3 
+						className="admin-course-card-title"
+						onClick={() => navigate(`/admin/courses/${course.id}`)}
+					>
+						{course.title}
+					</h3>
+					<div className="admin-course-card-actions" onClick={(e) => e.stopPropagation()}>
 						{onPreview && (
 							<button
-								className="admin-course-header-btn"
+								className="admin-course-card-action-btn"
 								onClick={(e) => {
 									e.stopPropagation();
 									onPreview();
@@ -224,7 +228,7 @@ const CourseListItem = ({
 							</button>
 						)}
 						<button
-							className="admin-course-header-btn"
+							className="admin-course-card-action-btn"
 							onClick={(e) => {
 								e.stopPropagation();
 								navigate(`/admin/courses/${course.id}/edit`);
@@ -234,35 +238,15 @@ const CourseListItem = ({
 							✏️
 						</button>
 						<button
-							className="admin-course-header-btn"
+							className="admin-course-card-action-btn"
 							onClick={(e) => handleQuickAction('duplicate', e)}
 							disabled={loading}
 							title="Duplică"
 						>
 							📋
 						</button>
-						{course.status !== 'archived' && (
-							<button
-								className="admin-course-header-btn"
-								onClick={(e) => handleQuickAction('archive', e)}
-								disabled={loading}
-								title="Arhivează"
-							>
-								📦
-							</button>
-						)}
-						{course.status === 'archived' && (
-							<button
-								className="admin-course-header-btn"
-								onClick={(e) => handleQuickAction('unarchive', e)}
-								disabled={loading}
-								title="Dezarhivează"
-							>
-								📤
-							</button>
-						)}
 						<button
-							className="admin-course-header-btn"
+							className="admin-course-card-action-btn"
 							onClick={(e) => {
 								e.stopPropagation();
 								navigate(`/admin/courses/${course.id}/analytics`);
@@ -271,18 +255,24 @@ const CourseListItem = ({
 						>
 							📊
 						</button>
-						{course.status !== 'disabled' && (
-							<button
-								className="admin-course-header-btn admin-course-header-btn-danger"
-								onClick={(e) => handleQuickAction('disable', e)}
-								disabled={loading}
-								title="Dezactivează"
-							>
-								🚫
-							</button>
-						)}
 						<button
-							className="admin-course-header-btn admin-course-header-btn-danger"
+							className="admin-course-card-action-btn"
+							onClick={(e) => handleQuickAction('archive', e)}
+							disabled={loading}
+							title="Arhivează"
+						>
+							📦
+						</button>
+						<button
+							className="admin-course-card-action-btn admin-course-card-action-btn-danger"
+							onClick={(e) => handleQuickAction('disable', e)}
+							disabled={loading}
+							title="Dezactivează"
+						>
+							🚫
+						</button>
+						<button
+							className="admin-course-card-action-btn admin-course-card-action-btn-danger"
 							onClick={(e) => handleQuickAction('delete', e)}
 							disabled={loading}
 							title="Șterge"
@@ -291,88 +281,104 @@ const CourseListItem = ({
 						</button>
 					</div>
 				</div>
-				<div className="admin-course-meta">
+
+				{/* Instructor and Modules */}
+				<div className="admin-course-card-meta">
 					{course.teacher && (
-						<span className="admin-course-meta-item">
-							👤 {course.teacher.name}
+						<span className="admin-course-card-meta-item">
+							{course.teacher.name}
 						</span>
 					)}
 					{course.modules_count !== undefined && (
-						<span className="admin-course-meta-item">
-							📖 {course.modules_count} module
+						<span className="admin-course-card-meta-item">
+							{course.modules_count} module
 						</span>
 					)}
 				</div>
-			</div>
 
-			{/* Metrics */}
-			<div className="admin-course-metrics">
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Înscrieri</div>
-					<div className="admin-course-metric-value">
-						{course.enrollments_count || 0}
+				{/* Statistics Grid */}
+				<div className="admin-course-card-stats">
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">ÎNSCRIERI</div>
+						<div className="admin-course-card-stat-value">
+							{course.enrollments_count || 0}
+						</div>
+					</div>
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">VENIT</div>
+						<div className="admin-course-card-stat-value">
+							{formatCurrency(course.revenue || 0, currency)}
+						</div>
+					</div>
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">FINALIZARE</div>
+						<div className="admin-course-card-stat-value">
+							{course.completion_rate || 0}%
+						</div>
+					</div>
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">RATING</div>
+						<div className="admin-course-card-stat-value">
+							{course.rating ? (
+								<>⭐ {course.rating.toFixed(1)}</>
+							) : (
+								'N/A'
+							)}
+						</div>
+					</div>
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">PREŢ</div>
+						<div className="admin-course-card-stat-value">
+							{course.price ? formatCurrency(course.price, currency) : '0 MDL'}
+						</div>
+					</div>
+					<div className="admin-course-card-stat">
+						<div className="admin-course-card-stat-label">ACTUALIZAT</div>
+						<div className="admin-course-card-stat-value admin-course-card-stat-value-small">
+							{formatDate(course.updated_at)}
+						</div>
 					</div>
 				</div>
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Venit</div>
-					<div className="admin-course-metric-value">
-						{formatCurrency(course.revenue || 0, currency)}
-					</div>
-				</div>
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Finalizare</div>
-					<div className="admin-course-metric-value">
-						{course.completion_rate || 0}%
-					</div>
-				</div>
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Rating</div>
-					<div className="admin-course-metric-value">
-						{course.rating ? (
-							<>
-								⭐ {course.rating.toFixed(1)}
-								<span className="admin-course-rating-count">
-									({course.rating_count || 0})
-								</span>
-							</>
-						) : (
-							'N/A'
-						)}
-					</div>
-				</div>
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Preț</div>
-					<div className="admin-course-metric-value">
-						{course.price ? formatCurrency(course.price, currency) : 'Gratuit'}
-					</div>
-				</div>
-				<div className="admin-course-metric">
-					<div className="admin-course-metric-label">Actualizat</div>
-					<div className="admin-course-metric-value admin-course-metric-value-small">
-						{formatDate(course.updated_at)}
-					</div>
-				</div>
-			</div>
 
-			{/* Publish Button */}
-			{course.status !== 'published' && (
-				<div className="admin-course-publish-section">
-					<button
-						className="admin-course-publish-btn"
-						onClick={(e) => {
-							e.stopPropagation();
-							handleQuickAction('publish', e);
-						}}
-						disabled={loading}
-					>
-						<span className="admin-course-publish-icon">✅</span>
-						Publish
-					</button>
-				</div>
-			)}
+				{/* Publish Button for Drafts */}
+				{course.status !== 'published' && (
+					<div className="admin-course-card-publish">
+						<button
+							className="lms-btn-primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleQuickAction('publish', e);
+							}}
+							disabled={loading}
+							style={{ width: '100%' }}
+						>
+							<span>✅</span>
+							Publish
+						</button>
+					</div>
+				)}
+			</div>
 		</div>
 	);
-};
+}, (prevProps, nextProps) => {
+	// Custom comparison for memo - only re-render if relevant props change
+	return (
+		prevProps.course?.id === nextProps.course?.id &&
+		prevProps.course?.status === nextProps.course?.status &&
+		prevProps.course?.enrollments_count === nextProps.course?.enrollments_count &&
+		prevProps.course?.rating === nextProps.course?.rating &&
+		prevProps.course?.revenue === nextProps.course?.revenue &&
+		prevProps.course?.completion_rate === nextProps.course?.completion_rate &&
+		prevProps.selected === nextProps.selected &&
+		prevProps.loading === nextProps.loading &&
+		prevProps.viewMode === nextProps.viewMode &&
+		prevProps.onSelect === nextProps.onSelect &&
+		prevProps.onQuickAction === nextProps.onQuickAction &&
+		prevProps.onPreview === nextProps.onPreview
+	);
+});
+
+CourseListItem.displayName = 'CourseListItem';
 
 export default CourseListItem;
 

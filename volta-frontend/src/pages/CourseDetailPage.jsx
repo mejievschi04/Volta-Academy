@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesService, dashboardService, quizService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 import CourseHeader from '../components/student/CourseHeader';
 import CourseStructure from '../components/student/CourseStructure';
 import MilestoneNotification from '../components/student/MilestoneNotification';
@@ -45,24 +46,24 @@ const CourseDetailPage = () => {
 			]);
 			
 			// Debug: Log course data with modules and exams
-			console.log('=== [CourseDetailPage] Course data loaded ===');
-			console.log('Course ID:', courseData?.id);
-			console.log('Course Title:', courseData?.title);
-			console.log('Modules count:', courseData?.modules?.length || 0);
+			logger.debug('=== [CourseDetailPage] Course data loaded ===');
+			logger.debug('Course ID:', courseData?.id);
+			logger.debug('Course Title:', courseData?.title);
+			logger.debug('Modules count:', courseData?.modules?.length || 0);
 			if (courseData?.modules) {
 				courseData.modules.forEach((module, idx) => {
-					console.log(`Module ${idx + 1} (ID: ${module.id}, Title: ${module.title}):`);
-					console.log('  - Exams count:', module.exams?.length || 0);
+					logger.debug(`Module ${idx + 1} (ID: ${module.id}, Title: ${module.title}):`);
+					logger.debug('  - Exams count:', module.exams?.length || 0);
 					if (module.exams && module.exams.length > 0) {
 						module.exams.forEach(exam => {
-							console.log(`    * Exam ID: ${exam.id}, Title: ${exam.title}, Module ID: ${exam.module_id}`);
+							logger.debug(`    * Exam ID: ${exam.id}, Title: ${exam.title}, Module ID: ${exam.module_id}`);
 						});
 					} else {
-						console.log('    * No exams in this module');
+						logger.debug('    * No exams in this module');
 					}
 				});
 			}
-			console.log('==========================================');
+			logger.debug('==========================================');
 			
 			setCourse(courseData);
 				setProgress(progressData);
@@ -76,11 +77,11 @@ const CourseDetailPage = () => {
 							setQuizResult(quizData.result);
 						}
 					} catch (err) {
-						console.log('No quiz found for course:', courseId);
+						logger.debug('No quiz found for course:', courseId);
 					}
 				}
 			} catch (err) {
-				console.error('Error fetching course:', err);
+				logger.error('Error fetching course:', err);
 				setError('Cursul nu a fost găsit');
 			} finally {
 				setLoading(false);
@@ -125,7 +126,7 @@ const CourseDetailPage = () => {
 					url: url
 				});
 			} catch (err) {
-				console.log('Error sharing:', err);
+				logger.error('Error sharing:', err);
 			}
 		} else {
 			// Fallback: copy to clipboard
@@ -133,7 +134,7 @@ const CourseDetailPage = () => {
 				await navigator.clipboard.writeText(url);
 				alert('Link-ul a fost copiat în clipboard!');
 			} catch (err) {
-				console.log('Error copying to clipboard:', err);
+				logger.error('Error copying to clipboard:', err);
 			}
 		}
 	};
@@ -285,7 +286,7 @@ const CourseDetailPage = () => {
 				setProgress(progressData);
 			}
 		} catch (err) {
-			console.error('Error submitting quiz:', err);
+			logger.error('Error submitting quiz:', err);
 			setError('Eroare la trimiterea testului');
 		}
 	}, [courseId, quizAnswers, user]);
@@ -353,45 +354,48 @@ const CourseDetailPage = () => {
 
 	if (loading) {
 		return (
-			<div className="va-stack" style={{ padding: '2rem', textAlign: 'center' }}>
-				<p className="va-muted">Se încarcă...</p>
+			<div className="lms-dashboard-loading">
+				<div className="lms-spinner"></div>
+				<p>Se încarcă cursul...</p>
 			</div>
 		);
 	}
 
 	if (error || !course) {
 		return (
-			<div className="va-stack" style={{ padding: '2rem' }}>
-				<p style={{ color: 'var(--va-primary)' }}>{error || 'Cursul nu a fost găsit'}</p>
-				<Link to="/courses" className="va-btn va-btn-secondary">Înapoi la cursuri</Link>
+			<div className="lms-empty-state">
+				<div className="lms-empty-icon">⚠️</div>
+				<div className="lms-empty-title">Cursul nu a fost găsit</div>
+				<div className="lms-empty-description">{error || 'Cursul solicitat nu există sau nu este disponibil.'}</div>
+				<Link to="/courses" className="lms-btn-primary">Înapoi la cursuri</Link>
 			</div>
 		);
 	}
 
 	return (
-		<div className="va-course-detail-layout">
+		<div className="course-detail-layout">
 			{/* Left Sidebar - Modules and Tests */}
-			<aside className="va-course-sidebar">
+			<aside className="course-detail-sidebar">
 				{/* Breadcrumb */}
-				<div className="va-course-sidebar-header">
+				<div className="course-detail-sidebar-header">
 					<Link 
 						to="/courses"
-						className="va-course-sidebar-back"
+						className="course-detail-sidebar-back"
 					>
 						← Înapoi
 					</Link>
-					<h2 className="va-course-sidebar-title">{course.title}</h2>
+					<h2 className="course-detail-sidebar-title">{course.title}</h2>
 				</div>
 
 				{/* Modules List */}
-				<div className="va-course-sidebar-content">
+				<div className="course-detail-sidebar-content">
 					{(course.modules && course.modules.length > 0) || course.exam ? (
-						<div className="va-course-sidebar-section">
-							<h3 className="va-course-sidebar-section-title">
+						<div className="course-detail-sidebar-section">
+							<h3 className="course-detail-sidebar-section-title">
 								<span>📚</span>
 								<span>Module și Teste</span>
 							</h3>
-							<div className="va-course-sidebar-modules">
+							<div className="course-detail-sidebar-modules">
 								{/* Render modules */}
 								{course.modules && course.modules.map((module, index) => {
 									const isCourseCompleted = course.completed_at && course.completed_at !== null && course.completed_at !== undefined && course.completed_at !== '';
@@ -403,13 +407,13 @@ const CourseDetailPage = () => {
 											key={module.id}
 											type="button"
 											onClick={() => handleModuleSelect(module.id)}
-											className={`va-course-sidebar-module ${isCompleted ? 'completed' : isInProgress ? 'in-progress' : ''} ${selectedLesson === module.id ? 'active' : ''}`}
+											className={`course-detail-sidebar-module ${isCompleted ? 'completed' : isInProgress ? 'in-progress' : ''} ${selectedLesson === module.id ? 'active' : ''}`}
 										>
-											<div className="va-course-sidebar-module-indicator">
+											<div className="course-detail-sidebar-module-indicator">
 												{isCompleted ? '✓' : index + 1}
 											</div>
-											<div className="va-course-sidebar-module-content">
-												<div className="va-course-sidebar-module-title">
+											<div className="course-detail-sidebar-module-content">
+												<div className="course-detail-sidebar-module-title">
 													{module.title || `Modul ${index + 1}`}
 												</div>
 											</div>
@@ -422,14 +426,14 @@ const CourseDetailPage = () => {
 									<button
 										type="button"
 										onClick={() => handleQuizSelect()}
-										className={`va-course-sidebar-module ${quiz && selectedContentType === 'quiz' ? 'active' : ''}`}
+										className={`course-detail-sidebar-module ${quiz && selectedContentType === 'quiz' ? 'active' : ''}`}
 										style={{ marginTop: '0.5rem' }}
 									>
-										<div className="va-course-sidebar-module-indicator">
+										<div className="course-detail-sidebar-module-indicator">
 											📝
 										</div>
-										<div className="va-course-sidebar-module-content">
-											<div className="va-course-sidebar-module-title">
+										<div className="course-detail-sidebar-module-content">
+											<div className="course-detail-sidebar-module-title">
 												{course.exam.title || 'Test Final'}
 											</div>
 										</div>
@@ -442,38 +446,31 @@ const CourseDetailPage = () => {
 			</aside>
 
 			{/* Right Content - Full Screen */}
-			<main className="va-course-content-main">
+			<main className="course-detail-content-main">
 				{/* Breadcrumb */}
-				<div className="va-course-content-header">
+				<div className="course-detail-content-header">
 					<Link 
 						to="/courses"
-						style={{
-							color: 'var(--va-muted)',
-							textDecoration: 'none',
-							fontSize: '0.95rem',
-							transition: 'color 0.2s ease'
-						}}
-						onMouseEnter={(e) => e.currentTarget.style.color = 'var(--va-primary)'}
-						onMouseLeave={(e) => e.currentTarget.style.color = 'var(--va-muted)'}
+						className="course-detail-breadcrumb-link"
 					>
 						Cursuri
 					</Link>
-					<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-					<span style={{ color: 'var(--va-primary)', fontWeight: 600 }}>
+					<span className="course-detail-breadcrumb-separator">/</span>
+					<span className="course-detail-breadcrumb-current">
 						{course.title}
 					</span>
 					{selectedContentType === 'module' && lessonContent && (
 						<>
-							<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-							<span style={{ color: 'var(--va-primary)', fontWeight: 600 }}>
+							<span className="course-detail-breadcrumb-separator">/</span>
+							<span className="course-detail-breadcrumb-current">
 								{course.modules?.find(m => m.id === selectedLesson)?.title || 'Modul'}
 							</span>
 						</>
 					)}
 					{selectedContentType === 'quiz' && (
 						<>
-							<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>/</span>
-							<span style={{ color: 'var(--va-primary)', fontWeight: 600 }}>
+							<span className="course-detail-breadcrumb-separator">/</span>
+							<span className="course-detail-breadcrumb-current">
 								Test Final
 							</span>
 						</>
@@ -522,22 +519,23 @@ const CourseDetailPage = () => {
 				{selectedContentType === 'module' && (
 					<>
 						{lessonLoading ? (
-							<div style={{ padding: '2rem', textAlign: 'center' }}>
-								<p className="va-muted">Se încarcă...</p>
+							<div className="lms-dashboard-loading">
+								<div className="lms-spinner"></div>
+								<p>Se încarcă modulul...</p>
 							</div>
 						) : lessonContent ? (
-							<div className="va-lesson-content-full">
+							<div className="course-detail-lesson-content">
 								{/* Completion Badge - for modules */}
 								{selectedContentType === 'module' && course.completed_at && (
-									<div className="va-completion-badge completed">
-										<div className="va-completion-icon">
+									<div className="course-detail-completion-badge completed">
+										<div className="course-detail-completion-icon">
 											✓
 										</div>
 										<div>
-											<div className="va-completion-badge-title">
+											<div className="course-detail-completion-badge-title">
 												Modul completat!
 											</div>
-											<div className="va-completion-badge-subtitle">
+											<div className="course-detail-completion-badge-subtitle">
 												Ai finalizat cu succes acest modul
 											</div>
 										</div>
@@ -545,12 +543,12 @@ const CourseDetailPage = () => {
 								)}
 
 								{/* Lesson Header */}
-								<div className="va-lesson-header-card">
-									<h1 className="va-lesson-header-title">
+								<div className="course-detail-lesson-header-card">
+									<h1 className="course-detail-lesson-header-title">
 										{(typeof lessonContent === 'object' && lessonContent?.title) || (selectedContentType === 'module' && course.modules?.find(m => m.id === selectedLesson)?.title) || 'Modul'}
 									</h1>
 									{lessonContent?.duration_minutes && (
-										<div className="va-lesson-duration-badge">
+										<div className="course-detail-lesson-duration-badge">
 											<span>⏱</span>
 											<span>{lessonContent.duration_minutes} minute</span>
 										</div>
@@ -558,7 +556,7 @@ const CourseDetailPage = () => {
 								</div>
 
 								{/* Content */}
-								<div className="va-prose va-lesson-content-card">
+								<div className="course-detail-lesson-content-card">
 									{selectedContentType === 'module' ? (
 										<div 
 											dangerouslySetInnerHTML={{ __html: (typeof lessonContent === 'string' ? lessonContent : lessonContent?.content) || '' }}
@@ -582,7 +580,7 @@ const CourseDetailPage = () => {
 										boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset'
 									}}>
 										<h3 style={{
-											color: 'var(--va-text)',
+											color: 'var(--text-primary)',
 											marginBottom: '1.5rem',
 											fontSize: '1.3rem',
 											fontWeight: 700,
@@ -606,20 +604,20 @@ const CourseDetailPage = () => {
 														gap: '1rem',
 														padding: '1.25rem 1.5rem',
 														background: 'rgba(255,255,255,0.04)',
-														border: '1px solid rgba(255,238,0,0.18)',
+														border: '1px solid rgba(56, 189, 248, 0.18)',
 														borderRadius: '16px',
 														textDecoration: 'none',
-														color: 'var(--va-text)',
+														color: 'var(--text-primary)',
 														transition: 'all 0.3s ease'
 													}}
 													onMouseEnter={(e) => {
-														e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.12), rgba(255,238,0,0.08))';
-														e.currentTarget.style.borderColor = 'rgba(255,238,0,0.35)';
+														e.currentTarget.style.background = 'linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0.08))';
+														e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
 														e.currentTarget.style.transform = 'translateX(6px)';
 													}}
 													onMouseLeave={(e) => {
 														e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-														e.currentTarget.style.borderColor = 'rgba(255,238,0,0.18)';
+														e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.18)';
 														e.currentTarget.style.transform = 'translateX(0)';
 													}}
 												>
@@ -627,7 +625,7 @@ const CourseDetailPage = () => {
 														width: '44px',
 														height: '44px',
 														borderRadius: '12px',
-														background: 'rgba(255,238,0,0.12)',
+														background: 'rgba(56, 189, 248, 0.12)',
 														display: 'flex',
 														alignItems: 'center',
 														justifyContent: 'center',
@@ -641,12 +639,12 @@ const CourseDetailPage = () => {
 															{resource.title || resource.name || `Resursă ${idx + 1}`}
 														</div>
 														{resource.url && (
-															<div style={{ color: 'var(--va-muted)', fontSize: '0.85rem' }}>
+															<div style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
 																{typeof resource.url === 'string' ? resource.url : 'Link resursă'}
 															</div>
 														)}
 													</div>
-													<span style={{ color: 'var(--va-muted)', fontSize: '1.2rem' }}>→</span>
+													<span style={{ color: 'var(--text-tertiary)', fontSize: '1.2rem' }}>→</span>
 												</a>
 											))}
 										</div>
@@ -666,7 +664,7 @@ const CourseDetailPage = () => {
 													{prevModule && (
 														<button
 															onClick={() => handleModuleSelect(prevModule.id)}
-															className="va-btn va-btn-secondary"
+															className="lms-btn-secondary"
 															style={{
 																display: 'inline-flex',
 																alignItems: 'center',
@@ -680,7 +678,7 @@ const CourseDetailPage = () => {
 													{nextModule ? (
 														<button
 															onClick={() => handleModuleSelect(nextModule.id)}
-															className="va-btn va-btn-primary"
+															className="lms-btn-primary"
 															style={{
 																display: 'inline-flex',
 																alignItems: 'center',
@@ -693,7 +691,7 @@ const CourseDetailPage = () => {
 													) : course.exam ? (
 														<button
 															onClick={handleQuizSelect}
-															className="va-btn va-btn-primary"
+															className="lms-btn-primary"
 															style={{
 																display: 'inline-flex',
 																alignItems: 'center',
@@ -710,7 +708,7 @@ const CourseDetailPage = () => {
 									</div>
 									<button
 										onClick={handleBackToOverview}
-										className="va-btn va-btn-secondary"
+										className="lms-btn-secondary"
 										style={{
 											display: 'inline-flex',
 											alignItems: 'center',
@@ -728,14 +726,15 @@ const CourseDetailPage = () => {
 
 				{/* Quiz Content */}
 				{selectedContentType === 'quiz' && (
-					<div className="va-quiz-content-full">
+					<div className="course-detail-quiz-content">
 						{!quiz ? (
-							<div style={{ padding: '2rem', textAlign: 'center' }}>
-								<p className="va-muted">Testul nu este disponibil pentru acest curs.</p>
+							<div className="lms-empty-state">
+								<div className="lms-empty-icon">📝</div>
+								<div className="lms-empty-title">Testul nu este disponibil</div>
+								<div className="lms-empty-description">Testul nu este disponibil pentru acest curs.</div>
 								<button
 									onClick={handleBackToOverview}
-									className="va-btn va-btn-secondary"
-									style={{ marginTop: '1rem' }}
+									className="lms-btn-primary"
 								>
 									Înapoi la curs
 								</button>
@@ -743,37 +742,15 @@ const CourseDetailPage = () => {
 						) : (
 							<>
 								{/* Quiz Header */}
-								<div style={{ marginBottom: '1.5rem' }}>
+								<div className="course-detail-quiz-header">
 									<div>
-										<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-											<h1 className="va-page-title">
+										<div className="course-detail-quiz-header-top">
+											<h1 className="course-detail-quiz-title">
 												{quiz.title || 'Test final'}
 											</h1>
 											{quizSaved && quizResult && (
-												<div style={{
-													display: 'inline-flex',
-													alignItems: 'center',
-													gap: '0.75rem',
-													padding: '0.75rem 1.5rem',
-													background: 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))',
-													border: '1px solid rgba(255,238,0,0.35)',
-													borderRadius: '16px',
-													color: 'var(--va-primary)',
-													fontSize: '0.95rem',
-													fontWeight: 700,
-													boxShadow: '0 4px 16px rgba(255,238,0,0.15)'
-												}}>
-													<div style={{
-														width: '28px',
-														height: '28px',
-														borderRadius: '8px',
-														background: 'linear-gradient(135deg, #ffee00, #ffd700)',
-														display: 'flex',
-														alignItems: 'center',
-														justifyContent: 'center',
-														color: '#000',
-														fontWeight: 700
-													}}>
+												<div className="course-detail-quiz-completed-badge">
+													<div className="course-detail-quiz-completed-icon">
 														✓
 													</div>
 													<span>Test completat</span>
@@ -783,27 +760,27 @@ const CourseDetailPage = () => {
 
 										{/* Pre-Quiz Overview */}
 										{!quizSubmitted && !quizSaved && quiz.questions && (
-											<div className="va-quiz-overview">
-												<div className="va-quiz-overview-item">
-													<div className="va-quiz-overview-label">Întrebări</div>
-													<div className="va-quiz-overview-value">{quiz.questions.length}</div>
+											<div className="course-detail-quiz-overview">
+												<div className="course-detail-quiz-overview-item">
+													<div className="course-detail-quiz-overview-label">Întrebări</div>
+													<div className="course-detail-quiz-overview-value">{quiz.questions.length}</div>
 												</div>
 												{quiz.duration_minutes && (
-													<div className="va-quiz-overview-item">
-														<div className="va-quiz-overview-label">Durată estimată</div>
-														<div className="va-quiz-overview-value">{quiz.duration_minutes} min</div>
+													<div className="course-detail-quiz-overview-item">
+														<div className="course-detail-quiz-overview-label">Durată estimată</div>
+														<div className="course-detail-quiz-overview-value">{quiz.duration_minutes} min</div>
 													</div>
 												)}
-												<div className="va-quiz-overview-item">
-													<div className="va-quiz-overview-label">Puncte disponibile</div>
-													<div className="va-quiz-overview-value">
+												<div className="course-detail-quiz-overview-item">
+													<div className="course-detail-quiz-overview-label">Puncte disponibile</div>
+													<div className="course-detail-quiz-overview-value">
 														{quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0)}
 													</div>
 												</div>
 												{quiz.passing_score && (
-													<div className="va-quiz-overview-item">
-														<div className="va-quiz-overview-label">Punctaj minim</div>
-														<div className="va-quiz-overview-value">{quiz.passing_score}%</div>
+													<div className="course-detail-quiz-overview-item">
+														<div className="course-detail-quiz-overview-label">Punctaj minim</div>
+														<div className="course-detail-quiz-overview-value">{quiz.passing_score}%</div>
 													</div>
 												)}
 											</div>
@@ -811,29 +788,12 @@ const CourseDetailPage = () => {
 
 										{/* Timer Display */}
 										{timeRemaining !== null && !quizSaved && !quizSubmitted && (
-											<div style={{
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												gap: '1rem',
-												marginTop: '1.5rem',
-												padding: '1rem 1.5rem',
-												background: timeRemaining < 300 
-													? 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.1))'
-													: 'rgba(255,255,255,0.05)',
-												border: `1px solid ${timeRemaining < 300 ? 'rgba(255,107,107,0.3)' : 'rgba(255,238,0,0.2)'}`,
-												borderRadius: '16px'
-											}}>
-												<span style={{ fontSize: '1.2rem' }}>⏱</span>
-												<span style={{
-													fontSize: '1.5rem',
-													fontWeight: 700,
-													color: timeRemaining < 300 ? '#ff6b6b' : 'var(--va-primary)',
-													fontFamily: 'monospace'
-												}}>
+											<div className={`course-detail-quiz-timer ${timeRemaining < 300 ? 'warning' : ''}`}>
+												<span className="course-detail-quiz-timer-icon">⏱</span>
+												<span className="course-detail-quiz-timer-value">
 													{formatTime(timeRemaining)}
 												</span>
-												<span style={{ color: 'var(--va-muted)', fontSize: '0.9rem' }}>
+												<span className="course-detail-quiz-timer-label">
 													rămas
 												</span>
 											</div>
@@ -843,15 +803,8 @@ const CourseDetailPage = () => {
 
 								{/* Questions */}
 								{!quizSaved && (
-									<div className="va-card" style={{
-										background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-										border: '1px solid rgba(255,238,0,0.25)',
-										borderRadius: '24px',
-										boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset',
-										overflow: 'hidden',
-										marginBottom: '2rem'
-									}}>
-										<div className="va-card-body va-stack" style={{ padding: '2.5rem' }}>
+									<div className="course-detail-quiz-questions-card">
+										<div className="course-detail-quiz-questions-body">
 											{quiz.questions && quiz.questions.length > 0 ? (
 												quiz.questions.map((q, idx) => {
 													const isCorrect = quizAnswers[q.id] === q.answerIndex;
@@ -863,63 +816,44 @@ const CourseDetailPage = () => {
 														<div 
 															id={`quiz-question-${q.id}`}
 															key={q.id}
-															className={`va-question-card ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}
+															className={`course-detail-quiz-question-card ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}
 														>
-															<div className="va-question-header">
-																<div className={`va-question-number-badge ${showResult ? (isCorrect ? 'correct' : 'incorrect') : 'default'}`}>
+															<div className="course-detail-quiz-question-header">
+																<div className={`course-detail-quiz-question-number-badge ${showResult ? (isCorrect ? 'correct' : 'incorrect') : 'default'}`}>
 																	{showResult ? (isCorrect ? '✓' : '✗') : idx + 1}
 																</div>
-																<div style={{ flex: 1 }}>
-																	<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-																		<div style={{ flex: 1 }}>
-																			<div className="va-question-text">
+																<div className="course-detail-quiz-question-content">
+																	<div className="course-detail-quiz-question-top">
+																		<div className="course-detail-quiz-question-text-wrapper">
+																			<div className="course-detail-quiz-question-text">
 																				{q.text}
 																			</div>
 																			{!quizSubmitted && !quizSaved && (
-																				<div className="va-question-progress">
+																				<div className="course-detail-quiz-question-progress">
 																					Întrebarea {idx + 1} din {quiz.questions.length}
 																				</div>
 																			)}
 																		</div>
-																		<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
+																		<div className="course-detail-quiz-question-actions">
 																			{points > 1 && (
-																				<div style={{
-																					padding: '0.5rem 1rem',
-																					background: 'rgba(255,238,0,0.1)',
-																					border: '1px solid rgba(255,238,0,0.2)',
-																					borderRadius: '12px',
-																					color: 'var(--va-primary)',
-																					fontSize: '0.85rem',
-																					fontWeight: 700
-																				}}>
+																				<div className="course-detail-quiz-question-points">
 																					{points} {points === 1 ? 'punct' : 'puncte'}
 																				</div>
 																			)}
 																			{!quizSubmitted && !quizSaved && (
 																				<button
 																					onClick={() => toggleFlag(q.id)}
-																					style={{
-																						padding: '0.5rem',
-																						background: isFlagged ? 'rgba(255,107,107,0.15)' : 'rgba(255,255,255,0.05)',
-																						border: `1px solid ${isFlagged ? 'rgba(255,107,107,0.3)' : 'rgba(255,238,0,0.2)'}`,
-																						borderRadius: '8px',
-																						cursor: 'pointer',
-																						color: isFlagged ? '#ff6b6b' : 'var(--va-text)',
-																						transition: 'all 0.2s ease',
-																						display: 'flex',
-																						alignItems: 'center',
-																						justifyContent: 'center'
-																					}}
+																					className={`course-detail-quiz-question-flag ${isFlagged ? 'flagged' : ''}`}
 																					title={isFlagged ? 'Elimină marcaj' : 'Marchează pentru revizie'}
 																				>
-																					<span style={{ fontSize: '1.2rem' }}>🚩</span>
+																					<span>🚩</span>
 																				</button>
 																			)}
 																		</div>
 																	</div>
 																</div>
 															</div>
-															<div className="va-answer-options">
+															<div className="course-detail-quiz-answer-options">
 																{q.options && q.options.map((opt, i) => {
 																	const isSelected = quizAnswers[q.id] === i;
 																	const isCorrectOption = i === q.answerIndex;
@@ -927,7 +861,7 @@ const CourseDetailPage = () => {
 																	return (
 																		<label 
 																			key={i} 
-																			className={`va-answer-option ${showResult 
+																			className={`course-detail-quiz-answer-option ${showResult 
 																				? (isCorrectOption ? 'correct' : isSelected ? 'incorrect' : 'default')
 																				: (isSelected ? 'selected' : 'default')
 																			} ${(quizSubmitted || quizSaved) ? 'disabled' : ''}`}
@@ -942,39 +876,32 @@ const CourseDetailPage = () => {
 																					}
 																				}}
 																				disabled={quizSubmitted || quizSaved}
-																				style={{ margin: 0 }}
 																			/>
-																			<span style={{
-																				flex: 1,
-																				color: showResult 
-																					? (isCorrectOption ? 'var(--va-primary)' : isSelected ? '#ff6b6b' : 'var(--va-text)')
-																					: 'var(--va-text)',
-																				fontWeight: isSelected ? 500 : 400
-																			}}>
+																			<span className="course-detail-quiz-answer-text">
 																				{opt}
 																			</span>
 																			{showResult && isCorrectOption && (
-																				<span style={{ color: 'var(--va-primary)', fontSize: '1.2rem' }}>✓</span>
+																				<span className="course-detail-quiz-answer-check">✓</span>
 																			)}
 																			{showResult && isSelected && !isCorrectOption && (
-																				<span style={{ color: '#ff6b6b', fontSize: '1.2rem' }}>✗</span>
+																				<span className="course-detail-quiz-answer-cross">✗</span>
 																			)}
 																		</label>
 																	);
 																})}
 															</div>
 															{showResult && (
-																<div className={`va-answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
-																	<div className="va-feedback-header">
-																		<span className="va-feedback-icon">
+																<div className={`course-detail-quiz-answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
+																	<div className="course-detail-quiz-feedback-header">
+																		<span className="course-detail-quiz-feedback-icon">
 																			{isCorrect ? '✓' : '✗'}
 																		</span>
-																		<span className={`va-feedback-title ${isCorrect ? 'correct' : 'incorrect'}`}>
+																		<span className={`course-detail-quiz-feedback-title ${isCorrect ? 'correct' : 'incorrect'}`}>
 																			{isCorrect ? 'Răspuns corect' : 'Răspuns incorect'}
 																		</span>
 																	</div>
 																	{q.explanation && (
-																		<div className={`va-feedback-explanation ${isCorrect ? 'correct' : 'incorrect'}`}>
+																		<div className={`course-detail-quiz-feedback-explanation ${isCorrect ? 'correct' : 'incorrect'}`}>
 																			<strong>Explicație:</strong> {q.explanation}
 																		</div>
 																	)}
@@ -984,7 +911,7 @@ const CourseDetailPage = () => {
 													);
 												})
 											) : (
-												<p style={{ color: 'var(--va-muted)', textAlign: 'center', padding: '2rem' }}>
+												<p className="course-detail-quiz-no-questions">
 													Nu există întrebări disponibile pentru acest test.
 												</p>
 											)}
@@ -994,33 +921,33 @@ const CourseDetailPage = () => {
 
 								{/* Results Page */}
 								{quizSaved && quizResult && (
-									<div style={{ marginBottom: '2rem' }}>
-										<div className={`va-quiz-results ${quizResult.passed ? '' : 'failed'}`}>
-											<div className={`va-results-header ${quizResult.passed ? 'passed' : 'failed'}`}>
+									<div className="course-detail-quiz-results">
+										<div className={`course-detail-quiz-results-card ${quizResult.passed ? 'passed' : 'failed'}`}>
+											<div className={`course-detail-quiz-results-header ${quizResult.passed ? 'passed' : 'failed'}`}>
 												{quizResult.passed ? '✓ Promovat' : '✗ Nepromovat'}
 											</div>
-											<div className="va-results-stats">
-												<div className="va-results-stat">
-													<div className="va-results-stat-label">Scor</div>
-													<div className="va-results-stat-value">
+											<div className="course-detail-quiz-results-stats">
+												<div className="course-detail-quiz-results-stat">
+													<div className="course-detail-quiz-results-stat-label">Scor</div>
+													<div className="course-detail-quiz-results-stat-value">
 														{quizResult.score || 0} / {quizResult.total || quiz.questions?.length || 0}
 													</div>
 												</div>
-												<div className="va-results-stat">
-													<div className="va-results-stat-label">Procentaj</div>
-													<div className="va-results-stat-value">{quizResult.percentage || 0}%</div>
+												<div className="course-detail-quiz-results-stat">
+													<div className="course-detail-quiz-results-stat-label">Procentaj</div>
+													<div className="course-detail-quiz-results-stat-value">{quizResult.percentage || 0}%</div>
 												</div>
 												{performanceMetrics && (
 													<>
-														<div className="va-results-stat">
-															<div className="va-results-stat-label">Corecte</div>
-															<div className="va-results-stat-value" style={{ color: '#4ade80' }}>
+														<div className="course-detail-quiz-results-stat">
+															<div className="course-detail-quiz-results-stat-label">Corecte</div>
+															<div className="course-detail-quiz-results-stat-value correct">
 																{performanceMetrics.correctAnswers}
 															</div>
 														</div>
-														<div className="va-results-stat">
-															<div className="va-results-stat-label">Incorecte</div>
-															<div className="va-results-stat-value" style={{ color: '#ff6b6b' }}>
+														<div className="course-detail-quiz-results-stat">
+															<div className="course-detail-quiz-results-stat-label">Incorecte</div>
+															<div className="course-detail-quiz-results-stat-value incorrect">
 																{performanceMetrics.incorrectAnswers}
 															</div>
 														</div>
@@ -1032,11 +959,11 @@ const CourseDetailPage = () => {
 								)}
 
 								{/* Action Buttons */}
-								<div className="va-lesson-navigation">
+								<div className="course-detail-navigation">
 									{!quizSaved && !quizSubmitted && (
 										<button
 											onClick={handleQuizSubmit}
-											className="va-btn va-btn-primary"
+											className="lms-btn-primary"
 											disabled={Object.keys(quizAnswers).length === 0}
 											style={{
 												opacity: Object.keys(quizAnswers).length === 0 ? 0.5 : 1
@@ -1048,7 +975,7 @@ const CourseDetailPage = () => {
 									)}
 									<button
 										onClick={handleBackToOverview}
-										className="va-btn va-btn-secondary"
+										className="lms-btn-secondary"
 									>
 										<span>←</span>
 										<span>Înapoi la curs</span>

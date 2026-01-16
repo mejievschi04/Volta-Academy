@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
 import CourseStructureBuilder from '../../components/admin/courses/CourseStructureBuilder';
 
 const AdminCourseDetailPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [course, setCourse] = useState(null);
 	const [modules, setModules] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -83,15 +86,15 @@ const AdminCourseDetailPage = () => {
 		try {
 			if (action === 'delete') {
 				await adminService.deleteCourse(id);
-				alert('Curs șters cu succes!');
+				showSuccess('Curs șters cu succes!');
 				navigate('/admin/courses');
 			} else {
 				await adminService.courseQuickAction(id, action);
 				await fetchCourseData();
 			}
 		} catch (err) {
-			console.error(`Error ${action} course:`, err);
-			alert(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
+			logger.error(`Error ${action} course:`, err);
+			showError(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -102,8 +105,8 @@ const AdminCourseDetailPage = () => {
 			await adminService.reorderModules(id, reorderedModules.map(m => m.id));
 			setModules(reorderedModules);
 		} catch (err) {
-			console.error('Error reordering modules:', err);
-			alert('Eroare la reordonare: ' + (err.response?.data?.message || err.message));
+			logger.error('Error reordering modules:', err);
+			showError('Eroare la reordonare: ' + (err.response?.data?.message || err.message));
 			await fetchCourseData(); // Revert on error
 		}
 	};
@@ -122,8 +125,8 @@ const AdminCourseDetailPage = () => {
 			await adminService.deleteModule(moduleId);
 			await fetchCourseData();
 		} catch (err) {
-			console.error('Error deleting module:', err);
-			alert('Eroare la ștergerea modulului: ' + (err.response?.data?.message || err.message));
+			logger.error('Error deleting module:', err);
+			showError('Eroare la ștergerea modulului: ' + (err.response?.data?.message || err.message));
 		} finally {
 			setActionLoading(null);
 		}
@@ -135,8 +138,8 @@ const AdminCourseDetailPage = () => {
 			await adminService.toggleModuleLock(moduleId);
 			await fetchCourseData();
 		} catch (err) {
-			console.error('Error toggling module lock:', err);
-			alert('Eroare: ' + (err.response?.data?.message || err.message));
+			logger.error('Error toggling module lock:', err);
+			showError('Eroare: ' + (err.response?.data?.message || err.message));
 		} finally {
 			setActionLoading(null);
 		}
@@ -158,8 +161,8 @@ const AdminCourseDetailPage = () => {
 	if (loading) {
 		return (
 			<div className="admin-container">
-				<div className="admin-loading-state">
-					<div className="admin-loading-spinner"></div>
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
 					<p>Se încarcă cursul...</p>
 				</div>
 			</div>
@@ -169,63 +172,65 @@ const AdminCourseDetailPage = () => {
 	if (error || !course) {
 		return (
 			<div className="admin-container">
-				<div className="admin-error-message">
-					<strong>Eroare:</strong> {error || 'Cursul nu a fost găsit'}
+				<div className="lms-empty-state">
+					<div className="lms-empty-icon">⚠️</div>
+					<div className="lms-empty-title">Cursul nu a fost găsit</div>
+					<div className="lms-empty-description">{error || 'Cursul solicitat nu există sau nu este disponibil.'}</div>
+					<button className="lms-btn-primary" onClick={() => navigate('/admin/courses')}>
+						Înapoi la Cursuri
+					</button>
 				</div>
-				<button className="admin-btn" onClick={() => navigate('/admin/courses')}>
-					Înapoi la Cursuri
-				</button>
 			</div>
 		);
 	}
 
 	return (
-		<div className="admin-course-detail-page">
-			<div className="admin-course-detail-container">
-				{/* Header */}
-				<div className="admin-course-detail-header">
-					<div className="admin-course-detail-header-left">
-						<button
-							className="admin-btn admin-btn-back"
-							onClick={() => navigate('/admin/courses')}
-						>
-							← Înapoi
-						</button>
-						<div className="admin-course-detail-title-section">
-							<h1 className="admin-course-detail-title">{course.title}</h1>
-							<p className="admin-course-detail-subtitle">
-								{course.short_description || course.description || 'Gestionare curs'}
-							</p>
-						</div>
+		<div className="admin-container">
+			{/* Header */}
+			<div className="admin-page-header">
+				<div className="admin-page-header-content">
+					<button
+						className="lms-btn-secondary lms-btn-sm"
+						onClick={() => navigate('/admin/courses')}
+						style={{ marginBottom: 'var(--space-4)' }}
+					>
+						← Înapoi
+					</button>
+					<div>
+						<h1 className="admin-page-title">{course.title}</h1>
+						<p className="admin-page-subtitle">
+							{course.short_description || course.description || 'Gestionare curs'}
+						</p>
 					</div>
-					<div className="admin-course-detail-header-right">
+					<div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
 						<button
-							className="admin-btn admin-btn-secondary"
+							className="lms-btn-primary"
 							onClick={() => navigate(`/admin/courses/${id}/builder`)}
 						>
 							✏️ Editează Curs
 						</button>
 					</div>
 				</div>
+			</div>
 
-				{/* Tabs */}
-				<div className="admin-course-detail-tabs">
-					<button
-						className={`admin-course-detail-tab ${activeTab === 'overview' ? 'active' : ''}`}
-						onClick={() => setActiveTab('overview')}
-					>
-						📊 Overview
-					</button>
-					<button
-						className={`admin-course-detail-tab ${activeTab === 'structure' ? 'active' : ''}`}
-						onClick={() => setActiveTab('structure')}
-					>
-						🏗️ Structură
-					</button>
-				</div>
+			{/* Tabs */}
+			<div className="admin-course-detail-tabs">
+				<button
+					className={`admin-course-detail-tab ${activeTab === 'overview' ? 'active' : ''}`}
+					onClick={() => setActiveTab('overview')}
+				>
+					📊 Overview
+				</button>
+				<button
+					className={`admin-course-detail-tab ${activeTab === 'structure' ? 'active' : ''}`}
+					onClick={() => setActiveTab('structure')}
+				>
+					🏗️ Structură
+				</button>
+			</div>
 
-				{/* Content */}
-				<div className="admin-course-detail-content">
+			{/* Content */}
+			<div className="admin-course-detail-content">
 					{activeTab === 'overview' && (
 						<CourseOverview
 							course={course}
@@ -248,7 +253,6 @@ const AdminCourseDetailPage = () => {
 						/>
 					)}
 				</div>
-			</div>
 		</div>
 	);
 };

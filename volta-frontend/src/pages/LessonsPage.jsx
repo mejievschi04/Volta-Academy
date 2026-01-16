@@ -80,7 +80,7 @@ const LessonsPage = () => {
 											<div className="va-lesson-actions">
 												<Link
 													to={`/courses/${courseId}/lessons/${lesson.id}`}
-													className="va-btn va-btn-primary"
+													className="lms-btn-primary"
 												>
 													Deschide lecția
 												</Link>
@@ -100,7 +100,7 @@ const LessonsPage = () => {
 						<h3 className="va-test-title">{course.quiz?.title ?? 'Test indisponibil'}</h3>
 						<p className="va-test-summary">{testSummary}</p>
 						<div className="va-test-actions">
-							<Link to={`/courses/${courseId}/quiz`} className="va-btn va-btn-primary">
+							<Link to={`/courses/${courseId}/quiz`} className="lms-btn-primary">
 								Susține testul
 							</Link>
 						</div>
@@ -109,10 +109,10 @@ const LessonsPage = () => {
 			</div>
 
 			<div className="va-lessons-footer-actions">
-				<Link to={`/courses/${courseId}`} className="va-btn va-btn-link">
+				<Link to={`/courses/${courseId}`} className="lms-btn-link">
 					Prezentare curs
 				</Link>
-				<Link to="/courses" className="va-btn va-btn-secondary">
+				<Link to="/courses" className="lms-btn-secondary">
 					Înapoi la cursuri
 				</Link>
 			</div>

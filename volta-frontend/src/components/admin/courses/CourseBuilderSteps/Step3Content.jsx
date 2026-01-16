@@ -1,81 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../../services/api';
-import RichTextEditor from '../../../RichTextEditor';
-import { useAutoSave } from '../../../../hooks/useAutoSave';
+import { useToast } from '../../../../contexts/ToastContext';
+import { logger } from '../../../../utils/logger';
+import { handleApiError } from '../../../../utils/errorHandler';
+import NoDeadEndFallback from '../../../common/NoDeadEndFallback';
+import LessonEditModal from '../LessonEditModal';
 
 const CourseBuilderStep3 = ({ courseId, data, onUpdate, errors }) => {
+	const { error: showError } = useToast();
 	const [editingLesson, setEditingLesson] = useState(null);
-	const [aiHelperVisible, setAiHelperVisible] = useState(false);
-	const [aiHelperType, setAiHelperType] = useState(null); // 'outline', 'quiz', 'summary'
+	const [editingModuleId, setEditingModuleId] = useState(null);
+	const [showEditModal, setShowEditModal] = useState(false);
+	const [editingModuleTitle, setEditingModuleTitle] = useState({}); // { moduleId: title }
 	const modules = data.modules || [];
 
-	// Auto-save lesson content
-	const autoSaveLesson = async (lessonData) => {
-		if (!courseId || !lessonData.id || lessonData.id.toString().startsWith('temp-')) {
-			return; // Skip auto-save for temporary lessons
-		}
+	// Debug: Log modules and lessons
+	useEffect(() => {
+		logger.debug('Step3Content - Modules:', modules);
+		logger.debug('Step3Content - Total lessons:', modules.reduce((sum, m) => sum + (m.lessons?.filter(l => l).length || 0), 0));
+		modules.forEach((module, idx) => {
+			const validLessons = module.lessons?.filter(l => l) || [];
+			logger.debug(`Module ${idx}:`, module.title, 'Lessons:', validLessons.length, validLessons);
+		});
+	}, [modules]);
 
-		try {
-			await adminService.updateLesson(lessonData.id, {
-				content: lessonData.content,
-				title: lessonData.title,
-				description: lessonData.description,
-			});
-		} catch (err) {
-			console.error('Auto-save error:', err);
-		}
-	};
-
-	// AI Helper functions (placeholders for future implementation)
-	const handleAIHelper = async (type, lessonData) => {
-		setAiHelperType(type);
-		setAiHelperVisible(true);
-		
-		// Placeholder for AI integration
-		// In the future, this would call an AI service
-		console.log(`AI Helper: ${type} for lesson ${lessonData.id}`);
-		
-		// Simulate AI response (replace with actual API call)
-		setTimeout(() => {
-			let aiContent = '';
-			switch (type) {
-				case 'outline':
-					aiContent = '<h2>Plan de Lecție</h2><ul><li>Introducere</li><li>Concepte principale</li><li>Exemple practice</li><li>Rezumat</li></ul>';
-					break;
-				case 'quiz':
-					aiContent = '<h2>Întrebări Quiz</h2><ol><li>Întrebare 1?</li><li>Întrebare 2?</li></ol>';
-					break;
-				case 'summary':
-					aiContent = '<p>Rezumat generat automat...</p>';
-					break;
-			}
-			
-			if (aiContent) {
-				setEditingLesson({
-					...editingLesson,
-					content: (editingLesson.content || '') + '\n\n' + aiContent,
-				});
-			}
-			setAiHelperVisible(false);
-		}, 1000);
-	};
 
 	const handleEditLesson = (moduleId, lesson) => {
-		setEditingLesson({
-			...lesson,
-			moduleId: moduleId,
-			content_type: lesson.content_type || lesson.type || 'text',
-		});
+		if (!lesson) {
+			console.error('Cannot edit lesson: lesson is null or undefined');
+			return;
+		}
+		console.log('Editing lesson:', lesson);
+		setEditingLesson(lesson);
+		setEditingModuleId(moduleId);
+		setShowEditModal(true);
 	};
 
 	const handleSaveLesson = async (lessonData) => {
-		if (!lessonData.title?.trim()) {
-			alert('Titlul lecției este obligatoriu');
-			return;
-		}
-
 		try {
-			// Prepare data for API
 			const updateData = {
 				title: lessonData.title.trim(),
 				description: lessonData.description || '',
@@ -92,7 +54,7 @@ const CourseBuilderStep3 = ({ courseId, data, onUpdate, errors }) => {
 				// Update existing lesson via API
 				const updated = await adminService.updateLesson(lessonData.id, updateData);
 				const updatedModules = modules.map(m => {
-					if (m.id === lessonData.moduleId) {
+					if (m.id === editingModuleId) {
 						return {
 							...m,
 							lessons: (m.lessons || []).map(l => 
@@ -106,7 +68,7 @@ const CourseBuilderStep3 = ({ courseId, data, onUpdate, errors }) => {
 			} else {
 				// Update temporary lesson in state
 				const updatedModules = modules.map(m => {
-					if (m.id === lessonData.moduleId) {
+					if (m.id === editingModuleId) {
 						return {
 							...m,
 							lessons: (m.lessons || []).map(l => 
@@ -118,33 +80,233 @@ const CourseBuilderStep3 = ({ courseId, data, onUpdate, errors }) => {
 				});
 				onUpdate({ modules: updatedModules });
 			}
+			setShowEditModal(false);
 			setEditingLesson(null);
+			setEditingModuleId(null);
 		} catch (err) {
-			console.error('Error updating lesson:', err);
-			alert('Eroare la actualizarea lecției: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'updateLesson');
+			showError('Eroare la actualizarea lecției: ' + errorMessage);
 		}
 	};
+
+	const handleChangeLessonType = async (moduleId, lessonId, newType) => {
+		try {
+			console.log('handleChangeLessonType called:', { moduleId, lessonId, newType });
+			
+			// Find module by exact match
+			const moduleIndex = modules.findIndex(m => {
+				if (m.id && moduleId) {
+					return m.id.toString() === moduleId.toString();
+				}
+				// If no IDs, match by index from key (e.g., "module-0")
+				if (moduleId?.toString().startsWith('module-')) {
+					const idx = parseInt(moduleId.toString().split('-')[1]);
+					return modules.indexOf(m) === idx;
+				}
+				return false;
+			});
+			
+			if (moduleIndex === -1) {
+				console.error('Module not found:', moduleId);
+				return;
+			}
+			
+			const module = modules[moduleIndex];
+			
+			// Find lesson by exact match - use index from lessonKey if needed
+			let lessonIndex = -1;
+			
+			if (lessonId?.toString().startsWith('lesson-')) {
+				// Parse lesson key like "lesson-0-1" to get indices
+				const parts = lessonId.toString().split('-');
+				if (parts.length >= 3) {
+					const expectedModuleIdx = parseInt(parts[1]);
+					const expectedLessonIdx = parseInt(parts[2]);
+					
+					// Verify we're in the right module
+					if (moduleIndex === expectedModuleIdx) {
+						lessonIndex = expectedLessonIdx;
+					}
+				}
+			} else {
+				// Try to find by ID
+				lessonIndex = (module.lessons || []).findIndex(l => 
+					l && l.id && l.id.toString() === lessonId?.toString()
+				);
+			}
+			
+			if (lessonIndex === -1 || !module.lessons || !module.lessons[lessonIndex]) {
+				console.error('Lesson not found:', { lessonId, lessonIndex, moduleLessons: module.lessons });
+				return;
+			}
+			
+			const lesson = module.lessons[lessonIndex];
+			console.log('Found lesson at index:', lessonIndex, lesson);
+
+			const updateData = {
+				content_type: newType,
+				type: newType, // Also update 'type' field for compatibility
+			};
+
+			// Check if lesson has a real ID (not temp)
+			const hasRealId = lesson.id && !lesson.id.toString().startsWith('temp-') && courseId;
+			
+			if (hasRealId) {
+				// Update existing lesson via API
+				console.log('Updating lesson via API:', lesson.id, updateData);
+				const updated = await adminService.updateLesson(lesson.id, updateData);
+				const updatedModules = modules.map((m, mIdx) => {
+					if (mIdx === moduleIndex) {
+						return {
+							...m,
+							lessons: (m.lessons || []).map((l, lIdx) => 
+								lIdx === lessonIndex ? (updated.lesson || updated) : l
+							),
+						};
+					}
+					return m;
+				});
+				onUpdate({ modules: updatedModules });
+			} else {
+				// Update temporary lesson in state - use exact index matching
+				console.log('Updating lesson in state at index:', lessonIndex, updateData);
+				const updatedModules = modules.map((m, mIdx) => {
+					if (mIdx === moduleIndex) {
+						return {
+							...m,
+							lessons: (m.lessons || []).map((l, lIdx) => 
+								lIdx === lessonIndex ? { ...l, ...updateData } : l
+							),
+						};
+					}
+					return m;
+				});
+				console.log('Updated modules:', updatedModules);
+				onUpdate({ modules: updatedModules });
+			}
+		} catch (err) {
+			const errorMessage = handleApiError(err, 'updateLessonType');
+			showError('Eroare la schimbarea tipului de lecție: ' + errorMessage);
+		}
+	};
+
+	const handleModuleTitleChange = (moduleId, newTitle) => {
+		setEditingModuleTitle(prev => ({
+			...prev,
+			[moduleId]: newTitle
+		}));
+	};
+
+	const handleModuleTitleSave = async (moduleId) => {
+		const newTitle = editingModuleTitle[moduleId];
+		if (!newTitle || !newTitle.trim()) {
+			// Reset if empty
+			setEditingModuleTitle(prev => {
+				const updated = { ...prev };
+				delete updated[moduleId];
+				return updated;
+			});
+			return;
+		}
+
+		try {
+			const module = modules.find(m => m.id === moduleId);
+			if (!module) return;
+
+			const updateData = {
+				title: newTitle.trim(),
+			};
+
+			if (courseId && moduleId && !moduleId.toString().startsWith('temp-')) {
+				// Update existing module via API
+				const updated = await adminService.updateModule(moduleId, updateData);
+				const updatedModules = modules.map(m => 
+					m.id === moduleId ? (updated.module || updated) : m
+				);
+				onUpdate({ modules: updatedModules });
+			} else {
+				// Update temporary module in state
+				const updatedModules = modules.map(m => 
+					m.id === moduleId ? { ...m, ...updateData } : m
+				);
+				onUpdate({ modules: updatedModules });
+			}
+
+			// Clear editing state
+			setEditingModuleTitle(prev => {
+				const updated = { ...prev };
+				delete updated[moduleId];
+				return updated;
+			});
+		} catch (err) {
+			const errorMessage = handleApiError(err, 'updateModuleTitle');
+			showError('Eroare la actualizarea titlului modulului: ' + errorMessage);
+		}
+	};
+
+	const handleModuleTitleCancel = (moduleId) => {
+		setEditingModuleTitle(prev => {
+			const updated = { ...prev };
+			delete updated[moduleId];
+			return updated;
+		});
+	};
+
+	const lessonTypes = [
+		{ id: 'text', label: 'Text', icon: '📝' },
+		{ id: 'video', label: 'Video', icon: '🎥' },
+		{ id: 'assignment', label: 'Assignment', icon: '✍️' },
+		{ id: 'quiz', label: 'Quiz', icon: '❓' },
+		{ id: 'live', label: 'Live Session', icon: '🔴' },
+		{ id: 'pdf', label: 'PDF', icon: '📄' },
+	];
+
+
+	// Calculate total lessons for display
+	const totalLessons = modules.reduce((sum, m) => sum + (m.lessons?.filter(l => l).length || 0), 0);
+	const allLessons = modules.flatMap(m => (m.lessons || []).filter(l => l).map(l => ({ ...l, moduleId: m.id, moduleTitle: m.title })));
 
 	if (modules.length === 0) {
 		return (
 			<div className="admin-course-builder-step-content">
 				<h2>Conținut Lecții</h2>
-				<div className="admin-course-builder-info-box">
-					<p>💡 Adaugă mai întâi module și lecții în pasul anterior.</p>
-				</div>
+				<NoDeadEndFallback
+					title="Nu există module"
+					description="Adaugă mai întâi module și lecții în pasul anterior pentru a putea edita conținutul."
+					icon="📚"
+					actions={[
+						{
+							label: '← Mergi la Structură',
+							onClick: () => {
+								// This will be handled by parent component
+								window.dispatchEvent(new CustomEvent('navigateToStep', { detail: { step: 2 } }));
+							},
+							variant: 'primary'
+						}
+					]}
+				/>
 			</div>
 		);
 	}
-
-	const allLessons = modules.flatMap(m => (m.lessons || []).map(l => ({ ...l, moduleId: m.id, moduleTitle: m.title })));
 
 	if (allLessons.length === 0) {
 		return (
 			<div className="admin-course-builder-step-content">
 				<h2>Conținut Lecții</h2>
-				<div className="admin-course-builder-info-box">
-					<p>💡 Adaugă lecții în modulele create în pasul anterior.</p>
-				</div>
+				<NoDeadEndFallback
+					title="Nu există lecții"
+					description="Adaugă lecții în modulele create în pasul anterior pentru a putea edita conținutul."
+					icon="📝"
+					actions={[
+						{
+							label: '← Mergi la Structură',
+							onClick: () => {
+								window.dispatchEvent(new CustomEvent('navigateToStep', { detail: { step: 2 } }));
+							},
+							variant: 'primary'
+						}
+					]}
+				/>
 			</div>
 		);
 	}
@@ -154,292 +316,191 @@ const CourseBuilderStep3 = ({ courseId, data, onUpdate, errors }) => {
 			<h2>Conținut Lecții</h2>
 			<p className="admin-course-builder-step-description">
 				Editează conținutul fiecărei lecții cu editorul WYSIWYG. Modificările se salvează automat.
+				{totalLessons > 0 && (
+					<span style={{ marginLeft: 'var(--space-2)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+						({totalLessons} {totalLessons === 1 ? 'lecție' : 'lecții'})
+					</span>
+				)}
 			</p>
 
 			<div className="admin-course-builder-content-list">
-				{modules.map((module) => (
-					<div key={module.id} className="admin-course-builder-content-module">
-						<h3 className="admin-course-builder-content-module-title">
-							{module.title}
-						</h3>
-						{module.lessons && module.lessons.length > 0 ? (
-							<div className="admin-course-builder-content-lessons">
-								{module.lessons.map((lesson) => {
-									const isEditing = editingLesson?.id === lesson.id;
-									return (
-										<div key={lesson.id} className={`admin-course-builder-content-lesson ${isEditing ? 'editing' : ''}`}>
-											{isEditing ? (
-												<div className="admin-form-card">
-													<div className="admin-form-card-header">
-														<h4>✏️ Editează Lecție</h4>
-														<button
-															className="admin-btn-icon admin-btn-icon-sm"
-															onClick={() => setEditingLesson(null)}
-															title="Închide"
-														>
-															×
-														</button>
-													</div>
-
-													{/* Title */}
-													<div className="admin-form-group">
-														<label className="admin-form-label">
-															Titlu Lecție <span className="admin-form-required">*</span>
-														</label>
-														<input
-															type="text"
-															className="admin-form-input"
-															value={editingLesson.title || ''}
-															onChange={(e) => setEditingLesson({ ...editingLesson, title: e.target.value })}
-															placeholder="Ex: Introducere în React Hooks"
-														/>
-													</div>
-
-													{/* Description */}
-													<div className="admin-form-group">
-														<label className="admin-form-label">Descriere</label>
-														<textarea
-															className="admin-form-textarea"
-															value={editingLesson.description || ''}
-															onChange={(e) => setEditingLesson({ ...editingLesson, description: e.target.value })}
-															placeholder="Descriere lecție..."
-															rows={3}
-														/>
-													</div>
-
-													{/* Content Type and Duration */}
-													<div className="admin-form-row">
-														<div className="admin-form-group">
-															<label className="admin-form-label">Tip Conținut</label>
-															<select
-																className="admin-form-select"
-																value={editingLesson.content_type || 'text'}
-																onChange={(e) => setEditingLesson({ ...editingLesson, content_type: e.target.value })}
-															>
-																<option value="text">Text</option>
-																<option value="video">Video</option>
-																<option value="pdf">PDF</option>
-																<option value="free">Lecție Gratuită</option>
-															</select>
-														</div>
-														<div className="admin-form-group">
-															<label className="admin-form-label">Durată (minute)</label>
-															<input
-																type="number"
-																className="admin-form-input"
-																value={editingLesson.duration_minutes || ''}
-																onChange={(e) => setEditingLesson({ ...editingLesson, duration_minutes: parseInt(e.target.value) || null })}
-																placeholder="Ex: 15"
-																min="1"
-															/>
-														</div>
-													</div>
-
-													{/* Content based on type */}
-													{editingLesson.content_type === 'text' && (
-														<div className="admin-form-group">
-															<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-																<label className="admin-form-label">Conținut Text</label>
-																<div style={{ display: 'flex', gap: '0.5rem' }}>
-																	<button
-																		type="button"
-																		className="admin-btn admin-btn-sm admin-btn-secondary"
-																		onClick={() => handleAIHelper('outline', editingLesson)}
-																		title="Generează plan de lecție cu AI"
-																	>
-																		🤖 Plan Lecție
-																	</button>
-																	<button
-																		type="button"
-																		className="admin-btn admin-btn-sm admin-btn-secondary"
-																		onClick={() => handleAIHelper('summary', editingLesson)}
-																		title="Generează rezumat cu AI"
-																	>
-																		🤖 Rezumat
-																	</button>
-																</div>
-															</div>
-															<RichTextEditor
-																value={editingLesson.content || ''}
-																onChange={(content) => {
-																	const updated = { ...editingLesson, content };
-																	setEditingLesson(updated);
-																	// Auto-save after 2 seconds
-																	setTimeout(() => {
-																		if (courseId && updated.id && !updated.id.toString().startsWith('temp-')) {
-																			autoSaveLesson(updated);
-																		}
-																	}, 2000);
-																}}
-																placeholder="Scrie conținutul lecției aici..."
-																style={{ minHeight: '400px' }}
-															/>
-															<div className="admin-input-hint" style={{ marginTop: '0.5rem' }}>
-																💾 Modificările se salvează automat
-															</div>
-														</div>
-													)}
-
-													{editingLesson.content_type === 'video' && (
-														<div className="admin-form-group">
-															<label className="admin-form-label">URL Video</label>
-															<input
-																type="url"
-																className="admin-form-input"
-																value={editingLesson.video_url || ''}
-																onChange={(e) => setEditingLesson({ ...editingLesson, video_url: e.target.value })}
-																placeholder="https://youtube.com/watch?v=... sau https://vimeo.com/..."
-															/>
-															<div className="admin-input-hint">
-																Suportă YouTube, Vimeo și alte platforme video. Poți și încărca direct din editor.
-															</div>
-															{/* Also allow content editor for video lessons */}
-															<div style={{ marginTop: '1rem' }}>
-																<label className="admin-form-label">Conținut Suplimentar (opțional)</label>
-																<RichTextEditor
-																	value={editingLesson.content || ''}
-																	onChange={(content) => {
-																		const updated = { ...editingLesson, content };
-																		setEditingLesson(updated);
+				{modules.filter(module => module).map((module, moduleIdx) => {
+					// Use module.id if available, otherwise use index
+					const moduleKey = module.id || `module-${moduleIdx}`;
+					const isEditingTitle = editingModuleTitle[moduleKey] !== undefined;
+					const displayTitle = isEditingTitle ? editingModuleTitle[moduleKey] : (module.title || `Modul ${moduleIdx + 1}`);
+					
+					return (
+						<div key={moduleKey} className="admin-course-builder-content-module">
+							<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+								{isEditingTitle ? (
+									<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flex: 1 }}>
+										<input
+											type="text"
+											className="admin-form-input"
+											value={displayTitle}
+											onChange={(e) => handleModuleTitleChange(moduleKey, e.target.value)}
+											onBlur={() => handleModuleTitleSave(moduleKey)}
+											onKeyDown={(e) => {
+												if (e.key === 'Enter') {
+													e.target.blur();
+													handleModuleTitleSave(moduleKey);
+												} else if (e.key === 'Escape') {
+													handleModuleTitleCancel(moduleKey);
+												}
+											}}
+											style={{ 
+												flex: 1,
+												fontSize: 'var(--font-size-lg)',
+												fontWeight: 'var(--font-weight-semibold)',
+												padding: 'var(--space-2) var(--space-3)',
+											}}
+											autoFocus
+										/>
+										<button
+											className="admin-btn admin-btn-sm admin-btn-primary"
+											onClick={() => handleModuleTitleSave(moduleKey)}
+											style={{ flexShrink: 0 }}
+										>
+											✓
+										</button>
+										<button
+											className="admin-btn admin-btn-sm admin-btn-secondary"
+											onClick={() => handleModuleTitleCancel(moduleKey)}
+											style={{ flexShrink: 0 }}
+										>
+											✕
+										</button>
+									</div>
+								) : (
+									<>
+										<h3 
+											className="admin-course-builder-content-module-title"
+											style={{ flex: 1, cursor: 'pointer' }}
+											onClick={() => handleModuleTitleChange(moduleKey, module.title || `Modul ${moduleIdx + 1}`)}
+											title="Click pentru a edita titlul"
+										>
+											{module.title || `Modul ${moduleIdx + 1}`}
+										</h3>
+										<button
+											className="admin-btn admin-btn-sm admin-btn-secondary"
+											onClick={() => handleModuleTitleChange(moduleKey, module.title || `Modul ${moduleIdx + 1}`)}
+											style={{ flexShrink: 0 }}
+											title="Editează titlul modulului"
+										>
+											✏️
+										</button>
+									</>
+								)}
+							</div>
+							{module.lessons && module.lessons.length > 0 ? (
+								<div className="admin-course-builder-content-lessons">
+									{module.lessons.filter(lesson => lesson).map((lesson, lessonIdx) => {
+										if (!lesson) return null;
+										// Use lesson.id if available, otherwise use index
+										const lessonKey = lesson.id || `lesson-${moduleIdx}-${lessonIdx}`;
+										return (
+											<div key={lessonKey} className="admin-course-builder-content-lesson">
+												<div className="admin-course-builder-content-lesson-info">
+													<div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+														<span className="admin-course-builder-content-lesson-title">
+															{lesson?.title || 'Lecție fără titlu'}
+														</span>
+														{lesson?.description && (
+															<span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
+																{lesson.description}
+															</span>
+														)}
+														<div className="admin-course-builder-content-lesson-meta">
+															<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+																{/* Lesson Type Selector */}
+																<select
+																	className="admin-form-select"
+																	style={{ 
+																		minWidth: '140px', 
+																		padding: 'var(--space-2) var(--space-3)',
+																		fontSize: 'var(--font-size-sm)',
+																		borderRadius: 'var(--radius-md)',
+																		border: '1.5px solid var(--border-default)',
+																		background: 'var(--bg-surface)',
+																		color: 'var(--text-primary)',
+																		cursor: 'pointer'
 																	}}
-																	placeholder="Note, resurse suplimentare, link-uri..."
-																	style={{ minHeight: '200px' }}
-																/>
-															</div>
-														</div>
-													)}
-
-													{editingLesson.content_type === 'pdf' && (
-														<div className="admin-form-group">
-															<label className="admin-form-label">URL PDF sau Încarcă PDF</label>
-															<input
-																type="url"
-																className="admin-form-input"
-																value={editingLesson.pdf_url || ''}
-																onChange={(e) => setEditingLesson({ ...editingLesson, pdf_url: e.target.value })}
-																placeholder="https://example.com/document.pdf"
-																style={{ marginBottom: '0.5rem' }}
-															/>
-															<div className="admin-input-hint" style={{ marginBottom: '1rem' }}>
-																Link către documentul PDF sau folosește editorul pentru a încărca PDF direct
-															</div>
-															<RichTextEditor
-																value={editingLesson.content || ''}
-																onChange={(content) => {
-																	const updated = { ...editingLesson, content };
-																	setEditingLesson(updated);
-																}}
-																placeholder="Folosește butonul 📄 pentru a încărca PDF sau adaugă link-uri și resurse..."
-																style={{ minHeight: '200px' }}
-															/>
-														</div>
-													)}
-
-													{editingLesson.content_type === 'quiz' && (
-														<div className="admin-form-group">
-															<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-																<label className="admin-form-label">Întrebări Quiz</label>
-																<button
-																	type="button"
-																	className="admin-btn admin-btn-sm admin-btn-secondary"
-																	onClick={() => handleAIHelper('quiz', editingLesson)}
-																	title="Generează întrebări quiz cu AI"
+																	value={lesson?.content_type || lesson?.type || 'text'}
+																	onChange={(e) => {
+																		if (lesson) {
+																			// Use the actual module and lesson objects for identification
+																			const actualModuleId = module.id || moduleKey;
+																			const actualLessonId = lesson.id || lessonKey;
+																			console.log('Changing lesson type:', {
+																				actualModuleId,
+																				actualLessonId,
+																				newType: e.target.value,
+																				lesson,
+																				module
+																			});
+																			handleChangeLessonType(
+																				actualModuleId, 
+																				actualLessonId, 
+																				e.target.value
+																			);
+																		}
+																	}}
 																>
-																	🤖 Generează Întrebări
-																</button>
+																	{lessonTypes.map(type => (
+																		<option key={type.id} value={type.id}>
+																			{type.icon} {type.label}
+																		</option>
+																	))}
+																</select>
+																{lesson?.duration_minutes && <span>• {lesson.duration_minutes} min</span>}
+																{lesson?.is_preview && <span>• Preview</span>}
+																{lesson?.is_locked && <span>• 🔒 Blocată</span>}
 															</div>
-															<RichTextEditor
-																value={editingLesson.content || ''}
-																onChange={(content) => {
-																	const updated = { ...editingLesson, content };
-																	setEditingLesson(updated);
-																}}
-																placeholder="Scrie întrebările quiz aici sau folosește AI pentru a genera..."
-																style={{ minHeight: '300px' }}
-															/>
 														</div>
-													)}
-
-													{/* Options */}
-													<div className="admin-form-row">
-														<div className="admin-form-group">
-															<label className="admin-form-checkbox">
-																<input
-																	type="checkbox"
-																	checked={editingLesson.is_preview || false}
-																	onChange={(e) => setEditingLesson({ ...editingLesson, is_preview: e.target.checked })}
-																/>
-																<span>Lecție gratuită (preview)</span>
-															</label>
-														</div>
-														<div className="admin-form-group">
-															<label className="admin-form-checkbox">
-																<input
-																	type="checkbox"
-																	checked={editingLesson.is_locked || false}
-																	onChange={(e) => setEditingLesson({ ...editingLesson, is_locked: e.target.checked })}
-																/>
-																<span>Lecție blocată</span>
-															</label>
-														</div>
-													</div>
-
-													{/* Actions */}
-													<div className="admin-form-actions">
-														<button
-															className="admin-btn admin-btn-primary"
-															onClick={() => handleSaveLesson(editingLesson)}
-														>
-															💾 Salvează Modificările
-														</button>
-														<button
-															className="admin-btn admin-btn-secondary"
-															onClick={() => setEditingLesson(null)}
-														>
-															Anulează
-														</button>
 													</div>
 												</div>
-											) : (
-												<>
-													<div className="admin-course-builder-content-lesson-info">
-														<div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-															<span className="admin-course-builder-content-lesson-title">
-																{lesson.title}
-															</span>
-															{lesson.description && (
-																<span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
-																	{lesson.description}
-																</span>
-															)}
-															<div className="admin-course-builder-content-lesson-meta">
-																<span>{lesson.content_type || lesson.type || 'text'}</span>
-																{lesson.duration_minutes && <span>• {lesson.duration_minutes} min</span>}
-																{lesson.is_preview && <span>• Preview</span>}
-																{lesson.is_locked && <span>• 🔒 Blocată</span>}
-															</div>
-														</div>
-													</div>
-													<button
-														className="admin-btn admin-btn-sm admin-btn-primary"
-														onClick={() => handleEditLesson(module.id, lesson)}
-													>
-														✏️ Editează Conținut
-													</button>
-												</>
-											)}
-										</div>
-									);
-								})}
-							</div>
-						) : (
-							<p className="admin-course-builder-content-empty">
-								Nu există lecții în acest modul
-							</p>
-						)}
-					</div>
-				))}
+												<button
+													className="admin-btn admin-btn-sm admin-btn-primary"
+													onClick={() => {
+														if (lesson) {
+															handleEditLesson(module.id || moduleKey, lesson);
+														}
+													}}
+												>
+													✏️ Editează Conținut
+												</button>
+											</div>
+										);
+									})}
+								</div>
+							) : (
+								<p className="admin-course-builder-content-empty">
+									Nu există lecții în acest modul
+								</p>
+							)}
+						</div>
+					);
+				})}
 			</div>
+
+			{/* Lesson Edit Modal */}
+			{showEditModal && editingLesson && (
+				<LessonEditModal
+					lesson={editingLesson}
+					moduleId={editingModuleId}
+					courseId={courseId}
+					onClose={() => {
+						setShowEditModal(false);
+						setEditingLesson(null);
+						setEditingModuleId(null);
+					}}
+					onSave={handleSaveLesson}
+					onUpdate={(updatedLesson) => {
+						setEditingLesson(updatedLesson);
+					}}
+				/>
+			)}
 		</div>
 	);
 };

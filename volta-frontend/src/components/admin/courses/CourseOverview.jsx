@@ -43,7 +43,7 @@ const CourseOverview = ({ course, onQuickAction }) => {
 				<div className="admin-course-overview-actions">
 					{course.status !== 'published' && (
 						<button
-							className="admin-btn admin-btn-primary"
+							className="lms-btn-primary"
 							onClick={() => onQuickAction('publish')}
 						>
 							✅ Publish
@@ -51,20 +51,20 @@ const CourseOverview = ({ course, onQuickAction }) => {
 					)}
 					{course.status === 'published' && (
 						<button
-							className="admin-btn admin-btn-secondary"
+							className="lms-btn-secondary"
 							onClick={() => onQuickAction('unpublish')}
 						>
 							👁️ Unpublish
 						</button>
 					)}
 					<button
-						className="admin-btn admin-btn-secondary"
+						className="lms-btn-secondary"
 						onClick={() => onQuickAction('preview')}
 					>
 						👁️ Preview ca Student
 					</button>
 					<button
-						className="admin-btn admin-btn-danger"
+						className="lms-btn-secondary va-btn-danger"
 						onClick={() => onQuickAction('delete')}
 					>
 						🗑️ Șterge Curs

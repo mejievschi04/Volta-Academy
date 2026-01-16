@@ -158,9 +158,9 @@ const AdminSettingsPage = () => {
 
 	if (loading) {
 		return (
-			<div className="admin-settings-page">
-				<div className="admin-settings-loading">
-					<div className="admin-loading-spinner"></div>
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
 					<p>Se încarcă setările...</p>
 				</div>
 			</div>
@@ -171,8 +171,8 @@ const AdminSettingsPage = () => {
 		<div className="admin-container">
 			<div className="admin-page-header">
 				<div>
-					<h1 className="va-page-title admin-page-title">Setări</h1>
-					<p className="va-muted admin-page-subtitle">
+					<h1 className="admin-page-title">Setări</h1>
+					<p className="admin-page-subtitle">
 						Gestionează configurațiile aplicației
 					</p>
 				</div>
@@ -444,13 +444,13 @@ const AdminSettingsPage = () => {
 				{/* Save Button */}
 				<div className="admin-settings-actions">
 					<button
-						className="va-btn va-btn-primary"
+						className="lms-btn-primary"
 						onClick={handleSave}
 						disabled={saving}
 					>
 						{saving ? (
 							<>
-								<span className="admin-loading-spinner-small"></span>
+								<div className="lms-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
 								<span>Se salvează...</span>
 							</>
 						) : (

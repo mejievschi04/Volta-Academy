@@ -91,7 +91,7 @@ class AuthController extends Controller
                 'session_name' => $sessionName,
             ]);
             
-            $response = response()->json([
+            $responseData = [
                 'message' => 'Autentificare reușită',
                 'user' => [
                     'id' => $user->id,
@@ -102,16 +102,24 @@ class AuthController extends Controller
                     'points' => $user->points ?? 0,
                     'must_change_password' => (bool)$mustChangePassword,
                 ],
-                'debug' => [
+            ];
+            
+            // Only include debug info in development
+            if (config('app.debug')) {
+                $responseData['debug'] = [
                     'session_id' => $sessionId,
                     'session_name' => $sessionName,
-                ],
-            ]);
+                ];
+            }
             
-            // Log response headers to see if cookies are set
-            Log::info('Login response headers', [
-                'set_cookie_header' => $response->headers->get('Set-Cookie'),
-            ]);
+            $response = response()->json($responseData);
+            
+            // Log response headers only in development
+            if (config('app.debug')) {
+                Log::info('Login response headers', [
+                    'set_cookie_header' => $response->headers->get('Set-Cookie'),
+                ]);
+            }
             
             return $response;
         }
@@ -142,35 +150,34 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         try {
-            // Debug logging
-            $cookies = $request->cookies->all();
-            $cookieHeader = $request->header('Cookie');
-            
-            Log::info('Auth me check', [
-                'session_id' => $request->session()->getId(),
-                'has_session' => $request->hasSession(),
-                'auth_check' => Auth::check(),
-                'user_id' => Auth::id(),
-                'cookies_received' => array_keys($cookies),
-                'cookie_header' => $cookieHeader ? 'present' : 'missing',
-            ]);
-            
             $user = Auth::user();
             
             if (!$user) {
-                Log::warning('Auth me failed - no user', [
-                    'session_id' => $request->session()->getId(),
-                    'cookies_received' => array_keys($cookies),
-                    'cookie_header' => $cookieHeader ? 'present' : 'missing',
-                ]);
-                return response()->json([
+                // Only log warnings in development
+                if (config('app.debug')) {
+                    $cookies = $request->cookies->all();
+                    $cookieHeader = $request->header('Cookie');
+                    Log::warning('Auth me failed - no user', [
+                        'session_id' => $request->session()->getId(),
+                        'cookies_received' => array_keys($cookies),
+                        'cookie_header' => $cookieHeader ? 'present' : 'missing',
+                    ]);
+                }
+                
+                $responseData = [
                     'error' => 'Neautentificat',
-                    'debug' => [
+                ];
+                
+                // Only include debug info in development
+                if (config('app.debug')) {
+                    $responseData['debug'] = [
                         'has_session' => $request->hasSession(),
                         'session_id' => $request->session()->getId(),
                         'cookies_received' => array_keys($cookies),
-                    ]
-                ], 401);
+                    ];
+                }
+                
+                return response()->json($responseData, 401);
             }
 
             return response()->json([

@@ -71,19 +71,16 @@ const AdminTestsPage = () => {
 
 	const getStatusBadge = (status) => {
 		const badges = {
-			draft: { label: 'Draft', color: '#888' },
-			published: { label: 'Publicat', color: '#4caf50' },
-			archived: { label: 'Arhivat', color: '#ff9800' },
+			draft: { label: 'Draft', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
+			published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
+			archived: { label: 'Arhivat', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' },
 		};
 		const badge = badges[status] || badges.draft;
 		return (
-			<span style={{
-				padding: '0.25rem 0.75rem',
-				borderRadius: '12px',
-				background: `${badge.color}20`,
+			<span className="admin-card-badge" style={{
+				background: badge.bgColor,
 				color: badge.color,
-				fontSize: '0.875rem',
-				fontWeight: 500,
+				border: `1px solid ${badge.color}40`,
 			}}>
 				{badge.label}
 			</span>
@@ -92,19 +89,16 @@ const AdminTestsPage = () => {
 
 	const getTypeBadge = (type) => {
 		const types = {
-			practice: { label: 'Practică', color: '#2196f3' },
-			graded: { label: 'Notat', color: '#9c27b0' },
-			final: { label: 'Final', color: '#f44336' },
+			practice: { label: 'Practică', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' },
+			graded: { label: 'Notat', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.15)' },
+			final: { label: 'Final', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
 		};
 		const badge = types[type] || types.graded;
 		return (
-			<span style={{
-				padding: '0.25rem 0.75rem',
-				borderRadius: '12px',
-				background: `${badge.color}20`,
+			<span className="admin-card-badge" style={{
+				background: badge.bgColor,
 				color: badge.color,
-				fontSize: '0.875rem',
-				fontWeight: 500,
+				border: `1px solid ${badge.color}40`,
 			}}>
 				{badge.label}
 			</span>
@@ -114,8 +108,9 @@ const AdminTestsPage = () => {
 	if (loading) {
 		return (
 			<div className="admin-container">
-				<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-					<div className="va-loading-spinner"></div>
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+					<p>Se încarcă testele...</p>
 				</div>
 			</div>
 		);
@@ -125,24 +120,26 @@ const AdminTestsPage = () => {
 		<div className="admin-container">
 			<div className="admin-page-header">
 				<div>
-					<h1 className="va-page-title admin-page-title">Test Builder</h1>
-					<p className="va-muted admin-page-subtitle">
+					<h1 className="admin-page-title">Test Builder</h1>
+					<p className="admin-page-subtitle">
 						Gestionează testele standalone. Testele pot fi reutilizate în multiple cursuri.
 					</p>
 				</div>
-				<div style={{ display: 'flex', gap: '0.75rem' }}>
+				<div className="admin-page-header-actions">
 					<button
-						className="va-btn va-btn-secondary"
+						className="lms-btn-secondary"
 						onClick={() => setShowAIChat(true)}
 						title="Creează test cu AI"
 					>
-						🤖 AI Creator
+						<span>🤖</span>
+						AI Creator
 					</button>
 					<button
-						className="va-btn va-btn-primary"
+						className="lms-btn-primary"
 						onClick={() => navigate('/admin/tests/new/builder')}
 					>
-						+ Creează Test Nou
+						<span>+</span>
+						Creează Test Nou
 					</button>
 				</div>
 			</div>
@@ -168,25 +165,28 @@ const AdminTestsPage = () => {
 			)}
 
 			{/* Filters */}
-			<div style={{
-				display: 'flex',
-				gap: '1rem',
-				marginBottom: '2rem',
-				flexWrap: 'wrap',
-				alignItems: 'center',
-			}}>
-				<div className="va-form-group" style={{ margin: 0, minWidth: '200px' }}>
+			<div className="admin-courses-toolbar" style={{ marginBottom: '2rem' }}>
+				<div className="admin-courses-search">
 					<input
 						type="text"
-						className="va-form-input"
+						className="admin-search-input"
 						placeholder="Caută teste..."
 						value={filters.search}
 						onChange={(e) => setFilters({ ...filters, search: e.target.value })}
 					/>
+					{filters.search && (
+						<button
+							className="admin-search-clear-btn"
+							onClick={() => setFilters({ ...filters, search: '' })}
+							aria-label="Clear search"
+						>
+							×
+						</button>
+					)}
 				</div>
-				<div className="va-form-group" style={{ margin: 0, minWidth: '150px' }}>
+				<div className="admin-courses-actions">
 					<select
-						className="va-form-input"
+						className="admin-filter-select"
 						value={filters.status}
 						onChange={(e) => setFilters({ ...filters, status: e.target.value })}
 					>
@@ -195,10 +195,8 @@ const AdminTestsPage = () => {
 						<option value="published">Publicat</option>
 						<option value="archived">Arhivat</option>
 					</select>
-				</div>
-				<div className="va-form-group" style={{ margin: 0, minWidth: '150px' }}>
 					<select
-						className="va-form-input"
+						className="admin-filter-select"
 						value={filters.type}
 						onChange={(e) => setFilters({ ...filters, type: e.target.value })}
 					>
@@ -211,41 +209,34 @@ const AdminTestsPage = () => {
 			</div>
 
 			{error && (
-				<div style={{
-					padding: '1rem',
-					background: 'rgba(244, 67, 54, 0.1)',
-					color: '#f44336',
-					borderRadius: '8px',
-					marginBottom: '1rem',
-					border: '1px solid rgba(244, 67, 54, 0.3)',
-				}}>
-					{error}
+				<div className="lms-error-message">
+					<strong>Eroare:</strong> {error}
 				</div>
 			)}
 
 			{tests.length > 0 ? (
 				<div className="admin-grid">
 					{tests.map((test) => (
-						<div key={test.id} className="va-card admin-card">
+						<div key={test.id} className="admin-card">
 							<div className="admin-card-body">
-								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
 									<h3 className="admin-card-title" style={{ margin: 0, flex: 1 }}>
 										{test.title}
 									</h3>
-									<div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+									<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
 										{getStatusBadge(test.status)}
 										{getTypeBadge(test.type)}
 									</div>
 								</div>
 
 								{test.description && (
-									<p className="va-muted" style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
+									<p className="admin-card-description" style={{ marginBottom: '1rem' }}>
 										{test.description}
 									</p>
 								)}
 
 								<div className="admin-card-info" style={{ marginBottom: '1rem' }}>
-									<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.875rem' }}>
+									<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
 										{test.time_limit_minutes && (
 											<div>⏱️ {test.time_limit_minutes} min</div>
 										)}
@@ -263,24 +254,27 @@ const AdminTestsPage = () => {
 
 								<div className="admin-card-actions">
 									<button
-										className="va-btn va-btn-sm"
+										className="lms-btn-secondary lms-btn-sm"
 										onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
 									>
-										✏️ Editează
+										<span>✏️</span>
+										<span>Editează</span>
 									</button>
 									{test.status === 'draft' && (
 										<button
-											className="va-btn va-btn-sm va-btn-success"
+											className="lms-btn-primary lms-btn-sm"
 											onClick={() => handlePublish(test.id)}
 										>
-											📤 Publică
+											<span>📤</span>
+											<span>Publică</span>
 										</button>
 									)}
 									<button
-										className="va-btn va-btn-sm va-btn-danger"
+										className="lms-btn-secondary lms-btn-sm va-btn-danger"
 										onClick={() => handleDelete(test.id)}
 									>
-										🗑️ Șterge
+										<span>🗑️</span>
+										<span>Șterge</span>
 									</button>
 								</div>
 							</div>
@@ -288,27 +282,23 @@ const AdminTestsPage = () => {
 					))}
 				</div>
 			) : (
-				<div className="va-card">
-					<div className="va-card-body" style={{ textAlign: 'center', padding: '3rem' }}>
-						<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
-						<p className="va-muted" style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-							Nu există teste
-						</p>
-						<p className="va-muted" style={{ fontSize: '0.9rem' }}>
-							{Object.values(filters).some(f => f !== 'all' && f !== '') 
-								? 'Încearcă să modifici filtrele' 
-								: 'Creează primul test pentru a începe'}
-						</p>
-						{!Object.values(filters).some(f => f !== 'all' && f !== '') && (
-							<button
-								className="va-btn va-btn-primary"
-								style={{ marginTop: '1.5rem' }}
-								onClick={() => navigate('/admin/tests/new/builder')}
-							>
-								+ Creează Test Nou
-							</button>
-						)}
+				<div className="lms-empty-state">
+					<div className="lms-empty-icon">📝</div>
+					<div className="lms-empty-title">Nu există teste</div>
+					<div className="lms-empty-description">
+						{Object.values(filters).some(f => f !== 'all' && f !== '') 
+							? 'Încearcă să modifici filtrele' 
+							: 'Creează primul test pentru a începe'}
 					</div>
+					{!Object.values(filters).some(f => f !== 'all' && f !== '') && (
+						<button
+							className="lms-btn-primary"
+							onClick={() => navigate('/admin/tests/new/builder')}
+						>
+							<span>+</span>
+							Creează Test Nou
+						</button>
+					)}
 				</div>
 			)}
 		</div>

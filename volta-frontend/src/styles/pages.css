@@ -1,0 +1,723 @@
+/* ============================================
+   PAGES - STYLING FOR ALL PAGES
+   Unified & Standardized using Design System
+   ============================================ */
+
+/* ============================================
+   1. STUDENT DASHBOARD PAGE
+   ============================================ */
+.student-dashboard-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.student-dashboard-loading,
+.student-dashboard-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	gap: var(--space-4);
+	color: var(--text-secondary);
+}
+
+.student-loading-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--border-primary);
+	border-top-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	animation: spin 0.8s linear infinite;
+}
+
+.student-dashboard-header {
+	margin-bottom: var(--space-8);
+}
+
+.student-dashboard-welcome {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin-bottom: var(--space-2);
+}
+
+.student-dashboard-welcome-icon {
+	font-size: var(--font-size-lg);
+}
+
+.student-dashboard-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.student-dashboard-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+/* Hero Section */
+.student-dashboard-hero {
+	margin-bottom: var(--space-8);
+}
+
+.student-dashboard-hero-content {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.student-dashboard-global-progress {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.student-global-progress-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--space-4);
+}
+
+.student-global-progress-header h2 {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.student-global-progress-stats {
+	display: flex;
+	gap: var(--space-6);
+}
+
+.student-global-progress-stat {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.student-global-progress-stat-value {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+}
+
+.student-global-progress-stat-label {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+/* Progress Bar */
+.student-global-progress-bar {
+	width: 100%;
+	height: 12px;
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	margin-top: var(--space-4);
+}
+
+.student-global-progress-bar-fill {
+	height: 100%;
+	background-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	transition: width var(--transition-smooth);
+}
+
+/* Widgets Grid */
+.student-dashboard-widgets {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.student-dashboard-widget {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.student-dashboard-widget:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+}
+
+.student-dashboard-widget-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-4);
+}
+
+.student-dashboard-widget-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+/* ============================================
+   2. COURSES PAGE
+   ============================================ */
+.courses-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.courses-page-header {
+	margin-bottom: var(--space-8);
+}
+
+.courses-page-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.courses-page-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+/* Filters & Search */
+.courses-filters {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+	flex-wrap: wrap;
+}
+
+.courses-search {
+	flex: 1;
+	min-width: 250px;
+	position: relative;
+}
+
+.courses-search-input {
+	width: 100%;
+	padding: var(--space-3) var(--space-4) var(--space-3) var(--space-10);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-base);
+	transition: all var(--transition-base);
+}
+
+.courses-search-input:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+}
+
+.courses-search-icon {
+	position: absolute;
+	left: var(--space-3);
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	opacity: 0.5;
+	color: var(--text-tertiary);
+}
+
+.courses-filter-select {
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.courses-filter-select:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+}
+
+/* Course Grid */
+.courses-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: var(--space-6);
+}
+
+.course-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+}
+
+.course-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+	transform: translateY(-2px);
+}
+
+.course-card-image {
+	width: 100%;
+	height: 180px;
+	object-fit: cover;
+	background-color: var(--bg-secondary);
+}
+
+.course-card-content {
+	padding: var(--space-6);
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.course-card-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.course-card-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-4) 0;
+	flex: 1;
+	line-height: var(--line-height-relaxed);
+}
+
+.course-card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border-primary);
+}
+
+.course-card-progress {
+	flex: 1;
+}
+
+.course-card-progress-bar {
+	width: 100%;
+	height: 6px;
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	margin-bottom: var(--space-2);
+}
+
+.course-card-progress-fill {
+	height: 100%;
+	background-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	transition: width var(--transition-smooth);
+}
+
+.course-card-progress-text {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.course-card-status {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+}
+
+.course-card-status.completed {
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+}
+
+.course-card-status.in-progress {
+	background-color: rgba(56, 189, 248, 0.2);
+	color: var(--color-primary);
+}
+
+.course-card-status.not-started {
+	background-color: rgba(148, 163, 184, 0.2);
+	color: var(--text-tertiary);
+}
+
+/* Course Card Badge Container */
+.course-card-badge {
+	margin-bottom: var(--space-3);
+}
+
+/* Course Card Image Placeholder */
+.course-card-image-placeholder {
+	width: 100%;
+	height: 180px;
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 3rem;
+	opacity: 0.5;
+}
+
+/* Course Card Meta */
+.course-card-meta {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.course-meta-item {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+/* Courses Filter Buttons */
+.courses-filter-buttons {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+
+.courses-filter-buttons .lms-btn-secondary.active {
+	background-color: rgba(56, 189, 248, 0.15);
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+}
+
+.courses-sort {
+	position: relative;
+}
+
+/* Empty State */
+.courses-empty {
+	text-align: center;
+	padding: var(--space-16) var(--space-8);
+	color: var(--text-tertiary);
+}
+
+.courses-empty-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+}
+
+.courses-empty-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.courses-empty-text {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* ============================================
+   3. ADMIN DASHBOARD PAGE
+   ============================================ */
+.admin-dashboard-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.admin-dashboard-header {
+	margin-bottom: var(--space-8);
+}
+
+.admin-dashboard-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.admin-dashboard-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+/* KPI Cards */
+.admin-kpi-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.admin-kpi-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.admin-kpi-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+}
+
+.admin-kpi-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.admin-kpi-value {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.admin-kpi-change {
+	font-size: var(--font-size-sm);
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.admin-kpi-change.positive {
+	color: var(--color-success);
+}
+
+.admin-kpi-change.negative {
+	color: var(--color-error);
+}
+
+.admin-kpi-change.neutral {
+	color: var(--text-tertiary);
+}
+
+/* System Health Card */
+.admin-system-health {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	margin-bottom: var(--space-8);
+}
+
+.admin-system-health-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-4);
+}
+
+.admin-system-health-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.admin-system-health-status {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+}
+
+.admin-system-health-status.healthy {
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+}
+
+.admin-system-health-status.needs-attention {
+	background-color: rgba(245, 158, 11, 0.2);
+	color: var(--color-warning);
+}
+
+.admin-system-health-status.critical {
+	background-color: rgba(239, 68, 68, 0.2);
+	color: var(--color-error);
+}
+
+/* Problematic Courses */
+.admin-problematic-courses {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	margin-bottom: var(--space-8);
+}
+
+.admin-problematic-courses-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-4);
+}
+
+.admin-problematic-courses-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.admin-problematic-course-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-4);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+	margin-bottom: var(--space-3);
+	transition: all var(--transition-base);
+}
+
+.admin-problematic-course-item:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+}
+
+.admin-problematic-course-name {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.admin-problematic-course-metrics {
+	display: flex;
+	gap: var(--space-4);
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+/* Charts Section */
+.admin-charts-section {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.admin-chart-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.admin-chart-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-4) 0;
+}
+
+/* ============================================
+   4. RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 1024px) {
+	.student-dashboard-hero-content {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-charts-section {
+		grid-template-columns: 1fr;
+	}
+
+	.courses-grid {
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.student-dashboard-page,
+	.courses-page,
+	.admin-dashboard-page {
+		padding: var(--space-4);
+	}
+
+	.student-dashboard-title,
+	.courses-page-title,
+	.admin-dashboard-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.student-dashboard-widgets,
+	.admin-kpi-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.courses-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.courses-filters {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-3);
+	}
+
+	.courses-search {
+		min-width: 100%;
+	}
+
+	.courses-filter-buttons {
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	.courses-filter-buttons .lms-btn-secondary {
+		flex: 1;
+		min-width: calc(50% - var(--space-1));
+	}
+
+	.courses-sort {
+		width: 100%;
+	}
+
+	.courses-sort select {
+		width: 100%;
+	}
+}

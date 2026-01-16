@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 
 const AdminTeamMembersPage = () => {
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [members, setMembers] = useState([]);
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -111,10 +114,10 @@ const AdminTeamMembersPage = () => {
 					break;
 			}
 			await fetchTeamMembers();
-			alert('Acțiune realizată cu succes!');
+			showSuccess('Acțiune realizată cu succes!');
 		} catch (err) {
-			console.error(`Error ${action}:`, err);
-			alert(err.response?.data?.message || `Eroare la ${action}`);
+			logger.error(`Error ${action}:`, err);
+			showError(err.response?.data?.message || `Eroare la ${action}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -127,10 +130,10 @@ const AdminTeamMembersPage = () => {
 			await fetchTeamMembers();
 			setShowRoleModal(false);
 			setSelectedMember(null);
-			alert('Rol și permisiuni actualizate cu succes!');
+			showSuccess('Rol și permisiuni actualizate cu succes!');
 		} catch (err) {
-			console.error('Error updating role:', err);
-			alert(err.response?.data?.message || 'Eroare la actualizarea rolului');
+			logger.error('Error updating role:', err);
+			showError(err.response?.data?.message || 'Eroare la actualizarea rolului');
 		} finally {
 			setActionLoading(null);
 		}
@@ -143,30 +146,36 @@ const AdminTeamMembersPage = () => {
 			await fetchTeamMembers();
 			setShowCoursesModal(false);
 			setSelectedMember(null);
-			alert('Cursuri atribuite cu succes!');
+			showSuccess('Cursuri atribuite cu succes!');
 		} catch (err) {
-			console.error('Error assigning courses:', err);
-			alert(err.response?.data?.message || 'Eroare la atribuirea cursurilor');
+			logger.error('Error assigning courses:', err);
+			showError(err.response?.data?.message || 'Eroare la atribuirea cursurilor');
 		} finally {
 			setActionLoading(null);
 		}
 	};
 
 	if (loading) {
-		return null;
+		return (
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+				</div>
+			</div>
+		);
 	}
 
 	return (
 		<div className="admin-container">
 			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">Membri Echipă</h1>
-					<p className="va-muted admin-page-subtitle">
+				<div className="admin-page-header-content">
+					<h1 className="admin-page-title">Membri Echipă</h1>
+					<p className="admin-page-subtitle">
 						Gestionează membrii echipei interne: admini, manageri și instructori
 					</p>
 				</div>
 				<button
-					className="va-btn va-btn-primary"
+					className="lms-btn-primary"
 					onClick={() => navigate('/admin/users')}
 				>
 					+ Adaugă Membru
@@ -174,46 +183,24 @@ const AdminTeamMembersPage = () => {
 			</div>
 
 			{error && (
-				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1rem' }}>
+				<div className="lms-error-message">
 					{error}
 				</div>
 			)}
 
 			{/* Filters */}
-			<div style={{ 
-				display: 'flex', 
-				gap: '1rem', 
-				marginBottom: '1.5rem',
-				flexWrap: 'wrap',
-				alignItems: 'center',
-			}}>
+			<div className="admin-team-members-filters">
 				<input
 					type="text"
+					className="admin-team-members-search"
 					placeholder="Caută după nume sau email..."
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-						minWidth: '300px',
-						flex: 1,
-					}}
 				/>
 				<select
+					className="admin-team-members-filter-select"
 					value={filters.role}
 					onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-					}}
 				>
 					<option value="all">Toate rolurile</option>
 					<option value="admin">Admin</option>
@@ -222,16 +209,9 @@ const AdminTeamMembersPage = () => {
 					<option value="teacher">Instructor (Teacher)</option>
 				</select>
 				<select
+					className="admin-team-members-filter-select"
 					value={filters.status}
 					onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-					}}
 				>
 					<option value="all">Toate statusurile</option>
 					<option value="active">Activ</option>
@@ -241,7 +221,7 @@ const AdminTeamMembersPage = () => {
 
 			{/* Members List */}
 			{members.length > 0 ? (
-				<div style={{ display: 'grid', gap: '1rem' }}>
+				<div className="admin-team-members-grid">
 					{members.map((member) => {
 						const statusBadge = getStatusBadge(member.status);
 						const roleColor = getRoleColor(member.role);
@@ -249,43 +229,20 @@ const AdminTeamMembersPage = () => {
 						return (
 							<div
 								key={member.id}
-								className="va-card"
-								style={{
-									cursor: 'pointer',
-									transition: 'all 0.3s ease',
-									position: 'relative',
-								}}
+								className="admin-team-member-card"
 								onClick={() => navigate(`/admin/users/${member.id}`)}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.transform = 'translateY(-2px)';
-									e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.transform = 'translateY(0)';
-									e.currentTarget.style.boxShadow = 'none';
-								}}
 							>
-								<div className="va-card-body" style={{ padding: '1.5rem' }}>
-									<div style={{ display: 'flex', gap: '1.5rem', alignItems: 'start' }}>
+								<div className="admin-team-member-card-body">
+									<div className="admin-team-member-card-content">
 										{/* Avatar */}
-										<div style={{
-											width: '64px',
-											height: '64px',
-											borderRadius: '50%',
-											background: `linear-gradient(135deg, ${roleColor}, ${roleColor}dd)`,
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center',
-											fontSize: '1.5rem',
-											fontWeight: 'bold',
-											color: '#fff',
-											flexShrink: 0,
-										}}>
+										<div 
+											className="admin-team-member-avatar"
+											style={{ background: `linear-gradient(135deg, ${roleColor}, ${roleColor}dd)` }}
+										>
 											{member.avatar ? (
 												<img 
 													src={member.avatar} 
 													alt={member.name}
-													style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
 												/>
 											) : (
 												(member.name?.charAt(0) || 'U').toUpperCase()
@@ -293,60 +250,45 @@ const AdminTeamMembersPage = () => {
 										</div>
 
 										{/* Member Info */}
-										<div style={{ flex: 1, minWidth: 0 }}>
-											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+										<div className="admin-team-member-info">
+											<div className="admin-team-member-header">
 												<div>
-													<h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
+													<h3 className="admin-team-member-name">
 														{member.name}
 													</h3>
-													<p style={{ margin: 0, color: 'var(--va-muted)', fontSize: '0.9rem' }}>
+													<p className="admin-team-member-email">
 														{member.email}
 													</p>
 												</div>
-												<div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-													<span style={{
-														padding: '0.25rem 0.75rem',
-														borderRadius: '12px',
-														fontSize: '0.75rem',
-														fontWeight: 'bold',
-														background: roleColor,
-														color: '#fff',
-													}}>
+												<div className="admin-team-member-badges">
+													<span 
+														className="admin-team-member-role-badge"
+														style={{ background: roleColor }}
+													>
 														{getRoleLabel(member.role)}
 													</span>
-													<span style={{
-														padding: '0.25rem 0.75rem',
-														borderRadius: '12px',
-														fontSize: '0.75rem',
-														fontWeight: 'bold',
-														background: statusBadge.color,
-														color: '#fff',
-													}}>
+													<span 
+														className="admin-team-member-status-badge"
+														style={{ background: statusBadge.color }}
+													>
 														{statusBadge.label}
 													</span>
 												</div>
 											</div>
 
 											{/* Additional Info */}
-											<div style={{ 
-												display: 'grid', 
-												gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-												gap: '1rem',
-												marginTop: '1rem',
-												fontSize: '0.85rem',
-												color: 'var(--va-muted)',
-											}}>
-												<div>
-													<strong style={{ color: 'var(--va-text)' }}>Cursuri asignate:</strong>{' '}
+											<div className="admin-team-member-meta">
+												<div className="admin-team-member-meta-item">
+													<strong>Cursuri asignate:</strong>{' '}
 													{member.assigned_courses_count || 0}
 												</div>
-												<div>
-													<strong style={{ color: 'var(--va-text)' }}>Ultima autentificare:</strong>{' '}
+												<div className="admin-team-member-meta-item">
+													<strong>Ultima autentificare:</strong>{' '}
 													{formatDate(member.last_login_at)}
 												</div>
 												{member.recent_activity && member.recent_activity.length > 0 && (
-													<div>
-														<strong style={{ color: 'var(--va-text)' }}>Activitate recentă:</strong>{' '}
+													<div className="admin-team-member-meta-item">
+														<strong>Activitate recentă:</strong>{' '}
 														{member.recent_activity.map((act, idx) => (
 															<span key={idx}>
 																{act.count} {act.label}
@@ -360,99 +302,64 @@ const AdminTeamMembersPage = () => {
 
 										{/* Quick Actions */}
 										<div 
-											style={{ 
-												display: 'flex', 
-												gap: '0.5rem',
-												flexDirection: 'column',
-												flexShrink: 0,
-											}}
+											className="admin-team-member-actions"
 											onClick={(e) => e.stopPropagation()}
 										>
 											<button
-												className="va-btn va-btn-sm"
+												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-role"
 												onClick={() => {
 													setSelectedMember(member);
 													setShowRoleModal(true);
 												}}
 												disabled={actionLoading === member.id}
-												style={{ 
-													background: '#3b82f6',
-													color: '#fff',
-													whiteSpace: 'nowrap',
-												}}
 											>
 												✏️ Rol & Permisiuni
 											</button>
 											<button
-												className="va-btn va-btn-sm"
+												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-courses"
 												onClick={() => {
 													setSelectedMember(member);
 													setShowCoursesModal(true);
 												}}
 												disabled={actionLoading === member.id}
-												style={{ 
-													background: '#10b981',
-													color: '#fff',
-													whiteSpace: 'nowrap',
-												}}
 											>
 												📚 Cursuri
 											</button>
 											{member.status === 'suspended' ? (
 												<button
-													className="va-btn va-btn-sm"
+													className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-activate"
 													onClick={() => handleQuickAction(member.id, 'activate')}
 													disabled={actionLoading === member.id}
-													style={{ 
-														background: '#10b981',
-														color: '#fff',
-														whiteSpace: 'nowrap',
-													}}
 												>
 													✓ Activează
 												</button>
 											) : (
 												<button
-													className="va-btn va-btn-sm"
+													className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-suspend"
 													onClick={() => {
 														setSelectedMember(member);
 														setShowSuspendModal(true);
 													}}
 													disabled={actionLoading === member.id}
-													style={{ 
-														background: '#f97316',
-														color: '#fff',
-														whiteSpace: 'nowrap',
-													}}
 												>
 													⏸️ Suspendă
 												</button>
 											)}
 											<button
-												className="va-btn va-btn-sm"
+												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-reset"
 												onClick={() => handleQuickAction(member.id, 'resetAccess')}
 												disabled={actionLoading === member.id}
-												style={{ 
-													background: '#8b5cf6',
-													color: '#fff',
-													whiteSpace: 'nowrap',
-												}}
 											>
 												🔑 Reset Acces
 											</button>
 											<button
-												className="va-btn va-btn-sm"
+												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-delete"
 												onClick={() => {
 													if (confirm('Sigur dorești să elimini acest membru din echipă?')) {
 														handleQuickAction(member.id, 'removeFromTeam');
 													}
 												}}
 												disabled={actionLoading === member.id}
-												style={{ 
-													background: '#ef4444',
-													color: '#fff',
-													whiteSpace: 'nowrap',
-												}}
 											>
 												🗑️ Elimină
 											</button>
@@ -464,16 +371,12 @@ const AdminTeamMembersPage = () => {
 					})}
 				</div>
 			) : (
-				<div className="va-card">
-					<div className="va-card-body">
-						<div style={{ textAlign: 'center', padding: '3rem' }}>
-							<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-							<h3 style={{ marginBottom: '0.5rem' }}>Nu există membri</h3>
-							<p style={{ color: 'var(--va-muted)' }}>
-								Nu există membri ai echipei care să corespundă filtrelor selectate.
-							</p>
-						</div>
-					</div>
+				<div className="lms-empty-state">
+					<div className="lms-empty-icon">👥</div>
+					<h3 className="lms-empty-title">Nu există membri</h3>
+					<p className="lms-empty-description">
+						Nu există membri ai echipei care să corespundă filtrelor selectate.
+					</p>
 				</div>
 			)}
 
@@ -545,42 +448,26 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 	};
 
 	return (
-		<div style={{
-			position: 'fixed',
-			top: 0,
-			left: 0,
-			right: 0,
-			bottom: 0,
-			background: 'rgba(0, 0, 0, 0.3)',
-			backdropFilter: 'blur(10px)',
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			zIndex: 1000,
+		<div className="admin-team-members-modal-overlay" onClick={(e) => {
+			if (e.target === e.currentTarget) onClose();
 		}}>
-			<div className="va-card" style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
-				<div className="va-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<h2>Editare Rol & Permisiuni - {member.name}</h2>
+			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
+				<div className="admin-team-members-modal-header">
+					<h2 className="admin-team-members-modal-title">Editare Rol & Permisiuni - {member.name}</h2>
 					<button
 						type="button"
+						className="admin-team-members-modal-close"
 						onClick={onClose}
-						style={{
-							background: 'transparent',
-							border: 'none',
-							color: '#fff',
-							fontSize: '1.5rem',
-							cursor: 'pointer',
-						}}
 					>
 						×
 					</button>
 				</div>
-				<div className="va-card-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Rol</label>
+				<div className="admin-team-members-modal-body">
+					<form onSubmit={handleSubmit} className="admin-team-members-modal-form">
+						<div className="admin-form-group">
+							<label className="admin-form-label">Rol</label>
 							<select
-								className="va-form-input"
+								className="admin-form-input"
 								value={role}
 								onChange={(e) => setRole(e.target.value)}
 								required
@@ -592,18 +479,17 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 							</select>
 						</div>
 
-						<div className="va-form-group">
-							<label className="va-form-label">Permisiuni</label>
-							<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+						<div className="admin-form-group">
+							<label className="admin-form-label">Permisiuni</label>
+							<div className="admin-team-members-permissions-list">
 								{Object.keys(defaultPermissions).map((key) => (
-									<label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+									<label key={key} className="admin-team-members-permission-item">
 										<input
 											type="checkbox"
 											checked={currentPermissions[key] || false}
 											onChange={(e) => handlePermissionChange(key, e.target.checked)}
-											style={{ width: '20px', height: '20px', cursor: 'pointer' }}
 										/>
-										<span style={{ textTransform: 'capitalize' }}>
+										<span>
 											{key.replace(/_/g, ' ').replace(/can /g, '')}
 										</span>
 									</label>
@@ -611,11 +497,11 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 							</div>
 						</div>
 
-						<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-							<button type="button" className="va-btn" onClick={onClose} disabled={loading}>
+						<div className="admin-team-members-modal-footer">
+							<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={loading}>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn va-btn-primary" disabled={loading}>
+							<button type="submit" className="lms-btn-primary" disabled={loading}>
 								{loading ? 'Se salvează...' : 'Salvează'}
 							</button>
 						</div>
@@ -638,89 +524,51 @@ const CoursesAssignmentModal = ({ member, courses, onClose, onSave, loading }) =
 	};
 
 	return (
-		<div style={{
-			position: 'fixed',
-			top: 0,
-			left: 0,
-			right: 0,
-			bottom: 0,
-			background: 'rgba(0, 0, 0, 0.3)',
-			backdropFilter: 'blur(10px)',
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			zIndex: 1000,
+		<div className="admin-team-members-modal-overlay" onClick={(e) => {
+			if (e.target === e.currentTarget) onClose();
 		}}>
-			<div className="va-card" style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
-				<div className="va-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<h2>Atribuie Cursuri - {member.name}</h2>
+			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
+				<div className="admin-team-members-modal-header">
+					<h2 className="admin-team-members-modal-title">Atribuie Cursuri - {member.name}</h2>
 					<button
 						type="button"
+						className="admin-team-members-modal-close"
 						onClick={onClose}
-						style={{
-							background: 'transparent',
-							border: 'none',
-							color: '#fff',
-							fontSize: '1.5rem',
-							cursor: 'pointer',
-						}}
 					>
 						×
 					</button>
 				</div>
-				<div className="va-card-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Selectează Cursuri</label>
-							<div style={{ 
-								maxHeight: '400px', 
-								overflow: 'auto', 
-								background: 'rgba(0,0,0,0.3)',
-								border: '1px solid rgba(255,238,0,0.2)', 
-								borderRadius: '12px', 
-								padding: '1rem',
-							}}>
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-									{courses.map((course) => (
-										<label 
-											key={course.id} 
-											style={{ 
-												display: 'flex', 
-												alignItems: 'center', 
-												gap: '0.75rem', 
-												padding: '0.75rem',
-												borderRadius: '8px',
-												cursor: 'pointer',
-												background: selectedCourseIds.includes(course.id) 
-													? 'rgba(255,238,0,0.15)' 
-													: 'transparent',
+				<div className="admin-team-members-modal-body">
+					<form onSubmit={handleSubmit} className="admin-team-members-modal-form">
+						<div className="admin-form-group">
+							<label className="admin-form-label">Selectează Cursuri</label>
+							<div className="admin-team-members-courses-list">
+								{courses.map((course) => (
+									<label 
+										key={course.id} 
+										className={`admin-team-members-course-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}
+									>
+										<input
+											type="checkbox"
+											checked={selectedCourseIds.includes(course.id)}
+											onChange={(e) => {
+												if (e.target.checked) {
+													setSelectedCourseIds([...selectedCourseIds, course.id]);
+												} else {
+													setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
+												}
 											}}
-										>
-											<input
-												type="checkbox"
-												checked={selectedCourseIds.includes(course.id)}
-												onChange={(e) => {
-													if (e.target.checked) {
-														setSelectedCourseIds([...selectedCourseIds, course.id]);
-													} else {
-														setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
-													}
-												}}
-												style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-											/>
-											<span style={{ fontWeight: 600 }}>
-												{course.title}
-											</span>
-										</label>
-									))}
-								</div>
+										/>
+										<span>{course.title}</span>
+									</label>
+								))}
 							</div>
 						</div>
-						<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-							<button type="button" className="va-btn" onClick={onClose} disabled={loading}>
+						<div className="admin-team-members-modal-footer">
+							<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={loading}>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn va-btn-primary" disabled={loading}>
+							<button type="submit" className="lms-btn-primary" disabled={loading}>
 								{loading ? 'Se salvează...' : 'Salvează'}
 							</button>
 						</div>
@@ -742,62 +590,46 @@ const SuspendModal = ({ member, onClose, onSave, loading }) => {
 	};
 
 	return (
-		<div style={{
-			position: 'fixed',
-			top: 0,
-			left: 0,
-			right: 0,
-			bottom: 0,
-			background: 'rgba(0, 0, 0, 0.3)',
-			backdropFilter: 'blur(10px)',
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			zIndex: 1000,
+		<div className="admin-team-members-modal-overlay" onClick={(e) => {
+			if (e.target === e.currentTarget) onClose();
 		}}>
-			<div className="va-card" style={{ width: '90%', maxWidth: '500px' }}>
-				<div className="va-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<h2>Suspendă Membru - {member.name}</h2>
+			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
+				<div className="admin-team-members-modal-header">
+					<h2 className="admin-team-members-modal-title">Suspendă Membru - {member.name}</h2>
 					<button
 						type="button"
+						className="admin-team-members-modal-close"
 						onClick={onClose}
-						style={{
-							background: 'transparent',
-							border: 'none',
-							color: '#fff',
-							fontSize: '1.5rem',
-							cursor: 'pointer',
-						}}
 					>
 						×
 					</button>
 				</div>
-				<div className="va-card-body">
-					<form onSubmit={handleSubmit} className="va-stack">
-						<div className="va-form-group">
-							<label className="va-form-label">Motiv (opțional)</label>
+				<div className="admin-team-members-modal-body">
+					<form onSubmit={handleSubmit} className="admin-team-members-modal-form">
+						<div className="admin-form-group">
+							<label className="admin-form-label">Motiv (opțional)</label>
 							<textarea
-								className="va-form-input"
+								className="admin-form-input"
 								value={reason}
 								onChange={(e) => setReason(e.target.value)}
 								rows={3}
 								placeholder="Ex: Încălcare reguli platformă..."
 							/>
 						</div>
-						<div className="va-form-group">
-							<label className="va-form-label">Suspendat până la (opțional)</label>
+						<div className="admin-form-group">
+							<label className="admin-form-label">Suspendat până la (opțional)</label>
 							<input
 								type="datetime-local"
-								className="va-form-input"
+								className="admin-form-input"
 								value={suspendedUntil}
 								onChange={(e) => setSuspendedUntil(e.target.value)}
 							/>
 						</div>
-						<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-							<button type="button" className="va-btn" onClick={onClose} disabled={loading}>
+						<div className="admin-team-members-modal-footer">
+							<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={loading}>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn" disabled={loading} style={{ background: '#f97316', color: '#fff' }}>
+							<button type="submit" className="lms-btn-secondary admin-team-members-suspend-btn" disabled={loading}>
 								{loading ? 'Se suspendă...' : 'Suspendă'}
 							</button>
 						</div>

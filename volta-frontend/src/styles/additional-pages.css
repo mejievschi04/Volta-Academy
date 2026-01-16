@@ -1,0 +1,1572 @@
+/* ============================================
+   ADDITIONAL PAGES - Complete Styling
+   Profile, Achievements, Exam, Quiz, Messages, Events, etc.
+   ============================================ */
+
+/* ============================================
+   1. PROFILE PAGE
+   ============================================ */
+.va-profile-container {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.va-profile-header {
+	position: relative;
+	margin-bottom: var(--space-8);
+}
+
+.va-profile-cover {
+	width: 100%;
+	height: 200px;
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
+	border-radius: var(--radius-lg);
+	margin-bottom: var(--space-6);
+}
+
+.va-profile-info {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--space-6);
+	margin-top: -80px;
+	padding: 0 var(--space-6);
+}
+
+.va-profile-avatar {
+	width: 120px;
+	height: 120px;
+	flex-shrink: 0;
+}
+
+.va-profile-avatar-inner {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	border: 4px solid var(--bg-elevated);
+	box-shadow: var(--shadow-lg);
+}
+
+.va-profile-details {
+	flex: 1;
+	padding-bottom: var(--space-4);
+}
+
+.va-profile-name {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.va-profile-role {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-3) 0;
+}
+
+.va-profile-badges {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+
+.va-profile-badge {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+}
+
+.va-profile-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.va-stat-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	transition: all var(--transition-base);
+}
+
+.va-stat-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+}
+
+.va-stat-icon {
+	font-size: var(--font-size-3xl);
+	width: 60px;
+	height: 60px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	flex-shrink: 0;
+}
+
+.va-stat-content {
+	flex: 1;
+}
+
+.va-stat-value {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.va-stat-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* ============================================
+   2. ACHIEVEMENTS PAGE
+   ============================================ */
+.student-achievements-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.student-achievements-loading,
+.student-achievements-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	gap: var(--space-4);
+	color: var(--text-secondary);
+}
+
+.student-achievements-header {
+	margin-bottom: var(--space-8);
+}
+
+.student-achievements-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.student-achievements-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+.student-achievements-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.student-achievements-stat-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	transition: all var(--transition-base);
+}
+
+.student-achievements-stat-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+}
+
+.student-achievements-stat-icon {
+	font-size: var(--font-size-3xl);
+	width: 60px;
+	height: 60px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	flex-shrink: 0;
+}
+
+.student-achievements-stat-content {
+	flex: 1;
+}
+
+.student-achievements-stat-value {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.student-achievements-stat-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* Badges Grid */
+.student-achievements-badges {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: var(--space-6);
+	margin-bottom: var(--space-8);
+}
+
+.student-achievements-badge-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	text-align: center;
+	transition: all var(--transition-base);
+}
+
+.student-achievements-badge-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+	transform: translateY(-2px);
+}
+
+.student-achievements-badge-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-3);
+}
+
+.student-achievements-badge-name {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.student-achievements-badge-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* ============================================
+   3. EXAM PAGE
+   ============================================ */
+.student-exam-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.student-exam-loading,
+.student-exam-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	gap: var(--space-4);
+	color: var(--text-secondary);
+}
+
+.student-exam-header {
+	margin-bottom: var(--space-8);
+}
+
+.student-exam-header-main {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	margin-bottom: var(--space-6);
+}
+
+.student-exam-header-info {
+	margin-bottom: var(--space-4);
+}
+
+.student-exam-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.student-exam-description {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+.student-exam-required-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	background-color: rgba(245, 158, 11, 0.2);
+	color: var(--color-warning);
+	margin-top: var(--space-2);
+}
+
+.student-exam-instructions {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.student-exam-instructions-section {
+	margin-bottom: var(--space-4);
+}
+
+.student-exam-instructions-section:last-child {
+	margin-bottom: 0;
+}
+
+.student-exam-instructions-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-3) 0;
+}
+
+.student-exam-instructions-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.student-exam-instructions-list li {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	padding-left: var(--space-4);
+	position: relative;
+}
+
+.student-exam-instructions-list li::before {
+	content: '•';
+	position: absolute;
+	left: 0;
+	color: var(--color-primary);
+	font-weight: var(--font-weight-bold);
+}
+
+.student-exam-instructions-warning {
+	color: var(--color-warning) !important;
+}
+
+.student-exam-passing-criteria {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.student-exam-passing-criteria-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--space-2) 0;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.student-exam-passing-criteria-item:last-child {
+	border-bottom: none;
+}
+
+.student-exam-passing-criteria-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+.student-exam-passing-criteria-value {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.student-exam-btn {
+	padding: var(--space-3) var(--space-6);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	border: none;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.student-exam-btn-primary {
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border: 1px solid var(--btn-primary-border);
+}
+
+.student-exam-btn-primary:hover {
+	background-color: var(--btn-primary-hover);
+	box-shadow: var(--shadow-md);
+}
+
+.student-exam-btn-secondary {
+	background-color: var(--btn-secondary-bg);
+	color: var(--btn-secondary-text);
+	border: 1px solid var(--btn-secondary-border);
+}
+
+.student-exam-btn-secondary:hover {
+	background-color: var(--btn-secondary-hover);
+}
+
+/* ============================================
+   4. QUIZ PAGE
+   ============================================ */
+.student-quiz-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+/* ============================================
+   5. MESSAGES PAGE
+   ============================================ */
+.messages-page {
+	display: flex;
+	height: calc(100vh - 64px); /* Compensează top navigation (64px) */
+	width: calc(100vw - 72px); /* Compensează sidebar-ul colapsat */
+	background-color: var(--bg-primary);
+	overflow: hidden; /* Previne scroll la nivel de pagină */
+	position: fixed;
+	top: 64px; /* Compensează top navigation */
+	left: 72px; /* Lățime sidebar colapsat */
+	right: 0;
+	bottom: 0;
+	z-index: 1;
+	transition: left var(--transition-smooth), width var(--transition-smooth);
+}
+
+/* Când sidebar-ul este extins - folosind class pe body */
+body.sidebar-expanded .messages-page {
+	left: 280px; /* Lățime sidebar extins */
+	width: calc(100vw - 280px); /* Compensează sidebar-ul extins */
+}
+
+/* Când sidebar-ul este extins - folosind selector sibling */
+.modern-sidebar.expanded ~ .va-shell-main .messages-page,
+.va-sidebar.expanded ~ .va-shell-main .messages-page {
+	left: 280px; /* Lățime sidebar extins */
+	width: calc(100vw - 280px); /* Compensează sidebar-ul extins */
+}
+
+/* Pentru layout-ul cu topnav (user layout) - fără sidebar */
+.va-shell-topnav .messages-page {
+	left: 0;
+	width: 100vw;
+}
+
+.messages-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.va-loading-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--border-primary);
+	border-top-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	animation: spin 0.8s linear infinite;
+}
+
+.messages-container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+	overflow: hidden; /* Previne scroll la nivel de container */
+}
+
+.messages-sidebar {
+	width: 350px;
+	border-right: 1px solid var(--border-primary);
+	background-color: var(--bg-elevated);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	flex-shrink: 0; /* Previne comprimarea sidebar-ului */
+	height: calc(100vh - 64px); /* Compensează top navigation */
+}
+
+.messages-sidebar-header {
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-shrink: 0; /* Header fix - nu se comprimă */
+	background-color: var(--bg-elevated);
+	z-index: 10;
+	position: sticky;
+	top: 0;
+}
+
+.messages-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.messages-new-conversation-btn {
+	width: 36px;
+	height: 36px;
+	border-radius: var(--radius-lg);
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all var(--transition-base);
+}
+
+.messages-new-conversation-btn:hover {
+	background-color: var(--btn-primary-hover);
+	box-shadow: var(--shadow-md);
+}
+
+.messages-search {
+	padding: var(--space-4) var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	flex-shrink: 0; /* Search fix - nu se comprimă */
+	background-color: var(--bg-elevated);
+	z-index: 10;
+	position: sticky;
+	top: 0;
+}
+
+.messages-search-input {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	transition: all var(--transition-base);
+}
+
+.messages-search-input:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+}
+
+.messages-conversations-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-2);
+	background-color: var(--bg-elevated);
+}
+
+.messages-conversations-list::-webkit-scrollbar {
+	width: 6px;
+}
+
+.messages-conversations-list::-webkit-scrollbar-track {
+	background: var(--bg-secondary);
+}
+
+.messages-conversations-list::-webkit-scrollbar-thumb {
+	background: var(--border-secondary);
+	border-radius: var(--radius-full);
+}
+
+.messages-conversations-list::-webkit-scrollbar-thumb:hover {
+	background: var(--text-tertiary);
+}
+
+/* Empty state styles are now in lms-dashboard-enterprise.css as .lms-empty-state */
+
+.messages-conversation-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	margin-bottom: var(--space-2);
+}
+
+.messages-conversation-item:hover {
+	background-color: var(--bg-secondary);
+}
+
+.messages-conversation-avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: var(--font-weight-bold);
+	flex-shrink: 0;
+}
+
+.messages-conversation-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.messages-conversation-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-1);
+}
+
+.messages-conversation-name {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.messages-conversation-time {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.messages-conversation-preview {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+}
+
+.messages-conversation-text {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+}
+
+.messages-unread-badge {
+	width: 8px;
+	height: 8px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	flex-shrink: 0;
+}
+
+.messages-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	background-color: var(--bg-primary);
+	overflow: hidden; /* Previne scroll la nivel de main */
+	min-width: 0; /* Permite flex-shrink corect */
+}
+
+.messages-chat-header {
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	background-color: var(--bg-elevated);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-shrink: 0; /* Header fix - nu se comprimă */
+	z-index: 10;
+	position: sticky;
+	top: 0;
+}
+
+.messages-chat-header-info {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.messages-chat-avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: var(--font-weight-bold);
+}
+
+.messages-chat-name {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.messages-chat-role {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+.messages-chat-actions-btn {
+	width: 36px;
+	height: 36px;
+	border-radius: var(--radius-lg);
+	background-color: transparent;
+	border: 1px solid var(--border-primary);
+	color: var(--text-secondary);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all var(--transition-base);
+}
+
+.messages-chat-actions-btn:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+.messages-chat-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	background-color: var(--bg-primary);
+}
+
+.messages-chat-messages::-webkit-scrollbar {
+	width: 6px;
+}
+
+.messages-chat-messages::-webkit-scrollbar-track {
+	background: var(--bg-secondary);
+}
+
+.messages-chat-messages::-webkit-scrollbar-thumb {
+	background: var(--border-secondary);
+	border-radius: var(--radius-full);
+}
+
+.messages-chat-messages::-webkit-scrollbar-thumb:hover {
+	background: var(--text-tertiary);
+}
+
+.messages-message {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--space-2);
+	max-width: 70%;
+}
+
+.messages-message.own {
+	align-self: flex-end;
+	margin-left: auto;
+}
+
+.messages-message.other {
+	align-self: flex-start;
+}
+
+.messages-message-content {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.messages-message.own .messages-message-content {
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	border-color: var(--color-primary);
+}
+
+.messages-message-content p {
+	margin: 0 0 var(--space-1) 0;
+	font-size: var(--font-size-sm);
+	line-height: var(--line-height-relaxed);
+	word-wrap: break-word;
+}
+
+.messages-message-time {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	opacity: 0.7;
+}
+
+.messages-message.own .messages-message-time {
+	color: rgba(11, 18, 32, 0.7);
+}
+
+.messages-chat-input-form {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4) var(--space-6);
+	border-top: 1px solid var(--border-primary);
+	background-color: var(--bg-elevated);
+	flex-shrink: 0; /* Input fix - nu se comprimă */
+	z-index: 10;
+	position: sticky;
+	bottom: 0;
+}
+
+.messages-chat-input {
+	flex: 1;
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-family: var(--font-family);
+	transition: all var(--transition-base);
+}
+
+.messages-chat-input:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+	background-color: var(--bg-elevated);
+}
+
+.messages-chat-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.messages-chat-send-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--radius-lg);
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border: 1px solid var(--btn-primary-border);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all var(--transition-base);
+	font-size: var(--font-size-lg);
+	flex-shrink: 0;
+}
+
+.messages-chat-send-btn:hover:not(:disabled) {
+	background-color: var(--btn-primary-hover);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-1px);
+}
+
+.messages-chat-send-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.messages-conversation-item.active {
+	background-color: rgba(56, 189, 248, 0.1);
+	border-left: 3px solid var(--color-primary);
+}
+
+.messages-conversation-item.unread {
+	background-color: rgba(56, 189, 248, 0.05);
+}
+
+.messages-conversation-item.unread .messages-conversation-name {
+	font-weight: var(--font-weight-bold);
+}
+
+.messages-unread-badge {
+	min-width: 20px;
+	height: 20px;
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	flex-shrink: 0;
+}
+
+.messages-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background-color: var(--bg-overlay);
+	backdrop-filter: blur(8px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.messages-modal {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-2xl);
+	width: 90%;
+	max-width: 500px;
+	max-height: 80vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.messages-modal-header {
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.messages-modal-header h3 {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.messages-modal-close {
+	width: 32px;
+	height: 32px;
+	border-radius: var(--radius-md);
+	background-color: transparent;
+	border: 1px solid var(--border-primary);
+	color: var(--text-secondary);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all var(--transition-base);
+	font-size: var(--font-size-xl);
+	line-height: 1;
+}
+
+.messages-modal-close:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+.messages-modal-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-6);
+}
+
+.messages-modal-input {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-family: var(--font-family);
+	transition: all var(--transition-base);
+}
+
+.messages-modal-input:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+	background-color: var(--bg-elevated);
+}
+
+.messages-modal-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.messages-users-list {
+	margin-top: var(--space-4);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.messages-user-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	border: 1px solid transparent;
+}
+
+.messages-user-item:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
+}
+
+.messages-user-item.selected {
+	background-color: rgba(56, 189, 248, 0.1);
+	border-color: var(--color-primary);
+}
+
+.messages-user-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: var(--font-weight-bold);
+	font-size: var(--font-size-sm);
+	flex-shrink: 0;
+}
+
+.messages-user-avatar img {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--radius-full);
+	object-fit: cover;
+}
+
+.messages-user-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.messages-user-name {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-1);
+}
+
+.messages-user-email {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.messages-user-role {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	margin-top: var(--space-1);
+}
+
+.messages-user-check {
+	width: 24px;
+	height: 24px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-bold);
+	flex-shrink: 0;
+}
+
+.messages-modal-footer {
+	padding: var(--space-6);
+	border-top: 1px solid var(--border-primary);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-3);
+}
+
+.messages-conversation-avatar img {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--radius-full);
+	object-fit: cover;
+}
+
+.messages-chat-avatar img {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--radius-full);
+	object-fit: cover;
+}
+
+/* ============================================
+   6. EVENTS PAGE
+   ============================================ */
+.events-page {
+	padding: var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+}
+
+.events-page-header {
+	margin-bottom: var(--space-8);
+}
+
+.events-page-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.events-page-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+.va-events-filters {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+	flex-wrap: wrap;
+}
+
+.events-filter-select {
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.events-filter-select:focus {
+	outline: none;
+	border-color: var(--border-focus);
+	box-shadow: var(--shadow-focus);
+}
+
+.events-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+	gap: var(--space-6);
+}
+
+.va-card-enhanced {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.va-card-enhanced:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+	transform: translateY(-2px);
+}
+
+.va-card-body {
+	padding: 0;
+}
+
+.va-card-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.empty-state {
+	text-align: center;
+	padding: var(--space-16) var(--space-8);
+}
+
+.empty-state-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+}
+
+.empty-state-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.empty-state-description {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* ============================================
+   7. UNIFIED COURSE PAGE
+   ============================================ */
+.unified-course-page {
+	display: flex;
+	min-height: 100vh;
+	background-color: var(--bg-primary);
+}
+
+.unified-course-loading,
+.unified-course-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	gap: var(--space-4);
+	color: var(--text-secondary);
+	width: 100%;
+}
+
+.loading-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--border-primary);
+	border-top-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	animation: spin 0.8s linear infinite;
+}
+
+.unified-course-nav-button {
+	padding: var(--space-3) var(--space-6);
+	background-color: var(--btn-secondary-bg);
+	color: var(--btn-secondary-text);
+	border: 1px solid var(--btn-secondary-border);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.unified-course-nav-button:hover {
+	background-color: var(--btn-secondary-hover);
+}
+
+.course-sidebar-modern-header {
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.course-sidebar-modern-back {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--text-secondary);
+	text-decoration: none;
+	font-size: var(--font-size-sm);
+	margin-bottom: var(--space-4);
+	transition: color var(--transition-base);
+}
+
+.course-sidebar-modern-back:hover {
+	color: var(--text-primary);
+}
+
+.course-sidebar-modern-progress-card {
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+
+.course-sidebar-modern-progress-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--space-2);
+}
+
+.course-sidebar-modern-progress-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+.course-sidebar-modern-progress-value {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+}
+
+.course-sidebar-modern-progress-track {
+	width: 100%;
+	height: 8px;
+	background-color: var(--bg-primary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	margin-bottom: var(--space-2);
+}
+
+.course-sidebar-modern-progress-fill {
+	height: 100%;
+	background-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	transition: width var(--transition-smooth);
+}
+
+.course-sidebar-modern-progress-details {
+	display: flex;
+	justify-content: space-between;
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.course-sidebar-modern-content {
+	padding: var(--space-6);
+}
+
+.course-sidebar-modern-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-4) 0;
+}
+
+.course-sidebar-modern-modules {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.course-sidebar-modern-module-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.course-sidebar-modern-module-header:hover {
+	background-color: var(--bg-secondary);
+}
+
+.course-sidebar-modern-module-badge {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	background-color: rgba(56, 189, 248, 0.2);
+	color: var(--color-primary);
+}
+
+.course-sidebar-modern-module-content {
+	flex: 1;
+}
+
+.course-sidebar-modern-module-title {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.course-sidebar-modern-module-meta {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.course-sidebar-modern-module-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.course-sidebar-modern-module-progress {
+	width: 60px;
+	height: 4px;
+	background-color: var(--bg-primary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+}
+
+.course-sidebar-modern-module-progress-bar {
+	height: 100%;
+	background-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	transition: width var(--transition-smooth);
+}
+
+.course-sidebar-modern-lessons {
+	padding-left: var(--space-6);
+	margin-top: var(--space-2);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.course-sidebar-modern-lesson-indicator {
+	width: 4px;
+	height: 4px;
+	border-radius: var(--radius-full);
+	background-color: var(--text-tertiary);
+}
+
+/* ============================================
+   8. RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+	.messages-sidebar {
+		width: 300px;
+	}
+
+	.events-grid {
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.va-profile-container,
+	.student-achievements-page,
+	.student-exam-page,
+	.events-page {
+		padding: var(--space-4);
+	}
+
+	.va-profile-info {
+		flex-direction: column;
+		align-items: flex-start;
+		margin-top: 0;
+		padding: 0;
+	}
+
+	.va-profile-avatar {
+		width: 80px;
+		height: 80px;
+	}
+
+	.messages-container {
+		flex-direction: column;
+	}
+
+	.messages-sidebar {
+		width: 100%;
+		height: 40%;
+	}
+
+	.messages-main {
+		height: 60%;
+	}
+
+	.events-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ============================================
+   9. COMPLETED COURSES PAGE
+   ============================================ */
+.va-completed-courses-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: var(--space-6);
+	margin-top: var(--space-6);
+}
+
+.va-completed-course-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.va-completed-course-card:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+	transform: translateY(-2px);
+}
+
+.va-completed-course-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: var(--space-4);
+	gap: var(--space-3);
+}
+
+.va-completed-course-card-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+	flex: 1;
+}
+
+.va-completed-course-card-badge {
+	padding: var(--space-1) var(--space-3);
+	background-color: rgba(34, 197, 94, 0.15);
+	color: #22c55e;
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	white-space: nowrap;
+}
+
+.va-completed-course-card-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-4) 0;
+	line-height: 1.5;
+}
+
+.va-completed-course-card-actions {
+	display: flex;
+	gap: var(--space-2);
+}

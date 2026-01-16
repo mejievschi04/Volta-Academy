@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 import { formatCurrency, getDefaultCurrency } from '../utils/currency';
 
 const EventsPage = () => {
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -100,10 +103,10 @@ const EventsPage = () => {
 		try {
 			await eventsService.register(eventId);
 			await fetchEvents(); // Refresh to update registration status
-			alert('Te-ai înscris cu succes la eveniment!');
+			showSuccess('Te-ai înscris cu succes la eveniment!');
 		} catch (err) {
-			console.error('Error registering:', err);
-			alert(err.response?.data?.message || 'Eroare la înscriere');
+			logger.error('Error registering:', err);
+			showError(err.response?.data?.message || 'Eroare la înscriere');
 		}
 	};
 
@@ -122,33 +125,22 @@ const EventsPage = () => {
 	}
 
 	return (
-		<div className="va-main fade-in">
-			<div className="page-header">
-				<h1 className="va-page-title fade-in-up">Evenimente</h1>
-				<p className="page-subtitle">
+		<div className="events-page">
+			<div className="events-page-header">
+				<h1 className="events-page-title">
+					Evenimente
+				</h1>
+				<p className="events-page-subtitle">
 					Vezi toate evenimentele planificate: cursuri, workshop-uri, examene și webinar-uri.
 				</p>
 			</div>
 
 			{/* Filters */}
-			<div style={{ 
-				display: 'flex', 
-				gap: '1rem', 
-				marginBottom: '1.5rem', 
-				flexWrap: 'wrap',
-				alignItems: 'center',
-			}}>
+			<div className="va-events-filters">
 				<select
 					value={filters.type}
 					onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-					}}
+					className="events-filter-select"
 				>
 					<option value="all">Toate tipurile</option>
 					<option value="live_online">Live Online</option>
@@ -159,14 +151,7 @@ const EventsPage = () => {
 				<select
 					value={filters.access_type}
 					onChange={(e) => setFilters({ ...filters, access_type: e.target.value })}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-					}}
+					className="events-filter-select"
 				>
 					<option value="all">Toate accesurile</option>
 					<option value="free">Gratuit</option>
@@ -176,14 +161,7 @@ const EventsPage = () => {
 				<select
 					value={filters.date_filter}
 					onChange={(e) => setFilters({ ...filters, date_filter: e.target.value })}
-					style={{
-						padding: '0.75rem 1rem',
-						background: 'var(--va-surface-2)',
-						border: '1px solid var(--va-border)',
-						borderRadius: '8px',
-						color: 'var(--va-text)',
-						fontSize: '0.9rem',
-					}}
+					className="events-filter-select"
 				>
 					<option value="all">Toate</option>
 					<option value="upcoming">Viitoare</option>
@@ -199,7 +177,7 @@ const EventsPage = () => {
 			)}
 
 			{events.length > 0 ? (
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+						<div className="events-grid">
 							{events.map((event) => {
 								const statusBadge = getStatusBadge(event.status);
 								const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
@@ -288,7 +266,7 @@ const EventsPage = () => {
 											</div>
 											<div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
 												<button
-													className="va-btn va-btn-primary"
+													className="lms-btn-primary"
 													onClick={(e) => {
 														e.stopPropagation();
 														navigate(`/events/${event.id}`);
@@ -299,7 +277,7 @@ const EventsPage = () => {
 												</button>
 												{!event.user_registered && !isFull && event.status !== 'completed' && event.status !== 'cancelled' && (
 													<button
-														className="va-btn"
+														className="lms-btn-secondary"
 														onClick={(e) => handleRegister(event.id, e)}
 														style={{ 
 															background: event.access_type === 'paid' ? '#f59e0b' : '#10b981',
@@ -311,7 +289,7 @@ const EventsPage = () => {
 												)}
 												{event.user_registered && (
 													<button
-														className="va-btn"
+														className="lms-btn-secondary"
 														disabled
 														style={{ 
 															background: '#10b981',

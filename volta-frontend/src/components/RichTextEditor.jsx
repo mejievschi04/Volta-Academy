@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 
 const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
+	const { warning: showWarning, error: showError } = useToast();
 	const editorRef = useRef(null);
 	const [isFocused, setIsFocused] = useState(false);
 	const [internalValue, setInternalValue] = useState(value || '');
@@ -88,11 +91,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 		const file = e.target.files[0];
 		if (file) {
 			if (file.type !== 'application/pdf') {
-				alert('Te rugăm să selectezi un fișier PDF!');
+				showWarning('Te rugăm să selectezi un fișier PDF!');
 				return;
 			}
 			if (file.size > 10 * 1024 * 1024) { // 10MB limit
-				alert('Fișierul PDF este prea mare! Maxim 10MB.');
+				showWarning('Fișierul PDF este prea mare! Maxim 10MB.');
 				return;
 			}
 			setPdfFile(file);
@@ -148,8 +151,8 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 			};
 			reader.readAsDataURL(pdfFile);
 		} catch (error) {
-			console.error('Error uploading PDF:', error);
-			alert('Eroare la încărcarea PDF-ului');
+			logger.error('Error uploading PDF:', error);
+			showError('Eroare la încărcarea PDF-ului');
 		} finally {
 			setUploadingPdf(false);
 		}

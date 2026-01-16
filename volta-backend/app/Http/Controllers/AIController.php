@@ -82,6 +82,14 @@ class AIController extends Controller
         }
         
         if (!$this->apiKey) {
+            // If Groq key is not configured, attempt to fallback to OpenAI if its key is available.
+            $openaiKey = env('OPENAI_API_KEY');
+            if ($provider === 'groq' && $openaiKey) {
+                Log::info('Groq API key missing; falling back to OpenAI provider');
+                $this->initializeProvider('openai');
+                return;
+            }
+
             Log::warning("AI API key not configured for provider: {$provider}");
         }
     }

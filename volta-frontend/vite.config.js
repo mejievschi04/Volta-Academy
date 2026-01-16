@@ -29,17 +29,35 @@ export default defineConfig({
     // Code splitting optimization
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'axios-vendor': ['axios'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('axios')) {
+              return 'axios-vendor';
+            }
+            if (id.includes('@dnd-kit')) {
+              return 'dnd-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-vendor';
+            }
+            // Other node_modules
+            return 'vendor';
+          }
         },
       },
     },
-    // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
+    // Optimize chunk size - increased limit for better splitting
+    chunkSizeWarningLimit: 1500,
     // Enable source maps for production debugging (optional)
     sourcemap: false,
+    // Minification
+    minify: 'esbuild',
+    // Target modern browsers for smaller bundles
+    target: 'esnext',
   },
   // Optimize dependencies
   optimizeDeps: {

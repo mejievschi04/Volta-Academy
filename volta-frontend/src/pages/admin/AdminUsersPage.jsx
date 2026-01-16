@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [users, setUsers] = useState([]);
 	const [teams, setTeams] = useState([]);
 	const [filteredUsers, setFilteredUsers] = useState([]);
@@ -137,8 +140,8 @@ const AdminUsersPage = () => {
 			setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
 			fetchUsers();
 		} catch (err) {
-			console.error('Error saving user:', err);
-			alert('Eroare la salvarea utilizatorului');
+			logger.error('Error saving user:', err);
+			showError('Eroare la salvarea utilizatorului: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -162,8 +165,8 @@ const AdminUsersPage = () => {
 			await adminService.deleteUser(id);
 			fetchUsers();
 		} catch (err) {
-			console.error('Error deleting user:', err);
-			alert('Eroare la ștergerea utilizatorului');
+			logger.error('Error deleting user:', err);
+			showError('Eroare la ștergerea utilizatorului: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -180,17 +183,25 @@ const AdminUsersPage = () => {
 		return roles[role] || 'Utilizator';
 	};
 
-	if (loading) { return null; }
+	if (loading) {
+		return (
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="admin-container admin-container--wide">
 			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">Gestionare Utilizatori</h1>
-					<p className="va-muted admin-page-subtitle">Gestionează toți utilizatorii din platformă</p>
+				<div className="admin-page-header-content">
+					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
+					<p className="admin-page-subtitle">Gestionează toți utilizatorii din platformă</p>
 				</div>
 				<button
-					className="va-btn va-btn-primary"
+					className="lms-btn-primary"
 					onClick={() => {
 						setEditingUser(null);
 						setFormData({ name: '', email: '', password: '', role: 'student', bio: '' });
@@ -202,7 +213,7 @@ const AdminUsersPage = () => {
 			</div>
 
 			{error && (
-				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
+				<div className="lms-error-message">
 					{error}
 				</div>
 			)}
@@ -212,7 +223,7 @@ const AdminUsersPage = () => {
 				<div className="admin-users-filter-group">
 					<label className="admin-users-filter-label">Filtrează după rol:</label>
 					<select
-						className="va-form-input admin-events-filter"
+						className="admin-users-filter-select"
 						value={roleFilter}
 						onChange={(e) => setRoleFilter(e.target.value)}
 					>
@@ -295,25 +306,25 @@ const AdminUsersPage = () => {
 										</td>
 										<td>
 											{isAdmin ? (
-												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
+												<span className="admin-users-table-cell-muted">-</span>
 											) : (
-												<span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+												<span className="admin-users-table-cell-value">
 													{completedCourses}/{totalCourses}
 												</span>
 											)}
 										</td>
 										<td>
 											{isAdmin ? (
-												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
+												<span className="admin-users-table-cell-muted">-</span>
 											) : (
-												<span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+												<span className="admin-users-table-cell-value">
 													{completedModules}/{totalModules}
 												</span>
 											)}
 										</td>
 										<td>
 											{isAdmin ? (
-												<span style={{ color: 'var(--text-tertiary)' }}>-</span>
+												<span className="admin-users-table-cell-muted">-</span>
 											) : (
 												<div className="admin-users-progress-container">
 													<div className="admin-users-progress-bar">
@@ -331,7 +342,7 @@ const AdminUsersPage = () => {
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
 												<button
-													className="va-btn va-btn-sm"
+													className="lms-btn-secondary lms-btn-sm"
 													onClick={(e) => {
 														e.stopPropagation();
 														handleEdit(user);
@@ -340,7 +351,7 @@ const AdminUsersPage = () => {
 													Editează
 												</button>
 												<button
-													className="va-btn va-btn-sm va-btn-danger"
+													className="lms-btn-secondary lms-btn-sm va-btn-danger"
 													onClick={(e) => {
 														e.stopPropagation();
 														handleDelete(user.id);
@@ -356,11 +367,13 @@ const AdminUsersPage = () => {
 						) : (
 							<tr>
 								<td colSpan="8" className="admin-users-empty">
-									<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-									<h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1.25rem', color: 'var(--text-primary)' }}>Nu există utilizatori</h3>
-									<p style={{ margin: 0, color: 'var(--text-tertiary)' }}>
-										Nu există utilizatori care să corespundă filtrelor selectate.
-									</p>
+									<div className="lms-empty-state">
+										<div className="lms-empty-icon">👥</div>
+										<h3 className="lms-empty-title">Nu există utilizatori</h3>
+										<p className="lms-empty-description">
+											Nu există utilizatori care să corespundă filtrelor selectate.
+										</p>
+									</div>
 								</td>
 							</tr>
 						)}
@@ -388,21 +401,21 @@ const AdminUsersPage = () => {
 							</button>
 						</div>
 						<div className="admin-users-modal-body">
-							<form onSubmit={handleSubmit} className="va-stack">
-								<div className="va-form-group">
-									<label className="va-form-label">Nume</label>
+							<form onSubmit={handleSubmit} className="admin-users-modal-form">
+								<div className="admin-form-group">
+									<label className="admin-form-label">Nume</label>
 									<input
 										type="text"
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.name}
 										onChange={(e) => setFormData({ ...formData, name: e.target.value })}
 										required
 									/>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Echipă</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Echipă</label>
 									<select
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.team_id}
 										onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
 									>
@@ -412,38 +425,38 @@ const AdminUsersPage = () => {
 										))}
 									</select>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Email</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Email</label>
 									<input
 										type="email"
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.email}
 										onChange={(e) => setFormData({ ...formData, email: e.target.value })}
 										required
 									/>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">
-										Parolă {!editingUser ? <span style={{ color: 'var(--va-muted)', fontWeight: 'normal' }}>(opțională)</span> : '(lasă gol pentru a nu schimba)'}
+								<div className="admin-form-group">
+									<label className="admin-form-label">
+										Parolă {!editingUser ? <span className="admin-form-label-hint">(opțională)</span> : <span className="admin-form-label-hint">(lasă gol pentru a nu schimba)</span>}
 									</label>
 									<input
 										type="password"
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.password}
 										onChange={(e) => setFormData({ ...formData, password: e.target.value })}
 										placeholder={!editingUser ? 'Lasă gol pentru parola implicită: volta2025' : 'Lasă gol pentru a păstra parola actuală'}
 										minLength={formData.password ? 6 : undefined}
 									/>
 									{!editingUser && (
-										<p style={{ fontSize: '0.75rem', color: 'var(--va-muted)', marginTop: '0.25rem' }}>
+										<p className="admin-form-hint">
 											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2025</strong> și va trebui să o schimbe la prima autentificare.
 										</p>
 									)}
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Rol</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Rol</label>
 									<select
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.role}
 										onChange={(e) => setFormData({ ...formData, role: e.target.value })}
 										required
@@ -452,10 +465,10 @@ const AdminUsersPage = () => {
 										<option value="admin">Administrator</option>
 									</select>
 								</div>
-								<div className="va-form-group">
-									<label className="va-form-label">Bio</label>
+								<div className="admin-form-group">
+									<label className="admin-form-label">Bio</label>
 									<textarea
-										className="va-form-input"
+										className="admin-form-input"
 										value={formData.bio}
 										onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
 										rows={3}
@@ -464,12 +477,12 @@ const AdminUsersPage = () => {
 								<div className="admin-users-modal-footer">
 									<button
 										type="button"
-										className="va-btn"
+										className="lms-btn-secondary"
 										onClick={() => setShowModal(false)}
 									>
 										Anulează
 									</button>
-									<button type="submit" className="va-btn va-btn-primary">
+									<button type="submit" className="lms-btn-primary">
 										Salvează
 									</button>
 								</div>

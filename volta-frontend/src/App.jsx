@@ -11,36 +11,36 @@ import SplashScreen from './components/SplashScreen';
 import GlobalSearch from './components/GlobalSearch';
 import ThemeToggle from './components/common/ThemeToggle';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
+import AITutor from './components/student/AITutor';
+import ErrorBoundary from './components/common/ErrorBoundary';
+/* Modern Design System - Unified & Standardized */
 import './styles/design-system.css';
-import './styles/global-search.css';
 import './styles/components.css';
-import './styles/modern-forms.css';
-import './styles/modern-cards.css';
-import './styles/modern-navigation.css';
-import './styles/page-titles.css';
-import './styles/admin.css';
+import './styles/layout.css';
+import './styles/pages.css';
+import './styles/ui-components.css';
+import './styles/additional-pages.css';
+import './styles/admin-pages.css';
+import './styles/admin-dashboard-modern.css';
+import './styles/admin-courses-modern.css';
+import './styles/admin-users-modern.css';
+import './styles/admin-team-members-modern.css';
+import './styles/admin-common-modern.css';
+import './styles/admin-components-modern.css';
+import './styles/admin-navigation-modern.css';
+import './styles/learning-analytics.css';
+import './styles/lms-dashboard-enterprise.css';
+import './styles/student-components.css';
+import './styles/common-components.css';
+import './styles/auth-modern.css';
+import './styles/course-detail-modern.css';
+import './components/SplashScreen.css';
 import logoShort from './assets/Logo short.png';
-import './styles/student.css';
-import './styles/common.css';
-import './styles/profile.css';
-import './styles/events.css';
-import './styles/courses.css';
-import './styles/course-detail.css';
-import './styles/lesson.css';
-import './styles/exam.css';
-import './styles/unified-course.css';
-import './styles/achievements.css';
-import './styles/exam-results.css';
-import './styles/calendar.css';
-import './styles/event-detail.css';
-import './App.css';
 
 // Lazy load pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 // Note: CourseDetailPage and LessonDetailPage are legacy - replaced by UnifiedCoursePage
-// Keeping imports commented for reference during migration
-// const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
-// const LessonDetailPage = lazy(() => import('./pages/LessonDetailPage'));
+// They have been removed as UnifiedCoursePage provides all functionality
 const UnifiedCoursePage = lazy(() => import('./pages/UnifiedCoursePage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
@@ -54,6 +54,7 @@ const CalendarViewPage = lazy(() => import('./pages/CalendarViewPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
 const AdminCourseDetailPage = lazy(() => import('./pages/admin/AdminCourseDetailPage'));
 const AdminEventsPage = lazy(() => import('./pages/admin/AdminEventsPage'));
@@ -70,9 +71,16 @@ const ModuleCreatorPage = lazy(() => import('./pages/admin/ModuleCreatorPage'));
 const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage'));
 const CourseBuilder = lazy(() => import('./components/admin/courses/CourseBuilder'));
+const CourseEditor = lazy(() => import('./components/admin/courses/CourseEditor'));
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
 const TestBuilder = lazy(() => import('./components/admin/tests/TestBuilder'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
+const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage'));
+const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
+const ProDashboard = lazy(() => import('./pages/ProDashboard'));
+const ProCourses = lazy(() => import('./pages/ProCourses'));
+const CompletedCoursesPage = lazy(() => import('./pages/CompletedCoursesPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 
 // Loading component (post-login: no full-screen overlay)
 const PageLoader = () => (
@@ -112,12 +120,25 @@ function Layout({ children }) {
 	const isAdmin = user?.role === 'admin';
 	
 	// Check if we're on a user page (not admin pages)
-	// If admin is on a user page, show user layout instead of admin sidebar
-	const isUserPage = !location.pathname.startsWith('/admin');
-	const showUserLayout = isUserPage || !isAdmin;
+	// Messages page can be accessed from both admin and user views
+	// - Regular users: always use user layout (top nav), including on /messages
+	// - Admin users: use admin layout (sidebar) on /messages and admin pages; use user layout on other user pages
+	const isMessagesPage = location.pathname === '/messages';
+	const isAdminPage = location.pathname.startsWith('/admin');
+	const isUserPage = !isAdminPage && !isMessagesPage;
+	
+	// For regular users: always show user layout (including /messages)
+	// For admin: show admin layout on admin pages and /messages; show user layout on other user pages
+	const showUserLayout = !isAdmin ? true : (!isAdminPage && !isMessagesPage);
 	
 	// State for admin view toggle (active when on admin page)
 	const [isAdminView, setIsAdminView] = React.useState(!isUserPage && isAdmin);
+	
+	// State for sidebar expanded/collapsed
+	const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
+		const saved = localStorage.getItem('sidebarExpanded');
+		return saved !== null ? saved === 'true' : false;
+	});
 	
 	// Update toggle state when location changes
 	React.useEffect(() => {
@@ -126,24 +147,26 @@ function Layout({ children }) {
 		}
 	}, [location.pathname, isAdmin, isUserPage]);
 	
+	// Save sidebar state to localStorage and update body class
+	React.useEffect(() => {
+		localStorage.setItem('sidebarExpanded', isSidebarExpanded.toString());
+		// Add class to body for CSS targeting
+		if (isSidebarExpanded) {
+			document.body.classList.add('sidebar-expanded');
+		} else {
+			document.body.classList.remove('sidebar-expanded');
+		}
+		return () => {
+			document.body.classList.remove('sidebar-expanded');
+		};
+	}, [isSidebarExpanded]);
+	
 	// Check must_change_password - handle boolean, number, or string values
 	const mustChangePassword = user?.must_change_password === true || 
 		user?.must_change_password === 1 || 
 		user?.must_change_password === '1' ||
 		user?.must_change_password === 'true' ||
 		user?.must_change_password === true;
-	
-	// Debug logging
-	React.useEffect(() => {
-		if (user) {
-			console.log('=== Layout Debug ===');
-			console.log('Full user object:', user);
-			console.log('must_change_password value:', user.must_change_password);
-			console.log('must_change_password type:', typeof user.must_change_password);
-			console.log('mustChangePassword result:', mustChangePassword);
-			console.log('==================');
-		}
-	}, [user, mustChangePassword]);
 	
 	const navItems = [
 		{ 
@@ -152,6 +175,15 @@ function Layout({ children }) {
 			icon: (
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			)
+		},
+		{ 
+			path: '/messages', 
+			label: 'Mesagerie', 
+			icon: (
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
 			)
 		},
@@ -263,6 +295,15 @@ function Layout({ children }) {
 			)
 		},
 		{
+			path: '/messages',
+			label: 'Mesagerie',
+			icon: (
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			)
+		},
+		{
 			path: '/admin/settings',
 			label: 'Setări',
 			icon: (
@@ -277,16 +318,33 @@ function Layout({ children }) {
 	return (
 		<div className={showUserLayout ? "va-shell va-shell-topnav" : "va-shell"}>
 			{mustChangePassword && (
-				<>
-					{console.log('Rendering ChangePasswordModal')}
-					<ChangePasswordModal />
-				</>
+				<ChangePasswordModal />
 			)}
 			
 			{!showUserLayout && isAdmin ? (
 				// Admin keeps sidebar layout with top navigation
 				<>
-					<aside className="modern-sidebar va-sidebar">
+					<aside className={`modern-sidebar va-sidebar ${isSidebarExpanded ? 'expanded' : ''}`}>
+						{/* Toggle Button - Hamburger Icon */}
+						<button
+							className="modern-sidebar-toggle"
+							onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+							title={isSidebarExpanded ? 'Colapsează meniul' : 'Extinde meniul'}
+							aria-label={isSidebarExpanded ? 'Colapsează meniul' : 'Extinde meniul'}
+						>
+							{isSidebarExpanded ? (
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<path d="M18 6L6 18M6 6L18 18"/>
+								</svg>
+							) : (
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<line x1="3" y1="6" x2="21" y2="6"/>
+									<line x1="3" y1="12" x2="21" y2="12"/>
+									<line x1="3" y1="18" x2="21" y2="18"/>
+								</svg>
+							)}
+						</button>
+
 						<div className="modern-sidebar-brand va-sidebar-brand">
 							<span className="modern-sidebar-logo va-logo-text">
 								<img 
@@ -296,6 +354,9 @@ function Layout({ children }) {
 									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
 								/>
 							</span>
+							{isSidebarExpanded && (
+								<span className="modern-sidebar-brand-text">Formely</span>
+							)}
 						</div>
 
 						<nav className="modern-nav va-sidebar-nav">
@@ -303,7 +364,7 @@ function Layout({ children }) {
 								<NavLink
 									key={item.path}
 									to={item.path}
-									data-tooltip={item.label}
+									data-tooltip={!isSidebarExpanded ? item.label : undefined}
 									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 									end={item.path === '/admin'}
 								>
@@ -315,7 +376,7 @@ function Layout({ children }) {
 					</aside>
 
 					{/* Top Navigation Bar for Admin */}
-					<header className="modern-topnav admin-topnav">
+					<header className={`modern-topnav admin-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
 						<div className="modern-topnav-left">
 							{/* Empty space for future breadcrumbs or title */}
 						</div>
@@ -396,6 +457,11 @@ function Layout({ children }) {
 					<div className="va-shell-main va-shell-main-topnav">
 						<main className="va-main">{children}</main>
 					</div>
+					
+					{/* AI Tutor - Only on courses page */}
+					{user && location.pathname === '/courses' && (
+						<AITutor />
+					)}
 				</>
 			) : (
 				// Regular users get modern top navigation
@@ -505,6 +571,11 @@ function Layout({ children }) {
 					<div className="va-shell-main va-shell-main-topnav">
 						<main className="va-main">{children}</main>
 					</div>
+					
+					{/* AI Tutor - Only on courses page */}
+					{showUserLayout && user && location.pathname === '/courses' && (
+						<AITutor />
+					)}
 				</>
 			)}
 		</div>
@@ -564,7 +635,29 @@ function App() {
 											</UserRoute>
 										}
 									/>
-									{/* Unified Course Page - New Structure */}
+									<Route
+							path="/pro-dashboard"
+							element={
+								<UserRoute>
+									<Suspense fallback={<PageLoader />}>
+										<ProDashboard />
+									</Suspense>
+								</UserRoute>
+							}
+						/>
+
+						<Route
+							path="/pro-courses"
+							element={
+								<UserRoute>
+									<Suspense fallback={<PageLoader />}>
+										<ProCourses />
+									</Suspense>
+								</UserRoute>
+							}
+						/>
+
+						{/* Unified Course Page - New Structure */}
 									<Route
 										path="/courses/:courseId"
 										element={
@@ -656,6 +749,26 @@ function App() {
 											</UserRoute>
 										}
 									/>
+									<Route
+										path="/messages"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<MessagesPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/completed-courses"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<CompletedCoursesPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
 									{/* Admin viewing user profile */}
 									<Route
 										path="/admin/users/:userId/profile"
@@ -674,6 +787,16 @@ function App() {
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
 													<AdminDashboardPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/analytics"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminAnalyticsPage />
 												</Suspense>
 											</AdminRoute>
 										}
@@ -703,7 +826,7 @@ function App() {
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<CourseBuilder />
+													<CourseEditor />
 												</Suspense>
 											</AdminRoute>
 										}
@@ -713,7 +836,7 @@ function App() {
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<CourseBuilder />
+													<CourseEditor />
 												</Suspense>
 											</AdminRoute>
 										}
@@ -790,7 +913,37 @@ function App() {
 										}
 									/>
 									<Route
-										path="/admin/events"
+										path="/admin/question-banks/new/builder"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<QuestionBankBuilder />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/question-banks/:id/builder"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<QuestionBankBuilder />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/question-banks/:bankId/questions"
+							element={
+								<AdminRoute>
+									<Suspense fallback={<PageLoader />}>
+										<AdminQuestionBankQuestionsPage />
+									</Suspense>
+								</AdminRoute>
+							}
+							/>
+							<Route
+								path="/admin/events"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
@@ -906,12 +1059,21 @@ function App() {
 				</Routes>
 			</Router>
 		</AuthProvider>
-			</ToastProvider>
+		</ToastProvider>
 		</ThemeProvider>
 	);
 }
 
-export default App;
+// Wrap App with ErrorBoundary
+function AppWithErrorBoundary() {
+	return (
+		<ErrorBoundary showDetails={import.meta.env.DEV}>
+			<App />
+		</ErrorBoundary>
+	);
+}
+
+export default AppWithErrorBoundary;
 
 // Splash entry route component
 function SplashEntry() {

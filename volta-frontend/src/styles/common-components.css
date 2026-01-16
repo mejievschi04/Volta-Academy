@@ -1,0 +1,325 @@
+/* ============================================
+   COMMON COMPONENTS - Complete Styling
+   ErrorBoundary, LoadingOverlay, AutoSave, etc.
+   ============================================ */
+
+/* ============================================
+   1. ERROR BOUNDARY
+   ============================================ */
+.error-boundary {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	padding: var(--space-8);
+	text-align: center;
+}
+
+.error-boundary-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+}
+
+.error-boundary-title {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.error-boundary-message {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-6) 0;
+	max-width: 600px;
+}
+
+.error-boundary-actions {
+	display: flex;
+	gap: var(--space-3);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+/* ============================================
+   2. AUTO SAVE INDICATOR
+   ============================================ */
+.admin-auto-save-indicator {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-lg);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	transition: all var(--transition-base);
+}
+
+.admin-auto-save-indicator.saving {
+	color: var(--color-warning);
+	border-color: var(--color-warning);
+}
+
+.admin-auto-save-indicator.saved {
+	color: var(--color-success);
+	border-color: var(--color-success);
+}
+
+.admin-auto-save-indicator.error {
+	color: var(--color-error);
+	border-color: var(--color-error);
+}
+
+/* ============================================
+   3. NO DEAD END FALLBACK
+   ============================================ */
+.no-dead-end-fallback {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 40vh;
+	padding: var(--space-8);
+	text-align: center;
+}
+
+.no-dead-end-fallback-icon {
+	font-size: 4rem;
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+}
+
+.no-dead-end-fallback-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.no-dead-end-fallback-description {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-6) 0;
+	max-width: 500px;
+}
+
+.no-dead-end-fallback-actions {
+	display: flex;
+	gap: var(--space-3);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+/* ============================================
+   4. INLINE AI SUGGESTION
+   ============================================ */
+.inline-ai-suggestion {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	margin: var(--space-4) 0;
+	transition: all var(--transition-base);
+}
+
+.inline-ai-suggestion:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+}
+
+.inline-ai-suggestion-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-3);
+}
+
+.inline-ai-suggestion-icon {
+	font-size: var(--font-size-lg);
+	margin-right: var(--space-2);
+}
+
+.inline-ai-suggestion-label {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	flex: 1;
+}
+
+.inline-ai-suggestion-expand {
+	background: transparent;
+	border: none;
+	color: var(--text-tertiary);
+	cursor: pointer;
+	padding: var(--space-1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-sm);
+	transition: all var(--transition-base);
+}
+
+.inline-ai-suggestion-expand:hover {
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.inline-ai-suggestion-content {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	line-height: var(--line-height-relaxed);
+	margin-bottom: var(--space-3);
+}
+
+.inline-ai-suggestion-actions {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+
+.inline-ai-suggestion-btn {
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	border: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.inline-ai-suggestion-btn.accept {
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border: 1px solid var(--btn-primary-border);
+}
+
+.inline-ai-suggestion-btn.accept:hover {
+	background-color: var(--btn-primary-hover);
+	box-shadow: var(--shadow-md);
+}
+
+.inline-ai-suggestion-btn.edit {
+	background-color: var(--btn-secondary-bg);
+	color: var(--btn-secondary-text);
+	border: 1px solid var(--btn-secondary-border);
+}
+
+.inline-ai-suggestion-btn.edit:hover {
+	background-color: var(--btn-secondary-hover);
+}
+
+.inline-ai-suggestion-btn.dismiss {
+	background-color: transparent;
+	color: var(--text-tertiary);
+	border: 1px solid var(--border-primary);
+}
+
+.inline-ai-suggestion-btn.dismiss:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+/* ============================================
+   5. SKELETON LOADING
+   ============================================ */
+.skeleton-card {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.skeleton {
+	background: linear-gradient(
+		90deg,
+		var(--bg-secondary) 0%,
+		var(--bg-elevated) 50%,
+		var(--bg-secondary) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite;
+	border-radius: var(--radius-md);
+}
+
+.skeleton-title {
+	height: 24px;
+	width: 60%;
+	margin-bottom: var(--space-4);
+}
+
+.skeleton-text {
+	height: 16px;
+	width: 100%;
+	margin-bottom: var(--space-2);
+}
+
+.skeleton-text:last-child {
+	width: 80%;
+	margin-bottom: 0;
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+/* ============================================
+   6. FADE IN ANIMATION
+   ============================================ */
+.fade-in {
+	animation: fadeIn var(--transition-smooth);
+}
+
+/* ============================================
+   7. STAGGER ANIMATION
+   ============================================ */
+.stagger-item {
+	animation: slideUp var(--transition-smooth);
+	animation-fill-mode: both;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 100ms; }
+.stagger-item:nth-child(3) { animation-delay: 200ms; }
+.stagger-item:nth-child(4) { animation-delay: 300ms; }
+.stagger-item:nth-child(5) { animation-delay: 400ms; }
+.stagger-item:nth-child(6) { animation-delay: 500ms; }
+.stagger-item:nth-child(7) { animation-delay: 600ms; }
+.stagger-item:nth-child(8) { animation-delay: 700ms; }
+
+/* ============================================
+   8. RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+	.error-boundary,
+	.no-dead-end-fallback {
+		padding: var(--space-4);
+	}
+
+	.inline-ai-suggestion {
+		padding: var(--space-3);
+	}
+
+	.inline-ai-suggestion-actions {
+		flex-direction: column;
+	}
+
+	.inline-ai-suggestion-btn {
+		width: 100%;
+		justify-content: center;
+	}
+}

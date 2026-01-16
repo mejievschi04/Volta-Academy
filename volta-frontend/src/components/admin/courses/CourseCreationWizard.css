@@ -1,0 +1,315 @@
+/* Course Creation Wizard Styles - Modern Professional */
+.course-creation-wizard-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(15, 23, 42, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10000;
+	backdrop-filter: blur(8px);
+	animation: fadeIn var(--transition-base);
+}
+
+[data-theme="dark"] .course-creation-wizard-overlay {
+	background: rgba(0, 0, 0, 0.75);
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.course-creation-wizard {
+	background: var(--bg-surface);
+	border-radius: var(--radius-2xl);
+	width: 90%;
+	max-width: 1000px;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	box-shadow: var(--shadow-2xl);
+	overflow: hidden;
+	animation: slideUp var(--transition-slow);
+	border: 1.5px solid var(--border-default);
+}
+
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px) scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.course-creation-wizard-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-6) var(--space-8);
+	border-bottom: 1.5px solid var(--border-default);
+	background: var(--bg-surface);
+}
+
+.course-creation-wizard-header h2 {
+	margin: 0;
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.course-creation-wizard-close {
+	background: none;
+	border: none;
+	font-size: 32px;
+	color: var(--text-secondary);
+	cursor: pointer;
+	line-height: 1;
+	padding: 0;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-md);
+	transition: all var(--transition-base);
+}
+
+.course-creation-wizard-close:hover {
+	background: var(--bg-surface-hover);
+	color: var(--text-primary);
+}
+
+.course-creation-wizard-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-8);
+	background: var(--bg-surface);
+}
+
+.course-creation-wizard-step h3 {
+	margin: 0 0 var(--space-2) 0;
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.course-creation-wizard-hint {
+	margin: 0 0 var(--space-6) 0;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	line-height: 1.5;
+}
+
+/* Creator Types Grid */
+.creator-types-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--space-4);
+}
+
+.creator-type-card {
+	background: var(--bg-surface);
+	border: 1.5px solid var(--border-default);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-3);
+	position: relative;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.creator-type-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg, var(--color-primary) 0%, #8b5cf6 100%);
+	opacity: 0;
+	transition: opacity var(--transition-base);
+}
+
+.creator-type-card:hover {
+	border-color: var(--color-primary);
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-lg);
+	background: var(--bg-surface-hover);
+}
+
+.creator-type-card:hover::before {
+	opacity: 1;
+}
+
+.creator-type-card.selected {
+	border-color: var(--color-primary);
+	background: var(--color-primary-lighter);
+	box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-lg);
+	transform: translateY(-2px);
+}
+
+.creator-type-card.selected::before {
+	opacity: 1;
+}
+
+.creator-type-icon {
+	font-size: 48px;
+	line-height: 1;
+}
+
+.creator-type-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.creator-type-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	line-height: 1.5;
+}
+
+/* Blueprints Grid */
+.blueprints-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 20px;
+}
+
+.blueprint-card {
+	background: var(--bg-surface);
+	border: 1.5px solid var(--border-default);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	position: relative;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.blueprint-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg, var(--color-primary) 0%, #8b5cf6 100%);
+	opacity: 0;
+	transition: opacity var(--transition-base);
+}
+
+.blueprint-card:hover {
+	border-color: var(--color-primary);
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-lg);
+	background: var(--bg-surface-hover);
+}
+
+.blueprint-card:hover::before {
+	opacity: 1;
+}
+
+.blueprint-card.selected {
+	border-color: var(--color-primary);
+	background: var(--color-primary-lighter);
+	box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-lg);
+	transform: translateY(-2px);
+}
+
+.blueprint-card.selected::before {
+	opacity: 1;
+}
+
+.blueprint-icon {
+	font-size: 40px;
+	line-height: 1;
+	margin-bottom: 8px;
+}
+
+.blueprint-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.blueprint-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	line-height: 1.5;
+	margin-bottom: var(--space-2);
+}
+
+.blueprint-structure {
+	display: flex;
+	gap: var(--space-4);
+	margin-top: var(--space-2);
+	padding-top: var(--space-3);
+	border-top: 1px solid var(--border-default);
+}
+
+.blueprint-structure-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.blueprint-structure-label {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+}
+
+.blueprint-structure-value {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.course-creation-wizard-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-6) var(--space-8);
+	border-top: 1.5px solid var(--border-default);
+	background: var(--bg-surface-elevated);
+}
+
+/* Buttons now use admin-btn classes from design system */
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+	.course-creation-wizard {
+		width: 95%;
+		max-height: 95vh;
+	}
+
+	.course-creation-wizard-content {
+		padding: 20px;
+	}
+
+	.creator-types-grid,
+	.blueprints-grid {
+		grid-template-columns: 1fr;
+	}
+}

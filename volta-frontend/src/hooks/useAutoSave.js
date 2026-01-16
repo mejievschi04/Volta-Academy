@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Hook pentru auto-save cu debounce
@@ -52,7 +53,7 @@ export const useAutoSave = (data, saveFn, debounceMs = 2000, enabled = true) => 
 					setSaveStatus('idle');
 				}, 2000);
 			} catch (error) {
-				console.error('Auto-save error:', error);
+				logger.error('Auto-save error:', error);
 				setSaveStatus('error');
 				
 				// Reset to idle after 5 seconds on error
@@ -86,7 +87,7 @@ export const useAutoSave = (data, saveFn, debounceMs = 2000, enabled = true) => 
 				setSaveStatus('idle');
 			}, 2000);
 		} catch (error) {
-			console.error('Manual save error:', error);
+			logger.error('Manual save error:', error);
 			setSaveStatus('error');
 			
 			setTimeout(() => {

@@ -92,9 +92,9 @@ const CalendarPage = () => {
 						Vezi toate evenimentele planificate: cursuri, workshop-uri, examene și webinar-uri.
 					</p>
 				</div>
-				<Link to="/calendar/view" className="va-btn va-btn-primary">
+				<Link to="/calendar/view" className="lms-btn-primary">
 					<span>Deschide calendar vizual</span>
-					<span className="va-btn-icon">📅</span>
+					<span>📅</span>
 				</Link>
 			</div>
 

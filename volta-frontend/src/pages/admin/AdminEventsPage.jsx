@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 import { formatCurrency, getDefaultCurrency } from '../../utils/currency';
 
 const AdminEventsPage = () => {
+	const { success: showSuccess, error: showError } = useToast();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -149,8 +152,8 @@ const AdminEventsPage = () => {
 			await fetchEvents();
 			await fetchInsights();
 		} catch (err) {
-			console.error(`Error ${action} event:`, err);
-			alert(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
+			logger.error(`Error ${action} event:`, err);
+			showError(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -171,8 +174,8 @@ const AdminEventsPage = () => {
 			await fetchEvents();
 			await fetchInsights();
 		} catch (err) {
-			console.error(`Error bulk ${action}:`, err);
-			alert(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
+			logger.error(`Error bulk ${action}:`, err);
+			showError(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -337,7 +340,7 @@ const AdminEventsPage = () => {
 				(err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : null) ||
 				err.message || 
 				'Eroare necunoscută';
-			alert('Eroare la salvarea evenimentului: ' + errorMessage);
+			showError('Eroare la salvarea evenimentului: ' + errorMessage);
 		}
 	};
 
@@ -405,8 +408,8 @@ const AdminEventsPage = () => {
 			setShowDeleteConfirm(null);
 			fetchEvents();
 		} catch (err) {
-			console.error('Error deleting event:', err);
-			alert('Eroare la ștergerea evenimentului');
+			logger.error('Error deleting event:', err);
+			showError('Eroare la ștergerea evenimentului');
 		}
 	};
 
@@ -555,27 +558,79 @@ const AdminEventsPage = () => {
 		setCurrentDate(new Date());
 	};
 
-	if (loading) { return null; }
+	if (loading) {
+		return (
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="admin-container admin-events-page">
 			<div className="admin-page-header">
-				<div>
-					<h1 className="va-page-title admin-page-title">Gestionare Evenimente</h1>
-					<p className="va-muted admin-page-subtitle">Gestionează toate evenimentele din platformă</p>
+				<div className="admin-page-header-content">
+					<h1 className="admin-page-title">Gestionare Evenimente</h1>
+					<p className="admin-page-subtitle">Gestionează toate evenimentele din platformă</p>
 				</div>
-				<div className="admin-events-header-actions">
-					{/* Search */}
+				<button
+					className="lms-btn-primary"
+					onClick={() => {
+						setEditingEvent(null);
+						setFormData({
+							title: '',
+							description: '',
+							short_description: '',
+							type: 'live_online',
+							status: 'draft',
+							start_date: '',
+							end_date: '',
+							timezone: 'Europe/Bucharest',
+							location: '',
+							live_link: '',
+							max_capacity: null,
+							instructor_id: null,
+							access_type: 'free',
+							price: null,
+							currency: 'RON',
+							course_id: null,
+							replay_url: '',
+							thumbnail: '',
+						});
+						setErrors({});
+						setTouched({});
+						setShowModal(true);
+					}}
+				>
+					+ Adaugă Eveniment Nou
+				</button>
+			</div>
+
+			{/* Search and Filters */}
+			<div className="admin-courses-toolbar" style={{ marginBottom: '1rem', flexShrink: 0 }}>
+				<div className="admin-courses-search">
 					<input
 						type="text"
-						className="admin-events-search"
+						className="admin-search-input"
 						placeholder="Caută evenimente..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>
-					{/* Filters */}
+					{searchQuery && (
+						<button
+							className="admin-search-clear-btn"
+							onClick={() => setSearchQuery('')}
+							aria-label="Clear search"
+						>
+							×
+						</button>
+					)}
+				</div>
+				<div className="admin-courses-actions">
 					<select
-						className="admin-events-filter"
+						className="admin-filter-select"
 						value={filters.status}
 						onChange={(e) => setFilters({ ...filters, status: e.target.value })}
 					>
@@ -588,7 +643,7 @@ const AdminEventsPage = () => {
 						<option value="cancelled">Anulat</option>
 					</select>
 					<select
-						className="admin-events-filter"
+						className="admin-filter-select"
 						value={filters.type}
 						onChange={(e) => setFilters({ ...filters, type: e.target.value })}
 					>
@@ -600,128 +655,68 @@ const AdminEventsPage = () => {
 					</select>
 					<div className="admin-events-view-toggle">
 						<button
-							className={`va-btn va-btn-sm ${viewMode === 'list' ? 'va-btn-primary' : ''}`}
+							className={`lms-btn-secondary lms-btn-sm ${viewMode === 'list' ? 'active' : ''}`}
 							onClick={() => setViewMode('list')}
 						>
 							📋 Listă
 						</button>
 						<button
-							className={`va-btn va-btn-sm ${viewMode === 'calendar' ? 'va-btn-primary' : ''}`}
+							className={`lms-btn-secondary lms-btn-sm ${viewMode === 'calendar' ? 'active' : ''}`}
 							onClick={() => setViewMode('calendar')}
 						>
 							📅 Calendar
 						</button>
 					</div>
-					<button
-						className="va-btn va-btn-primary"
-						onClick={() => {
-							setEditingEvent(null);
-							setFormData({
-								title: '',
-								description: '',
-								short_description: '',
-								type: 'live_online',
-								status: 'draft',
-								start_date: '',
-								end_date: '',
-								timezone: 'Europe/Bucharest',
-								location: '',
-								live_link: '',
-								max_capacity: null,
-								instructor_id: null,
-								access_type: 'free',
-								price: null,
-								currency: 'RON',
-								course_id: null,
-								replay_url: '',
-								thumbnail: '',
-							});
-							setErrors({});
-							setTouched({});
-							setShowModal(true);
-						}}
-					>
-						<span>➕</span>
-						<span>Adaugă Eveniment Nou</span>
-					</button>
 				</div>
 			</div>
 
 			{error && (
-				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
+				<div className="lms-error-message">
 					{error}
 				</div>
 			)}
 
-			{/* Insights Section */}
-			{insights && (
-				<div className="admin-events-insights">
-					<h3 className="admin-events-insights-title">📊 Statistici Evenimente</h3>
-					<div className="admin-events-insights-grid">
-						<div className="admin-events-insight-item">
-							<div className="admin-events-insight-label">Total Evenimente</div>
-							<div className="admin-events-insight-value">{insights.total_events || 0}</div>
-						</div>
-						<div className="admin-events-insight-item">
-							<div className="admin-events-insight-label">Publicate</div>
-							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.published_events || 0}</div>
-						</div>
-						<div className="admin-events-insight-item">
-							<div className="admin-events-insight-label">Viitoare</div>
-							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.upcoming_events || 0}</div>
-						</div>
-						<div className="admin-events-insight-item">
-							<div className="admin-events-insight-label">Total Înscrieri</div>
-							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.total_registrations || 0}</div>
-						</div>
-						<div className="admin-events-insight-item">
-							<div className="admin-events-insight-label">Prezență Medie</div>
-							<div className="admin-events-insight-value" style={{ color: 'var(--color-light)' }}>{insights.average_attendance_rate || 0}%</div>
-						</div>
-					</div>
-				</div>
-			)}
 
 			{/* Bulk Actions Toolbar */}
 			{selectedEvents.size > 0 && (
-				<div className="admin-events-bulk-toolbar">
-					<div className="admin-events-bulk-count">
-						{selectedEvents.size} eveniment(e) selectat(e)
+				<div className="admin-bulk-actions-bar">
+					<div className="admin-bulk-actions-info">
+						<strong>{selectedEvents.size}</strong> eveniment(e) selectat(e)
 					</div>
-					<div className="admin-events-bulk-actions">
+					<div className="admin-bulk-actions-buttons">
 						<button
-							className="va-btn va-btn-sm"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => handleBulkAction('publish')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Publică
 						</button>
 						<button
-							className="va-btn va-btn-sm"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => handleBulkAction('unpublish')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Retrage
 						</button>
 						<button
-							className="va-btn va-btn-sm"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => handleBulkAction('cancel')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Anulează
 						</button>
 						<button
-							className="va-btn va-btn-sm admin-btn-danger"
+							className="lms-btn-secondary lms-btn-sm va-btn-danger"
 							onClick={() => handleBulkAction('delete')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Șterge
 						</button>
 						<button
-							className="va-btn va-btn-sm"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => setSelectedEvents(new Set())}
 						>
-							Anulează
+							Anulează selecția
 						</button>
 					</div>
 				</div>
@@ -731,18 +726,18 @@ const AdminEventsPage = () => {
 				const days = getDaysInMonth(currentDate);
 				const weeks = Math.ceil(days.length / 7);
 				return (
-				<div className="admin-events-calendar">
-					<div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+				<div className="admin-events-calendar" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+					<div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 						<div className="admin-events-calendar-header">
-							<button className="va-btn va-btn-sm" onClick={() => navigateMonth(-1)}>
+							<button className="lms-btn-secondary lms-btn-sm" onClick={() => navigateMonth(-1)}>
 								← Anterior
 							</button>
 							<h2 className="admin-events-calendar-month">{getMonthName(currentDate)}</h2>
-							<div style={{ display: 'flex', gap: '0.375rem' }}>
-								<button className="va-btn va-btn-sm" onClick={goToToday}>
+							<div className="admin-events-calendar-header-actions">
+								<button className="lms-btn-secondary lms-btn-sm" onClick={goToToday}>
 									Astăzi
 								</button>
-								<button className="va-btn va-btn-sm" onClick={() => navigateMonth(1)}>
+								<button className="lms-btn-secondary lms-btn-sm" onClick={() => navigateMonth(1)}>
 									Următor →
 								</button>
 							</div>
@@ -804,7 +799,7 @@ const AdminEventsPage = () => {
 				)})() : null}
 
 			{viewMode === 'list' && (
-				<>
+				<div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 					{events.length > 0 ? (
 						<div className="admin-grid">
 							{events.map((event) => {
@@ -851,10 +846,32 @@ const AdminEventsPage = () => {
 									return labels[accessType] || accessType;
 								};
 
+								const getStatusBadge = (status) => {
+									const badges = {
+										draft: { label: 'Draft', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
+										published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
+										upcoming: { label: 'Viitor', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' },
+										live: { label: 'Live', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+										completed: { label: 'Finalizat', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.15)' },
+										cancelled: { label: 'Anulat', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' },
+									};
+									const badge = badges[status] || badges.draft;
+									return (
+										<span className="admin-card-badge" style={{
+											background: badge.bgColor,
+											color: badge.color,
+											border: `1px solid ${badge.color}40`,
+										}}>
+											{badge.label}
+										</span>
+									);
+								};
+
 								return (
 									<div
 										key={event.id}
-										className="admin-event-card"
+										className="admin-card"
+										style={{ position: 'relative' }}
 									>
 										{/* Checkbox for bulk selection */}
 										<input
@@ -862,128 +879,135 @@ const AdminEventsPage = () => {
 											className="admin-event-card-checkbox"
 											checked={selectedEvents.has(event.id)}
 											onChange={(e) => handleSelectEvent(event.id, e.target.checked)}
+											style={{
+												position: 'absolute',
+												top: 'var(--space-4)',
+												right: 'var(--space-4)',
+												zIndex: 1,
+											}}
 										/>
 										<div className="admin-card-body">
-											<div className="admin-event-header">
-												<h3 className="admin-event-title">📅 {event.title}</h3>
-												{event.status && (
-													<span className={`admin-event-status ${event.status}`}>
-														{getStatusLabel(event.status)}
-													</span>
-												)}
+											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
+												<h3 className="admin-card-title">{event.title}</h3>
+												{event.status && getStatusBadge(event.status)}
 											</div>
 											{event.short_description && (
-												<p className="admin-event-description" style={{ marginBottom: '0.5rem' }}>
+												<p className="admin-card-description" style={{ marginBottom: '0.5rem' }}>
 													{event.short_description}
 												</p>
 											)}
-											<p className="admin-event-description">
-												{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
-											</p>
-											<div className="admin-event-info">
-												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>
-													<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
-													{event.access_type && (
-														<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
-															{event.access_type === 'paid' && event.price && (
-																<span> - {formatCurrency(event.price, event.currency || currency)}</span>
-															)}
-														</span>
-													)}
-												</div>
-												{event.instructor && (
-													<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>👤 <strong>{event.instructor.name}</strong></div>
-												)}
-												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>📍 <strong>{event.location || event.live_link || 'N/A'}</strong></div>
-												<div className="admin-event-meta" style={{ marginBottom: '0.5rem' }}>
-													🕐 <strong>{formatDate(event.start_date)}</strong>
-													{event.end_date && (
-														<span style={{ marginLeft: '0.5rem' }}>
-															⏱️ {calculateDuration(event.start_date, event.end_date)}
-														</span>
-													)}
-												</div>
-												{/* KPI Metrics */}
-												<div className="admin-event-kpis">
-													<div className="admin-event-kpi">
-														<div className="admin-event-kpi-label">Înscrieri</div>
-														<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
-															{event.registrations_count || 0}
-															{event.max_capacity && ` / ${event.max_capacity}`}
-														</div>
+											{event.description && (
+												<p className="admin-card-description">
+													{event.description.substring(0, 120)}{event.description.length > 120 ? '...' : ''}
+												</p>
+											)}
+											<div className="admin-card-info">
+												<div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+													<div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+														<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
+														{event.access_type && (
+															<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
+																{event.access_type === 'paid' && event.price && (
+																	<span> - {formatCurrency(event.price, event.currency || currency)}</span>
+																)}
+															</span>
+														)}
 													</div>
-													<div className="admin-event-kpi">
-														<div className="admin-event-kpi-label">Prezență</div>
-														<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
-															{event.attendance_count || 0}
-														</div>
+													{event.instructor && (
+														<div>👤 <strong>{event.instructor.name}</strong></div>
+													)}
+													<div>📍 <strong>{event.location || event.live_link || 'N/A'}</strong></div>
+													<div>
+														🕐 <strong>{formatDate(event.start_date)}</strong>
+														{event.end_date && (
+															<span style={{ marginLeft: '0.5rem' }}>
+																⏱️ {calculateDuration(event.start_date, event.end_date)}
+															</span>
+														)}
 													</div>
-													{event.replay_views_count > 0 && (
-														<div className="admin-event-kpi">
-															<div className="admin-event-kpi-label">Replay</div>
-															<div className="admin-event-kpi-value" style={{ color: 'var(--color-dark)' }}>
-																{event.replay_views_count}
+													{/* KPI Metrics */}
+													<div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
+														<div>
+															<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Înscrieri</div>
+															<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+																{event.registrations_count || 0}
+																{event.max_capacity && ` / ${event.max_capacity}`}
 															</div>
 														</div>
-													)}
+														<div>
+															<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Prezență</div>
+															<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+																{event.attendance_count || 0}
+															</div>
+														</div>
+														{event.replay_views_count > 0 && (
+															<div>
+																<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Replay</div>
+																<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+																	{event.replay_views_count}
+																</div>
+															</div>
+														)}
+													</div>
 												</div>
 											</div>
-											<div className="admin-card-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-												{/* Quick Actions */}
+											<div className="admin-card-actions">
 												{event.status === 'draft' && (
 													<button
-														className="va-btn va-btn-sm"
+														className="admin-btn admin-btn-sm admin-btn-primary"
 														onClick={() => handleQuickAction(event.id, 'publish')}
 														disabled={actionLoading === event.id}
-														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
 													>
-														Publică
+														<span className="admin-btn-icon">📤</span>
+														<span>Publică</span>
 													</button>
 												)}
 												{(event.status === 'published' || event.status === 'upcoming') && (
 													<button
-														className="va-btn va-btn-sm"
+														className="admin-btn admin-btn-sm admin-btn-secondary"
 														onClick={() => handleQuickAction(event.id, 'unpublish')}
 														disabled={actionLoading === event.id}
-														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
 													>
-														Retrage
+														<span className="admin-btn-icon">↩️</span>
+														<span>Retrage</span>
 													</button>
 												)}
 												{!['completed', 'cancelled'].includes(event.status) && (
 													<button
-														className="va-btn va-btn-sm"
+														className="admin-btn admin-btn-sm admin-btn-secondary"
 														onClick={() => handleQuickAction(event.id, 'cancel')}
 														disabled={actionLoading === event.id}
-														style={{ background: 'var(--color-dark)', color: 'var(--color-light)' }}
 													>
-														Anulează
+														<span className="admin-btn-icon">🚫</span>
+														<span>Anulează</span>
 													</button>
 												)}
 												{['published', 'upcoming', 'live'].includes(event.status) && (
 													<button
-														className="va-btn va-btn-sm"
+														className="admin-btn admin-btn-sm admin-btn-primary"
 														onClick={() => handleQuickAction(event.id, 'complete')}
 														disabled={actionLoading === event.id}
-														style={{ background: '#8b5cf6', color: '#fff' }}
 													>
-														Finalizează
+														<span className="admin-btn-icon">✓</span>
+														<span>Finalizează</span>
 													</button>
 												)}
 												<button
-													className="va-btn va-btn-sm"
+													className="admin-btn admin-btn-sm admin-btn-secondary"
 													onClick={() => handleEdit(event)}
 												>
-													Editează
+													<span className="admin-btn-icon">✏️</span>
+													<span>Editează</span>
 												</button>
 												<button
-													className="va-btn va-btn-sm va-btn-danger"
+													className="admin-btn admin-btn-sm admin-btn-danger"
 													onClick={(e) => {
 														e.stopPropagation();
 														handleDelete(event.id);
 													}}
 												>
-													Șterge
+													<span className="admin-btn-icon">🗑️</span>
+													<span>Șterge</span>
 												</button>
 											</div>
 										</div>
@@ -992,13 +1016,51 @@ const AdminEventsPage = () => {
 							})}
 						</div>
 					) : (
-						<div className="va-card">
-							<div className="va-card-body">
-								<p className="va-muted">Nu există evenimente</p>
-							</div>
+						<div className="lms-empty-state">
+							<div className="lms-empty-icon">📅</div>
+							<h3 className="lms-empty-title">Nu există evenimente</h3>
+							<p className="lms-empty-description">
+								{searchQuery || filters.status !== 'all' || filters.type !== 'all'
+									? 'Încearcă să modifici filtrele sau căutarea'
+									: 'Creează primul eveniment pentru a începe'}
+							</p>
+							{!searchQuery && filters.status === 'all' && filters.type === 'all' && (
+								<button
+									className="lms-btn-primary"
+									onClick={() => {
+										setEditingEvent(null);
+										setFormData({
+											title: '',
+											description: '',
+											short_description: '',
+											type: 'live_online',
+											status: 'draft',
+											start_date: '',
+											end_date: '',
+											timezone: 'Europe/Bucharest',
+											location: '',
+											live_link: '',
+											max_capacity: null,
+											instructor_id: null,
+											access_type: 'free',
+											price: null,
+											currency: 'RON',
+											course_id: null,
+											replay_url: '',
+											thumbnail: '',
+										});
+										setErrors({});
+										setTouched({});
+										setShowModal(true);
+									}}
+								>
+									<span className="admin-btn-icon">+</span>
+									Adaugă Eveniment Nou
+								</button>
+							)}
 						</div>
 					)}
-				</>
+				</div>
 			)}
 
 			{showModal && (
@@ -1033,14 +1095,14 @@ const AdminEventsPage = () => {
 						</div>
 						<div className="admin-event-modal-body">
 							<form onSubmit={handleSubmit} className="admin-event-form">
-								<div className="va-form-group">
-									<label className="va-form-label">
+								<div className="admin-form-group">
+									<label className="admin-form-label">
 										<span>📝</span>
 										<span>Titlu</span>
 									</label>
 									<input
 										type="text"
-										className="va-form-input admin-event-input"
+										className="admin-form-input admin-event-input"
 										value={formData.title}
 										onChange={(e) => {
 											setFormData({ ...formData, title: e.target.value });
@@ -1058,13 +1120,13 @@ const AdminEventsPage = () => {
 									)}
 								</div>
 
-								<div className="va-form-group">
-									<label className="va-form-label">
+								<div className="admin-form-group">
+									<label className="admin-form-label">
 										<span>📄</span>
 										<span>Descriere</span>
 									</label>
 									<textarea
-										className="va-form-input admin-event-input"
+										className="admin-form-input admin-event-input"
 										value={formData.description}
 										onChange={(e) => {
 											setFormData({ ...formData, description: e.target.value });
@@ -1083,13 +1145,13 @@ const AdminEventsPage = () => {
 									)}
 								</div>
 
-								<div className="va-form-group">
-									<label className="va-form-label">
+								<div className="admin-form-group">
+									<label className="admin-form-label">
 										<span>🏷️</span>
 										<span>Tip</span>
 									</label>
 									<select
-										className="va-form-input admin-event-input"
+										className="admin-form-input admin-event-input"
 										value={formData.type}
 										onChange={(e) => setFormData({ ...formData, type: e.target.value })}
 										required
@@ -1109,7 +1171,7 @@ const AdminEventsPage = () => {
 										</label>
 										<input
 											type="datetime-local"
-											className="va-form-input admin-event-input"
+											className="admin-form-input admin-event-input"
 											value={formData.start_date}
 											onChange={(e) => {
 												setFormData({ ...formData, start_date: e.target.value });
@@ -1133,7 +1195,7 @@ const AdminEventsPage = () => {
 										</label>
 										<input
 											type="datetime-local"
-											className="va-form-input admin-event-input"
+											className="admin-form-input admin-event-input"
 											value={formData.end_date}
 											onChange={(e) => {
 												setFormData({ ...formData, end_date: e.target.value });
@@ -1151,13 +1213,13 @@ const AdminEventsPage = () => {
 									</div>
 								</div>
 
-								<div className="va-form-group">
-									<label className="va-form-label">
+								<div className="admin-form-group">
+									<label className="admin-form-label">
 										<span>💰</span>
 										<span>Tip Acces</span>
 									</label>
 									<select
-										className="va-form-input admin-event-input"
+										className="admin-form-input admin-event-input"
 										value={formData.access_type}
 										onChange={(e) => {
 											setFormData({ 
@@ -1188,7 +1250,7 @@ const AdminEventsPage = () => {
 											</label>
 											<input
 												type="number"
-												className="va-form-input admin-event-input"
+												className="admin-form-input admin-event-input"
 												value={formData.price || ''}
 												onChange={(e) => setFormData({ ...formData, price: e.target.value ? parseFloat(e.target.value) : null })}
 												placeholder="0.00"
@@ -1206,7 +1268,7 @@ const AdminEventsPage = () => {
 												<span>Valută</span>
 											</label>
 											<select
-												className="va-form-input admin-event-input"
+												className="admin-form-input admin-event-input"
 												value={formData.currency}
 												onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
 											>
@@ -1226,7 +1288,7 @@ const AdminEventsPage = () => {
 											<span>Curs Asociat</span>
 										</label>
 										<select
-											className="va-form-input admin-event-input"
+											className="admin-form-input admin-event-input"
 											value={formData.course_id || ''}
 											onChange={(e) => {
 												setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : null });
@@ -1313,21 +1375,20 @@ const AdminEventsPage = () => {
 						<p style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-secondary)' }}>
 							Ești sigur că vrei să ștergi acest eveniment? Această acțiune nu poate fi anulată.
 						</p>
-						<div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+						<div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
 							<button
 								type="button"
-								className="admin-event-btn-secondary"
+								className="lms-btn-secondary"
 								onClick={() => setShowDeleteConfirm(null)}
 							>
 								Anulează
 							</button>
 							<button
 								type="button"
-								className="admin-event-btn-primary"
+								className="lms-btn-secondary va-btn-danger"
 								onClick={() => {
 									if (showDeleteConfirm) {
-										handleDelete(showDeleteConfirm);
-										setShowDeleteConfirm(null);
+										confirmDelete();
 									}
 								}}
 							>

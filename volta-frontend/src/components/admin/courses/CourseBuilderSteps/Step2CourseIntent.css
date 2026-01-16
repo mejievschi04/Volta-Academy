@@ -1,0 +1,207 @@
+/* Step 2: Course Intent - Two-column layout - Modern Professional */
+.step2-course-intent {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	background: var(--bg-surface);
+	padding: var(--space-6);
+	border-radius: var(--radius-xl);
+	border: 1.5px solid var(--border-default);
+	box-shadow: var(--shadow-sm);
+}
+
+.step2-course-intent-header {
+	margin-bottom: var(--space-4);
+}
+
+.step2-course-intent-header h2 {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	margin: 0 0 var(--space-3) 0;
+	color: var(--text-primary);
+	letter-spacing: -0.02em;
+}
+
+.step2-course-intent-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.step2-course-intent-layout {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-6);
+	align-items: start;
+}
+
+/* Left Column: Input Fields */
+.step2-course-intent-inputs {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+.step2-course-intent-actions {
+	margin-top: var(--space-2);
+}
+
+/* Right Column: AI Preview Card */
+.step2-course-intent-preview {
+	position: sticky;
+	top: var(--space-4);
+}
+
+.ai-preview-card {
+	background: var(--bg-surface);
+	border: 1.5px solid var(--border-default);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	box-shadow: var(--shadow-md);
+	position: relative;
+	overflow: hidden;
+}
+
+.ai-preview-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg, var(--color-primary) 0%, #8b5cf6 100%);
+}
+
+.ai-preview-card-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-bottom: var(--space-4);
+	padding-bottom: var(--space-3);
+	border-bottom: 1px solid var(--border-default);
+}
+
+.ai-preview-card-icon {
+	font-size: 24px;
+}
+
+.ai-preview-card-header h3 {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	margin: 0;
+	color: var(--text-primary);
+	flex: 1;
+}
+
+.ai-preview-card-loading {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+
+.ai-preview-card-content {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+.ai-preview-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.ai-preview-section h4 {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	margin: 0;
+	color: var(--text-primary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.ai-preview-section p {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.ai-preview-duration {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.ai-preview-stats {
+	display: flex;
+	gap: var(--space-2);
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin-top: var(--space-1);
+}
+
+.ai-preview-topics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.ai-preview-topic-tag {
+	display: inline-block;
+	padding: var(--space-1) var(--space-2);
+	background: var(--bg-surface-hover);
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	color: var(--text-primary);
+}
+
+.ai-preview-card-empty {
+	padding: var(--space-6);
+	text-align: center;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+/* Dark Mode */
+[data-theme="dark"] .step2-course-intent {
+	background: var(--bg-elevated);
+	border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .ai-preview-card {
+	background: var(--bg-surface);
+	border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .step2-course-intent-header h2,
+[data-theme="dark"] .step2-course-intent-description,
+[data-theme="dark"] .ai-preview-card-header h3,
+[data-theme="dark"] .ai-preview-section h4,
+[data-theme="dark"] .ai-preview-section p,
+[data-theme="dark"] .ai-preview-duration,
+[data-theme="dark"] .ai-preview-topic-tag {
+	color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .ai-preview-card-empty {
+	color: var(--text-secondary) !important;
+}
+
+/* Mobile */
+@media (max-width: 1024px) {
+	.step2-course-intent-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.step2-course-intent-preview {
+		position: static;
+	}
+}

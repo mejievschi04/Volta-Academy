@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { profileService, adminService } from '../services/api';
+import { profileService, adminService, achievementsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProfilePage = () => {
@@ -10,6 +10,7 @@ const ProfilePage = () => {
 	const [profileData, setProfileData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [badges, setBadges] = useState([]);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -39,6 +40,15 @@ const ProfilePage = () => {
 				}
 				
 				setProfileData(profile);
+
+				// Fetch badges
+				try {
+					const achievements = await achievementsService.getAchievements();
+					setBadges(achievements.badges || []);
+				} catch (err) {
+					console.error('Error fetching badges:', err);
+					setBadges([]);
+				}
 			} catch (err) {
 				console.error('Error fetching profile:', err);
 				setError('Nu s-a putut încărca profilul');
@@ -70,7 +80,7 @@ const ProfilePage = () => {
 				<div style={{ marginBottom: '2rem' }}>
 					<button
 						onClick={() => navigate('/admin/users')}
-						className="va-btn-secondary"
+						className="lms-btn-secondary"
 						style={{
 							display: 'inline-flex',
 							alignItems: 'center',
@@ -100,8 +110,8 @@ const ProfilePage = () => {
 						<h1 className="va-profile-name">{profileData.user.name}</h1>
 						<p className="va-profile-role">
 							{isViewingOtherUser 
-								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator formely')
-								: 'Student formely'
+								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator')
+								: 'Student'
 							}
 						</p>
 						{isViewingOtherUser && (
@@ -183,16 +193,16 @@ const ProfilePage = () => {
 									</div>
 									<Link
 										to={`/courses/${course.id}/lessons`}
-										className="va-btn va-btn-primary va-btn-sm"
+										className="lms-btn-primary lms-btn-sm"
 									>
 										Continuă cursul
 									</Link>
 								</div>
 							))
 						) : (
-							<div className="va-empty-state">
-								<p className="va-empty-text">Nu ai cursuri în progres momentan.</p>
-								<Link to="/courses" className="va-btn va-btn-secondary">
+							<div className="lms-empty-state">
+								<p className="lms-empty-description">Nu ai cursuri în progres momentan.</p>
+								<Link to="/courses" className="lms-btn-secondary">
 									Explorează cursuri
 								</Link>
 							</div>
@@ -203,31 +213,65 @@ const ProfilePage = () => {
 				{/* Completed Courses */}
 				<div className="va-profile-section">
 					<div className="va-section-header">
-						<h2 className="va-section-title">Cursuri finalizate</h2>
+						<div className="va-section-title-group">
+							<h2 className="va-section-title">Cursuri finalizate</h2>
+							{coursesCompleted.length > 3 && (
+								<Link
+									to="/completed-courses"
+									className="va-section-more-btn"
+									title="Vezi toate cursurile finalizate"
+								>
+									⋯
+								</Link>
+							)}
+						</div>
 						<span className="va-section-count">{coursesCompleted.length}</span>
 					</div>
-					<div className="va-courses-list">
+					<div className="va-completed-courses-list">
 						{coursesCompleted.length > 0 ? (
-							coursesCompleted.map((course) => (
-								<div className="va-course-card va-course-card-completed" key={course.id}>
-									<div className="va-course-card-header">
-										<h3 className="va-course-card-title">{course.title}</h3>
-										<span className="va-course-card-badge">✓ Completat</span>
+							coursesCompleted.slice(0, 3).map((course) => (
+								<div className="va-completed-course-item" key={course.id}>
+									<div className="va-completed-course-content">
+										<span className="va-completed-course-title">{course.title}</span>
+										<span className="va-completed-course-badge">✓ Completat</span>
 									</div>
-									<p className="va-course-card-description">{course.description}</p>
-									<div className="va-course-card-meta">
+									<div className="va-completed-course-meta">
 										<span>Quiz: {course.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
 									</div>
 								</div>
 							))
 						) : (
-							<div className="va-empty-state">
-								<p className="va-empty-text">Nu ai finalizat niciun curs încă.</p>
+							<div className="lms-empty-state">
+								<p className="lms-empty-description">Nu ai finalizat niciun curs încă.</p>
 							</div>
 						)}
 					</div>
 				</div>
 
+			</div>
+
+			{/* Badges Container */}
+			<div className="va-profile-badges-container">
+				<h2 className="va-profile-badges-title">Badge-uri</h2>
+				<div className="va-profile-badges-list">
+					{badges.length > 0 ? (
+						badges.map((badge, index) => (
+							<div key={index} className="va-profile-badge-item">
+								<div className="va-profile-badge-icon">{badge.icon || '🏆'}</div>
+								<div className="va-profile-badge-content">
+									<div className="va-profile-badge-name">{badge.title || badge.name}</div>
+									{badge.description && (
+										<div className="va-profile-badge-description">{badge.description}</div>
+									)}
+								</div>
+							</div>
+						))
+					) : (
+						<div className="va-profile-badges-empty">
+							<p>Nu ai badge-uri încă. Completează cursuri pentru a obține badge-uri!</p>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);

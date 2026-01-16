@@ -195,6 +195,32 @@ class QuestionBankAdminController extends Controller
     }
 
     /**
+     * Update a question in bank
+     */
+    public function updateQuestion(Request $request, $id, $questionId)
+    {
+        $bank = QuestionBank::findOrFail($id);
+        $question = Question::where('question_bank_id', $bank->id)
+            ->findOrFail($questionId);
+
+        $validated = $request->validate([
+            'type' => 'sometimes|required|string',
+            'content' => 'sometimes|required|string',
+            'answers' => 'sometimes|required|array',
+            'points' => 'nullable|integer|min:1',
+            'order' => 'nullable|integer|min:0',
+            'explanation' => 'nullable|string',
+        ]);
+
+        $question->update($validated);
+
+        return response()->json([
+            'message' => 'Question updated successfully',
+            'question' => $question->fresh(),
+        ]);
+    }
+
+    /**
      * Remove a question from bank
      */
     public function removeQuestion($id, $questionId)
@@ -230,11 +256,71 @@ class QuestionBankAdminController extends Controller
         $courseContent = $this->extractCourseContent($course);
         
         // Generate questions using AI
-        $questions = $this->generateQuestionsWithAI(
-            $courseContent,
-            $validated['numberOfQuestions'] ?? 10,
-            $validated['difficulty'] ?? 'medium'
-        );
+        try {
+            $questions = $this->generateQuestionsWithAI(
+                $courseContent,
+                $validated['numberOfQuestions'] ?? 10,
+                $validated['difficulty'] ?? 'medium'
+            );
+        } catch (\Exception $e) {
+            // Surface helpful error messages for devs while keeping the response safe
+            Log::error('Error generating questions (endpoint)', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema AI'),
+            ], 500);
+        }
+
+        if (empty($questions)) {
+            return response()->json([
+                'error' => 'Nu s-au putut genera întrebări. Te rugăm să încerci din nou.',
+            ], 500);
+        }
+
+        // Add questions to bank
+        $this->testService->addQuestionsToBank($bank, $questions);
+
+        return response()->json([
+            'message' => 'Questions generated successfully',
+            'questions_generated' => count($questions),
+            'bank' => $bank->load('questions'),
+        ]);
+    }
+
+    /**
+     * Generate questions from custom text content
+     */
+    public function generateFromText(Request $request, $id)
+    {
+        $bank = QuestionBank::findOrFail($id);
+        
+        $validated = $request->validate([
+            'content' => 'required|string|min:10|max:10000',
+            'numberOfQuestions' => 'nullable|integer|min:1|max:50',
+            'difficulty' => 'nullable|in:easy,medium,hard',
+            'questionTypes' => 'nullable|array',
+        ]);
+
+        // Generate questions using AI with custom content
+        try {
+            $questions = $this->generateQuestionsWithAI(
+                $validated['content'],
+                $validated['numberOfQuestions'] ?? 10,
+                $validated['difficulty'] ?? 'medium'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error generating questions from text', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema AI'),
+            ], 500);
+        }
 
         if (empty($questions)) {
             return response()->json([
@@ -330,19 +416,20 @@ class QuestionBankAdminController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return [];
+            // Rethrow so the caller (endpoint) can return a meaningful HTTP error
+            throw $e;
         }
     }
 
     /**
-     * Call AI API to generate questions
+     * Call AI API to generate questions (with optional fallback models)
      */
     private function callAI(string $prompt): string
     {
         // Use HTTP client to call AI API
         $provider = env('AI_PROVIDER', 'groq');
         $apiKey = $provider === 'groq' ? env('GROQ_API_KEY') : env('OPENAI_API_KEY');
-        $apiUrl = $provider === 'groq' 
+        $apiUrl = $provider === 'groq'
             ? env('GROQ_API_URL', 'https://api.groq.com/openai/v1')
             : env('OPENAI_API_URL', 'https://api.openai.com/v1');
         $model = $provider === 'groq'
@@ -350,37 +437,132 @@ class QuestionBankAdminController extends Controller
             : env('OPENAI_MODEL', 'gpt-4o-mini');
 
         if (!$apiKey) {
-            throw new \Exception('AI API key not configured');
+            // If Groq is configured but missing a key, try falling back to OpenAI if available
+            if ($provider === 'groq' && env('OPENAI_API_KEY')) {
+                Log::info('GROQ key missing in env; falling back to OpenAI provider for this request');
+                $provider = 'openai';
+                $apiKey = env('OPENAI_API_KEY');
+                $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
+                $model = env('OPENAI_MODEL', 'gpt-4o-mini');
+            } else {
+                throw new \Exception('AI API key not configured for provider: ' . $provider);
+            }
         }
 
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type' => 'application/json',
-        ])->timeout(120)->post("{$apiUrl}/chat/completions", [
-            'model' => $model,
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => 'Ești un asistent AI expert în crearea de întrebări educaționale. Generează întrebări clare, relevante și bine structurate bazate pe conținutul furnizat. Răspunde ÎNTOTDEAUNA în format JSON valid.'
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $prompt
-                ]
-            ],
-            'temperature' => 0.7,
-            'max_tokens' => 4000,
-        ]);
+        // Allow disabling SSL verification for local/dev via AI_VERIFY_SSL env var
+        $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
 
-        if (!$response->successful()) {
-            Log::error('AI API Error', [
-                'status' => $response->status(),
-                'error' => $response->body()
+        // Helper to perform a request with a specific model
+        $attemptRequest = function(string $modelToUse) use ($apiUrl, $apiKey, $prompt, $verify) {
+            return \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+            ])->withOptions([
+                'verify' => $verify,
+            ])->timeout(120)->post("{$apiUrl}/chat/completions", [
+                'model' => $modelToUse,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Ești un asistent AI expert în crearea de întrebări educaționale. Generează întrebări clare, relevante și bine structurate bazate pe conținutul furnizat. Răspunde ÎNTOTDEAUNA în format JSON valid.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 4000,
             ]);
-            throw new \Exception('AI API error: ' . $response->status());
+        };
+
+        // First attempt with configured model
+        $response = $attemptRequest($model);
+
+        // If initial attempt failed, try fallbacks (only for model errors)
+        if (!$response->successful()) {
+            $body = $response->body();
+            $providerMessage = null;
+            $providerCode = null;
+
+            try {
+                $json = $response->json();
+                if (isset($json['error']['message'])) {
+                    $providerMessage = $json['error']['message'];
+                } elseif (isset($json['error'])) {
+                    $providerMessage = is_string($json['error']) ? $json['error'] : json_encode($json['error']);
+                }
+
+                if (isset($json['error']['code'])) {
+                    $providerCode = $json['error']['code'];
+                }
+            } catch (\Throwable $e) {
+                // ignore JSON parsing errors
+            }
+
+            // Determine if we should try fallback models (model not found / 404 / explicit error code)
+            $shouldTryFallback = ($response->status() === 404) || str_contains(strtolower($providerMessage ?? ''), 'model') || $providerCode === 'model_not_found';
+
+            if ($shouldTryFallback) {
+                $fallbackEnv = $provider === 'groq' ? env('GROQ_FALLBACK_MODELS') : env('OPENAI_FALLBACK_MODELS');
+                $fallbacks = array_filter(array_map('trim', explode(',', (string)$fallbackEnv)));
+
+                foreach ($fallbacks as $fallbackModel) {
+                    if (empty($fallbackModel)) continue;
+                    Log::info('Trying fallback AI model', ['provider' => $provider, 'model' => $fallbackModel]);
+
+                    $resp2 = $attemptRequest($fallbackModel);
+                    if ($resp2->successful()) {
+                        $response = $resp2;
+                        $model = $fallbackModel;
+                        break;
+                    }
+
+                    Log::warning('Fallback model attempt failed', ['model' => $fallbackModel, 'status' => $resp2->status(), 'body' => $resp2->body()]);
+                }
+            }
+
+            // If still not successful, surface provider message (if any)
+            if (!$response->successful()) {
+                try {
+                    $json = $response->json();
+                    if (isset($json['error']['message'])) {
+                        $providerMessage = $json['error']['message'];
+                    } elseif (isset($json['error'])) {
+                        $providerMessage = is_string($json['error']) ? $json['error'] : json_encode($json['error']);
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+
+                Log::error('AI API Error', [
+                    'status' => $response->status(),
+                    'error' => $response->body(),
+                    'provider_message' => $providerMessage
+                ]);
+
+                $message = 'AI API error: ' . $response->status();
+                if ($providerMessage) {
+                    $message .= ' - ' . $providerMessage;
+                }
+
+                throw new \Exception($message);
+            }
         }
 
         $data = $response->json();
+
+        // Log which model succeeded for easier debugging
+        try {
+            Log::info('AI call successful', [
+                'provider' => $provider,
+                'model' => $model,
+                'status' => $response->status(),
+            ]);
+        } catch (\Throwable $e) {
+            // Ignore logging errors
+        }
+
         return $data['choices'][0]['message']['content'] ?? '';
     }
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
 import CourseInsights from '../../components/admin/courses/CourseInsights';
@@ -8,6 +10,7 @@ import AICourseChat from '../../components/admin/ai/AICourseChat';
 
 const AdminCoursesPage = () => {
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -112,9 +115,10 @@ const AdminCoursesPage = () => {
 		try {
 			if (action === 'delete') {
 				await adminService.deleteCourse(courseId);
-				alert('Curs șters cu succes!');
+				showSuccess('Curs șters cu succes!');
 			} else {
 				await adminService.courseQuickAction(courseId, action);
+				showSuccess(`Acțiunea "${action}" a fost aplicată cu succes!`);
 			}
 			// Reload data
 			const coursesData = await adminService.getCourses({});
@@ -122,8 +126,8 @@ const AdminCoursesPage = () => {
 			const insightsData = await adminService.getCourseInsights();
 			setInsights(Array.isArray(insightsData) ? insightsData : []);
 		} catch (err) {
-			console.error(`Error ${action} course:`, err);
-			alert(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
+			logger.error(`Error ${action} course:`, err);
+			showError(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -149,9 +153,10 @@ const AdminCoursesPage = () => {
 				for (const courseId of courseIds) {
 					await adminService.deleteCourse(courseId);
 				}
-				alert(`${courseIds.length} cursuri șterse cu succes!`);
+				showSuccess(`${courseIds.length} cursuri șterse cu succes!`);
 			} else {
 				await adminService.courseBulkAction(Array.from(selectedCourses), action);
+				showSuccess(`Acțiunea "${action}" a fost aplicată pe ${selectedCourses.size} cursuri!`);
 			}
 			setSelectedCourses(new Set());
 			// Reload data
@@ -160,8 +165,8 @@ const AdminCoursesPage = () => {
 			const insightsData = await adminService.getCourseInsights();
 			setInsights(Array.isArray(insightsData) ? insightsData : []);
 		} catch (err) {
-			console.error(`Error bulk ${action}:`, err);
-			alert(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
+			logger.error(`Error bulk ${action}:`, err);
+			showError(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setActionLoading(null);
 		}
@@ -257,7 +262,7 @@ const AdminCoursesPage = () => {
 				/>
 
 				{error && (
-					<div className="admin-error-message">
+					<div className="lms-error-message">
 						<strong>Eroare:</strong> {error}
 					</div>
 				)}
@@ -283,10 +288,10 @@ const AdminCoursesPage = () => {
 				)}
 
 				{/* Courses List */}
-				<div className={`admin-courses-list-container ${viewMode === 'grid' ? 'grid-view' : 'table-view'}`}>
+				<div className={`admin-courses-list-container ${viewMode === 'grid' ? 'grid-view' : viewMode === 'list' ? 'list-view' : 'table-view'}`}>
 					{loading ? (
-						<div className="admin-loading-state">
-							<div className="admin-loading-spinner"></div>
+						<div className="lms-dashboard-loading">
+							<div className="lms-spinner"></div>
 							<p>Se încarcă cursurile...</p>
 						</div>
 					) : filteredAndSortedCourses.length > 0 ? (
@@ -303,7 +308,7 @@ const AdminCoursesPage = () => {
 								</label>
 							</div>
 
-							<div className={`admin-courses-${viewMode}`}>
+							<div className={`admin-courses-${viewMode === 'list' ? 'list' : viewMode === 'table' ? 'table' : 'grid'}`}>
 								{filteredAndSortedCourses.map((course) => (
 									<CourseListItem
 										key={course.id}
@@ -319,20 +324,21 @@ const AdminCoursesPage = () => {
 							</div>
 						</>
 					) : (
-						<div className="admin-empty-state">
-							<div className="admin-empty-state-icon">📚</div>
-							<div className="admin-empty-state-title">Nu există cursuri</div>
-							<div className="admin-empty-state-description">
+						<div className="lms-empty-state">
+							<div className="lms-empty-icon">📚</div>
+							<div className="lms-empty-title">Nu există cursuri</div>
+							<div className="lms-empty-description">
 								{searchQuery || filters.activeCount > 0
 									? 'Încearcă să modifici filtrele sau căutarea'
 									: 'Creează primul curs pentru a începe'}
 							</div>
 							{!searchQuery && filters.activeCount === 0 && (
 								<button
-									className="admin-btn admin-btn-primary"
+									className="lms-btn-primary"
 									onClick={() => navigate('/admin/courses/new')}
 								>
-									+ Create Course
+									<span>+</span>
+									Create Course
 								</button>
 							)}
 						</div>

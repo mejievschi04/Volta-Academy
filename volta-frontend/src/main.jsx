@@ -1,10 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import "./index.css";
-// Note: design-system.css and components.css are imported in App.jsx
+// Note: Modern design system CSS files are imported in App.jsx
 // to ensure proper loading order with other styles
-import "./App.css";
 
 // Filter out browser extension errors that are harmless
 const isExtensionError = (error) => {

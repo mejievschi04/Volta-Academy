@@ -10,8 +10,8 @@ const AdminTasksPage = () => {
 				<div>
 					<button 
 						onClick={() => navigate('/admin')}
-						className="btn btn-ghost"
-						style={{ marginBottom: '1rem' }}
+						className="lms-btn-secondary"
+						style={{ marginBottom: 'var(--space-4)' }}
 					>
 						← Înapoi la Dashboard
 					</button>
@@ -19,14 +19,10 @@ const AdminTasksPage = () => {
 					<p className="admin-page-subtitle">Gestionarea taskurilor</p>
 				</div>
 			</div>
-			<div className="admin-section-card">
-				<div className="admin-section-header">
-					<h2>Taskuri</h2>
-				</div>
-				<div className="empty-state">
-					<div className="empty-state-icon">✅</div>
-					<div className="empty-state-title">Secțiunea de taskuri va fi implementată aici</div>
-				</div>
+			<div className="lms-empty-state">
+				<div className="lms-empty-icon">✅</div>
+				<h3 className="lms-empty-title">Secțiunea de taskuri va fi implementată aici</h3>
+				<p className="lms-empty-description">Funcționalitatea de gestionare a taskurilor va fi disponibilă în curând</p>
 			</div>
 		</div>
 	);

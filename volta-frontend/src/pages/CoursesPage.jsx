@@ -102,6 +102,8 @@ const CoursesPage = () => {
 		}
 		const progressPercentage = progress.progress_percentage || 0;
 		
+		// 100% progress = completed, not in-progress
+		if (progressPercentage >= 100) return 'completed';
 		if (progressPercentage > 0) return 'in-progress';
 		return 'not-started';
 	};
@@ -153,9 +155,10 @@ const CoursesPage = () => {
 	if (loading) {
 		return (
 			<div className="courses-page">
-				<div className="courses-loading">
-					<p>Se încarcă...</p>
-				</div>
+			<div className="lms-dashboard-loading">
+				<div className="lms-spinner"></div>
+				<p>Se încarcă cursurile...</p>
+			</div>
 			</div>
 		);
 	}
@@ -163,7 +166,7 @@ const CoursesPage = () => {
 	if (error) {
 		return (
 			<div className="courses-page">
-				<div className="courses-empty-state">
+				<div className="lms-empty-state">
 					<p style={{ color: 'var(--color-error)' }}>{error}</p>
 				</div>
 			</div>
@@ -183,43 +186,52 @@ const CoursesPage = () => {
 			</div>
 
 			{/* Filters and Search */}
-			<div className="va-courses-filters">
-				<div className="va-search-bar">
+			<div className="courses-filters">
+				<div className="courses-search">
+					<svg className="courses-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<circle cx="11" cy="11" r="8"/>
+						<path d="m21 21-4.35-4.35"/>
+					</svg>
 					<input
 						type="text"
+						className="courses-search-input"
 						placeholder="Caută cursuri..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>
 				</div>
-				<div className="va-filter-buttons">
+				<div className="courses-filter-buttons">
 					<button
-						className={`va-filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+						className={`lms-btn-secondary lms-btn-sm ${statusFilter === 'all' ? 'active' : ''}`}
 						onClick={() => setStatusFilter('all')}
 					>
 						Toate
 					</button>
 					<button
-						className={`va-filter-btn ${statusFilter === 'in-progress' ? 'active' : ''}`}
+						className={`lms-btn-secondary lms-btn-sm ${statusFilter === 'in-progress' ? 'active' : ''}`}
 						onClick={() => setStatusFilter('in-progress')}
 					>
 						În progres
 					</button>
 					<button
-						className={`va-filter-btn ${statusFilter === 'completed' ? 'active' : ''}`}
+						className={`lms-btn-secondary lms-btn-sm ${statusFilter === 'completed' ? 'active' : ''}`}
 						onClick={() => setStatusFilter('completed')}
 					>
 						Finalizate
 					</button>
 					<button
-						className={`va-filter-btn ${statusFilter === 'not-started' ? 'active' : ''}`}
+						className={`lms-btn-secondary lms-btn-sm ${statusFilter === 'not-started' ? 'active' : ''}`}
 						onClick={() => setStatusFilter('not-started')}
 					>
 						Neîncepute
 					</button>
 				</div>
-				<div className="va-sort-dropdown">
-					<select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+				<div className="courses-sort">
+					<select 
+						className="courses-filter-select"
+						value={sortBy} 
+						onChange={(e) => setSortBy(e.target.value)}
+					>
 						<option value="recent">Recente</option>
 						<option value="alphabetical">Alfabetic</option>
 						<option value="progress">Progres</option>
@@ -230,86 +242,86 @@ const CoursesPage = () => {
 
 			{/* Courses Grid */}
 			{filteredAndSortedCourses.length > 0 ? (
-				<div className="va-courses-grid-rectangular">
+				<div className="courses-grid">
 					{filteredAndSortedCourses.map((course) => {
 						const status = getCourseStatus(course);
 						const progressPercentage = getCourseProgressPercentage(course);
 						const totalModules = course.modules_count || course.modules?.length || 0;
 							
 							return (
-								<button
+								<div
 									key={course.id}
-									type="button"
 									onClick={() => navigate(`/courses/${course.id}`)}
-									className="va-course-card-rectangular"
+									className="course-card"
 								>
-									{/* Left side - Content */}
-									<div className="va-course-card-content">
-									{/* Status Badge */}
-									<div className="va-course-card-badge-container">
-										{status === 'completed' && (
-											<span className="course-status-badge completed">✓ Finalizat</span>
-										)}
-										{status === 'in-progress' && (
-											<span className="course-status-badge in-progress">⏸ În progres</span>
-										)}
-										{status === 'not-started' && (
-											<span className="course-status-badge not-started">🆕 Nou</span>
-										)}
-									</div>
-
-									{/* Title */}
-									<h3 className="va-course-card-title-rectangular">
-										{course.title}
-									</h3>
-
-									{/* Description */}
-									{course.description && (
-										<p className="va-course-card-description-rectangular">
-											{course.description}
-										</p>
+									{/* Course Image */}
+									{course.image_url ? (
+										<img 
+											src={course.image_url} 
+											alt={course.title}
+											className="course-card-image"
+										/>
+									) : (
+										<div className="course-card-image-placeholder">
+											<span>📚</span>
+										</div>
 									)}
 
-									{/* Meta Info */}
-									<div className="va-course-meta-rectangular">
-										<div className="course-meta-item">
-											<span>📖</span>
-											<span>{totalModules} {totalModules === 1 ? 'modul' : 'module'}</span>
+									{/* Course Content */}
+									<div className="course-card-content">
+										{/* Status Badge */}
+										<div className="course-card-badge">
+											{status === 'completed' && (
+												<span className="course-card-status completed">✓ Finalizat</span>
+											)}
+											{status === 'in-progress' && (
+												<span className="course-card-status in-progress">⏸ În progres</span>
+											)}
+											{status === 'not-started' && (
+												<span className="course-card-status not-started">🆕 Nou</span>
+											)}
 										</div>
-										{status !== 'not-started' && (
-											<>
-												<div className="course-meta-item progress">
-													<span>📊</span>
-													<span>{progressPercentage}% completat</span>
-												</div>
-												{/* Progress Bar */}
-												<div className="course-progress-bar-container">
-													<div 
-														className="course-progress-bar" 
-														style={{ width: `${progressPercentage}%` }}
-													></div>
-												</div>
-											</>
-										)}
-									</div>
-									</div>
 
-									{/* Right side - Image */}
-									<div className="va-course-card-image">
-										{course.image_url ? (
-											<img src={course.image_url} alt={course.title} />
-										) : (
-											<div className="va-course-card-image-placeholder">
-												<span>📚</span>
-											</div>
+										{/* Title */}
+										<h3 className="course-card-title">
+											{course.title}
+										</h3>
+
+										{/* Description */}
+										{course.description && (
+											<p className="course-card-description">
+												{course.description}
+											</p>
 										)}
+
+										{/* Footer with Progress */}
+										<div className="course-card-footer">
+											<div className="course-card-meta">
+												<span className="course-meta-item">
+													📖 {totalModules} {totalModules === 1 ? 'modul' : 'module'}
+												</span>
+											</div>
+											{status !== 'not-started' && (
+												<div className="course-card-progress">
+													<div className="course-card-progress-bar">
+														<div 
+															className="course-card-progress-fill" 
+															style={{ width: `${progressPercentage}%` }}
+														></div>
+													</div>
+													<div className="course-card-progress-text">
+														{progressPercentage}% completat
+													</div>
+												</div>
+											)}
+										</div>
 									</div>
-								</button>
+								</div>
 							);
 						})}
 					</div>
 				) : (
-					<div className="courses-empty-state">
+					<div className="lms-empty-state">
 						{searchQuery || statusFilter !== 'all' 
 							? 'Nu s-au găsit cursuri care să corespundă filtrelor.' 
 							: 'Nu există cursuri disponibile.'}

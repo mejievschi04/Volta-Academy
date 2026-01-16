@@ -89,9 +89,12 @@ class CourseController extends Controller
             $course = Course::with([
                 'modules' => function($q) {
                     $q->orderBy('order');
+                    // Don't filter by status - show all modules for course detail view
+                    // Admin and course builder need to see all modules regardless of status
                 },
                 'modules.lessons' => function($q) {
                     $q->orderBy('order');
+                    // Don't filter by status - show all lessons for course detail view
                 },
                 'modules.courseTests' => function($q) {
                     $q->orderBy('order');

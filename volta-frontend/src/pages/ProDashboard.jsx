@@ -1,0 +1,70 @@
+import React from 'react';
+import StatCard from '../components/ui/StatCard';
+import ProgressChart from '../components/ui/ProgressChart';
+import CourseCard from '../components/ui/CourseCard';
+
+const sampleStats = [
+	{ title: 'Course Progress', value: '62%', subtitle: 'Overall progress', icon: '📈' },
+	{ title: 'Completed Tests', value: '18', subtitle: 'Last 30 days', icon: '✅' },
+	{ title: 'Recommended', value: '5', subtitle: 'Based on interest', icon: '💡' },
+	{ title: 'Learning Time', value: '24h', subtitle: 'This month', icon: '⏱️' },
+];
+
+const sampleCourses = [
+	{ id: 1, title: 'Modern JS Patterns', instructor: 'Jane Doe', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1400&auto=format&fit=crop&crop=faces', category: 'Development', progress: 62, popularity: 4.5, trend: [10, 30, 50, 62] },
+	{ id: 2, title: 'Design Systems 101', instructor: 'John Smith', image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1400&auto=format&fit=crop&crop=faces', category: 'Design', progress: 0, popularity: 4.8, trend: [0, 0, 10, 0] },
+	{ id: 3, title: 'UX Writing', instructor: 'Alex Roe', image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=1400&auto=format&fit=crop&crop=faces', category: 'Design', progress: 42, popularity: 4.1, trend: [20, 30, 40, 42] }
+];
+
+const ProDashboard = () => {
+	const handleStart = (course) => {
+		console.log('Start course', course);
+		// Example: navigate to /courses/:id
+	};
+
+	return (
+		<div className="pro-page">
+			<aside className="pro-sidebar" aria-label="Main navigation">
+				<div className="pro-brand">Volta Pro</div>
+				<nav className="pro-nav">
+					<a href="/home" className="pro-nav-item">Home</a>
+					<a href="/pro-courses" className="pro-nav-item active">Courses</a>
+					<a href="/events" className="pro-nav-item">Events</a>
+					<a href="/profile" className="pro-nav-item">Profile</a>
+				</nav>
+			</aside>
+
+			<main className="pro-main">
+				<header className="pro-hero">
+					<div>
+						<h1 className="pro-title">Welcome back — continue where you left off</h1>
+						<p className="pro-subtitle">Your personalized learning dashboard with quick insights</p>
+					</div>
+					<div className="pro-hero-stats">
+						{sampleStats.map((s) => (
+							<StatCard key={s.title} {...s} />
+						))}
+					</div>
+				</header>
+
+				<section className="pro-section">
+					<div className="pro-section-row">
+						<div className="pro-card">
+							<h3>Weekly Progress</h3>
+							<ProgressChart data={[20, 30, 40, 50, 62]} />
+						</div>
+
+						<div className="pro-card">
+							<h3>Recommended for you</h3>
+							<div className="pro-course-grid">
+								{sampleCourses.map(c => <CourseCard key={c.id} course={c} onStart={handleStart} />)}
+							</div>
+						</div>
+					</div>
+				</section>
+			</main>
+		</div>
+	);
+};
+
+export default ProDashboard;

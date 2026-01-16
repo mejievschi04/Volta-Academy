@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, getDefaultCurrency } from '../../../../utils/currency';
+import CourseQualityValidation from '../CourseQualityValidation';
 
 const CourseBuilderStep9 = ({ courseId, data, onPublish, loading }) => {
 	const navigate = useNavigate();
@@ -42,11 +43,6 @@ const CourseBuilderStep9 = ({ courseId, data, onPublish, loading }) => {
 			label: 'Minimum 1 lecție în fiecare modul',
 			valid: (data.modules || []).every(m => (m.lessons || []).length > 0),
 		},
-		{
-			key: 'description',
-			label: 'Descriere completată',
-			valid: !!data.description?.trim(),
-		},
 	];
 
 	const allValid = validationChecklist.every(item => item.valid);
@@ -68,6 +64,20 @@ const CourseBuilderStep9 = ({ courseId, data, onPublish, loading }) => {
 			</p>
 
 			<div className="admin-course-builder-review">
+				{/* AI Quality Validation */}
+				<div className="admin-course-builder-review-section">
+					<CourseQualityValidation
+						courseData={data}
+						onValidationComplete={(results) => {
+							// Update course data with readiness score
+							if (results.readiness_score) {
+								// This will be handled by parent component
+								console.log('Validation complete:', results);
+							}
+						}}
+					/>
+				</div>
+
 				{/* Validation Checklist */}
 				<div className="admin-course-builder-review-section">
 					<h3>Checklist Validare</h3>

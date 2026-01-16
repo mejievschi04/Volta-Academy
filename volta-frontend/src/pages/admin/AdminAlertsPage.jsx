@@ -37,8 +37,8 @@ const AdminAlertsPage = () => {
 				<div>
 					<button 
 						onClick={() => navigate('/admin')}
-						className="btn btn-ghost"
-						style={{ marginBottom: '1rem' }}
+						className="lms-btn-secondary"
+						style={{ marginBottom: 'var(--space-4)' }}
 					>
 						← Înapoi la Dashboard
 					</button>

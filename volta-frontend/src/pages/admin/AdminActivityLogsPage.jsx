@@ -124,10 +124,10 @@ const AdminActivityLogsPage = () => {
 
 	if (loading && logs.length === 0) {
 		return (
-			<div className="admin-container fade-in">
-				<div className="skeleton-card" style={{ marginBottom: '2rem' }}>
-					<div className="skeleton skeleton-title"></div>
-					<div className="skeleton skeleton-text"></div>
+			<div className="admin-container">
+				<div className="lms-dashboard-loading">
+					<div className="lms-spinner"></div>
+					<p>Se încarcă activitatea...</p>
 				</div>
 			</div>
 		);
@@ -137,16 +137,16 @@ const AdminActivityLogsPage = () => {
 		<div className="admin-container">
 			<div className="admin-page-header">
 				<div>
-					<h1 className="va-page-title admin-page-title">Activitate</h1>
-					<p className="va-muted admin-page-subtitle">
+					<h1 className="admin-page-title">Activitate</h1>
+					<p className="admin-page-subtitle">
 						Istoricul complet al acțiunilor utilizatorilor în sistem
 					</p>
 				</div>
 			</div>
 
 			{error && (
-				<div className="va-auth-error" style={{ marginBottom: '1rem' }}>
-					{error}
+				<div className="admin-error-message" style={{ marginBottom: 'var(--space-6)' }}>
+					<p>{error}</p>
 				</div>
 			)}
 
@@ -276,8 +276,8 @@ const AdminActivityLogsPage = () => {
 						<button
 							onClick={() => handlePageChange(pagination.current_page - 1)}
 							disabled={pagination.current_page === 1}
-							className="va-btn va-btn-sm"
-							style={{ opacity: pagination.current_page === 1 ? 0.5 : 1 }}
+							className="lms-btn-secondary lms-btn-sm"
+							style={{ opacity: pagination.current_page === 1 ? 0.5 : 1, cursor: pagination.current_page === 1 ? 'not-allowed' : 'pointer' }}
 						>
 							← Anterior
 						</button>
@@ -287,8 +287,8 @@ const AdminActivityLogsPage = () => {
 						<button
 							onClick={() => handlePageChange(pagination.current_page + 1)}
 							disabled={pagination.current_page === pagination.last_page}
-							className="va-btn va-btn-sm"
-							style={{ opacity: pagination.current_page === pagination.last_page ? 0.5 : 1 }}
+							className="lms-btn-secondary lms-btn-sm"
+							style={{ opacity: pagination.current_page === pagination.last_page ? 0.5 : 1, cursor: pagination.current_page === pagination.last_page ? 'not-allowed' : 'pointer' }}
 						>
 							Următor →
 						</button>

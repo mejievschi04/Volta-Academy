@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { achievementsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 
 const AchievementsPage = () => {
 	const { user } = useAuth();
+	const { error: showError, success: showSuccess } = useToast();
 	const [achievements, setAchievements] = useState(null);
 	const [certificates, setCertificates] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -21,8 +24,10 @@ const AchievementsPage = () => {
 				setAchievements(achievementsData);
 				setCertificates(certificatesData);
 			} catch (err) {
-				console.error('Error fetching achievements:', err);
-				setError('Nu s-au putut încărca realizările');
+				logger.error('Error fetching achievements:', err);
+				const errorMessage = 'Nu s-au putut încărca realizările';
+				setError(errorMessage);
+				showError(errorMessage);
 			} finally {
 				setLoading(false);
 			}
@@ -33,9 +38,11 @@ const AchievementsPage = () => {
 	const handleDownloadCertificate = async (courseId) => {
 		try {
 			await achievementsService.downloadCertificate(courseId);
+			showSuccess('Certificatul a fost descărcat cu succes');
 		} catch (err) {
-			console.error('Error downloading certificate:', err);
-			alert('Eroare la descărcarea certificatului');
+			logger.error('Error downloading certificate:', err);
+			const errorMessage = err.response?.data?.message || 'Eroare la descărcarea certificatului';
+			showError(errorMessage);
 		}
 	};
 

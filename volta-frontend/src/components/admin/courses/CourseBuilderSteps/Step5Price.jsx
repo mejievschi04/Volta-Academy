@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../../services/api';
+import { analyzeLessonTypes } from '../../../../utils/lessonTypeAnalyzer';
 
 const AdvancedFeatures = ({ data, onUpdate }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -101,6 +102,10 @@ const AdvancedFeatures = ({ data, onUpdate }) => {
 
 const CourseBuilderStep5 = ({ data, onUpdate, errors }) => {
 	const [instructors, setInstructors] = useState([]);
+	const [appliedPricingRecommendation, setAppliedPricingRecommendation] = useState(false);
+
+	// Analizează tipurile de lecții și generează recomandări de preț
+	const lessonAnalysis = analyzeLessonTypes(data.modules || []);
 
 	useEffect(() => {
 		fetchInstructors();
@@ -115,12 +120,81 @@ const CourseBuilderStep5 = ({ data, onUpdate, errors }) => {
 		}
 	};
 
+	// Aplică recomandarea de preț
+	const handleApplyPricingRecommendation = () => {
+		const pricing = lessonAnalysis.recommendations.pricing;
+		if (pricing.suggestedAccessType && pricing.suggestedPrice) {
+			onUpdate({
+				access_type: pricing.suggestedAccessType,
+				price: pricing.suggestedPrice
+			});
+			setAppliedPricingRecommendation(true);
+		}
+	};
+
 	return (
 		<div className="admin-course-builder-step-content">
 			<h2>Acces & Monetizare</h2>
 			<p className="admin-course-builder-step-description">
 				Configurează prețul, accesul, durata și conținutul cu drip
 			</p>
+
+			{/* Recomandări de preț bazate pe tipurile de lecții */}
+			{lessonAnalysis.recommendations.pricing.reasons.length > 0 && !appliedPricingRecommendation && (
+				<div className="admin-recommendations-card" style={{
+					background: 'var(--bg-surface-hover)',
+					border: '1.5px solid var(--color-primary)',
+					borderRadius: 'var(--radius-lg)',
+					padding: 'var(--space-5)',
+					marginBottom: 'var(--space-6)'
+				}}>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+						<span style={{ fontSize: '24px' }}>💰</span>
+						<h3 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)' }}>
+							Recomandare Preț AI
+						</h3>
+					</div>
+					<div style={{ marginBottom: 'var(--space-4)' }}>
+						<p style={{ 
+							margin: 0, 
+							fontSize: 'var(--font-size-base)', 
+							color: 'var(--text-primary)',
+							marginBottom: 'var(--space-2)',
+							fontWeight: 'var(--font-weight-semibold)'
+						}}>
+							Tip Acces Recomandat: {lessonAnalysis.recommendations.pricing.suggestedAccessType === 'paid' ? '💰 Plătit' : '🆓 Gratuit'}
+						</p>
+						{lessonAnalysis.recommendations.pricing.suggestedPrice && (
+							<p style={{ 
+								margin: 0, 
+								fontSize: 'var(--font-size-xl)', 
+								color: 'var(--color-primary)',
+								fontWeight: 'var(--font-weight-bold)',
+								marginBottom: 'var(--space-2)'
+							}}>
+								Preț Recomandat: {lessonAnalysis.recommendations.pricing.suggestedPrice} {data.currency || 'RON'}
+							</p>
+						)}
+						<ul style={{ 
+							margin: 0, 
+							paddingLeft: 'var(--space-5)',
+							fontSize: 'var(--font-size-sm)',
+							color: 'var(--text-secondary)',
+							lineHeight: 1.6
+						}}>
+							{lessonAnalysis.recommendations.pricing.reasons.map((reason, idx) => (
+								<li key={idx}>{reason}</li>
+							))}
+						</ul>
+					</div>
+					<button
+						className="admin-btn admin-btn-primary"
+						onClick={handleApplyPricingRecommendation}
+					>
+						✅ Aplică Recomandarea
+					</button>
+				</div>
+			)}
 
 			<div className="admin-course-builder-form">
 				{/* Instructor */}

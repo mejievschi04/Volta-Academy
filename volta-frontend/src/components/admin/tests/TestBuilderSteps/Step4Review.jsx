@@ -1,6 +1,21 @@
 import React from 'react';
 
-const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
+const TestBuilderStep4 = ({ data, onUpdate, errors, testId, onPublish, loading }) => {
+	// Safety check: ensure data exists
+	if (!data) {
+		return (
+			<div className="admin-course-builder-step-content">
+				<h2>Revizuire & Publicare</h2>
+				<p className="admin-course-builder-step-description">
+					Se încarcă datele testului...
+				</p>
+			</div>
+		);
+	}
+
+	// Ensure errors is always an object
+	const safeErrors = errors || {};
+
 	const totalPoints = data.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 0;
 	const questionsCount = data.questions?.length || 0;
 
@@ -12,7 +27,7 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 			</p>
 
 			<div className="admin-course-builder-form">
-				{errors.title && (
+				{safeErrors.title && (
 					<div style={{
 						padding: '1rem',
 						background: 'rgba(244, 67, 54, 0.1)',
@@ -20,11 +35,11 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 						borderRadius: '8px',
 						marginBottom: '1rem',
 					}}>
-						{errors.title}
+						{safeErrors.title}
 					</div>
 				)}
 
-				{errors.questions && (
+				{safeErrors.questions && (
 					<div style={{
 						padding: '1rem',
 						background: 'rgba(244, 67, 54, 0.1)',
@@ -32,7 +47,7 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 						borderRadius: '8px',
 						marginBottom: '1rem',
 					}}>
-						{errors.questions}
+						{safeErrors.questions}
 					</div>
 				)}
 
@@ -70,7 +85,7 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 								Tip
 							</div>
 							<div style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-								{data.type === 'practice' ? 'Practică' : data.type === 'final' ? 'Final' : 'Notat'}
+								{data?.type === 'practice' ? 'Practică' : data?.type === 'final' ? 'Final' : 'Notat'}
 							</div>
 						</div>
 
@@ -115,37 +130,37 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 					}}>
 						<div>
 							<strong>Limită de timp:</strong>{' '}
-							{data.time_limit_minutes ? `${data.time_limit_minutes} minute` : 'Fără limită'}
+							{data?.time_limit_minutes ? `${data.time_limit_minutes} minute` : 'Fără limită'}
 						</div>
 						<div>
 							<strong>Încercări maxime:</strong>{' '}
-							{data.max_attempts || 'Nelimitat'}
+							{data?.max_attempts || 'Nelimitat'}
 						</div>
 						<div>
 							<strong>Randomizează întrebări:</strong>{' '}
-							{data.randomize_questions ? 'Da' : 'Nu'}
+							{data?.randomize_questions ? 'Da' : 'Nu'}
 						</div>
 						<div>
 							<strong>Randomizează răspunsuri:</strong>{' '}
-							{data.randomize_answers ? 'Da' : 'Nu'}
+							{data?.randomize_answers ? 'Da' : 'Nu'}
 						</div>
 						<div>
 							<strong>Afișează rezultate imediat:</strong>{' '}
-							{data.show_results_immediately !== false ? 'Da' : 'Nu'}
+							{data?.show_results_immediately !== false ? 'Da' : 'Nu'}
 						</div>
 						<div>
 							<strong>Afișează răspunsuri corecte:</strong>{' '}
-							{data.show_correct_answers ? 'Da' : 'Nu'}
+							{data?.show_correct_answers ? 'Da' : 'Nu'}
 						</div>
 						<div>
 							<strong>Permite revizuire:</strong>{' '}
-							{data.allow_review !== false ? 'Da' : 'Nu'}
+							{data?.allow_review !== false ? 'Da' : 'Nu'}
 						</div>
 					</div>
 				</div>
 
 				{/* Questions Preview */}
-				{data.questions && data.questions.length > 0 && (
+				{data?.questions && data.questions.length > 0 && (
 					<div className="admin-form-section">
 						<h3 className="admin-form-section-title">Previzualizare Întrebări</h3>
 						<div className="va-stack" style={{ gap: '1rem' }}>
@@ -160,10 +175,10 @@ const TestBuilderStep4 = ({ data, onUpdate, errors }) => {
 									}}
 								>
 									<div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-										#{index + 1}: {question.content}
+										#{index + 1}: {question?.content || 'Fără conținut'}
 									</div>
 									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)' }}>
-										{question.points} puncte • {question.type}
+										{question?.points || 1} puncte • {question?.type || 'multiple_choice'}
 									</div>
 								</div>
 							))}

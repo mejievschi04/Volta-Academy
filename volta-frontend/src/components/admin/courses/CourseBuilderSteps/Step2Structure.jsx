@@ -16,8 +16,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { adminService } from '../../../../services/api';
+import { useToast } from '../../../../contexts/ToastContext';
+import { logger } from '../../../../utils/logger';
+import { handleApiError } from '../../../../utils/errorHandler';
+import NoDeadEndFallback from '../../../common/NoDeadEndFallback';
 
 const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
+	const { warning: showWarning, error: showError, info: showInfo } = useToast();
 	const [modules, setModules] = useState(data.modules || []);
 	const [editingModule, setEditingModule] = useState(null);
 	const [editingLesson, setEditingLesson] = useState(null);
@@ -116,7 +121,7 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 
 	const handleAddModule = async () => {
 		if (!newModule.title.trim()) {
-			alert('Titlul modulului este obligatoriu');
+			showWarning('Titlul modulului este obligatoriu');
 			return;
 		}
 
@@ -151,8 +156,8 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 			setNewModule({ title: '', description: '', order: modules.length + 1 });
 			setShowAddModule(false);
 		} catch (err) {
-			console.error('Error creating module:', err);
-			alert('Eroare la crearea modulului: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'createModule');
+			showError('Eroare la crearea modulului: ' + errorMessage);
 		}
 	};
 
@@ -176,8 +181,8 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 			}
 			setEditingModule(null);
 		} catch (err) {
-			console.error('Error updating module:', err);
-			alert('Eroare la actualizarea modulului: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'updateModule');
+			showError('Eroare la actualizarea modulului: ' + errorMessage);
 		}
 	};
 
@@ -192,8 +197,8 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 			setModules(updatedModules);
 			onUpdate({ modules: updatedModules });
 		} catch (err) {
-			console.error('Error deleting module:', err);
-			alert('Eroare la ștergerea modulului: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'deleteModule');
+			showError('Eroare la ștergerea modulului: ' + errorMessage);
 		}
 	};
 
@@ -202,7 +207,7 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 		if (!module) return;
 
 		if (!newLesson.title.trim()) {
-			alert('Titlul lecției este obligatoriu');
+			showWarning('Titlul lecției este obligatoriu');
 			return;
 		}
 
@@ -260,8 +265,8 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 			setNewLesson({ title: '', description: '', content_type: 'text', is_preview: false, duration_minutes: null });
 			setShowAddLesson(null);
 		} catch (err) {
-			console.error('Error creating lesson:', err);
-			alert('Eroare la crearea lecției: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'createLesson');
+			showError('Eroare la crearea lecției: ' + errorMessage);
 		}
 	};
 
@@ -284,13 +289,18 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 			setModules(updatedModules);
 			onUpdate({ modules: updatedModules });
 		} catch (err) {
-			console.error('Error deleting lesson:', err);
-			alert('Eroare la ștergerea lecției: ' + (err.response?.data?.message || err.message));
+			const errorMessage = handleApiError(err, 'deleteLesson');
+			showError('Eroare la ștergerea lecției: ' + errorMessage);
 		}
 	};
 
 	// Sortable Module Component - renders full module with drag & drop
 	const SortableModule = ({ module, index }) => {
+		// Safety check: if module is null or invalid, don't render
+		if (!module || !module.id) {
+			return null;
+		}
+
 		const {
 			attributes,
 			listeners,
@@ -318,17 +328,18 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 					</div>
 					<div className="admin-module-card-info">
 						<h4 className="admin-module-card-title">
-							{editingModule?.id === module.id ? (
+							{editingModule?.id === module.id && editingModule ? (
 								<input
 									type="text"
 									className="admin-form-input"
-									value={editingModule.title}
+									value={editingModule.title || ''}
 									onChange={(e) => setEditingModule({ ...editingModule, title: e.target.value })}
 									style={{ width: '100%' }}
 								/>
 							) : (
 								<>
-									{module.title}
+									{module.title || 'Modul fără titlu'}
+									{module.ai_suggested && <span className="admin-module-ai-badge">✨ AI Suggested</span>}
 									{module.is_locked && <span className="admin-module-lock-badge">🔒</span>}
 								</>
 							)}
@@ -462,9 +473,26 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 
 			{/* Modules List with Drag & Drop */}
 			{modules.length === 0 ? (
-				<div className="admin-course-builder-info-box">
-					<p>💡 <strong>Nu există module.</strong> Adaugă cel puțin un modul pentru a continua.</p>
-				</div>
+				<NoDeadEndFallback
+					title="Nu există module"
+					description="Adaugă cel puțin un modul pentru a continua. Poți folosi AI pentru a genera structura automat sau să o creezi manual."
+					icon="📚"
+					actions={[
+						{
+							label: '🤖 Generează cu AI',
+							onClick: () => {
+								// TODO: Implement AI module generation
+								showInfo('Funcționalitatea de generare AI pentru module va fi implementată în curând');
+							},
+							variant: 'primary'
+						},
+						{
+							label: '+ Adaugă Modul Manual',
+							onClick: () => setShowAddModule(true),
+							variant: 'secondary'
+						}
+					]}
+				/>
 			) : (
 				<DndContext
 					sensors={sensors}
@@ -472,9 +500,9 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 					onDragStart={handleDragStart}
 					onDragEnd={handleDragEnd}
 				>
-					<SortableContext items={modules.map(m => m.id)} strategy={verticalListSortingStrategy}>
+					<SortableContext items={modules.filter(m => m && m.id).map(m => m.id)} strategy={verticalListSortingStrategy}>
 						<div className="admin-modules-list">
-							{modules.map((module, index) => (
+							{modules.filter(m => m && m.id).map((module, index) => (
 								<div key={module.id || index} style={{ marginBottom: '1.5rem' }}>
 									<SortableModule module={module} index={index} />
 									{/* Lessons */}
@@ -598,13 +626,30 @@ const CourseBuilderStep2 = ({ courseId, data, onUpdate, errors }) => {
 									)}
 
 									{(module.lessons || []).length === 0 && showAddLesson !== module.id ? (
-										<p className="admin-module-empty">Nu există lecții</p>
+										<NoDeadEndFallback
+											title="Nu există lecții în acest modul"
+											description="Adaugă lecții pentru a continua. Poți alege dintre tipurile disponibile sau folosi template-uri."
+											icon="📝"
+											actions={[
+												{
+													label: '+ Adaugă Lecție',
+													onClick: () => setShowAddLesson(module.id),
+													variant: 'primary'
+												}
+											]}
+											className="module-empty-fallback"
+										/>
 									) : (
 										<ul className="admin-module-items-list">
 											{(module.lessons || []).map((lesson, lessonIndex) => (
 												<li key={lesson.id || lessonIndex} className="admin-module-item">
 													<div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-														<span style={{ fontWeight: 'var(--font-weight-semibold)' }}>📚 {lesson.title}</span>
+														<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+															<span style={{ fontWeight: 'var(--font-weight-semibold)' }}>📚 {lesson.title}</span>
+															{lesson.ai_suggested && (
+																<span className="admin-lesson-ai-badge">✨ AI</span>
+															)}
+														</div>
 														{lesson.description && (
 															<span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
 																{lesson.description}

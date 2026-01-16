@@ -18,181 +18,170 @@ const CoursesHeader = ({
 	const [showFilters, setShowFilters] = useState(false);
 
 	return (
-		<div className="admin-courses-header">
-			<div className="admin-courses-header-top">
-				<div className="admin-courses-header-left">
-					<h1 className="admin-courses-title">Gestionare Cursuri</h1>
-					<p className="admin-courses-subtitle">
-						{selectedCount > 0 ? `${selectedCount} cursuri selectate` : 'Gestionează și monitorizează cursurile'}
-					</p>
-				</div>
-				<div className="admin-courses-header-right">
-					<div className="admin-sort-selector">
-						<select
-							value={sortBy}
-							onChange={(e) => onSortChange(e.target.value)}
-							className="admin-sort-select"
-						>
-							<option value="enrollments">Sortare: Înscrieri</option>
-							<option value="revenue">Sortare: Venit</option>
-							<option value="completion_rate">Sortare: Finalizare</option>
-							<option value="rating">Sortare: Rating</option>
-							<option value="updated_at">Sortare: Ultima actualizare</option>
-							<option value="created_at">Sortare: Data creării</option>
-						</select>
+		<>
+			{/* Header Section */}
+			<div className="admin-courses-page-header">
+				<div className="admin-courses-header-content">
+					<div className="admin-courses-header-text">
+						<h1 className="admin-courses-title">Gestionare Cursuri</h1>
+						<p className="admin-courses-subtitle">
+							<span className="admin-courses-subtitle-underline">Gestionează</span> și monitorizează cursurile
+						</p>
 					</div>
-					{onCreateAICourse && (
+					<div className="admin-courses-header-actions">
+						{onCreateAICourse && (
+							<button
+								className="lms-btn-secondary"
+								onClick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									if (!loading && onCreateAICourse) {
+										onCreateAICourse();
+									}
+								}}
+								disabled={loading}
+								type="button"
+								title="Creează curs cu AI"
+							>
+								<span>🤖</span>
+								AI Creator
+							</button>
+						)}
 						<button
-							className="admin-btn admin-btn-secondary admin-btn-ai"
+							className="lms-btn-primary"
 							onClick={(e) => {
 								e.preventDefault();
 								e.stopPropagation();
-								if (!loading && onCreateAICourse) {
-									onCreateAICourse();
+								if (!loading && onCreateCourse) {
+									onCreateCourse();
 								}
 							}}
 							disabled={loading}
 							type="button"
-							title="Creează curs cu AI"
 						>
-							<span className="admin-btn-icon">🤖</span>
-							AI Creator
+							<span>+</span>
+							Create Course
 						</button>
-					)}
-					<button
-						className="admin-btn admin-btn-primary admin-btn-create"
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							console.log('Create Course button clicked', { loading, onCreateCourse: !!onCreateCourse });
-							if (!loading && onCreateCourse) {
-								onCreateCourse();
-							} else {
-								console.warn('Button click ignored:', { loading, hasHandler: !!onCreateCourse });
-							}
-						}}
-						disabled={loading}
-						type="button"
-						style={{ 
-							cursor: loading ? 'not-allowed' : 'pointer',
-							opacity: loading ? 0.5 : 1,
-							position: 'relative',
-							zIndex: 100
-						}}
-					>
-						<span className="admin-btn-icon">+</span>
-						Create Course
-					</button>
-				</div>
-			</div>
-
-			{/* Search and Quick Filters */}
-			<div className="admin-courses-toolbar">
-				<div className="admin-courses-search">
-					<span className="admin-search-icon">🔍</span>
-					<input
-						type="text"
-						placeholder="Caută după titlu, instructor..."
-						value={searchQuery}
-						onChange={(e) => onSearchChange(e.target.value)}
-						className="admin-search-input"
-					/>
-					{searchQuery && (
-						<button
-							className="admin-search-clear"
-							onClick={() => onSearchChange('')}
-							aria-label="Clear search"
-						>
-							×
-						</button>
-					)}
+					</div>
 				</div>
 
-				<div className="admin-courses-actions">
-					{/* View Mode Toggle */}
-					{onViewModeChange && (
-						<div className="admin-view-mode-toggle">
+				{/* Search and Filters Bar */}
+				<div className="admin-courses-toolbar">
+					<div className="admin-courses-search-wrapper">
+						<input
+							type="text"
+							placeholder="Caută după titlu, instructor..."
+							value={searchQuery}
+							onChange={(e) => onSearchChange(e.target.value)}
+							className="admin-courses-search-input"
+						/>
+						{searchQuery && (
 							<button
-								className={`admin-view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-								onClick={() => onViewModeChange('grid')}
-								title="Vizualizare Grid"
+								className="admin-search-clear-btn"
+								onClick={() => onSearchChange('')}
+								aria-label="Clear search"
 							>
-								⊞
+								×
 							</button>
-							<button
-								className={`admin-view-mode-btn ${viewMode === 'table' ? 'active' : ''}`}
-								onClick={() => onViewModeChange('table')}
-								title="Vizualizare Tabel"
-							>
-								☰
-							</button>
-						</div>
-					)}
-
-					<button
-						className={`admin-btn admin-btn-filter ${showFilters ? 'active' : ''}`}
-						onClick={() => setShowFilters(!showFilters)}
-					>
-						<span className="admin-btn-icon">⚙️</span>
-						Filtre
-						{filters.activeCount > 0 && (
-							<span className="admin-filter-badge">{filters.activeCount}</span>
 						)}
-					</button>
+					</div>
+
+					<div className="admin-courses-toolbar-actions">
+						{/* View Mode Toggle */}
+						{onViewModeChange && (
+							<div className="admin-view-mode-toggle">
+								<button
+									className={`admin-view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
+									onClick={() => onViewModeChange('grid')}
+									title="Vizualizare Grid"
+									aria-label="Grid view"
+								>
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<path d="M0 0h6v6H0V0zm7 0h9v6H7V0zM0 7h6v9H0V7zm7 0h9v9H7V7z"/>
+									</svg>
+								</button>
+								<button
+									className={`admin-view-mode-btn ${viewMode === 'list' || viewMode === 'table' ? 'active' : ''}`}
+									onClick={() => onViewModeChange(viewMode === 'table' ? 'table' : 'list')}
+									title="Vizualizare Listă"
+									aria-label="List view"
+								>
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<path d="M0 2h16v2H0V2zm0 5h16v2H0V7zm0 5h16v2H0v-2z"/>
+									</svg>
+								</button>
+							</div>
+						)}
+
+						<button
+							className={`admin-btn-filter ${showFilters ? 'active' : ''}`}
+							onClick={() => setShowFilters(!showFilters)}
+							aria-label="Toggle filters"
+						>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+								<path d="M2 3h12v1H2V3zm2 4h8v1H4V7zm3 4h2v1H7v-1z"/>
+							</svg>
+							Filtre
+							{filters.activeCount > 0 && (
+								<span className="admin-filter-badge">{filters.activeCount}</span>
+							)}
+						</button>
+					</div>
 				</div>
 			</div>
 
-			{/* Expanded Filters */}
+			{/* Expanded Filters Panel */}
 			{showFilters && (
-				<div className="admin-courses-filters">
-					<div className="admin-filter-group">
-						<label className="admin-filter-label">Status</label>
-						<div className="admin-filter-buttons">
-							{['all', 'published', 'draft', 'archived'].map(status => (
-								<button
-									key={status}
-									className={`admin-filter-btn ${filters.status === status ? 'active' : ''}`}
-									onClick={() => onFilterChange('status', status)}
-								>
-									{status === 'all' ? 'Toate' : 
-									 status === 'published' ? 'Publicate' :
-									 status === 'draft' ? 'Draft' : 'Arhivate'}
-								</button>
-							))}
+				<div className="admin-courses-filters-panel">
+					<div className="admin-filters-content">
+						<div className="admin-filter-group">
+							<label className="admin-filter-label">Status</label>
+							<div className="admin-filter-buttons">
+								{['all', 'published', 'draft', 'archived'].map(status => (
+									<button
+										key={status}
+										className={`admin-filter-btn ${filters.status === status ? 'active' : ''}`}
+										onClick={() => onFilterChange('status', status)}
+									>
+										{status === 'all' ? 'Toate' : 
+										 status === 'published' ? 'Publicate' :
+										 status === 'draft' ? 'Draft' : 'Arhivate'}
+									</button>
+								))}
+							</div>
+						</div>
+
+						<div className="admin-filter-group">
+							<label className="admin-filter-label">Instructor</label>
+							<select
+								value={filters.instructor || 'all'}
+								onChange={(e) => onFilterChange('instructor', e.target.value)}
+								className="admin-filter-select"
+							>
+								<option value="all">Toți instructorii</option>
+								{filters.instructors?.map(inst => (
+									<option key={inst.id} value={inst.id}>{inst.name}</option>
+								))}
+							</select>
+						</div>
+
+						<div className="admin-filter-group">
+							<label className="admin-filter-label">Nivel</label>
+							<select
+								value={filters.level || 'all'}
+								onChange={(e) => onFilterChange('level', e.target.value)}
+								className="admin-filter-select"
+							>
+								<option value="all">Toate nivelurile</option>
+								<option value="beginner">Începător</option>
+								<option value="intermediate">Intermediar</option>
+								<option value="advanced">Avansat</option>
+							</select>
 						</div>
 					</div>
 
-
-					<div className="admin-filter-group">
-						<label className="admin-filter-label">Instructor</label>
-						<select
-							value={filters.instructor || 'all'}
-							onChange={(e) => onFilterChange('instructor', e.target.value)}
-							className="admin-filter-select"
-						>
-							<option value="all">Toți instructorii</option>
-							{filters.instructors?.map(inst => (
-								<option key={inst.id} value={inst.id}>{inst.name}</option>
-							))}
-						</select>
-					</div>
-
-					<div className="admin-filter-group">
-						<label className="admin-filter-label">Nivel</label>
-						<select
-							value={filters.level || 'all'}
-							onChange={(e) => onFilterChange('level', e.target.value)}
-							className="admin-filter-select"
-						>
-							<option value="all">Toate nivelurile</option>
-							<option value="beginner">Începător</option>
-							<option value="intermediate">Intermediar</option>
-							<option value="advanced">Avansat</option>
-						</select>
-					</div>
-
 					<button
-						className="admin-btn admin-btn-secondary admin-btn-clear-filters"
+						className="lms-btn-secondary lms-btn-sm"
 						onClick={() => {
 							onFilterChange('status', 'all');
 							onFilterChange('instructor', 'all');
@@ -212,25 +201,25 @@ const CoursesHeader = ({
 					</div>
 					<div className="admin-bulk-actions-buttons">
 						<button
-							className="admin-btn admin-btn-bulk"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => onBulkAction('publish')}
 						>
 							Publish
 						</button>
 						<button
-							className="admin-btn admin-btn-bulk"
+							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => onBulkAction('archive')}
 						>
 							Archive
 						</button>
 						<button
-							className="admin-btn admin-btn-bulk admin-btn-bulk-danger"
+							className="lms-btn-secondary lms-btn-sm va-btn-danger"
 							onClick={() => onBulkAction('disable')}
 						>
 							Disable
 						</button>
 						<button
-							className="admin-btn admin-btn-bulk admin-btn-bulk-danger"
+							className="lms-btn-secondary lms-btn-sm va-btn-danger"
 							onClick={() => onBulkAction('delete')}
 						>
 							🗑️ Șterge
@@ -238,7 +227,7 @@ const CoursesHeader = ({
 					</div>
 				</div>
 			)}
-		</div>
+		</>
 	);
 };
 

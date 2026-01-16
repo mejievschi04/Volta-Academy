@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
+import { handleApiError } from '../utils/errorHandler';
 import { formatCurrency, getDefaultCurrency } from '../utils/currency';
 
 const EventDetailPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
+	const { success: showSuccess, error: showError } = useToast();
 	const [event, setEvent] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -29,7 +33,7 @@ const EventDetailPage = () => {
 			const data = await eventsService.getById(id);
 			setEvent(data);
 		} catch (err) {
-			console.error('Error fetching event:', err);
+			handleApiError(err, 'fetchEvent');
 			setError('Nu s-a putut încărca evenimentul');
 		} finally {
 			setLoading(false);
@@ -87,10 +91,10 @@ const EventDetailPage = () => {
 		try {
 			await eventsService.register(id);
 			await fetchEvent(); // Refresh to update registration status
-			alert('Te-ai înscris cu succes la eveniment!');
+			showSuccess('Te-ai înscris cu succes la eveniment!');
 		} catch (err) {
-			console.error('Error registering:', err);
-			alert(err.response?.data?.message || 'Eroare la înscriere');
+			logger.error('Error registering:', err);
+			showError(err.response?.data?.message || 'Eroare la înscriere');
 		} finally {
 			setActionLoading(false);
 		}
@@ -104,10 +108,10 @@ const EventDetailPage = () => {
 		try {
 			await eventsService.cancelRegistration(id);
 			await fetchEvent();
-			alert('Înscriere anulată cu succes');
+			showSuccess('Înscriere anulată cu succes');
 		} catch (err) {
-			console.error('Error canceling registration:', err);
-			alert(err.response?.data?.message || 'Eroare la anulare');
+			logger.error('Error canceling registration:', err);
+			showError(err.response?.data?.message || 'Eroare la anulare');
 		} finally {
 			setActionLoading(false);
 		}
@@ -118,10 +122,10 @@ const EventDetailPage = () => {
 		try {
 			await eventsService.markAttendance(id);
 			await fetchEvent();
-			alert('Prezență înregistrată!');
+			showSuccess('Prezență înregistrată!');
 		} catch (err) {
-			console.error('Error marking attendance:', err);
-			alert(err.response?.data?.message || 'Eroare la înregistrarea prezenței');
+			logger.error('Error marking attendance:', err);
+			showError(err.response?.data?.message || 'Eroare la înregistrarea prezenței');
 		} finally {
 			setActionLoading(false);
 		}
@@ -135,7 +139,7 @@ const EventDetailPage = () => {
 				await eventsService.markReplayWatched(id);
 				await fetchEvent();
 			} catch (err) {
-				console.error('Error marking replay watched:', err);
+				handleApiError(err, 'markReplayWatched');
 			}
 		}
 	};
@@ -160,7 +164,7 @@ const EventDetailPage = () => {
 							<div className="empty-state-icon">❌</div>
 							<div className="empty-state-title">Eroare</div>
 							<div className="empty-state-description">{error || 'Evenimentul nu a fost găsit'}</div>
-							<button className="va-btn va-btn-primary" onClick={() => navigate('/events')}>
+							<button className="lms-btn-primary" onClick={() => navigate('/events')}>
 								Înapoi la Evenimente
 							</button>
 						</div>
@@ -178,7 +182,7 @@ const EventDetailPage = () => {
 	return (
 		<div className="va-main fade-in">
 			<button 
-				className="va-btn" 
+				className="lms-btn-secondary" 
 				onClick={() => navigate('/events')}
 				style={{ marginBottom: '1.5rem' }}
 			>
@@ -305,7 +309,7 @@ const EventDetailPage = () => {
 					}}>
 						{canRegister && (
 							<button
-								className="va-btn va-btn-primary"
+								className="lms-btn-primary"
 								onClick={handleRegister}
 								disabled={actionLoading}
 								style={{ 
@@ -320,7 +324,7 @@ const EventDetailPage = () => {
 						{event.user_registered && (
 							<>
 								<button
-									className="va-btn"
+									className="lms-btn-secondary"
 									disabled
 									style={{ 
 										background: '#10b981',
@@ -332,7 +336,7 @@ const EventDetailPage = () => {
 								</button>
 								{event.status === 'live' && !event.user_attended && (
 									<button
-										className="va-btn va-btn-primary"
+										className="lms-btn-primary"
 										onClick={handleMarkAttendance}
 										disabled={actionLoading}
 									>
@@ -341,7 +345,7 @@ const EventDetailPage = () => {
 								)}
 								{event.user_attended && (
 									<button
-										className="va-btn"
+										className="lms-btn-secondary"
 										disabled
 										style={{ 
 											background: '#10b981',
@@ -354,7 +358,7 @@ const EventDetailPage = () => {
 								)}
 								{event.status === 'completed' && event.replay_url && (
 									<button
-										className="va-btn va-btn-primary"
+										className="lms-btn-primary"
 										onClick={handleWatchReplay}
 										style={{ background: '#8b5cf6' }}
 									>
@@ -363,7 +367,7 @@ const EventDetailPage = () => {
 								)}
 								{event.status !== 'completed' && event.status !== 'cancelled' && (
 									<button
-										className="va-btn"
+										className="lms-btn-secondary"
 										onClick={handleCancelRegistration}
 										disabled={actionLoading}
 										style={{ background: '#ef4444', color: '#fff' }}
@@ -375,7 +379,7 @@ const EventDetailPage = () => {
 						)}
 						{event.live_link && (event.status === 'live' || event.status === 'upcoming') && (
 							<button
-								className="va-btn va-btn-primary"
+								className="lms-btn-primary"
 								onClick={() => window.open(event.live_link, '_blank')}
 								style={{ background: '#ef4444' }}
 							>

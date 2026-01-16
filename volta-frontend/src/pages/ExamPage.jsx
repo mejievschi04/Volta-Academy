@@ -2,11 +2,15 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { examService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
+import { handleApiError } from '../utils/errorHandler';
 
 const ExamPage = () => {
 	const { courseId, examId } = useParams();
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const { warning: showWarning, error: showError } = useToast();
 	const [exam, setExam] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
@@ -41,8 +45,8 @@ const ExamPage = () => {
 				// Determine feedback mode (instant if exam allows, otherwise final)
 				setShowFeedback(data.show_feedback_instant ?? false);
 			} catch (err) {
-				console.error('Error fetching exam:', err);
-				setError(err.response?.data?.message || 'Testul nu a fost găsit');
+				const errorMessage = handleApiError(err, 'fetchExam');
+				setError(errorMessage || 'Testul nu a fost găsit');
 			} finally {
 				setLoading(false);
 			}
@@ -90,15 +94,15 @@ const ExamPage = () => {
 				// Progress will be blocked by backend
 			}
 		} catch (err) {
-			console.error('Error submitting exam:', err);
-			setError(err.response?.data?.message || 'Eroare la trimiterea testului');
+			const errorMessage = handleApiError(err, 'submitExam');
+			setError(errorMessage || 'Eroare la trimiterea testului');
 		}
 	}, [examId, answers, exam]);
 
 	// Handle retry
 	const handleRetry = useCallback(() => {
 		if (!exam?.can_retake) {
-			alert('Ai atins numărul maxim de încercări pentru acest test.');
+			showWarning('Ai atins numărul maxim de încercări pentru acest test.');
 			return;
 		}
 

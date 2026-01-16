@@ -316,7 +316,7 @@ class CourseProgressController extends Controller
     }
 
     /**
-     * Update lesson progress (without marking as completed)
+     * Update lesson progress (auto-complete when 100%)
      */
     public function updateLessonProgress(Request $request, $lessonId)
     {
@@ -328,6 +328,17 @@ class CourseProgressController extends Controller
             'time_spent_seconds' => 'nullable|integer|min:0',
         ]);
 
+        $progressPercentage = $validated['progress_percentage'] ?? 0;
+        $shouldAutoComplete = $progressPercentage >= 100;
+
+        // Check if lesson is already completed
+        $existingProgress = \DB::table('lesson_progress')
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lessonId)
+            ->first();
+
+        $isAlreadyCompleted = $existingProgress && $existingProgress->completed;
+
         // Update or create lesson progress
         \DB::table('lesson_progress')->updateOrInsert(
             [
@@ -335,15 +346,30 @@ class CourseProgressController extends Controller
                 'lesson_id' => $lessonId,
             ],
             [
-                'progress_percentage' => $validated['progress_percentage'] ?? 0,
-                'time_spent_seconds' => $validated['time_spent_seconds'] ?? 0,
-                'started_at' => now(),
+                'progress_percentage' => $progressPercentage,
+                'time_spent_seconds' => $validated['time_spent_seconds'] ?? ($existingProgress->time_spent_seconds ?? 0),
+                'completed' => $shouldAutoComplete ? true : ($isAlreadyCompleted ? true : false),
+                'completed_at' => ($shouldAutoComplete && !$isAlreadyCompleted) ? now() : ($existingProgress->completed_at ?? null),
+                'started_at' => $existingProgress->started_at ?? now(),
                 'updated_at' => now(),
             ]
         );
 
+        // If progress reached 100% and lesson wasn't already completed, trigger completion logic
+        if ($shouldAutoComplete && !$isAlreadyCompleted) {
+            $module = $lesson->module;
+            if ($module) {
+                $course = $module->course;
+                if ($course) {
+                    // Use the progress service to handle completion logic (recalculate progress, etc.)
+                    $this->progressService->completeLesson($user, $lesson);
+                }
+            }
+        }
+
         return response()->json([
             'message' => 'Progres actualizat',
+            'auto_completed' => $shouldAutoComplete && !$isAlreadyCompleted,
         ]);
     }
 }

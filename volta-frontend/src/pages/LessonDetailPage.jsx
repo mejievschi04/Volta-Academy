@@ -178,6 +178,23 @@ const LessonDetailPage = () => {
 		}
 	}, [lessonId, courseId, user]);
 
+	// Next button helper - mark current lesson complete (if needed) then navigate
+	const [navLoading, setNavLoading] = useState(false);
+	const handleNextClick = useCallback(async () => {
+		if (!nextLesson) return;
+		setNavLoading(true);
+		try {
+			if (!completed) {
+				await handleMarkAsCompleted();
+			}
+		} catch (err) {
+			console.error('Error in handleNextClick:', err);
+		} finally {
+			setNavLoading(false);
+			navigate(`/courses/${courseId}/lessons/${nextLesson.id}`);
+		}
+	}, [nextLesson, completed, handleMarkAsCompleted, courseId, navigate]);
+
 	// Get next lesson
 	const nextLesson = useMemo(() => {
 		if (!allLessons || allLessons.length === 0) return null;
@@ -641,7 +658,7 @@ const LessonDetailPage = () => {
 						)}
 						{nextLesson && (
 							<Link
-								to={`/courses/${courseId}/lessons/${nextLesson.id}`}
+								onClick={handleNextClick}
 								className="student-lesson-btn student-lesson-btn-next"
 							>
 								<span>Lecția următoare</span>

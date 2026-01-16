@@ -220,7 +220,7 @@ const QuizPage = () => {
 		return (
 			<div className="va-stack" style={{ padding: '2rem' }}>
 				<p style={{ color: 'var(--va-primary)' }}>{error || 'Testul nu a fost găsit'}</p>
-				<Link to={`/courses/${courseId}`} className="va-btn va-btn-secondary">
+				<Link to={`/courses/${courseId}`} className="lms-btn-secondary">
 					Înapoi la curs
 				</Link>
 			</div>
@@ -1040,7 +1040,7 @@ const QuizPage = () => {
 						<div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
 							<Link 
 								to={`/courses/${courseId}`}
-								className="va-btn va-btn-secondary"
+								className="lms-btn-secondary"
 								style={{ padding: '0.875rem 1.5rem' }}
 							>
 								Înapoi la curs
@@ -1059,7 +1059,7 @@ const QuizPage = () => {
 											setStartTime(Date.now());
 										}
 									}}
-									className="va-btn va-btn-primary"
+									className="lms-btn-primary"
 									style={{ padding: '0.875rem 1.5rem' }}
 								>
 									Reîncearcă testul
@@ -1074,7 +1074,7 @@ const QuizPage = () => {
 					<div style={{ marginTop: '2rem' }}>
 						<div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
 							<button 
-								className="va-btn va-btn-primary" 
+								className="lms-btn-primary" 
 								onClick={handleSubmit}
 								style={{
 									padding: '0.875rem 2rem',
@@ -1086,7 +1086,7 @@ const QuizPage = () => {
 							</button>
 							<Link 
 								to={`/courses/${courseId}`}
-								className="va-btn va-btn-link"
+								className="lms-btn-link"
 								style={{ padding: '0.875rem 1.5rem' }}
 							>
 								Înapoi la curs
@@ -1099,7 +1099,7 @@ const QuizPage = () => {
 				{!saved && submitted && result && (
 					<div style={{ marginTop: '2rem' }}>
 						<button 
-							className="va-btn va-btn-primary" 
+							className="lms-btn-primary" 
 							onClick={handleSave}
 							style={{
 								marginBottom: '1rem',

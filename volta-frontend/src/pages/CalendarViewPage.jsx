@@ -88,17 +88,17 @@ const CalendarViewPage = () => {
 		<div className="va-calendar-view">
 			<div className="va-calendar-header-view">
 				<div className="va-calendar-nav">
-					<button type="button" className="va-btn va-btn-secondary" onClick={prevMonth}>
+					<button type="button" className="lms-btn-secondary" onClick={prevMonth}>
 						←
 					</button>
 					<h1 className="va-calendar-month-title">
 						{monthNames[month]} {year}
 					</h1>
-					<button type="button" className="va-btn va-btn-secondary" onClick={nextMonth}>
+					<button type="button" className="lms-btn-secondary" onClick={nextMonth}>
 						→
 					</button>
 				</div>
-				<button type="button" className="va-btn va-btn-primary" onClick={goToToday}>
+				<button type="button" className="lms-btn-primary" onClick={goToToday}>
 					Astăzi
 				</button>
 			</div>

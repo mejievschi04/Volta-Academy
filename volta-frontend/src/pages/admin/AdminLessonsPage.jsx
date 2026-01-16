@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
+import { logger } from '../../utils/logger';
 
 const AdminLessonsPage = () => {
+	const { success: showSuccess, error: showError } = useToast();
 	const [lessons, setLessons] = useState([]);
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -57,8 +60,8 @@ const AdminLessonsPage = () => {
 			setFormData({ course_id: '', title: '', content: '', order: 0 });
 			fetchLessons();
 		} catch (err) {
-			console.error('Error saving lesson:', err);
-			alert('Eroare la salvarea lecției');
+			logger.error('Error saving lesson:', err);
+			showError('Eroare la salvarea lecției: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -80,35 +83,47 @@ const AdminLessonsPage = () => {
 			await adminService.deleteLesson(id);
 			fetchLessons();
 		} catch (err) {
-			console.error('Error deleting lesson:', err);
-			alert('Eroare la ștergerea lecției');
+			logger.error('Error deleting lesson:', err);
+			showError('Eroare la ștergerea lecției: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
-	if (loading) { return null; }
+	if (loading) {
+		return (
+			<div className="admin-container">
+				<div className="admin-loading-state">
+					<div className="admin-loading-spinner"></div>
+					<p>Se încarcă lecțiile...</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="admin-container">
 			<div className="admin-page-header">
 				<div>
-					<h1 className="va-page-title admin-page-title">Gestionare Lecții</h1>
-					<p className="va-muted admin-page-subtitle">Gestionează toate lecțiile din platformă</p>
+					<h1 className="admin-page-title">Gestionare Lecții</h1>
+					<p className="admin-page-subtitle">Gestionează toate lecțiile din platformă</p>
 				</div>
-				<button
-					className="va-btn va-btn-primary"
-					onClick={() => {
-						setEditingLesson(null);
-						setFormData({ course_id: '', title: '', content: '', order: 0 });
-						setShowModal(true);
-					}}
-				>
-					+ Adaugă Lecție
-				</button>
+				<div className="admin-page-header-actions">
+					<button
+						className="admin-btn admin-btn-primary"
+						onClick={() => {
+							setEditingLesson(null);
+							setFormData({ course_id: '', title: '', content: '', order: 0 });
+							setShowModal(true);
+						}}
+					>
+						<span className="admin-btn-icon">+</span>
+						Adaugă Lecție
+					</button>
+				</div>
 			</div>
 
 			{error && (
-				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1rem' }}>
-					{error}
+				<div className="admin-error-message">
+					<strong>Eroare:</strong> {error}
 				</div>
 			)}
 
@@ -117,29 +132,63 @@ const AdminLessonsPage = () => {
 					{lessons.map((lesson) => (
 						<div
 							key={lesson.id}
-							className="va-card admin-card"
+							className="admin-card"
 						>
 							<div className="admin-card-body">
-								<h3 className="admin-card-title">{lesson.title}</h3>
-								<p className="admin-card-description" style={{ minHeight: '80px' }}>
-									{lesson.content?.substring(0, 150)}{lesson.content?.length > 150 ? '...' : ''}
-								</p>
-								<div className="admin-card-info">
-									<div style={{ marginBottom: '0.5rem' }}>📚 <strong>{lesson.course?.title || 'N/A'}</strong></div>
-									<div>🔢 Ordine: <strong>{lesson.order || 0}</strong></div>
+								{/* Header with icon */}
+								<div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+									<div style={{ 
+										width: '56px', 
+										height: '56px', 
+										borderRadius: 'var(--radius-xl)', 
+										background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', 
+										display: 'flex', 
+										alignItems: 'center', 
+										justifyContent: 'center',
+										fontSize: '28px',
+										flexShrink: 0,
+										boxShadow: 'var(--shadow-md)'
+									}}>
+										📚
+									</div>
+									<div style={{ flex: 1, minWidth: 0 }}>
+										<h3 className="admin-card-title" style={{ marginBottom: 'var(--space-2)' }}>
+											{lesson.title}
+										</h3>
+										<div className="admin-card-description" style={{ 
+											fontSize: 'var(--font-size-sm)', 
+											display: 'flex',
+											alignItems: 'center',
+											gap: 'var(--space-2)',
+											flexWrap: 'wrap'
+										}}>
+											<span>📚 <strong>{lesson.course?.title || 'N/A'}</strong></span>
+											<span>•</span>
+											<span>🔢 Ordine: <strong>{lesson.order || 0}</strong></span>
+										</div>
+									</div>
 								</div>
+
+								{lesson.content && (
+									<p className="admin-card-description" style={{ marginBottom: 'var(--space-4)' }}>
+										{lesson.content.substring(0, 150)}{lesson.content.length > 150 ? '...' : ''}
+									</p>
+								)}
+
 								<div className="admin-card-actions">
 									<button
-										className="va-btn va-btn-sm"
+										className="admin-btn admin-btn-sm admin-btn-secondary"
 										onClick={() => handleEdit(lesson)}
 									>
-										Editează
+										<span className="admin-btn-icon">✏️</span>
+										<span>Editează</span>
 									</button>
 									<button
-										className="va-btn va-btn-sm va-btn-danger"
+										className="admin-btn admin-btn-sm admin-btn-danger"
 										onClick={() => handleDelete(lesson.id)}
 									>
-										Șterge
+										<span className="admin-btn-icon">🗑️</span>
+										<span>Șterge</span>
 									</button>
 								</div>
 							</div>
@@ -147,58 +196,51 @@ const AdminLessonsPage = () => {
 					))}
 				</div>
 			) : (
-				<div className="va-card">
-					<div className="va-card-body">
-						<p className="va-muted">Nu există lecții</p>
+				<div className="admin-empty-state">
+					<div className="admin-empty-state-icon">📚</div>
+					<div className="admin-empty-state-title">Nu există lecții</div>
+					<div className="admin-empty-state-description">
+						Începe prin a crea prima lecție
 					</div>
+					<button
+						className="admin-btn admin-btn-primary"
+						onClick={() => {
+							setEditingLesson(null);
+							setFormData({ course_id: '', title: '', content: '', order: 0 });
+							setShowModal(true);
+						}}
+					>
+						<span className="admin-btn-icon">+</span>
+						Adaugă Lecție
+					</button>
 				</div>
 			)}
 
 			{showModal && (
 				<div
-					style={{
-						position: 'fixed',
-						top: 0,
-						left: 0,
-						right: 0,
-						bottom: 0,
-						background: 'rgba(0, 0, 0, 0.3)',
-						backdropFilter: 'blur(10px)',
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						zIndex: 1000,
+					className="admin-team-modal-overlay"
+					onClick={(e) => {
+						if (e.target === e.currentTarget) {
+							setShowModal(false);
+						}
 					}}
 				>
-					<div
-						className="va-card"
-						style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto', position: 'relative' }}
-					>
-						<div className="va-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-							<h2>{editingLesson ? 'Editează Lecție' : 'Adaugă Lecție Nouă'}</h2>
+					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
+						<div className="admin-team-modal-header">
+							<h2 className="admin-team-modal-title">
+								{editingLesson ? 'Editează Lecție' : 'Adaugă Lecție Nouă'}
+							</h2>
 							<button
 								type="button"
+								className="admin-team-modal-close"
 								onClick={() => setShowModal(false)}
-								style={{
-									background: 'transparent',
-									border: 'none',
-									color: '#fff',
-									fontSize: '1.5rem',
-									cursor: 'pointer',
-									padding: '0.25rem 0.5rem',
-									lineHeight: 1,
-									opacity: 0.7,
-									transition: 'opacity 0.2s',
-								}}
-								onMouseEnter={(e) => e.target.style.opacity = 1}
-								onMouseLeave={(e) => e.target.style.opacity = 0.7}
 								title="Închide"
 							>
 								×
 							</button>
 						</div>
-						<div className="va-card-body">
-							<form onSubmit={handleSubmit} className="va-stack">
+						<div className="admin-team-modal-body">
+							<form onSubmit={handleSubmit} className="admin-form">
 								<div className="va-form-group">
 									<label className="va-form-label">Curs</label>
 									<select
@@ -245,15 +287,15 @@ const AdminLessonsPage = () => {
 										min="0"
 									/>
 								</div>
-								<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+								<div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
 									<button
 										type="button"
-										className="va-btn"
+										className="admin-btn admin-btn-secondary"
 										onClick={() => setShowModal(false)}
 									>
 										Anulează
 									</button>
-									<button type="submit" className="va-btn va-btn-primary">
+									<button type="submit" className="admin-btn admin-btn-primary">
 										Salvează
 									</button>
 								</div>

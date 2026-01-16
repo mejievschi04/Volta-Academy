@@ -60,19 +60,19 @@ const ModuleCard = ({ module, onEdit, onDelete, onToggleLock, onAddLesson, onAdd
 				</div>
 				<div className="admin-module-card-actions">
 					<button
-						className="admin-btn-icon"
+						className="lms-btn-icon"
 						onClick={() => onToggleLock(module.id)}
 						title={module.is_locked ? 'Deblochează' : 'Blochează'}
 					>
 						{module.is_locked ? '🔓' : '🔒'}
 					</button>
-					<button className="admin-btn-icon" onClick={() => onAddLesson(module.id)} title="Adaugă lecție">
+					<button className="lms-btn-icon" onClick={() => onAddLesson(module.id)} title="Adaugă lecție">
 						➕
 					</button>
-					<button className="admin-btn-icon" onClick={() => onEdit(module.id)} title="Editează">
+					<button className="lms-btn-icon" onClick={() => onEdit(module.id)} title="Editează">
 						✏️
 					</button>
-					<button className="admin-btn-icon admin-btn-icon-danger" onClick={() => onDelete(module.id)} title="Șterge">
+					<button className="lms-btn-icon va-btn-danger" onClick={() => onDelete(module.id)} title="Șterge">
 						🗑️
 					</button>
 				</div>
@@ -156,19 +156,19 @@ const CourseStructureBuilder = ({
 		<div className="admin-course-structure-builder">
 			<div className="admin-course-structure-header">
 				<h2>Structură Curs</h2>
-				<button className="admin-btn admin-btn-primary" onClick={onAddModule} disabled={loading}>
+				<button className="lms-btn-primary" onClick={onAddModule} disabled={loading}>
 					+ Adaugă Modul
 				</button>
 			</div>
 
 			{modules.length === 0 ? (
-				<div className="admin-empty-state">
-					<div className="admin-empty-state-icon">📚</div>
-					<div className="admin-empty-state-title">Nu există module</div>
-					<div className="admin-empty-state-description">
+				<div className="lms-empty-state">
+					<div className="lms-empty-icon">📚</div>
+					<div className="lms-empty-title">Nu există module</div>
+					<div className="lms-empty-description">
 						Adaugă primul modul pentru a începe construirea cursului
 					</div>
-					<button className="admin-btn admin-btn-primary" onClick={onAddModule}>
+					<button className="lms-btn-primary" onClick={onAddModule}>
 						+ Adaugă Modul
 					</button>
 				</div>

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
+import AIAssessmentGenerator from '../AssessmentsSystem/AIAssessmentGenerator';
+import AITutorSettings from '../AITutorSettings';
+import { analyzeLessonTypes } from '../../../../utils/lessonTypeAnalyzer';
 
 const CourseBuilderStep4 = ({ courseId, data, onUpdate, errors }) => {
 	const navigate = useNavigate();
@@ -15,7 +18,12 @@ const CourseBuilderStep4 = ({ courseId, data, onUpdate, errors }) => {
 		scope_id: null,
 		required: false,
 		passing_score: 70,
+		assessmentType: 'lesson_quiz', // For AI generator
 	});
+	
+	// Analizează tipurile de lecții și generează recomandări
+	const lessonAnalysis = analyzeLessonTypes(data.modules || []);
+	const [appliedRecommendations, setAppliedRecommendations] = useState([]);
 
 	useEffect(() => {
 		if (courseId) {
@@ -79,12 +87,106 @@ const CourseBuilderStep4 = ({ courseId, data, onUpdate, errors }) => {
 		}
 	};
 
+	// Aplică recomandări automate
+	const handleApplyRecommendation = (recommendation) => {
+		if (recommendation.autoGenerate) {
+			// Auto-generate assessment
+			setLinkOptions({
+				...linkOptions,
+				assessmentType: recommendation.type,
+				required: recommendation.priority === 'high'
+			});
+			setShowTestSelector(true);
+		}
+		setAppliedRecommendations(prev => [...prev, recommendation.type]);
+	};
+
 	return (
 		<div className="admin-course-builder-step-content">
 			<h2>Evaluare & Progres</h2>
 			<p className="admin-course-builder-step-description">
 				Configurează testele, regulile de finalizare și urmărirea progresului
 			</p>
+
+			{/* Recomandări bazate pe tipurile de lecții */}
+			{lessonAnalysis.recommendations.assessments.length > 0 && (
+				<div className="admin-recommendations-card" style={{
+					background: 'var(--bg-surface-hover)',
+					border: '1.5px solid var(--color-primary)',
+					borderRadius: 'var(--radius-lg)',
+					padding: 'var(--space-5)',
+					marginBottom: 'var(--space-6)'
+				}}>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+						<span style={{ fontSize: '24px' }}>✨</span>
+						<h3 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)' }}>
+							Recomandări AI bazate pe tipurile de lecții
+						</h3>
+					</div>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+						{lessonAnalysis.recommendations.assessments.map((rec, idx) => (
+							<div key={idx} style={{
+								display: 'flex',
+								justifyContent: 'space-between',
+								alignItems: 'center',
+								padding: 'var(--space-3)',
+								background: 'var(--bg-surface)',
+								borderRadius: 'var(--radius-md)',
+								border: '1px solid var(--border-default)'
+							}}>
+								<div style={{ flex: 1 }}>
+									<div style={{ 
+										display: 'flex', 
+										alignItems: 'center', 
+										gap: 'var(--space-2)',
+										marginBottom: 'var(--space-1)'
+									}}>
+										<span style={{ 
+											fontSize: 'var(--font-size-sm)', 
+											fontWeight: 'var(--font-weight-semibold)',
+											color: rec.priority === 'high' ? 'var(--color-primary)' : 'var(--text-primary)'
+										}}>
+											{rec.type === 'lesson_quiz' ? '📝 Quiz pe Lecție' :
+											 rec.type === 'module_test' ? '📚 Test pe Modul' :
+											 rec.type === 'final_exam' ? '🎓 Test Final' :
+											 rec.type === 'assignment_review' ? '✍️ Evaluare Temă' : rec.type}
+										</span>
+										{rec.priority === 'high' && (
+											<span style={{
+												padding: '2px 8px',
+												background: 'var(--color-primary-lighter)',
+												borderRadius: 'var(--radius-sm)',
+												fontSize: 'var(--font-size-xs)',
+												color: 'var(--color-primary)',
+												fontWeight: 'var(--font-weight-semibold)'
+											}}>
+												Prioritate Înaltă
+											</span>
+										)}
+									</div>
+									<p style={{ 
+										margin: 0, 
+										fontSize: 'var(--font-size-sm)', 
+										color: 'var(--text-secondary)',
+										lineHeight: 1.5
+									}}>
+										{rec.reason}
+									</p>
+								</div>
+								{!appliedRecommendations.includes(rec.type) && (
+									<button
+										className="admin-btn admin-btn-sm admin-btn-primary"
+										onClick={() => handleApplyRecommendation(rec)}
+										style={{ marginLeft: 'var(--space-3)' }}
+									>
+										{rec.autoGenerate ? '🤖 Generează' : 'Aplică'}
+									</button>
+								)}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 
 			<div className="admin-course-builder-form">
 				{/* Completion Rules */}
@@ -202,6 +304,48 @@ const CourseBuilderStep4 = ({ courseId, data, onUpdate, errors }) => {
 							)}
 						</>
 					)}
+				</div>
+
+				{/* AI Assessment Generator */}
+				<div className="admin-form-section">
+					<h3 className="admin-form-section-title">🤖 Generează Teste cu AI</h3>
+					<div className="ai-assessment-section">
+						<div className="assessment-type-selector">
+							<label className="admin-form-label">Tip Assessment:</label>
+							<select
+								className="admin-form-select"
+								value={linkOptions.assessmentType || 'lesson_quiz'}
+								onChange={(e) => setLinkOptions({ ...linkOptions, assessmentType: e.target.value })}
+							>
+								<option value="lesson_quiz">Lesson Quiz</option>
+								<option value="module_test">Module Test</option>
+								<option value="final_exam">Final Exam</option>
+							</select>
+						</div>
+						<AIAssessmentGenerator
+							courseData={data}
+							assessmentType={linkOptions.assessmentType || 'lesson_quiz'}
+							onQuestionsGenerated={(questions) => {
+								// Navigate to test builder with generated questions
+								showToast(`${questions.length} întrebări generate! Creează testul pentru a le folosi.`, 'success');
+								// Optionally auto-create test
+								navigate('/admin/tests/new/builder', { 
+									state: { 
+										generatedQuestions: questions,
+										courseId: courseId
+									}
+								});
+							}}
+						/>
+					</div>
+				</div>
+
+				{/* AI Tutor Settings */}
+				<div className="admin-form-section">
+					<AITutorSettings
+						courseData={data}
+						onUpdate={onUpdate}
+					/>
 				</div>
 
 				{/* Attach Tests */}

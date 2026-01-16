@@ -6,7 +6,6 @@ import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import CourseProgressWidget from '../components/student/CourseProgressWidget';
 import IncompleteLessonsWidget from '../components/student/IncompleteLessonsWidget';
 import PendingExamsWidget from '../components/student/PendingExamsWidget';
-import BadgesWidget from '../components/student/BadgesWidget';
 
 const DashboardPage = () => {
 	const { user } = useAuth();
@@ -184,9 +183,6 @@ const DashboardPage = () => {
 
 					{/* Pending Exams */}
 					<PendingExamsWidget exams={pending_exams} />
-
-					{/* Badges */}
-					<BadgesWidget badges={badges} />
 				</div>
 			</div>
 		</div>
