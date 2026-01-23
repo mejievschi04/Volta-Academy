@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: volta-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-volta_academy}
+      MYSQL_USER: ${DB_USERNAME:-volta_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-volta_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    networks:
+      - volta-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Laravel
+  backend:
+    build:
+      context: ./volta-backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: volta-backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./volta-backend:/var/www/html
+      - backend_storage:/var/www/html/storage
+      - backend_cache:/var/www/html/bootstrap/cache
+    environment:
+      APP_NAME: ${APP_NAME:-Volta Academy}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:-}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-volta_academy}
+      DB_USERNAME: ${DB_USERNAME:-volta_user}
+      DB_PASSWORD: ${DB_PASSWORD:-volta_password}
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_API_URL: ${GROQ_API_URL:-https://api.groq.com/openai/v1}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-8b-instant}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_URL: ${OPENAI_API_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      HUGGINGFACE_API_URL: ${HUGGINGFACE_API_URL:-https://router.huggingface.co}
+      HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+      AI_VERIFY_SSL: ${AI_VERIFY_SSL:-true}
+      LOG_CHANNEL: stack
+      LOG_LEVEL: ${LOG_LEVEL:-error}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - volta-network
+    # Expune portul pentru PHP-FPM (dacă folosești Nginx separat)
+    # Sau poți folosi un reverse proxy
+
+  # Nginx Reverse Proxy pentru Backend
+  nginx-backend:
+    image: nginx:alpine
+    container_name: volta-nginx-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:80"
+    volumes:
+      - ./volta-backend/public:/var/www/html/public:ro
+      - ./docker/nginx-backend.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - volta-network
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./volta-frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: volta-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
+    depends_on:
+      - nginx-backend
+    networks:
+      - volta-network
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_storage:
+    driver: local
+  backend_cache:
+    driver: local
+
+networks:
+  volta-network:
+    driver: bridge
