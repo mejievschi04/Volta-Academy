@@ -15,33 +15,45 @@ import AITutor from './components/student/AITutor';
 import ErrorBoundary from './components/common/ErrorBoundary';
 /* Modern Design System - Unified & Standardized */
 import './styles/design-system.css';
+import './styles/light-theme-wcag.css';
+import './styles/dark-theme-wcag.css';
+import './styles/unified-cards.css';
 import './styles/components.css';
+import './styles/common-patterns.css';
+import './styles/micro-interactions.css';
+import './styles/empty-states.css';
+import './styles/loading-states.css';
+import './styles/toast-system.css';
 import './styles/layout.css';
 import './styles/pages.css';
 import './styles/ui-components.css';
 import './styles/additional-pages.css';
 import './styles/admin-pages.css';
-import './styles/admin-dashboard-modern.css';
-import './styles/admin-courses-modern.css';
 import './styles/admin-users-modern.css';
 import './styles/admin-team-members-modern.css';
 import './styles/admin-common-modern.css';
 import './styles/admin-components-modern.css';
 import './styles/admin-navigation-modern.css';
+import './styles/student-navigation-modern.css';
+import './styles/exam-results-modern.css';
+import './styles/profile-modern.css';
 import './styles/learning-analytics.css';
 import './styles/lms-dashboard-enterprise.css';
+import './styles/achievements-modern.css';
+import './styles/admin-certificate-settings.css';
+import './styles/admin-creator-split.css';
 import './styles/student-components.css';
 import './styles/common-components.css';
 import './styles/auth-modern.css';
 import './styles/course-detail-modern.css';
+import './styles/admin-course-detail-modern.css';
 import './components/SplashScreen.css';
-import logoShort from './assets/Logo short.png';
+/* Mobile optimizations must be last to override base styles */
+import './styles/mobile-optimizations.css';
+import logoShort from './assets/Volta Logo 2@300x 1.png';
 
 // Lazy load pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-// Note: CourseDetailPage and LessonDetailPage are legacy - replaced by UnifiedCoursePage
-// They have been removed as UnifiedCoursePage provides all functionality
-const UnifiedCoursePage = lazy(() => import('./pages/UnifiedCoursePage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const ExamPage = lazy(() => import('./pages/ExamPage'));
@@ -62,6 +74,7 @@ const AdminTeamsPage = lazy(() => import('./pages/admin/AdminTeamsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminActivityLogsPage = lazy(() => import('./pages/admin/AdminActivityLogsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
+const AdminCertificateSettingsPage = lazy(() => import('./pages/admin/AdminCertificateSettingsPage'));
 const AdminTopCoursesPage = lazy(() => import('./pages/admin/AdminTopCoursesPage'));
 const AdminProblematicCoursesPage = lazy(() => import('./pages/admin/AdminProblematicCoursesPage'));
 const AdminAlertsPage = lazy(() => import('./pages/admin/AdminAlertsPage'));
@@ -69,18 +82,21 @@ const AdminTasksPage = lazy(() => import('./pages/admin/AdminTasksPage'));
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
 const ModuleCreatorPage = lazy(() => import('./pages/admin/ModuleCreatorPage'));
 const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
-const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage'));
-const CourseBuilder = lazy(() => import('./components/admin/courses/CourseBuilder'));
-const CourseEditor = lazy(() => import('./components/admin/courses/CourseEditor'));
+// const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage')); // Removed - will be rebuilt from scratch
+// const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
 const TestBuilder = lazy(() => import('./components/admin/tests/TestBuilder'));
+const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
-const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage'));
+// const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage')); // Removed - will be rebuilt from scratch
 const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
 const ProDashboard = lazy(() => import('./pages/ProDashboard'));
 const ProCourses = lazy(() => import('./pages/ProCourses'));
 const CompletedCoursesPage = lazy(() => import('./pages/CompletedCoursesPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
+const LessonsPage = lazy(() => import('./pages/LessonsPage'));
+const LessonPage = lazy(() => import('./pages/LessonPage'));
 
 // Loading component (post-login: no full-screen overlay)
 const PageLoader = () => (
@@ -120,32 +136,79 @@ function Layout({ children }) {
 	const isAdmin = user?.role === 'admin';
 	
 	// Check if we're on a user page (not admin pages)
-	// Messages page can be accessed from both admin and user views
-	// - Regular users: always use user layout (top nav), including on /messages
-	// - Admin users: use admin layout (sidebar) on /messages and admin pages; use user layout on other user pages
+	// Messages page behavior:
+	// - Regular users (students): always use user layout (top nav), including on /messages
+	// - Admin users: can view /messages in both interfaces
+	//   - If accessed from admin sidebar: use admin layout
+	//   - If accessed from user top nav: use user layout
 	const isMessagesPage = location.pathname === '/messages';
 	const isAdminPage = location.pathname.startsWith('/admin');
-	const isUserPage = !isAdminPage && !isMessagesPage;
 	
-	// For regular users: always show user layout (including /messages)
-	// For admin: show admin layout on admin pages and /messages; show user layout on other user pages
-	const showUserLayout = !isAdmin ? true : (!isAdminPage && !isMessagesPage);
+	// Track if we came from admin context for messages page
+	const [cameFromAdmin, setCameFromAdmin] = React.useState(() => {
+		if (isMessagesPage) {
+			// Check if we have a stored admin context
+			return sessionStorage.getItem('messagesFromAdmin') === 'true';
+		}
+		return false;
+	});
 	
-	// State for admin view toggle (active when on admin page)
-	const [isAdminView, setIsAdminView] = React.useState(!isUserPage && isAdmin);
+	const isUserPage = !isAdminPage && !(isMessagesPage && cameFromAdmin);
+	
+	// For regular users (students): always show user layout (including /messages)
+	// For admin: 
+	//   - If on admin pages: use admin layout
+	//   - If on /messages and came from admin: use admin layout
+	//   - If on other user pages: use user layout (student interface)
+	const isStudent = !isAdmin || (user?.role === 'student' || !user?.role || user?.role === '');
+	const showUserLayout = isStudent ? true : (!isAdminPage && !(isMessagesPage && cameFromAdmin));
+	
+	// State for admin view toggle (active when on admin page or messages from admin)
+	const [isAdminView, setIsAdminView] = React.useState((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
 	
 	// State for sidebar expanded/collapsed
 	const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
+
+	// Detect mobile viewport
+	const [isMobile, setIsMobile] = React.useState(() => window.innerWidth <= 768);
+	
+	React.useEffect(() => {
+		const handleResize = () => {
+			setIsMobile(window.innerWidth <= 768);
+		};
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, []);
+	
+	// Track navigation context for messages page
+	React.useEffect(() => {
+		if (isAdmin) {
+			if (isAdminPage) {
+				// We're on an admin page - mark that we're in admin context
+				sessionStorage.setItem('messagesFromAdmin', 'true');
+				setCameFromAdmin(true);
+			} else if (isMessagesPage) {
+				// We're on messages - check if we came from admin
+				const fromAdmin = sessionStorage.getItem('messagesFromAdmin') === 'true';
+				setCameFromAdmin(fromAdmin);
+			} else {
+				// We're on a user page (not messages) - clear admin context
+				sessionStorage.setItem('messagesFromAdmin', 'false');
+				setCameFromAdmin(false);
+			}
+		}
+	}, [location.pathname, isAdmin, isAdminPage, isMessagesPage]);
 	
 	// Update toggle state when location changes
 	React.useEffect(() => {
 		if (isAdmin) {
-			setIsAdminView(!isUserPage);
+			// Admin view is active when on admin pages or messages from admin context
+			setIsAdminView((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
 		}
-	}, [location.pathname, isAdmin, isUserPage]);
+	}, [location.pathname, isAdmin, isUserPage, isMessagesPage, cameFromAdmin]);
 	
 	// Save sidebar state to localStorage and update body class
 	React.useEffect(() => {
@@ -168,6 +231,14 @@ function Layout({ children }) {
 		user?.must_change_password === 'true' ||
 		user?.must_change_password === true;
 	
+	// Determine courses path based on user role and current view
+	// All users use /courses (which redirects appropriately based on role)
+	// Use useMemo to recalculate when location or user changes
+	const coursesPath = React.useMemo(() => {
+		// All users use /courses (will redirect appropriately)
+		return '/courses';
+	}, [user, isAdmin, isUserPage]);
+
 	const navItems = [
 		{ 
 			path: '/home', 
@@ -188,7 +259,7 @@ function Layout({ children }) {
 			)
 		},
 		{ 
-			path: '/courses', 
+			path: coursesPath, 
 			label: 'Cursuri', 
 			icon: (
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -313,6 +384,15 @@ function Layout({ children }) {
 				</svg>
 			)
 		},
+		{
+			path: '/admin/certificate-settings',
+			label: 'Certificate',
+			icon: (
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			)
+		},
 	];
 
 	return (
@@ -324,17 +404,26 @@ function Layout({ children }) {
 			{!showUserLayout && isAdmin ? (
 				// Admin keeps sidebar layout with top navigation
 				<>
-					<aside className={`modern-sidebar va-sidebar ${isSidebarExpanded ? 'expanded' : ''}`}>
+					{/* Backdrop overlay for mobile */}
+					{isSidebarExpanded && (
+						<div 
+							className="sidebar-backdrop"
+							onClick={() => setIsSidebarExpanded(false)}
+							aria-hidden="true"
+						/>
+					)}
+					
+					<aside className={`modern-sidebar va-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
 						{/* Toggle Button - Hamburger Icon */}
 						<button
 							className="modern-sidebar-toggle"
 							onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-							title={isSidebarExpanded ? 'Colapsează meniul' : 'Extinde meniul'}
-							aria-label={isSidebarExpanded ? 'Colapsează meniul' : 'Extinde meniul'}
+							title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+							aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
 						>
 							{isSidebarExpanded ? (
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-									<path d="M18 6L6 18M6 6L18 18"/>
+									<path d="M15 18l-6-6 6-6"/>
 								</svg>
 							) : (
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -355,7 +444,7 @@ function Layout({ children }) {
 								/>
 							</span>
 							{isSidebarExpanded && (
-								<span className="modern-sidebar-brand-text">Formely</span>
+								<span className="modern-sidebar-brand-text">Volta Academy</span>
 							)}
 						</div>
 
@@ -367,44 +456,164 @@ function Layout({ children }) {
 									data-tooltip={!isSidebarExpanded ? item.label : undefined}
 									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 									end={item.path === '/admin'}
+									onClick={() => {
+										// Close sidebar on mobile when clicking a link
+										if (window.innerWidth <= 768) {
+											setIsSidebarExpanded(false);
+										}
+									}}
 								>
 									<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
 									<span className="modern-nav-item-label va-nav-label">{item.label}</span>
 								</NavLink>
 							))}
 						</nav>
+
+						{/* Mobile Toggle Controls in Sidebar - positioned after nav - only on mobile */}
+						{isMobile && (
+						<div className="sidebar-mobile-controls">
+							{/* Theme Toggle */}
+							<div className="sidebar-mobile-control-item">
+								<span className="sidebar-mobile-control-icon">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<circle cx="12" cy="12" r="4"/>
+										<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+									</svg>
+								</span>
+								{isSidebarExpanded && (
+									<div className="sidebar-mobile-control-content">
+										<span className="sidebar-mobile-control-label">Temă</span>
+										<ThemeToggle />
+									</div>
+								)}
+							</div>
+
+							{/* View Switcher */}
+							<div className="sidebar-mobile-control-item">
+								<span className="sidebar-mobile-control-icon">
+									{isUserPage ? (
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+											<circle cx="12" cy="12" r="3"/>
+										</svg>
+									) : (
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+										</svg>
+									)}
+								</span>
+								{isSidebarExpanded && (
+									<div className="sidebar-mobile-control-content">
+										<span className="sidebar-mobile-control-label">Vizionare</span>
+										<button
+											onClick={() => {
+												if (isUserPage) {
+													navigate('/admin', { replace: true });
+												} else {
+													navigate('/home', { replace: true });
+												}
+											}}
+											className="admin-view-switcher"
+											title={isUserPage ? "Comută la Admin" : "Comută la Student"}
+											aria-label={isUserPage ? "Comută la Admin" : "Comută la Student"}
+										>
+											<div className="admin-view-switcher-slider" style={{
+												transform: isUserPage ? 'translateX(0)' : 'translateX(24px)',
+											}}>
+												{isUserPage ? (
+													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+														<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+														<circle cx="12" cy="12" r="3"/>
+													</svg>
+												) : (
+													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+														<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+													</svg>
+												)}
+											</div>
+										</button>
+									</div>
+								)}
+							</div>
+						</div>
+						)}
+
+						{/* Mobile Logout Button - positioned at bottom - only on mobile */}
+						{isMobile && user && (
+							<div className="sidebar-mobile-logout">
+								<button
+									onClick={logout}
+									className="sidebar-mobile-logout-btn"
+									title="Deconectare"
+									aria-label="Deconectare"
+								>
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+										<polyline points="16 17 21 12 16 7"/>
+										<line x1="21" y1="12" x2="9" y2="12"/>
+									</svg>
+									{isSidebarExpanded && <span className="sidebar-mobile-logout-label">Deconectare</span>}
+								</button>
+							</div>
+						)}
 					</aside>
 
 					{/* Top Navigation Bar for Admin */}
 					<header className={`modern-topnav admin-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
 						<div className="modern-topnav-left">
-							{/* Empty space for future breadcrumbs or title */}
+							{/* Mobile hamburger button */}
+							<button
+								className="mobile-sidebar-toggle"
+								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+								title="Deschide meniul"
+								aria-label="Deschide meniul"
+							>
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<line x1="3" y1="6" x2="21" y2="6"/>
+									<line x1="3" y1="12" x2="21" y2="12"/>
+									<line x1="3" y1="18" x2="21" y2="18"/>
+								</svg>
+							</button>
+							<span className="va-logo-text">
+								<img 
+									src={logoShort} 
+									alt="Volta Academy" 
+									className="va-logo-icon-img"
+									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+								/>
+							</span>
+							{/* Volta Academy text - shown when sidebar is closed on mobile */}
+							{isMobile && !isSidebarExpanded && (
+								<span className="va-topnav-page-title">Volta Academy</span>
+							)}
 						</div>
 						
 						<div className="modern-topnav-right">
 							{/* Search and Notifications */}
 							<AdminTopNavControls />
 
-							{/* Theme Toggle */}
-							<div className="admin-topnav-control">
+							{/* Theme Toggle - Desktop only */}
+							<div className="admin-topnav-control desktop-only">
 								<span className="admin-topnav-control-label">Temă</span>
 								<ThemeToggle />
 							</div>
 
-							{/* View Switcher */}
-							<div className="admin-topnav-control">
+							{/* View Switcher - Desktop only */}
+							<div className="admin-topnav-control desktop-only">
 								<span className="admin-topnav-control-label">Vizionare</span>
 								<button
+									type="button"
 									onClick={() => {
 										if (isUserPage) {
-											navigate('/admin');
+											navigate('/admin', { replace: true });
 										} else {
-											navigate('/home');
+											// Redirect to student home page when switching to student view
+											navigate('/home', { replace: true });
 										}
 									}}
 									className="admin-view-switcher"
-									title={isUserPage ? "Comută la Admin" : "Comută la User"}
-									aria-label={isUserPage ? "Comută la Admin" : "Comută la User"}
+									title={isUserPage ? "Comută la Admin" : "Comută la Student"}
+									aria-label={isUserPage ? "Comută la Admin" : "Comută la Student"}
 								>
 									<div className="admin-view-switcher-slider" style={{
 										transform: isUserPage ? 'translateX(0)' : 'translateX(24px)',
@@ -464,10 +673,180 @@ function Layout({ children }) {
 					)}
 				</>
 			) : (
-				// Regular users get modern top navigation
+				// Regular users get modern top navigation with sidebar on mobile
 				<>
-					<header className="modern-topnav va-topnav">
+					{/* Backdrop overlay for mobile */}
+					{isSidebarExpanded && (
+						<div 
+							className="sidebar-backdrop"
+							onClick={() => setIsSidebarExpanded(false)}
+							aria-hidden="true"
+						/>
+					)}
+
+					{/* Student Sidebar - Mobile */}
+					<aside className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
+						{/* Toggle Button - Hamburger Icon */}
+						<button
+							className="modern-sidebar-toggle"
+							onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+							title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+							aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+						>
+							{isSidebarExpanded ? (
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<path d="M15 18l-6-6 6-6"/>
+								</svg>
+							) : (
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<line x1="3" y1="6" x2="21" y2="6"/>
+									<line x1="3" y1="12" x2="21" y2="12"/>
+									<line x1="3" y1="18" x2="21" y2="18"/>
+								</svg>
+							)}
+						</button>
+
+						<div className="modern-sidebar-brand va-sidebar-brand">
+							<span className="modern-sidebar-logo">
+								<img 
+									src={logoShort} 
+									alt="Volta Academy" 
+									className="va-logo-icon-img"
+									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+								/>
+							</span>
+							{isSidebarExpanded && (
+								<span className="modern-sidebar-brand-text">Volta Academy</span>
+							)}
+						</div>
+
+						<nav className="modern-nav va-sidebar-nav">
+							{navItems.map((item) => (
+								<NavLink
+									key={item.path}
+									to={item.path}
+									data-tooltip={!isSidebarExpanded ? item.label : undefined}
+									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
+									end={item.path === '/home'}
+									onClick={() => {
+										// Close sidebar on mobile when clicking a link
+										if (window.innerWidth <= 768) {
+											setIsSidebarExpanded(false);
+										}
+									}}
+								>
+									<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
+									<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+								</NavLink>
+							))}
+						</nav>
+
+						{/* Mobile Toggle Controls in Sidebar - positioned after nav - only on mobile */}
+						{isMobile && (
+						<div className="sidebar-mobile-controls">
+							{/* Theme Toggle */}
+							<div className="sidebar-mobile-control-item">
+								<span className="sidebar-mobile-control-icon">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<circle cx="12" cy="12" r="4"/>
+										<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+									</svg>
+								</span>
+								{isSidebarExpanded && (
+									<div className="sidebar-mobile-control-content">
+										<span className="sidebar-mobile-control-label">Temă</span>
+										<ThemeToggle />
+									</div>
+								)}
+							</div>
+
+							{/* View Switcher (only for admins) */}
+							{isAdmin && (
+								<div className="sidebar-mobile-control-item">
+									<span className="sidebar-mobile-control-icon">
+										{isUserPage ? (
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+												<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+												<circle cx="12" cy="12" r="3"/>
+											</svg>
+										) : (
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+												<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+											</svg>
+										)}
+									</span>
+									{isSidebarExpanded && (
+										<div className="sidebar-mobile-control-content">
+											<span className="sidebar-mobile-control-label">Vizionare</span>
+											<button
+												onClick={() => {
+													if (isUserPage) {
+														navigate('/admin', { replace: true });
+													} else {
+														navigate('/home', { replace: true });
+													}
+												}}
+												className="admin-view-switcher"
+												title={isUserPage ? "Comută la Admin" : "Comută la Student"}
+												aria-label={isUserPage ? "Comută la Admin" : "Comută la Student"}
+											>
+												<div className="admin-view-switcher-slider" style={{
+													transform: isUserPage ? 'translateX(0)' : 'translateX(24px)',
+												}}>
+													{isUserPage ? (
+														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+															<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+															<circle cx="12" cy="12" r="3"/>
+														</svg>
+													) : (
+														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+															<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+														</svg>
+													)}
+												</div>
+											</button>
+										</div>
+									)}
+								</div>
+							)}
+						</div>
+						)}
+
+						{/* Mobile Logout Button - positioned at bottom - only on mobile */}
+						{isMobile && user && (
+							<div className="sidebar-mobile-logout">
+								<button
+									onClick={logout}
+									className="sidebar-mobile-logout-btn"
+									title="Deconectare"
+									aria-label="Deconectare"
+								>
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+										<polyline points="16 17 21 12 16 7"/>
+										<line x1="21" y1="12" x2="9" y2="12"/>
+									</svg>
+									{isSidebarExpanded && <span className="sidebar-mobile-logout-label">Deconectare</span>}
+								</button>
+							</div>
+						)}
+					</aside>
+
+					<header className={`modern-topnav va-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
 						<div className="modern-topnav-left va-topnav-brand">
+							{/* Mobile hamburger button */}
+							<button
+								className="mobile-sidebar-toggle"
+								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+								title="Deschide meniul"
+								aria-label="Deschide meniul"
+							>
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+									<line x1="3" y1="6" x2="21" y2="6"/>
+									<line x1="3" y1="12" x2="21" y2="12"/>
+									<line x1="3" y1="18" x2="21" y2="18"/>
+								</svg>
+							</button>
 							<span className="va-logo-text">
 								<img 
 									src={logoShort} 
@@ -476,9 +855,13 @@ function Layout({ children }) {
 									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
 								/>
 							</span>
+							{/* Volta Academy text - shown when sidebar is closed on mobile */}
+							{isMobile && !isSidebarExpanded && (
+								<span className="va-topnav-page-title">Volta Academy</span>
+							)}
 						</div>
 
-						<nav className="modern-topnav-nav va-topnav-nav">
+						<nav className="modern-topnav-nav va-topnav-nav desktop-only">
 							{navItems.map((item) => (
 								<NavLink
 									key={item.path}
@@ -495,27 +878,29 @@ function Layout({ children }) {
 						<div className="modern-topnav-right">
 							{user && (
 								<>
-									{/* Theme Toggle */}
-									<div className="admin-topnav-control">
+									{/* Theme Toggle - Desktop only */}
+									<div className="admin-topnav-control desktop-only">
 										<span className="admin-topnav-control-label">Temă</span>
 										<ThemeToggle />
 									</div>
 
-									{/* View Switcher (only for admins) */}
+									{/* View Switcher (only for admins) - Desktop only */}
 									{isAdmin && (
-										<div className="admin-topnav-control">
+										<div className="admin-topnav-control desktop-only">
 											<span className="admin-topnav-control-label">Vizionare</span>
 											<button
+												type="button"
 												onClick={() => {
 													if (isUserPage) {
-														navigate('/admin');
+														navigate('/admin', { replace: true });
 													} else {
-														navigate('/home');
+														// Redirect to student home page when switching to student view
+														navigate('/home', { replace: true });
 													}
 												}}
 												className="admin-view-switcher"
-												title={isUserPage ? "Comută la Admin" : "Comută la User"}
-												aria-label={isUserPage ? "Comută la Admin" : "Comută la User"}
+												title={isUserPage ? "Comută la Admin" : "Comută la Student"}
+												aria-label={isUserPage ? "Comută la Admin" : "Comută la Student"}
 											>
 												<div className="admin-view-switcher-slider" style={{
 													transform: isUserPage ? 'translateX(0)' : 'translateX(24px)',
@@ -535,8 +920,8 @@ function Layout({ children }) {
 										</div>
 									)}
 
-									{/* User Info */}
-									<div className="admin-topnav-user">
+									{/* User Info - Desktop only */}
+									<div className="admin-topnav-user desktop-only">
 										<div className="admin-topnav-user-avatar">
 											{user.name
 												?.split(' ')
@@ -547,7 +932,7 @@ function Layout({ children }) {
 										<div className="admin-topnav-user-info">
 											<p className="admin-topnav-user-name">{user.name || 'Utilizator'}</p>
 											<p className="admin-topnav-user-role">
-												{isAdmin ? 'Administrator' : 'Utilizator'}
+												{isAdmin ? 'Administrator' : 'Student'}
 											</p>
 										</div>
 										<button
@@ -657,33 +1042,35 @@ function App() {
 							}
 						/>
 
-						{/* Unified Course Page - New Structure */}
+						{/* Course Lessons Page - Main course view */}
 									<Route
 										path="/courses/:courseId"
 										element={
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
-													<UnifiedCoursePage />
+													<LessonsPage />
 												</Suspense>
 											</UserRoute>
 										}
 									/>
+						{/* Individual Lesson Page */}
 									<Route
 										path="/courses/:courseId/lessons/:lessonId"
 										element={
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
-													<UnifiedCoursePage />
+													<LessonPage />
 												</Suspense>
 											</UserRoute>
 										}
 									/>
+						{/* Course Detail Page */}
 									<Route
-										path="/courses/:courseId/exams/:examId"
+										path="/courses/:courseId/detail"
 										element={
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
-													<UnifiedCoursePage />
+													<CourseDetailPage />
 												</Suspense>
 											</UserRoute>
 										}
@@ -811,36 +1198,18 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									{/* Course Creation Route */}
 									<Route
 										path="/admin/courses/new"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<CourseBuilder />
+													<CourseCreationPage />
 												</Suspense>
 											</AdminRoute>
 										}
 									/>
-									<Route
-										path="/admin/courses/:id/builder"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<CourseEditor />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
-									<Route
-										path="/admin/courses/:id/edit"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<CourseEditor />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
+									{/* Course Detail Route */}
 									<Route
 										path="/admin/courses/:id"
 										element={
@@ -851,6 +1220,37 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									{/* Course Edit/Detail Routes - Removed - will be rebuilt from scratch */}
+									{/* <Route
+										path="/admin/courses/new"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminCourseEditPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/courses/:id/builder"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminCourseEditPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/courses/:id/edit"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminCourseEditPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/> */}
 									<Route
 										path="/admin/modules/:id?"
 										element={
@@ -871,7 +1271,7 @@ function App() {
 											</AdminRoute>
 										}
 									/>
-									{/* Test Builder Routes */}
+									{/* Test Routes */}
 									<Route
 										path="/admin/tests"
 										element={
@@ -882,6 +1282,7 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									{/* Test Builder Routes */}
 									<Route
 										path="/admin/tests/new/builder"
 										element={
@@ -902,6 +1303,7 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									{/* Question Bank Routes */}
 									<Route
 										path="/admin/question-banks"
 										element={
@@ -932,18 +1334,18 @@ function App() {
 											</AdminRoute>
 										}
 									/>
-									<Route
+									{/* <Route
 										path="/admin/question-banks/:bankId/questions"
-							element={
-								<AdminRoute>
-									<Suspense fallback={<PageLoader />}>
-										<AdminQuestionBankQuestionsPage />
-									</Suspense>
-								</AdminRoute>
-							}
-							/>
-							<Route
-								path="/admin/events"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminQuestionBankQuestionsPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/> */}
+									<Route
+										path="/admin/events"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
@@ -998,6 +1400,16 @@ function App() {
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
 													<AdminSettingsPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/certificate-settings"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminCertificateSettingsPage />
 												</Suspense>
 											</AdminRoute>
 										}

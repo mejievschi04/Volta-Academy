@@ -1,7 +1,7 @@
 /* Inline AI Suggestion Styles */
 .inline-ai-suggestion {
 	background: #eff6ff;
-	border: 1px solid #3b82f6;
+	border: 1px solid #FFEE00;
 	border-radius: 8px;
 	padding: 12px;
 	margin: 8px 0;
@@ -60,12 +60,12 @@
 }
 
 .inline-ai-suggestion-accept {
-	background: #3b82f6;
+	background: #FFEE00;
 	color: white;
 }
 
 .inline-ai-suggestion-accept:hover {
-	background: #2563eb;
+	background: #E6D600;
 }
 
 .inline-ai-suggestion-dismiss {
@@ -90,8 +90,8 @@
 }
 
 .inline-ai-suggestion-trigger:hover {
-	border-color: #3b82f6;
-	color: #3b82f6;
+	border-color: #FFEE00;
+	color: #FFEE00;
 	background: #eff6ff;
 }
 
@@ -105,7 +105,7 @@
 .inline-ai-suggestion-loading-dot {
 	width: 6px;
 	height: 6px;
-	background: #3b82f6;
+	background: #FFEE00;
 	border-radius: 50%;
 	animation: loadingDot 1.4s infinite;
 }

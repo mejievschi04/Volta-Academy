@@ -189,17 +189,6 @@ const AdminTeamsPage = () => {
 											<h3 className="admin-card-title" style={{ marginBottom: 'var(--space-2)' }}>
 												{team.name}
 											</h3>
-											{team.owner && (
-												<div className="admin-card-description" style={{ 
-													fontSize: 'var(--font-size-sm)', 
-													display: 'flex',
-													alignItems: 'center',
-													gap: 'var(--space-2)'
-												}}>
-													<span>Proprietar:</span>
-													<strong>{team.owner.name}</strong>
-												</div>
-											)}
 										</div>
 									</div>
 									{/* Action icons */}
@@ -224,9 +213,24 @@ const AdminTeamsPage = () => {
 								</div>
 								
 								{team.description && (
-									<p className="admin-card-description" style={{ marginBottom: 'var(--space-5)' }}>
+									<p className="admin-card-description" style={{ marginBottom: 'var(--space-4)' }}>
 										{team.description}
 									</p>
+								)}
+
+								{team.owner && (
+									<div className="admin-card-info" style={{ 
+										fontSize: 'var(--font-size-xs)', 
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										marginBottom: 'var(--space-5)',
+										whiteSpace: 'nowrap',
+										lineHeight: 1.5
+									}}>
+										<span>Responsabil:</span>
+										<strong style={{ whiteSpace: 'nowrap', fontWeight: 'var(--font-weight-medium)' }}>{team.owner.name}</strong>
+									</div>
 								)}
 
 								{/* Stats - Large and prominent */}
@@ -370,14 +374,14 @@ const AdminTeamsPage = () => {
 									/>
 								</div>
 								<div className="admin-form-group">
-									<label className="admin-form-label">Proprietar</label>
+									<label className="admin-form-label">Responsabil</label>
 									<select
 										className="admin-form-input"
 										value={formData.owner_id}
 										onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
 										required
 									>
-										<option value="">Selectează proprietar</option>
+										<option value="">Selectează responsabil</option>
 										{users.map((user) => (
 											<option key={user.id} value={user.id}>
 												{user.name} ({user.email})

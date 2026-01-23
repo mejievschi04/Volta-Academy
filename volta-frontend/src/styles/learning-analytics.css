@@ -238,17 +238,17 @@
 }
 
 .engagement-chart-bar.mau {
-	background-color: #8B5CF6;
+	background-color: var(--color-brand-primary);
 	opacity: 0.3;
 }
 
 .engagement-chart-bar.wau {
-	background-color: #3B82F6;
+	background-color: var(--color-brand-primary);
 	opacity: 0.6;
 }
 
 .engagement-chart-bar.dau {
-	background-color: #38BDF8;
+	background-color: #FFEE00;
 	opacity: 1;
 }
 

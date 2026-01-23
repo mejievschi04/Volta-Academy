@@ -300,9 +300,9 @@ const AdminAnalyticsPage = () => {
 // Component: Learning Funnel
 const LearningFunnel = ({ data }) => {
 	const stages = [
-		{ key: 'enrolled', label: 'Înscriere', count: data.enrolled, color: '#38BDF8' },
-		{ key: 'started', label: 'Start', count: data.started, color: '#3B82F6' },
-		{ key: 'progress_25', label: '25%', count: data.progress_25, color: '#8B5CF6' },
+		{ key: 'enrolled', label: 'Înscriere', count: data.enrolled, color: '#FFEE00' },
+		{ key: 'started', label: 'Start', count: data.started, color: '#FFEE00' },
+		{ key: 'progress_25', label: '25%', count: data.progress_25, color: '#FFEE00' },
 		{ key: 'progress_50', label: '50%', count: data.progress_50, color: '#A855F7' },
 		{ key: 'progress_75', label: '75%', count: data.progress_75, color: '#C084FC' },
 		{ key: 'completed', label: 'Finalizare', count: data.completed, color: '#10B981' }
@@ -355,7 +355,7 @@ const EngagementTimeline = ({ data, period }) => {
 		<div className="lms-timeline">
 			<div className="lms-timeline-legend">
 				<div className="lms-legend-item">
-					<span className="lms-legend-dot" style={{ backgroundColor: '#38BDF8' }}></span>
+					<span className="lms-legend-dot" style={{ backgroundColor: '#FFEE00' }}></span>
 					<span>Implicare</span>
 				</div>
 				<div className="lms-legend-item">
@@ -368,7 +368,7 @@ const EngagementTimeline = ({ data, period }) => {
 					<polyline
 						points={filteredData.map((d, i) => `${i * 20},${200 - (d.engagement / maxEngagement) * 180}`).join(' ')}
 						fill="none"
-						stroke="#38BDF8"
+						stroke="#FFEE00"
 						strokeWidth="2"
 						strokeLinecap="round"
 					/>
@@ -392,7 +392,7 @@ const AIInsightCard = ({ recommendation, navigate }) => {
 			case 'high': return '#EF4444';
 			case 'medium': return '#F59E0B';
 			case 'low': return '#84CC16';
-			default: return '#38BDF8';
+			default: return '#FFEE00';
 		}
 	};
 
@@ -445,7 +445,7 @@ const PremiumEmptyState = ({ title, description, suggestions }) => {
 // Component: User Segments
 const UserSegments = ({ segments, total }) => {
 	const segmentData = [
-		{ key: 'new', label: 'Noi', count: segments.new, color: '#38BDF8' },
+		{ key: 'new', label: 'Noi', count: segments.new, color: '#FFEE00' },
 		{ key: 'at_risk', label: 'În Risc', count: segments.at_risk, color: '#EF4444' },
 		{ key: 'highly_engaged', label: 'Foarte Implicați', count: segments.highly_engaged, color: '#10B981' },
 		{ key: 'inactive', label: 'Inactivi', count: segments.inactive, color: '#94A3B8' }

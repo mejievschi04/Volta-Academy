@@ -102,14 +102,7 @@ const ExamResultsPage = () => {
 			</div>
 
 			{error && (
-				<div style={{
-					padding: '1rem',
-					background: 'var(--bg-tertiary)',
-					border: '1px solid var(--border-primary)',
-					borderRadius: '8px',
-					marginBottom: '1.5rem',
-					color: 'var(--text-primary)'
-				}}>
+				<div className="exam-results-error">
 					{error}
 				</div>
 			)}
@@ -156,10 +149,10 @@ const ExamResultsPage = () => {
 							))}
 						</div>
 					) : (
-						<div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-							<div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
-							<div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Nu ai completat niciun test</div>
-							<div style={{ fontSize: '0.9rem' }}>Completează teste pentru a vedea rezultatele aici</div>
+						<div className="exam-results-empty">
+							<div className="exam-results-empty-icon">📝</div>
+							<div className="exam-results-empty-title">Nu ai completat niciun test</div>
+							<div className="exam-results-empty-text">Completează teste pentru a vedea rezultatele aici</div>
 						</div>
 					)}
 				</div>
@@ -168,7 +161,7 @@ const ExamResultsPage = () => {
 				{selectedResult && (
 					<div className="exam-result-details">
 						<div className="exam-result-details-header">
-							<h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>Detalii Rezultat</h2>
+							<h2>Detalii Rezultat</h2>
 							<button
 								type="button"
 								onClick={() => setSelectedResult(null)}
@@ -180,7 +173,7 @@ const ExamResultsPage = () => {
 						</div>
 						
 						{loadingDetails && (
-							<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+							<div className="exam-results-loading">
 								<div>Se încarcă detaliile...</div>
 							</div>
 						)}
@@ -211,7 +204,7 @@ const ExamResultsPage = () => {
 										{selectedResult.score} / {selectedResult.total_points}
 									</div>
 								</div>
-								<div className="exam-result-score-display-item" style={{ textAlign: 'right' }}>
+								<div className="exam-result-score-display-item exam-result-score-display-item-right">
 									<div className="exam-result-score-display-label">
 										Procentaj
 									</div>
@@ -228,7 +221,7 @@ const ExamResultsPage = () => {
 						{/* Questions and Answers */}
 						{selectedResult.exam?.questions && selectedResult.exam.questions.length > 0 ? (
 							<div>
-								<h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', color: 'var(--text-primary)' }}>Răspunsurile Tale</h3>
+								<h3 className="exam-result-questions-title">Răspunsurile Tale</h3>
 								<div className="exam-result-questions">
 									{selectedResult.exam.questions.map((question, index) => {
 										const userAnswer = getUserAnswer(question);
@@ -264,7 +257,7 @@ const ExamResultsPage = () => {
 
 												{isOpenText ? (
 													<div>
-														<div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
+														<div className="exam-result-answer-label-text">
 															Răspunsul tău:
 														</div>
 														<div className={`exam-result-open-text-answer ${!userAnswer ? 'empty' : ''}`}>
@@ -282,7 +275,7 @@ const ExamResultsPage = () => {
 													</div>
 												) : (
 													<div>
-														<div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '0.75rem' }}>
+														<div className="exam-result-answer-label-text">
 															Răspunsurile tale:
 														</div>
 														<div className="exam-result-answers">
@@ -302,12 +295,12 @@ const ExamResultsPage = () => {
 																		}`}
 																	>
 																		{isSelected && (
-																			<span style={{ fontSize: '1.2rem' }}>
+																			<span className="exam-result-answer-icon">
 																				{isCorrectAnswer ? '✓' : '✗'}
 																			</span>
 																		)}
 																		{isCorrectAnswer && !isSelected && (
-																			<span style={{ fontSize: '1.2rem' }}>✓</span>
+																			<span className="exam-result-answer-icon">✓</span>
 																		)}
 																		<span className="exam-result-answer-text">
 																			{answerText}
@@ -323,9 +316,9 @@ const ExamResultsPage = () => {
 														</div>
 														{/* Show correct answer if user's answer was wrong */}
 														{isCorrect === false && correctAnswerIndex >= 0 && question.answers && question.answers[correctAnswerIndex] && (
-															<div className="exam-result-answer correct" style={{ marginTop: '0.75rem' }}>
-																<span style={{ fontSize: '1.2rem' }}>✓</span>
-																<span style={{ flex: 1, fontWeight: 600 }}>
+															<div className="exam-result-answer correct exam-result-answer-correct-hint">
+																<span className="exam-result-answer-icon">✓</span>
+																<span className="exam-result-answer-correct-label">
 																	Răspunsul corect:
 																</span>
 																<span className="exam-result-answer-text">
@@ -343,10 +336,10 @@ const ExamResultsPage = () => {
 								</div>
 							</div>
 						) : (
-							<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-								<div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
-								<div>Nu sunt disponibile întrebări pentru acest rezultat.</div>
-								<div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+							<div className="exam-results-empty">
+								<div className="exam-results-empty-icon">📝</div>
+								<div className="exam-results-empty-title">Nu sunt disponibile întrebări pentru acest rezultat.</div>
+								<div className="exam-results-empty-text">
 									{selectedResult.exam ? `Test: ${selectedResult.exam.title}` : 'Detaliile testului nu sunt disponibile.'}
 								</div>
 							</div>

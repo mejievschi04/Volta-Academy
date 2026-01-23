@@ -110,6 +110,51 @@ class DashboardAdminController extends Controller
         $start = $dateRange['start'];
         $end = $dateRange['end'];
 
+        // Total Users (only students - total count, not period-based)
+        $totalUsers = User::where('role', 'student')->count();
+        
+        // Log for debugging (remove in production)
+        \Log::info('Dashboard Users Count', [
+            'all_users' => User::count(),
+            'admin_users' => User::where('role', 'admin')->count(),
+            'student_users' => User::where('role', 'student')->count(),
+            'teacher_users' => User::where('role', 'teacher')->count(),
+            'total_users' => $totalUsers
+        ]);
+        
+        // Previous period for trend calculation
+        $prevStart = $start->copy()->subDays($start->diffInDays($end));
+        $prevEnd = $start;
+        
+        // Calculate trend based on new students in current period vs previous period
+        $newUsersCurrentPeriod = User::where('role', 'student')
+            ->whereBetween('created_at', [$start, $end])
+            ->count();
+        
+        $newUsersPreviousPeriod = User::where('role', 'student')
+            ->whereBetween('created_at', [$prevStart, $prevEnd])
+            ->count();
+        
+        $totalUsersTrend = $newUsersPreviousPeriod > 0 
+            ? round((($newUsersCurrentPeriod - $newUsersPreviousPeriod) / $newUsersPreviousPeriod) * 100, 1)
+            : ($newUsersCurrentPeriod > 0 ? 100 : 0);
+
+        // Total Courses (all published courses - total count, not period-based)
+        $totalCourses = Course::where('status', 'published')->count();
+        
+        // Calculate trend based on new courses in current period vs previous period
+        $newCoursesCurrentPeriod = Course::where('status', 'published')
+            ->whereBetween('created_at', [$start, $end])
+            ->count();
+        
+        $newCoursesPreviousPeriod = Course::where('status', 'published')
+            ->whereBetween('created_at', [$prevStart, $prevEnd])
+            ->count();
+        
+        $totalCoursesTrend = $newCoursesPreviousPeriod > 0 
+            ? round((($newCoursesCurrentPeriod - $newCoursesPreviousPeriod) / $newCoursesPreviousPeriod) * 100, 1)
+            : ($newCoursesCurrentPeriod > 0 ? 100 : 0);
+
         // Active Users (users who had activity in period - enrolled, completed, or updated courses)
         // Get users with course activity in period
         $usersWithCourseActivity = collect([]);
@@ -231,6 +276,18 @@ class DashboardAdminController extends Controller
         $issuesTrend = 0;
 
         return [
+            'total_users' => [
+                'value' => (string)$totalUsers, // Return as string directly, no formatting
+                'trend' => $totalUsersTrend >= 0 ? 'up' : 'down',
+                'trendValue' => abs($totalUsersTrend) . '%',
+                'color' => '#6366f1',
+            ],
+            'total_courses' => [
+                'value' => number_format($totalCourses),
+                'trend' => $totalCoursesTrend >= 0 ? 'up' : 'down',
+                'trendValue' => abs($totalCoursesTrend) . '%',
+                'color' => '#8b5cf6',
+            ],
             'active_users' => [
                 'value' => number_format($activeUsers),
                 'trend' => $activeUsersTrend >= 0 ? 'up' : 'down',

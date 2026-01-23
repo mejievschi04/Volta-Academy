@@ -4,6 +4,7 @@ import { achievementsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
+import CertificatePreview from '../components/student/CertificatePreview';
 
 const AchievementsPage = () => {
 	const { user } = useAuth();
@@ -12,6 +13,7 @@ const AchievementsPage = () => {
 	const [certificates, setCertificates] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [previewCertificate, setPreviewCertificate] = useState(null);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -34,6 +36,23 @@ const AchievementsPage = () => {
 		};
 		fetchData();
 	}, []);
+
+	const handlePreviewCertificate = async (cert) => {
+		try {
+			const [certInfo, settings] = await Promise.all([
+				achievementsService.getCertificateInfo(cert.course_id),
+				adminService.getCertificateSettings().catch(() => null), // Fallback if not admin
+			]);
+			setPreviewCertificate({
+				...cert,
+				...certInfo,
+				settings: settings || null,
+			});
+		} catch (err) {
+			logger.error('Error fetching certificate info:', err);
+			showError('Nu s-a putut încărca informațiile certificatului');
+		}
+	};
 
 	const handleDownloadCertificate = async (courseId) => {
 		try {
@@ -138,13 +157,24 @@ const AchievementsPage = () => {
 										</span>
 										<span className="student-certificate-id">ID: {cert.certificate_id}</span>
 									</div>
-									<button
-										className="student-certificate-download-btn"
-										onClick={() => handleDownloadCertificate(cert.course_id)}
-									>
-										<span>📥</span>
-										<span>Descarcă certificat</span>
-									</button>
+									<div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+										<button
+											className="student-certificate-download-btn"
+											onClick={() => handlePreviewCertificate(cert)}
+											style={{ flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
+										>
+											<span>👁️</span>
+											<span>Preview</span>
+										</button>
+										<button
+											className="student-certificate-download-btn"
+											onClick={() => handleDownloadCertificate(cert.course_id)}
+											style={{ flex: 1 }}
+										>
+											<span>📥</span>
+											<span>Descarcă</span>
+										</button>
+									</div>
 								</div>
 							</div>
 						))}
@@ -203,6 +233,18 @@ const AchievementsPage = () => {
 						))}
 					</div>
 				</div>
+			)}
+
+			{/* Certificate Preview Modal */}
+			{previewCertificate && (
+				<CertificatePreview
+					certificate={previewCertificate}
+					onClose={() => setPreviewCertificate(null)}
+					onDownload={() => {
+						handleDownloadCertificate(previewCertificate.course_id);
+						setPreviewCertificate(null);
+					}}
+				/>
 			)}
 		</div>
 	);

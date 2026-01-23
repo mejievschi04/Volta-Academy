@@ -1,121 +1,482 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getCourseById, mockCourseCategories } from '../data/mockData';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { coursesService, courseProgressService, lessonsService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import './LessonsPage.css';
 
 const LessonsPage = () => {
 	const { courseId } = useParams();
-	const course = getCourseById(courseId);
-	const [expandedLessons, setExpandedLessons] = useState(new Set());
+	const [searchParams] = useSearchParams();
+	const navigate = useNavigate();
+	const { user } = useAuth();
+	const { showToast } = useToast();
+	const contentRef = useRef(null);
+	
+	const [course, setCourse] = useState(null);
+	const [modules, setModules] = useState([]);
+	const [progress, setProgress] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [currentLesson, setCurrentLesson] = useState(null);
+	const [currentLessonLoading, setCurrentLessonLoading] = useState(false);
+	const [isCompleted, setIsCompleted] = useState(false);
+	const [isCompleting, setIsCompleting] = useState(false);
+	const [expandedModules, setExpandedModules] = useState(new Set());
 
-	if (!course) return <p>Cursul nu a fost găsit.</p>;
+	// Get lessonId from URL or auto-select first lesson
+	const lessonIdFromUrl = searchParams.get('lesson');
+	const [selectedLessonId, setSelectedLessonId] = useState(lessonIdFromUrl);
 
-	const courseCategory = mockCourseCategories.find((cat) => cat.courseIds.includes(courseId));
-	const testSummary = course.quiz
-		? `${course.quiz.questions.length} întrebări pentru validarea finală`
-		: 'Fără test configurat';
-
-	const toggleLesson = (lessonId) => {
-		const newExpanded = new Set(expandedLessons);
-		if (newExpanded.has(lessonId)) {
-			newExpanded.delete(lessonId);
-		} else {
-			newExpanded.add(lessonId);
+	useEffect(() => {
+		if (courseId) {
+			fetchCourseData();
 		}
-		setExpandedLessons(newExpanded);
+	}, [courseId]);
+
+	// Auto-open first lesson when course loads
+	useEffect(() => {
+		if (!loading && modules.length > 0 && !selectedLessonId) {
+			// Find first lesson from first module
+			const firstModule = modules[0];
+			if (firstModule?.lessons && firstModule.lessons.length > 0) {
+				const sortedLessons = firstModule.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
+				const firstLesson = sortedLessons[0];
+				if (firstLesson) {
+					setSelectedLessonId(firstLesson.id);
+					loadLesson(firstLesson.id);
+					// Expand first module
+					setExpandedModules(new Set([firstModule.id]));
+				}
+			}
+		}
+	}, [loading, modules, selectedLessonId]);
+
+	// Load lesson when selectedLessonId changes
+	useEffect(() => {
+		if (selectedLessonId && courseId) {
+			loadLesson(selectedLessonId);
+		}
+	}, [selectedLessonId, courseId]);
+
+	const fetchCourseData = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			
+			const courseData = await coursesService.getById(courseId);
+			setCourse(courseData);
+			
+			// Sort modules by order
+			const sortedModules = (courseData.modules || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+			setModules(sortedModules);
+			
+			// Fetch progress if user is enrolled
+			if (user?.id) {
+				try {
+					const progressData = await courseProgressService.getCourseProgress(courseId);
+					setProgress(progressData);
+				} catch (err) {
+					console.log('No progress data available');
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching course:', err);
+			setError('Nu s-a putut încărca cursul');
+			showToast('Eroare la încărcarea cursului', 'error');
+		} finally {
+			setLoading(false);
+		}
 	};
 
-	return (
-		<div className="va-stack">
-			<div className="va-course-header-section">
-				<h1 className="va-page-title">{course.title}</h1>
-				<p className="va-muted">{course.description}</p>
-				<div className="va-course-header-meta">
-					<span>{course.lessons.length} module</span>
+	const loadLesson = async (lessonId) => {
+		try {
+			setCurrentLessonLoading(true);
+			const lessonData = await lessonsService.getById(lessonId);
+			setCurrentLesson(lessonData);
+			
+			// Check if lesson is completed
+			if (user?.id && progress?.lessons) {
+				const lessonProgress = progress.lessons.find(l => l.lesson_id === parseInt(lessonId));
+				setIsCompleted(lessonProgress?.completed || false);
+			} else {
+				setIsCompleted(false);
+			}
+			
+			// Update URL without navigation
+			window.history.replaceState({}, '', `/courses/${courseId}?lesson=${lessonId}`);
+		} catch (err) {
+			console.error('Error loading lesson:', err);
+			showToast('Eroare la încărcarea lecției', 'error');
+		} finally {
+			setCurrentLessonLoading(false);
+		}
+	};
+
+	const handleLessonClick = (lessonId) => {
+		setSelectedLessonId(lessonId);
+		// Scroll to top
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	};
+
+	const toggleModule = (moduleId) => {
+		const newExpanded = new Set(expandedModules);
+		if (newExpanded.has(moduleId)) {
+			newExpanded.delete(moduleId);
+		} else {
+			newExpanded.add(moduleId);
+		}
+		setExpandedModules(newExpanded);
+	};
+
+	const getLessonProgress = (lessonId) => {
+		if (!progress || !progress.lessons) return null;
+		return progress.lessons.find(l => l.lesson_id === lessonId);
+	};
+
+	const isLessonCompleted = (lessonId) => {
+		const lessonProgress = getLessonProgress(lessonId);
+		return lessonProgress?.completed || false;
+	};
+
+	const getModuleProgress = (module) => {
+		if (!progress || !module.lessons) return { completed: 0, total: 0, percentage: 0 };
+		
+		const total = module.lessons.length;
+		const completed = module.lessons.filter(lesson => isLessonCompleted(lesson.id)).length;
+		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+		
+		return { completed, total, percentage };
+	};
+
+	// Auto-complete on scroll
+	const handleAutoComplete = useCallback(async () => {
+		if (isCompleting || isCompleted || !selectedLessonId) return;
+		
+		try {
+			setIsCompleting(true);
+			await lessonsService.complete(selectedLessonId);
+			setIsCompleted(true);
+			showToast('Lecția a fost marcată automat ca completată!', 'success');
+			
+			// Refresh progress
+			if (user?.id) {
+				try {
+					const progressData = await courseProgressService.getCourseProgress(courseId);
+					setProgress(progressData);
+				} catch (err) {
+					console.log('Could not refresh progress');
+				}
+			}
+		} catch (err) {
+			console.error('Error completing lesson:', err);
+		} finally {
+			setIsCompleting(false);
+		}
+	}, [selectedLessonId, isCompleting, isCompleted, courseId, user?.id, showToast]);
+
+	// Auto-complete on scroll effect
+	useEffect(() => {
+		if (!currentLesson || isCompleted || isCompleting) return;
+
+		let shortContentTimer = null;
+
+		const checkCompletion = () => {
+			if (isCompleted || isCompleting) return;
+
+			const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+			const windowHeight = window.innerHeight;
+			const documentHeight = document.documentElement.scrollHeight;
+			
+			const isNearBottom = scrollTop + windowHeight >= documentHeight - 100;
+			const isContentShort = documentHeight <= windowHeight + 50;
+
+			if (isContentShort) {
+				if (!shortContentTimer) {
+					shortContentTimer = setTimeout(() => {
+						if (!isCompleted && !isCompleting) {
+							handleAutoComplete();
+						}
+					}, 2000);
+				}
+			} else if (isNearBottom) {
+				if (shortContentTimer) {
+					clearTimeout(shortContentTimer);
+					shortContentTimer = null;
+				}
+				handleAutoComplete();
+			}
+		};
+
+		let ticking = false;
+		const throttledScroll = () => {
+			if (!ticking) {
+				window.requestAnimationFrame(() => {
+					checkCompletion();
+					ticking = false;
+				});
+				ticking = true;
+			}
+		};
+
+		window.addEventListener('scroll', throttledScroll, { passive: true });
+		
+		const checkInitial = setTimeout(() => {
+			checkCompletion();
+		}, 500);
+
+		if (contentRef.current) {
+			checkCompletion();
+		}
+
+		return () => {
+			window.removeEventListener('scroll', throttledScroll);
+			clearTimeout(checkInitial);
+			if (shortContentTimer) {
+				clearTimeout(shortContentTimer);
+			}
+		};
+	}, [currentLesson, isCompleted, isCompleting, handleAutoComplete]);
+
+	const handleNextLesson = () => {
+		// Find next lesson
+		let foundCurrent = false;
+		for (const module of modules) {
+			const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+			for (const lesson of sortedLessons) {
+				if (foundCurrent) {
+					handleLessonClick(lesson.id);
+					return;
+				}
+				if (lesson.id === selectedLessonId) {
+					foundCurrent = true;
+				}
+			}
+		}
+		// No next lesson, go back to course
+		navigate(`/courses/${courseId}`);
+	};
+
+	if (loading) {
+		return (
+			<div className="lessons-page-modern">
+				<div className="lessons-page-loading">
+					<div className="lessons-page-spinner"></div>
+					<p>Se încarcă cursul...</p>
 				</div>
 			</div>
+		);
+	}
 
-			<div className="va-lessons-structure">
-				{/* Module Section */}
-				<div className="va-lessons-section">
-					<h2 className="va-lessons-section-title">Module</h2>
-					<div className="va-lessons-list">
-						{course.lessons.map((lesson, index) => {
-							const isExpanded = expandedLessons.has(lesson.id);
-							return (
-								<div key={lesson.id} className="va-lesson-section">
-									<button
-										type="button"
-										className="va-lesson-header"
-										onClick={() => toggleLesson(lesson.id)}
-										style={{
-											borderColor: isExpanded
-												? courseCategory
-													? `${courseCategory.accent}44`
-													: 'rgba(139, 93, 255, 0.3)'
-												: 'transparent',
-										}}
-									>
-										<div className="va-lesson-header-content">
-											<div className="va-lesson-info">
-												<div className="va-lesson-title-row">
-													<div className="va-lesson-index">{index + 1}</div>
-													<h3 className="va-lesson-title">{lesson.title}</h3>
-													<span className="va-lesson-duration-inline">{lesson.durationMinutes} min</span>
-												</div>
-												{isExpanded && (
-													<p className="va-lesson-content-preview">{lesson.content}</p>
-												)}
-											</div>
-											<span className={`va-lesson-arrow ${isExpanded ? 'va-lesson-arrow-expanded' : ''}`}>
-												↓
-											</span>
-										</div>
-									</button>
+	if (error || !course) {
+		return (
+			<div className="lessons-page-modern">
+				<div className="lessons-page-error">
+					<div className="lessons-page-error-icon">⚠️</div>
+					<h2>Eroare</h2>
+					<p>{error || 'Cursul nu a fost găsit'}</p>
+					<button
+						className="lessons-page-btn lessons-page-btn-primary"
+						onClick={() => navigate('/courses')}
+					>
+						Înapoi la cursuri
+					</button>
+				</div>
+			</div>
+		);
+	}
 
-									{isExpanded && (
-										<div className="va-lesson-content">
-											<div className="va-lesson-body">
-												<p className="va-lesson-content-full">{lesson.content}</p>
-											</div>
-											<div className="va-lesson-actions">
-												<Link
-													to={`/courses/${courseId}/lessons/${lesson.id}`}
-													className="lms-btn-primary"
-												>
-													Deschide lecția
-												</Link>
-											</div>
-										</div>
-									)}
-								</div>
-							);
-						})}
-					</div>
+	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+
+	return (
+		<div className="lessons-page-modern lessons-page-player-layout">
+			{/* Sidebar - Lessons Menu */}
+			<aside className="lessons-page-sidebar">
+				<div className="lessons-page-sidebar-header">
+					<button 
+						className="lessons-page-sidebar-back-btn"
+						onClick={() => navigate(-1)}
+					>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<path d="M19 12H5M12 19l-7-7 7-7"/>
+						</svg>
+						<span>Înapoi</span>
+					</button>
+					<h2 className="lessons-page-sidebar-title">{course.title}</h2>
+					{progress && (
+						<div className="lessons-page-sidebar-progress">
+							<div className="lessons-page-sidebar-progress-bar">
+								<div 
+									className="lessons-page-sidebar-progress-fill" 
+									style={{ width: `${progress.progress_percentage || 0}%` }}
+								></div>
+							</div>
+							<span className="lessons-page-sidebar-progress-text">
+								{progress.progress_percentage || 0}% completat
+							</span>
+						</div>
+					)}
 				</div>
 
-				{/* Test Section */}
-				<div className="va-lessons-test-section">
-					<h2 className="va-lessons-section-title">Test final</h2>
-					<div className="va-test-card">
-						<h3 className="va-test-title">{course.quiz?.title ?? 'Test indisponibil'}</h3>
-						<p className="va-test-summary">{testSummary}</p>
-						<div className="va-test-actions">
-							<Link to={`/courses/${courseId}/quiz`} className="lms-btn-primary">
-								Susține testul
-							</Link>
+				<div className="lessons-page-sidebar-content">
+					{modules.length > 0 ? (
+						<div className="lessons-page-sidebar-modules">
+							{modules.map((module, moduleIndex) => {
+								const isModuleExpanded = expandedModules.has(module.id);
+								const moduleProgress = getModuleProgress(module);
+								const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+								const isActive = selectedLessonId && sortedLessons.some(l => l.id === selectedLessonId);
+								
+								return (
+									<div key={module.id} className={`lessons-page-sidebar-module ${isActive ? 'active' : ''}`}>
+										<button
+											type="button"
+											className={`lessons-page-sidebar-module-header ${isModuleExpanded ? 'expanded' : ''}`}
+											onClick={() => toggleModule(module.id)}
+										>
+											<div className="lessons-page-sidebar-module-info">
+												<span className="lessons-page-sidebar-module-number">{moduleIndex + 1}</span>
+												<span className="lessons-page-sidebar-module-title">{module.title}</span>
+											</div>
+											<svg 
+												className={`lessons-page-sidebar-module-arrow ${isModuleExpanded ? 'expanded' : ''}`}
+												width="16" 
+												height="16" 
+												viewBox="0 0 24 24" 
+												fill="none" 
+												stroke="currentColor" 
+												strokeWidth="2"
+											>
+												<path d="M6 9l6 6 6-6"/>
+											</svg>
+										</button>
+
+										{isModuleExpanded && (
+											<div className="lessons-page-sidebar-lessons">
+												{sortedLessons.map((lesson, lessonIndex) => {
+													const isCompleted = isLessonCompleted(lesson.id);
+													const isActive = selectedLessonId === lesson.id;
+													
+													return (
+														<button
+															key={lesson.id}
+															type="button"
+															className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+															onClick={() => handleLessonClick(lesson.id)}
+														>
+															<div className="lessons-page-sidebar-lesson-icon">
+																{isCompleted ? (
+																	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+																		<path d="M20 6L9 17l-5-5"/>
+																	</svg>
+																) : (
+																	<span>{lessonIndex + 1}</span>
+																)}
+															</div>
+															<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
+															{lesson.duration_minutes && (
+																<span className="lessons-page-sidebar-lesson-duration">{lesson.duration_minutes}min</span>
+															)}
+														</button>
+													);
+												})}
+											</div>
+										)}
+									</div>
+								);
+							})}
+						</div>
+					) : (
+						<div className="lessons-page-sidebar-empty">
+							<p>Nu există lecții disponibile</p>
+						</div>
+					)}
+				</div>
+			</aside>
+
+			{/* Main Content - Lesson Viewer */}
+			<main className="lessons-page-main-content">
+				{currentLessonLoading ? (
+					<div className="lessons-page-lesson-loading">
+						<div className="lessons-page-spinner"></div>
+						<p>Se încarcă lecția...</p>
+					</div>
+				) : currentLesson ? (
+					<div className="lessons-page-lesson-viewer">
+						{/* Lesson Header */}
+						<div className="lessons-page-lesson-header">
+							<h1 className="lessons-page-lesson-viewer-title">{currentLesson.title}</h1>
+							{currentLesson.description && (
+								<p className="lessons-page-lesson-viewer-description">{currentLesson.description}</p>
+							)}
+							<div className="lessons-page-lesson-viewer-meta">
+								{currentLesson.duration_minutes && (
+									<div className="lessons-page-lesson-viewer-meta-item">
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+											<circle cx="12" cy="12" r="10"/>
+											<polyline points="12 6 12 12 16 14"/>
+										</svg>
+										<span>{currentLesson.duration_minutes} minute</span>
+									</div>
+								)}
+								{isCompleted && (
+									<div className="lessons-page-lesson-completed-badge">
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+											<path d="M20 6L9 17l-5-5"/>
+										</svg>
+										<span>Completată</span>
+									</div>
+								)}
+							</div>
+						</div>
+
+						{/* Lesson Content */}
+						<div className="lessons-page-lesson-body" ref={contentRef}>
+							{currentLesson.content ? (
+								<div 
+									className="lessons-page-lesson-content-text"
+									dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+								/>
+							) : (
+								<div className="lessons-page-empty-content">
+									<div className="lessons-page-empty-icon">
+										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+											<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+										</svg>
+									</div>
+									<h3>Lecția nu are conținut configurat</h3>
+									<p>Conținutul lecției va fi disponibil în curând.</p>
+								</div>
+							)}
+						</div>
+
+						{/* Lesson Actions */}
+						<div className="lessons-page-lesson-actions">
+							<button
+								className="lessons-page-btn lessons-page-btn-secondary"
+								onClick={handleNextLesson}
+							>
+								<span>Următoarea lecție</span>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<path d="M5 12h14M12 5l7 7-7 7"/>
+								</svg>
+							</button>
 						</div>
 					</div>
-				</div>
-			</div>
-
-			<div className="va-lessons-footer-actions">
-				<Link to={`/courses/${courseId}`} className="lms-btn-link">
-					Prezentare curs
-				</Link>
-				<Link to="/courses" className="lms-btn-secondary">
-					Înapoi la cursuri
-				</Link>
-			</div>
+				) : (
+					<div className="lessons-page-no-lesson">
+						<div className="lessons-page-empty-icon">
+							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+								<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+							</svg>
+						</div>
+						<h3>Selectează o lecție</h3>
+						<p>Selectează o lecție din meniul din stânga pentru a începe.</p>
+					</div>
+				)}
+			</main>
 		</div>
 	);
 };

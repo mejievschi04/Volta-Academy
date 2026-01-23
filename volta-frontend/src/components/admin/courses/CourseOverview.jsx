@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency, getDefaultCurrency } from '../../../utils/currency';
 
 const CourseOverview = ({ course, onQuickAction }) => {
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-
-	useEffect(() => {
-		const handleCurrencyChange = (e) => {
-			setCurrency(e.detail);
-		};
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		setCurrency(getDefaultCurrency());
-		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
-	}, []);
 
 	const getStatusBadge = (status) => {
 		const badges = {
@@ -78,12 +67,6 @@ const CourseOverview = ({ course, onQuickAction }) => {
 					<h3>Informații de Bază</h3>
 					<div className="admin-course-overview-info">
 						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Instructor:</span>
-							<span className="admin-course-overview-value">
-								{course.teacher?.name || 'N/A'}
-							</span>
-						</div>
-						<div className="admin-course-overview-info-item">
 							<span className="admin-course-overview-label">Categorie:</span>
 							<span className="admin-course-overview-value">
 								N/A
@@ -99,35 +82,6 @@ const CourseOverview = ({ course, onQuickAction }) => {
 							<span className="admin-course-overview-label">Durată estimată:</span>
 							<span className="admin-course-overview-value">
 								{course.estimated_duration_hours || 0} ore
-							</span>
-						</div>
-					</div>
-				</div>
-
-				{/* Monetization */}
-				<div className="admin-course-overview-card">
-					<h3>Monetizare</h3>
-					<div className="admin-course-overview-info">
-						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Tip acces:</span>
-							<span className="admin-course-overview-value">
-								{course.access_type === 'free' ? '🆓 Gratuit' :
-								 course.access_type === 'paid' ? '💰 Plătit' :
-								 '📅 Subscription'}
-							</span>
-						</div>
-						{course.access_type !== 'free' && (
-							<div className="admin-course-overview-info-item">
-								<span className="admin-course-overview-label">Preț:</span>
-								<span className="admin-course-overview-value">
-									{formatCurrency(course.price, course.currency || currency)}
-								</span>
-							</div>
-						)}
-						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Venit total:</span>
-							<span className="admin-course-overview-value admin-course-overview-value-highlight">
-								{formatCurrency(course.total_revenue || 0, currency)}
 							</span>
 						</div>
 					</div>

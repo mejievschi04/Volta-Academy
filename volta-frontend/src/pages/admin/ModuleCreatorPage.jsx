@@ -144,78 +144,109 @@ const ModuleCreatorPage = () => {
 					</button>
 				</div>
 
-				<form onSubmit={handleSubmit} className="admin-form">
+				<div className="admin-creator-split">
+					<div className="admin-creator-form-panel">
+						<form onSubmit={handleSubmit} className="admin-form">
+							<div className="admin-form-group">
+								<label className="admin-label">
+									Titlu Modul <span className="admin-form-required">*</span>
+								</label>
+								<input
+									type="text"
+									className={`admin-form-input ${errors.title ? 'error' : ''}`}
+									value={formData.title}
+									onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+									placeholder="Ex: Introducere în React"
+									maxLength={255}
+								/>
+								{errors.title && (
+									<p className="admin-form-error">{errors.title}</p>
+								)}
+							</div>
 
-					<div className="admin-form-group">
-						<label className="admin-label">
-							Titlu Modul <span className="admin-form-required">*</span>
-						</label>
-						<input
-							type="text"
-							className={`admin-form-input ${errors.title ? 'error' : ''}`}
-							value={formData.title}
-							onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-							placeholder="Ex: Introducere în React"
-							maxLength={255}
-						/>
-						{errors.title && (
-							<p className="admin-form-error">{errors.title}</p>
-						)}
+							<div className="admin-form-group">
+								<label className="admin-label">
+									Descriere
+								</label>
+								<textarea
+									className="admin-form-textarea"
+									value={formData.description}
+									onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+									placeholder="Descrierea modulului (opțional)"
+									rows={4}
+								/>
+							</div>
+
+							<div className="admin-form-group">
+								<label className="admin-label">
+									Ordine
+								</label>
+								<input
+									type="number"
+									className="admin-form-input"
+									value={formData.order}
+									onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+									placeholder="0"
+									min={0}
+								/>
+								<p className="admin-form-help-text">
+									Ordinea în care modulul va apărea în curs (0 = primul)
+								</p>
+							</div>
+
+							<div className="admin-form-actions">
+								<button
+									type="button"
+									className="admin-btn admin-btn-secondary"
+									onClick={() => {
+										if (formData.course_id) {
+											navigate(`/admin/courses/${formData.course_id}`);
+										} else {
+											navigate('/admin/courses');
+										}
+									}}
+								>
+									Anulează
+								</button>
+								<button
+									type="submit"
+									className="admin-btn admin-btn-primary"
+									disabled={loading}
+								>
+									{loading ? 'Se salvează...' : (id && id !== 'new' ? 'Actualizează Modul' : 'Creează Modul')}
+								</button>
+							</div>
+						</form>
 					</div>
 
-					<div className="admin-form-group">
-						<label className="admin-label">
-							Descriere
-						</label>
-						<textarea
-							className="admin-form-textarea"
-							value={formData.description}
-							onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-							placeholder="Descrierea modulului (opțional)"
-							rows={4}
-						/>
+					{/* Preview Panel */}
+					<div className="admin-creator-preview-panel">
+						<div className="admin-creator-preview-header">
+							<h3>Preview Live</h3>
+							<p>Vizualizează modificările în timp real</p>
+						</div>
+						<div className="admin-creator-preview-content">
+							<div className="module-preview-card">
+								<div className="module-preview-body">
+									<h4 className="module-preview-title">{formData.title || 'Titlu modul'}</h4>
+									{formData.description && (
+										<p className="module-preview-description">{formData.description}</p>
+									)}
+									<div className="module-preview-meta">
+										<div className="module-preview-meta-item">
+											<span className="module-preview-meta-label">Ordine:</span>
+											<span className="module-preview-meta-value">{formData.order || 0}</span>
+										</div>
+										<div className="module-preview-meta-item">
+											<span className="module-preview-meta-label">Status:</span>
+											<span className="module-preview-meta-value">{formData.status || 'draft'}</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
-
-					<div className="admin-form-group">
-						<label className="admin-label">
-							Ordine
-						</label>
-						<input
-							type="number"
-							className="admin-form-input"
-							value={formData.order}
-							onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-							placeholder="0"
-							min={0}
-						/>
-						<p className="admin-form-help-text">
-							Ordinea în care modulul va apărea în curs (0 = primul)
-						</p>
-					</div>
-
-					<div className="admin-form-actions">
-						<button
-							type="button"
-							className="admin-btn admin-btn-secondary"
-							onClick={() => {
-								if (formData.course_id) {
-									navigate(`/admin/courses/${formData.course_id}`);
-								} else {
-									navigate('/admin/courses');
-								}
-							}}
-						>
-							Anulează
-						</button>
-						<button
-							type="submit"
-							className="admin-btn admin-btn-primary"
-							disabled={loading}
-						>
-							{loading ? 'Se salvează...' : (id && id !== 'new' ? 'Actualizează Modul' : 'Creează Modul')}
-						</button>
-					</div>
-				</form>
+				</div>
 			</div>
 		</div>
 	);

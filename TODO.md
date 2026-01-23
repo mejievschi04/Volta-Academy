@@ -1,156 +1,240 @@
-
-You are a **senior UI engineer specialized in modern SaaS LMS platforms**.
-
-Your task is to **style an existing LMS interface** (layout and components already implemented) into a **premium, modern dark-mode LMS**.
-
-You must focus ONLY on **visual styling**, not on changing the layout or product logic.
+Mai jos este o **schemă profesională de creare a testelor (assessments)** pentru un LMS SaaS modern, gândită explicit pentru **reutilizare, scalabilitate și uz comercial (B2B + individual)**. Structura reflectă bune practici din learning science, psihometrie aplicată și design de produs SaaS.
 
 ---
 
+## 1. Flow de creare test (pas cu pas)
 
-cat mai optimizat si mai simplu, fa ca designul sa fie unificat si standartizat 
-(cardurile toate egale butoanele la fel) etc
+### 1. Definire scop evaluare
 
-## 1. COLOR PALETTE (MANDATORY)
+Creatorul selectează explicit:
 
-Use ONLY:
+* Tip evaluare:
 
-* Deep black / dark navy backgrounds
-  (`#0B1220`, `#0F172A`, `#111827`)
-* Light blue primary accent
-  (`#38BDF8` or similar sky-blue tone)
-* Neutral grays for text and borders
+  * Formativă (învățare, feedback)
+  * Sumativă (final de curs)
+  * Certificare
+  * Compliance / audit
+* Impact rezultat:
 
-Rules:
+  * Informativ
+  * Blocant progres
+  * Generare certificat
+  * Raportare managerială
 
-* No purple, no gradients with multiple colors
-* Blue is the ONLY accent color
-* Status colors (success / warning) must be muted
-
----
-
-## 2. BACKGROUNDS & SURFACES
-
-* Main background: very dark, almost black
-* Cards: slightly lighter than background
-* No harsh contrast jumps
-* Use subtle elevation via **soft shadows**, not borders
+> Decizie critică: scopul determină dificultatea, scorarea, feedback-ul și nivelul de securitate.
 
 ---
 
-## 3. TYPOGRAPHY
+### 2. Metadate test (layer reutilizabil)
 
-* Modern sans-serif (Inter / system UI)
-* Clear hierarchy:
+* Nume test
+* Descriere internă (pentru admin)
+* Domeniu / competență evaluată
+* Nivel target (Beginner / Intermediate / Advanced)
+* Durată estimată
+* Tags (pentru căutare și reutilizare)
+* Status: Draft / Review / Published / Archived
 
-  * Section titles: medium weight
-  * KPI numbers: bold
-  * Secondary text: reduced opacity
-* Avoid oversized headings
-
----
-
-## 4. BUTTONS & INTERACTIONS
-
-* Primary buttons:
-
-  * Light blue background
-  * Dark text
-* Secondary buttons:
-
-  * Transparent background
-  * Blue border or blue text
-* Hover states:
-
-  * Slight brightness increase
-  * Smooth transition (150–200ms)
+Testul este **independent de curs** în această fază.
 
 ---
 
-## 5. CARDS
+### 3. Configurare structură evaluare
 
-* Consistent border radius: **12px**
-* Equal internal padding
-* No visual clutter
-* Icons (if any):
+* Număr total întrebări
+* Pondere pe secțiuni (opțional)
+* Reguli de randomizare:
 
-  * Single color
-  * Low opacity
-  * Small size
-
----
-
-## 6. METRICS & PROGRESS
-
-* Progress bars:
-
-  * Blue for active progress
-  * Dark track
-  * Rounded ends
-* Charts:
-
-  * Blue data bars
-  * Minimal grid lines
-  * No heavy labels
+  * ordine întrebări
+  * ordine răspunsuri
+* Pool-uri de întrebări (question banks)
 
 ---
 
-## 7. SIDEBAR & HEADER
+### 4. Adăugare întrebări
 
-* Sidebar:
-
-  * Dark background
-  * Active item highlighted with blue accent line
-* Header:
-
-  * Dark surface
-  * Search input with subtle blue focus state
-  * Minimal separators
+* Creare manuală
+* Import (CSV / JSON / API)
+* Selectare din question bank existent
+* (Opțional) sugestii AI → validate manual
 
 ---
 
-## 8. ANIMATIONS & TRANSITIONS
+### 5. Configurare scorare & criterii
 
-* Use only subtle transitions:
+* Tip scor:
 
-  * hover
-  * focus
-  * expand/collapse
-* No flashy motion or decorative animation
-
----
-
-## 9. CSS / TAILWIND RULES
-
-* Use CSS variables or Tailwind theme config
-* Reusable utility classes
-* Avoid inline styles
-* Ensure consistency across all components
+  * punctaj numeric
+  * procent
+  * pass / fail
+  * nivel (A/B/C sau Bronze/Silver/Gold)
+* Prag promovare
+* Penalizări (negative marking, time penalty)
+* Reguli de retry
 
 ---
 
-## 10. FINAL OUTPUT
+### 6. Reguli de acces & securitate
 
-* Styled components that look:
-
-  * professional
-  * calm
-  * enterprise-grade
-* The UI must feel suitable for:
-
-  * corporate LMS
-  * tech education platform
-  * long admin sessions
+* Timer global / per întrebare
+* Limită încercări
+* Lock după eșec
+* Acces condiționat (finalizare curs, rol, grup)
+* Proctoring (pentru enterprise)
 
 ---
 
-### FINAL CHECK
+### 7. Publicare & atașare
 
-If the interface does NOT feel:
+* Atașare la:
 
-* calm
-* focused
-* premium
-  then the styling is incorrect.
+  * curs (final / intermediar)
+  * traseu de învățare
+  * certificare
+* Sau utilizare standalone (assessment library)
 
 ---
+
+## 2. Tipuri de teste și când se folosesc
+
+### Quiz formativ
+
+* Scop: învățare
+* Feedback imediat
+* Fără limitări stricte
+* Fără impact pe certificare
+
+### Test sumativ
+
+* Final de curs
+* Scor minim obligatoriu
+* Retry limitat
+* Feedback parțial
+
+### Test de certificare
+
+* High-stakes
+* Timer strict
+* Randomizare maximă
+* Fără feedback detaliat
+* Audit trail
+
+### Assessment de compliance
+
+* Întrebări standardizate
+* Versionare
+* Raportare obligatorie
+* Istoric legal
+
+### Skill assessment standalone
+
+* Recrutare
+* Evaluare internă
+* Benchmarking
+
+---
+
+## 3. Structura logică a unui test
+
+### Test
+
+→ Secțiuni (opțional)
+→ Pool-uri de întrebări
+→ Întrebări
+→ Răspunsuri
+→ Reguli de scor
+→ Feedback logic
+
+### Întrebare
+
+* Tip (MCQ, multi-select, open, scenario, matching, etc.)
+* Dificultate (1–5)
+* Competență evaluată
+* Punctaj
+* Feedback corect / greșit
+* Variante alternative (pentru randomizare)
+
+---
+
+## 4. UX pentru creator (authoring experience)
+
+### Principii UX
+
+* Wizard step-by-step
+* Preview live ca learner
+* Drag & drop pentru întrebări
+* Inline validation (erori, lipsuri)
+* Separare clară:
+
+  * Conținut
+  * Scorare
+  * Acces
+  * Publicare
+
+### Element diferențiator SaaS
+
+* Reutilizare fără duplicare
+* Clonare controlată (cu tracking versiuni)
+* Search rapid în question banks
+* Indicator vizual de dificultate & balans
+
+---
+
+## 5. Rolul AI (strict opțional, asistiv)
+
+AI **nu publică nimic automat**.
+
+### AI poate:
+
+* sugera tipuri de întrebări potrivite scopului
+* analiza distribuția dificultății
+* detecta:
+
+  * ambiguități
+  * întrebări prea ușoare/dificile
+  * bias de formulare
+* propune variante alternative pentru randomizare
+* semnala nealinierea cu obiectivele cursului
+
+### AI nu poate:
+
+* decide scor final
+* publica testul
+* modifica fără confirmare
+
+---
+
+## 6. Diferențe B2B vs Freelancer
+
+### B2B / Enterprise
+
+* Compliance & audit
+* Versionare strictă
+* Raportare avansată
+* Securitate ridicată
+* Workflow de aprobare (Reviewer → Admin)
+
+### Freelancer / Creator individual
+
+* Setup rapid
+* Mai puține restricții
+* Focus pe UX learner
+* Reutilizare cross-course
+* Monetizare directă
+
+Arhitectura trebuie să fie **identică**, doar feature flags diferite.
+
+---
+
+## 7. Erori frecvente de evitat în LMS comerciale
+
+1. Teste legate rigid de curs → imposibil de reutilizat
+2. Lipsa question banks → scalabilitate zero
+3. AI care creează automat teste → risc major de calitate
+4. Fără versionare → probleme legale
+5. Feedback identic pentru toate tipurile de evaluare
+6. UX aglomerat pentru creator
+7. Scorare rigidă (doar procent)
+
+---
+

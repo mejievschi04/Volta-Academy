@@ -88,11 +88,6 @@ const generateRecommendations = (stats) => {
 	
 	const recommendations = {
 		assessments: [],
-		pricing: {
-			suggestedAccessType: 'free',
-			suggestedPrice: null,
-			reasons: []
-		},
 		features: []
 	};
 
@@ -143,29 +138,6 @@ const generateRecommendations = (stats) => {
 			priority: 'medium',
 			autoGenerate: true
 		});
-	}
-
-	// Recomandări pentru prețuri
-	if (hasLive) {
-		recommendations.pricing.suggestedAccessType = 'paid';
-		recommendations.pricing.reasons.push('Lecții live - recomandăm acces cu plată');
-		recommendations.pricing.suggestedPrice = 199; // RON
-	}
-
-	if (hasVideo && typeCounts.video >= 10) {
-		recommendations.pricing.suggestedAccessType = 'paid';
-		recommendations.pricing.reasons.push(`${typeCounts.video} lecții video - conținut premium`);
-		if (!recommendations.pricing.suggestedPrice) {
-			recommendations.pricing.suggestedPrice = 149; // RON
-		}
-	}
-
-	if (hasAssignment && typeCounts.assignment >= 5) {
-		recommendations.pricing.suggestedAccessType = 'paid';
-		recommendations.pricing.reasons.push(`${typeCounts.assignment} teme practice - valoare adăugată`);
-		if (!recommendations.pricing.suggestedPrice) {
-			recommendations.pricing.suggestedPrice = 99; // RON
-		}
 	}
 
 	// Recomandări pentru funcții avansate

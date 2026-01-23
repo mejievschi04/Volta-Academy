@@ -110,20 +110,6 @@
             font-family: 'Courier New', monospace;
         }
         
-        .certificate-seal {
-            position: absolute;
-            bottom: 30mm;
-            right: 40mm;
-            width: 60mm;
-            height: 60mm;
-            border: 4pt solid #ffd700;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            font-size: 24pt;
-        }
     </style>
 </head>
 <body>
@@ -168,9 +154,6 @@
             </div>
         </div>
         
-        <div class="certificate-seal">
-            ✓
-        </div>
     </div>
 </body>
 </html>

@@ -230,6 +230,11 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::get('/settings/{key}', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'show']);
     Route::put('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'update']);
     
+    // Certificate Settings
+    Route::get('/certificate-settings', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'index']);
+    Route::put('/certificate-settings', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'update']);
+    Route::post('/certificate-settings/logo', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'uploadLogo']);
+    
     // Admin System
     Route::get('/export', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'export']);
     Route::post('/system/clear-cache', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'clearCache']);

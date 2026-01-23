@@ -42,31 +42,20 @@ class CourseProgressController extends Controller
                 ->where('enrolled', true)
                 ->first();
 
-            // If not enrolled, check if course is free and auto-enroll
+            // If not enrolled, auto-enroll the user (all courses are free)
             if (!$enrollment) {
-                // Get access type from course settings or legacy field
-                $accessType = $course->access_type ?? ($course->settings['access']['type'] ?? 'free');
-                
-                // For free courses, auto-enroll the user
-                if ($accessType === 'free') {
-                    \DB::table('course_user')->updateOrInsert(
-                        [
-                            'user_id' => $user->id,
-                            'course_id' => $courseId,
-                        ],
-                        [
-                            'enrolled' => true,
-                            'enrolled_at' => now(),
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
-                } else {
-                    // For paid courses, return 403
-                    return response()->json([
-                        'message' => 'Nu ești înscris la acest curs',
-                    ], 403);
-                }
+                \DB::table('course_user')->updateOrInsert(
+                    [
+                        'user_id' => $user->id,
+                        'course_id' => $courseId,
+                    ],
+                    [
+                        'enrolled' => true,
+                        'enrolled_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
             }
 
             // Recalculate progress in real-time
@@ -217,11 +206,6 @@ class CourseProgressController extends Controller
                         'updated_at' => now(),
                     ]
                 );
-            } else {
-                // For paid courses, return 403
-                return response()->json([
-                    'message' => 'Nu ești înscris la acest curs',
-                ], 403);
             }
         }
 

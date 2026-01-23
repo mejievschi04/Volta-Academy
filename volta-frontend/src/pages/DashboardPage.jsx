@@ -64,19 +64,23 @@ const DashboardPage = () => {
 		stats 
 	} = dashboardData;
 
+	// Separate mandatory and optional courses
+	const mandatoryCourses = active_courses.filter(course => course.is_mandatory === true || course.pivot?.is_mandatory === true);
+	const optionalCourses = active_courses.filter(course => !(course.is_mandatory === true || course.pivot?.is_mandatory === true));
+
 	return (
 		<div className="student-dashboard-page">
 			{/* Page Header */}
 			<div className="student-dashboard-header">
 				<div className="student-dashboard-welcome">
-					<span className="student-dashboard-welcome-icon">✨</span>
-					<span>Bine ai revenit, {user?.name || 'Utilizator'}!</span>
+					<span className="student-dashboard-welcome-icon">👋</span>
+					<span>Bună ziua, {user?.name || 'Angajat'}!</span>
 				</div>
 				<h1 className="student-dashboard-title">
-					Continuă-ți călătoria de învățare
+					Platforma de Dezvoltare Profesională
 				</h1>
 				<p className="student-dashboard-subtitle">
-					Urmărește-ți progresul și finalizează cursurile pentru a obține certificări
+					Urmărește-ți progresul, finalizează cursurile obligatorii și dezvoltă-ți competențele
 				</p>
 			</div>
 
@@ -115,34 +119,34 @@ const DashboardPage = () => {
 						</div>
 					</div>
 
-					{/* Quick Stats */}
+					{/* Quick Stats - Corporate Metrics */}
 					<div className="student-dashboard-quick-stats">
-						<div className="student-quick-stat">
+						<div className="student-quick-stat student-quick-stat-primary">
 							<div className="student-quick-stat-icon">📚</div>
 							<div className="student-quick-stat-content">
 								<div className="student-quick-stat-value">{stats.total_courses}</div>
-								<div className="student-quick-stat-label">Cursuri</div>
+								<div className="student-quick-stat-label">Cursuri Asignate</div>
 							</div>
 						</div>
-						<div className="student-quick-stat">
+						<div className="student-quick-stat student-quick-stat-success">
 							<div className="student-quick-stat-icon">✅</div>
 							<div className="student-quick-stat-content">
 								<div className="student-quick-stat-value">{stats.completed_courses_count}</div>
-								<div className="student-quick-stat-label">Finalizate</div>
+								<div className="student-quick-stat-label">Cursuri Finalizate</div>
 							</div>
 						</div>
-						<div className="student-quick-stat">
+						<div className="student-quick-stat student-quick-stat-info">
 							<div className="student-quick-stat-icon">📖</div>
 							<div className="student-quick-stat-content">
 								<div className="student-quick-stat-value">{stats.total_lessons_completed}</div>
-								<div className="student-quick-stat-label">Lecții</div>
+								<div className="student-quick-stat-label">Lecții Completate</div>
 							</div>
 						</div>
-						<div className="student-quick-stat">
+						<div className="student-quick-stat student-quick-stat-warning">
 							<div className="student-quick-stat-icon">⏱️</div>
 							<div className="student-quick-stat-content">
 								<div className="student-quick-stat-value">{learning_time.formatted}</div>
-								<div className="student-quick-stat-label">Timp învățare</div>
+								<div className="student-quick-stat-label">Ore de Formare</div>
 							</div>
 						</div>
 					</div>
@@ -156,18 +160,53 @@ const DashboardPage = () => {
 					{/* Resume Learning */}
 					<ResumeLearningWidget nextLesson={next_lesson} />
 
-					{/* Active Courses */}
+					{/* Mandatory Courses */}
+					{mandatoryCourses.length > 0 && (
+						<div className="student-widget student-mandatory-courses-widget">
+							<div className="student-widget-header">
+								<div>
+									<h3>
+										<span className="student-widget-badge student-widget-badge-required">Obligatoriu</span>
+										Cursuri Obligatorii
+									</h3>
+									<p className="student-widget-subtitle">Finalizează aceste cursuri pentru a-ți îndeplini responsabilitățile</p>
+								</div>
+								<span className="student-widget-count student-widget-count-urgent">{mandatoryCourses.length}</span>
+							</div>
+							<div className="student-widget-content">
+								<div className="student-active-courses-grid">
+									{mandatoryCourses.map((course) => (
+										<CourseProgressWidget key={course.id} course={course} isMandatory={true} />
+									))}
+								</div>
+							</div>
+						</div>
+					)}
+
+					{/* Optional Courses */}
 					<div className="student-widget student-active-courses-widget">
 						<div className="student-widget-header">
-							<h3>Cursuri Active</h3>
-							<span className="student-widget-count">{active_courses.length}</span>
+							<div>
+								<h3>Cursuri Opționale</h3>
+								<p className="student-widget-subtitle">Continuă dezvoltarea profesională</p>
+							</div>
+							<span className="student-widget-count">{optionalCourses.length || active_courses.length}</span>
 						</div>
 						<div className="student-widget-content">
-							{active_courses.length === 0 ? (
-								<p className="student-widget-empty">Nu ai cursuri active momentan.</p>
+							{(optionalCourses.length === 0 && mandatoryCourses.length > 0) || active_courses.length === 0 ? (
+								<div className="student-widget-empty-state">
+									<div className="student-widget-empty-icon">📚</div>
+									<p className="student-widget-empty">Nu ai cursuri opționale active momentan.</p>
+									<button 
+										className="student-btn student-btn-primary"
+										onClick={() => navigate('/courses')}
+									>
+										Explorează Cursuri
+									</button>
+								</div>
 							) : (
 								<div className="student-active-courses-grid">
-									{active_courses.map((course) => (
+									{(optionalCourses.length > 0 ? optionalCourses : active_courses).map((course) => (
 										<CourseProgressWidget key={course.id} course={course} />
 									))}
 								</div>

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
-import AITestChat from '../../components/admin/ai/AITestChat';
 
 const AdminTestsPage = () => {
 	const navigate = useNavigate();
@@ -10,28 +9,35 @@ const AdminTestsPage = () => {
 	const [tests, setTests] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	
+	// Filters and search
+	const [searchQuery, setSearchQuery] = useState('');
 	const [filters, setFilters] = useState({
 		status: 'all',
 		type: 'all',
-		search: '',
+		activeCount: 0
 	});
-	const [showAIChat, setShowAIChat] = useState(false);
+	const [sortBy, setSortBy] = useState('recent');
+	const [viewMode, setViewMode] = useState('grid');
+	
+	// Selection
+	const [selectedTests, setSelectedTests] = useState(new Set());
 
-	useEffect(() => {
-		fetchTests();
-	}, [filters]);
-
-	const fetchTests = async () => {
+	// Fetch tests
+	const fetchTests = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const params = {};
-			if (filters.status !== 'all') params.status = filters.status;
-			if (filters.type !== 'all') params.type = filters.type;
-			if (filters.search) params.search = filters.search;
+			
+			const params = {
+				search: searchQuery || undefined,
+				status: filters.status !== 'all' ? filters.status : undefined,
+				type: filters.type !== 'all' ? filters.type : undefined,
+				sort: sortBy
+			};
 			
 			const data = await adminService.getTests(params);
-			setTests(Array.isArray(data) ? data : (data?.data || []));
+			setTests(Array.isArray(data) ? data : []);
 		} catch (err) {
 			console.error('Error fetching tests:', err);
 			setError('Nu s-au putut încărca testele');
@@ -39,78 +45,115 @@ const AdminTestsPage = () => {
 		} finally {
 			setLoading(false);
 		}
+	}, [searchQuery, filters, sortBy, showToast]);
+
+	useEffect(() => {
+		fetchTests();
+	}, [fetchTests]);
+
+	// Calculate active filters count
+	useEffect(() => {
+		let count = 0;
+		if (filters.status !== 'all') count++;
+		if (filters.type !== 'all') count++;
+		setFilters(prev => ({ ...prev, activeCount: count }));
+	}, [filters.status, filters.type]);
+
+	// Handle filter change
+	const handleFilterChange = (key, value) => {
+		setFilters(prev => ({ ...prev, [key]: value }));
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi acest test? Testele legate de cursuri nu pot fi șterse.')) {
-			return;
-		}
+	// Handle test selection
+	const handleSelectTest = (testId, selected) => {
+		setSelectedTests(prev => {
+			const newSet = new Set(prev);
+			if (selected) {
+				newSet.add(testId);
+			} else {
+				newSet.delete(testId);
+			}
+			return newSet;
+		});
+	};
 
+	// Handle quick actions
+	const handleQuickAction = async (testId, action) => {
 		try {
-			await adminService.deleteTest(id);
-			showToast('Test șters cu succes', 'success');
+			switch (action) {
+				case 'publish':
+					await adminService.publishTest(testId);
+					showToast('Testul a fost publicat cu succes', 'success');
+					break;
+				case 'delete':
+					if (window.confirm('Ești sigur că vrei să ștergi acest test?')) {
+						await adminService.deleteTest(testId);
+						showToast('Testul a fost șters cu succes', 'success');
+					}
+					break;
+				case 'archive':
+					await adminService.updateTest(testId, { status: 'archived' });
+					showToast('Testul a fost arhivat', 'success');
+					break;
+				default:
+					console.warn('Unknown action:', action);
+			}
 			fetchTests();
 		} catch (err) {
-			console.error('Error deleting test:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la ștergerea testului';
-			showToast(errorMsg, 'error');
+			console.error('Error performing action:', err);
+			showToast('Eroare la executarea acțiunii', 'error');
 		}
 	};
 
-	const handlePublish = async (id) => {
-		try {
-			await adminService.publishTest(id);
-			showToast('Test publicat cu succes', 'success');
-			fetchTests();
-		} catch (err) {
-			console.error('Error publishing test:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la publicarea testului';
-			showToast(errorMsg, 'error');
-		}
+	// Handle create test
+	const handleCreateTest = () => {
+		navigate('/admin/tests/new/builder');
 	};
 
+	// Get status badge
 	const getStatusBadge = (status) => {
 		const badges = {
-			draft: { label: 'Draft', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
-			published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
-			archived: { label: 'Arhivat', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' },
+			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
+			draft: { label: 'Draft', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
+			archived: { label: 'Arhivat', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
 		};
-		const badge = badges[status] || badges.draft;
-		return (
-			<span className="admin-card-badge" style={{
-				background: badge.bgColor,
-				color: badge.color,
-				border: `1px solid ${badge.color}40`,
-			}}>
-				{badge.label}
-			</span>
-		);
+		return badges[status] || badges.draft;
 	};
 
+	// Get type badge
 	const getTypeBadge = (type) => {
-		const types = {
-			practice: { label: 'Practică', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' },
-			graded: { label: 'Notat', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.15)' },
-			final: { label: 'Final', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+		const badges = {
+			practice: { label: 'Practice', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
+			graded: { label: 'Graded', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
+			final: { label: 'Final', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },
 		};
-		const badge = types[type] || types.graded;
-		return (
-			<span className="admin-card-badge" style={{
-				background: badge.bgColor,
-				color: badge.color,
-				border: `1px solid ${badge.color}40`,
-			}}>
-				{badge.label}
-			</span>
-		);
+		return badges[type] || badges.graded;
 	};
 
-	if (loading) {
+	// Filtered and sorted tests
+	const filteredAndSortedTests = useMemo(() => {
+		let filtered = [...tests];
+
+		// Apply sorting
+		if (sortBy === 'recent') {
+			filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+		} else if (sortBy === 'alphabetical') {
+			filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+		} else if (sortBy === 'questions') {
+			filtered.sort((a, b) => (b.questions_count || 0) - (a.questions_count || 0));
+		}
+
+		return filtered;
+	}, [tests, sortBy]);
+
+	if (error) {
 		return (
 			<div className="admin-container">
-				<div className="lms-dashboard-loading">
-					<div className="lms-spinner"></div>
-					<p>Se încarcă testele...</p>
+				<div className="lms-empty-state">
+					<p style={{ color: 'var(--color-error)' }}>{error}</p>
+					<button className="lms-btn-primary" onClick={fetchTests}>
+						Încearcă din nou
+					</button>
 				</div>
 			</div>
 		);
@@ -118,186 +161,326 @@ const AdminTestsPage = () => {
 
 	return (
 		<div className="admin-container">
-			<div className="admin-page-header">
-				<div>
-					<h1 className="admin-page-title">Test Builder</h1>
-					<p className="admin-page-subtitle">
-						Gestionează testele standalone. Testele pot fi reutilizate în multiple cursuri.
-					</p>
+			{/* Header */}
+			<div className="admin-courses-page-header">
+				<div className="admin-courses-header-content">
+					<div className="admin-courses-header-text">
+						<h1 className="admin-courses-title">Teste</h1>
+						<p className="admin-courses-subtitle">
+							Gestionează și creează teste pentru cursuri
+						</p>
+					</div>
+					<div className="admin-courses-header-actions">
+						<button className="admin-btn-create-course" onClick={handleCreateTest}>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
+							</svg>
+							Creează Test
+						</button>
+					</div>
 				</div>
-				<div className="admin-page-header-actions">
-					<button
-						className="lms-btn-secondary"
-						onClick={() => setShowAIChat(true)}
-						title="Creează test cu AI"
-					>
-						<span>🤖</span>
-						AI Creator
-					</button>
-					<button
-						className="lms-btn-primary"
-						onClick={() => navigate('/admin/tests/new/builder')}
-					>
-						<span>+</span>
-						Creează Test Nou
-					</button>
-				</div>
-			</div>
 
-			{/* AI Chat Modal */}
-			{showAIChat && (
-				<div className="ai-chat-modal-overlay" onClick={() => setShowAIChat(false)}>
-					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
-						<AITestChat
-							courseId={null}
-							onTestGenerated={(test) => {
-								if (test?.id) {
-									navigate(`/admin/tests/${test.id}/builder`);
-								} else {
-									fetchTests();
-								}
-								setShowAIChat(false);
-							}}
-							onClose={() => setShowAIChat(false)}
+				{/* Search and Filters */}
+				<div className="admin-courses-search-wrapper">
+					<div className="admin-courses-search">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<circle cx="11" cy="11" r="8"/>
+							<path d="m21 21-4.35-4.35"/>
+						</svg>
+						<input
+							type="text"
+							placeholder="Caută teste..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							className="admin-courses-search-input"
 						/>
 					</div>
-				</div>
-			)}
 
-			{/* Filters */}
-			<div className="admin-courses-toolbar" style={{ marginBottom: '2rem' }}>
-				<div className="admin-courses-search">
-					<input
-						type="text"
-						className="admin-search-input"
-						placeholder="Caută teste..."
-						value={filters.search}
-						onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-					/>
-					{filters.search && (
-						<button
-							className="admin-search-clear-btn"
-							onClick={() => setFilters({ ...filters, search: '' })}
-							aria-label="Clear search"
+					<div className="admin-courses-filters">
+						{/* Status Filter */}
+						<select
+							value={filters.status}
+							onChange={(e) => handleFilterChange('status', e.target.value)}
+							className="admin-courses-filter-select"
 						>
-							×
-						</button>
-					)}
-				</div>
-				<div className="admin-courses-actions">
-					<select
-						className="admin-filter-select"
-						value={filters.status}
-						onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-					>
-						<option value="all">Toate statusurile</option>
-						<option value="draft">Draft</option>
-						<option value="published">Publicat</option>
-						<option value="archived">Arhivat</option>
-					</select>
-					<select
-						className="admin-filter-select"
-						value={filters.type}
-						onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-					>
-						<option value="all">Toate tipurile</option>
-						<option value="practice">Practică</option>
-						<option value="graded">Notat</option>
-						<option value="final">Final</option>
-					</select>
+							<option value="all">Toate statusurile</option>
+							<option value="published">Publicat</option>
+							<option value="draft">Draft</option>
+							<option value="archived">Arhivat</option>
+						</select>
+
+						{/* Type Filter */}
+						<select
+							value={filters.type}
+							onChange={(e) => handleFilterChange('type', e.target.value)}
+							className="admin-courses-filter-select"
+						>
+							<option value="all">Toate tipurile</option>
+							<option value="practice">Practice</option>
+							<option value="graded">Graded</option>
+							<option value="final">Final</option>
+						</select>
+
+						{/* Sort */}
+						<select
+							value={sortBy}
+							onChange={(e) => setSortBy(e.target.value)}
+							className="admin-courses-filter-select"
+						>
+							<option value="recent">Cele mai recente</option>
+							<option value="alphabetical">Alfabetic</option>
+							<option value="questions">Nr. întrebări</option>
+						</select>
+
+						{/* View Mode Toggle */}
+						<div className="admin-courses-view-toggle">
+							<button
+								className={viewMode === 'grid' ? 'active' : ''}
+								onClick={() => setViewMode('grid')}
+								title="Grid View"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<rect x="3" y="3" width="7" height="7"/>
+									<rect x="14" y="3" width="7" height="7"/>
+									<rect x="3" y="14" width="7" height="7"/>
+									<rect x="14" y="14" width="7" height="7"/>
+								</svg>
+							</button>
+							<button
+								className={viewMode === 'list' ? 'active' : ''}
+								onClick={() => setViewMode('list')}
+								title="List View"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<line x1="8" y1="6" x2="21" y2="6"/>
+									<line x1="8" y1="12" x2="21" y2="12"/>
+									<line x1="8" y1="18" x2="21" y2="18"/>
+									<line x1="3" y1="6" x2="3.01" y2="6"/>
+									<line x1="3" y1="12" x2="3.01" y2="12"/>
+									<line x1="3" y1="18" x2="3.01" y2="18"/>
+								</svg>
+							</button>
+						</div>
+					</div>
 				</div>
 			</div>
 
-			{error && (
-				<div className="lms-error-message">
-					<strong>Eroare:</strong> {error}
+			{/* Tests List/Grid */}
+			{loading && tests.length === 0 ? (
+				<div className="admin-courses-loading">
+					<div className="va-spinner va-spinner-lg"></div>
+					<p>Se încarcă testele...</p>
 				</div>
-			)}
-
-			{tests.length > 0 ? (
-				<div className="admin-grid">
-					{tests.map((test) => (
-						<div key={test.id} className="admin-card">
-							<div className="admin-card-body">
-								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
-									<h3 className="admin-card-title" style={{ margin: 0, flex: 1 }}>
-										{test.title}
-									</h3>
-									<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-										{getStatusBadge(test.status)}
-										{getTypeBadge(test.type)}
-									</div>
-								</div>
-
-								{test.description && (
-									<p className="admin-card-description" style={{ marginBottom: '1rem' }}>
-										{test.description}
-									</p>
-								)}
-
-								<div className="admin-card-info" style={{ marginBottom: '1rem' }}>
-									<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-										{test.time_limit_minutes && (
-											<div>⏱️ {test.time_limit_minutes} min</div>
-										)}
-										{test.max_attempts && (
-											<div>🔄 {test.max_attempts} încercări</div>
-										)}
-										{test.questions_count !== undefined && (
-											<div>❓ {test.questions_count} întrebări</div>
-										)}
-										{test.courses_count !== undefined && (
-											<div>📚 Folosit în {test.courses_count} cursuri</div>
-										)}
-									</div>
-								</div>
-
-								<div className="admin-card-actions">
-									<button
-										className="lms-btn-secondary lms-btn-sm"
-										onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
-									>
-										<span>✏️</span>
-										<span>Editează</span>
-									</button>
-									{test.status === 'draft' && (
-										<button
-											className="lms-btn-primary lms-btn-sm"
-											onClick={() => handlePublish(test.id)}
-										>
-											<span>📤</span>
-											<span>Publică</span>
-										</button>
-									)}
-									<button
-										className="lms-btn-secondary lms-btn-sm va-btn-danger"
-										onClick={() => handleDelete(test.id)}
-									>
-										<span>🗑️</span>
-										<span>Șterge</span>
-									</button>
-								</div>
-							</div>
-						</div>
-					))}
+			) : filteredAndSortedTests.length === 0 ? (
+				<div className="lms-empty-state">
+					<p>Nu există teste disponibile.</p>
+					<button className="lms-btn-primary" onClick={handleCreateTest}>
+						+ Creează primul test
+					</button>
 				</div>
 			) : (
-				<div className="lms-empty-state">
-					<div className="lms-empty-icon">📝</div>
-					<div className="lms-empty-title">Nu există teste</div>
-					<div className="lms-empty-description">
-						{Object.values(filters).some(f => f !== 'all' && f !== '') 
-							? 'Încearcă să modifici filtrele' 
-							: 'Creează primul test pentru a începe'}
-					</div>
-					{!Object.values(filters).some(f => f !== 'all' && f !== '') && (
-						<button
-							className="lms-btn-primary"
-							onClick={() => navigate('/admin/tests/new/builder')}
-						>
-							<span>+</span>
-							Creează Test Nou
-						</button>
+				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
+					{viewMode === 'grid' ? (
+						<div className="admin-courses-grid-container">
+							{filteredAndSortedTests.map(test => {
+								const statusBadge = getStatusBadge(test.status);
+								const typeBadge = getTypeBadge(test.type);
+								
+								return (
+									<div
+										key={test.id}
+										className="admin-course-card"
+										onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
+									>
+										{/* Header with badges */}
+										<div className="admin-course-card-header">
+											<div className="admin-course-card-badges">
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: statusBadge.bg,
+														color: statusBadge.color,
+														borderColor: statusBadge.color,
+													}}
+												>
+													{statusBadge.label}
+												</div>
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: typeBadge.bg,
+														color: typeBadge.color,
+														borderColor: typeBadge.color,
+													}}
+												>
+													{typeBadge.label}
+												</div>
+											</div>
+										</div>
+
+										{/* Content */}
+										<div className="admin-course-card-content">
+											<h3 className="admin-course-card-title">{test.title}</h3>
+											{test.description && (
+												<p className="admin-course-card-description">
+													{test.description.length > 100 
+														? test.description.substring(0, 100) + '...' 
+														: test.description}
+												</p>
+											)}
+
+											{/* Stats */}
+											<div className="admin-course-card-stats">
+												<span className="admin-course-card-stat">
+													📝 {test.questions_count || 0} întrebări
+												</span>
+												{test.time_limit_minutes && (
+													<span className="admin-course-card-stat">
+														⏱️ {test.time_limit_minutes} min
+													</span>
+												)}
+												{test.attempts_count > 0 && (
+													<span className="admin-course-card-stat">
+														👥 {test.attempts_count} încercări
+													</span>
+												)}
+											</div>
+										</div>
+
+										{/* Actions */}
+										<div className="admin-course-card-actions">
+											<button
+												className="admin-course-card-action-btn"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/admin/tests/${test.id}/builder`);
+												}}
+											>
+												✏️ Editează
+											</button>
+											{test.status !== 'published' && (
+												<button
+													className="admin-course-card-action-btn"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleQuickAction(test.id, 'publish');
+													}}
+												>
+													✅ Publică
+												</button>
+											)}
+											<button
+												className="admin-course-card-action-btn va-btn-danger"
+												onClick={(e) => {
+													e.stopPropagation();
+													handleQuickAction(test.id, 'delete');
+												}}
+											>
+												🗑️ Șterge
+											</button>
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					) : (
+						<div className="admin-courses-table-container">
+							<div className="admin-courses-table-header">
+								<div className="admin-course-table-checkbox"></div>
+								<div className="admin-course-table-info-header">Test</div>
+								<div className="admin-course-table-metrics-header">Metrici</div>
+								<div className="admin-course-table-actions-header">Acțiuni</div>
+							</div>
+							{filteredAndSortedTests.map(test => {
+								const statusBadge = getStatusBadge(test.status);
+								const typeBadge = getTypeBadge(test.type);
+								
+								return (
+									<div key={test.id} className="admin-course-table-row">
+										<div className="admin-course-table-checkbox">
+											<input
+												type="checkbox"
+												checked={selectedTests.has(test.id)}
+												onChange={(e) => handleSelectTest(test.id, e.target.checked)}
+												onClick={(e) => e.stopPropagation()}
+											/>
+										</div>
+										<div className="admin-course-table-info">
+											<div className="admin-course-table-badges">
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: statusBadge.bg,
+														color: statusBadge.color,
+														borderColor: statusBadge.color,
+													}}
+												>
+													{statusBadge.label}
+												</div>
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: typeBadge.bg,
+														color: typeBadge.color,
+														borderColor: typeBadge.color,
+													}}
+												>
+													{typeBadge.label}
+												</div>
+											</div>
+											<h3 className="admin-course-table-title">{test.title}</h3>
+											{test.description && (
+												<p className="admin-course-table-description">
+													{test.description.length > 150 
+														? test.description.substring(0, 150) + '...' 
+														: test.description}
+												</p>
+											)}
+										</div>
+										<div className="admin-course-table-metrics">
+											<div className="admin-course-table-metric">
+												<span className="admin-course-table-metric-label">Întrebări:</span>
+												<span className="admin-course-table-metric-value">{test.questions_count || 0}</span>
+											</div>
+											{test.time_limit_minutes && (
+												<div className="admin-course-table-metric">
+													<span className="admin-course-table-metric-label">Durată:</span>
+													<span className="admin-course-table-metric-value">{test.time_limit_minutes} min</span>
+												</div>
+											)}
+											{test.attempts_count > 0 && (
+												<div className="admin-course-table-metric">
+													<span className="admin-course-table-metric-label">Încercări:</span>
+													<span className="admin-course-table-metric-value">{test.attempts_count}</span>
+												</div>
+											)}
+										</div>
+										<div className="admin-course-table-actions">
+											<button
+												className="admin-course-table-action-btn"
+												onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
+											>
+												✏️ Editează
+											</button>
+											{test.status !== 'published' && (
+												<button
+													className="admin-course-table-action-btn"
+													onClick={() => handleQuickAction(test.id, 'publish')}
+												>
+													✅ Publică
+												</button>
+											)}
+											<button
+												className="admin-course-table-action-btn va-btn-danger"
+												onClick={() => handleQuickAction(test.id, 'delete')}
+											>
+												🗑️ Șterge
+											</button>
+										</div>
+									</div>
+								);
+							})}
+						</div>
 					)}
 				</div>
 			)}
@@ -306,4 +489,3 @@ const AdminTestsPage = () => {
 };
 
 export default AdminTestsPage;
-

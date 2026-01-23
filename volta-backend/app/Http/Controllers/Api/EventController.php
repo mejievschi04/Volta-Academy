@@ -137,14 +137,7 @@ class EventController extends Controller
             }
         }
 
-        // Check access type
-        if ($event->access_type === 'paid') {
-            // TODO: Implement payment logic
-            return response()->json([
-                'message' => 'Plată necesară pentru acest eveniment',
-            ], 400);
-        }
-
+        // Check if event is included in a course
         if ($event->access_type === 'course_included') {
             // Check if user is enrolled in the course
             if (!$event->course_id) {

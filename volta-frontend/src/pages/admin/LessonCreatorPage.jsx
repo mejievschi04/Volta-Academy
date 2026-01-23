@@ -301,9 +301,7 @@ const LessonCreatorPage = () => {
 					<button 
 						className="admin-btn admin-btn-secondary" 
 						onClick={() => {
-							if (categoryId) {
-								navigate(`/admin/categories/${categoryId}`);
-							} else if (formData.course_id) {
+							if (formData.course_id) {
 								navigate(`/admin/courses/${formData.course_id}`);
 							} else {
 								navigate('/admin/courses');
@@ -314,9 +312,10 @@ const LessonCreatorPage = () => {
 					</button>
 				</div>
 
-				<div className="admin-form">
-					<div className="admin-form-body">
-					<form onSubmit={handleSubmit} className="admin-lesson-form">
+				<div className="admin-creator-split">
+					<div className="admin-creator-form-panel">
+						<div className="admin-form-body">
+							<form onSubmit={handleSubmit} className="admin-lesson-form">
 						{/* Progress Indicator */}
 						<div className="admin-form-progress">
 							<div className="admin-form-progress-header">
@@ -504,9 +503,7 @@ const LessonCreatorPage = () => {
 								type="button"
 								className="admin-btn admin-btn-secondary"
 								onClick={() => {
-									if (categoryId) {
-										navigate(`/admin/categories/${categoryId}`);
-									} else if (formData.course_id) {
+									if (formData.course_id) {
 										navigate(`/admin/courses/${formData.course_id}`);
 									} else {
 										navigate('/admin/courses');
@@ -540,6 +537,41 @@ const LessonCreatorPage = () => {
 							</button>
 						</div>
 					</form>
+					</div>
+					</div>
+
+					{/* Preview Panel */}
+					<div className="admin-creator-preview-panel">
+						<div className="admin-creator-preview-header">
+							<h3>Preview Live</h3>
+							<p>Vizualizează modificările în timp real</p>
+						</div>
+						<div className="admin-creator-preview-content">
+							<div className="lesson-preview-card">
+								<div className="lesson-preview-body">
+									<h4 className="lesson-preview-title">{formData.title || 'Titlu lecție'}</h4>
+									{formData.content && (
+										<div 
+											className="lesson-preview-content"
+											dangerouslySetInnerHTML={{ __html: formData.content }}
+										/>
+									)}
+									{!formData.content && (
+										<p className="lesson-preview-placeholder">Conținutul lecției va apărea aici...</p>
+									)}
+									<div className="lesson-preview-meta">
+										<div className="lesson-preview-meta-item">
+											<span className="lesson-preview-meta-label">Ordine:</span>
+											<span className="lesson-preview-meta-value">{formData.order || 0}</span>
+										</div>
+										<div className="lesson-preview-meta-item">
+											<span className="lesson-preview-meta-label">Status:</span>
+											<span className="lesson-preview-meta-value">{formData.status || 'draft'}</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -11,8 +11,15 @@ const AdminRoute = ({ children }) => {
 		return <Navigate to="/login" replace />;
 	}
 
+	// Strict protection: only admins can access admin pages
+	// Students and other users are redirected to home
 	if (user.role !== 'admin') {
-		return <Navigate to="/" replace />;
+		// Redirect students to their home page
+		if (user.role === 'student' || !user.role || user.role === '') {
+			return <Navigate to="/home" replace />;
+		}
+		// Redirect other users to home
+		return <Navigate to="/home" replace />;
 	}
 
 	return children;

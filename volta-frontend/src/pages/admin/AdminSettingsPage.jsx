@@ -5,7 +5,6 @@ import { useToast } from '../../contexts/ToastContext';
 const AdminSettingsPage = () => {
 	const { success, error: showError } = useToast();
 	const [settings, setSettings] = useState({
-		default_currency: 'RON',
 		maintenance_mode: false,
 		registration_enabled: true,
 		email_notifications: true,
@@ -16,12 +15,6 @@ const AdminSettingsPage = () => {
 	const [saving, setSaving] = useState(false);
 	const [activeTab, setActiveTab] = useState('general');
 
-	const currencies = [
-		{ code: 'MDL', name: 'Leu moldovenesc', symbol: 'MDL' },
-		{ code: 'RON', name: 'Leu românesc', symbol: 'RON' },
-		{ code: 'USD', name: 'Dolar american', symbol: '$' },
-		{ code: 'EUR', name: 'Euro', symbol: '€' },
-	];
 
 	useEffect(() => {
 		fetchSettings();
@@ -31,26 +24,16 @@ const AdminSettingsPage = () => {
 		try {
 			setLoading(true);
 			const data = await adminService.getSettings();
-			const currency = data.default_currency?.value || localStorage.getItem('volta_currency') || 'RON';
 			setSettings(prev => ({
 				...prev,
-				default_currency: currency,
 				maintenance_mode: data.maintenance_mode?.value === '1' || data.maintenance_mode?.value === true || prev.maintenance_mode,
 				registration_enabled: data.registration_enabled?.value !== '0' && data.registration_enabled?.value !== false || prev.registration_enabled,
 				email_notifications: data.email_notifications?.value !== '0' && data.email_notifications?.value !== false || prev.email_notifications,
 				backup_enabled: data.backup_enabled?.value !== '0' && data.backup_enabled?.value !== false || prev.backup_enabled,
 				backup_frequency: data.backup_frequency?.value || prev.backup_frequency,
 			}));
-			// Also update localStorage
-			localStorage.setItem('volta_currency', currency);
 		} catch (err) {
 			console.error('Error fetching settings:', err);
-			// Fallback to localStorage
-			const storedCurrency = localStorage.getItem('volta_currency') || 'RON';
-			setSettings(prev => ({
-				...prev,
-				default_currency: storedCurrency,
-			}));
 		} finally {
 			setLoading(false);
 		}
@@ -60,10 +43,6 @@ const AdminSettingsPage = () => {
 		try {
 			setSaving(true);
 			await adminService.updateSettings(settings);
-			// Update localStorage
-			localStorage.setItem('volta_currency', settings.default_currency);
-			// Dispatch custom event to notify other components
-			window.dispatchEvent(new CustomEvent('currencyChanged', { detail: settings.default_currency }));
 			success('Setările au fost salvate cu succes');
 		} catch (err) {
 			console.error('Error saving settings:', err);
@@ -73,12 +52,6 @@ const AdminSettingsPage = () => {
 		}
 	};
 
-	const handleCurrencyChange = (currencyCode) => {
-		setSettings(prev => ({
-			...prev,
-			default_currency: currencyCode,
-		}));
-	};
 
 	const handleInputChange = (key, value) => {
 		setSettings(prev => ({
@@ -188,12 +161,6 @@ const AdminSettingsPage = () => {
 						⚙️ General
 					</button>
 					<button
-						className={`admin-settings-tab ${activeTab === 'currency' ? 'active' : ''}`}
-						onClick={() => setActiveTab('currency')}
-					>
-						💱 Monetar
-					</button>
-					<button
 						className={`admin-settings-tab ${activeTab === 'system' ? 'active' : ''}`}
 						onClick={() => setActiveTab('system')}
 					>
@@ -262,52 +229,6 @@ const AdminSettingsPage = () => {
 					</div>
 				)}
 
-				{/* Currency Settings */}
-				{activeTab === 'currency' && (
-					<div className="admin-settings-section">
-						<div className="admin-settings-section-header">
-							<h2 className="admin-settings-section-title">
-								<span className="admin-settings-section-icon">💱</span>
-								<span>Setări Monetare</span>
-							</h2>
-							<p className="admin-settings-section-description">
-								Selectează valuta implicită pentru prețurile cursurilor
-							</p>
-						</div>
-
-						<div className="admin-settings-form">
-							<div className="admin-settings-form-group">
-								<label className="admin-settings-label">
-									Valută Implicită
-								</label>
-								<div className="admin-currency-selector">
-									{currencies.map((currency) => (
-										<button
-											key={currency.code}
-											type="button"
-											className={`admin-currency-option ${
-												settings.default_currency === currency.code ? 'active' : ''
-											}`}
-											onClick={() => handleCurrencyChange(currency.code)}
-										>
-											<div className="admin-currency-option-header">
-												<span className="admin-currency-symbol">
-													{currency.symbol}
-												</span>
-												<span className="admin-currency-code">
-													{currency.code}
-												</span>
-											</div>
-											<span className="admin-currency-name">
-												{currency.name}
-											</span>
-										</button>
-									))}
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
 
 				{/* System Settings */}
 				{activeTab === 'system' && (
@@ -392,10 +313,10 @@ const AdminSettingsPage = () => {
 							</div>
 
 							{settings.backup_enabled && (
-								<div className="va-form-group">
-									<label className="va-form-label">Frecvență Backup</label>
+								<div className="admin-settings-form-group">
+									<label className="admin-settings-label">Frecvență Backup</label>
 									<select
-										className="va-form-input"
+										className="admin-settings-select"
 										value={settings.backup_frequency}
 										onChange={(e) => handleInputChange('backup_frequency', e.target.value)}
 									>
@@ -447,6 +368,13 @@ const AdminSettingsPage = () => {
 						className="lms-btn-primary"
 						onClick={handleSave}
 						disabled={saving}
+						style={{ 
+							display: 'flex', 
+							alignItems: 'center', 
+							gap: 'var(--space-2)',
+							opacity: saving ? 0.7 : 1,
+							cursor: saving ? 'not-allowed' : 'pointer'
+						}}
 					>
 						{saving ? (
 							<>

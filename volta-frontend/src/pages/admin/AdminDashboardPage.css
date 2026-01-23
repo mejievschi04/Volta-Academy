@@ -1,0 +1,552 @@
+/* ============================================
+   ADMIN DASHBOARD PAGE - Modern Design
+   ============================================ */
+
+.admin-dashboard-page {
+	padding: var(--space-6) var(--space-8);
+	background-color: var(--bg-primary);
+	min-height: 100vh;
+	max-width: 1600px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+.admin-dashboard-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+	gap: var(--space-4);
+	color: var(--text-secondary);
+}
+
+.admin-dashboard-spinner {
+	width: 48px;
+	height: 48px;
+	border: 4px solid var(--border-primary);
+	border-top-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.admin-dashboard-header {
+	margin-bottom: var(--space-8);
+	padding-bottom: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-dashboard-header-content {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-6);
+	flex-wrap: wrap;
+}
+
+.admin-dashboard-title {
+	font-size: var(--font-size-4xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.03em;
+	line-height: 1.2;
+}
+
+.admin-dashboard-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.8;
+	line-height: 1.6;
+}
+
+.admin-dashboard-header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex-shrink: 0;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.admin-dashboard-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-6);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	border: none;
+	font-family: var(--font-family);
+	white-space: nowrap;
+}
+
+.admin-dashboard-btn-icon {
+	font-size: var(--font-size-lg);
+	line-height: 1;
+}
+
+/* Light theme - dark icons for better contrast */
+[data-theme="light"] .admin-dashboard-btn-icon {
+	color: #1f2937;
+}
+
+.admin-dashboard-btn-primary {
+	background-color: var(--color-primary);
+	color: #000000;
+	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
+}
+
+.admin-dashboard-btn-primary:hover {
+	background-color: var(--color-primary-light);
+	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.4);
+	transform: translateY(-1px);
+}
+
+.admin-dashboard-btn-secondary {
+	background-color: var(--bg-elevated);
+	color: var(--text-primary);
+	border: 1px solid var(--border-primary);
+}
+
+.admin-dashboard-btn-secondary:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+}
+
+.admin-dashboard-btn-link {
+	background: transparent;
+	color: var(--color-primary);
+	padding: var(--space-2) var(--space-4);
+	font-weight: var(--font-weight-medium);
+}
+
+.admin-dashboard-btn-link:hover {
+	background-color: rgba(255, 238, 0, 0.1);
+}
+
+/* Light theme - yellow background with black text */
+[data-theme="light"] .admin-dashboard-btn-link {
+	color: #000000;
+	font-weight: var(--font-weight-semibold);
+	background-color: var(--color-primary);
+}
+
+[data-theme="light"] .admin-dashboard-btn-link:hover {
+	background-color: var(--color-primary-hover);
+	color: #000000;
+}
+
+.admin-dashboard-btn-sm {
+	padding: var(--space-2) var(--space-4);
+	font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   KPI CARDS
+   ============================================ */
+.admin-dashboard-kpis {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--space-4);
+	margin-bottom: var(--space-8);
+}
+
+.admin-dashboard-kpi-card {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-md);
+	transition: all var(--transition-smooth);
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-4);
+	position: relative;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.admin-dashboard-kpi-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: var(--color-primary);
+	opacity: 1;
+	transition: opacity var(--transition-base);
+}
+
+.admin-dashboard-kpi-card:hover {
+	box-shadow: var(--shadow-lg);
+	transform: translateY(-2px);
+	border-color: var(--border-secondary);
+}
+
+.admin-dashboard-kpi-card:hover::before {
+	opacity: 1;
+}
+
+.admin-dashboard-kpi-icon {
+	flex-shrink: 0;
+	opacity: 0.9;
+	color: var(--color-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-dashboard-kpi-icon svg {
+	width: 32px;
+	height: 32px;
+}
+
+/* Light theme - dark icons for better contrast */
+[data-theme="light"] .admin-dashboard-kpi-icon {
+	color: #1f2937;
+	opacity: 1;
+}
+
+.admin-dashboard-kpi-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-dashboard-kpi-label {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-2) 0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.admin-dashboard-kpi-value {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+}
+
+.admin-dashboard-kpi-sublabel {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.8;
+}
+
+/* ============================================
+   MAIN GRID
+   ============================================ */
+.admin-dashboard-grid {
+	display: grid;
+	grid-template-columns: 1fr 380px;
+	gap: var(--space-6);
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+.admin-dashboard-section {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-md);
+	margin-bottom: var(--space-6);
+}
+
+.admin-dashboard-section-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+	padding-bottom: var(--space-4);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-dashboard-section-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+	letter-spacing: -0.02em;
+}
+
+.admin-dashboard-section-subtitle {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.8;
+}
+
+/* ============================================
+   COURSES LIST
+   ============================================ */
+.admin-dashboard-courses-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+.admin-dashboard-course-item {
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-5);
+	border: 1px solid var(--border-primary);
+	transition: all var(--transition-base);
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+}
+
+.admin-dashboard-course-item:hover {
+	box-shadow: var(--shadow-md);
+	border-color: var(--border-secondary);
+	transform: translateY(-2px);
+}
+
+.admin-dashboard-course-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-dashboard-course-title {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.admin-dashboard-course-reason {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-3) 0;
+}
+
+.admin-dashboard-course-metrics {
+	display: flex;
+	gap: var(--space-4);
+	flex-wrap: wrap;
+}
+
+.admin-dashboard-course-metric {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	padding: var(--space-1) var(--space-2);
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-md);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.admin-dashboard-empty {
+	text-align: center;
+	padding: var(--space-12) var(--space-6);
+}
+
+.admin-dashboard-empty-icon {
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+	color: var(--color-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-dashboard-empty-icon svg {
+	width: 48px;
+	height: 48px;
+}
+
+/* Light theme - dark icons for better contrast */
+[data-theme="light"] .admin-dashboard-empty-icon {
+	color: #6b7280;
+	opacity: 0.7;
+}
+
+.admin-dashboard-empty-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.admin-dashboard-empty-description {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+/* ============================================
+   QUICK ACTIONS
+   ============================================ */
+.admin-dashboard-quick-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.admin-dashboard-quick-action {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	text-align: left;
+	width: 100%;
+}
+
+.admin-dashboard-quick-action:hover {
+	background-color: var(--bg-elevated);
+	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-sm);
+	transform: translateX(4px);
+}
+
+.admin-dashboard-quick-action-icon {
+	flex-shrink: 0;
+	color: var(--color-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-dashboard-quick-action-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+/* Light theme - dark icons for better contrast */
+[data-theme="light"] .admin-dashboard-quick-action-icon {
+	color: #1f2937;
+}
+
+.admin-dashboard-quick-action-label {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+}
+
+/* ============================================
+   ACTIVITY LIST
+   ============================================ */
+.admin-dashboard-activity-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.admin-dashboard-activity-item {
+	padding: var(--space-4);
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+	transition: all var(--transition-base);
+}
+
+.admin-dashboard-activity-item:hover {
+	box-shadow: var(--shadow-sm);
+	border-color: var(--border-secondary);
+}
+
+.admin-dashboard-activity-content {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+}
+
+.admin-dashboard-activity-text {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: 0;
+	flex: 1;
+	line-height: 1.5;
+}
+
+.admin-dashboard-activity-time {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1200px) {
+	.admin-dashboard-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-dashboard-sidebar {
+		order: -1;
+	}
+
+	.admin-dashboard-sidebar .admin-dashboard-section {
+		margin-bottom: var(--space-4);
+	}
+}
+
+@media (max-width: 768px) {
+	.admin-dashboard-page {
+		padding: var(--space-4);
+	}
+
+	.admin-dashboard-header-content {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.admin-dashboard-header-actions {
+		width: 100%;
+		flex-direction: column;
+	}
+
+	.admin-dashboard-btn {
+		width: 100%;
+	}
+
+	.admin-dashboard-kpis {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-dashboard-course-item {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.admin-dashboard-btn-sm {
+		width: 100%;
+	}
+}

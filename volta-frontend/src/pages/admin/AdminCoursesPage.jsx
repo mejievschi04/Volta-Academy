@@ -1,86 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { logger } from '../../utils/logger';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
-import CourseInsights from '../../components/admin/courses/CourseInsights';
-import AICourseChat from '../../components/admin/ai/AICourseChat';
 
 const AdminCoursesPage = () => {
 	const navigate = useNavigate();
-	const { success: showSuccess, error: showError } = useToast();
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [selectedCourses, setSelectedCourses] = useState(new Set());
-	const [actionLoading, setActionLoading] = useState(null);
-	const [showAIChat, setShowAIChat] = useState(false);
-
+	
 	// Filters and search
 	const [searchQuery, setSearchQuery] = useState('');
 	const [filters, setFilters] = useState({
 		status: 'all',
-		instructor: 'all',
-		level: 'all',
-		instructors: [],
-		activeCount: 0,
+		activeCount: 0
 	});
-	const [sortBy, setSortBy] = useState('updated_at');
+	const [sortBy, setSortBy] = useState('recent');
 	const [viewMode, setViewMode] = useState('grid');
+	
+	// Selection
+	const [selectedCourses, setSelectedCourses] = useState(new Set());
 
-	// Insights
-	const [insights, setInsights] = useState([]);
+	// Fetch courses
+	const fetchCourses = useCallback(async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			
+			const params = {
+				search: searchQuery || undefined,
+				status: filters.status !== 'all' ? filters.status : undefined,
+				sort: sortBy
+			};
+			
+			const data = await adminService.getCourses(params);
+			setCourses(Array.isArray(data) ? data : []);
+		} catch (err) {
+			console.error('Error fetching courses:', err);
+			setError('Nu s-au putut încărca cursurile');
+		} finally {
+			setLoading(false);
+		}
+	}, [searchQuery, filters, sortBy]);
 
-	// Load data on mount
 	useEffect(() => {
-		const loadData = async () => {
-			try {
-				setLoading(true);
-				setError(null);
+		fetchCourses();
+	}, [fetchCourses]);
 
-				// Fetch all data in parallel
-				const [coursesData, instructorsData, insightsData] = await Promise.all([
-					adminService.getCourses({}),
-					adminService.getTeachers(),
-					adminService.getCourseInsights(),
-				]);
-
-				setCourses(Array.isArray(coursesData) ? coursesData : []);
-				setFilters(prev => ({
-					...prev,
-					instructors: Array.isArray(instructorsData) ? instructorsData : [],
-				}));
-				setInsights(Array.isArray(insightsData) ? insightsData : []);
-			} catch (err) {
-				console.error('Error loading data:', err);
-				setError('Nu s-au putut încărca datele: ' + (err.response?.data?.message || err.message));
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		loadData();
-	}, []);
-
-	// Calculate active filter count
+	// Calculate active filters count
 	useEffect(() => {
 		let count = 0;
 		if (filters.status !== 'all') count++;
-		if (filters.instructor !== 'all') count++;
-		if (filters.level !== 'all') count++;
 		setFilters(prev => ({ ...prev, activeCount: count }));
-	}, [filters.status, filters.instructor, filters.level]);
+	}, [filters.status]);
 
+	// Handle filter change
 	const handleFilterChange = (key, value) => {
 		setFilters(prev => ({ ...prev, [key]: value }));
 	};
 
-	const handleSelectCourse = (courseId, checked) => {
+	// Handle course selection
+	const handleSelectCourse = (courseId, selected) => {
 		setSelectedCourses(prev => {
 			const newSet = new Set(prev);
-			if (checked) {
+			if (selected) {
 				newSet.add(courseId);
 			} else {
 				newSet.delete(courseId);
@@ -89,262 +73,126 @@ const AdminCoursesPage = () => {
 		});
 	};
 
-	const handleSelectAll = (checked) => {
-		if (checked) {
-			setSelectedCourses(new Set(courses.map(c => c.id)));
-		} else {
-			setSelectedCourses(new Set());
-		}
-	};
-
-	const handleQuickAction = async (courseId, action) => {
-		if (action === 'delete') {
-			const course = courses.find(c => c.id === courseId);
-			const courseTitle = course?.title || 'acest curs';
-			
-			if (!confirm(`Sigur dorești să ștergi complet cursul "${courseTitle}"?\n\nAceastă acțiune este ireversibilă!`)) {
-				return;
-			}
-			
-			if (!confirm(`ATENȚIE! Ești sigur că vrei să ștergi definitiv cursul "${courseTitle}"?`)) {
-				return;
-			}
-		}
-
-		setActionLoading(courseId);
-		try {
-			if (action === 'delete') {
-				await adminService.deleteCourse(courseId);
-				showSuccess('Curs șters cu succes!');
-			} else {
-				await adminService.courseQuickAction(courseId, action);
-				showSuccess(`Acțiunea "${action}" a fost aplicată cu succes!`);
-			}
-			// Reload data
-			const coursesData = await adminService.getCourses({});
-			setCourses(Array.isArray(coursesData) ? coursesData : []);
-			const insightsData = await adminService.getCourseInsights();
-			setInsights(Array.isArray(insightsData) ? insightsData : []);
-		} catch (err) {
-			logger.error(`Error ${action} course:`, err);
-			showError(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
-		} finally {
-			setActionLoading(null);
-		}
-	};
-
+	// Handle bulk actions
 	const handleBulkAction = async (action) => {
 		if (selectedCourses.size === 0) return;
 		
-		if (action === 'delete') {
-			if (!confirm(`ATENȚIE! Ești sigur că vrei să ștergi definitiv ${selectedCourses.size} cursuri?`)) {
-				return;
-			}
-		} else {
-			if (!confirm(`Sigur dorești să ${action} ${selectedCourses.size} cursuri?`)) {
-				return;
-			}
-		}
-
-		setActionLoading('bulk');
 		try {
-			if (action === 'delete') {
-				const courseIds = Array.from(selectedCourses);
-				for (const courseId of courseIds) {
-					await adminService.deleteCourse(courseId);
-				}
-				showSuccess(`${courseIds.length} cursuri șterse cu succes!`);
-			} else {
-				await adminService.courseBulkAction(Array.from(selectedCourses), action);
-				showSuccess(`Acțiunea "${action}" a fost aplicată pe ${selectedCourses.size} cursuri!`);
-			}
+			await adminService.courseBulkAction(Array.from(selectedCourses), action);
 			setSelectedCourses(new Set());
-			// Reload data
-			const coursesData = await adminService.getCourses({});
-			setCourses(Array.isArray(coursesData) ? coursesData : []);
-			const insightsData = await adminService.getCourseInsights();
-			setInsights(Array.isArray(insightsData) ? insightsData : []);
+			fetchCourses();
 		} catch (err) {
-			logger.error(`Error bulk ${action}:`, err);
-			showError(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
-		} finally {
-			setActionLoading(null);
+			console.error('Error performing bulk action:', err);
+			alert('Eroare la executarea acțiunii');
 		}
 	};
 
-	const handleViewCourse = (courseId) => {
-		navigate(`/admin/courses/${courseId}`);
+	// Handle quick actions
+	const handleQuickAction = async (courseId, action) => {
+		try {
+			await adminService.courseQuickAction(courseId, action);
+			fetchCourses();
+		} catch (err) {
+			console.error('Error performing quick action:', err);
+			alert('Eroare la executarea acțiunii');
+		}
 	};
 
-	const handlePreview = (courseId) => {
-		window.open(`/courses/${courseId}`, '_blank');
-	};
-
+	// Handle course creation
 	const handleCreateCourse = () => {
 		navigate('/admin/courses/new');
 	};
 
-	const handleAICourseGenerated = (course) => {
-		// Don't redirect - user stays in chat
-		// Just reload courses list if course was created
-		if (course?.created && course?.id) {
-			// Reload courses list in background
-			const loadData = async () => {
-				try {
-					const coursesData = await adminService.getCourses({});
-					setCourses(Array.isArray(coursesData) ? coursesData : []);
-				} catch (err) {
-					console.error('Error reloading courses:', err);
-				}
-			};
-			loadData();
-		}
-		// Don't close chat - user can continue conversation
-	};
+	// Filtered courses
+	const filteredCourses = useMemo(() => {
+		return courses;
+	}, [courses]);
 
-	// Filter and sort courses
-	const filteredAndSortedCourses = courses.filter(course => {
-		// Search filter
-		if (searchQuery) {
-			const query = searchQuery.toLowerCase();
-			if (!course.title?.toLowerCase().includes(query) && 
-				!course.description?.toLowerCase().includes(query)) {
-				return false;
-			}
-		}
-
-		// Status filter
-		if (filters.status !== 'all' && course.status !== filters.status) {
-			return false;
-		}
-
-
-		// Instructor filter
-		if (filters.instructor !== 'all' && course.teacher_id?.toString() !== filters.instructor) {
-			return false;
-		}
-
-		// Level filter
-		if (filters.level !== 'all' && course.level !== filters.level) {
-			return false;
-		}
-
-		return true;
-	}).sort((a, b) => {
-		switch (sortBy) {
-			case 'title':
-				return (a.title || '').localeCompare(b.title || '');
-			case 'created_at':
-				return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-			case 'updated_at':
-			default:
-				return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
-		}
-	});
+	if (error) {
+		return (
+			<div className="admin-container">
+				<div className="lms-empty-state">
+					<p style={{ color: 'var(--color-error)' }}>{error}</p>
+					<button className="lms-btn-primary" onClick={fetchCourses}>
+						Încearcă din nou
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
-		<div className="admin-courses-page">
-			<div className="admin-courses-container">
-				<CoursesHeader
-					searchQuery={searchQuery}
-					onSearchChange={setSearchQuery}
-					filters={filters}
-					onFilterChange={handleFilterChange}
-					sortBy={sortBy}
-					onSortChange={setSortBy}
-					onCreateCourse={handleCreateCourse}
-					onCreateAICourse={() => setShowAIChat(true)}
-					selectedCount={selectedCourses.size}
-					onBulkAction={handleBulkAction}
-					loading={loading}
-					viewMode={viewMode}
-					onViewModeChange={setViewMode}
-				/>
+		<div className="admin-container">
+			<CoursesHeader
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				filters={filters}
+				onFilterChange={handleFilterChange}
+				sortBy={sortBy}
+				onSortChange={setSortBy}
+				onCreateCourse={handleCreateCourse}
+				selectedCount={selectedCourses.size}
+				onBulkAction={handleBulkAction}
+				loading={loading}
+				viewMode={viewMode}
+				onViewModeChange={setViewMode}
+			/>
 
-				{error && (
-					<div className="lms-error-message">
-						<strong>Eroare:</strong> {error}
-					</div>
-				)}
-
-				{/* Insights Section */}
-				{insights.length > 0 && (
-					<CourseInsights
-						insights={insights}
-						onViewCourse={handleViewCourse}
-					/>
-				)}
-
-				{/* AI Chat Modal */}
-				{showAIChat && (
-					<div className="ai-chat-modal-overlay" onClick={() => setShowAIChat(false)}>
-						<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
-							<AICourseChat
-								onCourseGenerated={handleAICourseGenerated}
-								onClose={() => setShowAIChat(false)}
-							/>
+			{loading && courses.length === 0 ? (
+				<div className="admin-courses-loading">
+					<div className="lms-spinner"></div>
+					<p>Se încarcă cursurile...</p>
+				</div>
+			) : filteredCourses.length === 0 ? (
+				<div className="lms-empty-state">
+					<p>Nu există cursuri disponibile.</p>
+					<button className="lms-btn-primary" onClick={handleCreateCourse}>
+						+ Creează primul curs
+					</button>
+				</div>
+			) : (
+				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
+					{viewMode === 'grid' ? (
+						<div className="admin-courses-grid-container">
+							{filteredCourses.map(course => (
+								<CourseListItem
+									key={course.id}
+									course={course}
+									selected={selectedCourses.has(course.id)}
+									onSelect={handleSelectCourse}
+									onQuickAction={handleQuickAction}
+									loading={loading}
+									viewMode={viewMode}
+									onPreview={() => navigate(`/admin/courses/${course.id}/preview`)}
+								/>
+							))}
 						</div>
-					</div>
-				)}
-
-				{/* Courses List */}
-				<div className={`admin-courses-list-container ${viewMode === 'grid' ? 'grid-view' : viewMode === 'list' ? 'list-view' : 'table-view'}`}>
-					{loading ? (
-						<div className="lms-dashboard-loading">
-							<div className="lms-spinner"></div>
-							<p>Se încarcă cursurile...</p>
-						</div>
-					) : filteredAndSortedCourses.length > 0 ? (
-						<>
-							{/* Select All */}
-							<div className="admin-courses-list-header">
-								<label className="admin-select-all">
-									<input
-										type="checkbox"
-										checked={selectedCourses.size === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
-										onChange={(e) => handleSelectAll(e.target.checked)}
-									/>
-									<span>Selectează toate ({filteredAndSortedCourses.length})</span>
-								</label>
-							</div>
-
-							<div className={`admin-courses-${viewMode === 'list' ? 'list' : viewMode === 'table' ? 'table' : 'grid'}`}>
-								{filteredAndSortedCourses.map((course) => (
-									<CourseListItem
-										key={course.id}
-										course={course}
-										selected={selectedCourses.has(course.id)}
-										onSelect={handleSelectCourse}
-										onQuickAction={handleQuickAction}
-										loading={actionLoading === course.id}
-										viewMode={viewMode}
-										onPreview={() => handlePreview(course.id)}
-									/>
-								))}
-							</div>
-						</>
 					) : (
-						<div className="lms-empty-state">
-							<div className="lms-empty-icon">📚</div>
-							<div className="lms-empty-title">Nu există cursuri</div>
-							<div className="lms-empty-description">
-								{searchQuery || filters.activeCount > 0
-									? 'Încearcă să modifici filtrele sau căutarea'
-									: 'Creează primul curs pentru a începe'}
+						<div className="admin-courses-table-container">
+							<div className="admin-courses-table-header">
+								<div className="admin-course-table-checkbox"></div>
+								<div className="admin-course-table-thumbnail-header">Imagine</div>
+								<div className="admin-course-table-info-header">Curs</div>
+								<div className="admin-course-table-metrics-header">Metrici</div>
+								<div className="admin-course-table-actions-header">Acțiuni</div>
 							</div>
-							{!searchQuery && filters.activeCount === 0 && (
-								<button
-									className="lms-btn-primary"
-									onClick={() => navigate('/admin/courses/new')}
-								>
-									<span>+</span>
-									Create Course
-								</button>
-							)}
+							{filteredCourses.map(course => (
+								<CourseListItem
+									key={course.id}
+									course={course}
+									selected={selectedCourses.has(course.id)}
+									onSelect={handleSelectCourse}
+									onQuickAction={handleQuickAction}
+									loading={loading}
+									viewMode={viewMode}
+									onPreview={() => navigate(`/admin/courses/${course.id}/preview`)}
+								/>
+							))}
 						</div>
 					)}
 				</div>
-			</div>
+			)}
+
 		</div>
 	);
 };

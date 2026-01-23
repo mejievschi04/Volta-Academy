@@ -1,79 +1,72 @@
-/* Course Creation Wizard Styles - Modern Professional */
 .course-creation-wizard-overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: rgba(15, 23, 42, 0.6);
+	background: rgba(0, 0, 0, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 10000;
-	backdrop-filter: blur(8px);
-	animation: fadeIn var(--transition-base);
+	z-index: 1000;
+	padding: 2rem;
+	overflow-y: auto;
 }
 
-[data-theme="dark"] .course-creation-wizard-overlay {
-	background: rgba(0, 0, 0, 0.75);
-}
-
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
+.course-creation-wizard-page {
+	width: 100%;
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: var(--space-6) var(--space-8);
+	min-height: 100vh;
+	background: var(--bg-primary);
 }
 
 .course-creation-wizard {
-	background: var(--bg-surface);
-	border-radius: var(--radius-2xl);
-	width: 90%;
-	max-width: 1000px;
+	background: var(--bg-primary);
+	border-radius: 16px;
+	width: 100%;
+	max-width: 1200px;
 	max-height: 90vh;
 	display: flex;
 	flex-direction: column;
-	box-shadow: var(--shadow-2xl);
-	overflow: hidden;
-	animation: slideUp var(--transition-slow);
-	border: 1.5px solid var(--border-default);
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-@keyframes slideUp {
-	from {
-		opacity: 0;
-		transform: translateY(20px) scale(0.95);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
+.course-creation-wizard-page .course-creation-wizard {
+	max-height: none;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	border-radius: var(--radius-xl);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
 }
 
 .course-creation-wizard-header {
 	display: flex;
-	align-items: center;
 	justify-content: space-between;
-	padding: var(--space-6) var(--space-8);
-	border-bottom: 1.5px solid var(--border-default);
-	background: var(--bg-surface);
+	align-items: flex-start;
+	padding: 2rem;
+	border-bottom: 1px solid var(--border-primary);
 }
 
 .course-creation-wizard-header h2 {
-	margin: 0;
-	font-size: var(--font-size-2xl);
-	font-weight: var(--font-weight-semibold);
+	font-size: 1.75rem;
+	font-weight: 600;
 	color: var(--text-primary);
+	margin-bottom: 0.5rem;
+}
+
+.course-creation-wizard-subtitle {
+	color: var(--text-secondary);
+	font-size: 1rem;
 }
 
 .course-creation-wizard-close {
 	background: none;
 	border: none;
-	font-size: 32px;
-	color: var(--text-secondary);
+	font-size: 2rem;
 	cursor: pointer;
+	color: var(--text-secondary);
 	line-height: 1;
 	padding: 0;
 	width: 32px;
@@ -81,235 +74,273 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: var(--radius-md);
-	transition: all var(--transition-base);
+	border-radius: 50%;
+	transition: all 0.2s;
 }
 
 .course-creation-wizard-close:hover {
-	background: var(--bg-surface-hover);
+	background: var(--bg-hover);
 	color: var(--text-primary);
+}
+
+.course-creation-wizard-progress {
+	padding: 1rem 2rem;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.course-creation-wizard-progress-bar {
+	width: 100%;
+	height: 8px;
+	background: var(--bg-secondary);
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 0.5rem;
+}
+
+.course-creation-wizard-progress-fill {
+	height: 100%;
+	background: var(--primary);
+	transition: width 0.3s;
+}
+
+.course-creation-wizard-progress-text {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.course-creation-wizard-steps-indicator {
+	display: flex;
+	gap: 0.5rem;
+	padding: 1rem 2rem;
+	border-bottom: 1px solid var(--border-primary);
+	overflow-x: auto;
+}
+
+.course-creation-wizard-step-indicator {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	min-width: 100px;
+	cursor: pointer;
+	opacity: 0.5;
+	transition: opacity 0.2s;
+}
+
+.course-creation-wizard-step-indicator.active {
+	opacity: 1;
+}
+
+.course-creation-wizard-step-indicator.completed {
+	opacity: 0.7;
+}
+
+.course-creation-wizard-step-indicator-icon {
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--bg-secondary);
+	border-radius: 50%;
+	font-size: 1.25rem;
+	transition: all 0.2s;
+}
+
+.course-creation-wizard-step-indicator.active .course-creation-wizard-step-indicator-icon {
+	background: var(--primary);
+	color: white;
+}
+
+.course-creation-wizard-step-indicator.completed .course-creation-wizard-step-indicator-icon {
+	background: var(--success);
+	color: white;
+}
+
+.course-creation-wizard-step-indicator-label {
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+	text-align: center;
+	font-weight: 500;
+}
+
+.course-creation-wizard-step-indicator.active .course-creation-wizard-step-indicator-label {
+	color: var(--text-primary);
+	font-weight: 600;
 }
 
 .course-creation-wizard-content {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--space-8);
-	background: var(--bg-surface);
+	padding: 2rem;
 }
 
-.course-creation-wizard-step h3 {
+/* Split Layout */
+.course-creation-wizard-split {
+	display: grid;
+	grid-template-columns: 1fr 400px;
+	gap: var(--space-6);
+}
+
+.course-creation-wizard-form-panel {
+	overflow-y: auto;
+}
+
+.course-creation-wizard-preview-panel {
+	position: sticky;
+	top: 0;
+	height: fit-content;
+	max-height: calc(100vh - 200px);
+	background: var(--bg-secondary);
+	border-radius: 12px;
+	border: 1px solid var(--border-primary);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.course-creation-wizard-preview-header {
+	padding: var(--space-4);
+	border-bottom: 1px solid var(--border-primary);
+	background: var(--bg-elevated);
+}
+
+.course-creation-wizard-preview-header h3 {
+	margin: 0 0 var(--space-1) 0;
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.course-creation-wizard-preview-header p {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.course-creation-wizard-preview-content {
+	padding: var(--space-4);
+	overflow-y: auto;
+	flex: 1;
+}
+
+.course-preview-card {
+	background: var(--bg-primary);
+	border-radius: 8px;
+	overflow: hidden;
+	border: 1px solid var(--border-primary);
+}
+
+.course-preview-thumbnail {
+	width: 100%;
+	height: 200px;
+	overflow: hidden;
+	background: var(--bg-secondary);
+}
+
+.course-preview-thumbnail img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.course-preview-body {
+	padding: var(--space-4);
+}
+
+.course-preview-title {
 	margin: 0 0 var(--space-2) 0;
-	font-size: var(--font-size-xl);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-}
-
-.course-creation-wizard-hint {
-	margin: 0 0 var(--space-6) 0;
-	color: var(--text-secondary);
-	font-size: var(--font-size-sm);
-	line-height: 1.5;
-}
-
-/* Creator Types Grid */
-.creator-types-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-	gap: var(--space-4);
-}
-
-.creator-type-card {
-	background: var(--bg-surface);
-	border: 1.5px solid var(--border-default);
-	border-radius: var(--radius-xl);
-	padding: var(--space-6);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--space-3);
-	position: relative;
-	overflow: hidden;
-	box-shadow: var(--shadow-sm);
-}
-
-.creator-type-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg, var(--color-primary) 0%, #8b5cf6 100%);
-	opacity: 0;
-	transition: opacity var(--transition-base);
-}
-
-.creator-type-card:hover {
-	border-color: var(--color-primary);
-	transform: translateY(-4px);
-	box-shadow: var(--shadow-lg);
-	background: var(--bg-surface-hover);
-}
-
-.creator-type-card:hover::before {
-	opacity: 1;
-}
-
-.creator-type-card.selected {
-	border-color: var(--color-primary);
-	background: var(--color-primary-lighter);
-	box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-lg);
-	transform: translateY(-2px);
-}
-
-.creator-type-card.selected::before {
-	opacity: 1;
-}
-
-.creator-type-icon {
-	font-size: 48px;
-	line-height: 1;
-}
-
-.creator-type-title {
 	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
 }
 
-.creator-type-description {
+.course-preview-description {
+	margin: 0 0 var(--space-4) 0;
 	font-size: var(--font-size-sm);
 	color: var(--text-secondary);
 	line-height: 1.5;
 }
 
-/* Blueprints Grid */
-.blueprints-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	gap: 20px;
+.course-preview-structure {
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border-primary);
 }
 
-.blueprint-card {
-	background: var(--bg-surface);
-	border: 1.5px solid var(--border-default);
-	border-radius: var(--radius-xl);
-	padding: var(--space-6);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-	position: relative;
-	overflow: hidden;
-	box-shadow: var(--shadow-sm);
-}
-
-.blueprint-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg, var(--color-primary) 0%, #8b5cf6 100%);
-	opacity: 0;
-	transition: opacity var(--transition-base);
-}
-
-.blueprint-card:hover {
-	border-color: var(--color-primary);
-	transform: translateY(-4px);
-	box-shadow: var(--shadow-lg);
-	background: var(--bg-surface-hover);
-}
-
-.blueprint-card:hover::before {
-	opacity: 1;
-}
-
-.blueprint-card.selected {
-	border-color: var(--color-primary);
-	background: var(--color-primary-lighter);
-	box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-lg);
-	transform: translateY(-2px);
-}
-
-.blueprint-card.selected::before {
-	opacity: 1;
-}
-
-.blueprint-icon {
-	font-size: 40px;
-	line-height: 1;
-	margin-bottom: 8px;
-}
-
-.blueprint-title {
-	font-size: var(--font-size-lg);
+.course-preview-structure-label {
+	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-}
-
-.blueprint-description {
-	font-size: var(--font-size-sm);
 	color: var(--text-secondary);
-	line-height: 1.5;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 	margin-bottom: var(--space-2);
+	display: block;
 }
 
-.blueprint-structure {
+.course-preview-module {
 	display: flex;
-	gap: var(--space-4);
-	margin-top: var(--space-2);
-	padding-top: var(--space-3);
-	border-top: 1px solid var(--border-default);
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) 0;
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
 }
 
-.blueprint-structure-item {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
+.course-preview-module-icon {
+	font-size: var(--font-size-base);
 }
 
-.blueprint-structure-label {
+.course-preview-module-title {
+	flex: 1;
+	font-weight: var(--font-weight-medium);
+}
+
+.course-preview-module-lessons {
 	font-size: var(--font-size-xs);
 	color: var(--text-secondary);
 }
 
-.blueprint-structure-value {
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-}
-
 .course-creation-wizard-footer {
 	display: flex;
-	align-items: center;
 	justify-content: space-between;
-	padding: var(--space-6) var(--space-8);
-	border-top: 1.5px solid var(--border-default);
-	background: var(--bg-surface-elevated);
+	align-items: center;
+	padding: 1.5rem 2rem;
+	border-top: 1px solid var(--border-primary);
+	background: var(--bg-secondary);
 }
 
-/* Buttons now use admin-btn classes from design system */
+.course-creation-wizard-btn {
+	padding: 0.75rem 1.5rem;
+	border-radius: 8px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s;
+	border: none;
+	font-size: 1rem;
+}
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-	.course-creation-wizard {
-		width: 95%;
-		max-height: 95vh;
-	}
+.course-creation-wizard-btn-primary {
+	background: var(--primary);
+	color: white;
+}
 
-	.course-creation-wizard-content {
-		padding: 20px;
-	}
+.course-creation-wizard-btn-primary:hover:not(:disabled) {
+	opacity: 0.9;
+}
 
-	.creator-types-grid,
-	.blueprints-grid {
-		grid-template-columns: 1fr;
-	}
+.course-creation-wizard-btn-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.course-creation-wizard-btn-secondary {
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	border: 1px solid var(--border-primary);
+}
+
+.course-creation-wizard-btn-secondary:hover {
+	background: var(--bg-hover);
 }

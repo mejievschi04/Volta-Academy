@@ -211,14 +211,14 @@
 }
 
 .admin-team-member-action-btn-role {
-	background-color: #3b82f6 !important;
+	background-color: var(--color-primary) !important;
 	color: #fff !important;
-	border-color: #3b82f6 !important;
+	border-color: #FFEE00 !important;
 }
 
 .admin-team-member-action-btn-role:hover {
-	background-color: #2563eb !important;
-	border-color: #2563eb !important;
+	background-color: #E6D600 !important;
+	border-color: #E6D600 !important;
 }
 
 .admin-team-member-action-btn-courses {
@@ -255,9 +255,9 @@
 }
 
 .admin-team-member-action-btn-reset {
-	background-color: #8b5cf6 !important;
-	color: #fff !important;
-	border-color: #8b5cf6 !important;
+	background-color: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	border-color: var(--btn-primary-border) !important;
 }
 
 .admin-team-member-action-btn-reset:hover {
@@ -436,7 +436,7 @@
 }
 
 .admin-team-members-course-item.selected {
-	background-color: rgba(56, 189, 248, 0.1);
+	background-color: rgba(255, 238, 0, 0.1);
 	border-color: var(--color-primary);
 }
 

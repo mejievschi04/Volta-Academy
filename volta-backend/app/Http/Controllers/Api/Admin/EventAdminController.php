@@ -131,8 +131,8 @@ class EventAdminController extends Controller
             'live_link' => 'nullable|url|max:500',
             'max_capacity' => 'nullable|integer|min:1',
             'instructor_id' => 'nullable|exists:users,id',
-            'access_type' => 'required|string|in:free,paid,course_included',
-            'price' => 'nullable|numeric|min:0|required_if:access_type,paid',
+            'access_type' => 'nullable|string|in:free,course_included',
+            'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:3',
             'course_id' => 'nullable|exists:courses,id|required_if:access_type,course_included',
             'replay_url' => 'nullable|url|max:500',
@@ -156,6 +156,13 @@ class EventAdminController extends Controller
         }
         if (!isset($validated['currency'])) {
             $validated['currency'] = 'RON';
+        }
+        if (!isset($validated['access_type'])) {
+            $validated['access_type'] = 'free';
+        }
+        // Ensure price is 0 for free events
+        if ($validated['access_type'] === 'free') {
+            $validated['price'] = 0;
         }
 
         $event = Event::create($validated);
@@ -189,8 +196,8 @@ class EventAdminController extends Controller
             'live_link' => 'nullable|url|max:500',
             'max_capacity' => 'nullable|integer|min:1',
             'instructor_id' => 'nullable|exists:users,id',
-            'access_type' => 'sometimes|required|string|in:free,paid,course_included',
-            'price' => 'nullable|numeric|min:0|required_if:access_type,paid',
+            'access_type' => 'sometimes|nullable|string|in:free,course_included',
+            'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:3',
             'course_id' => 'nullable|exists:courses,id|required_if:access_type,course_included',
             'replay_url' => 'nullable|url|max:500',
@@ -205,6 +212,15 @@ class EventAdminController extends Controller
             $validated['end_date'] = $this->parseLocalDateTime($validated['end_date']);
         }
 
+        // Set default values for update
+        if (!isset($validated['access_type'])) {
+            $validated['access_type'] = 'free';
+        }
+        // Ensure price is 0 for free events
+        if ($validated['access_type'] === 'free') {
+            $validated['price'] = 0;
+        }
+        
         $event->update($validated);
         $event->refresh();
         $event->load(['instructor', 'course']);

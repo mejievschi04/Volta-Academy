@@ -341,9 +341,9 @@ class CourseAdminController extends Controller
             'short_description' => 'nullable|string|max:200',
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'status' => 'nullable|in:draft,published,archived',
-            'access_type' => 'nullable|in:free,paid,subscription',
+            'access_type' => 'nullable|in:free',
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'level' => 'nullable|in:beginner,intermediate,advanced',
@@ -378,8 +378,8 @@ class CourseAdminController extends Controller
             'teacher_id' => $validated['teacher_id'] ?? null,
             'reward_points' => $validated['reward_points'] ?? 50,
             'status' => $validated['status'] ?? 'draft',
-            'access_type' => $validated['access_type'] ?? 'free',
-            'price' => $validated['price'] ?? null,
+            'access_type' => 'free', // All courses are free
+            'price' => 0,
             'currency' => $validated['currency'] ?? 'RON',
             'level' => $validated['level'] ?? null,
             'objectives' => $validated['objectives'] ?? [],
@@ -432,7 +432,7 @@ class CourseAdminController extends Controller
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
             'status' => 'nullable|in:draft,published,archived,disabled',
-            'access_type' => 'nullable|in:free,paid,subscription',
+            'access_type' => 'nullable|in:free',
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'level' => 'nullable|in:beginner,intermediate,advanced',
@@ -461,7 +461,12 @@ class CourseAdminController extends Controller
         ];
 
         if ($request->hasFile('image')) {
-            $rules['image'] = 'image|mimes:jpeg,png,jpg,gif|max:2048';
+            $rules['image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+        } else {
+            // If no image is provided, require it (unless course already has an image)
+            if (!$course->image) {
+                $rules['image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            }
         }
 
         $validated = $request->validate($rules);
@@ -485,6 +490,10 @@ class CourseAdminController extends Controller
                 $data[$field] = $validated[$field];
             }
         }
+        
+        // Force access_type to 'free' and price to 0
+        $data['access_type'] = 'free';
+        $data['price'] = 0;
         
         // Handle min_test_score (new) or min_exam_score (legacy)
         if (isset($validated['min_test_score'])) {

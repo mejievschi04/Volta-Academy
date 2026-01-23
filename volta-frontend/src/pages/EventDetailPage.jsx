@@ -4,7 +4,6 @@ import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
-import { formatCurrency, getDefaultCurrency } from '../utils/currency';
 
 const EventDetailPage = () => {
 	const { id } = useParams();
@@ -14,17 +13,8 @@ const EventDetailPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [actionLoading, setActionLoading] = useState(false);
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-
 	useEffect(() => {
 		fetchEvent();
-		
-		// Listen for currency changes
-		const handleCurrencyChange = () => {
-			setCurrency(getDefaultCurrency());
-		};
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
 	}, [id]);
 
 	const fetchEvent = async () => {
@@ -69,7 +59,6 @@ const EventDetailPage = () => {
 	const getAccessTypeLabel = (accessType) => {
 		const labels = {
 			free: 'Gratuit',
-			paid: 'Plătit',
 			course_included: 'Inclus în curs',
 		};
 		return labels[accessType] || accessType;
@@ -78,9 +67,9 @@ const EventDetailPage = () => {
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#10b981' },
-			upcoming: { label: 'Viitor', color: '#3b82f6' },
+			upcoming: { label: 'Viitor', color: '#FFEE00' },
 			live: { label: 'Live', color: '#ef4444' },
-			completed: { label: 'Finalizat', color: '#8b5cf6' },
+			completed: { label: 'Finalizat', color: '#FFEE00' },
 			cancelled: { label: 'Anulat', color: '#f97316' },
 		};
 		return badges[status] || null;
@@ -247,11 +236,6 @@ const EventDetailPage = () => {
 							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>💰 Acces</div>
 							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>
 								{getAccessTypeLabel(event.access_type)}
-								{event.access_type === 'paid' && event.price && (
-									<span style={{ marginLeft: '0.5rem' }}>
-										- {formatCurrency(event.price, event.currency || currency)}
-									</span>
-								)}
 							</div>
 						</div>
 						{event.instructor && (
@@ -315,10 +299,10 @@ const EventDetailPage = () => {
 								style={{ 
 									flex: 1,
 									minWidth: '200px',
-									background: event.access_type === 'paid' ? '#f59e0b' : '#10b981',
+									background: '#10b981',
 								}}
 							>
-								{actionLoading ? 'Se procesează...' : (event.access_type === 'paid' ? '💳 Plătește și Înscrie-te' : '✓ Înscrie-te')}
+								{actionLoading ? 'Se procesează...' : '✓ Înscrie-te'}
 							</button>
 						)}
 						{event.user_registered && (
@@ -360,7 +344,7 @@ const EventDetailPage = () => {
 									<button
 										className="lms-btn-primary"
 										onClick={handleWatchReplay}
-										style={{ background: '#8b5cf6' }}
+										style={{ background: '#FFEE00' }}
 									>
 										🎬 Vezi Replay
 									</button>
@@ -404,7 +388,7 @@ const EventDetailPage = () => {
 							}}>
 								<div>
 									<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Înscrieri</div>
-									<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+									<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFEE00' }}>
 										{event.registrations_count || 0}
 									</div>
 								</div>
@@ -417,7 +401,7 @@ const EventDetailPage = () => {
 								{event.replay_views_count > 0 && (
 									<div>
 										<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Replay Views</div>
-										<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#8b5cf6' }}>
+										<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFEE00' }}>
 											{event.replay_views_count}
 										</div>
 									</div>

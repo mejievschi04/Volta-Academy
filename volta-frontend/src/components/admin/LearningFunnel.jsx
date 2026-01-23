@@ -2,8 +2,8 @@ import React from 'react';
 
 const LearningFunnel = ({ data }) => {
 	const stages = [
-		{ key: 'enrolled', label: 'Enrolled', count: data?.enrolled || 0, color: '#3b82f6' },
-		{ key: 'started', label: 'Started', count: data?.started || 0, color: '#8b5cf6' },
+		{ key: 'enrolled', label: 'Enrolled', count: data?.enrolled || 0, color: '#FFEE00' },
+		{ key: 'started', label: 'Started', count: data?.started || 0, color: '#FFEE00' },
 		{ key: 'in_progress', label: 'In Progress', count: data?.in_progress || 0, color: '#f59e0b' },
 		{ key: 'completed', label: 'Completed', count: data?.completed || 0, color: '#10b981' },
 		{ key: 'certified', label: 'Certified', count: data?.certified || 0, color: '#06b6d4' },

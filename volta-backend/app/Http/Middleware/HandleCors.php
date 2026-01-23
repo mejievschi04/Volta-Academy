@@ -13,8 +13,17 @@ class HandleCors
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Allowed origins
-        $allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+        // Allowed origins from environment variable or default to localhost
+        $frontendUrl = env('FRONTEND_URL');
+        $allowedOrigins = $frontendUrl 
+            ? [$frontendUrl] 
+            : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+        
+        // Allow multiple origins if comma-separated
+        if ($frontendUrl && str_contains($frontendUrl, ',')) {
+            $allowedOrigins = array_map('trim', explode(',', $frontendUrl));
+        }
+        
         $origin = $request->headers->get('Origin');
         
         // Handle preflight requests

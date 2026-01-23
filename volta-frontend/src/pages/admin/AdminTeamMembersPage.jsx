@@ -80,7 +80,7 @@ const AdminTeamMembersPage = () => {
 	const getRoleColor = (role) => {
 		const colors = {
 			admin: '#ef4444',
-			manager: '#3b82f6',
+			manager: '#FFEE00',
 			instructor: '#10b981',
 			teacher: '#10b981',
 		};

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import logoShort from '../assets/Logo short.png';
+import logoShort from '../assets/Volta Logo 2@300x 1.png';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
@@ -107,7 +107,6 @@ const LoginPage = () => {
 									required
 									placeholder="••••••••"
 									autoComplete="current-password"
-									style={{ paddingRight: '48px' }}
 								/>
 								<button
 									type="button"
@@ -130,11 +129,11 @@ const LoginPage = () => {
 							</div>
 						</div>
 
-						<button
-							type="submit"
-							className="modern-auth-submit"
-							disabled={loading}
-						>
+					<button
+						type="submit"
+						className="modern-auth-submit"
+						disabled={loading}
+					>
 							{loading ? (
 								<>
 									<svg className="modern-auth-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none">

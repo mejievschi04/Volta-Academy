@@ -1,53 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService, coursesService } from '../../services/api';
+import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 
 const AdminQuestionBanksPage = () => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
-	const [questionBanks, setQuestionBanks] = useState([]);
+	const [banks, setBanks] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [showModal, setShowModal] = useState(false);
-	const [editingBank, setEditingBank] = useState(null);
-	const [formData, setFormData] = useState({
-		title: '',
-		description: '',
-		category: '',
+	
+	// Filters and search
+	const [searchQuery, setSearchQuery] = useState('');
+	const [filters, setFilters] = useState({
+		status: 'all',
+		activeCount: 0
 	});
-	const [showAIModal, setShowAIModal] = useState(false);
-	const [selectedBank, setSelectedBank] = useState(null);
-	const [courses, setCourses] = useState([]);
-	const [selectedCourse, setSelectedCourse] = useState('');
-	const [aiGenerating, setAiGenerating] = useState(false);
-	const [aiError, setAiError] = useState(null);
-	const [aiOptions, setAiOptions] = useState({
-		numberOfQuestions: 10,
-		difficulty: 'medium',
-		questionTypes: ['multiple_choice']
-	});
+	const [sortBy, setSortBy] = useState('recent');
+	const [viewMode, setViewMode] = useState('grid');
+	
+	// Selection
+	const [selectedBanks, setSelectedBanks] = useState(new Set());
 
-	useEffect(() => {
-		fetchQuestionBanks();
-		fetchCourses();
-	}, []);
-
-	const fetchCourses = async () => {
-		try {
-			const data = await coursesService.getAll();
-			setCourses(Array.isArray(data) ? data : []);
-		} catch (err) {
-			console.error('Error fetching courses:', err);
-		}
-	};
-
-	const fetchQuestionBanks = async () => {
+	// Fetch question banks
+	const fetchBanks = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const data = await adminService.getQuestionBanks();
-			setQuestionBanks(Array.isArray(data) ? data : (data?.data || []));
+			
+			const params = {
+				search: searchQuery || undefined,
+				status: filters.status !== 'all' ? filters.status : undefined,
+			};
+			
+			const data = await adminService.getQuestionBanks(params);
+			setBanks(Array.isArray(data) ? data : []);
 		} catch (err) {
 			console.error('Error fetching question banks:', err);
 			setError('Nu s-au putut încărca băncile de întrebări');
@@ -55,91 +42,114 @@ const AdminQuestionBanksPage = () => {
 		} finally {
 			setLoading(false);
 		}
+	}, [searchQuery, filters, showToast]);
+
+	useEffect(() => {
+		fetchBanks();
+	}, [fetchBanks]);
+
+	// Calculate active filters count
+	useEffect(() => {
+		let count = 0;
+		if (filters.status !== 'all') count++;
+		setFilters(prev => ({ ...prev, activeCount: count }));
+	}, [filters.status]);
+
+	// Handle filter change
+	const handleFilterChange = (key, value) => {
+		setFilters(prev => ({ ...prev, [key]: value }));
 	};
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		try {
-			if (editingBank) {
-				await adminService.updateQuestionBank(editingBank.id, formData);
-				showToast('Bancă de întrebări actualizată cu succes', 'success');
+	// Handle bank selection
+	const handleSelectBank = (bankId, selected) => {
+		setSelectedBanks(prev => {
+			const newSet = new Set(prev);
+			if (selected) {
+				newSet.add(bankId);
 			} else {
-				await adminService.createQuestionBank(formData);
-				showToast('Bancă de întrebări creată cu succes', 'success');
+				newSet.delete(bankId);
 			}
-			setShowModal(false);
-			setEditingBank(null);
-			setFormData({ title: '', description: '', category: '' });
-			fetchQuestionBanks();
-		} catch (err) {
-			console.error('Error saving question bank:', err);
-			showToast('Eroare la salvarea băncii de întrebări', 'error');
-		}
-	};
-
-	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi această bancă de întrebări?')) {
-			return;
-		}
-
-		try {
-			await adminService.deleteQuestionBank(id);
-			showToast('Bancă de întrebări ștearsă cu succes', 'success');
-			fetchQuestionBanks();
-		} catch (err) {
-			console.error('Error deleting question bank:', err);
-			showToast('Eroare la ștergerea băncii de întrebări', 'error');
-		}
-	};
-
-	const handleOpenAIModal = (bank) => {
-		setSelectedBank(bank);
-		setSelectedCourse('');
-		setAiOptions({
-			numberOfQuestions: 10,
-			difficulty: 'medium',
-			questionTypes: ['multiple_choice']
+			return newSet;
 		});
-		setAiError(null);
-		setShowAIModal(true);
 	};
 
-	const handleGenerateQuestions = async () => {
-		if (!selectedCourse) {
-			showToast('Te rugăm să selectezi un curs', 'error');
-			return;
-		}
-
+	// Handle quick actions
+	const handleQuickAction = async (bankId, action) => {
 		try {
-			setAiGenerating(true);
-			setAiError(null);
-			const result = await adminService.generateQuestionsFromCourse(
-				selectedBank.id,
-				selectedCourse,
-				aiOptions
-			);
-			showToast(`S-au generat ${result.questions_generated || 0} întrebări cu succes!`, 'success');
-			setShowAIModal(false);
-			setSelectedBank(null);
-			setSelectedCourse('');
-			fetchQuestionBanks();
+			switch (action) {
+				case 'delete':
+					if (window.confirm('Ești sigur că vrei să ștergi această bancă de întrebări?')) {
+						await adminService.deleteQuestionBank(bankId);
+						showToast('Banca de întrebări a fost ștearsă cu succes', 'success');
+					}
+					break;
+				case 'archive':
+					await adminService.updateQuestionBank(bankId, { status: 'archived' });
+					showToast('Banca de întrebări a fost arhivată', 'success');
+					break;
+				default:
+					console.warn('Unknown action:', action);
+			}
+			fetchBanks();
 		} catch (err) {
-			console.error('Error generating questions:', err);
-			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu AI';
-			setAiError(message);
-			showToast(message, 'error');
-		} finally {
-			setAiGenerating(false);
+			console.error('Error performing action:', err);
+			showToast('Eroare la executarea acțiunii', 'error');
 		}
 	};
 
+	// Handle create bank
+	const handleCreateBank = () => {
+		navigate('/admin/question-banks/new/builder');
+	};
 
+	// Get status badge
+	const getStatusBadge = (status) => {
+		const badges = {
+			active: { label: 'Activă', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
+			draft: { label: 'Draft', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
+			archived: { label: 'Arhivată', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
+		};
+		return badges[status] || badges.draft;
+	};
 
-	if (loading) {
+	// Filtered and sorted banks
+	const filteredAndSortedBanks = useMemo(() => {
+		let filtered = [...banks];
+
+		// Apply search filter
+		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
+			filtered = filtered.filter(bank => 
+				(bank.title || '').toLowerCase().includes(query) ||
+				(bank.description || '').toLowerCase().includes(query)
+			);
+		}
+
+		// Apply status filter
+		if (filters.status !== 'all') {
+			filtered = filtered.filter(bank => bank.status === filters.status);
+		}
+
+		// Apply sorting
+		if (sortBy === 'recent') {
+			filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+		} else if (sortBy === 'alphabetical') {
+			filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+		} else if (sortBy === 'questions') {
+			filtered.sort((a, b) => (b.questions_count || 0) - (a.questions_count || 0));
+		}
+
+		return filtered;
+	}, [banks, searchQuery, filters.status, sortBy]);
+
+	if (error) {
 		return (
 			<div className="admin-container">
-				<div className="lms-dashboard-loading">
-					<div className="lms-spinner"></div>
+				<div className="lms-empty-state">
+					<p style={{ color: 'var(--color-error)' }}>{error}</p>
+					<button className="lms-btn-primary" onClick={fetchBanks}>
+						Încearcă din nou
+					</button>
 				</div>
 			</div>
 		);
@@ -147,301 +157,289 @@ const AdminQuestionBanksPage = () => {
 
 	return (
 		<div className="admin-container">
-			<div className="admin-page-header">
-				<div className="admin-page-header-content">
-					<h1 className="admin-page-title">Bănci de Întrebări</h1>
-					<p className="admin-page-subtitle">
-						Gestionează băncile de întrebări reutilizabile pentru teste
-					</p>
+			{/* Header */}
+			<div className="admin-courses-page-header">
+				<div className="admin-courses-header-content">
+					<div className="admin-courses-header-text">
+						<h1 className="admin-courses-title">Bănci de Întrebări</h1>
+						<p className="admin-courses-subtitle">
+							Gestionează și creează bănci de întrebări reutilizabile pentru teste
+						</p>
+					</div>
+					<div className="admin-courses-header-actions">
+						<button className="admin-btn-create-course" onClick={handleCreateBank}>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
+							</svg>
+							Creează Bancă
+						</button>
+					</div>
 				</div>
-				<button
-					className="lms-btn-primary"
-					onClick={() => navigate('/admin/question-banks/new/builder')}
-				>
-					+ Creează Bancă de Întrebări
-				</button>
-			</div>
 
-			{error && (
-				<div className="lms-error-message">
-					{error}
-				</div>
-			)}
+				{/* Search and Filters */}
+				<div className="admin-courses-search-wrapper">
+					<div className="admin-courses-search">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<circle cx="11" cy="11" r="8"/>
+							<path d="m21 21-4.35-4.35"/>
+						</svg>
+						<input
+							type="text"
+							placeholder="Caută bănci de întrebări..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							className="admin-courses-search-input"
+						/>
+					</div>
 
-			{questionBanks.length > 0 ? (
-				<div className="admin-question-banks-grid">
-					{questionBanks.map((bank) => (
-						<div key={bank.id} className="admin-question-bank-card">
-							<div className="admin-question-bank-card-body">
-								<h3 className="admin-question-bank-card-title">{bank.title}</h3>
-								{bank.description && (
-									<p className="admin-question-bank-card-description">
-										{bank.description}
-									</p>
-								)}
-								<div className="admin-question-bank-card-info">
-									<div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-										{bank.questions_count !== undefined && (
-											<span>❓ {bank.questions_count} întrebări</span>
-										)}
-										{bank.category && (
-											<span>📁 {bank.category}</span>
-										)}
-									</div>
-								</div>
-								<div className="admin-question-bank-card-actions">
-									<button
-										className="lms-btn-secondary lms-btn-sm"
-										onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
-									>
-										✏️ Editează
-									</button>
-									<button
-										className="lms-btn-primary lms-btn-sm"
-										onClick={() => handleOpenAIModal(bank)}
-									>
-										🤖 Generează cu AI
-									</button>
-									<button
-										className="lms-btn-secondary lms-btn-sm"
-										onClick={() => navigate(`/admin/question-banks/${bank.id}/questions`)}
-									>
-										📝 Gestionează Întrebări
-									</button>
-									<button
-										className="lms-btn-secondary lms-btn-sm va-btn-danger"
-										onClick={() => handleDelete(bank.id)}
-									>
-										🗑️ Șterge
-									</button>
-								</div>
-							</div>
-						</div>
-					))}
-				</div>
-			) : (
-				<div className="lms-empty-state">
-					<div className="lms-empty-icon">📚</div>
-					<h3 className="lms-empty-title">Nu există bănci de întrebări</h3>
-					<p className="lms-empty-description">
-						Băncile de întrebări permit reutilizarea întrebărilor în multiple teste
-					</p>
-					<button
-						className="lms-btn-primary"
-						onClick={() => navigate('/admin/question-banks/new/builder')}
-					>
-						+ Creează Prima Bancă de Întrebări
-					</button>
-				</div>
-			)}
+					<div className="admin-courses-filters">
+						{/* Status Filter */}
+						<select
+							value={filters.status}
+							onChange={(e) => handleFilterChange('status', e.target.value)}
+							className="admin-courses-filter-select"
+						>
+							<option value="all">Toate statusurile</option>
+							<option value="active">Active</option>
+							<option value="draft">Draft</option>
+							<option value="archived">Arhivate</option>
+						</select>
 
-			{/* Create/Edit Modal */}
-			{showModal && (
-				<div
-					className="admin-team-modal-overlay"
-					onClick={() => setShowModal(false)}
-				>
-					<div
-						className="admin-team-modal"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="admin-team-modal-header">
-							<h2 className="admin-team-modal-title">{editingBank ? 'Editează Bancă de Întrebări' : 'Creează Bancă de Întrebări Nouă'}</h2>
+						{/* Sort */}
+						<select
+							value={sortBy}
+							onChange={(e) => setSortBy(e.target.value)}
+							className="admin-courses-filter-select"
+						>
+							<option value="recent">Cele mai recente</option>
+							<option value="alphabetical">Alfabetic</option>
+							<option value="questions">Nr. întrebări</option>
+						</select>
+
+						{/* View Mode Toggle */}
+						<div className="admin-courses-view-toggle">
 							<button
-								type="button"
-								className="admin-team-modal-close"
-								onClick={() => setShowModal(false)}
+								className={viewMode === 'grid' ? 'active' : ''}
+								onClick={() => setViewMode('grid')}
+								title="Grid View"
 							>
-								×
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<rect x="3" y="3" width="7" height="7"/>
+									<rect x="14" y="3" width="7" height="7"/>
+									<rect x="3" y="14" width="7" height="7"/>
+									<rect x="14" y="14" width="7" height="7"/>
+								</svg>
+							</button>
+							<button
+								className={viewMode === 'list' ? 'active' : ''}
+								onClick={() => setViewMode('list')}
+								title="List View"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<line x1="8" y1="6" x2="21" y2="6"/>
+									<line x1="8" y1="12" x2="21" y2="12"/>
+									<line x1="8" y1="18" x2="21" y2="18"/>
+									<line x1="3" y1="6" x2="3.01" y2="6"/>
+									<line x1="3" y1="12" x2="3.01" y2="12"/>
+									<line x1="3" y1="18" x2="3.01" y2="18"/>
+								</svg>
 							</button>
 						</div>
-						<div className="admin-team-modal-body">
-							<form onSubmit={handleSubmit} className="admin-team-modal-form">
-								<div className="admin-form-group">
-									<label className="admin-form-label">Titlu</label>
-									<input
-										type="text"
-										className="admin-form-input"
-										value={formData.title}
-										onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-										required
-										placeholder="ex: Întrebări PHP Avansat"
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Descriere</label>
-									<textarea
-										className="admin-form-input"
-										value={formData.description}
-										onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-										rows={4}
-										placeholder="Descrierea băncii de întrebări..."
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Categorie (opțional)</label>
-									<input
-										type="text"
-										className="admin-form-input"
-										value={formData.category}
-										onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-										placeholder="ex: PHP, JavaScript, etc."
-									/>
-								</div>
-								<div className="admin-team-modal-footer">
-									<button
-										type="button"
-										className="lms-btn-secondary"
-										onClick={() => setShowModal(false)}
-									>
-										Anulează
-									</button>
-									<button type="submit" className="lms-btn-primary">
-										Salvează
-									</button>
-								</div>
-							</form>
-						</div>
 					</div>
 				</div>
-			)}
+			</div>
 
-			{/* AI Generation Modal */}
-			{showAIModal && (
-				<div
-					className="admin-team-modal-overlay"
-					onClick={() => !aiGenerating && setShowAIModal(false)}
-				>
-					<div
-						className="admin-team-modal"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="admin-team-modal-header">
-							<div>
-								<h2 className="admin-team-modal-title">🤖 Generează Întrebări cu AI</h2>
-								<p className="admin-page-subtitle" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-									Selectează un curs și AI-ul va genera întrebări pentru test
-								</p>
-							</div>
-							{!aiGenerating && (
-								<button
-									type="button"
-									className="admin-team-modal-close"
-									onClick={() => setShowAIModal(false)}
-								>
-									×
-								</button>
-							)}
-						</div>
-						<div className="admin-team-modal-body">
-							<div className="admin-team-modal-form">
-								<div className="admin-form-group">
-									<label className="admin-form-label">Bancă de Întrebări</label>
-									<input
-										type="text"
-										className="admin-form-input"
-										value={selectedBank?.title || ''}
-										disabled
-										style={{ opacity: 0.7 }}
-									/>
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">Selectează Curs *</label>
-									<select
-										className="admin-form-input"
-										value={selectedCourse}
-										onChange={(e) => setSelectedCourse(e.target.value)}
-										disabled={aiGenerating}
-										required
+			{/* Banks List/Grid */}
+			{loading && banks.length === 0 ? (
+				<div className="admin-courses-loading">
+					<div className="va-spinner va-spinner-lg"></div>
+					<p>Se încarcă băncile de întrebări...</p>
+				</div>
+			) : filteredAndSortedBanks.length === 0 ? (
+				<div className="lms-empty-state">
+					<p>Nu există bănci de întrebări disponibile.</p>
+					<button className="lms-btn-primary" onClick={handleCreateBank}>
+						+ Creează prima bancă
+					</button>
+				</div>
+			) : (
+				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
+					{viewMode === 'grid' ? (
+						<div className="admin-courses-grid-container">
+							{filteredAndSortedBanks.map(bank => {
+								const statusBadge = getStatusBadge(bank.status);
+								
+								return (
+									<div
+										key={bank.id}
+										className="admin-course-card"
+										onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
 									>
-										<option value="">-- Selectează un curs --</option>
-										{courses.map((course) => (
-											<option key={course.id} value={course.id}>
-												{course.title}
-											</option>
-										))}
-									</select>
-									{selectedCourse && (
-										<p className="admin-form-hint">
-											AI-ul va analiza conținutul cursului și va genera întrebări relevante
-										</p>
-									)}
-								</div>
+										{/* Header with badges */}
+										<div className="admin-course-card-header">
+											<div className="admin-course-card-badges">
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: statusBadge.bg,
+														color: statusBadge.color,
+														borderColor: statusBadge.color,
+													}}
+												>
+													{statusBadge.label}
+												</div>
+											</div>
+										</div>
 
-								<div className="admin-form-group">
-									<label className="admin-form-label">Număr de Întrebări</label>
-									<input
-										type="number"
-										className="admin-form-input"
-										value={aiOptions.numberOfQuestions}
-										onChange={(e) => setAiOptions({
-											...aiOptions,
-											numberOfQuestions: parseInt(e.target.value) || 10
-										})}
-										min="1"
-										max="50"
-										disabled={aiGenerating}
-									/>
-								</div>
+										{/* Content */}
+										<div className="admin-course-card-content">
+											<h3 className="admin-course-card-title">{bank.title}</h3>
+											{bank.description && (
+												<p className="admin-course-card-description">
+													{bank.description.length > 100 
+														? bank.description.substring(0, 100) + '...' 
+														: bank.description}
+												</p>
+											)}
 
-								<div className="admin-form-group">
-									<label className="admin-form-label">Dificultate</label>
-									<select
-										className="admin-form-input"
-										value={aiOptions.difficulty}
-										onChange={(e) => setAiOptions({
-											...aiOptions,
-											difficulty: e.target.value
-										})}
-										disabled={aiGenerating}
-									>
-										<option value="easy">Ușor</option>
-										<option value="medium">Mediu</option>
-										<option value="hard">Dificil</option>
-									</select>
-								</div>
+											{/* Stats */}
+											<div className="admin-course-card-stats">
+												<span className="admin-course-card-stat">
+													📝 {bank.questions_count || 0} întrebări
+												</span>
+												{bank.tests_count > 0 && (
+													<span className="admin-course-card-stat">
+														📋 {bank.tests_count} teste
+													</span>
+												)}
+												{bank.creator && (
+													<span className="admin-course-card-stat">
+														👤 {bank.creator.name || 'Necunoscut'}
+													</span>
+												)}
+											</div>
+										</div>
 
-								{aiGenerating && (
-									<div className="admin-ai-generating">
-										<div className="lms-spinner" style={{ margin: '0 auto 1rem' }}></div>
-										<p style={{ color: 'var(--color-primary)', fontWeight: 600, textAlign: 'center' }}>
-											AI-ul generează întrebări din conținutul cursului...
-										</p>
-										<p className="admin-form-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-											Aceasta poate dura câteva momente
-										</p>
+										{/* Actions */}
+										<div className="admin-course-card-actions">
+											<button
+												className="admin-course-card-action-btn"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/admin/question-banks/${bank.id}/builder`);
+												}}
+											>
+												✏️ Editează
+											</button>
+											<button
+												className="admin-course-card-action-btn"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/admin/question-banks/${bank.id}/questions`);
+												}}
+											>
+												📋 Întrebări
+											</button>
+											<button
+												className="admin-course-card-action-btn va-btn-danger"
+												onClick={(e) => {
+													e.stopPropagation();
+													handleQuickAction(bank.id, 'delete');
+												}}
+											>
+												🗑️ Șterge
+											</button>
+										</div>
 									</div>
-								)}
-
-								{aiError && (
-									<div className="lms-error-message">
-										<strong>Eroare AI:</strong>
-										<p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>{aiError}</p>
-									</div>
-								)}
-
-								<div className="admin-team-modal-footer">
-									<button
-										type="button"
-										className="lms-btn-secondary"
-										onClick={() => setShowAIModal(false)}
-										disabled={aiGenerating}
-									>
-										Anulează
-									</button>
-									<button
-										type="button"
-										className="lms-btn-primary"
-										onClick={handleGenerateQuestions}
-										disabled={aiGenerating || !selectedCourse}
-									>
-										🤖 {aiGenerating ? 'Se generează...' : 'Generează Întrebări'}
-									</button>
-								</div>
-							</div>
+								);
+							})}
 						</div>
-					</div>
+					) : (
+						<div className="admin-courses-table-container">
+							<div className="admin-courses-table-header">
+								<div className="admin-course-table-checkbox"></div>
+								<div className="admin-course-table-info-header">Bancă de Întrebări</div>
+								<div className="admin-course-table-metrics-header">Metrici</div>
+								<div className="admin-course-table-actions-header">Acțiuni</div>
+							</div>
+							{filteredAndSortedBanks.map(bank => {
+								const statusBadge = getStatusBadge(bank.status);
+								
+								return (
+									<div key={bank.id} className="admin-course-table-row">
+										<div className="admin-course-table-checkbox">
+											<input
+												type="checkbox"
+												checked={selectedBanks.has(bank.id)}
+												onChange={(e) => handleSelectBank(bank.id, e.target.checked)}
+												onClick={(e) => e.stopPropagation()}
+											/>
+										</div>
+										<div className="admin-course-table-info">
+											<div className="admin-course-table-badges">
+												<div
+													className="admin-course-status-badge"
+													style={{
+														backgroundColor: statusBadge.bg,
+														color: statusBadge.color,
+														borderColor: statusBadge.color,
+													}}
+												>
+													{statusBadge.label}
+												</div>
+											</div>
+											<h3 className="admin-course-table-title">{bank.title}</h3>
+											{bank.description && (
+												<p className="admin-course-table-description">
+													{bank.description.length > 150 
+														? bank.description.substring(0, 150) + '...' 
+														: bank.description}
+												</p>
+											)}
+										</div>
+										<div className="admin-course-table-metrics">
+											<div className="admin-course-table-metric">
+												<span className="admin-course-table-metric-label">Întrebări:</span>
+												<span className="admin-course-table-metric-value">{bank.questions_count || 0}</span>
+											</div>
+											{bank.tests_count > 0 && (
+												<div className="admin-course-table-metric">
+													<span className="admin-course-table-metric-label">Teste:</span>
+													<span className="admin-course-table-metric-value">{bank.tests_count}</span>
+												</div>
+											)}
+											{bank.creator && (
+												<div className="admin-course-table-metric">
+													<span className="admin-course-table-metric-label">Creator:</span>
+													<span className="admin-course-table-metric-value">{bank.creator.name || 'Necunoscut'}</span>
+												</div>
+											)}
+										</div>
+										<div className="admin-course-table-actions">
+											<button
+												className="admin-course-table-action-btn"
+												onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
+											>
+												✏️ Editează
+											</button>
+											<button
+												className="admin-course-table-action-btn"
+												onClick={() => navigate(`/admin/question-banks/${bank.id}/questions`)}
+											>
+												📋 Întrebări
+											</button>
+											<button
+												className="admin-course-table-action-btn va-btn-danger"
+												onClick={() => handleQuickAction(bank.id, 'delete')}
+											>
+												🗑️ Șterge
+											</button>
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					)}
 				</div>
 			)}
 		</div>
@@ -449,4 +447,3 @@ const AdminQuestionBanksPage = () => {
 };
 
 export default AdminQuestionBanksPage;
-

@@ -29,24 +29,6 @@ const CoursesHeader = ({
 						</p>
 					</div>
 					<div className="admin-courses-header-actions">
-						{onCreateAICourse && (
-							<button
-								className="lms-btn-secondary"
-								onClick={(e) => {
-									e.preventDefault();
-									e.stopPropagation();
-									if (!loading && onCreateAICourse) {
-										onCreateAICourse();
-									}
-								}}
-								disabled={loading}
-								type="button"
-								title="Creează curs cu AI"
-							>
-								<span>🤖</span>
-								AI Creator
-							</button>
-						)}
 						<button
 							className="lms-btn-primary"
 							onClick={(e) => {
@@ -60,7 +42,7 @@ const CoursesHeader = ({
 							type="button"
 						>
 							<span>+</span>
-							Create Course
+							Creează Curs
 						</button>
 					</div>
 				</div>
@@ -70,7 +52,7 @@ const CoursesHeader = ({
 					<div className="admin-courses-search-wrapper">
 						<input
 							type="text"
-							placeholder="Caută după titlu, instructor..."
+							placeholder="Caută după titlu..."
 							value={searchQuery}
 							onChange={(e) => onSearchChange(e.target.value)}
 							className="admin-courses-search-input"
@@ -151,41 +133,12 @@ const CoursesHeader = ({
 							</div>
 						</div>
 
-						<div className="admin-filter-group">
-							<label className="admin-filter-label">Instructor</label>
-							<select
-								value={filters.instructor || 'all'}
-								onChange={(e) => onFilterChange('instructor', e.target.value)}
-								className="admin-filter-select"
-							>
-								<option value="all">Toți instructorii</option>
-								{filters.instructors?.map(inst => (
-									<option key={inst.id} value={inst.id}>{inst.name}</option>
-								))}
-							</select>
-						</div>
-
-						<div className="admin-filter-group">
-							<label className="admin-filter-label">Nivel</label>
-							<select
-								value={filters.level || 'all'}
-								onChange={(e) => onFilterChange('level', e.target.value)}
-								className="admin-filter-select"
-							>
-								<option value="all">Toate nivelurile</option>
-								<option value="beginner">Începător</option>
-								<option value="intermediate">Intermediar</option>
-								<option value="advanced">Avansat</option>
-							</select>
-						</div>
 					</div>
 
 					<button
 						className="lms-btn-secondary lms-btn-sm"
 						onClick={() => {
 							onFilterChange('status', 'all');
-							onFilterChange('instructor', 'all');
-							onFilterChange('level', 'all');
 						}}
 					>
 						Resetează filtrele

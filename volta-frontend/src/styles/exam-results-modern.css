@@ -1,0 +1,525 @@
+/* ============================================
+   EXAM RESULTS PAGE - Modern Styling
+   Complete styling for exam results page
+   ============================================ */
+
+/* ============================================
+   1. PAGE LAYOUT
+   ============================================ */
+.exam-results-page {
+	padding: var(--space-2) var(--space-8);
+	background-color: var(--bg-primary);
+	height: 100%;
+	overflow-y: auto; /* Allow scroll within container */
+	max-width: 1600px;
+	margin: 0 auto;
+}
+
+.exam-results-page-header {
+	margin-bottom: var(--space-8);
+}
+
+.exam-results-page-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.exam-results-page-subtitle {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0;
+	opacity: 0.7;
+}
+
+/* ============================================
+   2. GRID LAYOUT
+   ============================================ */
+.exam-results-grid {
+	display: grid;
+	grid-template-columns: 280px 1fr;
+	gap: var(--space-4);
+}
+
+.exam-results-section-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-4) 0;
+}
+
+/* ============================================
+   3. RESULTS LIST
+   ============================================ */
+.exam-results-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.exam-result-item {
+	width: 100%;
+	padding: var(--space-3);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	text-align: left;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	box-shadow: var(--shadow-sm);
+}
+
+.exam-result-item:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+}
+
+.exam-result-item.selected {
+	background-color: rgba(255, 238, 0, 0.1);
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 2px rgba(255, 238, 0, 0.2);
+}
+
+.exam-result-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-2);
+	margin-bottom: var(--space-2);
+}
+
+.exam-result-title {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	flex: 1;
+	line-height: var(--line-height-tight);
+}
+
+.exam-result-status-badge {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.exam-result-status-badge.passed {
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+}
+
+.exam-result-status-badge.failed {
+	background-color: rgba(239, 68, 68, 0.2);
+	color: var(--color-error);
+}
+
+.exam-result-meta {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin-bottom: var(--space-2);
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+}
+
+.exam-result-score {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-top: var(--space-2);
+	border-top: 1px solid var(--border-primary);
+}
+
+.exam-result-score-label {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	font-weight: var(--font-weight-medium);
+}
+
+.exam-result-score-value {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.exam-result-manual-review {
+	margin-top: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	text-align: center;
+}
+
+.exam-result-manual-review.pending {
+	background-color: rgba(245, 158, 11, 0.2);
+	color: var(--color-warning);
+}
+
+/* ============================================
+   4. RESULT DETAILS
+   ============================================ */
+.exam-result-details {
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	box-shadow: var(--shadow-sm);
+	position: sticky;
+	top: calc(64px + var(--space-4)); /* Topnav height + spacing */
+	max-height: calc(100vh - 80px);
+	overflow-y: auto;
+}
+
+.exam-result-details-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-4);
+	padding-bottom: var(--space-3);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.exam-result-details-header h2 {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+/* ============================================
+   5. RESULT SUMMARY
+   ============================================ */
+.exam-result-summary {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin-bottom: var(--space-4);
+	padding: var(--space-3);
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-primary);
+}
+
+.exam-result-summary-item {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	line-height: var(--line-height-normal);
+}
+
+.exam-result-summary-item strong {
+	color: var(--text-primary);
+	font-weight: var(--font-weight-semibold);
+}
+
+.exam-result-score-display {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+	padding-top: var(--space-3);
+	border-top: 1px solid var(--border-primary);
+}
+
+.exam-result-score-display-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.exam-result-score-display-label {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-weight: var(--font-weight-medium);
+}
+
+.exam-result-score-display-value {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+}
+
+.exam-result-score-display-value.percentage.passed {
+	color: var(--color-success);
+}
+
+.exam-result-score-display-value.percentage.failed {
+	color: var(--color-error);
+}
+
+.exam-result-status-display {
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	text-align: center;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-top: var(--space-3);
+}
+
+.exam-result-status-display.passed {
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+	border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.exam-result-status-display.failed {
+	background-color: rgba(239, 68, 68, 0.2);
+	color: var(--color-error);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================
+   6. QUESTIONS AND ANSWERS
+   ============================================ */
+.exam-result-questions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.exam-result-question {
+	padding: var(--space-3);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-base);
+}
+
+.exam-result-question.correct {
+	background-color: rgba(34, 197, 94, 0.05);
+	border-color: rgba(34, 197, 94, 0.3);
+}
+
+.exam-result-question.incorrect {
+	background-color: rgba(239, 68, 68, 0.05);
+	border-color: rgba(239, 68, 68, 0.3);
+}
+
+.exam-result-question-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-2);
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.exam-result-question-number {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.exam-result-question-status {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	white-space: nowrap;
+}
+
+.exam-result-question-status.correct {
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+}
+
+.exam-result-question-status.incorrect {
+	background-color: rgba(239, 68, 68, 0.2);
+	color: var(--color-error);
+}
+
+.exam-result-question-text {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+	line-height: var(--line-height-normal);
+	margin-bottom: var(--space-3);
+}
+
+/* ============================================
+   7. ANSWERS
+   ============================================ */
+.exam-result-answers {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.exam-result-answer {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-primary);
+	background-color: var(--bg-elevated);
+	transition: all var(--transition-base);
+}
+
+.exam-result-answer.correct {
+	background-color: rgba(34, 197, 94, 0.1);
+	border-color: rgba(34, 197, 94, 0.3);
+}
+
+.exam-result-answer.user-incorrect {
+	background-color: rgba(239, 68, 68, 0.1);
+	border-color: rgba(239, 68, 68, 0.3);
+}
+
+.exam-result-answer-text {
+	flex: 1;
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	line-height: var(--line-height-relaxed);
+}
+
+.exam-result-answer-label {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--color-success);
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	background-color: rgba(34, 197, 94, 0.2);
+}
+
+.exam-result-open-text-answer {
+	padding: var(--space-2);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-xs);
+	color: var(--text-primary);
+	line-height: var(--line-height-normal);
+	min-height: 50px;
+	white-space: pre-wrap;
+}
+
+.exam-result-open-text-answer.empty {
+	color: var(--text-tertiary);
+	font-style: italic;
+}
+
+/* ============================================
+   8. UTILITY CLASSES
+   ============================================ */
+.exam-results-error {
+	padding: var(--space-4);
+	background-color: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-lg);
+	margin-bottom: var(--space-6);
+	color: var(--color-error);
+	font-size: var(--font-size-sm);
+}
+
+.exam-results-empty {
+	padding: var(--space-12) var(--space-6);
+	text-align: center;
+	color: var(--text-tertiary);
+}
+
+.exam-results-empty-icon {
+	font-size: 3rem;
+	margin-bottom: var(--space-4);
+	opacity: 0.5;
+}
+
+.exam-results-empty-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	margin-bottom: var(--space-2);
+}
+
+.exam-results-empty-text {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+.exam-results-loading {
+	padding: var(--space-8);
+	text-align: center;
+	color: var(--text-tertiary);
+}
+
+.exam-result-score-display-item-right {
+	text-align: right;
+}
+
+.exam-result-questions-title {
+	margin-bottom: var(--space-4);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.exam-result-answer-label-text {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin-bottom: var(--space-2);
+	font-weight: var(--font-weight-medium);
+}
+
+.exam-result-answer-icon {
+	font-size: var(--font-size-lg);
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.exam-result-answer-correct-label {
+	flex: 1;
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.exam-result-answer-correct-hint {
+	margin-top: var(--space-3);
+}
+
+/* ============================================
+   9. RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 1024px) {
+	.exam-results-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.exam-result-details {
+		position: static;
+		max-height: none;
+	}
+}
+
+@media (max-width: 768px) {
+	.exam-results-page {
+		padding: var(--space-4);
+	}
+
+	.exam-result-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.exam-result-score-display {
+		grid-template-columns: 1fr;
+	}
+
+	.exam-result-question-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}

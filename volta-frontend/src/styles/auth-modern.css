@@ -2,6 +2,66 @@
    MODERN AUTH PAGES - Premium Login/Register
    ============================================ */
 
+/* CRITICAL: Auth Submit Button - Must override ALL other styles */
+.modern-auth-submit,
+button.modern-auth-submit,
+.modern-auth-form button.modern-auth-submit,
+.modern-auth-form .modern-auth-submit,
+button[type="submit"].modern-auth-submit,
+.modern-auth-form button[type="submit"].modern-auth-submit,
+.modern-auth-container .modern-auth-submit,
+.modern-auth-container button.modern-auth-submit {
+	width: 100% !important;
+	padding: var(--space-4) var(--space-6) !important;
+	background-color: #FFEE00 !important;
+	background: #FFEE00 !important;
+	color: #000000 !important;
+	border: 1px solid #FFEE00 !important;
+	border-radius: var(--radius-lg) !important;
+	font-size: var(--font-size-base) !important;
+	font-weight: var(--font-weight-semibold) !important;
+	font-family: var(--font-family) !important;
+	cursor: pointer !important;
+	transition: all var(--transition-base) !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: var(--space-2) !important;
+	margin-top: var(--space-2) !important;
+	box-shadow: var(--shadow-md) !important;
+}
+
+/* CRITICAL: Span color inside submit button - Must override button color */
+.modern-auth-submit span,
+button.modern-auth-submit span,
+.modern-auth-form button.modern-auth-submit span,
+.modern-auth-form .modern-auth-submit span,
+button[type="submit"].modern-auth-submit span,
+.modern-auth-form button[type="submit"].modern-auth-submit span,
+.modern-auth-container .modern-auth-submit span,
+.modern-auth-container button.modern-auth-submit span {
+	color: var(--btn-primary-text) !important;
+}
+
+.modern-auth-submit:hover:not(:disabled),
+button.modern-auth-submit:hover:not(:disabled),
+.modern-auth-form button.modern-auth-submit:hover:not(:disabled),
+button[type="submit"].modern-auth-submit:hover:not(:disabled),
+.modern-auth-container .modern-auth-submit:hover:not(:disabled) {
+	background-color: #E6D600 !important;
+	background: #E6D600 !important;
+	box-shadow: var(--shadow-lg) !important;
+	transform: translateY(-2px) !important;
+}
+
+.modern-auth-submit:hover:not(:disabled) span,
+button.modern-auth-submit:hover:not(:disabled) span,
+.modern-auth-form button.modern-auth-submit:hover:not(:disabled) span,
+button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
+.modern-auth-container .modern-auth-submit:hover:not(:disabled) span {
+	color: var(--btn-primary-text) !important;
+}
+
 /* ============================================
    1. AUTH CONTAINER
    ============================================ */
@@ -40,9 +100,9 @@
 .modern-auth-pattern {
 	position: absolute;
 	inset: 0;
-	background-image: 
-		radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.05) 1px, transparent 0);
-	background-size: 40px 40px;
+	background-color: var(--btn-primary-text);
+	background-image: none;
+	color: rgba(0, 0, 0, 1);
 	opacity: 0.3;
 }
 
@@ -187,6 +247,11 @@
 	color: var(--text-tertiary);
 }
 
+/* Password input with toggle button - needs extra padding on right */
+.modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
+	padding-right: 48px;
+}
+
 .modern-password-toggle {
 	position: absolute;
 	right: var(--space-3);
@@ -240,44 +305,15 @@
 	75% { transform: translateX(8px); }
 }
 
-/* ============================================
-   6. AUTH SUBMIT BUTTON
-   ============================================ */
-.modern-auth-submit {
-	width: 100%;
-	padding: var(--space-4) var(--space-6);
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border: 1px solid var(--btn-primary-border);
-	border-radius: var(--radius-lg);
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-semibold);
-	font-family: var(--font-family);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	margin-top: var(--space-2);
-	box-shadow: var(--shadow-md);
-}
-
-.modern-auth-submit:hover:not(:disabled) {
-	background-color: var(--btn-primary-hover);
-	box-shadow: var(--shadow-lg);
-	transform: translateY(-2px);
-}
-
 .modern-auth-submit:active:not(:disabled) {
-	transform: translateY(0);
-	box-shadow: var(--shadow-md);
+	transform: translateY(0) !important;
+	box-shadow: var(--shadow-md) !important;
 }
 
 .modern-auth-submit:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-	transform: none;
+	opacity: 0.6 !important;
+	cursor: not-allowed !important;
+	transform: none !important;
 }
 
 .modern-auth-spinner {
@@ -345,35 +381,5 @@
 
 /* ============================================
    8. RESPONSIVE
+   Mobile styles are handled in mobile-optimizations.css
    ============================================ */
-@media (max-width: 768px) {
-	.modern-auth-container {
-		padding: var(--space-4);
-	}
-
-	.modern-auth-card {
-		padding: var(--space-8) var(--space-6);
-	}
-
-	.modern-auth-title {
-		font-size: var(--font-size-2xl);
-	}
-
-	.modern-auth-logo-img {
-		height: 40px;
-	}
-}
-
-@media (max-width: 480px) {
-	.modern-auth-card {
-		padding: var(--space-6) var(--space-4);
-	}
-
-	.modern-auth-title {
-		font-size: var(--font-size-xl);
-	}
-
-	.modern-auth-subtitle {
-		font-size: var(--font-size-sm);
-	}
-}

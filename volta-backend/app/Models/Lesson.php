@@ -73,6 +73,14 @@ class Lesson extends Model
     }
 
     /**
+     * Get content blocks for this lesson
+     */
+    public function contentBlocks()
+    {
+        return $this->hasMany(ContentBlock::class)->orderBy('order');
+    }
+
+    /**
      * Boot method to handle events
      */
     protected static function boot()

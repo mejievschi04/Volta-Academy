@@ -53,11 +53,16 @@ export default defineConfig({
     // Optimize chunk size - increased limit for better splitting
     chunkSizeWarningLimit: 1500,
     // Enable source maps for production debugging (optional)
+    // Set to true if you need debugging in production, but increases bundle size
     sourcemap: false,
     // Minification
     minify: 'esbuild',
     // Target modern browsers for smaller bundles
     target: 'esnext',
+    // Output directory for production build
+    outDir: 'dist',
+    // Assets directory
+    assetsDir: 'assets',
   },
   // Optimize dependencies
   optimizeDeps: {

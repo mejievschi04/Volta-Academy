@@ -447,11 +447,6 @@ const AdminUsersPage = () => {
 										placeholder={!editingUser ? 'Lasă gol pentru parola implicită: volta2025' : 'Lasă gol pentru a păstra parola actuală'}
 										minLength={formData.password ? 6 : undefined}
 									/>
-									{!editingUser && (
-										<p className="admin-form-hint">
-											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2025</strong> și va trebui să o schimbe la prima autentificare.
-										</p>
-									)}
 								</div>
 								<div className="admin-form-group">
 									<label className="admin-form-label">Rol</label>
@@ -465,15 +460,13 @@ const AdminUsersPage = () => {
 										<option value="admin">Administrator</option>
 									</select>
 								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Bio</label>
-									<textarea
-										className="admin-form-input"
-										value={formData.bio}
-										onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-										rows={3}
-									/>
-								</div>
+								{!editingUser && (
+									<div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
+										<p className="admin-form-hint">
+											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2025</strong> și va trebui să o schimbe la prima autentificare.
+										</p>
+									</div>
+								)}
 								<div className="admin-users-modal-footer">
 									<button
 										type="button"

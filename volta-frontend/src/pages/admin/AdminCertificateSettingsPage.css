@@ -1,0 +1,388 @@
+/* ============================================
+   CERTIFICATE WIZARD - Modern Styling
+   ============================================ */
+
+.certificate-wizard {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	padding: var(--space-8);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-lg);
+}
+
+/* Steps Indicator */
+.certificate-wizard-steps {
+	display: flex;
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+	padding-bottom: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	overflow-x: auto;
+}
+
+.certificate-wizard-step {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	flex: 1;
+	min-width: 180px;
+	position: relative;
+}
+
+.certificate-wizard-step::after {
+	content: '';
+	position: absolute;
+	right: calc(var(--space-4) * -1);
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 2px;
+	background-color: var(--border-primary);
+}
+
+.certificate-wizard-step:last-child::after {
+	display: none;
+}
+
+.certificate-wizard-step:hover {
+	background-color: var(--bg-secondary);
+}
+
+.certificate-wizard-step.active {
+	background-color: rgba(255, 238, 0, 0.15);
+	border: 1px solid var(--color-primary);
+}
+
+.certificate-wizard-step.completed {
+	background-color: rgba(34, 197, 94, 0.1);
+}
+
+.certificate-wizard-step-icon {
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-full);
+	background-color: var(--bg-secondary);
+	font-size: var(--font-size-lg);
+	flex-shrink: 0;
+	transition: all var(--transition-base);
+}
+
+.certificate-wizard-step.active .certificate-wizard-step-icon {
+	background-color: var(--color-primary);
+	color: var(--btn-primary-text);
+}
+
+.certificate-wizard-step.completed .certificate-wizard-step-icon {
+	background-color: var(--color-success);
+	color: white;
+}
+
+.certificate-wizard-step-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.certificate-wizard-step-title {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-1);
+}
+
+.certificate-wizard-step-description {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	opacity: 0.8;
+}
+
+.certificate-wizard-step.active .certificate-wizard-step-title {
+	color: var(--color-primary);
+}
+
+/* Main Content Area */
+.certificate-wizard-content {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-6);
+	min-height: 600px;
+}
+
+/* Step 1 special layout - templates on left, preview on right */
+.certificate-wizard-content.template-step-layout {
+	grid-template-columns: 350px 1fr;
+}
+
+.certificate-template-selector-column {
+	display: flex;
+	flex-direction: column;
+}
+
+.certificate-wizard-form {
+	display: flex;
+	flex-direction: column;
+}
+
+.certificate-wizard-step-content {
+	animation: fadeIn 0.3s ease-in;
+}
+
+.certificate-wizard-step-header {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.certificate-wizard-step-subheader {
+	font-size: var(--font-size-base);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-6) 0;
+	line-height: 1.6;
+}
+
+/* Preview Sidebar */
+.certificate-wizard-preview {
+	position: sticky;
+	top: var(--space-8);
+	height: fit-content;
+	max-height: calc(100vh - 200px);
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-md);
+	overflow-y: auto;
+}
+
+.certificate-wizard-preview-header {
+	margin-bottom: var(--space-4);
+	padding-bottom: var(--space-4);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.certificate-wizard-preview-header h3 {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.certificate-wizard-preview-header p {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0;
+}
+
+.certificate-wizard-preview-content {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-md);
+	padding: var(--space-3);
+	border: 1px solid var(--border-primary);
+}
+
+.certificate-preview-container {
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	border: 1px solid var(--border-primary);
+}
+
+.certificate-preview-content {
+	width: 100%;
+	background: white;
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	box-shadow: var(--shadow-lg);
+	border: 2px solid var(--border-primary);
+	transform: scale(0.7);
+	transform-origin: top center;
+}
+
+/* Form Improvements */
+.admin-form-label-hint {
+	display: block;
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	font-weight: var(--font-weight-normal);
+	margin-top: var(--space-1);
+	opacity: 0.7;
+}
+
+.admin-form-label .required {
+	color: var(--color-error);
+	margin-left: var(--space-1);
+}
+
+.admin-form-error {
+	font-size: var(--font-size-xs);
+	color: var(--color-error);
+	margin-top: var(--space-1);
+}
+
+.admin-form-input.error {
+	border-color: var(--color-error);
+}
+
+/* Footer Navigation */
+.certificate-wizard-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-top: var(--space-6);
+	border-top: 1px solid var(--border-primary);
+	margin-top: var(--space-6);
+}
+
+.certificate-wizard-progress {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	font-weight: var(--font-weight-medium);
+}
+
+/* Animations */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+	.certificate-wizard-content {
+		grid-template-columns: 1fr;
+	}
+
+	.certificate-wizard-preview {
+		position: static;
+		max-height: none;
+		order: -1;
+	}
+
+	.certificate-preview-content {
+		transform: scale(0.85);
+	}
+}
+
+@media (max-width: 768px) {
+	.certificate-wizard {
+		padding: var(--space-4);
+	}
+
+	.certificate-wizard-steps {
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.certificate-wizard-step {
+		min-width: 100%;
+	}
+
+	.certificate-wizard-step::after {
+		display: none;
+	}
+
+	.certificate-wizard-step-info {
+		display: none;
+	}
+
+	.certificate-wizard-footer {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.certificate-wizard-footer .admin-btn {
+		width: 100%;
+	}
+}
+
+/* Light Theme Improvements */
+[data-theme="light"] .certificate-wizard {
+	background-color: var(--bg-primary);
+	border-color: #e5e7eb;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .certificate-wizard-step {
+	background-color: #f9fafb;
+}
+
+[data-theme="light"] .certificate-wizard-step:hover {
+	background-color: #f3f4f6;
+}
+
+[data-theme="light"] .certificate-wizard-step.active {
+	background-color: rgba(31, 41, 55, 0.1);
+	border-color: #1f2937;
+}
+
+[data-theme="light"] .certificate-wizard-step.active .certificate-wizard-step-title {
+	color: #1f2937;
+}
+
+[data-theme="light"] .certificate-wizard-step-icon {
+	background-color: #f3f4f6;
+}
+
+[data-theme="light"] .certificate-wizard-step.active .certificate-wizard-step-icon {
+	background-color: #1f2937;
+	color: #ffffff;
+}
+
+[data-theme="light"] .certificate-wizard-step-title {
+	color: #111827;
+}
+
+[data-theme="light"] .certificate-wizard-step-description {
+	color: #6b7280;
+}
+
+[data-theme="light"] .certificate-wizard-step-header {
+	color: #111827;
+}
+
+[data-theme="light"] .certificate-wizard-step-subheader {
+	color: #6b7280;
+}
+
+[data-theme="light"] .certificate-wizard-preview {
+	background-color: #f9fafb;
+	border-color: #e5e7eb;
+}
+
+[data-theme="light"] .certificate-wizard-preview-header h3 {
+	color: #111827;
+}
+
+[data-theme="light"] .certificate-wizard-preview-header p {
+	color: #6b7280;
+}
+
+[data-theme="light"] .certificate-preview-container {
+	background-color: #f9fafb;
+	border-color: #e5e7eb;
+}
+
+[data-theme="light"] .certificate-preview-content {
+	background: #ffffff;
+	border-color: #e5e7eb;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .certificate-wizard-progress {
+	color: #6b7280;
+}

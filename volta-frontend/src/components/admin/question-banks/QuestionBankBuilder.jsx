@@ -1,107 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
-import { useAutoSave } from '../../../hooks/useAutoSave';
-import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useToast } from '../../../contexts/ToastContext';
-import UndoRedoControls from '../../common/UndoRedoControls';
-import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import QuestionBankBuilderStep1 from './QuestionBankBuilderSteps/Step1Basics';
 import QuestionBankBuilderStep2 from './QuestionBankBuilderSteps/Step2Questions';
 import QuestionBankBuilderStep3 from './QuestionBankBuilderSteps/Step3Review';
-import QuestionBankCreationModal from './QuestionBankCreationModal';
+import '../courses/CourseCreationWizard.css';
+
+/**
+ * QuestionBankBuilder - Component pentru crearea și editarea băncilor de întrebări
+ * Flow simplificat cu 3 pași:
+ * 1. Informații de bază (titlu, descriere, categorie)
+ * 2. Întrebări (adaugare și editare întrebări)
+ * 3. Revizuire & Publicare
+ */
 
 const QuestionBankBuilder = () => {
-	const params = useParams();
+	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
+	const isEditMode = !!id && id !== 'new';
 	
-	const id = params.id && params.id !== 'new' ? params.id : null;
-	const isEditMode = !!id;
-
-	const [currentStep, setCurrentStep] = useState(1);
-	const [showModal, setShowModal] = useState(!isEditMode); // Show unified modal for new banks
-	
-	// Initial bank data
-	const initialBankData = {
-		// Step 1: Basics
+	const [currentStep, setCurrentStep] = useState(0);
+	const [loading, setLoading] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [bankId, setBankId] = useState(id && id !== 'new' ? id : null);
+	const [bankData, setBankData] = useState({
 		title: '',
 		description: '',
 		category: '',
-
-		// Step 2: Questions
+		status: 'draft',
 		questions: [],
-	};
-	
-	// Use undo/redo for bank data
-	const { state: bankData, setState: setBankData, undo, redo, canUndo, canRedo } = useUndoRedo(initialBankData);
+	});
+	const [errors, setErrors] = useState({});
 
-	const [loading, setLoading] = useState(isEditMode);
-	const [error, setError] = useState(null);
-	const [validationErrors, setValidationErrors] = useState({});
-
-	// Load bank data if editing
+	// Fetch bank if editing
 	useEffect(() => {
-		if (isEditMode) {
-			fetchBankData();
-		}
-	}, [id]);
-
-	// Auto-save function
-	const autoSaveFn = async (data) => {
-		if (!data.title || typeof data.title !== 'string' || !data.title.trim() || data.title.trim().length < 3) {
-			return;
-		}
-
-		const dataToSend = {
-			title: data.title.trim(),
-			description: data.description || null,
-			category: data.category || null,
-		};
-
 		if (isEditMode && id) {
-			try {
-				await adminService.updateQuestionBank(id, dataToSend);
-			} catch (err) {
-				console.error('Auto-save error:', err);
-			}
-		} else {
-			try {
-				const saved = await adminService.createQuestionBank(dataToSend);
-				if (saved?.id && !id) {
-					window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
-				}
-			} catch (err) {
-				console.error('Auto-save error:', err);
-			}
+			fetchBank();
 		}
-	};
+	}, [id, isEditMode]);
 
-	const hasValidTitle = bankData.title && typeof bankData.title === 'string' && bankData.title.trim().length >= 3;
-	const autoSaveEnabled = currentStep > 1 && hasValidTitle;
-	
-	const { saveStatus: autoSaveStatus, manualSave } = useAutoSave(bankData, autoSaveFn, 2000, autoSaveEnabled);
-	
-	// Update save status
-	const [saveStatus, setSaveStatus] = useState('idle');
-	useEffect(() => {
-		setSaveStatus(autoSaveStatus);
-	}, [autoSaveStatus]);
-
-	const fetchBankData = async () => {
+	const fetchBank = async () => {
 		try {
 			setLoading(true);
 			const bank = await adminService.getQuestionBank(id);
-			const questions = await adminService.getQuestionBankQuestions(id);
+			const bankData = bank.data || bank;
 			
 			setBankData({
-				...bank,
-				questions: Array.isArray(questions) ? questions : (questions?.data || []),
+				title: bankData.title || '',
+				description: bankData.description || '',
+				category: bankData.category || '',
+				status: bankData.status || 'draft',
+				questions: bankData.questions || [],
 			});
+			setBankId(bankData.id || id);
 		} catch (err) {
-			console.error('Error fetching bank:', err);
-			setError('Nu s-a putut încărca banca de întrebări');
+			console.error('Error fetching question bank:', err);
 			showToast('Eroare la încărcarea băncii de întrebări', 'error');
+			navigate('/admin/question-banks');
 		} finally {
 			setLoading(false);
 		}
@@ -109,287 +66,242 @@ const QuestionBankBuilder = () => {
 
 	const updateBankData = (updates) => {
 		setBankData(prev => ({ ...prev, ...updates }));
-		setValidationErrors({});
+		if (Object.keys(errors).length > 0) {
+			setErrors({});
+		}
 	};
 
 	const validateStep = (step) => {
-		const errors = {};
-
-		switch (step) {
-			case 1:
-				if (!bankData.title?.trim()) {
-					errors.title = 'Titlul este obligatoriu';
-				}
-				break;
-			case 2:
-				if (!bankData.questions || bankData.questions.length === 0) {
-					errors.questions = 'Adaugă cel puțin o întrebare';
-				}
-				break;
-			case 3:
-				// Final validation
-				if (!bankData.title?.trim()) {
-					errors.title = 'Titlul este obligatoriu';
-				}
-				if (!bankData.questions || bankData.questions.length === 0) {
-					errors.questions = 'Adaugă cel puțin o întrebare';
-				}
-				break;
+		const newErrors = {};
+		
+		if (step === 0) {
+			// Step 1: Informații de bază
+			if (!bankData.title || bankData.title.trim() === '') {
+				newErrors.title = 'Titlul băncii de întrebări este obligatoriu';
+			}
 		}
-
-		setValidationErrors(errors);
-		return {
-			isValid: Object.keys(errors).length === 0,
-			errors: errors
-		};
+		
+		if (step === 1) {
+			// Step 2: Întrebări
+			if (!bankData.questions || bankData.questions.length === 0) {
+				newErrors.questions = 'Adaugă cel puțin o întrebare';
+			}
+		}
+		
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
 	};
 
-	const handleNext = () => {
-		const validationResult = validateStep(currentStep);
-		
-		if (validationResult.isValid) {
-			if (currentStep < 3) {
+	const handleNext = async () => {
+		if (currentStep === 0) {
+			// Save bank after step 1 if not saved yet
+			if (!bankId && bankData.title?.trim()) {
+				try {
+					setSaving(true);
+					const saved = await adminService.createQuestionBank({
+						title: bankData.title.trim(),
+						description: bankData.description || null,
+						category: bankData.category || null,
+						status: 'draft',
+					});
+					if (saved?.id) {
+						setBankId(saved.id);
+						window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+						showToast('Banca de întrebări a fost creată', 'success');
+					}
+				} catch (err) {
+					console.error('Error creating bank:', err);
+					showToast('Eroare la crearea băncii de întrebări', 'error');
+					return;
+				} finally {
+					setSaving(false);
+				}
+			}
+		}
+
+		if (validateStep(currentStep)) {
+			if (currentStep < 2) {
 				setCurrentStep(currentStep + 1);
 			}
-		} else {
-			const firstError = Object.keys(validationResult.errors)[0];
-			if (firstError) {
-				const errorElement = document.querySelector(`[data-field="${firstError}"]`) || 
-					document.querySelector(`.admin-form-input.error`);
-				if (errorElement) {
-					errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-					errorElement.focus();
-				}
-			}
 		}
 	};
 
-	const handlePrevious = () => {
-		if (currentStep > 1) {
+	const handleBack = () => {
+		if (currentStep > 0) {
 			setCurrentStep(currentStep - 1);
+		} else {
+			navigate('/admin/question-banks');
+		}
+	};
+
+	const handleSave = async () => {
+		try {
+			setSaving(true);
+			setErrors({});
+			
+			if (!bankData.title || bankData.title.trim() === '') {
+				setErrors({ title: 'Titlul băncii de întrebări este obligatoriu' });
+				setCurrentStep(0);
+				return;
+			}
+
+			if (!bankData.questions || bankData.questions.length === 0) {
+				setErrors({ questions: 'Adaugă cel puțin o întrebare' });
+				setCurrentStep(1);
+				return;
+			}
+
+			// Update bank data
+			const bankPayload = {
+				title: bankData.title.trim(),
+				description: bankData.description || null,
+				category: bankData.category || null,
+				status: bankData.status || 'draft',
+			};
+
+			if (bankId) {
+				await adminService.updateQuestionBank(bankId, bankPayload);
+				showToast('Banca de întrebări a fost actualizată', 'success');
+			} else {
+				const saved = await adminService.createQuestionBank(bankPayload);
+				if (saved?.id) {
+					setBankId(saved.id);
+					window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+					showToast('Banca de întrebări a fost creată', 'success');
+				}
+			}
+
+			// Navigate back to list
+			navigate('/admin/question-banks');
+		} catch (err) {
+			console.error('Error saving bank:', err);
+			showToast('Eroare la salvarea băncii de întrebări', 'error');
+		} finally {
+			setSaving(false);
 		}
 	};
 
 	const handlePublish = async () => {
-		const validationResult = validateStep(3);
-		if (!validationResult.isValid) {
-			setValidationErrors(validationResult.errors);
-			setCurrentStep(3);
-			return;
-		}
-
 		try {
-			setLoading(true);
+			setSaving(true);
+			setErrors({});
 			
-			// Save bank first
-			const dataToSend = {
+			if (!bankData.title || bankData.title.trim() === '') {
+				setErrors({ title: 'Titlul băncii de întrebări este obligatoriu' });
+				setCurrentStep(0);
+				return;
+			}
+
+			if (!bankData.questions || bankData.questions.length === 0) {
+				setErrors({ questions: 'Adaugă cel puțin o întrebare' });
+				setCurrentStep(1);
+				return;
+			}
+
+			const bankPayload = {
 				title: bankData.title.trim(),
 				description: bankData.description || null,
 				category: bankData.category || null,
+				status: 'active',
 			};
 
-			let bankId = id;
-			if (isEditMode && id) {
-				await adminService.updateQuestionBank(id, dataToSend);
+			if (bankId) {
+				await adminService.updateQuestionBank(bankId, bankPayload);
+				showToast('Banca de întrebări a fost publicată', 'success');
 			} else {
-				const saved = await adminService.createQuestionBank(dataToSend);
+				const saved = await adminService.createQuestionBank(bankPayload);
 				if (saved?.id) {
-					bankId = saved.id;
-					window.history.replaceState({}, '', `/admin/question-banks/${bankId}/builder`);
+					setBankId(saved.id);
+					window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+					showToast('Banca de întrebări a fost creată și publicată', 'success');
 				}
 			}
 
-			// Save questions if we have temporary ones
-			if (bankId && bankData.questions) {
-				for (const question of bankData.questions) {
-					if (question.id && question.id.toString().startsWith('temp-')) {
-						// This is a new question, add it
-						await adminService.addQuestionToBank(bankId, {
-							type: question.type,
-							content: question.content || question.text,
-							answers: question.answers || [],
-							points: question.points || 1,
-							explanation: question.explanation || '',
-						});
-					}
-				}
-			}
-
-			showToast('Bancă de întrebări publicată cu succes!', 'success');
 			navigate('/admin/question-banks');
 		} catch (err) {
 			console.error('Error publishing bank:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la publicarea băncii de întrebări';
-			setError(errorMsg);
-			showToast(errorMsg, 'error');
+			showToast('Eroare la publicarea băncii de întrebări', 'error');
 		} finally {
-			setLoading(false);
+			setSaving(false);
 		}
 	};
 
-	const handleSaveDraft = async () => {
-		const validationResult = validateStep(currentStep);
-		if (!validationResult.isValid) {
-			setValidationErrors(validationResult.errors);
-			return;
-		}
-
-		try {
-			setLoading(true);
-			await manualSave();
-			showToast('Bancă de întrebări salvată cu succes!', 'success');
-		} catch (err) {
-			console.error('Error saving bank:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la salvarea băncii de întrebări';
-			setError(errorMsg);
-			showToast(errorMsg, 'error');
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	if (loading && isEditMode) {
+	if (loading) {
 		return (
 			<div className="admin-container">
-				<div className="lms-dashboard-loading">
-					<div className="lms-spinner"></div>
+				<div className="admin-courses-loading">
+					<div className="va-spinner va-spinner-lg"></div>
+					<p>Se încarcă banca de întrebări...</p>
 				</div>
 			</div>
 		);
 	}
 
 	const steps = [
-		{ number: 1, title: 'Informații de bază', icon: '📝' },
-		{ number: 2, title: 'Întrebări', icon: '❓' },
-		{ number: 3, title: 'Revizuire', icon: '📋' },
+		{ label: 'Informații de Bază', number: 1 },
+		{ label: 'Întrebări', number: 2 },
+		{ label: 'Revizuire', number: 3 },
 	];
 
-	// Unified Modal for new banks
-	if (showModal && !isEditMode) {
-		return (
-			<QuestionBankCreationModal
-				onClose={() => navigate('/admin/question-banks')}
-				bankData={bankData}
-				onUpdate={updateBankData}
-				currentStep={currentStep}
-				onStepChange={setCurrentStep}
-				onValidationErrors={setValidationErrors}
-				validationErrors={validationErrors}
-				onSaveDraft={handleSaveDraft}
-				loading={loading}
-				bankId={id}
-				onPublish={handlePublish}
-				undo={undo}
-				redo={redo}
-				canUndo={canUndo}
-				canRedo={canRedo}
-				saveStatus={saveStatus}
-			/>
-		);
-	}
-
 	return (
-		<div className="admin-course-builder">
-			<div className="admin-course-builder-container">
+		<div className="admin-container">
+			<div className="admin-course-builder">
 				{/* Header */}
 				<div className="admin-course-builder-header">
-					<div className="admin-course-builder-header-left">
-						<button
-							className="lms-btn-secondary"
-							onClick={() => navigate('/admin/question-banks')}
-						>
-							← Înapoi
-						</button>
+					<div className="admin-course-builder-header-content">
 						<h1 className="admin-course-builder-title">
-							{isEditMode ? 'Editează Bancă de Întrebări' : 'Creează Bancă de Întrebări Nouă'}
+							{isEditMode ? 'Editează Bancă de Întrebări' : 'Creează Bancă de Întrebări'}
 						</h1>
-					</div>
-					<div className="admin-course-builder-header-right">
-						<UndoRedoControls
-							onUndo={undo}
-							onRedo={redo}
-							canUndo={canUndo}
-							canRedo={canRedo}
-							className="course-builder-undo-redo"
-						/>
-						<AutoSaveIndicator status={saveStatus} />
-						<button
-							className="lms-btn-secondary"
-							onClick={handleSaveDraft}
-							disabled={loading}
-						>
-							💾 Salvează Draft
-						</button>
+						<p className="admin-course-builder-subtitle">
+							{isEditMode 
+								? 'Modifică detaliile băncii de întrebări'
+								: 'Creează o nouă bancă de întrebări reutilizabilă'}
+						</p>
 					</div>
 				</div>
 
-				{/* Progress Steps */}
+				{/* Steps Indicator */}
 				<div className="admin-course-builder-steps">
-					{steps.map((step) => (
+					{steps.map((step, index) => (
 						<div
-							key={step.number}
+							key={index}
 							className={`admin-course-builder-step ${
-								step.number === currentStep ? 'active' : ''
-							} ${step.number < currentStep ? 'completed' : ''}`}
+								index === currentStep ? 'active' : ''
+							} ${index < currentStep ? 'completed' : ''}`}
 						>
 							<div className="admin-course-builder-step-number">
-								{step.number < currentStep ? '✓' : step.number}
+								{index < currentStep ? '✓' : step.number}
 							</div>
-							<div className="admin-course-builder-step-content">
-								<div className="admin-course-builder-step-icon">{step.icon}</div>
-								<div className="admin-course-builder-step-title">{step.title}</div>
-							</div>
+							<div className="admin-course-builder-step-label">{step.label}</div>
 						</div>
 					))}
 				</div>
 
-				{/* Content */}
+				{/* Step Content */}
 				<div className="admin-course-builder-content">
-					{error && (
-						<div className="lms-error-message">
-							{error}
-						</div>
-					)}
-
-					{/* Show validation errors summary */}
-					{Object.keys(validationErrors).length > 0 && (
-						<div className="lms-error-message">
-							<strong>⚠️ Erori de validare:</strong>
-							<ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
-								{Object.entries(validationErrors).map(([key, message]) => (
-									<li key={key}>{message}</li>
-								))}
-							</ul>
-						</div>
-					)}
-
-					{/* PASUL 1: Basics */}
-					{currentStep === 1 && (
+					{currentStep === 0 && (
 						<QuestionBankBuilderStep1
 							data={bankData}
 							onUpdate={updateBankData}
-							errors={validationErrors}
+							errors={errors}
 						/>
 					)}
-
-					{/* PASUL 2: Questions */}
-					{currentStep === 2 && (
+					{currentStep === 1 && (
 						<QuestionBankBuilderStep2
-							bankId={id}
+							bankId={bankId}
 							data={bankData}
 							onUpdate={updateBankData}
-							errors={validationErrors}
+							errors={errors}
 						/>
 					)}
-
-					{/* PASUL 3: Review */}
-					{currentStep === 3 && (
+					{currentStep === 2 && (
 						<QuestionBankBuilderStep3
-							bankId={id}
 							data={bankData}
+							onUpdate={updateBankData}
+							errors={errors}
+							bankId={bankId}
 							onPublish={handlePublish}
-							loading={loading}
-							errors={validationErrors}
+							loading={saving}
 						/>
 					)}
 				</div>
@@ -397,29 +309,42 @@ const QuestionBankBuilder = () => {
 				{/* Navigation */}
 				<div className="admin-course-builder-footer">
 					<button
-						className="lms-btn-secondary"
-						onClick={handlePrevious}
-						disabled={currentStep === 1}
+						type="button"
+						className="admin-btn-secondary"
+						onClick={handleBack}
+						disabled={saving}
 					>
-						← Anterior
+						{currentStep === 0 ? 'Anulează' : 'Înapoi'}
 					</button>
-					<div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-						{currentStep < 3 ? (
+					<div className="admin-course-builder-footer-actions">
+						{currentStep < 2 ? (
 							<button
-								className="lms-btn-primary"
+								type="button"
+								className="admin-btn-primary"
 								onClick={handleNext}
-								disabled={loading}
+								disabled={saving}
 							>
-								Următor →
+								{saving ? 'Se salvează...' : 'Următorul Pas'}
 							</button>
 						) : (
-							<button
-								className="lms-btn-primary"
-								onClick={handlePublish}
-								disabled={loading}
-							>
-								🚀 Publică Bancă de Întrebări
-							</button>
+							<>
+								<button
+									type="button"
+									className="admin-btn-secondary"
+									onClick={handleSave}
+									disabled={saving}
+								>
+									{saving ? 'Se salvează...' : 'Salvează ca Draft'}
+								</button>
+								<button
+									type="button"
+									className="admin-btn-primary"
+									onClick={handlePublish}
+									disabled={saving}
+								>
+									{saving ? 'Se publică...' : 'Publică'}
+								</button>
+							</>
 						)}
 					</div>
 				</div>

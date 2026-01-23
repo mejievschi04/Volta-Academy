@@ -61,10 +61,12 @@ const ProfilePage = () => {
 
 	if (loading) { return null; }
 
-	if (error || !profileData) {
+		if (error || !profileData) {
 		return (
 			<div className="va-profile-container">
-				<p style={{ color: 'red' }}>{error || 'Eroare la încărcarea profilului'}</p>
+				<div className="va-profile-error">
+					{error || 'Eroare la încărcarea profilului'}
+				</div>
 			</div>
 		);
 	}
@@ -77,16 +79,10 @@ const ProfilePage = () => {
 		<div className="va-profile-container">
 			{/* Back Button for Admin */}
 			{isViewingOtherUser && (
-				<div style={{ marginBottom: '2rem' }}>
+				<div className="va-profile-back-button">
 					<button
 						onClick={() => navigate('/admin/users')}
 						className="lms-btn-secondary"
-						style={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							gap: '0.5rem',
-							padding: '0.75rem 1.5rem',
-						}}
 					>
 						<span>←</span>
 						<span>Înapoi la Utilizatori</span>
@@ -116,7 +112,7 @@ const ProfilePage = () => {
 						</p>
 						{isViewingOtherUser && (
 							<div className="va-profile-badges">
-								<span className="va-profile-badge" style={{ background: 'rgba(var(--color-dark-rgb), 0.2)', color: 'var(--color-dark)' }}>
+								<span className="va-profile-badge va-profile-badge-email">
 									👤 {profileData.user.email}
 								</span>
 							</div>

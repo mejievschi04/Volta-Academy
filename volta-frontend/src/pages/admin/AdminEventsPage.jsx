@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
-import { formatCurrency, getDefaultCurrency } from '../../utils/currency';
 
 const AdminEventsPage = () => {
 	const { success: showSuccess, error: showError } = useToast();
@@ -35,9 +34,6 @@ const AdminEventsPage = () => {
 	const [insights, setInsights] = useState(null);
 	const [instructors, setInstructors] = useState([]);
 	
-	// Currency
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-	
 	// Form data - extended with all new fields
 	const [formData, setFormData] = useState({
 		title: '',
@@ -53,8 +49,6 @@ const AdminEventsPage = () => {
 		max_capacity: null,
 		instructor_id: null,
 		access_type: 'free',
-		price: null,
-		currency: 'RON',
 		course_id: null,
 		replay_url: '',
 		thumbnail: '',
@@ -72,12 +66,6 @@ const AdminEventsPage = () => {
 		fetchInstructors();
 		fetchCourses();
 		
-		// Listen for currency changes
-		const handleCurrencyChange = () => {
-			setCurrency(getDefaultCurrency());
-		};
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
 	}, []);
 
 	// Fetch courses for course_included access type
@@ -224,9 +212,6 @@ const AdminEventsPage = () => {
 				newErrors.end_date = 'Data de sfârșit trebuie să fie după data de început';
 			}
 		}
-		if (formData.access_type === 'paid' && (!formData.price || formData.price <= 0)) {
-			newErrors.price = 'Prețul este obligatoriu pentru evenimente plătite';
-		}
 		if (formData.access_type === 'course_included' && !formData.course_id) {
 			newErrors.course_id = 'Cursul este obligatoriu pentru evenimente incluse în curs';
 		}
@@ -248,7 +233,6 @@ const AdminEventsPage = () => {
 		if (formData.end_date) completed++;
 		if (formData.status) completed++;
 		if (formData.access_type) completed++;
-		if (formData.access_type !== 'paid' || (formData.price && formData.price > 0)) completed++;
 		if (formData.access_type !== 'course_included' || formData.course_id) completed++;
 		return Math.round((completed / total) * 100);
 	};
@@ -295,8 +279,6 @@ const AdminEventsPage = () => {
 				max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : null,
 				instructor_id: formData.instructor_id || null,
 				access_type: formData.access_type,
-				price: formData.access_type === 'paid' && formData.price ? parseFloat(formData.price) : null,
-				currency: formData.currency,
 				course_id: formData.access_type === 'course_included' && formData.course_id ? parseInt(formData.course_id) : null,
 				replay_url: formData.replay_url?.trim() || null,
 				thumbnail: formData.thumbnail?.trim() || null,
@@ -324,8 +306,6 @@ const AdminEventsPage = () => {
 				max_capacity: null,
 				instructor_id: null,
 				access_type: 'free',
-				price: null,
-				currency: 'RON',
 				course_id: null,
 				replay_url: '',
 				thumbnail: '',
@@ -387,8 +367,6 @@ const AdminEventsPage = () => {
 			max_capacity: event.max_capacity || null,
 			instructor_id: event.instructor_id || null,
 			access_type: event.access_type || 'free',
-			price: event.price || null,
-			currency: event.currency || 'RON',
 			course_id: event.course_id || null,
 			replay_url: event.replay_url || '',
 			thumbnail: event.thumbnail || '',
@@ -593,8 +571,6 @@ const AdminEventsPage = () => {
 							max_capacity: null,
 							instructor_id: null,
 							access_type: 'free',
-							price: null,
-							currency: 'RON',
 							course_id: null,
 							replay_url: '',
 							thumbnail: '',
@@ -840,7 +816,6 @@ const AdminEventsPage = () => {
 								const getAccessTypeLabel = (accessType) => {
 									const labels = {
 										free: 'Gratuit',
-										paid: 'Plătit',
 										course_included: 'Inclus în curs',
 									};
 									return labels[accessType] || accessType;
@@ -850,9 +825,9 @@ const AdminEventsPage = () => {
 									const badges = {
 										draft: { label: 'Draft', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
 										published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
-										upcoming: { label: 'Viitor', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' },
+										upcoming: { label: 'Viitor', color: '#FFEE00', bgColor: 'rgba(255, 238, 0, 0.15)' },
 										live: { label: 'Live', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
-										completed: { label: 'Finalizat', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.15)' },
+										completed: { label: 'Finalizat', color: '#FFEE00', bgColor: 'rgba(255, 238, 0, 0.15)' },
 										cancelled: { label: 'Anulat', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' },
 									};
 									const badge = badges[status] || badges.draft;
@@ -907,9 +882,6 @@ const AdminEventsPage = () => {
 														<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
 														{event.access_type && (
 															<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
-																{event.access_type === 'paid' && event.price && (
-																	<span> - {formatCurrency(event.price, event.currency || currency)}</span>
-																)}
 															</span>
 														)}
 													</div>
@@ -1043,8 +1015,6 @@ const AdminEventsPage = () => {
 											max_capacity: null,
 											instructor_id: null,
 											access_type: 'free',
-											price: null,
-											currency: 'RON',
 											course_id: null,
 											replay_url: '',
 											thumbnail: '',
@@ -1225,7 +1195,6 @@ const AdminEventsPage = () => {
 											setFormData({ 
 												...formData, 
 												access_type: e.target.value,
-												price: e.target.value !== 'paid' ? null : formData.price,
 												course_id: e.target.value !== 'course_included' ? null : formData.course_id,
 											});
 											if (touched.access_type) validate();
@@ -1236,50 +1205,9 @@ const AdminEventsPage = () => {
 										}}
 									>
 										<option value="free">Gratuit</option>
-										<option value="paid">Plătit</option>
 										<option value="course_included">Inclus în curs</option>
 									</select>
 								</div>
-
-								{formData.access_type === 'paid' && (
-									<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-										<div className="va-form-group">
-											<label className="va-form-label">
-												<span>💵</span>
-												<span>Preț</span>
-											</label>
-											<input
-												type="number"
-												className="admin-form-input admin-event-input"
-												value={formData.price || ''}
-												onChange={(e) => setFormData({ ...formData, price: e.target.value ? parseFloat(e.target.value) : null })}
-												placeholder="0.00"
-												min="0"
-												step="0.01"
-												required={formData.access_type === 'paid'}
-											/>
-											{errors.price && (
-												<div className="admin-event-error">{errors.price}</div>
-											)}
-										</div>
-										<div className="va-form-group">
-											<label className="va-form-label">
-												<span>💱</span>
-												<span>Valută</span>
-											</label>
-											<select
-												className="admin-form-input admin-event-input"
-												value={formData.currency}
-												onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-											>
-												<option value="MDL">MDL</option>
-												<option value="RON">RON</option>
-												<option value="USD">USD</option>
-												<option value="EUR">EUR</option>
-											</select>
-										</div>
-									</div>
-								)}
 
 								{formData.access_type === 'course_included' && (
 									<div className="va-form-group">

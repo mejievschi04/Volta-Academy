@@ -161,7 +161,7 @@
 	height: 40px;
 	border-radius: var(--radius-full);
 	background-color: var(--color-primary);
-	color: var(--btn-primary-text);
+	color: #4b5563; /* Gri închis pentru inițiale */
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -216,9 +216,9 @@
 }
 
 .admin-users-role-badge.admin {
-	background-color: rgba(56, 189, 248, 0.2);
+	background-color: rgba(255, 238, 0, 0.15);
 	color: var(--color-primary);
-	border: 1px solid rgba(56, 189, 248, 0.3);
+	border: 1px solid rgba(255, 238, 0, 0.3);
 }
 
 .admin-users-role-badge.student {
@@ -256,7 +256,7 @@
 }
 
 .admin-users-progress-fill.medium {
-	background-color: rgba(56, 189, 248, 0.7);
+	background-color: rgba(255, 238, 0, 0.7);
 }
 
 .admin-users-progress-fill.low {
@@ -314,15 +314,15 @@
 	border: 1px solid var(--border-primary);
 	box-shadow: var(--shadow-2xl);
 	width: 100%;
-	max-width: 500px;
-	max-height: 90vh;
+	max-width: 800px;
+	max-height: 80vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
 .admin-users-modal-header {
-	padding: var(--space-6);
+	padding: var(--space-4) var(--space-6);
 	border-bottom: 1px solid var(--border-primary);
 	display: flex;
 	align-items: center;
@@ -331,10 +331,11 @@
 }
 
 .admin-users-modal-title {
-	font-size: var(--font-size-xl);
+	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
 	margin: 0;
+	line-height: 1.3;
 }
 
 .admin-users-modal-close {
@@ -362,22 +363,31 @@
 .admin-users-modal-body {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--space-6);
+	padding: var(--space-4) var(--space-6);
 }
 
 .admin-users-modal-form {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-4);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+/* Câmpuri care ocupă toată lățimea (cu textarea sau div-uri separate pentru hint-uri) */
+.admin-users-modal-form .admin-form-group:has(textarea),
+.admin-users-modal-form .admin-form-group:has(> .admin-form-hint) {
+	grid-column: 1 / -1;
 }
 
 .admin-users-modal-footer {
-	padding: var(--space-4) var(--space-6);
+	padding: var(--space-3) var(--space-6);
 	border-top: 1px solid var(--border-primary);
 	display: flex;
-	justify-content: flex-end;
-	gap: var(--space-3);
+	justify-content: center;
+	align-items: center;
+	gap: var(--space-2);
 	flex-shrink: 0;
+	width: 100%;
+	margin: 0 auto;
 }
 
 /* ============================================
@@ -393,6 +403,7 @@
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-medium);
 	color: var(--text-secondary);
+	line-height: 1.3;
 }
 
 .admin-form-label-hint {
@@ -404,12 +415,14 @@
 	padding: var(--space-3) var(--space-4);
 	background-color: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
+	border-radius: var(--radius-md);
 	color: var(--text-primary);
 	font-size: var(--font-size-sm);
 	font-family: var(--font-family);
 	transition: all var(--transition-base);
 	width: 100%;
+	line-height: 1.4;
+	height: 44px;
 }
 
 .admin-form-input:focus {
@@ -431,18 +444,46 @@
 .admin-form-input textarea {
 	resize: vertical;
 	min-height: 80px;
+	height: auto;
+	line-height: 1.4;
+	padding: var(--space-3) var(--space-4);
+}
+
+.admin-form-input select {
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23FFEE00' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 1em;
+	padding-right: 2.5rem;
+	color: var(--text-primary);
+	cursor: pointer;
+	height: 44px;
+	padding: 0 var(--space-4);
+	padding-right: 2.5rem;
+	font-size: var(--font-size-sm);
+	line-height: 44px;
+	display: flex;
+	align-items: center;
+}
+
+.admin-form-input select option {
+	background-color: var(--bg-elevated);
+	color: var(--text-primary);
+	padding: var(--space-2);
 }
 
 .admin-form-hint {
-	font-size: var(--font-size-xs);
+	font-size: 10px;
 	color: var(--text-tertiary);
-	margin-top: var(--space-1);
-	line-height: var(--line-height-relaxed);
+	margin-top: 2px;
+	line-height: 1.2;
 }
 
 .admin-form-hint strong {
 	color: var(--text-secondary);
 	font-weight: var(--font-weight-semibold);
+	font-size: 10px;
 }
 
 /* ============================================
@@ -517,4 +558,82 @@
 	.admin-users-modal-footer {
 		padding: var(--space-4);
 	}
+}
+
+/* ============================================
+   LIGHT THEME - IMPROVED CONTRAST & VISIBILITY
+   ============================================ */
+
+[data-theme="light"] .admin-users-filters {
+	background-color: #E8E8E8;
+	border-color: #E5E7EB;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .admin-users-filter-label {
+	color: #6B7280; /* WCAG AA: 4.8:1 contrast */
+}
+
+[data-theme="light"] .admin-users-filter-select {
+	background-color: #E8E8E8;
+	border-color: #D1D5DB;
+	color: #111827; /* WCAG AA: 15.8:1 contrast */
+}
+
+[data-theme="light"] .admin-users-filter-select:hover {
+	border-color: #9CA3AF;
+}
+
+[data-theme="light"] .admin-users-filter-select:focus {
+	border-color: var(--color-primary);
+	background-color: #E8E8E8;
+}
+
+[data-theme="light"] .admin-users-table-wrapper {
+	background-color: #E8E8E8;
+	border-color: #E5E7EB;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .admin-users-table thead {
+	background-color: #f9fafb;
+}
+
+[data-theme="light"] .admin-users-table th {
+	color: #6b7280;
+	border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .admin-users-table th.sortable:hover {
+	color: #1f2937;
+}
+
+[data-theme="light"] .admin-users-table th.sort-asc::after,
+[data-theme="light"] .admin-users-table th.sort-desc::after {
+	color: #1f2937;
+}
+
+[data-theme="light"] .admin-users-table tbody tr {
+	border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .admin-users-table tbody tr:hover {
+	background-color: #f9fafb;
+}
+
+[data-theme="light"] .admin-users-table td {
+	color: #111827;
+}
+
+/* Role badges - better contrast in light theme */
+[data-theme="light"] .admin-users-role-badge.admin {
+	background-color: rgba(31, 41, 55, 0.1);
+	color: #1f2937;
+	border: 1px solid rgba(31, 41, 55, 0.2);
+}
+
+[data-theme="light"] .admin-users-role-badge.student {
+	background-color: rgba(107, 114, 128, 0.1);
+	color: #374151;
+	border: 1px solid rgba(107, 114, 128, 0.2);
 }

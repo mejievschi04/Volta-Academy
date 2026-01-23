@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency, getDefaultCurrency } from '../../../utils/currency';
 
 const CourseListItem = React.memo(({
 	course,
@@ -12,25 +11,6 @@ const CourseListItem = React.memo(({
 	onPreview
 }) => {
 	const navigate = useNavigate();
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-
-	useEffect(() => {
-		// Listen for currency changes
-		const handleStorageChange = () => {
-			setCurrency(getDefaultCurrency());
-		};
-		const handleCurrencyChange = (e) => {
-			setCurrency(e.detail);
-		};
-		window.addEventListener('storage', handleStorageChange);
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		// Also check on mount
-		setCurrency(getDefaultCurrency());
-		return () => {
-			window.removeEventListener('storage', handleStorageChange);
-			window.removeEventListener('currencyChanged', handleCurrencyChange);
-		};
-	}, []);
 
 	const getStatusBadge = (status) => {
 		const badges = {
@@ -97,7 +77,6 @@ const CourseListItem = React.memo(({
 						</div>
 					</div>
 					<div className="admin-course-table-meta">
-						{course.teacher && <span>👤 {course.teacher.name}</span>}
 						{course.modules_count !== undefined && <span>📖 {course.modules_count} module</span>}
 					</div>
 				</div>
@@ -112,48 +91,6 @@ const CourseListItem = React.memo(({
 							{course.rating ? `⭐ ${course.rating.toFixed(1)}` : 'N/A'}
 						</div>
 					</div>
-					<div className="admin-course-table-metric">
-						<div className="admin-course-metric-label">Preț</div>
-						<div className="admin-course-metric-value">
-							{course.price ? formatCurrency(course.price, currency) : 'Gratuit'}
-						</div>
-					</div>
-				</div>
-				<div className="admin-course-table-actions" onClick={(e) => e.stopPropagation()}>
-					{onPreview && (
-						<button
-							className="admin-course-action-btn"
-							onClick={() => onPreview()}
-							title="Previzualizează"
-						>
-							👁️
-						</button>
-					)}
-					<button
-						className="admin-course-action-btn"
-						onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
-						title="Editează"
-					>
-						✏️
-					</button>
-					<button
-						className="admin-course-action-btn"
-						onClick={(e) => handleQuickAction('duplicate', e)}
-						disabled={loading}
-						title="Duplică"
-					>
-						📋
-					</button>
-					{course.status !== 'archived' && (
-						<button
-							className="admin-course-action-btn"
-							onClick={(e) => handleQuickAction('archive', e)}
-							disabled={loading}
-							title="Arhivează"
-						>
-							📦
-						</button>
-					)}
 				</div>
 			</div>
 		);
@@ -206,7 +143,7 @@ const CourseListItem = React.memo(({
 
 			{/* Course Content */}
 			<div className="admin-course-card-content">
-				{/* Title and Actions */}
+				{/* Title Section */}
 				<div className="admin-course-card-title-section">
 					<h3 
 						className="admin-course-card-title"
@@ -214,81 +151,10 @@ const CourseListItem = React.memo(({
 					>
 						{course.title}
 					</h3>
-					<div className="admin-course-card-actions" onClick={(e) => e.stopPropagation()}>
-						{onPreview && (
-							<button
-								className="admin-course-card-action-btn"
-								onClick={(e) => {
-									e.stopPropagation();
-									onPreview();
-								}}
-								title="Previzualizează"
-							>
-								👁️
-							</button>
-						)}
-						<button
-							className="admin-course-card-action-btn"
-							onClick={(e) => {
-								e.stopPropagation();
-								navigate(`/admin/courses/${course.id}/edit`);
-							}}
-							title="Editează"
-						>
-							✏️
-						</button>
-						<button
-							className="admin-course-card-action-btn"
-							onClick={(e) => handleQuickAction('duplicate', e)}
-							disabled={loading}
-							title="Duplică"
-						>
-							📋
-						</button>
-						<button
-							className="admin-course-card-action-btn"
-							onClick={(e) => {
-								e.stopPropagation();
-								navigate(`/admin/courses/${course.id}/analytics`);
-							}}
-							title="Analytics"
-						>
-							📊
-						</button>
-						<button
-							className="admin-course-card-action-btn"
-							onClick={(e) => handleQuickAction('archive', e)}
-							disabled={loading}
-							title="Arhivează"
-						>
-							📦
-						</button>
-						<button
-							className="admin-course-card-action-btn admin-course-card-action-btn-danger"
-							onClick={(e) => handleQuickAction('disable', e)}
-							disabled={loading}
-							title="Dezactivează"
-						>
-							🚫
-						</button>
-						<button
-							className="admin-course-card-action-btn admin-course-card-action-btn-danger"
-							onClick={(e) => handleQuickAction('delete', e)}
-							disabled={loading}
-							title="Șterge"
-						>
-							🗑️
-						</button>
-					</div>
 				</div>
 
-				{/* Instructor and Modules */}
+				{/* Modules */}
 				<div className="admin-course-card-meta">
-					{course.teacher && (
-						<span className="admin-course-card-meta-item">
-							{course.teacher.name}
-						</span>
-					)}
 					{course.modules_count !== undefined && (
 						<span className="admin-course-card-meta-item">
 							{course.modules_count} module
@@ -305,12 +171,6 @@ const CourseListItem = React.memo(({
 						</div>
 					</div>
 					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">VENIT</div>
-						<div className="admin-course-card-stat-value">
-							{formatCurrency(course.revenue || 0, currency)}
-						</div>
-					</div>
-					<div className="admin-course-card-stat">
 						<div className="admin-course-card-stat-label">FINALIZARE</div>
 						<div className="admin-course-card-stat-value">
 							{course.completion_rate || 0}%
@@ -324,12 +184,6 @@ const CourseListItem = React.memo(({
 							) : (
 								'N/A'
 							)}
-						</div>
-					</div>
-					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">PREŢ</div>
-						<div className="admin-course-card-stat-value">
-							{course.price ? formatCurrency(course.price, currency) : '0 MDL'}
 						</div>
 					</div>
 					<div className="admin-course-card-stat">
@@ -367,7 +221,6 @@ const CourseListItem = React.memo(({
 		prevProps.course?.status === nextProps.course?.status &&
 		prevProps.course?.enrollments_count === nextProps.course?.enrollments_count &&
 		prevProps.course?.rating === nextProps.course?.rating &&
-		prevProps.course?.revenue === nextProps.course?.revenue &&
 		prevProps.course?.completion_rate === nextProps.course?.completion_rate &&
 		prevProps.selected === nextProps.selected &&
 		prevProps.loading === nextProps.loading &&

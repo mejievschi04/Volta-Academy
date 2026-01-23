@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressIndicator from './ProgressIndicator';
 
-const CourseProgressWidget = ({ course }) => {
+const CourseProgressWidget = ({ course, isMandatory = false }) => {
 	const navigate = useNavigate();
 
 	const handleViewCourse = () => {
@@ -16,7 +16,7 @@ const CourseProgressWidget = ({ course }) => {
 		: '#f59e0b';
 
 	return (
-		<div className="student-course-progress-card">
+		<div className={`student-course-progress-card ${isMandatory ? 'student-course-mandatory' : ''}`}>
 			<div className="student-course-progress-header">
 				{course.thumbnail && (
 					<img 
@@ -26,7 +26,12 @@ const CourseProgressWidget = ({ course }) => {
 					/>
 				)}
 				<div className="student-course-progress-info">
-					<h4 className="student-course-progress-title">{course.title}</h4>
+					<div className="student-course-progress-title-row">
+						<h4 className="student-course-progress-title">{course.title}</h4>
+						{isMandatory && (
+							<span className="student-course-mandatory-badge">Obligatoriu</span>
+						)}
+					</div>
 					{course.teacher && (
 						<p className="student-course-progress-teacher">👤 {course.teacher}</p>
 					)}

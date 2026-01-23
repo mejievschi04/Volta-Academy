@@ -7,43 +7,108 @@
    1. STUDENT WIDGETS (Base)
    ============================================ */
 .student-widget {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border-radius: var(--radius-xl);
+	padding: var(--space-8);
 	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	transition: all var(--transition-smooth);
+	position: relative;
+	overflow: hidden;
+}
+
+.student-widget::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.6;
 }
 
 .student-widget:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.1);
+	border-color: var(--border-accent);
+	transform: translateY(-2px);
 }
 
 .student-widget-header {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	margin-bottom: var(--space-4);
+	gap: var(--space-4);
 }
 
 .student-widget-header h3 {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-semibold);
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-bold);
 	color: var(--text-primary);
-	margin: 0;
+	margin: 0 0 var(--space-1) 0;
+	letter-spacing: -0.02em;
 }
 
-.student-widget-content {
-	color: var(--text-secondary);
-}
-
-.student-widget-empty {
+.student-widget-subtitle {
 	font-size: var(--font-size-sm);
 	color: var(--text-tertiary);
 	margin: 0;
+	opacity: 0.8;
+	line-height: 1.5;
+}
+
+.student-widget-content {
+	color: var(--text-primary);
+}
+
+.student-widget-empty {
+	font-size: var(--font-size-base);
+	color: var(--text-secondary);
+	margin: 0;
 	text-align: center;
 	padding: var(--space-4);
+	font-weight: var(--font-weight-medium);
+}
+
+.student-widget-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-8);
+	gap: var(--space-4);
+	text-align: center;
+}
+
+.student-widget-empty-icon {
+	font-size: 3rem;
+	opacity: 0.5;
+	margin-bottom: var(--space-2);
+}
+
+.student-widget-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-1) var(--space-3);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	border-radius: var(--radius-md);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-right: var(--space-2);
+}
+
+.student-widget-badge-required {
+	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+	color: #FFFFFF;
+	box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.student-widget-count-urgent {
+	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+	color: #FFFFFF;
+	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
 /* ============================================
@@ -107,17 +172,46 @@
    3. COURSE PROGRESS WIDGET
    ============================================ */
 .student-course-progress-card {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border-radius: var(--radius-xl);
+	padding: var(--space-8);
 	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	transition: all var(--transition-smooth);
+	position: relative;
+	overflow: hidden;
+}
+
+.student-course-progress-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.6;
 }
 
 .student-course-progress-card:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.1);
+	border-color: var(--border-accent);
+	transform: translateY(-2px);
+}
+
+.student-course-mandatory {
+	border-left: 4px solid #EF4444;
+	background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-elevated) 50%, var(--bg-secondary) 100%);
+}
+
+.student-course-mandatory::before {
+	background: linear-gradient(90deg, #EF4444 0%, #DC2626 100%);
+	opacity: 0.8;
+}
+
+.student-course-mandatory:hover {
+	border-color: #EF4444;
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 
 .student-course-progress-header {
@@ -141,18 +235,44 @@
 	min-width: 0;
 }
 
+.student-course-progress-title-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+	margin-bottom: var(--space-1);
+}
+
 .student-course-progress-title {
 	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-semibold);
+	font-weight: var(--font-weight-bold);
 	color: var(--text-primary);
-	margin: 0 0 var(--space-1) 0;
+	margin: 0;
 	line-height: var(--line-height-tight);
+	flex: 1;
+	min-width: 0;
+}
+
+.student-course-mandatory-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-1) var(--space-2);
+	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+	color: #FFFFFF;
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	border-radius: var(--radius-md);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+	flex-shrink: 0;
 }
 
 .student-course-progress-teacher {
 	font-size: var(--font-size-sm);
-	color: var(--text-tertiary);
+	color: var(--text-secondary);
 	margin: 0;
+	font-weight: var(--font-weight-medium);
 }
 
 .student-course-progress-body {
@@ -301,8 +421,9 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	font-weight: var(--font-weight-medium);
 }
 
 .student-pending-exam-course {
@@ -337,6 +458,16 @@
 .student-btn-link:hover {
 	color: var(--color-primary-hover);
 	text-decoration: underline;
+}
+
+/* Light theme - dark text for better contrast */
+[data-theme="light"] .student-btn-link {
+	color: #1f2937;
+	font-weight: var(--font-weight-semibold);
+}
+
+[data-theme="light"] .student-btn-link:hover {
+	color: #111827;
 }
 
 /* ============================================
@@ -388,8 +519,9 @@
 }
 
 .student-incomplete-lesson-meta {
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	font-weight: var(--font-weight-medium);
 }
 
 /* ============================================
@@ -526,6 +658,20 @@
 .student-btn-primary:hover {
 	background-color: var(--btn-primary-hover);
 	box-shadow: var(--shadow-md);
+}
+
+/* Light theme - yellow background with black text */
+[data-theme="light"] .student-btn-primary {
+	background-color: var(--color-primary);
+	color: #000000;
+	border: 1px solid var(--color-primary);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .student-btn-primary:hover {
+	background-color: var(--color-primary-hover);
+	border-color: var(--color-primary-hover);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .student-btn-secondary {
@@ -676,6 +822,16 @@
 .va-auth-link:hover {
 	color: var(--color-primary-hover);
 	text-decoration: underline;
+}
+
+/* Light theme - dark text for better contrast */
+[data-theme="light"] .va-auth-link {
+	color: #1f2937;
+	font-weight: var(--font-weight-semibold);
+}
+
+[data-theme="light"] .va-auth-link:hover {
+	color: #111827;
 }
 
 /* ============================================

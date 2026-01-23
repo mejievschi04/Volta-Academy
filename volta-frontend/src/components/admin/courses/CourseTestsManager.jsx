@@ -94,8 +94,8 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 
 	const getTestTypeBadge = (type) => {
 		const types = {
-			practice: { label: 'Practică', color: '#3B82F6' },
-			graded: { label: 'Notat', color: '#8B5CF6' },
+			practice: { label: 'Practică', color: '#FFEE00' },
+			graded: { label: 'Notat', color: '#FFEE00' },
 			final: { label: 'Final', color: '#EF4444' },
 		};
 		const badge = types[type] || types.graded;

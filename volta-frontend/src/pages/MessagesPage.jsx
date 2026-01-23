@@ -8,6 +8,7 @@ const MessagesPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const [conversations, setConversations] = useState([]);
+	const [allConversations, setAllConversations] = useState([]); // Store all conversations for search
 	const [selectedConversation, setSelectedConversation] = useState(null);
 	const [messages, setMessages] = useState([]);
 	const [newMessage, setNewMessage] = useState('');
@@ -19,10 +20,20 @@ const MessagesPage = () => {
 	const [newConversationSearch, setNewConversationSearch] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [loadingUsers, setLoadingUsers] = useState(false);
+	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 	const messagesEndRef = useRef(null);
 	const pollingIntervalRef = useRef(null);
 	const conversationsPollingRef = useRef(null);
 	const lastMessageIdRef = useRef(null);
+
+	// Detect mobile viewport
+	useEffect(() => {
+		const handleResize = () => {
+			setIsMobile(window.innerWidth <= 768);
+		};
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, []);
 
 	useEffect(() => {
 		fetchConversations();
@@ -139,12 +150,11 @@ const MessagesPage = () => {
 			try {
 				const data = await messagesService.getConversations();
 				
-				if (Array.isArray(data)) {
-					// Actualizează conversațiile, păstrând selecția curentă
-					setConversations(prev => {
+					if (Array.isArray(data)) {
+						// Actualizează conversațiile, păstrând selecția curentă
 						const currentSelectedId = selectedConversation?.id;
 						const updated = data.map(newConv => {
-							const existing = prev.find(c => c.id === newConv.id);
+							const existing = conversations.find(c => c.id === newConv.id);
 							// Păstrează conversația selectată dacă există
 							if (existing && existing.id === currentSelectedId) {
 								return existing;
@@ -157,9 +167,13 @@ const MessagesPage = () => {
 							setSelectedConversation(null);
 						}
 						
-						return updated;
-					});
-				}
+						// Update both conversations and allConversations
+						setAllConversations(updated);
+						// Only update displayed conversations if not searching
+						if (!searchQuery.trim()) {
+							setConversations(updated);
+						}
+					}
 		} catch (err) {
 			logger.error('Error polling conversations:', err);
 			}
@@ -186,16 +200,19 @@ const MessagesPage = () => {
 			
 			if (Array.isArray(data)) {
 				setConversations(data);
+				setAllConversations(data); // Store all conversations for search
 				if (!selectedConversation && data.length > 0) {
 					setSelectedConversation(data[0]);
 				}
 			} else {
 				setConversations([]);
+				setAllConversations([]);
 			}
 		} catch (err) {
 			console.error('Error fetching conversations:', err);
 			showToast('Eroare la încărcarea conversațiilor', 'error');
 			setConversations([]);
+			setAllConversations([]);
 		} finally {
 			setLoading(false);
 		}
@@ -325,8 +342,10 @@ const MessagesPage = () => {
 
 	const handleSearch = async (query) => {
 		setSearchQuery(query);
+		
+		// If query is empty, restore all conversations without fetching
 		if (!query.trim()) {
-			fetchConversations();
+			setConversations(allConversations);
 			return;
 		}
 
@@ -336,8 +355,8 @@ const MessagesPage = () => {
 				setConversations(results);
 			} else {
 				// Filter local conversations if API doesn't return results
-				const filtered = conversations.filter(conv => 
-					conv.participant.name.toLowerCase().includes(query.toLowerCase()) ||
+				const filtered = allConversations.filter(conv => 
+					conv.participant?.name?.toLowerCase().includes(query.toLowerCase()) ||
 					conv.lastMessage?.content?.toLowerCase().includes(query.toLowerCase())
 				);
 				setConversations(filtered);
@@ -345,8 +364,8 @@ const MessagesPage = () => {
 		} catch (err) {
 			logger.error('Error searching conversations:', err);
 			// Fallback to local filtering
-			const filtered = conversations.filter(conv => 
-				conv.participant.name.toLowerCase().includes(query.toLowerCase()) ||
+			const filtered = allConversations.filter(conv => 
+				conv.participant?.name?.toLowerCase().includes(query.toLowerCase()) ||
 				conv.lastMessage?.content?.toLowerCase().includes(query.toLowerCase())
 			);
 			setConversations(filtered);
@@ -422,8 +441,8 @@ const MessagesPage = () => {
 	return (
 		<div className="messages-page">
 			<div className="messages-container">
-				{/* Conversations Sidebar */}
-				<div className="messages-sidebar">
+				{/* Conversations Sidebar - Hidden on mobile when conversation is selected */}
+				<div className={`messages-sidebar ${isMobile && selectedConversation ? 'mobile-hidden' : ''}`}>
 					<div className="messages-sidebar-header">
 						<h2 className="messages-title">Mesagerie</h2>
 						<button 
@@ -442,6 +461,12 @@ const MessagesPage = () => {
 							className="messages-search-input"
 							value={searchQuery}
 							onChange={(e) => handleSearch(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									e.stopPropagation();
+								}
+							}}
 						/>
 					</div>
 
@@ -459,7 +484,10 @@ const MessagesPage = () => {
 								className={`messages-conversation-item ${
 									selectedConversation?.id === conversation.id ? 'active' : ''
 								} ${(conversation.unreadCount || 0) > 0 ? 'unread' : ''}`}
-								onClick={() => setSelectedConversation(conversation)}
+								onClick={() => {
+									setSelectedConversation(conversation);
+									// On mobile, this will hide the sidebar and show the conversation
+								}}
 							>
 								<div className="messages-conversation-avatar">
 									{conversation.participant?.avatar ? (
@@ -497,12 +525,24 @@ const MessagesPage = () => {
 					</div>
 				</div>
 
-				{/* Messages Area */}
-				<div className="messages-main">
+				{/* Messages Area - Hidden on mobile when no conversation is selected */}
+				<div className={`messages-main ${isMobile && !selectedConversation ? 'mobile-hidden' : ''}`}>
 					{selectedConversation ? (
 						<>
 							{/* Chat Header */}
 							<div className="messages-chat-header">
+								{isMobile && (
+									<button 
+										className="messages-chat-back-btn"
+										onClick={() => setSelectedConversation(null)}
+										title="Înapoi la conversații"
+										aria-label="Înapoi la conversații"
+									>
+										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<path d="M15 18l-6-6 6-6"/>
+										</svg>
+									</button>
+								)}
 								<div className="messages-chat-header-info">
 									<div className="messages-chat-avatar">
 										{selectedConversation.participant?.avatar ? (

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
-import { formatCurrency, getDefaultCurrency } from '../utils/currency';
 
 const EventsPage = () => {
 	const navigate = useNavigate();
@@ -16,17 +15,8 @@ const EventsPage = () => {
 		access_type: 'all',
 		date_filter: 'all', // all, upcoming, past, live
 	});
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-
 	useEffect(() => {
 		fetchEvents();
-		
-		// Listen for currency changes
-		const handleCurrencyChange = () => {
-			setCurrency(getDefaultCurrency());
-		};
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
 	}, [filters]);
 
 	const fetchEvents = async () => {
@@ -82,7 +72,6 @@ const EventsPage = () => {
 	const getAccessTypeLabel = (accessType) => {
 		const labels = {
 			free: 'Gratuit',
-			paid: 'Plătit',
 			course_included: 'Inclus în curs',
 		};
 		return labels[accessType] || accessType;
@@ -91,9 +80,9 @@ const EventsPage = () => {
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#10b981' },
-			upcoming: { label: 'Viitor', color: '#3b82f6' },
+			upcoming: { label: 'Viitor', color: '#FFEE00' },
 			live: { label: 'Live', color: '#ef4444' },
-			completed: { label: 'Finalizat', color: '#8b5cf6' },
+			completed: { label: 'Finalizat', color: '#FFEE00' },
 		};
 		return badges[status] || null;
 	};
@@ -155,7 +144,6 @@ const EventsPage = () => {
 				>
 					<option value="all">Toate accesurile</option>
 					<option value="free">Gratuit</option>
-					<option value="paid">Plătit</option>
 					<option value="course_included">Inclus în curs</option>
 				</select>
 				<select
@@ -231,9 +219,6 @@ const EventsPage = () => {
 													{event.access_type && (
 														<span>💰 <strong style={{ color: 'var(--va-text)' }}>
 															{getAccessTypeLabel(event.access_type)}
-															{event.access_type === 'paid' && event.price && (
-																<span> - {formatCurrency(event.price, event.currency || currency)}</span>
-															)}
 														</strong></span>
 													)}
 												</div>
@@ -280,11 +265,11 @@ const EventsPage = () => {
 														className="lms-btn-secondary"
 														onClick={(e) => handleRegister(event.id, e)}
 														style={{ 
-															background: event.access_type === 'paid' ? '#f59e0b' : '#10b981',
+															background: '#10b981',
 															color: '#fff',
 														}}
 													>
-														{event.access_type === 'paid' ? '💳 Plătește' : '✓ Înscrie-te'}
+														{'✓ Înscrie-te'}
 													</button>
 												)}
 												{event.user_registered && (

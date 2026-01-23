@@ -1,122 +1,85 @@
 import React, { useEffect, useState } from 'react';
-import logoShort from '../assets/Logo short.png';
+import logoShort from '../assets/Volta Logo 2@300x 1.png';
 import './SplashScreen.css';
 
 const SplashScreen = ({ onStart, durationMs = 2000 }) => {
-	const [isVisible, setIsVisible] = useState(false);
 	const [progress, setProgress] = useState(0);
-	const [displayText, setDisplayText] = useState('');
-	const fullText = 'Formely';
 
 	useEffect(() => {
-		// Trigger animation after mount
-		setTimeout(() => setIsVisible(true), 50);
-
-		// Typewriter effect for "Volta"
-		let currentIndex = 0;
-		const typewriterInterval = setInterval(() => {
-			if (currentIndex < fullText.length) {
-				setDisplayText(fullText.slice(0, currentIndex + 1));
-				currentIndex++;
-			} else {
-				clearInterval(typewriterInterval);
-			}
-		}, 300); // 300ms delay between letters
-
 		// Progress animation
 		const progressInterval = setInterval(() => {
 			setProgress(prev => {
 				if (prev >= 100) {
 					clearInterval(progressInterval);
+					// Auto start after loading completes
+					setTimeout(() => {
+						onStart && onStart();
+					}, 500);
 					return 100;
 				}
-				return prev + 3;
+				return prev + 2;
 			});
-		}, 40);
+		}, 50);
 
 		return () => {
-			clearInterval(typewriterInterval);
 			clearInterval(progressInterval);
 		};
-	}, []);
-
-	const handleStart = () => {
-		onStart && onStart();
-	};
-
-	// Generate flame particles
-	const flameParticles = Array.from({ length: 8 }, (_, i) => ({
-		id: i,
-		angle: (i * 360) / 8,
-		delay: i * 0.2,
-		duration: 3 + Math.random() * 1,
-	}));
+	}, [onStart]);
 
 	return (
-		<div className="splash-screen">
-			<div className={`splash-content ${isVisible ? 'visible' : ''}`}>
-				<div className="splash-logo">
-					{/* Flame particles */}
-					{flameParticles.map(particle => {
-						const angle = (particle.angle * Math.PI) / 180;
-						const distance = 80;
-						const x = Math.cos(angle) * distance;
-						const y = Math.sin(angle) * distance;
-						return (
-							<div
-								key={particle.id}
-								className="splash-flame-particle"
-								style={{
-									left: `calc(50% + ${x}px)`,
-									top: `calc(50% + ${y}px)`,
-									animationDelay: `${particle.delay}s`,
-									animationDuration: `${particle.duration}s`,
-									'--flame-x': `${x * 0.5}px`,
-								}}
-							/>
-						);
-					})}
+		<div className="splash-page">
+			{/* Animated background circles */}
+			<div className="splash-bg-circles">
+				<div className="splash-circle circle-1"></div>
+				<div className="splash-circle circle-2"></div>
+				<div className="splash-circle circle-3"></div>
+			</div>
+
+			<div className="splash-content">
+				{/* Logo with glow effect */}
+				<div className="splash-logo-wrapper">
+					<div className="splash-logo-glow"></div>
 					<img 
 						src={logoShort} 
 						alt="Volta Academy" 
-						className="splash-logo-img"
+						className="splash-logo"
 					/>
 				</div>
 
-				{/* Formely text under logo */}
-				<div className="splash-formely">
-					<p className="splash-formely-text">{displayText}</p>
+				{/* Brand name */}
+				<div className="splash-brand">
+					<h1 className="splash-brand-name">VOLTA</h1>
+					<div className="splash-brand-line"></div>
+					<p className="splash-brand-academy">ACADEMY</p>
 				</div>
 
-				{/* Progress bar */}
-				<div className="splash-progress-container">
-					<div className="splash-progress-bar">
+				{/* Loading indicator */}
+				<div className="splash-loader">
+					<div className="splash-loader-track">
 						<div 
-							className="splash-progress-fill"
+							className="splash-loader-progress"
 							style={{ width: `${progress}%` }}
-						></div>
+						>
+							<div className="splash-loader-glow"></div>
+						</div>
 					</div>
+					<div className="splash-loader-percentage">{progress}%</div>
 				</div>
 
-				{progress >= 100 && (
-					<button 
-						className="splash-button"
-						onClick={handleStart} 
-						aria-label="Start"
-					>
-						Start
-					</button>
-				)}
-
-				{/* Footer text - powered by Mejievski */}
-				<div className="splash-footer">
-					<p className="splash-footer-text">powered by Mejievski</p>
+				{/* Loading dots */}
+				<div className="splash-dots">
+					<div className="splash-dot"></div>
+					<div className="splash-dot"></div>
+					<div className="splash-dot"></div>
 				</div>
+			</div>
+
+			{/* Footer */}
+			<div className="splash-footer">
+				<p className="splash-footer-text">Realizat de Mejievski</p>
 			</div>
 		</div>
 	);
 };
 
 export default SplashScreen;
-
-

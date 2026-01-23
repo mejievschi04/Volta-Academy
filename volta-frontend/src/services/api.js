@@ -341,16 +341,16 @@ export const adminService = {
       ? courseData 
       : (() => {
           const { modules, ...coursePayload } = courseData;
-          // Ensure currency is 3 characters
-          if (coursePayload.currency && coursePayload.currency.length !== 3) {
-            coursePayload.currency = 'RON';
-          } else if (!coursePayload.currency) {
-            coursePayload.currency = 'RON';
-          }
           return coursePayload;
         })();
     
     const response = await api.post('/admin/courses', payload, { headers });
+    return response.data;
+  },
+  
+  generateCourseStructure: async (courseInfo) => {
+    // Call AI service to generate course structure
+    const response = await api.post('/admin/ai/generate-course-structure', courseInfo);
     return response.data;
   },
   
@@ -889,6 +889,24 @@ export const adminService = {
   },
   updateSettings: async (settingsData) => {
     const response = await api.put('/admin/settings', settingsData);
+    return response.data;
+  },
+
+  // Certificate Settings
+  getCertificateSettings: async () => {
+    const response = await api.get('/admin/certificate-settings');
+    return response.data;
+  },
+
+  updateCertificateSettings: async (settings) => {
+    const response = await api.put('/admin/certificate-settings', settings);
+    return response.data;
+  },
+
+  uploadCertificateLogo: async (formData) => {
+    const response = await api.post('/admin/certificate-settings/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
   

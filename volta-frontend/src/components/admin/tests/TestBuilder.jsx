@@ -1,132 +1,121 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
-import { useAutoSave } from '../../../hooks/useAutoSave';
-import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useToast } from '../../../contexts/ToastContext';
-import UndoRedoControls from '../../common/UndoRedoControls';
-import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import TestBuilderStep1 from './TestBuilderSteps/Step1Basics';
 import TestBuilderStep2 from './TestBuilderSteps/Step2Questions';
 import TestBuilderStep3 from './TestBuilderSteps/Step3Settings';
-import TestBuilderStep4 from './TestBuilderSteps/Step4Review';
-import TestCreationModal from './TestCreationModal';
+import '../courses/CourseCreationWizard.css';
 
+/**
+ * TestBuilder - Versiune Simplificată
+ * Flow simplificat cu 3 pași esențiali:
+ * 1. Informații de bază (titlu, descriere, tip)
+ * 2. Întrebări (adaugare și editare întrebări)
+ * 3. Setări (timp, încercări, randomizare, feedback)
+ */
+
+// Main TestBuilder Component
 const TestBuilder = () => {
-	const params = useParams();
+	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
-	
-	const id = params.id && params.id !== 'new' ? params.id : null;
 	const isEditMode = !!id;
-
-	const [currentStep, setCurrentStep] = useState(1);
-	const [showModal, setShowModal] = useState(!isEditMode); // Show unified modal for new tests
 	
-	// Initial test data
-	const initialTestData = {
-		// Step 1: Test Basics
+	const [currentStep, setCurrentStep] = useState(0);
+	const [loading, setLoading] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [testData, setTestData] = useState({
+		// Step 1: Scop
+		evaluation_type: '',
+		result_impact: '',
+		
+		// Step 2: Metadate
 		title: '',
 		description: '',
-		type: 'graded', // practice, graded, final
+		domain: '',
+		level: '',
+		estimated_duration: null,
+		tags: '',
 		status: 'draft',
-
-		// Step 2: Questions
-		questions: [],
-		question_source: 'direct', // direct, bank
-		question_set_id: null,
-
-		// Step 3: Settings
-		time_limit_minutes: null,
-		max_attempts: null,
+		
+		// Step 3: Structură
+		total_questions: null,
 		randomize_questions: false,
 		randomize_answers: false,
-		show_results_immediately: true,
-		show_correct_answers: false,
-		allow_review: true,
-	};
-	
-	// Use undo/redo for test data
-	const { state: testData, setState: setTestData, undo, redo, canUndo, canRedo } = useUndoRedo(initialTestData);
+		question_source: 'direct',
+		question_bank_id: null,
+		
+		// Step 4: Întrebări (va fi populat)
+		questions: [],
+		
+		// Step 5: Scorare
+		scoring_type: 'percentage',
+		passing_score: null,
+		negative_marking: false,
+		time_penalty: false,
+		retry_rules: 'unlimited',
+		max_attempts: null,
+		
+		// Step 6: Acces
+		timer_type: 'none',
+		time_limit: null,
+		lock_after_failure: false,
+		proctoring: false,
+		require_course_completion: false,
+		role_based_access: false,
+		group_based_access: false,
+	});
+	const [errors, setErrors] = useState({});
 
-	const [loading, setLoading] = useState(isEditMode);
-	const [error, setError] = useState(null);
-	const [validationErrors, setValidationErrors] = useState({});
-
-	// Load test data if editing
+	// Fetch test if editing
 	useEffect(() => {
-		if (isEditMode) {
-			fetchTestData();
-		}
-	}, [id]);
-
-	// Auto-save function
-	const autoSaveFn = async (data) => {
-		if (!data.title || typeof data.title !== 'string' || !data.title.trim() || data.title.trim().length < 3) {
-			return;
-		}
-
-		const dataToSend = {
-			title: data.title.trim(),
-			description: data.description || null,
-			type: data.type || 'graded',
-			status: 'draft',
-			time_limit_minutes: data.time_limit_minutes || null,
-			max_attempts: data.max_attempts || null,
-			randomize_questions: data.randomize_questions || false,
-			randomize_answers: data.randomize_answers || false,
-			show_results_immediately: data.show_results_immediately !== false,
-			show_correct_answers: data.show_correct_answers || false,
-			allow_review: data.allow_review !== false,
-			question_source: data.question_source || 'direct',
-			question_set_id: data.question_set_id || null,
-		};
-
 		if (isEditMode && id) {
-			try {
-				await adminService.updateTest(id, dataToSend);
-			} catch (err) {
-				console.error('Auto-save error:', err);
-			}
-		} else {
-			try {
-				const saved = await adminService.createTest({
-					...dataToSend,
-					questions: data.questions || [],
-				});
-				if (saved.test?.id && !id) {
-					window.history.replaceState({}, '', `/admin/tests/${saved.test.id}/builder`);
-					// Don't reload - just continue with current step
-				}
-			} catch (err) {
-				console.error('Auto-save error:', err);
-			}
+			fetchTest();
 		}
-	};
+	}, [id, isEditMode]);
 
-	const hasValidTitle = testData.title && typeof testData.title === 'string' && testData.title.trim().length >= 3;
-	const autoSaveEnabled = currentStep > 1 && hasValidTitle;
-	
-	const { saveStatus: autoSaveStatus, manualSave } = useAutoSave(testData, autoSaveFn, 2000, autoSaveEnabled);
-	
-	// Update save status
-	useEffect(() => {
-		setSaveStatus(autoSaveStatus);
-	}, [autoSaveStatus]);
-
-	const fetchTestData = async () => {
+	const fetchTest = async () => {
 		try {
 			setLoading(true);
 			const test = await adminService.getTest(id);
+			const testData = test.data || test;
 			
+			// Map existing test data to new structure
 			setTestData({
-				...test,
-				questions: (test.questions || []).sort((a, b) => (a.order || 0) - (b.order || 0)),
+				evaluation_type: testData.evaluation_type || '',
+				result_impact: testData.result_impact || '',
+				title: testData.title || '',
+				description: testData.description || '',
+				domain: testData.domain || '',
+				level: testData.level || '',
+				estimated_duration: testData.estimated_duration || testData.time_limit_minutes || null,
+				tags: testData.tags || '',
+				status: testData.status || 'draft',
+				total_questions: testData.total_questions || null,
+				randomize_questions: testData.randomize_questions || false,
+				randomize_answers: testData.randomize_answers || false,
+				question_source: testData.question_source || 'direct',
+				question_bank_id: testData.question_bank_id || testData.question_set_id || null,
+				questions: testData.questions || [],
+				scoring_type: testData.scoring_type || 'percentage',
+				passing_score: testData.passing_score || null,
+				negative_marking: testData.negative_marking || false,
+				time_penalty: testData.time_penalty || false,
+				retry_rules: testData.retry_rules || 'unlimited',
+				max_attempts: testData.max_attempts || null,
+				timer_type: testData.timer_type || (testData.time_limit_minutes ? 'global' : 'none'),
+				time_limit: testData.time_limit || testData.time_limit_minutes || null,
+				lock_after_failure: testData.lock_after_failure || false,
+				proctoring: testData.proctoring || false,
+				require_course_completion: testData.require_course_completion || false,
+				role_based_access: testData.role_based_access || false,
+				group_based_access: testData.group_based_access || false,
 			});
 		} catch (err) {
 			console.error('Error fetching test:', err);
-			setError('Nu s-a putut încărca testul');
 			showToast('Eroare la încărcarea testului', 'error');
+			navigate('/admin/tests');
 		} finally {
 			setLoading(false);
 		}
@@ -134,333 +123,374 @@ const TestBuilder = () => {
 
 	const updateTestData = (updates) => {
 		setTestData(prev => ({ ...prev, ...updates }));
-		setValidationErrors({});
+		if (Object.keys(errors).length > 0) {
+			setErrors({});
+		}
 	};
-	
-	// Auto-save status
-	const [saveStatus, setSaveStatus] = useState('idle');
 
 	const validateStep = (step) => {
-		const errors = {};
-
-		switch (step) {
-			case 1:
-				if (!testData.title?.trim()) {
-					errors.title = 'Titlul este obligatoriu';
-				}
-				break;
-			case 2:
-				if (testData.question_source === 'direct' && (!testData.questions || testData.questions.length === 0)) {
-					errors.questions = 'Adaugă cel puțin o întrebare';
-				}
-				if (testData.question_source === 'bank' && !testData.question_set_id) {
-					errors.question_set_id = 'Selectează un question bank';
-				}
-				break;
-			case 3:
-				// Optional validations
-				break;
-			case 4:
-				// Final validation
-				if (!testData.title?.trim()) {
-					errors.title = 'Titlul este obligatoriu';
-				}
-				if (testData.question_source === 'direct' && (!testData.questions || testData.questions.length === 0)) {
-					errors.questions = 'Adaugă cel puțin o întrebare';
-				}
-				break;
+		const newErrors = {};
+		
+		if (step === 0) {
+			// Step 1: Informații de bază
+			if (!testData.title || testData.title.trim() === '') {
+				newErrors.title = 'Titlul testului este obligatoriu';
+			}
 		}
-
-		setValidationErrors(errors);
-		return {
-			isValid: Object.keys(errors).length === 0,
-			errors: errors
-		};
+		
+		if (step === 1) {
+			// Step 2: Întrebări
+			if (!testData.questions || testData.questions.length === 0) {
+				newErrors.questions = 'Adaugă cel puțin o întrebare';
+			}
+		}
+		
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
 	};
 
 	const handleNext = () => {
-		const validationResult = validateStep(currentStep);
-		
-		if (validationResult.isValid) {
-			if (currentStep < 4) {
+		if (validateStep(currentStep)) {
+			if (currentStep < 2) {
 				setCurrentStep(currentStep + 1);
-			}
-		} else {
-			const firstError = Object.keys(validationResult.errors)[0];
-			if (firstError) {
-				const errorElement = document.querySelector(`[data-field="${firstError}"]`) || 
-					document.querySelector(`.admin-form-input.error`);
-				if (errorElement) {
-					errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-					errorElement.focus();
-				}
 			}
 		}
 	};
 
-	const handlePrevious = () => {
-		if (currentStep > 1) {
+	const handleBack = () => {
+		if (currentStep > 0) {
 			setCurrentStep(currentStep - 1);
+		} else {
+			navigate('/admin/tests');
+		}
+	};
+
+	const handleSave = async () => {
+		try {
+			setSaving(true);
+			setErrors({});
+			
+			if (!testData.title || testData.title.trim() === '') {
+				setErrors({ title: 'Titlul testului este obligatoriu' });
+				setCurrentStep(1);
+				return;
+			}
+
+			// Map to API format
+			const testPayload = {
+				title: testData.title,
+				description: testData.description || null,
+				type: testData.evaluation_type === 'certification' ? 'final' : 
+				      testData.evaluation_type === 'formative' ? 'practice' : 'graded',
+				status: 'draft',
+				time_limit_minutes: testData.timer_type === 'global' ? testData.time_limit : null,
+				max_attempts: testData.retry_rules === 'limited' ? testData.max_attempts : null,
+				randomize_questions: testData.randomize_questions || false,
+				randomize_answers: testData.randomize_answers || false,
+				show_results_immediately: true,
+				show_correct_answers: testData.evaluation_type !== 'certification',
+				allow_review: testData.evaluation_type !== 'certification',
+				question_source: testData.question_source || 'direct',
+				question_set_id: testData.question_bank_id || null,
+				questions: testData.questions || [],
+				// Additional fields for future use
+				evaluation_type: testData.evaluation_type,
+				result_impact: testData.result_impact,
+				domain: testData.domain,
+				level: testData.level,
+				estimated_duration: testData.estimated_duration,
+				tags: testData.tags,
+				scoring_type: testData.scoring_type,
+				passing_score: testData.passing_score,
+			};
+
+			let savedTest;
+			if (isEditMode) {
+				savedTest = await adminService.updateTest(id, testPayload);
+			} else {
+				savedTest = await adminService.createTest(testPayload);
+			}
+
+			showToast('Test salvat cu succes', 'success');
+			
+			if (!isEditMode && savedTest?.id) {
+				navigate(`/admin/tests/${savedTest.id}/builder`, { replace: true });
+			}
+		} catch (err) {
+			console.error('Error saving test:', err);
+			showToast('Eroare la salvarea testului', 'error');
+		} finally {
+			setSaving(false);
 		}
 	};
 
 	const handlePublish = async () => {
-		const validationResult = validateStep(4);
-		if (!validationResult.isValid) {
-			setValidationErrors(validationResult.errors);
-			setCurrentStep(4);
-			return;
-		}
-
 		try {
-			setLoading(true);
+			setSaving(true);
+			setErrors({});
 			
-			// Save test first
-			const dataToSend = {
-				title: testData.title.trim(),
+			if (!testData.title || testData.title.trim() === '') {
+				setErrors({ title: 'Titlul testului este obligatoriu' });
+				setCurrentStep(1);
+				return;
+			}
+
+			if (!testData.questions || testData.questions.length === 0) {
+				setErrors({ questions: 'Adaugă cel puțin o întrebare înainte de publicare' });
+				setCurrentStep(1);
+				return;
+			}
+
+			// Save as draft first
+			const testPayload = {
+				title: testData.title,
 				description: testData.description || null,
-				type: testData.type || 'graded',
-				time_limit_minutes: testData.time_limit_minutes || null,
-				max_attempts: testData.max_attempts || null,
+				type: testData.evaluation_type === 'certification' ? 'final' : 
+				      testData.evaluation_type === 'formative' ? 'practice' : 'graded',
+				status: 'draft',
+				time_limit_minutes: testData.timer_type === 'global' ? testData.time_limit : null,
+				max_attempts: testData.retry_rules === 'limited' ? testData.max_attempts : null,
 				randomize_questions: testData.randomize_questions || false,
 				randomize_answers: testData.randomize_answers || false,
-				show_results_immediately: testData.show_results_immediately !== false,
-				show_correct_answers: testData.show_correct_answers || false,
-				allow_review: testData.allow_review !== false,
+				show_results_immediately: true,
+				show_correct_answers: testData.evaluation_type !== 'certification',
+				allow_review: testData.evaluation_type !== 'certification',
 				question_source: testData.question_source || 'direct',
-				question_set_id: testData.question_set_id || null,
+				question_set_id: testData.question_bank_id || null,
 				questions: testData.questions || [],
 			};
 
-			if (isEditMode && id) {
-				await adminService.updateTest(id, dataToSend);
+			let savedTest;
+			if (isEditMode) {
+				savedTest = await adminService.updateTest(id, testPayload);
 			} else {
-				const saved = await adminService.createTest(dataToSend);
-				if (saved.test?.id) {
-					window.history.replaceState({}, '', `/admin/tests/${saved.test.id}/builder`);
-				}
+				savedTest = await adminService.createTest(testPayload);
 			}
 
-			// Publish test
-			const testId = id || testData.id;
-			if (testId) {
-				await adminService.publishTest(testId);
-				showToast('Test publicat cu succes!', 'success');
-				navigate('/admin/tests');
-			}
+			const testId = savedTest?.id || id;
+
+			// Then publish
+			await adminService.publishTest(testId);
+			
+			showToast('Test publicat cu succes', 'success');
+			navigate('/admin/tests');
 		} catch (err) {
 			console.error('Error publishing test:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la publicarea testului';
-			setError(errorMsg);
-			showToast(errorMsg, 'error');
+			showToast('Eroare la publicarea testului', 'error');
 		} finally {
-			setLoading(false);
+			setSaving(false);
 		}
 	};
 
-	const handleSaveDraft = async () => {
-		const validationResult = validateStep(currentStep);
-		if (!validationResult.isValid) {
-			setValidationErrors(validationResult.errors);
-			return;
-		}
+	const steps = [
+		{ number: 0, title: 'Informații de Bază', icon: '📝' },
+		{ number: 1, title: 'Întrebări', icon: '❓' },
+		{ number: 2, title: 'Setări', icon: '⚙️' },
+	];
 
-		try {
-			setLoading(true);
-			await manualSave();
-			showToast('Test salvat cu succes!', 'success');
-		} catch (err) {
-			console.error('Error saving test:', err);
-			const errorMsg = err.response?.data?.error || err.message || 'Eroare la salvarea testului';
-			setError(errorMsg);
-			showToast(errorMsg, 'error');
-		} finally {
-			setLoading(false);
-		}
-	};
+	const progress = ((currentStep + 1) / steps.length) * 100;
 
-	if (loading && isEditMode) {
+	if (loading) {
 		return (
 			<div className="admin-container">
-				<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-					<div className="va-loading-spinner"></div>
+				<div style={{ 
+					display: 'flex', 
+					flexDirection: 'column', 
+					alignItems: 'center', 
+					justifyContent: 'center',
+					minHeight: '60vh',
+					gap: 'var(--space-4)'
+				}}>
+					<div className="va-spinner va-spinner-lg"></div>
+					<p style={{ color: 'var(--text-secondary)' }}>Se încarcă testul...</p>
 				</div>
 			</div>
 		);
 	}
 
-	const steps = [
-		{ number: 1, title: 'Informații de bază', icon: '📝' },
-		{ number: 2, title: 'Întrebări', icon: '❓' },
-		{ number: 3, title: 'Setări', icon: '⚙️' },
-		{ number: 4, title: 'Revizuire', icon: '📋' },
-	];
-
-	// Unified Modal for new tests
-	if (showModal && !isEditMode) {
-		return (
-			<TestCreationModal
-				onClose={() => navigate('/admin/tests')}
-				testData={testData}
-				onUpdate={updateTestData}
-				currentStep={currentStep}
-				onStepChange={setCurrentStep}
-				onValidationErrors={setValidationErrors}
-				validationErrors={validationErrors}
-				onSaveDraft={handleSaveDraft}
-				loading={loading}
-				testId={id}
-				onPublish={handlePublish}
-				undo={undo}
-				redo={redo}
-				canUndo={canUndo}
-				canRedo={canRedo}
-				saveStatus={saveStatus}
-			/>
-		);
-	}
-
 	return (
-		<div className="admin-course-builder">
-			<div className="admin-course-builder-container">
+		<div className="course-creation-wizard-page">
+			<div className="course-creation-wizard">
 				{/* Header */}
-				<div className="admin-course-builder-header">
-					<div className="admin-course-builder-header-left">
-						<button
-							className="admin-btn admin-btn-back"
-							onClick={() => navigate('/admin/tests')}
-						>
-							← Înapoi
-						</button>
-						<h1 className="admin-course-builder-title">
-							{isEditMode ? 'Editează Test' : 'Creează Test Nou'}
-						</h1>
+				<div className="course-creation-wizard-header">
+					<div>
+						<h2>{isEditMode ? 'Editează Test' : 'Creează Test Nou'}</h2>
+						<p className="course-creation-wizard-subtitle">
+							{steps[currentStep].icon} {steps[currentStep].title}
+						</p>
 					</div>
-					<div className="admin-course-builder-header-right">
-						<UndoRedoControls
-							onUndo={undo}
-							onRedo={redo}
-							canUndo={canUndo}
-							canRedo={canRedo}
-							className="course-builder-undo-redo"
-						/>
-						<AutoSaveIndicator status={saveStatus} />
-						<button
-							className="admin-btn admin-btn-secondary"
-							onClick={handleSaveDraft}
-							disabled={loading}
-						>
-							💾 Salvează Draft
-						</button>
-					</div>
+					<button 
+						type="button" 
+						className="course-creation-wizard-close" 
+						onClick={() => navigate('/admin/tests')}
+					>
+						×
+					</button>
 				</div>
-
-				{/* Progress Steps */}
-				<div className="admin-course-builder-steps">
-					{steps.map((step) => (
+				
+				{/* Progress Bar */}
+				<div className="course-creation-wizard-progress">
+					<div className="course-creation-wizard-progress-bar">
+						<div 
+							className="course-creation-wizard-progress-fill"
+							style={{ width: `${progress}%` }}
+						/>
+					</div>
+					<span className="course-creation-wizard-progress-text">
+						Pasul {currentStep + 1} din {steps.length}
+					</span>
+				</div>
+				
+				{/* Steps Indicator */}
+				<div className="course-creation-wizard-steps-indicator">
+					{steps.map((step, index) => (
 						<div
 							key={step.number}
-							className={`admin-course-builder-step ${
-								step.number === currentStep ? 'active' : ''
-							} ${step.number < currentStep ? 'completed' : ''}`}
+							className={`course-creation-wizard-step-indicator ${
+								index === currentStep ? 'active' : 
+								index < currentStep ? 'completed' : ''
+							}`}
+							onClick={() => {
+								if (index <= currentStep) {
+									setCurrentStep(index);
+								}
+							}}
 						>
-							<div className="admin-course-builder-step-number">
-								{step.number < currentStep ? '✓' : step.number}
+							<div className="course-creation-wizard-step-indicator-icon">
+								{index < currentStep ? '✓' : step.icon}
 							</div>
-							<div className="admin-course-builder-step-content">
-								<div className="admin-course-builder-step-icon">{step.icon}</div>
-								<div className="admin-course-builder-step-title">{step.title}</div>
+							<div className="course-creation-wizard-step-indicator-label">
+								{step.title}
 							</div>
 						</div>
 					))}
 				</div>
-
-				{/* Content */}
-				<div className="admin-course-builder-content">
-					{error && (
-						<div className="admin-error-message">
-							<strong>Eroare:</strong> {error}
-						</div>
-					)}
-
-					{/* Show validation errors summary */}
-					{Object.keys(validationErrors).length > 0 && (
-						<div className="admin-form-error-message">
-							<strong>⚠️ Erori de validare:</strong>
-							<ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
-								{Object.entries(validationErrors).map(([key, message]) => (
-									<li key={key}>{message}</li>
-								))}
-							</ul>
-						</div>
-					)}
-
-					{/* PASUL 1: Test Basics */}
-					{currentStep === 1 && (
-						<TestBuilderStep1
-							data={testData}
-							onUpdate={updateTestData}
-							errors={validationErrors}
-						/>
-					)}
-
-					{/* PASUL 2: Questions */}
-					{currentStep === 2 && (
-						<TestBuilderStep2
-							testId={id}
-							data={testData}
-							onUpdate={updateTestData}
-							errors={validationErrors}
-						/>
-					)}
-
-					{/* PASUL 3: Settings */}
-					{currentStep === 3 && (
-						<TestBuilderStep3
-							data={testData}
-							onUpdate={updateTestData}
-							errors={validationErrors}
-						/>
-					)}
-
-					{/* PASUL 4: Review */}
-					{currentStep === 4 && (
-						<TestBuilderStep4
-							testId={id}
-							data={testData}
-							onPublish={handlePublish}
-							loading={loading}
-						/>
-					)}
-				</div>
-
-				{/* Navigation */}
-				<div className="admin-course-builder-footer">
-					<button
-						className="admin-btn admin-btn-secondary"
-						onClick={handlePrevious}
-						disabled={currentStep === 1}
-					>
-						← Anterior
-					</button>
-					<div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-						{currentStep < 4 ? (
-							<button
-								className="admin-btn admin-btn-primary"
-								onClick={handleNext}
-							>
-								Următor →
-							</button>
-						) : (
-							<button
-								className="admin-btn admin-btn-primary"
-								onClick={handlePublish}
-								disabled={loading}
-							>
-								🚀 Publică Test
-							</button>
+				
+				{/* Content - Split Layout */}
+				<div className="course-creation-wizard-content course-creation-wizard-split">
+					<div className="course-creation-wizard-form-panel">
+						{currentStep === 0 && (
+							<TestBuilderStep1
+								data={testData}
+								onUpdate={updateTestData}
+								errors={errors}
+							/>
+						)}
+						
+						{currentStep === 1 && (
+							<TestBuilderStep2
+								testId={id}
+								data={testData}
+								onUpdate={updateTestData}
+								errors={errors}
+							/>
+						)}
+						
+						{currentStep === 2 && (
+							<TestBuilderStep3
+								data={testData}
+								onUpdate={updateTestData}
+								errors={errors}
+							/>
 						)}
 					</div>
+					
+					{/* Preview Panel */}
+					<div className="course-creation-wizard-preview-panel">
+						<div className="course-creation-wizard-preview-header">
+							<h3>Preview Live</h3>
+							<p>Vizualizează modificările în timp real</p>
+						</div>
+						<div className="course-creation-wizard-preview-content">
+							<div className="test-preview-card">
+								<div className="test-preview-body">
+									<h4 className="test-preview-title">{testData.title || 'Titlu test'}</h4>
+									<p className="test-preview-description">{testData.description || 'Descriere test...'}</p>
+									<div className="test-preview-meta">
+										{testData.evaluation_type && (
+											<div className="test-preview-meta-item">
+												<span className="test-preview-meta-label">Tip:</span>
+												<span className="test-preview-meta-value">{testData.evaluation_type}</span>
+											</div>
+										)}
+										{testData.domain && (
+											<div className="test-preview-meta-item">
+												<span className="test-preview-meta-label">Domeniu:</span>
+												<span className="test-preview-meta-value">{testData.domain}</span>
+											</div>
+										)}
+										{testData.level && (
+											<div className="test-preview-meta-item">
+												<span className="test-preview-meta-label">Nivel:</span>
+												<span className="test-preview-meta-value">{testData.level}</span>
+											</div>
+										)}
+										{testData.estimated_duration && (
+											<div className="test-preview-meta-item">
+												<span className="test-preview-meta-label">Durată:</span>
+												<span className="test-preview-meta-value">{testData.estimated_duration} min</span>
+											</div>
+										)}
+									</div>
+									{testData.questions?.length > 0 && (
+										<div className="test-preview-questions">
+											<div className="test-preview-questions-label">Întrebări ({testData.questions.length}):</div>
+											{testData.questions.slice(0, 3).map((q, idx) => (
+												<div key={idx} className="test-preview-question">
+													<span className="test-preview-question-number">{idx + 1}.</span>
+													<span className="test-preview-question-text">{q.question || q.text || 'Întrebare'}</span>
+												</div>
+											))}
+											{testData.questions.length > 3 && (
+												<div className="test-preview-questions-more">+{testData.questions.length - 3} mai multe...</div>
+											)}
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				{/* Footer */}
+				<div className="course-creation-wizard-footer">
+					<button
+						type="button"
+						className="course-creation-wizard-btn course-creation-wizard-btn-secondary"
+						onClick={handleBack}
+					>
+						{currentStep === 0 ? 'Anulează' : '← Înapoi'}
+					</button>
+					
+					<button
+						type="button"
+						className="course-creation-wizard-btn course-creation-wizard-btn-secondary"
+						onClick={handleSave}
+						disabled={saving}
+					>
+						{saving ? 'Salvare...' : '💾 Salvează Draft'}
+					</button>
+					
+					{currentStep < 2 && (
+						<button
+							type="button"
+							className="course-creation-wizard-btn course-creation-wizard-btn-primary"
+							onClick={handleNext}
+						>
+							Continuă →
+						</button>
+					)}
+					
+					{currentStep === 2 && (
+						<button
+							type="button"
+							className="course-creation-wizard-btn course-creation-wizard-btn-primary"
+							onClick={handlePublish}
+							disabled={saving}
+						>
+							{saving ? 'Publicare...' : '🚀 Publică Test'}
+						</button>
+					)}
 				</div>
 			</div>
 		</div>
@@ -468,4 +498,3 @@ const TestBuilder = () => {
 };
 
 export default TestBuilder;
-

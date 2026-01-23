@@ -5,14 +5,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // pune exact URL-ul frontend-ului tău aici
-    'allowed_origins' => [
-        'http://localhost:5173', 
-        'http://localhost:5174', 
-        'http://localhost:5175',
-    ],
+    // Frontend URL from environment variable, fallback to localhost
+    'allowed_origins' => env('FRONTEND_URL') 
+        ? array_map('trim', explode(',', env('FRONTEND_URL')))
+        : [
+            'http://localhost:5173', 
+            'http://localhost:5174', 
+            'http://localhost:5175',
+        ],
     
-    // Permite toate domeniile ngrok
+    // Permite toate domeniile ngrok (pentru development)
     'allowed_origins_patterns' => [
         '#^https?://.*\.ngrok-free\.app$#',
         '#^https?://.*\.ngrok\.io$#',

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import logoShort from '../assets/Logo short.png';
+import logoShort from '../assets/Volta Logo 2@300x 1.png';
 
 const RegisterPage = () => {
 	const [name, setName] = useState('');

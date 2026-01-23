@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Course;
+use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use Illuminate\Http\Request;
@@ -366,6 +367,42 @@ class UserAdminController extends Controller
 
         $courseIds = $validated['course_ids'];
         $isMandatory = $validated['is_mandatory'] ?? true; // Implicit obligatoriu
+
+        // Dacă cursul este obligatoriu, verifică dacă are cel puțin un test obligatoriu
+        if ($isMandatory) {
+            $coursesWithoutRequiredTests = [];
+            
+            foreach ($courseIds as $courseId) {
+                $course = \App\Models\Course::find($courseId);
+                if ($course) {
+                    // Verifică dacă cursul are cel puțin un test cu required = true
+                    $hasRequiredTest = CourseTest::where('course_id', $courseId)
+                        ->where('required', true)
+                        ->exists();
+                    
+                    if (!$hasRequiredTest) {
+                        $coursesWithoutRequiredTests[] = [
+                            'id' => $courseId,
+                            'title' => $course->title,
+                        ];
+                    }
+                }
+            }
+            
+            if (!empty($coursesWithoutRequiredTests)) {
+                $courseTitles = implode(', ', array_column($coursesWithoutRequiredTests, 'title'));
+                $courseCount = count($coursesWithoutRequiredTests);
+                $courseWord = $courseCount === 1 ? 'cursul' : 'cursurile';
+                
+                return response()->json([
+                    'error' => 'Cursurile obligatorii trebuie să aibă cel puțin un test obligatoriu',
+                    'message' => $courseCount === 1 
+                        ? "Cursul \"{$courseTitles}\" nu are teste obligatorii. Te rugăm să adaugi cel puțin un test obligatoriu înainte de a-l marca ca obligatoriu."
+                        : "Următoarele cursuri nu au teste obligatorii: {$courseTitles}. Te rugăm să adaugi cel puțin un test obligatoriu pentru fiecare curs înainte de a le marca ca obligatorii.",
+                    'courses' => $coursesWithoutRequiredTests,
+                ], 422);
+            }
+        }
 
         // Sync courses - remove old assignments and add new ones
         $syncData = [];

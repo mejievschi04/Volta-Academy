@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -39,17 +40,25 @@ class CertificateController extends Controller
             ], 403);
         }
 
+        // Load certificate settings
+        $settings = $this->getCertificateSettings();
+
         // Generate certificate
         $certificateData = [
             'user_name' => $user->name,
             'course_title' => $course->title,
             'completion_date' => $enrollment->completed_at,
             'certificate_id' => 'VOLTA-' . strtoupper(substr(md5($user->id . $courseId . $enrollment->completed_at), 0, 8)),
+            'settings' => $settings,
         ];
+
+        // Select template based on settings
+        $template = $settings['template'] ?? 'modern';
+        $viewName = 'certificates.' . $template;
 
         // Generate HTML certificate (can be converted to PDF later with dompdf)
         // For now, return HTML view
-        $html = view('certificates.course', $certificateData)->render();
+        $html = view($viewName, $certificateData)->render();
         
         return response($html)
             ->header('Content-Type', 'text/html')
@@ -124,6 +133,61 @@ class CertificateController extends Controller
             });
 
         return response()->json($certificates);
+    }
+
+    /**
+     * Get certificate settings with defaults
+     */
+    private function getCertificateSettings()
+    {
+        $settings = Setting::where('key', 'like', 'certificate_%')->get()->mapWithKeys(function ($setting) {
+            $key = str_replace('certificate_', '', $setting->key);
+            $value = $this->castValue($setting->value, $setting->type);
+            return [$key => $value];
+        });
+
+        // Default settings
+        $defaults = [
+            'template' => 'modern',
+            'primary_color' => '#38bdf8',
+            'secondary_color' => '#0ea5e9',
+            'accent_color' => '#ffd700',
+            'background_color' => '#ffffff',
+            'border_color' => '#38bdf8',
+            'border_style' => 'solid',
+            'border_width' => '3px',
+            'font_family' => 'Georgia, serif',
+            'logo_url' => '',
+            'organization_name' => 'Volta Academy',
+            'organization_subtitle' => 'Platformă de învățare online',
+            'show_seal' => true,
+            'seal_style' => 'circle',
+            'custom_text' => '',
+        ];
+
+        return array_merge($defaults, $settings->toArray());
+    }
+
+    /**
+     * Cast setting value based on type
+     */
+    private function castValue($value, $type)
+    {
+        switch ($type) {
+            case 'boolean':
+            case 'bool':
+                return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            case 'integer':
+            case 'int':
+                return (int)$value;
+            case 'float':
+                return (float)$value;
+            case 'array':
+            case 'json':
+                return json_decode($value, true);
+            default:
+                return $value;
+        }
     }
 }
 

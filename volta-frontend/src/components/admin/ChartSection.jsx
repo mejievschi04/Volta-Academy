@@ -1,18 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { formatCurrency, getDefaultCurrency } from '../../utils/currency';
 
 const ChartSection = ({ data, selectedMetric, onMetricChange, loading }) => {
-	const [currency, setCurrency] = useState(getDefaultCurrency());
-
-	useEffect(() => {
-		const handleCurrencyChange = (e) => {
-			setCurrency(e.detail);
-		};
-		window.addEventListener('currencyChanged', handleCurrencyChange);
-		setCurrency(getDefaultCurrency());
-		return () => window.removeEventListener('currencyChanged', handleCurrencyChange);
-	}, []);
 
 	// Get chart color from CSS variable
 	const getChartColor = () => {
@@ -28,7 +17,6 @@ const ChartSection = ({ data, selectedMetric, onMetricChange, loading }) => {
 
 	const metrics = [
 		{ id: 'enrollments', label: 'Înscrieri', color: chartColor },
-		{ id: 'revenue', label: 'Venituri', color: chartColor },
 		{ id: 'users', label: 'Utilizatori', color: chartColor },
 	];
 
@@ -36,9 +24,6 @@ const ChartSection = ({ data, selectedMetric, onMetricChange, loading }) => {
 
 	// Custom formatter for tooltip
 	const formatTooltipValue = (value) => {
-		if (selectedMetric === 'revenue' && typeof value === 'number') {
-			return formatCurrency(value, currency);
-		}
 		return value;
 	};
 

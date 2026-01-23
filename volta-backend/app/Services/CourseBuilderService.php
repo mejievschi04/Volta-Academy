@@ -39,9 +39,9 @@ class CourseBuilderService
             'progression_rules' => $data['progression_rules'] ?? [],
             // Legacy fields (for backward compatibility)
             'short_description' => $data['short_description'] ?? null,
-            'access_type' => $settings['access']['type'] ?? 'free',
-            'price' => $settings['access']['price'] ?? 0,
-            'currency' => $settings['access']['currency'] ?? 'RON',
+            'access_type' => 'free', // All courses are free
+            'price' => 0,
+            'currency' => 'RON',
             'has_certificate' => $settings['certificate']['enabled'] ?? false,
             'min_test_score' => $settings['certificate']['min_score'] ?? 70,
             'allow_retake' => $settings['certificate']['allow_retake'] ?? true,

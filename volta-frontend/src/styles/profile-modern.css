@@ -1,0 +1,706 @@
+/* ============================================
+   PROFILE PAGE - Modern Styling
+   Complete styling for user profile page
+   ============================================ */
+
+/* ============================================
+   1. PAGE CONTAINER
+   ============================================ */
+.va-profile-container {
+	padding: var(--space-2) var(--space-8);
+	background-color: var(--bg-primary);
+	height: 100%;
+	overflow-y: auto; /* Allow scroll within container */
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+/* ============================================
+   2. PROFILE HEADER
+   ============================================ */
+.va-profile-header {
+	position: relative;
+	margin-bottom: var(--space-6);
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	overflow: hidden;
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-lg);
+}
+
+.va-profile-cover {
+	width: 100%;
+	height: 104px;
+	background-image: none;
+	background-color: #ffee00;
+	position: relative;
+	z-index: 1;
+	border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+	overflow: hidden;
+}
+
+.va-profile-cover::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+}
+
+.va-profile-cover::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+}
+
+.va-profile-info {
+	display: flex;
+	align-items: center;
+	gap: var(--space-6);
+	padding: var(--space-8) var(--space-8);
+	position: relative;
+	z-index: 2;
+	background: var(--bg-elevated);
+	border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+	height: 176px;
+}
+
+.va-profile-avatar {
+	flex-shrink: 0;
+	position: relative;
+	z-index: 3;
+}
+
+.va-profile-avatar-inner {
+	width: 120px;
+	height: 120px;
+	border-radius: var(--radius-full);
+	background: linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.9) 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-4xl);
+	font-weight: var(--font-weight-bold);
+	color: white;
+	border: 5px solid var(--bg-elevated);
+	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 238, 0, 0.2);
+	position: relative;
+	overflow: hidden;
+}
+
+.va-profile-avatar-inner::before {
+	content: '';
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 200%;
+	height: 200%;
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+	opacity: 0.5;
+}
+
+.va-profile-details {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.va-profile-name {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0;
+	letter-spacing: -0.02em;
+	line-height: 1.3;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.va-profile-role {
+	font-size: var(--font-size-base);
+	color: var(--text-secondary);
+	margin: 0;
+	font-weight: var(--font-weight-medium);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.va-profile-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.va-profile-badge {
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
+	border: 1px solid var(--border-primary);
+	color: var(--text-secondary);
+	box-shadow: var(--shadow-sm);
+	transition: all var(--transition-base);
+}
+
+.va-profile-badge:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-1px);
+}
+
+/* ============================================
+   3. STATS GRID
+   ============================================ */
+.va-profile-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: var(--space-2);
+	margin-bottom: var(--space-6);
+}
+
+.va-stat-card {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	padding: var(--space-3);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	transition: all var(--transition-smooth);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	position: relative;
+	overflow: hidden;
+}
+
+.va-stat-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.6;
+}
+
+.va-stat-card:hover {
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.1);
+	border-color: var(--border-accent);
+	transform: translateY(-2px);
+}
+
+.va-stat-icon {
+	font-size: var(--font-size-lg);
+	flex-shrink: 0;
+	opacity: 0.8;
+}
+
+.va-stat-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.va-stat-value {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--accent-primary);
+	margin: 0 0 var(--space-1) 0;
+	line-height: 1.2;
+	text-shadow: 0 0 15px rgba(255, 238, 0, 0.3);
+	letter-spacing: -0.02em;
+}
+
+.va-stat-label {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	margin: 0;
+	font-weight: var(--font-weight-semibold);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.9;
+}
+
+.va-stat-card-progress {
+	/* Keep horizontal layout like other cards */
+}
+
+.va-stat-progress-bar {
+	width: 100%;
+	height: 6px;
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	margin-top: var(--space-1);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+	position: relative;
+}
+
+.va-stat-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 50%, var(--accent-primary) 100%);
+	background-size: 200% 100%;
+	border-radius: var(--radius-full);
+	transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 0 2px 12px rgba(255, 238, 0, 0.5), 0 0 20px rgba(255, 238, 0, 0.3);
+	position: relative;
+	animation: shimmer-progress 3s infinite;
+}
+
+.va-stat-progress-fill::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+	animation: shine-progress 2s infinite;
+}
+
+@keyframes shimmer-progress {
+	0%, 100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+@keyframes shine-progress {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+/* ============================================
+   4. MAIN CONTENT GRID
+   ============================================ */
+.va-profile-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-3);
+	margin-bottom: var(--space-4);
+}
+
+.va-profile-section {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	padding: var(--space-6);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	position: relative;
+	overflow: hidden;
+	transition: all var(--transition-smooth);
+}
+
+.va-profile-section::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.6;
+}
+
+.va-profile-section:hover {
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.1);
+	border-color: var(--border-accent);
+}
+
+.va-section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-3);
+	padding-bottom: var(--space-2);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.va-section-title-group {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex: 1;
+}
+
+.va-section-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0;
+	letter-spacing: -0.02em;
+}
+
+.va-section-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	height: 24px;
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-full);
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+}
+
+.va-section-more-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--radius-md);
+	background-color: transparent;
+	border: 1px solid var(--border-primary);
+	color: var(--text-secondary);
+	text-decoration: none;
+	font-size: var(--font-size-xl);
+	line-height: 1;
+	transition: all var(--transition-base);
+}
+
+.va-section-more-btn:hover {
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+/* ============================================
+   5. COURSES LIST
+   ============================================ */
+.va-courses-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.va-course-card {
+	padding: var(--space-4);
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	transition: all var(--transition-smooth);
+	box-shadow: var(--shadow-sm), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	position: relative;
+	overflow: hidden;
+}
+
+.va-course-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.5;
+}
+
+.va-course-card:hover {
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.va-course-card-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-2);
+	margin-bottom: var(--space-1);
+}
+
+.va-course-card-title {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+	flex: 1;
+	line-height: var(--line-height-tight);
+}
+
+.va-course-card-progress {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--color-primary);
+	flex-shrink: 0;
+}
+
+.va-course-card-description {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-2) 0;
+	line-height: var(--line-height-relaxed);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.va-course-card-progress-bar {
+	width: 100%;
+	height: 3px;
+	background-color: var(--bg-primary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+	margin-bottom: var(--space-1);
+}
+
+.va-course-card-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%);
+	border-radius: var(--radius-full);
+	transition: width var(--transition-smooth);
+}
+
+.va-course-card-meta {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	margin-bottom: var(--space-2);
+}
+
+/* ============================================
+   6. COMPLETED COURSES
+   ============================================ */
+.va-completed-courses-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.va-completed-course-item {
+	padding: var(--space-3);
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 238, 0, 0.05) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-smooth);
+}
+
+.va-completed-course-item:hover {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, rgba(255, 238, 0, 0.1) 100%);
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-sm);
+	transform: translateY(-1px);
+}
+
+.va-completed-course-content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	margin-bottom: var(--space-1);
+}
+
+.va-completed-course-title {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	flex: 1;
+}
+
+.va-completed-course-badge {
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	background-color: rgba(34, 197, 94, 0.2);
+	color: var(--color-success);
+	white-space: nowrap;
+}
+
+.va-completed-course-meta {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+/* ============================================
+   7. BADGES CONTAINER
+   ============================================ */
+.va-profile-badges-container {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	padding: var(--space-3);
+	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
+	position: relative;
+	overflow: hidden;
+}
+
+.va-profile-badges-container::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
+	opacity: 0.6;
+}
+
+.va-profile-badges-title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.va-profile-badges-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: var(--space-2);
+}
+
+.va-profile-badge-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	padding: var(--space-2);
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 238, 0, 0.05) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	transition: all var(--transition-smooth);
+}
+
+.va-profile-badge-item:hover {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, rgba(255, 238, 0, 0.1) 100%);
+	border-color: var(--border-accent);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+}
+
+.va-profile-badge-icon {
+	font-size: var(--font-size-xl);
+	flex-shrink: 0;
+	opacity: 0.9;
+}
+
+.va-profile-badge-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.va-profile-badge-name {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.va-profile-badge-description {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: var(--line-height-relaxed);
+}
+
+.va-profile-badges-empty {
+	padding: var(--space-4);
+	text-align: center;
+	color: var(--text-tertiary);
+}
+
+.va-profile-badges-empty p {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	display: inline;
+}
+
+/* ============================================
+   8. EMPTY STATES
+   ============================================ */
+.lms-empty-state {
+	padding: var(--space-8);
+	text-align: center;
+}
+
+.lms-empty-description {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-4) 0;
+}
+
+/* ============================================
+   9. UTILITY CLASSES
+   ============================================ */
+.va-profile-error {
+	padding: var(--space-4);
+	background-color: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-lg);
+	color: var(--color-error);
+	font-size: var(--font-size-sm);
+}
+
+.va-profile-back-button {
+	margin-bottom: var(--space-8);
+}
+
+.va-profile-back-button .lms-btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-6);
+}
+
+.va-profile-badge-email {
+	background-color: var(--bg-secondary) !important;
+	color: var(--text-secondary) !important;
+}
+
+/* ============================================
+   10. RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 1024px) {
+	.va-profile-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.va-profile-badges-list {
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.va-profile-container {
+		padding: var(--space-4);
+	}
+
+	.va-profile-cover {
+		height: 100px;
+	}
+
+	.va-profile-info {
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		padding-top: calc(var(--space-6) - 60px);
+	}
+
+	.va-profile-details {
+		text-align: center;
+	}
+
+	.va-profile-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.va-profile-badges-list {
+		grid-template-columns: 1fr;
+	}
+}
