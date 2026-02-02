@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\Admin\CourseAdminController;
+use App\Http\Controllers\Api\Admin\CourseBuilderController;
 use App\Http\Controllers\Api\Admin\ExamAdminController;
 use App\Http\Controllers\Api\Admin\EventAdminController;
 use App\Http\Controllers\Api\Admin\DashboardAdminController;
@@ -124,6 +125,25 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/courses/{id}/actions/{action}', [CourseAdminController::class, 'quickAction']);
     Route::post('/courses/{id}/modules/reorder', [CourseAdminController::class, 'reorderModules']);
     Route::get('/courses/{id}/preview', [CourseAdminController::class, 'preview']);
+
+    // Course Builder (Admin) - orchestration endpoints for autosave & drag&drop
+    Route::prefix('/courses/{courseId}/builder')->group(function () {
+        Route::get('/structure', [CourseBuilderController::class, 'structure']);
+        Route::patch('/structure', [CourseBuilderController::class, 'patchStructure']);
+
+        Route::post('/modules', [CourseBuilderController::class, 'createModule']);
+        Route::post('/lessons', [CourseBuilderController::class, 'createLesson']);
+        Route::put('/lessons/{lessonId}', [CourseBuilderController::class, 'updateLesson']);
+
+        Route::post('/lessons/{lessonId}/content-blocks', [CourseBuilderController::class, 'createContentBlock']);
+        Route::patch('/lessons/{lessonId}/content-blocks/reorder', [CourseBuilderController::class, 'reorderContentBlocks']);
+        Route::put('/content-blocks/{blockId}', [CourseBuilderController::class, 'updateContentBlock']);
+
+        Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
+        Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
+        Route::post('/publish', [CourseBuilderController::class, 'publish']);
+        Route::post('/clone', [CourseBuilderController::class, 'clone']);
+    });
     
     // Modules Management
     Route::get('/modules', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'index']);

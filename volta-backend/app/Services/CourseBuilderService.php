@@ -3,11 +3,15 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\ContentBlock;
 use App\Models\Module;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Models\Test;
 use App\Models\CourseTest;
+use App\Models\ActivityLog;
+use App\Models\CourseVersion;
+use App\Models\CourseVersionSnapshot;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,6 +24,352 @@ use Illuminate\Support\Facades\Storage;
  */
 class CourseBuilderService
 {
+    /**
+     * Returns a normalized course builder structure for a given course.
+     */
+    public function getBuilderStructure(int $courseId): array
+    {
+        $course = Course::with([
+            'teacher:id,name,email',
+            'teams:id,name',
+            'modules' => function ($q) {
+                $q->orderBy('order')->with([
+                    'lessons' => function ($lq) {
+                        $lq->orderBy('order')->with(['contentBlocks' => function ($cbq) {
+                            $cbq->orderBy('order');
+                        }]);
+                    },
+                ]);
+            },
+        ])->findOrFail($courseId);
+
+        $modules = $course->modules->values();
+
+        $lessons = $modules->flatMap(fn ($m) => $m->lessons)->values();
+        $blocks = $lessons->flatMap(fn ($l) => $l->contentBlocks)->values();
+
+        return [
+            'course' => $course,
+            'modules' => $modules,
+            'lessons' => $lessons,
+            'content_blocks' => $blocks,
+            'meta' => [
+                'module_ids' => $modules->pluck('id')->all(),
+                'lesson_ids' => $lessons->pluck('id')->all(),
+                'content_block_ids' => $blocks->pluck('id')->all(),
+            ],
+        ];
+    }
+
+    /**
+     * Apply atomic patch operations for autosave + DnD.
+     */
+    public function applyStructurePatch(int $courseId, array $ops, ?User $actor = null): array
+    {
+        $course = Course::findOrFail($courseId);
+
+        DB::transaction(function () use ($course, $ops, $actor) {
+            foreach ($ops as $op) {
+                $type = $op['op'] ?? null;
+                if (!$type) {
+                    continue;
+                }
+
+                switch ($type) {
+                    case 'reorderModules':
+                        $moduleIds = $op['module_ids'] ?? [];
+                        if (is_array($moduleIds) && count($moduleIds) > 0) {
+                            $this->reorderModules($course, $moduleIds);
+                            $this->logActivity($actor, 'builder.reorder_modules', Course::class, $course->id, [
+                                'module_ids' => $moduleIds,
+                            ]);
+                        }
+                        break;
+
+                    case 'reorderLessons':
+                        $moduleId = (int)($op['module_id'] ?? 0);
+                        $lessonIds = $op['lesson_ids'] ?? [];
+                        if ($moduleId > 0 && is_array($lessonIds) && count($lessonIds) > 0) {
+                            $module = Module::where('id', $moduleId)->where('course_id', $course->id)->firstOrFail();
+                            $this->reorderLessons($module, $lessonIds);
+                            $this->logActivity($actor, 'builder.reorder_lessons', Module::class, $moduleId, [
+                                'lesson_ids' => $lessonIds,
+                            ]);
+                        }
+                        break;
+
+                    case 'moveLesson':
+                        $lessonId = (int)($op['lesson_id'] ?? 0);
+                        $toModuleId = (int)($op['to_module_id'] ?? 0);
+                        $toIndex = (int)($op['to_index'] ?? 0);
+                        if ($lessonId > 0 && $toModuleId > 0) {
+                            $lesson = Lesson::where('id', $lessonId)->where('course_id', $course->id)->firstOrFail();
+                            $toModule = Module::where('id', $toModuleId)->where('course_id', $course->id)->firstOrFail();
+                            $this->moveLessonToModule($lesson, $toModule, $toIndex);
+                            $this->logActivity($actor, 'builder.move_lesson', Lesson::class, $lessonId, [
+                                'to_module_id' => $toModuleId,
+                                'to_index' => $toIndex,
+                            ]);
+                        }
+                        break;
+
+                    case 'toggleModuleStatus':
+                        $moduleId = (int)($op['module_id'] ?? 0);
+                        $status = $op['status'] ?? null;
+                        if ($moduleId > 0 && is_string($status)) {
+                            Module::where('id', $moduleId)->where('course_id', $course->id)->update(['status' => $status]);
+                            $this->logActivity($actor, 'builder.update_module_status', Module::class, $moduleId, [
+                                'status' => $status,
+                            ]);
+                        }
+                        break;
+
+                    case 'toggleLessonStatus':
+                        $lessonId = (int)($op['lesson_id'] ?? 0);
+                        $status = $op['status'] ?? null;
+                        if ($lessonId > 0 && is_string($status)) {
+                            Lesson::where('id', $lessonId)->where('course_id', $course->id)->update(['status' => $status]);
+                            $this->logActivity($actor, 'builder.update_lesson_status', Lesson::class, $lessonId, [
+                                'status' => $status,
+                            ]);
+                        }
+                        break;
+
+                    case 'toggleLessonPreview':
+                        $lessonId = (int)($op['lesson_id'] ?? 0);
+                        $isPreview = (bool)($op['is_preview'] ?? false);
+                        if ($lessonId > 0) {
+                            Lesson::where('id', $lessonId)->where('course_id', $course->id)->update(['is_preview' => $isPreview]);
+                            $this->logActivity($actor, 'builder.update_lesson_preview', Lesson::class, $lessonId, [
+                                'is_preview' => $isPreview,
+                            ]);
+                        }
+                        break;
+
+                    case 'setLessonPrerequisite':
+                        $lessonId = (int)($op['lesson_id'] ?? 0);
+                        $unlockAfterLessonId = $op['unlock_after_lesson_id'] ?? null;
+                        $unlockAfterLessonId = $unlockAfterLessonId === null || $unlockAfterLessonId === '' ? null : (int)$unlockAfterLessonId;
+                        if ($lessonId > 0) {
+                            // Ensure prerequisite lesson belongs to same course (or null)
+                            if ($unlockAfterLessonId !== null) {
+                                Lesson::where('id', $unlockAfterLessonId)->where('course_id', $course->id)->firstOrFail();
+                            }
+                            Lesson::where('id', $lessonId)->where('course_id', $course->id)->update([
+                                'unlock_after_lesson_id' => $unlockAfterLessonId,
+                            ]);
+                            $this->logActivity($actor, 'builder.set_lesson_prerequisite', Lesson::class, $lessonId, [
+                                'unlock_after_lesson_id' => $unlockAfterLessonId,
+                            ]);
+                        }
+                        break;
+
+                    default:
+                        // ignore unknown ops for forward compatibility
+                        break;
+                }
+            }
+        });
+
+        return $this->getBuilderStructure($courseId);
+    }
+
+    /**
+     * Move a lesson to another module and reindex orders.
+     */
+    protected function moveLessonToModule(Lesson $lesson, Module $toModule, int $toIndex): void
+    {
+        $fromModuleId = $lesson->module_id;
+
+        // Move lesson to the new module
+        $lesson->update([
+            'module_id' => $toModule->id,
+            'course_id' => $toModule->course_id,
+        ]);
+
+        // Reindex destination module lessons with insertion
+        $destIds = Lesson::where('module_id', $toModule->id)->orderBy('order')->pluck('id')->all();
+        $destIds = array_values(array_filter($destIds, fn ($id) => (int)$id !== (int)$lesson->id));
+        array_splice($destIds, max(0, min($toIndex, count($destIds))), 0, [$lesson->id]);
+        $this->reorderLessons($toModule, $destIds);
+
+        // Reindex source module if different
+        if ($fromModuleId && (int)$fromModuleId !== (int)$toModule->id) {
+            $source = Module::find($fromModuleId);
+            if ($source) {
+                $sourceIds = Lesson::where('module_id', $source->id)->orderBy('order')->pluck('id')->all();
+                $this->reorderLessons($source, $sourceIds);
+            }
+        }
+    }
+
+    /**
+     * Create content block at the end of the lesson block list.
+     */
+    public function createContentBlock(Lesson $lesson, array $data): ContentBlock
+    {
+        $maxOrder = ContentBlock::where('lesson_id', $lesson->id)->max('order') ?? -1;
+
+        return ContentBlock::create([
+            'lesson_id' => $lesson->id,
+            'type' => $data['type'],
+            // `source` is required in DB; allow empty string for "placeholder" blocks.
+            'source' => $data['source'] ?? '',
+            'metadata' => $data['metadata'] ?? [],
+            'language' => $data['language'] ?? null,
+            'version' => (string)($data['version'] ?? '1'),
+            'order' => $data['order'] ?? ($maxOrder + 1),
+            'visible' => $data['visible'] ?? true,
+        ]);
+    }
+
+    public function updateContentBlock(ContentBlock $block, array $data): ContentBlock
+    {
+        $block->update($data);
+        return $block->fresh();
+    }
+
+    public function reorderContentBlocks(Lesson $lesson, array $contentBlockIds): void
+    {
+        DB::transaction(function () use ($lesson, $contentBlockIds) {
+            foreach ($contentBlockIds as $index => $blockId) {
+                ContentBlock::where('id', $blockId)
+                    ->where('lesson_id', $lesson->id)
+                    ->update(['order' => $index]);
+            }
+        });
+    }
+
+    /**
+     * Deep clone a course structure (course + modules + lessons + content blocks).
+     */
+    public function cloneCourse(int $courseId, ?User $actor = null, bool $includeTeams = true): Course
+    {
+        $source = Course::with(['modules.lessons.contentBlocks', 'teams'])->findOrFail($courseId);
+
+        return DB::transaction(function () use ($source, $actor, $includeTeams) {
+            $newCourse = $source->replicate();
+            $newCourse->title = $source->title . ' (Copy)';
+            $newCourse->status = 'draft';
+            $newCourse->save();
+
+            if ($includeTeams) {
+                $newCourse->teams()->sync($source->teams->pluck('id')->all());
+            }
+
+            $moduleIdMap = [];
+            foreach ($source->modules as $module) {
+                $newModule = $module->replicate();
+                $newModule->course_id = $newCourse->id;
+                $newModule->save();
+                $moduleIdMap[$module->id] = $newModule->id;
+
+                foreach ($module->lessons as $lesson) {
+                    $newLesson = $lesson->replicate();
+                    $newLesson->course_id = $newCourse->id;
+                    $newLesson->module_id = $newModule->id;
+                    $newLesson->save();
+
+                    foreach ($lesson->contentBlocks as $block) {
+                        $newBlock = $block->replicate();
+                        $newBlock->lesson_id = $newLesson->id;
+                        $newBlock->save();
+                    }
+                }
+            }
+
+            // Duplicate course_test pivot rows and remap scope_id for modules/lessons
+            $pivotRows = CourseTest::where('course_id', $source->id)->get();
+            foreach ($pivotRows as $row) {
+                $newRow = $row->replicate();
+                $newRow->course_id = $newCourse->id;
+                if ($row->scope === 'module' && $row->scope_id) {
+                    $newRow->scope_id = $moduleIdMap[$row->scope_id] ?? null;
+                }
+                if ($row->scope === 'lesson' && $row->scope_id) {
+                    // Find new lesson by (module mapping + order) fallback: keep null if not found
+                    $oldLesson = Lesson::find($row->scope_id);
+                    if ($oldLesson && isset($moduleIdMap[$oldLesson->module_id])) {
+                        $newLesson = Lesson::where('course_id', $newCourse->id)
+                            ->where('module_id', $moduleIdMap[$oldLesson->module_id])
+                            ->where('order', $oldLesson->order)
+                            ->first();
+                        $newRow->scope_id = $newLesson?->id;
+                    } else {
+                        $newRow->scope_id = null;
+                    }
+                }
+                $newRow->save();
+            }
+
+            $this->logActivity($actor, 'builder.clone_course', Course::class, $newCourse->id, [
+                'source_course_id' => $source->id,
+            ]);
+
+            return $newCourse->fresh();
+        });
+    }
+
+    protected function logActivity(?User $actor, string $action, string $modelType, int $modelId, array $newValues = [], array $oldValues = []): void
+    {
+        if (!$actor) {
+            return;
+        }
+
+        ActivityLog::create([
+            'user_id' => $actor->id,
+            'action' => $action,
+            'model_type' => $modelType,
+            'model_id' => $modelId,
+            'description' => $action,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => request()?->ip(),
+            'user_agent' => request()?->userAgent(),
+        ]);
+    }
+
+    /**
+     * Create a version + snapshot of the current course structure.
+     */
+    public function createCourseVersionSnapshot(int $courseId, ?User $actor, string $status = 'draft'): CourseVersion
+    {
+        $course = Course::findOrFail($courseId);
+        $nextVersion = ((int)CourseVersion::where('course_id', $courseId)->max('version')) + 1;
+
+        $structure = $this->getBuilderStructure($courseId);
+
+        // Ensure snapshot is fully serializable (arrays only)
+        $snapshot = [
+            'course' => $course->fresh()->toArray(),
+            'modules' => collect($structure['modules'] ?? [])->map(fn ($m) => is_object($m) ? $m->toArray() : $m)->all(),
+            'lessons' => collect($structure['lessons'] ?? [])->map(fn ($l) => is_object($l) ? $l->toArray() : $l)->all(),
+            'content_blocks' => collect($structure['content_blocks'] ?? [])->map(fn ($b) => is_object($b) ? $b->toArray() : $b)->all(),
+            'course_tests' => CourseTest::where('course_id', $courseId)->get()->toArray(),
+            'progression_rules' => DB::table('progression_rules')->where('course_id', $courseId)->get()->toArray(),
+            'captured_at' => now()->toISOString(),
+        ];
+
+        $version = CourseVersion::create([
+            'course_id' => $courseId,
+            'version' => $nextVersion,
+            'status' => $status,
+            'created_by' => $actor?->id,
+        ]);
+
+        CourseVersionSnapshot::create([
+            'course_version_id' => $version->id,
+            'snapshot_json' => $snapshot,
+        ]);
+
+        $this->logActivity($actor, 'builder.create_version', Course::class, $courseId, [
+            'version' => $nextVersion,
+            'status' => $status,
+        ]);
+
+        return $version;
+    }
+
     /**
      * Create a new course
      */

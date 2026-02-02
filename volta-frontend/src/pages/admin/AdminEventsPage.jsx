@@ -585,7 +585,7 @@ const AdminEventsPage = () => {
 			</div>
 
 			{/* Search and Filters */}
-			<div className="admin-courses-toolbar" style={{ marginBottom: '1rem', flexShrink: 0 }}>
+			<div className="admin-courses-toolbar">
 				<div className="admin-courses-search">
 					<input
 						type="text"
@@ -702,8 +702,8 @@ const AdminEventsPage = () => {
 				const days = getDaysInMonth(currentDate);
 				const weeks = Math.ceil(days.length / 7);
 				return (
-				<div className="admin-events-calendar" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-					<div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+				<div className="admin-events-calendar">
+					<div>
 						<div className="admin-events-calendar-header">
 							<button className="lms-btn-secondary lms-btn-sm" onClick={() => navigateMonth(-1)}>
 								← Anterior
@@ -846,7 +846,6 @@ const AdminEventsPage = () => {
 									<div
 										key={event.id}
 										className="admin-card"
-										style={{ position: 'relative' }}
 									>
 										{/* Checkbox for bulk selection */}
 										<input
@@ -854,20 +853,14 @@ const AdminEventsPage = () => {
 											className="admin-event-card-checkbox"
 											checked={selectedEvents.has(event.id)}
 											onChange={(e) => handleSelectEvent(event.id, e.target.checked)}
-											style={{
-												position: 'absolute',
-												top: 'var(--space-4)',
-												right: 'var(--space-4)',
-												zIndex: 1,
-											}}
 										/>
 										<div className="admin-card-body">
-											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
+											<div className="admin-event-card-header">
 												<h3 className="admin-card-title">{event.title}</h3>
 												{event.status && getStatusBadge(event.status)}
 											</div>
 											{event.short_description && (
-												<p className="admin-card-description" style={{ marginBottom: '0.5rem' }}>
+												<p className="admin-card-description">
 													{event.short_description}
 												</p>
 											)}
@@ -877,8 +870,8 @@ const AdminEventsPage = () => {
 												</p>
 											)}
 											<div className="admin-card-info">
-												<div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-													<div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+												<div>
+													<div className="admin-event-card-tags">
 														<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
 														{event.access_type && (
 															<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
@@ -892,35 +885,33 @@ const AdminEventsPage = () => {
 													<div>
 														🕐 <strong>{formatDate(event.start_date)}</strong>
 														{event.end_date && (
-															<span style={{ marginLeft: '0.5rem' }}>
-																⏱️ {calculateDuration(event.start_date, event.end_date)}
-															</span>
+															<span>⏱️ {calculateDuration(event.start_date, event.end_date)}</span>
 														)}
 													</div>
 													{/* KPI Metrics */}
-													<div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
+													<section className="admin-event-kpis" aria-label="Metrici eveniment">
 														<div>
-															<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Înscrieri</div>
-															<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+															<div className="admin-kpi-label">Înscrieri</div>
+															<div className="admin-kpi-value">
 																{event.registrations_count || 0}
 																{event.max_capacity && ` / ${event.max_capacity}`}
 															</div>
 														</div>
 														<div>
-															<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Prezență</div>
-															<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+															<div className="admin-kpi-label">Prezență</div>
+															<div className="admin-kpi-value">
 																{event.attendance_count || 0}
 															</div>
 														</div>
 														{event.replay_views_count > 0 && (
 															<div>
-																<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Replay</div>
-																<div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
+																<div className="admin-kpi-label">Replay</div>
+																<div className="admin-kpi-value">
 																	{event.replay_views_count}
 																</div>
 															</div>
 														)}
-													</div>
+													</section>
 												</div>
 											</div>
 											<div className="admin-card-actions">

@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -12,63 +11,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('lessons', function (Blueprint $table) {
-            // Check if section_id column already exists (it might have been added in create_lessons_table)
-            if (!Schema::hasColumn('lessons', 'section_id')) {
-                // Add section_id with foreign key if sections/modules table exists
-                if (Schema::hasTable('sections')) {
-                    $table->foreignId('section_id')->nullable()->after('course_id')->constrained('sections')->onDelete('cascade');
-                } else if (Schema::hasTable('modules')) {
-                    // If sections was renamed to modules, use modules instead
-                    $table->foreignId('section_id')->nullable()->after('course_id')->constrained('modules')->onDelete('cascade');
-                } else {
-                    // Just add the column without foreign key constraint for now
-                    $table->unsignedBigInteger('section_id')->nullable()->after('course_id');
-                }
-            } else {
-                // Column exists, but might not have foreign key constraint - add it if sections/modules table exists
-                if (Schema::hasTable('sections')) {
-                    try {
-                        // Check if foreign key already exists
-                        $foreignKeys = DB::select("
-                            SELECT CONSTRAINT_NAME 
-                            FROM information_schema.KEY_COLUMN_USAGE 
-                            WHERE TABLE_SCHEMA = DATABASE() 
-                            AND TABLE_NAME = 'lessons' 
-                            AND COLUMN_NAME = 'section_id' 
-                            AND REFERENCED_TABLE_NAME IS NOT NULL
-                        ");
-                        
-                        if (empty($foreignKeys)) {
-                            // Add foreign key constraint
-                            $table->foreign('section_id')->references('id')->on('sections')->onDelete('cascade');
-                        }
-                    } catch (\Exception $e) {
-                        // Foreign key might already exist or there's another issue
-                    }
-                } else if (Schema::hasTable('modules')) {
-                    // If sections was renamed to modules, add foreign key to modules
-                    try {
-                        $foreignKeys = DB::select("
-                            SELECT CONSTRAINT_NAME 
-                            FROM information_schema.KEY_COLUMN_USAGE 
-                            WHERE TABLE_SCHEMA = DATABASE() 
-                            AND TABLE_NAME = 'lessons' 
-                            AND COLUMN_NAME = 'section_id' 
-                            AND REFERENCED_TABLE_NAME IS NOT NULL
-                        ");
-                        
-                        if (empty($foreignKeys)) {
-                            // Add foreign key constraint to modules
-                            $table->foreign('section_id')->references('id')->on('modules')->onDelete('cascade');
-                        }
-                    } catch (\Exception $e) {
-                        // Foreign key might already exist or there's another issue
-                    }
-                }
+        if (!Schema::hasTable('lessons')) {
+            return;
+        }
+
+        // Ensure section_id exists (create_lessons_table already adds it, but keep safe)
+        if (!Schema::hasColumn('lessons', 'section_id')) {
+            Schema::table('lessons', function (Blueprint $table) {
+                $table->unsignedBigInteger('section_id')->nullable()->after('course_id');
+            });
+        }
+
+        // Add foreign key when sections exists (Postgres-safe: just attempt, ignore if already exists)
+        if (Schema::hasTable('sections')) {
+            try {
+                Schema::table('lessons', function (Blueprint $table) {
+                    $table->foreign('section_id', 'lessons_section_id_foreign')
+                        ->references('id')
+                        ->on('sections')
+                        ->onDelete('cascade');
+                });
+            } catch (\Throwable $e) {
+                // FK likely already exists or driver constraints differ; ignore
             }
-            
-            // These columns might already exist from create_lessons_table, so check before adding
+        }
+
+        // Add missing columns (idempotent)
+        Schema::table('lessons', function (Blueprint $table) {
             if (!Schema::hasColumn('lessons', 'video_url')) {
                 $table->text('video_url')->nullable()->after('content');
             }
@@ -89,9 +58,26 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('lessons')) {
+            return;
+        }
+
+        try {
+            Schema::table('lessons', function (Blueprint $table) {
+                $table->dropForeign('lessons_section_id_foreign');
+            });
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
         Schema::table('lessons', function (Blueprint $table) {
-            $table->dropForeign(['section_id']);
-            $table->dropColumn(['section_id', 'video_url', 'resources', 'duration_minutes', 'is_preview']);
+            $cols = ['video_url', 'resources', 'duration_minutes', 'is_preview'];
+            foreach ($cols as $col) {
+                if (Schema::hasColumn('lessons', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
+            // Do not drop section_id in down: it is created in create_lessons_table.
         });
     }
 };

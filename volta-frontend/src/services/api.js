@@ -869,6 +869,73 @@ export const adminService = {
     return response.data;
   },
 
+  // ============================================================
+  // Course Builder (Admin) - autosave + drag&drop orchestration
+  // ============================================================
+  getCourseBuilderStructure: async (courseId) => {
+    const response = await api.get(`/admin/courses/${courseId}/builder/structure`);
+    return response.data;
+  },
+
+  patchCourseBuilderStructure: async (courseId, ops) => {
+    const response = await api.patch(`/admin/courses/${courseId}/builder/structure`, { ops });
+    return response.data;
+  },
+
+  builderCreateModule: async (courseId, moduleData) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/modules`, moduleData);
+    return response.data;
+  },
+
+  builderCreateLesson: async (courseId, lessonData) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/lessons`, lessonData);
+    return response.data;
+  },
+
+  builderUpdateLesson: async (courseId, lessonId, lessonData) => {
+    const response = await api.put(`/admin/courses/${courseId}/builder/lessons/${lessonId}`, lessonData);
+    return response.data;
+  },
+
+  builderCreateContentBlock: async (courseId, lessonId, blockData) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/lessons/${lessonId}/content-blocks`, blockData);
+    return response.data;
+  },
+
+  builderUpdateContentBlock: async (courseId, blockId, blockData) => {
+    const response = await api.put(`/admin/courses/${courseId}/builder/content-blocks/${blockId}`, blockData);
+    return response.data;
+  },
+
+  builderReorderContentBlocks: async (courseId, lessonId, contentBlockIds) => {
+    const response = await api.patch(`/admin/courses/${courseId}/builder/lessons/${lessonId}/content-blocks/reorder`, {
+      content_block_ids: contentBlockIds,
+    });
+    return response.data;
+  },
+
+  builderValidateCourse: async (courseId) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/validate`);
+    return response.data;
+  },
+
+  builderSubmitForReview: async (courseId) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/submit-for-review`);
+    return response.data;
+  },
+
+  builderPublishCourse: async (courseId) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/publish`);
+    return response.data;
+  },
+
+  builderCloneCourse: async (courseId, includeTeams = true) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/clone`, {
+      include_teams: includeTeams,
+    });
+    return response.data;
+  },
+
   // Module Management
   reorderModules: async (courseId, moduleIds) => {
     const response = await api.post(`/admin/courses/${courseId}/modules/reorder`, {

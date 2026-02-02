@@ -18,6 +18,7 @@ class Course extends Model
         'category',
         'level',
         'status',
+        'workflow_status',
         'teacher_id',
         'image',
         'reward_points',

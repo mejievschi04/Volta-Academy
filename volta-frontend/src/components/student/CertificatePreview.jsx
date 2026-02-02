@@ -14,6 +14,24 @@ const CertificatePreview = ({ certificate, onClose, onDownload }) => {
 		})
 		: new Date().toLocaleDateString('ro-RO');
 
+	// Settings can be attached on the certificate object (e.g. from admin settings).
+	// Keep safe defaults so the preview never crashes if settings are missing.
+	const certSettings = certificate?.settings || {
+		template: 'modern',
+		primary_color: '#FFEE00',
+		secondary_color: '#E6D600',
+		accent_color: '#ffd700',
+		background_color: '#ffffff',
+		border_color: '#FFEE00',
+		border_style: 'solid',
+		border_width: '3px',
+		font_family: 'Georgia, serif',
+		logo_url: '',
+		organization_name: 'Volta Academy',
+		organization_subtitle: 'Platformă de învățare online',
+		custom_text: '',
+	};
+
 	const getCertificateStyles = () => {
 		const template = certSettings.template || 'modern';
 		
@@ -327,188 +345,6 @@ const PremiumCertificateTemplate = ({ certificate, settings }) => {
 				<div>
 					<p style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px' }}>ID Certificat</p>
 					<p style={{ fontSize: '12px', fontFamily: 'monospace' }}>{certificate.certificate_id}</p>
-				</div>
-			</div>
-		</div>
-	);
-};
-
-export default CertificatePreview;
-							{/* Decorative Border */}
-							<div style={{
-								position: 'absolute',
-								top: '20px',
-								left: '20px',
-								right: '20px',
-								bottom: '20px',
-								border: '2px solid #FFEE00',
-								borderRadius: '8px',
-								opacity: 0.3
-							}}></div>
-
-							{/* Logo/Icon */}
-							<div style={{
-								fontSize: '64px',
-								marginBottom: '20px',
-								filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))'
-							}}>
-								🎓
-							</div>
-
-							{/* Title */}
-							<h1 style={{
-								fontSize: '32px',
-								fontWeight: 'bold',
-								color: '#1e293b',
-								margin: '0 0 10px 0',
-								letterSpacing: '2px'
-							}}>
-								CERTIFICAT DE FINALIZARE
-							</h1>
-
-							<div style={{
-								fontSize: '14px',
-								color: '#64748b',
-								marginBottom: '40px',
-								letterSpacing: '1px'
-							}}>
-								Volta Academy
-							</div>
-
-							{/* Body Text */}
-							<div style={{
-								fontSize: '16px',
-								color: '#475569',
-								marginBottom: '30px',
-								lineHeight: '1.8'
-							}}>
-								Acest certificat atestă faptul că
-							</div>
-
-							{/* Student Name */}
-							<div style={{
-								fontSize: '36px',
-								fontWeight: 'bold',
-								color: '#FFEE00',
-								marginBottom: '30px',
-								padding: '20px',
-								background: 'linear-gradient(135deg, rgba(255, 238, 0, 0.1) 0%, rgba(255, 238, 0, 0.05) 100%)',
-								borderRadius: '8px',
-								border: '2px solid rgba(255, 238, 0, 0.3)'
-							}}>
-								{user?.name || 'Student'}
-							</div>
-
-							<div style={{
-								fontSize: '16px',
-								color: '#475569',
-								marginBottom: '30px',
-								lineHeight: '1.8'
-							}}>
-								a finalizat cu succes cursul
-							</div>
-
-							{/* Course Title */}
-							<div style={{
-								fontSize: '24px',
-								fontWeight: '600',
-								color: '#1e293b',
-								marginBottom: '40px',
-								padding: '15px 30px',
-								background: 'linear-gradient(135deg, rgba(255, 238, 0, 0.1) 0%, rgba(255, 238, 0, 0.05) 100%)',
-								borderRadius: '8px',
-								borderLeft: '4px solid #FFEE00'
-							}}>
-								{certificate.course_title}
-							</div>
-
-							{/* Footer */}
-							<div style={{
-								display: 'flex',
-								justifyContent: 'space-between',
-								alignItems: 'flex-end',
-								marginTop: '50px',
-								paddingTop: '30px',
-								borderTop: '2px solid #e2e8f0'
-							}}>
-								<div style={{
-									textAlign: 'left',
-									flex: 1
-								}}>
-									<div style={{
-										fontSize: '14px',
-										color: '#64748b',
-										marginBottom: '5px'
-									}}>
-										Data finalizării
-									</div>
-									<div style={{
-										fontSize: '16px',
-										fontWeight: '600',
-										color: '#1e293b'
-									}}>
-										{completionDate}
-									</div>
-								</div>
-								<div style={{
-									textAlign: 'right',
-									flex: 1
-								}}>
-									<div style={{
-										fontSize: '14px',
-										color: '#64748b',
-										marginBottom: '5px'
-									}}>
-										ID Certificat
-									</div>
-									<div style={{
-										fontSize: '14px',
-										fontWeight: '600',
-										color: '#1e293b',
-										fontFamily: 'monospace'
-									}}>
-										{certificate.certificate_id || 'N/A'}
-									</div>
-								</div>
-							</div>
-
-						</div>
-					</div>
-				</div>
-				<div className="certificate-preview-actions">
-					<button
-						onClick={onClose}
-						style={{
-							padding: 'var(--space-3) var(--space-6)',
-							background: 'var(--bg-secondary)',
-							color: 'var(--text-primary)',
-							border: '1px solid var(--border-primary)',
-							borderRadius: 'var(--radius-md)',
-							cursor: 'pointer',
-							fontSize: 'var(--font-size-sm)',
-							fontWeight: 'var(--font-weight-medium)',
-							transition: 'all var(--transition-base)'
-						}}
-					>
-						Închide
-					</button>
-					<button
-						onClick={onDownload}
-						style={{
-							padding: 'var(--space-3) var(--space-6)',
-							background: 'linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%)',
-							color: 'white',
-							border: 'none',
-							borderRadius: 'var(--radius-md)',
-							cursor: 'pointer',
-							fontSize: 'var(--font-size-sm)',
-							fontWeight: 'var(--font-weight-semibold)',
-							transition: 'all var(--transition-base)',
-							boxShadow: '0 2px 8px rgba(255, 238, 0, 0.3)'
-						}}
-					>
-						📥 Descarcă PDF
-					</button>
 				</div>
 			</div>
 		</div>

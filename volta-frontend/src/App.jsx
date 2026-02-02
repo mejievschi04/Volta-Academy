@@ -85,8 +85,8 @@ const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 // const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage')); // Removed - will be rebuilt from scratch
 // const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
-const TestBuilder = lazy(() => import('./components/admin/tests/TestBuilder'));
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
+const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
 // const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage')); // Removed - will be rebuilt from scratch
 const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
@@ -223,6 +223,15 @@ function Layout({ children }) {
 			document.body.classList.remove('sidebar-expanded');
 		};
 	}, [isSidebarExpanded]);
+
+	// Admin-only layout styling hooks (avoid impacting student UI)
+	React.useEffect(() => {
+		const isAdminLayoutActive = !showUserLayout && isAdmin;
+		document.body.classList.toggle('admin-view', isAdminLayoutActive);
+		return () => {
+			document.body.classList.remove('admin-view');
+		};
+	}, [showUserLayout, isAdmin]);
 	
 	// Check must_change_password - handle boolean, number, or string values
 	const mustChangePassword = user?.must_change_password === true || 
@@ -1220,6 +1229,16 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									<Route
+										path="/admin/courses/:id/builder"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminCourseBuilderPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
 									{/* Course Edit/Detail Routes - Removed - will be rebuilt from scratch */}
 									{/* <Route
 										path="/admin/courses/new"
@@ -1278,27 +1297,6 @@ function App() {
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
 													<AdminTestsPage />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
-									{/* Test Builder Routes */}
-									<Route
-										path="/admin/tests/new/builder"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<TestBuilder />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
-									<Route
-										path="/admin/tests/:id/builder"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<TestBuilder />
 												</Suspense>
 											</AdminRoute>
 										}

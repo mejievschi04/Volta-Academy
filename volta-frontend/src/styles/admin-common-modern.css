@@ -4,14 +4,28 @@
    ============================================ */
 
 /* ============================================
+   0. ADMIN LAYOUT HOOKS (scoped)
+   ============================================ */
+body.admin-view {
+	/* Centralize admin layout constraints */
+	--admin-content-max: 1400px;
+}
+
+/* In admin, page padding is handled by page containers (e.g. .admin-container) */
+body.admin-view .va-main {
+	padding: 0;
+}
+
+/* ============================================
    1. ADMIN CONTAINER
    ============================================ */
 .admin-container {
-	padding: var(--space-8) var(--space-8) 0 var(--space-8);
+	padding: var(--space-8);
 	background-color: var(--bg-primary);
-	min-height: 100vh;
-	max-width: 1600px;
+	min-height: calc(100vh - 64px);
+	max-width: var(--admin-content-max, 1600px);
 	margin: 0 auto;
+	width: 100%;
 }
 
 /* ============================================
@@ -31,14 +45,14 @@
 .admin-page-header-content {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-1);
+	gap: var(--space-2);
 }
 
 .admin-page-title {
 	font-size: var(--font-size-3xl);
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
-	margin: 0 0 var(--space-2) 0;
+	margin: 0;
 	letter-spacing: -0.02em;
 	line-height: var(--line-height-tight);
 }
@@ -347,6 +361,7 @@
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+	position: relative;
 }
 
 .admin-card:hover {
@@ -806,13 +821,7 @@
    ============================================ */
 .admin-events-page {
 	/* Inherits from admin-container */
-	padding-bottom: 0;
 	overflow: hidden;
-}
-
-.admin-events-page > div:last-child {
-	margin-bottom: 0;
-	padding-bottom: 0;
 }
 
 .admin-events-grid {
@@ -866,6 +875,59 @@
 	margin-top: var(--space-4);
 	padding-top: var(--space-4);
 	border-top: 1px solid var(--border-primary);
+}
+
+/* Event card (list view) refinements */
+.admin-event-card-checkbox {
+	position: absolute;
+	top: var(--space-4);
+	right: var(--space-4);
+	z-index: 1;
+}
+
+.admin-event-card-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+}
+
+.admin-event-card-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+}
+
+.admin-event-kpis {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--space-4);
+	margin-top: var(--space-2);
+}
+
+.admin-kpi-label {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin: 0 0 var(--space-1) 0;
+}
+
+.admin-kpi-value {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+	.admin-event-kpis {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-event-kpis {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* ============================================
@@ -1152,6 +1214,15 @@
 	border: 1px solid var(--border-primary);
 	overflow: hidden;
 	margin-bottom: 0;
+}
+
+/* Ensure calendar contents participate in the flex layout */
+.admin-events-calendar > div {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .admin-events-calendar-weekdays {
@@ -2041,11 +2112,18 @@ body.sidebar-expanded .admin-lesson-creator-page {
 	margin-left: 280px;
 }
 
+/* When inside the admin shell, offsets are already handled by .va-shell-main */
+body.admin-view .admin-module-creator-page,
+body.admin-view .admin-lesson-creator-page {
+	margin-left: 0;
+	padding-top: 0;
+}
+
 .admin-module-creator-container,
 .admin-lesson-creator-container {
-	max-width: 1200px;
+	max-width: var(--admin-content-max, 1200px);
 	margin: 0 auto;
-	padding: var(--space-6) var(--space-8);
+	padding: var(--space-8);
 }
 
 /* Form Styling */
