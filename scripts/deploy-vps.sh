@@ -35,11 +35,11 @@ fi
 COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 
 # Build și up (folosește override pentru producție)
-echo "🔨 Build containere..."
+echo "🔨 Build containere (fără cache)..."
 $COMPOSE_CMD build --no-cache
 
-echo "▶️  Pornire servicii..."
-$COMPOSE_CMD up -d
+echo "▶️  Pornire servicii (force recreate)..."
+$COMPOSE_CMD up -d --force-recreate
 
 # Așteaptă backend
 echo "⏳ Așteptăm backend..."

@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // Force single React instance - prevents "Cannot set properties of undefined (setting 'Children')"
+    dedupe: ['react', 'react-dom', 'react-is'],
+  },
   server: {
     host: '0.0.0.0', // Acceptă conexiuni de pe toate interfețele
     port: 5173,
@@ -38,24 +42,8 @@ export default defineConfig({
     },
   },
   build: {
-    // Code splitting optimization
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // React + toate libs care îl folosesc în același chunk (evită "multiple React instances")
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler') || id.includes('recharts')) {
-              return 'react-vendor';
-            }
-            if (id.includes('axios')) {
-              return 'axios-vendor';
-            }
-            if (id.includes('@dnd-kit')) {
-              return 'dnd-vendor';
-            }
-            return 'vendor';
-          }
-        },
         // Inline small assets for fewer requests
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
