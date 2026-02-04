@@ -1,26 +1,20 @@
-# Multi-stage build pentru Backend Laravel
-FROM php:8.2-fpm AS base
+# Backend Laravel - folosim pachete Debian pre-compilate (fără compilare pdo_pgsql)
+FROM debian:bookworm-slim AS base
 
-# Folosim install-php-extensions - gestionează automat libpq și alte dependențe
-COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/bin/
-
-RUN install-php-extensions \
-    pdo_mysql \
-    pdo_pgsql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    opcache
-
-# Instalează Composer și alte pachete pentru build
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl zip unzip nodejs npm \
+    ca-certificates curl unzip \
+    php8.2-fpm php8.2-cli php8.2-common \
+    php8.2-pgsql php8.2-mysql php8.2-mbstring php8.2-xml php8.2-zip \
+    php8.2-gd php8.2-bcmath php8.2-opcache php8.2-intl \
+    git nodejs npm \
+    && ln -sf /usr/bin/php8.2 /usr/bin/php \
     && rm -rf /var/lib/apt/lists/*
 
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# PHP-FPM listen pe 9000
+RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/8.2/fpm/pool.d/www.conf
 
 WORKDIR /var/www/html
 COPY . .
@@ -32,15 +26,11 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-# Stage pentru producție
+# Stage producție
 FROM base AS production
 
-RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini
+RUN echo "opcache.enable=1" > /etc/php/8.2/fpm/conf.d/99-opcache.ini \
+    && echo "opcache.memory_consumption=128" >> /etc/php/8.2/fpm/conf.d/99-opcache.ini
 
 WORKDIR /var/www/html
 COPY --from=base --chown=www-data:www-data /var/www/html /var/www/html
@@ -51,4 +41,4 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["php-fpm8.2", "--nodaemonize"]
