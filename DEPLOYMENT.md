@@ -54,9 +54,9 @@ nano .env  # sau vim
 |-----------|-----------|---------|
 | `APP_KEY` | Cheie Laravel | `php artisan key:generate --show` |
 | `DB_PASSWORD` | Parolă PostgreSQL | Parolă puternică |
-| `APP_URL` | URL backend | `https://api.academy.volta.md` |
+| `APP_URL` | URL aplicație | `https://academy.volta.md` |
 | `FRONTEND_URL` | URL frontend (CORS) | `https://academy.volta.md` |
-| `VITE_API_URL` | URL API pentru frontend | `https://api.academy.volta.md/api` |
+| `VITE_API_URL` | URL API pentru frontend | `https://academy.volta.md/api` |
 
 ### Generare APP_KEY
 
@@ -104,33 +104,35 @@ Pentru HTTPS, folosește Nginx pe host ca reverse proxy în fața Docker.
 sudo apt install nginx certbot python3-certbot-nginx -y
 ```
 
-### Configurare Nginx
+### Configurare Nginx (un singur domeniu: academy.volta.md)
 
 Creează `/etc/nginx/sites-available/academy-volta-md`:
 
 ```nginx
-# Frontend
 server {
     listen 80;
     server_name academy.volta.md www.academy.volta.md;
-    location / {
-        proxy_pass http://127.0.0.1:3000;
+
+    # API - /api și /storage către backend
+    location /api {
+        proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-}
 
-# Backend API
-server {
-    listen 80;
-    server_name api.academy.volta.md;
-    location / {
+    location /storage {
         proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Restul - frontend React
+    location / {
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -149,7 +151,7 @@ sudo systemctl reload nginx
 ### SSL cu Let's Encrypt
 
 ```bash
-sudo certbot --nginx -d academy.volta.md -d www.academy.volta.md -d api.academy.volta.md
+sudo certbot --nginx -d academy.volta.md -d www.academy.volta.md
 ```
 
 ---
