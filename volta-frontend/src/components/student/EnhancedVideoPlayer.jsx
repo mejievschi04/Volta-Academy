@@ -477,7 +477,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							<button
 								className="enhanced-video-control-btn"
 								onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-								aria-label="Playback speed"
+								aria-label="Viteză redare"
 							>
 								{playbackRate}x
 							</button>

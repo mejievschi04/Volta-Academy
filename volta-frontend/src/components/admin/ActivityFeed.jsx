@@ -32,7 +32,7 @@ const ActivityFeed = ({ activities, loading }) => {
 					<p className="admin-widget-subtitle">Latest platform events</p>
 				</div>
 				<div className="admin-widget-empty">
-					<p>No recent activity to display</p>
+					<p>Nu există activitate recentă de afișat</p>
 				</div>
 			</div>
 		);
@@ -47,7 +47,6 @@ const ActivityFeed = ({ activities, loading }) => {
 			user_registered: '🆕',
 			exam_submitted: '📝',
 			test: '📝',
-			certificate_issued: '🏆',
 			course_published: '🚀',
 			user_invited: '📧',
 		};
@@ -63,7 +62,6 @@ const ActivityFeed = ({ activities, loading }) => {
 			user_registered: 'var(--admin-success)',
 			exam_submitted: 'var(--admin-warning)',
 			test: 'var(--admin-warning)',
-			certificate_issued: 'var(--admin-success)',
 			course_published: 'var(--admin-primary)',
 			user_invited: 'var(--admin-info)',
 		};
@@ -78,18 +76,18 @@ const ActivityFeed = ({ activities, loading }) => {
 		const diffHours = Math.floor(diffMs / 3600000);
 		const diffDays = Math.floor(diffMs / 86400000);
 
-		if (diffMins < 1) return 'Just now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
+		if (diffMins < 1) return 'Acum';
+		if (diffMins < 60) return `acum ${diffMins}m`;
+		if (diffHours < 24) return `acum ${diffHours}h`;
+		if (diffDays < 7) return `acum ${diffDays}z`;
 		return then.toLocaleDateString();
 	};
 
 	return (
 		<div className="admin-section-card">
 			<div className="admin-widget-header">
-				<h3>Recent Activity</h3>
-				<p className="admin-widget-subtitle">Latest platform events</p>
+				<h3>Activitate recentă</h3>
+				<p className="admin-widget-subtitle">Ultimele evenimente pe platformă</p>
 			</div>
 			<div className="admin-activity-list">
 				{activities.slice(0, 8).map((activity, index) => (
@@ -103,10 +101,10 @@ const ActivityFeed = ({ activities, loading }) => {
 						<div className="admin-activity-content">
 							<div className="admin-activity-header">
 								<span className="admin-activity-actor">
-									{activity.actor || 'System'}
+									{activity.actor || 'Sistem'}
 								</span>
 								<span className="admin-activity-action">
-									{activity.action || 'performed action'}
+									{activity.action || 'acțiune efectuată'}
 								</span>
 							</div>
 							<div className="admin-activity-description">

@@ -54,8 +54,8 @@ class StudentDashboardController extends Controller
         // Get next recommended lesson
         $nextLesson = $this->getNextRecommendedLesson($user, $courses);
 
-        // Calculate learning time
-        $learningTime = $this->calculateLearningTime($user);
+        // Calculate test completion percentage (average score on tests)
+        $testCompletionPercentage = $this->calculateTestCompletionPercentage($user);
 
         // Get incomplete lessons
         $incompleteLessons = $this->getIncompleteLessons($user, $courses);
@@ -63,17 +63,13 @@ class StudentDashboardController extends Controller
         // Get pending exams
         $pendingExams = $this->getPendingExams($user, $courses);
 
-        // Get badges/achievements
-        $badges = $this->getBadges($user, $courses);
-
         return response()->json([
             'global_progress' => $globalProgress,
             'active_courses' => $activeCourses,
             'next_lesson' => $nextLesson,
-            'learning_time' => $learningTime,
+            'test_completion_percentage' => $testCompletionPercentage,
             'incomplete_lessons' => $incompleteLessons,
             'pending_exams' => $pendingExams,
-            'badges' => $badges,
             'stats' => [
                 'total_courses' => $courses->count(),
                 'active_courses_count' => count($activeCourses),
@@ -231,37 +227,27 @@ class StudentDashboardController extends Controller
     }
 
     /**
-     * Calculate total learning time
+     * Calculate test completion percentage (average score on tests for this student)
      */
-    private function calculateLearningTime($user)
+    private function calculateTestCompletionPercentage($user)
     {
-        // Check if tables exist
-        if (!Schema::hasTable('lesson_progress') || !Schema::hasTable('lessons')) {
+        if (!Schema::hasTable('test_results')) {
             return [
-                'total_minutes' => 0,
-                'hours' => 0,
-                'minutes' => 0,
-                'formatted' => '0m',
+                'value' => 0,
+                'formatted' => '0%',
             ];
         }
 
-        // Get completed lessons with duration
-        $completedLessons = DB::table('lesson_progress')
-            ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
-            ->where('lesson_progress.user_id', $user->id)
-            ->where('lesson_progress.completed', true)
-            ->whereNotNull('lessons.duration_minutes')
-            ->sum('lessons.duration_minutes');
+        $avgPercentage = DB::table('test_results')
+            ->where('user_id', $user->id)
+            ->whereNotNull('percentage')
+            ->avg('percentage');
 
-        $totalMinutes = $completedLessons ?? 0;
-        $hours = floor($totalMinutes / 60);
-        $minutes = $totalMinutes % 60;
+        $value = $avgPercentage !== null ? round((float) $avgPercentage, 1) : 0;
 
         return [
-            'total_minutes' => $totalMinutes,
-            'hours' => $hours,
-            'minutes' => $minutes,
-            'formatted' => $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m",
+            'value' => $value,
+            'formatted' => $value . '%',
         ];
     }
 
@@ -421,69 +407,6 @@ class StudentDashboardController extends Controller
         return array_slice($pendingExams, 0, 10); // Return top 10
     }
 
-    /**
-     * Get badges/achievements
-     */
-    private function getBadges($user, $courses)
-    {
-        $badges = [];
-
-        // Course completion badges
-        $completedCourses = $courses->filter(function($course) use ($user) {
-            $progress = $this->progressService->calculateCourseProgress($user, $course);
-            return $progress >= 100;
-        })->count();
-
-        if ($completedCourses >= 1) {
-            $badges[] = [
-                'id' => 'first_course',
-                'name' => 'Primul Curs',
-                'description' => 'Ai finalizat primul curs',
-                'icon' => '🎓',
-                'earned_at' => now()->toDateString(),
-            ];
-        }
-
-        if ($completedCourses >= 5) {
-            $badges[] = [
-                'id' => 'five_courses',
-                'name' => 'Expert',
-                'description' => 'Ai finalizat 5 cursuri',
-                'icon' => '⭐',
-                'earned_at' => now()->toDateString(),
-            ];
-        }
-
-        // Lesson completion badges
-        $completedLessons = Schema::hasTable('lesson_progress')
-            ? DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('completed', true)
-                ->count()
-            : 0;
-
-        if ($completedLessons >= 10) {
-            $badges[] = [
-                'id' => 'ten_lessons',
-                'name' => 'Dedicație',
-                'description' => 'Ai finalizat 10 lecții',
-                'icon' => '📚',
-                'earned_at' => now()->toDateString(),
-            ];
-        }
-
-        if ($completedLessons >= 50) {
-            $badges[] = [
-                'id' => 'fifty_lessons',
-                'name' => 'Maestru',
-                'description' => 'Ai finalizat 50 lecții',
-                'icon' => '🏆',
-                'earned_at' => now()->toDateString(),
-            ];
-        }
-
-        return $badges;
-    }
 
     /**
      * Get total exams passed

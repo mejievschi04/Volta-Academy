@@ -25,11 +25,13 @@ class ExamController extends Controller
     /**
      * Get exam/test details with access check
      * Supports both legacy Exam model and new Test model
+     * For Test model: pass course_id as query param to resolve correct CourseTest (test can be in multiple courses)
      */
-    public function show($examId)
+    public function show(Request $request, $examId)
     {
         $user = Auth::user();
-        
+        $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+
         // Try to find as Test first (new system)
         $test = Test::with([
             'questions' => function($query) {
@@ -39,10 +41,10 @@ class ExamController extends Controller
                 $query->orderBy('order');
             }
         ])->find($examId);
-        
+
         if ($test) {
             // Handle Test model
-            return $this->handleTest($test, $user);
+            return $this->handleTest($test, $user, $courseId);
         }
         
         // Fallback to legacy Exam model
@@ -63,23 +65,59 @@ class ExamController extends Controller
     
     /**
      * Handle Test model (new system)
+     * @param int|null $courseId When provided, resolves CourseTest for this course (test can be in multiple courses)
      */
-    protected function handleTest(Test $test, $user)
+    protected function handleTest(Test $test, $user, ?int $courseId = null)
     {
-        // Get questions based on source
-        $questions = [];
-        if ($test->question_source === 'bank' && $test->questionBank) {
-            $questions = $test->questionBank->questions()->orderBy('order')->get();
-        } else {
-            $questions = $test->questions()->orderBy('order')->get();
-        }
+        // Get user's attempts
+        $userAttempts = TestResult::where('test_id', $test->id)
+            ->where('user_id', $user->id)
+            ->orderBy('attempt_number', 'desc')
+            ->get();
+
+        $currentAttempt = $userAttempts->count();
+        $latestResult = $userAttempts->first();
+        $remainingAttempts = $test->max_attempts
+            ? max(0, $test->max_attempts - $currentAttempt)
+            : null;
+        $canRetake = $test->max_attempts
+            ? ($remainingAttempts > 0)
+            : true;
+
+        // Use a deterministic "attempt seed" so the same attempt sees the same sampled questions.
+        $attemptNumberForSeed = $currentAttempt + 1;
+
+        // Get questions (supports bank + optional rule-based selection)
+        $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
         
-        // Transform questions
-        $transformedQuestions = $questions->map(function($question) {
+        // Transform questions (optionally randomize answers deterministically)
+        $transformedQuestions = $questions->map(function($question) use ($test, $user, $attemptNumberForSeed) {
             $answers = $question->answers ?? [];
             $correctAnswerIndex = null;
             
             if ($question->type === 'multiple_choice' || $question->type === 'true_false') {
+                foreach ($answers as $idx => $answer) {
+                    if (is_array($answer) && ($answer['is_correct'] ?? false)) {
+                        $correctAnswerIndex = $idx;
+                        break;
+                    }
+                }
+            }
+
+            // Deterministic shuffle of answers (so show + submit see consistent order if needed)
+            if (($question->type === 'multiple_choice' || $question->type === 'true_false') && $test->randomize_answers && is_array($answers) && count($answers) > 1) {
+                $seedBase = "{$test->id}:{$user->id}:{$attemptNumberForSeed}:q{$question->id}";
+                $indexed = [];
+                foreach ($answers as $idx => $ans) {
+                    $text = is_array($ans) ? ($ans['text'] ?? '') : (string)$ans;
+                    $key = hash('sha1', $seedBase . ":a{$idx}:" . $text);
+                    $indexed[] = ['key' => $key, 'idx' => $idx, 'ans' => $ans];
+                }
+                usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
+                $answers = array_values(array_map(fn ($x) => $x['ans'], $indexed));
+
+                // Recompute correctAnswerIndex after shuffle
+                $correctAnswerIndex = null;
                 foreach ($answers as $idx => $answer) {
                     if (is_array($answer) && ($answer['is_correct'] ?? false)) {
                         $correctAnswerIndex = $idx;
@@ -103,35 +141,25 @@ class ExamController extends Controller
             ];
         });
         
-        // Get user's attempts
-        $userAttempts = TestResult::where('test_id', $test->id)
-            ->where('user_id', $user->id)
-            ->orderBy('attempt_number', 'desc')
-            ->get();
-        
-        $currentAttempt = $userAttempts->count();
-        $latestResult = $userAttempts->first();
-        $remainingAttempts = $test->max_attempts 
-            ? max(0, $test->max_attempts - $currentAttempt)
-            : null;
-        $canRetake = $test->max_attempts 
-            ? ($remainingAttempts > 0)
-            : true;
-        
         // Check if user has passed (assuming 70% is passing)
         $passingScore = 70; // Default, could be from CourseTest pivot
         $hasPassed = $latestResult && $latestResult->percentage >= $passingScore;
-        
-        // Get course from CourseTest relationship
-        $courseTest = \App\Models\CourseTest::where('test_id', $test->id)->first();
-        $courseId = $courseTest ? $courseTest->course_id : null;
+
+        // Resolve CourseTest: use course_id when provided (test can be attached to multiple courses)
+        $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
+        if ($courseId) {
+            $courseTestQuery->where('course_id', $courseId);
+        }
+        $courseTest = $courseTestQuery->first();
+        $resolvedCourseId = $courseTest ? $courseTest->course_id : $courseId;
         $moduleId = ($courseTest && $courseTest->scope === 'module') ? $courseTest->scope_id : null;
         
         return response()->json([
             'id' => $test->id,
             'title' => $test->title,
             'description' => $test->description,
-            'course_id' => $courseId,
+            'type' => $test->type ?? 'graded',
+            'course_id' => $resolvedCourseId,
             'module_id' => $moduleId,
             'lesson_id' => null,
             'passing_score' => $courseTest->passing_score ?? $passingScore,
@@ -152,6 +180,102 @@ class ExamController extends Controller
                 'attempt_number' => $latestResult->attempt_number ?? 1,
             ] : null,
         ]);
+    }
+
+    /**
+     * Select questions for a test attempt.
+     * Supports question banks + rule-based selection via tests.question_selection (JSON).
+     *
+     * For determinism we sort by a hash of (test,user,attempt,question_id) when using random selection.
+     */
+    protected function selectQuestionsForTestAttempt(Test $test, $user, int $attemptNumber)
+    {
+        $base = collect();
+
+        if ($test->question_source === 'bank' && $test->questionBank) {
+            $base = $test->questionBank->questions()->orderBy('order')->get();
+        } else {
+            $base = $test->questions()->orderBy('order')->get();
+        }
+
+        if ($base->isEmpty()) {
+            return $base;
+        }
+
+        if ($test->question_source !== 'bank') {
+            // For direct questions we can still honor randomize_questions deterministically
+            if ($test->randomize_questions) {
+                $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
+                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+            }
+            return $base;
+        }
+
+        $sel = $test->question_selection;
+        if (!is_array($sel) || empty($sel)) {
+            // If no explicit selection rules, we can still randomize question order deterministically
+            if ($test->randomize_questions) {
+                $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
+                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+            }
+            return $base;
+        }
+
+        $mode = (string)($sel['mode'] ?? '');
+        $count = (int)($sel['count'] ?? 0);
+        $difficulty = $sel['difficulty'] ?? null;
+        $tags = $sel['tags'] ?? null;
+
+        $difficultyList = [];
+        if (is_string($difficulty) && $difficulty !== '') $difficultyList = [$difficulty];
+        if (is_array($difficulty)) $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
+
+        $tagList = [];
+        if (is_string($tags) && $tags !== '') $tagList = [$tags];
+        if (is_array($tags)) $tagList = array_values(array_filter(array_map('strval', $tags)));
+        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
+
+        $filtered = $base->filter(function ($q) use ($difficultyList, $tagList) {
+            $meta = is_array($q->metadata) ? $q->metadata : [];
+            $qDifficulty = isset($meta['difficulty']) ? (string)$meta['difficulty'] : '';
+            $qTags = $meta['tags'] ?? [];
+            if (is_string($qTags)) $qTags = array_map('trim', explode(',', $qTags));
+            if (!is_array($qTags)) $qTags = [];
+            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string)$t)), $qTags)));
+
+            if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
+                return false;
+            }
+
+            if (!empty($tagList)) {
+                $hasAny = false;
+                foreach ($tagList as $t) {
+                    if (in_array($t, $qTags, true)) {
+                        $hasAny = true;
+                        break;
+                    }
+                }
+                if (!$hasAny) return false;
+            }
+
+            return true;
+        })->values();
+
+        if ($filtered->isEmpty()) {
+            $filtered = $base->values(); // fallback to all
+        }
+
+        $useRandom = ($mode === 'random') || $test->randomize_questions;
+        if ($useRandom) {
+            $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
+            $filtered = $filtered->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+        }
+
+        if ($count > 0) {
+            $filtered = $filtered->take($count)->values();
+        }
+
+        return $filtered;
     }
     
     /**
@@ -282,33 +406,6 @@ class ExamController extends Controller
     protected function submitTest(Request $request, Test $test, $user)
     {
         try {
-            // Get questions based on source
-            $questions = collect();
-            if ($test->question_source === 'bank') {
-                try {
-                    $test->load('questionBank');
-                    if ($test->questionBank) {
-                        $questions = $test->questionBank->questions()->orderBy('order')->get();
-                    }
-                } catch (\Exception $e) {
-                    \Log::warning('Error loading question bank', [
-                        'test_id' => $test->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-            
-            // If no questions from bank, get direct questions
-            if ($questions->isEmpty()) {
-                $questions = $test->questions()->orderBy('order')->get();
-            }
-            
-            if ($questions->isEmpty()) {
-                return response()->json([
-                    'message' => 'Testul nu are întrebări disponibile.',
-                ], 400);
-            }
-            
             // Check attempt limits
             $userAttempts = TestResult::where('test_id', $test->id)
                 ->where('user_id', $user->id)
@@ -324,6 +421,15 @@ class ExamController extends Controller
                 ], 403);
             }
             
+            // Get questions for this attempt (deterministic selection)
+            $questions = $this->selectQuestionsForTestAttempt($test, $user, $nextAttempt);
+
+            if ($questions->isEmpty()) {
+                return response()->json([
+                    'message' => 'Testul nu are întrebări disponibile.',
+                ], 400);
+            }
+
             $answers = $request->input('answers', []);
             
             // Calculate score
@@ -335,7 +441,7 @@ class ExamController extends Controller
                 $points = $question->points ?? 1;
                 $totalPoints += $points;
                 
-                if ($question->type === 'short_answer') {
+                if (in_array($question->type ?? '', ['short_answer', 'essay'], true)) {
                     $needsManualReview = true;
                 } else {
                     // Multiple choice or true/false
@@ -360,9 +466,14 @@ class ExamController extends Controller
             }
             
             $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
-            
-            // Get passing score from CourseTest pivot
-            $courseTest = \App\Models\CourseTest::where('test_id', $test->id)->first();
+
+            // Resolve CourseTest: use course_id from request when provided (test can be in multiple courses)
+            $courseId = $request->input('course_id') ? (int) $request->input('course_id') : null;
+            $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
+            if ($courseId) {
+                $courseTestQuery->where('course_id', $courseId);
+            }
+            $courseTest = $courseTestQuery->first();
             $passingScore = $courseTest ? ($courseTest->passing_score ?? 70) : 70;
             $passed = !$needsManualReview && $percentage >= $passingScore;
             
@@ -373,12 +484,13 @@ class ExamController extends Controller
                 'user_id' => $user->id,
                 'attempt_number' => $nextAttempt,
                 'score' => $score,
-                'max_score' => $totalPoints, // TestResult model has max_score in fillable
+                'max_score' => $totalPoints,
                 'percentage' => $percentage,
                 'passed' => $passed,
                 'answers' => $answers,
                 'completed_at' => now(),
-                'status' => $needsManualReview ? 'pending_review' : 'completed', // TestResult model has status in fillable
+                'status' => $needsManualReview ? 'pending_review' : 'completed',
+                'needs_manual_review' => $needsManualReview,
             ]);
         
             // Get course from CourseTest relationship

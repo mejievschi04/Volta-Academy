@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressIndicator from './ProgressIndicator';
 
-const CourseProgressWidget = ({ course, isMandatory = false }) => {
+const CourseProgressWidget = React.memo(({ course, isMandatory = false }) => {
 	const navigate = useNavigate();
 
 	const handleViewCourse = () => {
@@ -20,7 +20,9 @@ const CourseProgressWidget = ({ course, isMandatory = false }) => {
 			<div className="student-course-progress-header">
 				{course.thumbnail && (
 					<img 
-						src={course.thumbnail} 
+						src={course.thumbnail}
+						loading="lazy"
+						decoding="async" 
 						alt={course.title}
 						className="student-course-progress-thumbnail"
 					/>
@@ -61,7 +63,9 @@ const CourseProgressWidget = ({ course, isMandatory = false }) => {
 			</div>
 		</div>
 	);
-};
+}, (prev, next) => prev.course?.id === next.course?.id && prev.course?.progress === next.course?.progress && prev.isMandatory === next.isMandatory);
+
+CourseProgressWidget.displayName = 'CourseProgressWidget';
 
 export default CourseProgressWidget;
 

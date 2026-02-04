@@ -24,7 +24,8 @@ class CourseProgressService
      */
     public function calculateCourseProgress(User $user, Course $course): float
     {
-        $modules = $course->modules()->where('status', 'published')->get();
+        // Include draft + published (lessons created in builder default to draft)
+        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
         
         if ($modules->isEmpty()) {
             return 0;
@@ -34,7 +35,7 @@ class CourseProgressService
         $completedLessons = 0;
 
         foreach ($modules as $module) {
-            $moduleLessons = $module->lessons()->where('status', 'published')->get();
+            $moduleLessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
             $totalLessons += $moduleLessons->count();
 
             foreach ($moduleLessons as $lesson) {
@@ -70,8 +71,9 @@ class CourseProgressService
         }
         
         // Update course_user progress and completion status
+        // Cast to int - course_user.progress_percentage is integer
         $updateData = [
-            'progress_percentage' => round($progress, 2),
+            'progress_percentage' => (int) round($progress, 0),
             'updated_at' => Carbon::now(),
         ];
         
@@ -93,7 +95,7 @@ class CourseProgressService
      */
     public function calculateModuleProgress(User $user, Module $module): float
     {
-        $lessons = $module->lessons()->where('status', 'published')->get();
+        $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
         
         if ($lessons->isEmpty()) {
             return 0;
@@ -230,8 +232,7 @@ class CourseProgressService
      */
     public function isModuleComplete(User $user, Module $module): bool
     {
-        // Get all published lessons
-        $lessons = $module->lessons()->where('status', 'published')->get();
+        $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
         
         if ($lessons->isEmpty()) {
             return false;
@@ -250,14 +251,39 @@ class CourseProgressService
             }
         }
 
-        // Check if all required tests are passed
-        $requiredTests = CourseTest::where('course_id', $module->course_id)
+        // Check if all lesson-level tests in this module are passed
+        foreach ($lessons as $lesson) {
+            $lessonTests = CourseTest::where('course_id', $module->course_id)
+                ->where('scope', 'lesson')
+                ->where('scope_id', $lesson->id)
+                ->get();
+
+            foreach ($lessonTests as $courseTest) {
+                $test = $courseTest->test;
+                if (!$test || $test->status !== 'published') {
+                    continue;
+                }
+
+                $hasPassed = DB::table('test_results')
+                    ->where('user_id', $user->id)
+                    ->where('test_id', $test->id)
+                    ->where('percentage', '>=', $courseTest->passing_score)
+                    ->where('passed', true)
+                    ->exists();
+
+                if (!$hasPassed) {
+                    return false;
+                }
+            }
+        }
+
+        // Check if all module-level tests are passed (cursul nu se finalizează fără test)
+        $moduleTests = CourseTest::where('course_id', $module->course_id)
             ->where('scope', 'module')
             ->where('scope_id', $module->id)
-            ->where('required', true)
             ->get();
 
-        foreach ($requiredTests as $courseTest) {
+        foreach ($moduleTests as $courseTest) {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 continue;
@@ -283,8 +309,7 @@ class CourseProgressService
      */
     public function isCourseComplete(User $user, Course $course): bool
     {
-        // Get all published modules
-        $modules = $course->modules()->where('status', 'published')->get();
+        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
         
         if ($modules->isEmpty()) {
             return false;
@@ -297,13 +322,35 @@ class CourseProgressService
             }
         }
 
-        // Check if all required course-level tests are passed
-        $requiredTests = CourseTest::where('course_id', $course->id)
-            ->where('scope', 'course')
-            ->where('required', true)
+        // În special: testul final (type='final') trebuie promovat
+        $finalTests = CourseTest::where('course_id', $course->id)
+            ->whereHas('test', fn ($q) => $q->where('type', 'final'))
             ->get();
 
-        foreach ($requiredTests as $courseTest) {
+        foreach ($finalTests as $courseTest) {
+            $test = $courseTest->test;
+            if (!$test || $test->status !== 'published') {
+                continue;
+            }
+
+            $hasPassed = DB::table('test_results')
+                ->where('user_id', $user->id)
+                ->where('test_id', $test->id)
+                ->where('percentage', '>=', $courseTest->passing_score)
+                ->where('passed', true)
+                ->exists();
+
+            if (!$hasPassed) {
+                return false;
+            }
+        }
+
+        // Check if all course-level tests are passed (cursul nu se finalizează fără test)
+        $courseLevelTests = CourseTest::where('course_id', $course->id)
+            ->where('scope', 'course')
+            ->get();
+
+        foreach ($courseLevelTests as $courseTest) {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 continue;
@@ -330,7 +377,7 @@ class CourseProgressService
     public function getNextIncompleteLesson(User $user, Course $course): ?Lesson
     {
         $modules = $course->modules()
-            ->where('status', 'published')
+            ->whereIn('status', ['published', 'draft'])
             ->orderBy('order')
             ->get();
 
@@ -341,7 +388,7 @@ class CourseProgressService
             }
 
             $lessons = $module->lessons()
-                ->where('status', 'published')
+                ->whereIn('status', ['published', 'draft'])
                 ->orderBy('order')
                 ->get();
 
@@ -402,7 +449,7 @@ class CourseProgressService
 
         // Check module-level tests
         $modules = $course->modules()
-            ->where('status', 'published')
+            ->whereIn('status', ['published', 'draft'])
             ->orderBy('order')
             ->get();
 
@@ -496,7 +543,7 @@ class CourseProgressService
      */
     public function getUserAccessStatus(User $user, Course $course): array
     {
-        $modules = $course->modules()->where('status', 'published')->orderBy('order')->get();
+        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->orderBy('order')->get();
         $accessStatus = [
             'course_progress' => $this->calculateCourseProgress($user, $course),
             'modules' => [],
@@ -513,7 +560,7 @@ class CourseProgressService
                 'lessons' => [],
             ];
 
-            $lessons = $module->lessons()->where('status', 'published')->orderBy('order')->get();
+            $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->orderBy('order')->get();
             foreach ($lessons as $lesson) {
                 $isLessonUnlocked = $this->isLessonUnlocked($user, $lesson, $module, $course);
                 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import './LessonPage.css';
 
 const LessonPage = () => {
@@ -222,15 +223,6 @@ const LessonPage = () => {
 							<p className="lesson-page-description">{lesson.description}</p>
 						)}
 						<div className="lesson-page-meta">
-							{lesson.duration_minutes && (
-								<div className="lesson-page-meta-item">
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<circle cx="12" cy="12" r="10"/>
-										<polyline points="12 6 12 12 16 14"/>
-									</svg>
-									<span>{lesson.duration_minutes} minute</span>
-								</div>
-							)}
 							{lesson.content_type && (
 								<div className="lesson-page-meta-item">
 									<span className="lesson-page-type-badge">
@@ -245,23 +237,39 @@ const LessonPage = () => {
 
 					{/* Lesson Content */}
 					<div className="lesson-page-body" ref={contentRef}>
-						{lesson.content ? (
-							<div 
-								className="lesson-page-content-text"
-								dangerouslySetInnerHTML={{ __html: lesson.content }}
-							/>
-						) : (
-							<div className="lesson-page-empty-content">
-								<div className="lesson-page-empty-icon">
-									<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-										<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-									</svg>
+						{(() => {
+							const blocks = Array.isArray(lesson.content_blocks) ? lesson.content_blocks : Array.isArray(lesson.contentBlocks) ? lesson.contentBlocks : [];
+							const hasBlocks = blocks.length > 0;
+							const hasLegacyContent = lesson.content && lesson.content.trim().length > 0;
+
+							if (hasBlocks) {
+								return (
+									<div className="lesson-page-blocks">
+										<LessonBlocksPreview blocks={blocks} variant="student" />
+									</div>
+								);
+							}
+							if (hasLegacyContent) {
+								return (
+									<div
+										className="lesson-page-content-text"
+										dangerouslySetInnerHTML={{ __html: lesson.content }}
+									/>
+								);
+							}
+							return (
+								<div className="lesson-page-empty-content">
+									<div className="lesson-page-empty-icon">
+										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+											<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+										</svg>
+									</div>
+									<h3>Lecția nu are conținut configurat</h3>
+									<p>Conținutul lecției va fi disponibil în curând.</p>
 								</div>
-								<h3>Lecția nu are conținut configurat</h3>
-								<p>Conținutul lecției va fi disponibil în curând.</p>
-							</div>
-						)}
+							);
+						})()}
 					</div>
 
 					{/* Actions */}

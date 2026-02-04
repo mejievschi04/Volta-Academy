@@ -19,7 +19,6 @@ const ModuleCreatorPage = () => {
 		is_locked: false,
 		unlock_after_module_id: null,
 		unlock_after_lesson_id: null,
-		estimated_duration_minutes: null,
 	});
 
 	useEffect(() => {
@@ -52,7 +51,6 @@ const ModuleCreatorPage = () => {
 				is_locked: module.is_locked || false,
 				unlock_after_module_id: module.unlock_after_module_id || null,
 				unlock_after_lesson_id: module.unlock_after_lesson_id || null,
-				estimated_duration_minutes: module.estimated_duration_minutes || null,
 			});
 		} catch (err) {
 			console.error('Error fetching module:', err);
@@ -177,23 +175,6 @@ const ModuleCreatorPage = () => {
 								/>
 							</div>
 
-							<div className="admin-form-group">
-								<label className="admin-label">
-									Ordine
-								</label>
-								<input
-									type="number"
-									className="admin-form-input"
-									value={formData.order}
-									onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-									placeholder="0"
-									min={0}
-								/>
-								<p className="admin-form-help-text">
-									Ordinea în care modulul va apărea în curs (0 = primul)
-								</p>
-							</div>
-
 							<div className="admin-form-actions">
 								<button
 									type="button"
@@ -233,10 +214,6 @@ const ModuleCreatorPage = () => {
 										<p className="module-preview-description">{formData.description}</p>
 									)}
 									<div className="module-preview-meta">
-										<div className="module-preview-meta-item">
-											<span className="module-preview-meta-label">Ordine:</span>
-											<span className="module-preview-meta-value">{formData.order || 0}</span>
-										</div>
 										<div className="module-preview-meta-item">
 											<span className="module-preview-meta-label">Status:</span>
 											<span className="module-preview-meta-value">{formData.status || 'draft'}</span>

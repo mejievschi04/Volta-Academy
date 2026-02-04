@@ -220,7 +220,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 								setResults([]);
 								inputRef.current?.focus();
 							}}
-							aria-label="Clear search"
+							aria-label="Golește căutarea"
 						>
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 								<line x1="18" y1="6" x2="6" y2="18" />

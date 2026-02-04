@@ -1,0 +1,81 @@
+/* ============================================
+   STUDENT OVERRIDES - Ensure student UI integrity
+   Loaded after student-components, reinforces student styles
+   ============================================ */
+
+/* Student layout - main content area (va-shell-topnav = student view) */
+.va-shell-topnav .va-main {
+	padding: var(--space-6); /* Top offset handled by va-shell-main */
+	max-width: 1400px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+/* Student dashboard page - ensure proper spacing */
+.student-dashboard-page {
+	padding: 0;
+	min-height: 100%;
+}
+
+/* Student widgets - ensure visibility and contrast */
+.student-widget,
+.student-course-progress-card {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+}
+
+/* Student quick stats - prevent layout collapse */
+.student-quick-stat {
+	min-height: 100px;
+}
+
+/* Student progress indicator - visible fill */
+.student-progress-indicator-fill {
+	background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+
+/* Student buttons - ensure they stand out */
+.student-btn-primary {
+	font-weight: var(--font-weight-semibold);
+}
+
+.student-btn-secondary {
+	border-color: var(--border-secondary);
+}
+
+/* Student global progress - ensure visibility */
+.student-global-progress-bar-container {
+	background-color: var(--bg-secondary);
+}
+
+.student-global-progress-fill {
+	background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+
+/* Student incomplete lessons & pending exams - hover states */
+.student-incomplete-lesson-item,
+.student-pending-exam-item {
+	cursor: pointer;
+}
+
+/* Light theme - student accent */
+[data-theme="light"] .student-widget::before,
+[data-theme="light"] .student-course-progress-card::before {
+	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary) 100%);
+}
+
+[data-theme="light"] .student-course-progress-card:hover,
+[data-theme="light"] .student-widget:hover {
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.15);
+}
+
+/* Ensure student loading (lms-dashboard-loading) works on student pages */
+.va-shell-topnav .lms-dashboard-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 40vh;
+	gap: var(--space-4);
+	color: var(--text-tertiary);
+}

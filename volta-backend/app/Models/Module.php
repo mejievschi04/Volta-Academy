@@ -71,16 +71,30 @@ class Module extends Model
 
         // Recalculate course progress when module is updated
         static::saved(function ($module) {
-            if ($module->course) {
-                app(\App\Services\CourseProgressService::class)
-                    ->recalculateCourseProgress($module->course);
+            try {
+                if ($module->course) {
+                    app(\App\Services\CourseProgressService::class)
+                        ->recalculateCourseProgress($module->course);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Module saved: recalculateCourseProgress failed', [
+                    'module_id' => $module->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         });
 
         static::deleted(function ($module) {
-            if ($module->course) {
-                app(\App\Services\CourseProgressService::class)
-                    ->recalculateCourseProgress($module->course);
+            try {
+                if ($module->course) {
+                    app(\App\Services\CourseProgressService::class)
+                        ->recalculateCourseProgress($module->course);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Module deleted: recalculateCourseProgress failed', [
+                    'module_id' => $module->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         });
     }

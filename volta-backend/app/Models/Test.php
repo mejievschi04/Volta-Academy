@@ -27,8 +27,10 @@ class Test extends Model
         'show_results_immediately',
         'show_correct_answers',
         'allow_review',
+        'requires_manual_verification',
         'question_set_id',
         'question_source',
+        'question_selection',
         'attempts_count',
         'passes_count',
         'average_score',
@@ -42,6 +44,8 @@ class Test extends Model
         'show_results_immediately' => 'boolean',
         'show_correct_answers' => 'boolean',
         'allow_review' => 'boolean',
+        'requires_manual_verification' => 'boolean',
+        'question_selection' => 'array',
         'average_score' => 'decimal:2',
     ];
 

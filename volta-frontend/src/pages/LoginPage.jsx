@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { prefetchRoute } from '../utils/prefetch';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
 
 const LoginPage = () => {
@@ -11,6 +12,12 @@ const LoginPage = () => {
 	const [loading, setLoading] = useState(false);
 	const { login } = useAuth();
 	const navigate = useNavigate();
+
+	// Prefetch likely post-login routes for instant navigation
+	useEffect(() => {
+		prefetchRoute('/home');
+		prefetchRoute('/admin');
+	}, []);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();

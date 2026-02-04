@@ -332,7 +332,8 @@
 [data-theme="light"] .modern-nav-item.is-active .modern-nav-item-icon,
 [data-theme="light"] .va-nav-btn.active .va-nav-icon,
 [data-theme="light"] .va-nav-btn.is-active .va-nav-icon {
-	color: #1f2937;
+	/* Active icon should be black in light theme */
+	color: #000000 !important;
 	opacity: 1;
 }
 
@@ -350,7 +351,8 @@
 [data-theme="light"] .modern-sidebar:not(.expanded) .modern-nav-item.is-active .modern-nav-item-icon,
 [data-theme="light"] .modern-sidebar:not(.expanded) .va-nav-btn.active .va-nav-icon,
 [data-theme="light"] .modern-sidebar:not(.expanded) .va-nav-btn.is-active .va-nav-icon {
-	color: #1f2937;
+	/* Active icon should be black in light theme */
+	color: #000000 !important;
 	opacity: 1;
 }
 
@@ -360,6 +362,25 @@
 .va-nav-btn.active svg,
 .va-nav-btn.is-active svg {
 	color: var(--bg-primary);
+}
+
+/* Light theme: active icon SVG must be dark (not bg-primary/white) */
+[data-theme="light"] .modern-nav-item.active svg,
+[data-theme="light"] .modern-nav-item.is-active svg,
+[data-theme="light"] .va-nav-btn.active svg,
+[data-theme="light"] .va-nav-btn.is-active svg {
+	color: #000000 !important;
+	stroke: currentColor !important;
+	fill: none !important;
+}
+
+/* Ensure outlined icons (no filled paths) */
+[data-theme="light"] .modern-nav-item.active svg *,
+[data-theme="light"] .modern-nav-item.is-active svg *,
+[data-theme="light"] .va-nav-btn.active svg *,
+[data-theme="light"] .va-nav-btn.is-active svg * {
+	stroke: currentColor !important;
+	fill: none !important;
 }
 
 .modern-nav-item:hover .modern-nav-item-icon,

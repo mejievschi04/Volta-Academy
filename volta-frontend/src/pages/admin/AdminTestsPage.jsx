@@ -107,7 +107,7 @@ const AdminTestsPage = () => {
 
 	// Handle create test
 	const handleCreateTest = () => {
-		navigate('/admin/tests/new/builder');
+		navigate('/admin/tests/new');
 	};
 
 	// Get status badge
@@ -170,7 +170,13 @@ const AdminTestsPage = () => {
 							Gestionează și creează teste pentru cursuri
 						</p>
 					</div>
-					<div className="admin-courses-header-actions">
+					<div className="admin-courses-header-actions" style={{ display: 'flex', gap: 'var(--space-2)' }}>
+						<button
+							className="admin-btn admin-btn-secondary"
+							onClick={() => navigate('/admin/tests/reviews')}
+						>
+							Verificări manuale
+						</button>
 						<button className="admin-btn-create-course" onClick={handleCreateTest}>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
@@ -237,7 +243,7 @@ const AdminTestsPage = () => {
 							<button
 								className={viewMode === 'grid' ? 'active' : ''}
 								onClick={() => setViewMode('grid')}
-								title="Grid View"
+								title="Vizualizare grilă"
 							>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 									<rect x="3" y="3" width="7" height="7"/>
@@ -249,7 +255,7 @@ const AdminTestsPage = () => {
 							<button
 								className={viewMode === 'list' ? 'active' : ''}
 								onClick={() => setViewMode('list')}
-								title="List View"
+								title="Vizualizare listă"
 							>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 									<line x1="8" y1="6" x2="21" y2="6"/>
@@ -290,7 +296,7 @@ const AdminTestsPage = () => {
 									<div
 										key={test.id}
 										className="admin-course-card"
-										onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
+										onClick={() => navigate(`/admin/tests/${test.id}`)}
 									>
 										{/* Header with badges */}
 										<div className="admin-course-card-header">
@@ -353,7 +359,7 @@ const AdminTestsPage = () => {
 												className="admin-course-card-action-btn"
 												onClick={(e) => {
 													e.stopPropagation();
-													navigate(`/admin/tests/${test.id}/builder`);
+													navigate(`/admin/tests/${test.id}`);
 												}}
 											>
 												✏️ Editează
@@ -458,7 +464,7 @@ const AdminTestsPage = () => {
 										<div className="admin-course-table-actions">
 											<button
 												className="admin-course-table-action-btn"
-												onClick={() => navigate(`/admin/tests/${test.id}/builder`)}
+												onClick={() => navigate(`/admin/tests/${test.id}`)}
 											>
 												✏️ Editează
 											</button>

@@ -2,24 +2,22 @@ import React, { useEffect, useState } from 'react';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
 import './SplashScreen.css';
 
-const SplashScreen = ({ onStart, durationMs = 2000 }) => {
+const SplashScreen = ({ onStart, durationMs = 1500 }) => {
 	const [progress, setProgress] = useState(0);
 
 	useEffect(() => {
-		// Progress animation
+		// Progress animation - completes in durationMs
+		const step = 100 / Math.max(20, Math.floor(durationMs / 25));
 		const progressInterval = setInterval(() => {
 			setProgress(prev => {
 				if (prev >= 100) {
 					clearInterval(progressInterval);
-					// Auto start after loading completes
-					setTimeout(() => {
-						onStart && onStart();
-					}, 500);
+					setTimeout(() => onStart?.(), 150);
 					return 100;
 				}
-				return prev + 2;
+				return Math.min(100, prev + step);
 			});
-		}, 50);
+		}, 25);
 
 		return () => {
 			clearInterval(progressInterval);
@@ -27,7 +25,7 @@ const SplashScreen = ({ onStart, durationMs = 2000 }) => {
 	}, [onStart]);
 
 	return (
-		<div className="splash-page">
+		<div className="splash-page" onClick={() => onStart?.()} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onStart?.()} aria-label="Apasă pentru a continua">
 			{/* Animated background circles */}
 			<div className="splash-bg-circles">
 				<div className="splash-circle circle-1"></div>
@@ -77,6 +75,7 @@ const SplashScreen = ({ onStart, durationMs = 2000 }) => {
 			{/* Footer */}
 			<div className="splash-footer">
 				<p className="splash-footer-text">Realizat de Mejievski</p>
+				<p className="splash-skip-hint">Apasă pentru a continua</p>
 			</div>
 		</div>
 	);

@@ -7,7 +7,6 @@ import './Step5LearningUX.css';
  * - Ordine obligatorie / liberă
  * - Deblocare progresivă
  * - Estimare timp
- * - Certificat / badge
  * - Reminder-e
  * - AI opțional: Recomandă pacing optim
  */
@@ -37,7 +36,7 @@ const Step5LearningUX = ({ data, onUpdate }) => {
 			<div className="step5-header">
 				<h3>Experiență Cursant</h3>
 				<p className="step5-description">
-					Configurează experiența de învățare pentru cursanți: ordine, deblocare, certificare.
+					Configurează experiența de învățare pentru cursanți: ordine și deblocare.
 				</p>
 			</div>
 			
@@ -116,81 +115,6 @@ const Step5LearningUX = ({ data, onUpdate }) => {
 							className="step5-input"
 						/>
 					</div>
-				</div>
-				
-				{/* Certificate */}
-				<div className="step5-section">
-					<label className="step5-label">Certificat</label>
-					<div className="step5-form-group">
-						<label className="step5-checkbox-label">
-							<input
-								type="checkbox"
-								checked={learningUX.certificate || false}
-								onChange={(e) => handleUpdate({ certificate: e.target.checked })}
-							/>
-							<span>Oferă certificat la finalizarea cursului</span>
-						</label>
-					</div>
-					
-					{learningUX.certificate && (
-						<div className="step5-certificate-settings">
-							<div className="step5-form-group">
-								<label>Prag minim pentru certificat (%)</label>
-								<input
-									type="number"
-									min="0"
-									max="100"
-									value={learningUX.certificate_threshold || 70}
-									onChange={(e) => handleUpdate({ certificate_threshold: parseInt(e.target.value) })}
-									className="step5-input"
-								/>
-							</div>
-						</div>
-					)}
-				</div>
-				
-				{/* Badges */}
-				<div className="step5-section">
-					<label className="step5-label">Badge-uri (opțional)</label>
-					<p className="step5-hint">Adaugă badge-uri pentru realizări în curs</p>
-					<div className="step5-badges-list">
-						{(learningUX.badges || []).map((badge, index) => (
-							<div key={index} className="step5-badge-item">
-								<input
-									type="text"
-									placeholder="Nume badge (ex: Primul modul completat)"
-									value={badge.name || ''}
-									onChange={(e) => {
-										const badges = [...(learningUX.badges || [])];
-										badges[index] = { ...badges[index], name: e.target.value };
-										handleUpdate({ badges });
-									}}
-									className="step5-input"
-								/>
-								<button
-									type="button"
-									className="step5-btn-remove"
-									onClick={() => {
-										const badges = [...(learningUX.badges || [])];
-										badges.splice(index, 1);
-										handleUpdate({ badges });
-									}}
-								>
-									🗑️
-								</button>
-							</div>
-						))}
-					</div>
-					<button
-						type="button"
-						className="step5-btn-add"
-						onClick={() => {
-							const badges = [...(learningUX.badges || []), { name: '', icon: '🏆' }];
-							handleUpdate({ badges });
-						}}
-					>
-						+ Adaugă badge
-					</button>
 				</div>
 				
 				{/* Reminders */}

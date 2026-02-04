@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { coursesService, courseProgressService, lessonsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import './LessonsPage.css';
 
 const LessonsPage = () => {
@@ -175,14 +176,17 @@ const LessonsPage = () => {
 		}
 	}, [selectedLessonId, isCompleting, isCompleted, courseId, user?.id, showToast]);
 
-	// Auto-complete on scroll effect
+	// Auto-complete on scroll effect - only for the lesson we're actually viewing
 	useEffect(() => {
 		if (!currentLesson || isCompleted || isCompleting) return;
+		// Must match: avoid completing the wrong lesson when switching (selectedLessonId updates before currentLesson)
+		if (currentLesson.id !== selectedLessonId) return;
 
 		let shortContentTimer = null;
 
 		const checkCompletion = () => {
 			if (isCompleted || isCompleting) return;
+			if (currentLesson?.id !== selectedLessonId) return;
 
 			const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 			const windowHeight = window.innerHeight;
@@ -236,7 +240,7 @@ const LessonsPage = () => {
 				clearTimeout(shortContentTimer);
 			}
 		};
-	}, [currentLesson, isCompleted, isCompleting, handleAutoComplete]);
+	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, handleAutoComplete]);
 
 	const handleNextLesson = () => {
 		// Find next lesson
@@ -374,9 +378,22 @@ const LessonsPage = () => {
 																)}
 															</div>
 															<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
-															{lesson.duration_minutes && (
-																<span className="lessons-page-sidebar-lesson-duration">{lesson.duration_minutes}min</span>
-															)}
+														</button>
+													);
+												})}
+												{/* Module-level tests */}
+												{(module.courseTests || []).map((ct) => {
+													const testId = ct.test_id ?? ct.test?.id;
+													if (!testId) return null;
+													return (
+														<button
+															key={`test-${testId}`}
+															type="button"
+															className="lessons-page-sidebar-lesson lessons-page-sidebar-test"
+															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+														>
+															<div className="lessons-page-sidebar-lesson-icon">📝</div>
+															<span className="lessons-page-sidebar-lesson-title">{ct.test?.title || 'Test'}</span>
 														</button>
 													);
 												})}
@@ -389,6 +406,23 @@ const LessonsPage = () => {
 					) : (
 						<div className="lessons-page-sidebar-empty">
 							<p>Nu există lecții disponibile</p>
+						</div>
+					)}
+					{/* Course-level tests */}
+					{Array.isArray(course?.exams) && course.exams.filter((e) => !e.module_id).length > 0 && (
+						<div className="lessons-page-sidebar-tests-section">
+							<div className="lessons-page-sidebar-tests-header">Teste</div>
+							{course.exams.filter((e) => !e.module_id).map((exam) => (
+								<button
+									key={exam.id}
+									type="button"
+									className="lessons-page-sidebar-lesson lessons-page-sidebar-test"
+									onClick={() => navigate(`/courses/${courseId}/exams/${exam.id}`)}
+								>
+									<div className="lessons-page-sidebar-lesson-icon">📝</div>
+									<span className="lessons-page-sidebar-lesson-title">{exam.title || 'Test'}</span>
+								</button>
+							))}
 						</div>
 					)}
 				</div>
@@ -410,15 +444,6 @@ const LessonsPage = () => {
 								<p className="lessons-page-lesson-viewer-description">{currentLesson.description}</p>
 							)}
 							<div className="lessons-page-lesson-viewer-meta">
-								{currentLesson.duration_minutes && (
-									<div className="lessons-page-lesson-viewer-meta-item">
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<circle cx="12" cy="12" r="10"/>
-											<polyline points="12 6 12 12 16 14"/>
-										</svg>
-										<span>{currentLesson.duration_minutes} minute</span>
-									</div>
-								)}
 								{isCompleted && (
 									<div className="lessons-page-lesson-completed-badge">
 										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -432,23 +457,39 @@ const LessonsPage = () => {
 
 						{/* Lesson Content */}
 						<div className="lessons-page-lesson-body" ref={contentRef}>
-							{currentLesson.content ? (
-								<div 
-									className="lessons-page-lesson-content-text"
-									dangerouslySetInnerHTML={{ __html: currentLesson.content }}
-								/>
-							) : (
-								<div className="lessons-page-empty-content">
-									<div className="lessons-page-empty-icon">
-										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-											<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-										</svg>
+							{(() => {
+								const blocks = Array.isArray(currentLesson.content_blocks) ? currentLesson.content_blocks : Array.isArray(currentLesson.contentBlocks) ? currentLesson.contentBlocks : [];
+								const hasBlocks = blocks.length > 0;
+								const hasLegacyContent = currentLesson.content && currentLesson.content.trim().length > 0;
+
+								if (hasBlocks) {
+									return (
+										<div className="lessons-page-lesson-blocks">
+											<LessonBlocksPreview blocks={blocks} variant="student" />
+										</div>
+									);
+								}
+								if (hasLegacyContent) {
+									return (
+										<div
+											className="lessons-page-lesson-content-text"
+											dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+										/>
+									);
+								}
+								return (
+									<div className="lessons-page-empty-content">
+										<div className="lessons-page-empty-icon">
+											<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+												<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+											</svg>
+										</div>
+										<h3>Lecția nu are conținut configurat</h3>
+										<p>Conținutul lecției va fi disponibil în curând.</p>
 									</div>
-									<h3>Lecția nu are conținut configurat</h3>
-									<p>Conținutul lecției va fi disponibil în curând.</p>
-								</div>
-							)}
+								);
+							})()}
 						</div>
 
 						{/* Lesson Actions */}

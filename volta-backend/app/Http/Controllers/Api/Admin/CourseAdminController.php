@@ -406,7 +406,7 @@ class CourseAdminController extends Controller
         ];
 
         // Use CourseBuilderService to create course
-        $teacher = isset($validated['teacher_id']) ? User::find($validated['teacher_id']) : null;
+        $teacher = isset($validated['teacher_id']) ? User::find($validated['teacher_id']) : $request->user();
         
         // Handle image upload
         if ($request->hasFile('image')) {

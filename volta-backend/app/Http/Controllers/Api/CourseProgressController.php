@@ -72,6 +72,17 @@ class CourseProgressController extends Controller
             // Get access status (includes progress)
             try {
                 $accessStatus = $this->progressService->getUserAccessStatus($user, $course);
+                // Alias for frontend compatibility
+                $accessStatus['progress_percentage'] = $accessStatus['course_progress'] ?? 0;
+                // Flatten lessons for sidebar (lesson_id, completed)
+                $accessStatus['lessons'] = collect($accessStatus['modules'] ?? [])
+                    ->flatMap(fn ($m) => collect($m['lessons'] ?? [])->map(fn ($l) => [
+                        'lesson_id' => $l['id'],
+                        'completed' => $l['completed'] ?? false,
+                        'progress_percentage' => $l['progress_percentage'] ?? 0,
+                    ]))
+                    ->values()
+                    ->all();
             } catch (\Exception $e) {
                 \Log::error('Error getting user access status', [
                     'course_id' => $courseId,

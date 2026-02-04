@@ -161,8 +161,8 @@
    ============================================ */
 .va-profile-stats {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-	gap: var(--space-2);
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--space-4);
 	margin-bottom: var(--space-6);
 }
 
@@ -170,10 +170,11 @@
 	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-xl);
-	padding: var(--space-3);
+	padding: var(--space-5);
+	min-height: 100px;
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	gap: var(--space-3);
 	transition: all var(--transition-smooth);
 	box-shadow: var(--shadow-md), 0 0 0 1px rgba(255, 238, 0, 0.05);
 	position: relative;
@@ -198,9 +199,16 @@
 }
 
 .va-stat-icon {
-	font-size: var(--font-size-lg);
+	font-size: var(--font-size-2xl);
 	flex-shrink: 0;
 	opacity: 0.8;
+	width: 48px;
+	height: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-lg);
 }
 
 .va-stat-content {
@@ -209,10 +217,10 @@
 }
 
 .va-stat-value {
-	font-size: var(--font-size-xl);
+	font-size: var(--font-size-2xl);
 	font-weight: var(--font-weight-bold);
 	color: var(--accent-primary);
-	margin: 0 0 var(--space-1) 0;
+	margin: 0 0 var(--space-2) 0;
 	line-height: 1.2;
 	text-shadow: 0 0 15px rgba(255, 238, 0, 0.3);
 	letter-spacing: -0.02em;
@@ -229,6 +237,7 @@
 }
 
 .va-stat-card-progress {
+	min-height: 120px;
 	/* Keep horizontal layout like other cards */
 }
 

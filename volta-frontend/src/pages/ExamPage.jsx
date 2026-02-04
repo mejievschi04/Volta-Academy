@@ -28,7 +28,7 @@ const ExamPage = () => {
 		const fetchExam = async () => {
 			try {
 				setLoading(true);
-				const data = await examService.getExam(examId);
+				const data = await examService.getExam(examId, courseId);
 				setExam(data);
 
 				if (data.latest_result) {
@@ -52,7 +52,7 @@ const ExamPage = () => {
 			}
 		};
 		fetchExam();
-	}, [examId]);
+	}, [examId, courseId]);
 
 	// Timer countdown
 	useEffect(() => {
@@ -78,6 +78,15 @@ const ExamPage = () => {
 		};
 	}, [exam?.time_limit_minutes, submitted, startTime]);
 
+	// Redirect to course detail after completing a final test
+	useEffect(() => {
+		if (!submitted || !result || exam?.type !== 'final' || !courseId) return;
+		const timer = setTimeout(() => {
+			navigate(`/courses/${courseId}/detail`, { replace: true });
+		}, 2000);
+		return () => clearTimeout(timer);
+	}, [submitted, result, exam?.type, courseId, navigate]);
+
 	// Handle submit
 	const handleSubmit = useCallback(async () => {
 		try {
@@ -85,7 +94,7 @@ const ExamPage = () => {
 				clearInterval(timerIntervalRef.current);
 			}
 
-			const resultData = await examService.submitExam(examId, answers);
+			const resultData = await examService.submitExam(examId, answers, courseId);
 			setResult(resultData.result);
 			setSubmitted(true);
 
@@ -97,7 +106,7 @@ const ExamPage = () => {
 			const errorMessage = handleApiError(err, 'submitExam');
 			setError(errorMessage || 'Eroare la trimiterea testului');
 		}
-	}, [examId, answers, exam]);
+	}, [examId, answers, exam, courseId]);
 
 	// Handle retry
 	const handleRetry = useCallback(() => {
@@ -221,6 +230,16 @@ const ExamPage = () => {
 
 	return (
 		<div className="student-exam-page">
+			{/* Back link */}
+			{courseId && (
+				<Link
+					to={`/courses/${courseId}`}
+					className="student-exam-back-link"
+				>
+					← Înapoi la curs
+				</Link>
+			)}
+
 			{/* Header */}
 			<div className="student-exam-header">
 				<div className="student-exam-header-main">

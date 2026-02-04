@@ -7,6 +7,7 @@ use App\Models\Module;
 use App\Models\Course;
 use App\Services\CourseBuilderService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ModuleAdminController extends Controller
 {
@@ -70,10 +71,34 @@ class ModuleAdminController extends Controller
             'description' => 'nullable|string',
             'content' => 'nullable|string',
             'order' => 'nullable|integer|min:0',
+            'status' => 'nullable|string|in:draft,published',
+            'is_locked' => 'nullable|boolean',
+            'unlock_after_module_id' => 'nullable|integer',
+            'unlock_after_lesson_id' => 'nullable|integer',
+            'estimated_duration_minutes' => 'nullable|integer|min:0',
         ]);
 
-        // Use CourseBuilderService to update module
-        $module = $this->courseBuilderService->updateModule($module, $validated);
+        // Filter to only columns that exist and are fillable
+        $updateData = [];
+        $allowed = ['course_id', 'title', 'description', 'content', 'order', 'status', 'is_locked',
+            'unlock_after_module_id', 'unlock_after_lesson_id', 'estimated_duration_minutes'];
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $validated)) {
+                continue;
+            }
+            if (Schema::hasColumn('modules', $key)) {
+                $updateData[$key] = $validated[$key];
+            }
+        }
+
+        if (empty($updateData)) {
+            return response()->json([
+                'message' => 'Modul actualizat cu succes',
+                'module' => $module->load('course'),
+            ]);
+        }
+
+        $module = $this->courseBuilderService->updateModule($module, $updateData);
 
         return response()->json([
             'message' => 'Modul actualizat cu succes',
@@ -99,7 +124,7 @@ class ModuleAdminController extends Controller
 
         return response()->json([
             'message' => $module->is_locked ? 'Modul blocat' : 'Modul deblocat',
-            'module' => $module->load(['course', 'lessons', 'exams']),
+            'module' => $module->load(['course', 'lessons']),
         ]);
     }
 }

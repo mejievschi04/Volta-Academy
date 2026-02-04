@@ -1,156 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+	AreaChart,
+	Area,
+	BarChart,
+	Bar,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip,
+	ResponsiveContainer,
+	Legend,
+	PieChart,
+	Pie,
+	Cell,
+} from 'recharts';
 import { adminService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import './AdminAnalyticsPage.css';
+
+const PERIOD_MAP = { '7d': 'week', '30d': 'month', '90d': 'quarter' };
 
 const AdminAnalyticsPage = () => {
-	const { user } = useAuth();
 	const navigate = useNavigate();
-	const [dashboardData, setDashboardData] = useState(null);
+	const [data, setData] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [engagementPeriod, setEngagementPeriod] = useState('30d');
+	const [period, setPeriod] = useState('30d');
 	const [activityFilter, setActivityFilter] = useState('all');
 
 	useEffect(() => {
-		const fetchDashboard = async () => {
+		const fetchData = async () => {
 			try {
 				setLoading(true);
-				const data = await adminService.getDashboard({ period: '30d' });
-				setDashboardData(data);
+				const res = await adminService.getDashboard({
+					period: PERIOD_MAP[period] || 'month',
+				});
+				setData(res);
 			} catch (err) {
-				console.error('Eroare la încărcarea datelor:', err);
+				console.error('Eroare la încărcarea analiticii:', err);
 			} finally {
 				setLoading(false);
 			}
 		};
-		fetchDashboard();
-	}, []);
+		fetchData();
+	}, [period]);
 
-	// Extract data from API response
-	const kpis = dashboardData?.kpis || {};
-	const chartData = dashboardData?.chart_data || [];
-	const problematicCourses = dashboardData?.problematic_courses || [];
-	const recentActivities = dashboardData?.recent_activities || [];
+	const kpis = data?.kpis || {};
+	const chartData = data?.chart_data || [];
+	const learningFunnelApi = data?.learning_funnel || {};
+	const userSegmentsApi = data?.user_segments || {};
+	const topCourses = data?.top_courses || [];
+	const problematicCourses = data?.problematic_courses || [];
+	const recentActivities = data?.recent_activities || [];
 
-	// Calculate stats
-	const totalUsers = kpis.total_users?.value || kpis.total_users || '0';
-	const activeUsers = kpis.active_users?.value || '0';
-	const completionRate = kpis.completion_rate?.value || '0%';
-	const engagement = kpis.engagement?.value || '0%';
-	
-	const totalUsersNum = parseInt(totalUsers.toString().replace(/,/g, '')) || 0;
-	const completionRateNum = parseFloat(completionRate.toString().replace('%', '')) || 0;
-	const engagementNum = parseFloat(engagement.toString().replace('%', '')) || 0;
-	const activeUsersNum = parseInt(activeUsers.toString().replace(/,/g, '')) || 0;
+	const totalUsers = parseInt(String(kpis.total_users?.value || 0).replace(/,/g, '')) || 0;
+	const activeUsers = parseInt(String(kpis.active_users?.value || 0).replace(/,/g, '')) || 0;
+	const totalCourses = parseInt(String(kpis.total_courses?.value || 0).replace(/,/g, '')) || 0;
+	const completionRate = parseFloat(String(kpis.completion_rate?.value || 0).replace('%', '')) || 0;
+	const engagement = parseFloat(String(kpis.engagement?.value || 0).replace('%', '')) || 0;
+	const newEnrollments = parseInt(String(kpis.new_enrollments?.value || 0).replace(/,/g, '')) || 0;
 
-	// Engagement Metrics
-	const engagementMetrics = dashboardData?.engagement_metrics || {
-		dau: Math.floor(activeUsersNum * 0.3),
-		wau: Math.floor(activeUsersNum * 0.7),
-		mau: activeUsersNum,
-		avgSessionTime: 42,
-		sessionsPerUser: 3.2,
-		satisfactionScore: 4.2
-	};
+	// Chart data for Recharts
+	const chartDataFormatted = chartData.map((d) => ({
+		date: new Date(d.date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' }),
+		fullDate: d.date,
+		enrollments: d.enrollments || 0,
+		users: d.users || 0,
+		engagement: engagement,
+	}));
 
-	// Learning Funnel
-	const learningFunnelData = dashboardData?.learning_funnel || {
-		enrolled: totalUsersNum,
-		started: Math.floor(totalUsersNum * 0.85),
-		progress_25: Math.floor(totalUsersNum * 0.70),
-		progress_50: Math.floor(totalUsersNum * 0.60),
-		progress_75: Math.floor(totalUsersNum * 0.50),
-		completed: Math.floor(totalUsersNum * 0.45)
-	};
+	// Learning funnel - din API (date reale)
+	const funnelData = [
+		{ name: 'Înscriși', value: learningFunnelApi.enrolled ?? 0, fill: '#6366f1' },
+		{ name: 'Au început', value: learningFunnelApi.started ?? 0, fill: '#8b5cf6' },
+		{ name: '25%+', value: learningFunnelApi.progress_25 ?? 0, fill: '#a855f7' },
+		{ name: '50%+', value: learningFunnelApi.progress_50 ?? 0, fill: '#c084fc' },
+		{ name: '75%+', value: learningFunnelApi.progress_75 ?? 0, fill: '#d8b4fe' },
+		{ name: 'Finalizat', value: learningFunnelApi.completed ?? 0, fill: '#10b981' },
+	];
 
-	// Engagement Timeline
-	const engagementTimeline = chartData.length > 0 
-		? chartData.slice(-30).map((item, index) => ({
-			date: item.date || `Ziua ${index + 1}`,
-			engagement: item.engagement || engagementNum,
-			sessionDuration: item.session_duration || engagementMetrics.avgSessionTime
-		}))
-		: Array.from({ length: 30 }, (_, i) => ({
-			date: `Ziua ${i + 1}`,
-			engagement: engagementNum + (Math.random() * 10 - 5),
-			sessionDuration: engagementMetrics.avgSessionTime + (Math.random() * 10 - 5)
-		}));
+	// User segments - din API (date reale)
+	const segmentsRaw = [
+		{ name: 'Noi (30z)', value: userSegmentsApi.new ?? 0, color: '#6366f1' },
+		{ name: 'În risc', value: userSegmentsApi.at_risk ?? 0, color: '#ef4444' },
+		{ name: 'Implicați', value: userSegmentsApi.highly_engaged ?? 0, color: '#10b981' },
+		{ name: 'Inactivi', value: userSegmentsApi.inactive ?? 0, color: '#94a3b8' },
+	];
+	const segments = segmentsRaw.some((s) => s.value > 0) ? segmentsRaw : [{ name: 'Fără date', value: 1, color: '#94a3b8' }];
 
-	// AI Recommendations
-	const generateAIRecommendations = () => {
-		const recommendations = [];
-
-		problematicCourses.slice(0, 2).forEach(course => {
-			const dropoffRate = course.dropoff_rate || 0;
-			if (dropoffRate > 40) {
-				recommendations.push({
-					id: `risk-${course.id}`,
-					type: 'risk',
-					priority: 'high',
-					title: `Cursul "${course.title || course.name}" are risc ridicat de abandon`,
-					description: `Rata de abandon: ${dropoffRate.toFixed(0)}%`,
-					impact: 'Ridicat',
-					urgency: 'high',
-					action: 'Vezi analiza',
-					actionPath: `/admin/courses/${course.id}/analytics`
-				});
-			}
-		});
-
-		if (completionRateNum < 70) {
-			recommendations.push({
-				id: 'completion-optimization',
-				type: 'optimization',
-				priority: 'high',
-				title: 'Rata de completare poate fi îmbunătățită cu micro-learning',
-				description: `Rata actuală: ${completionRateNum.toFixed(1)}%`,
-				impact: 'Mediu',
-				urgency: 'medium',
-				action: 'Aplică sugestia',
-				actionPath: '/admin/courses'
-			});
-		}
-
-		if (engagementMetrics.dau / engagementMetrics.mau < 0.3) {
-			recommendations.push({
-				id: 'engagement-tip',
-				type: 'insight',
-				priority: 'medium',
-				title: 'Utilizatorii noi performează mai bine cu quiz la început',
-				description: 'Pattern detectat în comportamentul utilizatorilor',
-				impact: 'Mediu',
-				urgency: 'low',
-				action: 'Vezi analiza',
-				actionPath: '/admin/analytics/engagement'
-			});
-		}
-
-		return recommendations;
-	};
-
-	const aiRecommendations = generateAIRecommendations();
-
-	// User Segments
-	const userSegments = dashboardData?.user_segments || {
-		new: Math.floor(totalUsersNum * 0.15),
-		at_risk: Math.floor(totalUsersNum * 0.10),
-		highly_engaged: Math.floor(totalUsersNum * 0.25),
-		inactive: Math.floor(totalUsersNum * 0.20)
-	};
-
-	// Instructor Performance
-	const instructorPerformance = dashboardData?.instructor_performance || [];
-
-	// Filtered Activities
-	const filteredActivities = activityFilter === 'all' 
-		? recentActivities 
-		: recentActivities.filter(activity => activity.type === activityFilter);
+	const filteredActivities =
+		activityFilter === 'all'
+			? recentActivities
+			: recentActivities.filter((a) => a.type === activityFilter);
 
 	if (loading) {
 		return (
-			<div className="lms-dashboard">
-				<div className="lms-dashboard-loading">
-					<div className="lms-spinner"></div>
+			<div className="analytics-page">
+				<div className="analytics-loading">
+					<div className="analytics-spinner" />
 					<p>Se încarcă analiza...</p>
 				</div>
 			</div>
@@ -158,391 +104,411 @@ const AdminAnalyticsPage = () => {
 	}
 
 	return (
-		<div className="lms-dashboard">
+		<div className="analytics-page">
 			{/* Header */}
-			<div className="lms-section-header">
-				<div>
-					<h1 className="lms-section-title">Analiză Avansată</h1>
-					<p className="lms-section-subtitle">Analiză detaliată a performanței platformei</p>
-				</div>
-				<button 
-					className="lms-btn-secondary"
-					onClick={() => navigate('/admin')}
-				>
-					← Înapoi la Dashboard
-				</button>
-			</div>
-
-			{/* 1. Learning Analytics Core */}
-			<div className="lms-analytics-grid">
-				{/* Learning Funnel */}
-				<div className="lms-analytics-card">
-					<div className="lms-card-header">
-						<h3 className="lms-card-title">Funnel de Învățare</h3>
-						<p className="lms-card-subtitle">Progresie cursanți prin etape</p>
-					</div>
-					<LearningFunnel data={learningFunnelData} />
-				</div>
-
-				{/* Engagement Timeline */}
-				<div className="lms-analytics-card">
-					<div className="lms-card-header">
-						<h3 className="lms-card-title">Evoluția Implicării</h3>
-						<div className="lms-card-actions">
-							<button 
-								className={`lms-period-btn ${engagementPeriod === '7d' ? 'active' : ''}`}
-								onClick={() => setEngagementPeriod('7d')}
-							>
-								7 zile
-							</button>
-							<button 
-								className={`lms-period-btn ${engagementPeriod === '30d' ? 'active' : ''}`}
-								onClick={() => setEngagementPeriod('30d')}
-							>
-								30 zile
-							</button>
-							<button 
-								className={`lms-period-btn ${engagementPeriod === '90d' ? 'active' : ''}`}
-								onClick={() => setEngagementPeriod('90d')}
-							>
-								90 zile
-							</button>
-						</div>
-					</div>
-					<EngagementTimeline data={engagementTimeline} period={engagementPeriod} />
-				</div>
-			</div>
-
-			{/* 2. AI Insights & Recommendations */}
-			{aiRecommendations.length > 0 && (
-				<div className="lms-ai-section">
-					<div className="lms-section-header">
-						<div>
-							<h2 className="lms-section-title">Recomandări AI</h2>
-							<p className="lms-section-subtitle">Sugestii inteligente bazate pe analiza datelor</p>
-						</div>
-					</div>
-					<div className="lms-ai-grid">
-						{aiRecommendations.map((rec) => (
-							<AIInsightCard key={rec.id} recommendation={rec} navigate={navigate} />
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* 3. Users & Instructors Intelligence */}
-			<div className="lms-intelligence-grid">
-				{/* User Segments */}
-				<div className="lms-analytics-card">
-					<div className="lms-card-header">
-						<h3 className="lms-card-title">Segmente Utilizatori</h3>
-						<p className="lms-card-subtitle">Distribuția utilizatorilor pe segmente</p>
-					</div>
-					<UserSegments segments={userSegments} total={totalUsersNum} />
-				</div>
-
-				{/* Instructor Performance */}
-				<div className="lms-analytics-card">
-					<div className="lms-card-header">
-						<h3 className="lms-card-title">Performanța Instructorilor</h3>
-						<p className="lms-card-subtitle">Metrici de performanță pentru instructori</p>
-					</div>
-					<InstructorPerformance data={instructorPerformance} />
-				</div>
-			</div>
-
-			{/* 4. Smart Activity Feed */}
-			<div className="lms-activity-section">
-				<div className="lms-section-header">
+			<header className="analytics-header">
+				<div className="analytics-header-content">
 					<div>
-						<h2 className="lms-section-title">Feed de Activitate</h2>
-						<p className="lms-section-subtitle">Evenimente și activități importante</p>
+						<h1 className="analytics-title">Analiză Avansată</h1>
+						<p className="analytics-subtitle">
+							Statistici detaliate și insight-uri pentru optimizarea platformei
+						</p>
 					</div>
-					<div className="lms-activity-filters">
-						<button 
-							className={`lms-filter-btn ${activityFilter === 'all' ? 'active' : ''}`}
-							onClick={() => setActivityFilter('all')}
+					<div className="analytics-header-actions">
+						<div className="analytics-period-tabs">
+							{['7d', '30d', '90d'].map((p) => (
+								<button
+									key={p}
+									className={`analytics-period-btn ${period === p ? 'active' : ''}`}
+									onClick={() => setPeriod(p)}
+								>
+									{p === '7d' ? '7 zile' : p === '30d' ? '30 zile' : '90 zile'}
+								</button>
+							))}
+						</div>
+						<button
+							className="analytics-back-btn"
+							onClick={() => navigate('/admin')}
 						>
-							Toate
-						</button>
-						<button 
-							className={`lms-filter-btn ${activityFilter === 'users' ? 'active' : ''}`}
-							onClick={() => setActivityFilter('users')}
-						>
-							Utilizatori
-						</button>
-						<button 
-							className={`lms-filter-btn ${activityFilter === 'courses' ? 'active' : ''}`}
-							onClick={() => setActivityFilter('courses')}
-						>
-							Cursuri
-						</button>
-						<button 
-							className={`lms-filter-btn ${activityFilter === 'system' ? 'active' : ''}`}
-							onClick={() => setActivityFilter('system')}
-						>
-							Sistem
-						</button>
-						<button 
-							className={`lms-filter-btn ${activityFilter === 'ai' ? 'active' : ''}`}
-							onClick={() => setActivityFilter('ai')}
-						>
-							AI
+							← Dashboard
 						</button>
 					</div>
 				</div>
-				<SmartActivityFeed activities={filteredActivities} />
-			</div>
-		</div>
-	);
-};
+			</header>
 
-// Component: Learning Funnel
-const LearningFunnel = ({ data }) => {
-	const stages = [
-		{ key: 'enrolled', label: 'Înscriere', count: data.enrolled, color: '#FFEE00' },
-		{ key: 'started', label: 'Start', count: data.started, color: '#FFEE00' },
-		{ key: 'progress_25', label: '25%', count: data.progress_25, color: '#FFEE00' },
-		{ key: 'progress_50', label: '50%', count: data.progress_50, color: '#A855F7' },
-		{ key: 'progress_75', label: '75%', count: data.progress_75, color: '#C084FC' },
-		{ key: 'completed', label: 'Finalizare', count: data.completed, color: '#10B981' }
-	];
+			{/* KPI Cards */}
+			<section className="analytics-kpis">
+				<KpiCard
+					label="Utilizatori totali"
+					value={totalUsers.toLocaleString()}
+					trend={kpis.total_users?.trend}
+					trendValue={kpis.total_users?.trendValue}
+					icon="users"
+				/>
+				<KpiCard
+					label="Utilizatori activi"
+					value={activeUsers.toLocaleString()}
+					trend={kpis.active_users?.trend}
+					trendValue={kpis.active_users?.trendValue}
+					icon="activity"
+				/>
+				<KpiCard
+					label="Rata finalizare"
+					value={`${completionRate.toFixed(1)}%`}
+					trend={kpis.completion_rate?.trend}
+					trendValue={kpis.completion_rate?.trendValue}
+					icon="check"
+				/>
+				<KpiCard
+					label="Implicare medie"
+					value={`${engagement.toFixed(1)}%`}
+					trend={kpis.engagement?.trend}
+					trendValue={kpis.engagement?.trendValue}
+					icon="chart"
+				/>
+				<KpiCard
+					label="Înscrieri noi"
+					value={newEnrollments.toLocaleString()}
+					trend={kpis.new_enrollments?.trend}
+					trendValue={kpis.new_enrollments?.trendValue}
+					icon="enroll"
+				/>
+			</section>
 
-	const maxCount = Math.max(...stages.map(s => s.count), 1);
-
-	return (
-		<div className="lms-funnel">
-			<div className="lms-funnel-stages">
-				{stages.map((stage, index) => {
-					const width = (stage.count / maxCount) * 100;
-					const dropoff = index > 0 
-						? ((stages[index - 1].count - stage.count) / stages[index - 1].count * 100).toFixed(1)
-						: 0;
-					
-					return (
-						<div key={stage.key} className="lms-funnel-stage" onClick={() => console.log('Detalii:', stage.key)}>
-							<div className="lms-funnel-stage-header">
-								<span className="lms-funnel-label">{stage.label}</span>
-								<span className="lms-funnel-count">{stage.count.toLocaleString()}</span>
-							</div>
-							<div className="lms-funnel-bar-wrapper">
-								<div 
-									className="lms-funnel-bar"
-									style={{ 
-										width: `${width}%`,
-										backgroundColor: stage.color
+			{/* Charts Row 1 */}
+			<section className="analytics-charts-row">
+				<div className="analytics-card analytics-card-wide">
+					<div className="analytics-card-header">
+						<div>
+							<h3>Evoluția înscrierilor și utilizatori noi</h3>
+							<p>Activitate în perioada selectată</p>
+						</div>
+					</div>
+					<div className="analytics-chart-container">
+						<ResponsiveContainer width="100%" height={280}>
+							<AreaChart data={chartDataFormatted}>
+								<defs>
+									<linearGradient id="colorEnrollments" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+										<stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+									</linearGradient>
+									<linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+										<stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+									</linearGradient>
+								</defs>
+								<CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+								<XAxis dataKey="date" stroke="var(--text-tertiary)" fontSize={12} />
+								<YAxis stroke="var(--text-tertiary)" fontSize={12} />
+								<Tooltip
+									contentStyle={{
+										background: 'var(--bg-elevated)',
+										border: '1px solid var(--border-primary)',
+										borderRadius: 'var(--radius-lg)',
 									}}
-								></div>
+									labelStyle={{ color: 'var(--text-primary)' }}
+								/>
+								<Legend />
+								<Area
+									type="monotone"
+									dataKey="enrollments"
+									name="Înscrieri"
+									stroke="#6366f1"
+									fillOpacity={1}
+									fill="url(#colorEnrollments)"
+									strokeWidth={2}
+								/>
+								<Area
+									type="monotone"
+									dataKey="users"
+									name="Utilizatori noi"
+									stroke="#10b981"
+									fillOpacity={1}
+									fill="url(#colorUsers)"
+									strokeWidth={2}
+								/>
+							</AreaChart>
+						</ResponsiveContainer>
+					</div>
+				</div>
+			</section>
+
+			{/* Charts Row 2 - Funnel + Segments */}
+			<section className="analytics-charts-grid">
+				<div className="analytics-card">
+					<div className="analytics-card-header">
+						<div>
+							<h3>Funnel de învățare</h3>
+							<p>Progresie prin etape</p>
+						</div>
+					</div>
+					<div className="analytics-chart-container analytics-chart-bar">
+						<ResponsiveContainer width="100%" height={260}>
+							<BarChart data={funnelData} layout="vertical" margin={{ left: 20, right: 20 }}>
+								<CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+								<XAxis type="number" stroke="var(--text-tertiary)" fontSize={12} />
+								<YAxis type="category" dataKey="name" stroke="var(--text-tertiary)" fontSize={12} width={90} />
+								<Tooltip
+									contentStyle={{
+										background: 'var(--bg-elevated)',
+										border: '1px solid var(--border-primary)',
+										borderRadius: 'var(--radius-lg)',
+									}}
+								/>
+								<Bar dataKey="value" name="Utilizatori" radius={[0, 4, 4, 0]} />
+							</BarChart>
+						</ResponsiveContainer>
+					</div>
+				</div>
+
+				<div className="analytics-card">
+					<div className="analytics-card-header">
+						<div>
+							<h3>Segmente utilizatori</h3>
+							<p>Distribuție pe categorii</p>
+						</div>
+					</div>
+					<div className="analytics-chart-container analytics-chart-pie">
+						<ResponsiveContainer width="100%" height={260}>
+							<PieChart>
+								<Pie
+									data={segments}
+									cx="50%"
+									cy="50%"
+									innerRadius={60}
+									outerRadius={90}
+									paddingAngle={2}
+									dataKey="value"
+									nameKey="name"
+									label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+								>
+									{segments.map((entry, index) => (
+										<Cell key={index} fill={entry.color} />
+									))}
+								</Pie>
+								<Tooltip
+									contentStyle={{
+										background: 'var(--bg-elevated)',
+										border: '1px solid var(--border-primary)',
+										borderRadius: 'var(--radius-lg)',
+									}}
+									formatter={(value) => [value.toLocaleString(), 'Utilizatori']}
+								/>
+							</PieChart>
+						</ResponsiveContainer>
+					</div>
+				</div>
+			</section>
+
+			{/* Top Courses + Problematic */}
+			<section className="analytics-charts-grid">
+				<div className="analytics-card">
+					<div className="analytics-card-header">
+						<div>
+							<h3>Top cursuri</h3>
+							<p>După înscrieri în perioada selectată</p>
+						</div>
+					</div>
+					<div className="analytics-top-courses">
+						{topCourses.length > 0 ? (
+							<ResponsiveContainer width="100%" height={220}>
+								<BarChart
+									data={topCourses.map((c) => ({
+										name: c.title?.length > 25 ? c.title.slice(0, 25) + '…' : c.title,
+										enrollments: c.enrollments || 0,
+										completion: c.completion_rate || 0,
+									}))}
+									layout="vertical"
+									margin={{ left: 10, right: 20 }}
+								>
+									<CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
+									<XAxis type="number" stroke="var(--text-tertiary)" fontSize={11} />
+									<YAxis type="category" dataKey="name" stroke="var(--text-tertiary)" fontSize={11} width={120} />
+									<Tooltip
+										contentStyle={{
+											background: 'var(--bg-elevated)',
+											border: '1px solid var(--border-primary)',
+											borderRadius: 'var(--radius-lg)',
+										}}
+									/>
+									<Bar dataKey="enrollments" name="Înscrieri" fill="#6366f1" radius={[0, 4, 4, 0]} />
+								</BarChart>
+							</ResponsiveContainer>
+						) : (
+							<div className="analytics-empty">Nu există date pentru cursuri</div>
+						)}
+					</div>
+				</div>
+
+				<div className="analytics-card">
+					<div className="analytics-card-header">
+						<div>
+							<h3>Cursuri care necesită atenție</h3>
+							<p>Rată scăzută de finalizare sau abandon ridicat</p>
+						</div>
+					</div>
+					<div className="analytics-problematic">
+						{problematicCourses.length > 0 ? (
+							<ul className="analytics-problematic-list">
+								{problematicCourses.slice(0, 5).map((c) => (
+									<li
+										key={c.id}
+										className="analytics-problematic-item"
+										onClick={() => navigate(`/admin/courses/${c.id}`)}
+									>
+										<span className="analytics-problematic-title">{c.title}</span>
+										<div className="analytics-problematic-meta">
+											<span className="analytics-badge analytics-badge-warn">
+												Finalizare: {c.completion_rate}%
+											</span>
+											<span className="analytics-badge analytics-badge-danger">
+												Abandon: {c.dropoff_rate}%
+											</span>
+										</div>
+									</li>
+								))}
+							</ul>
+						) : (
+							<div className="analytics-empty">Toate cursurile performează bine</div>
+						)}
+					</div>
+				</div>
+			</section>
+
+			{/* AI Recommendations */}
+			{(problematicCourses.length > 0 || completionRate < 70) && (
+				<section className="analytics-section">
+					<h2 className="analytics-section-title">Recomandări AI</h2>
+					<div className="analytics-ai-grid">
+						{problematicCourses.slice(0, 2).map((c) => (
+							<div
+								key={c.id}
+								className="analytics-ai-card analytics-ai-card-risk"
+								onClick={() => navigate(`/admin/courses/${c.id}`)}
+							>
+								<div className="analytics-ai-icon">⚠️</div>
+								<div className="analytics-ai-content">
+									<h4>Cursul „{c.title}” are risc ridicat de abandon</h4>
+									<p>Rată abandon: {c.dropoff_rate}% • Finalizare: {c.completion_rate}%</p>
+									<span className="analytics-ai-action">Vezi analiza →</span>
+								</div>
 							</div>
-							{index > 0 && dropoff > 0 && (
-								<div className="lms-funnel-dropoff">↓ {dropoff}%</div>
-							)}
-						</div>
-					);
-				})}
-			</div>
-		</div>
-	);
-};
-
-// Component: Engagement Timeline
-const EngagementTimeline = ({ data, period }) => {
-	const filteredData = period === '7d' ? data.slice(-7) : period === '30d' ? data.slice(-30) : data;
-	const maxEngagement = Math.max(...filteredData.map(d => d.engagement), 1);
-	const maxDuration = Math.max(...filteredData.map(d => d.sessionDuration), 1);
-
-	return (
-		<div className="lms-timeline">
-			<div className="lms-timeline-legend">
-				<div className="lms-legend-item">
-					<span className="lms-legend-dot" style={{ backgroundColor: '#FFEE00' }}></span>
-					<span>Implicare</span>
-				</div>
-				<div className="lms-legend-item">
-					<span className="lms-legend-dot" style={{ backgroundColor: '#10B981' }}></span>
-					<span>Durata Sesiune</span>
-				</div>
-			</div>
-			<div className="lms-timeline-chart">
-				<svg width="100%" height="200" viewBox={`0 0 ${filteredData.length * 20} 200`} preserveAspectRatio="none">
-					<polyline
-						points={filteredData.map((d, i) => `${i * 20},${200 - (d.engagement / maxEngagement) * 180}`).join(' ')}
-						fill="none"
-						stroke="#FFEE00"
-						strokeWidth="2"
-						strokeLinecap="round"
-					/>
-					<polyline
-						points={filteredData.map((d, i) => `${i * 20},${200 - (d.sessionDuration / maxDuration) * 180}`).join(' ')}
-						fill="none"
-						stroke="#10B981"
-						strokeWidth="2"
-						strokeLinecap="round"
-					/>
-				</svg>
-			</div>
-		</div>
-	);
-};
-
-// Component: AI Insight Card
-const AIInsightCard = ({ recommendation, navigate }) => {
-	const getPriorityColor = (priority) => {
-		switch (priority) {
-			case 'high': return '#EF4444';
-			case 'medium': return '#F59E0B';
-			case 'low': return '#84CC16';
-			default: return '#FFEE00';
-		}
-	};
-
-	return (
-		<div className="lms-ai-card">
-			<div className="lms-ai-card-header">
-				<div className="lms-ai-priority" style={{ backgroundColor: getPriorityColor(recommendation.priority) + '20', borderColor: getPriorityColor(recommendation.priority) }}>
-					{recommendation.priority === 'high' ? 'Ridicat' : recommendation.priority === 'medium' ? 'Mediu' : 'Scăzut'}
-				</div>
-			</div>
-			<h3 className="lms-ai-title">{recommendation.title}</h3>
-			<p className="lms-ai-description">{recommendation.description}</p>
-			<div className="lms-ai-meta">
-				<span className="lms-ai-impact">Impact: {recommendation.impact}</span>
-				<span className="lms-ai-urgency">Urgență: {recommendation.urgency === 'high' ? 'Ridicată' : recommendation.urgency === 'medium' ? 'Medie' : 'Scăzută'}</span>
-			</div>
-			<div className="lms-ai-actions">
-				<button 
-					className="lms-btn-primary lms-btn-sm"
-					onClick={() => navigate(recommendation.actionPath)}
-				>
-					{recommendation.action}
-				</button>
-			</div>
-		</div>
-	);
-};
-
-// Component: Premium Empty State
-const PremiumEmptyState = ({ title, description, suggestions }) => {
-	return (
-		<div className="lms-empty-state">
-			<div className="lms-empty-icon">✨</div>
-			<h3 className="lms-empty-title">{title}</h3>
-			<p className="lms-empty-description">{description}</p>
-			{suggestions && suggestions.length > 0 && (
-				<div className="lms-empty-suggestions">
-					<p className="lms-empty-suggestions-title">Îmbunătățiri proactive:</p>
-					<ul>
-						{suggestions.map((suggestion, index) => (
-							<li key={index}>{suggestion}</li>
 						))}
-					</ul>
-				</div>
+						{completionRate < 70 && (
+							<div className="analytics-ai-card analytics-ai-card-optimize">
+								<div className="analytics-ai-icon">💡</div>
+								<div className="analytics-ai-content">
+									<h4>Rata de finalizare poate fi îmbunătățită</h4>
+									<p>Rata actuală: {completionRate.toFixed(1)}%. Consideră micro-learning și quiz-uri scurte.</p>
+									<span className="analytics-ai-action" onClick={() => navigate('/admin/courses')}>
+										Vezi cursuri →
+									</span>
+								</div>
+							</div>
+						)}
+					</div>
+				</section>
 			)}
-		</div>
-	);
-};
 
-// Component: User Segments
-const UserSegments = ({ segments, total }) => {
-	const segmentData = [
-		{ key: 'new', label: 'Noi', count: segments.new, color: '#FFEE00' },
-		{ key: 'at_risk', label: 'În Risc', count: segments.at_risk, color: '#EF4444' },
-		{ key: 'highly_engaged', label: 'Foarte Implicați', count: segments.highly_engaged, color: '#10B981' },
-		{ key: 'inactive', label: 'Inactivi', count: segments.inactive, color: '#94A3B8' }
-	];
-
-	return (
-		<div className="lms-segments">
-			{segmentData.map((segment) => {
-				const percentage = total > 0 ? ((segment.count / total) * 100).toFixed(1) : 0;
-				return (
-					<div key={segment.key} className="lms-segment-item">
-						<div className="lms-segment-header">
-							<span className="lms-segment-label">{segment.label}</span>
-							<span className="lms-segment-count">{segment.count.toLocaleString()}</span>
-						</div>
-						<div className="lms-segment-bar">
-							<div 
-								className="lms-segment-fill"
-								style={{ 
-									width: `${percentage}%`,
-									backgroundColor: segment.color
-								}}
-							></div>
-						</div>
-						<span className="lms-segment-percentage">{percentage}%</span>
+			{/* Activity Feed */}
+			<section className="analytics-section">
+				<div className="analytics-section-header">
+					<div>
+						<h2 className="analytics-section-title">Feed activitate</h2>
+						<p className="analytics-section-subtitle">Evenimente recente pe platformă</p>
 					</div>
-				);
-			})}
-		</div>
-	);
-};
-
-// Component: Instructor Performance
-const InstructorPerformance = ({ data }) => {
-	if (!data || data.length === 0) {
-		return (
-			<PremiumEmptyState 
-				title="Nu există date despre instructori"
-				description="Metricile de performanță ale instructorilor vor apărea aici"
-			/>
-		);
-	}
-
-	return (
-		<div className="lms-instructors">
-			{data.slice(0, 5).map((instructor, index) => (
-				<div key={index} className="lms-instructor-item">
-					<div className="lms-instructor-info">
-						<span className="lms-instructor-name">{instructor.name || 'Instructor'}</span>
-						<span className="lms-instructor-meta">Implicare: {instructor.engagement || 'N/A'}</span>
-					</div>
-					<div className="lms-instructor-stats">
-						<span>Retenție: {instructor.retention || 'N/A'}</span>
-						<span>Feedback: {instructor.feedback || 'N/A'}</span>
+					<div className="analytics-activity-filters">
+						{['all', 'completion', 'exam_submitted'].map((f) => (
+							<button
+								key={f}
+								className={`analytics-filter-btn ${activityFilter === f ? 'active' : ''}`}
+								onClick={() => setActivityFilter(f)}
+							>
+								{f === 'all' ? 'Toate' : f === 'completion' ? 'Finalizări' : 'Teste'}
+							</button>
+						))}
 					</div>
 				</div>
-			))}
+				<div className="analytics-activity-feed">
+					{filteredActivities.length > 0 ? (
+						filteredActivities.slice(0, 12).map((a, i) => (
+							<div key={a.id || i} className="analytics-activity-item">
+								<span className="analytics-activity-icon">
+									{a.type === 'completion' ? '✅' : a.type === 'exam_submitted' ? '📝' : 'ℹ️'}
+								</span>
+								<div className="analytics-activity-content">
+									<p>{a.description || a.message || 'Activitate'}</p>
+									<time>
+										{a.created_at
+											? new Date(a.created_at).toLocaleDateString('ro-RO', {
+													day: '2-digit',
+													month: 'short',
+													hour: '2-digit',
+													minute: '2-digit',
+											  })
+											: 'Recent'}
+									</time>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="analytics-empty">Nu există activitate recentă</div>
+					)}
+				</div>
+			</section>
 		</div>
 	);
 };
 
-// Component: Smart Activity Feed
-const SmartActivityFeed = ({ activities }) => {
-	if (!activities || activities.length === 0) {
-		return (
-			<PremiumEmptyState 
-				title="Nu există activitate recentă"
-				description="Feed-ul de activitate va afișa evenimente importante și anomalii"
-			/>
-		);
-	}
-
+function KpiCard({ label, value, trend, trendValue, icon }) {
 	return (
-		<div className="lms-activity-feed">
-			{activities.slice(0, 10).map((activity, index) => {
-				const isCritical = activity.severity === 'critical';
-				const isAnomaly = activity.type === 'anomaly' || activity.type === 'spike';
-				
-				return (
-					<div 
-						key={activity.id || index} 
-						className={`lms-activity-item ${isCritical ? 'critical' : ''} ${isAnomaly ? 'anomaly' : ''}`}
-					>
-						<div className="lms-activity-icon">
-							{isCritical ? '⚠️' : isAnomaly ? '📊' : 'ℹ️'}
-						</div>
-						<div className="lms-activity-content">
-							<p className="lms-activity-text">{activity.description || activity.message || 'Activitate'}</p>
-							<span className="lms-activity-time">
-								{activity.created_at ? new Date(activity.created_at).toLocaleDateString('ro-RO') : 'Recent'}
-							</span>
-						</div>
-					</div>
-				);
-			})}
+		<div className="analytics-kpi-card">
+			<div className="analytics-kpi-icon">
+				{icon === 'users' && (
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+						<circle cx="9" cy="7" r="4" />
+						<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+					</svg>
+				)}
+				{icon === 'activity' && (
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+					</svg>
+				)}
+				{icon === 'check' && (
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+						<polyline points="22 4 12 14.01 9 11.01" />
+					</svg>
+				)}
+				{icon === 'chart' && (
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<line x1="18" y1="20" x2="18" y2="10" />
+						<line x1="12" y1="20" x2="12" y2="4" />
+						<line x1="6" y1="20" x2="6" y2="14" />
+					</svg>
+				)}
+				{icon === 'enroll' && (
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+						<circle cx="9" cy="7" r="4" />
+						<line x1="19" y1="8" x2="19" y2="14" />
+						<line x1="22" y1="11" x2="16" y2="11" />
+					</svg>
+				)}
+			</div>
+			<div className="analytics-kpi-content">
+				<span className="analytics-kpi-label">{label}</span>
+				<span className="analytics-kpi-value">{value}</span>
+				{trendValue && (
+					<span className={`analytics-kpi-trend ${trend === 'up' ? 'up' : 'down'}`}>
+						{trend === 'up' ? '↑' : '↓'} {trendValue}
+					</span>
+				)}
+			</div>
 		</div>
 	);
-};
+}
 
 export default AdminAnalyticsPage;

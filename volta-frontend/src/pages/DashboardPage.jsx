@@ -57,10 +57,9 @@ const DashboardPage = () => {
 		global_progress, 
 		active_courses, 
 		next_lesson, 
-		learning_time, 
+		test_completion_percentage, 
 		incomplete_lessons, 
 		pending_exams, 
-		badges,
 		stats 
 	} = dashboardData;
 
@@ -143,10 +142,10 @@ const DashboardPage = () => {
 							</div>
 						</div>
 						<div className="student-quick-stat student-quick-stat-warning">
-							<div className="student-quick-stat-icon">⏱️</div>
+							<div className="student-quick-stat-icon">📝</div>
 							<div className="student-quick-stat-content">
-								<div className="student-quick-stat-value">{learning_time.formatted}</div>
-								<div className="student-quick-stat-label">Ore de Formare</div>
+								<div className="student-quick-stat-value">{test_completion_percentage?.formatted ?? (test_completion_percentage?.value ?? 0) + '%'}</div>
+								<div className="student-quick-stat-label">Procent realizare teste</div>
 							</div>
 						</div>
 					</div>

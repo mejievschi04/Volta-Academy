@@ -46,9 +46,6 @@ class AchievementController extends Controller
             $learningHours = round($totalMinutes / 60, 1);
         }
 
-        // Get badges (based on milestones)
-        $badges = $this->getUserBadges($user);
-
         // Get milestones
         $milestones = $this->getUserMilestones($user);
 
@@ -56,97 +53,8 @@ class AchievementController extends Controller
             'completed_courses' => $completedCourses,
             'completed_lessons' => $completedLessons,
             'learning_hours' => $learningHours,
-            'badges_count' => count($badges),
-            'badges' => $badges,
             'milestones' => $milestones,
         ]);
-    }
-
-    /**
-     * Get user badges
-     */
-    private function getUserBadges($user)
-    {
-        $badges = [];
-
-        // First course completed
-        $firstCourse = DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->where('enrolled', true)
-            ->whereNotNull('completed_at')
-            ->orderBy('completed_at', 'asc')
-            ->first();
-
-        if ($firstCourse) {
-            $badges[] = [
-                'icon' => '🎓',
-                'title' => 'Primul curs finalizat',
-                'description' => 'Ai finalizat primul tău curs!',
-                'earned_at' => $firstCourse->completed_at,
-            ];
-        }
-
-        // 5 courses completed
-        $completedCourses = DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->where('enrolled', true)
-            ->whereNotNull('completed_at')
-            ->count();
-
-        if ($completedCourses >= 5) {
-            $badges[] = [
-                'icon' => '🌟',
-                'title' => '5 cursuri finalizate',
-                'description' => 'Ai finalizat 5 cursuri!',
-                'earned_at' => DB::table('course_user')
-                    ->where('user_id', $user->id)
-                    ->where('enrolled', true)
-                    ->whereNotNull('completed_at')
-                    ->orderBy('completed_at', 'asc')
-                    ->offset(4)
-                    ->value('completed_at'),
-            ];
-        }
-
-        // 10 courses completed
-        if ($completedCourses >= 10) {
-            $badges[] = [
-                'icon' => '🏆',
-                'title' => '10 cursuri finalizate',
-                'description' => 'Ai finalizat 10 cursuri!',
-                'earned_at' => DB::table('course_user')
-                    ->where('user_id', $user->id)
-                    ->where('enrolled', true)
-                    ->whereNotNull('completed_at')
-                    ->orderBy('completed_at', 'asc')
-                    ->offset(9)
-                    ->value('completed_at'),
-            ];
-        }
-
-        // 50 lessons completed
-        if (Schema::hasTable('lesson_progress')) {
-            $completedLessons = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('completed', true)
-                ->count();
-
-            if ($completedLessons >= 50) {
-                $badges[] = [
-                    'icon' => '📚',
-                    'title' => '50 lecții finalizate',
-                    'description' => 'Ai finalizat 50 de lecții!',
-                    'earned_at' => DB::table('lesson_progress')
-                        ->where('user_id', $user->id)
-                        ->where('completed', true)
-                        ->orderBy('completed_at', 'asc')
-                        ->offset(49)
-                        ->value('completed_at'),
-                ];
-            }
-        }
-
-        return $badges;
     }
 
     /**

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ProgressIndicator = ({ progress, size = 'medium', showPercentage = true, animated = true }) => {
+const ProgressIndicator = React.memo(({ progress, size = 'medium', showPercentage = true, animated = true }) => {
 	const progressPercentage = Math.min(100, Math.max(0, progress || 0));
 	
 	const sizes = {
@@ -29,7 +29,9 @@ const ProgressIndicator = ({ progress, size = 'medium', showPercentage = true, a
 			)}
 		</div>
 	);
-};
+});
+
+ProgressIndicator.displayName = 'ProgressIndicator';
 
 export default ProgressIndicator;
 

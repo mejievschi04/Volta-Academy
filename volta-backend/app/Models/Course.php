@@ -42,6 +42,7 @@ class Course extends Model
         'marketing_tags',
         'has_certificate',
         'min_test_score',
+        'min_exam_score', // Legacy - some migrations use this name
         'allow_retake',
         'max_retakes',
         'drip_content',

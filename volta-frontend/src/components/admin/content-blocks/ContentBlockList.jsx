@@ -16,22 +16,34 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+const blockPreviewText = (block) => {
+	if (block.type === 'gallery') {
+		const imgs = Array.isArray(block.metadata?.images) ? block.metadata.images : [];
+		return imgs.length > 0 ? `${imgs.length} imagini` : 'Fără imagini';
+	}
+	return block.source ? block.source : 'Fără conținut';
+};
+
 const typeLabel = (type) => {
 	switch (type) {
 		case 'text':
 			return 'Text';
+		case 'image':
+			return 'Imagine';
+		case 'gallery':
+			return 'Galerie';
 		case 'video':
 			return 'Video';
 		case 'embed':
-			return 'Embed';
+			return 'Încorporare';
 		case 'file':
 			return 'Fișier';
 		case 'audio':
 			return 'Audio';
 		case 'link':
-			return 'Link';
+			return 'Legătură';
 		default:
-			return type || 'Block';
+			return type || 'Bloc';
 	}
 };
 
@@ -39,6 +51,10 @@ const typeIcon = (type) => {
 	switch (type) {
 		case 'text':
 			return '📝';
+		case 'image':
+			return '🖼️';
+		case 'gallery':
+			return '🖼️📷';
 		case 'video':
 			return '🎬';
 		case 'embed':
@@ -54,7 +70,7 @@ const typeIcon = (type) => {
 	}
 };
 
-const SortableBlockRow = ({ block, isSelected, onSelect }) => {
+const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: block.id,
 	});
@@ -69,7 +85,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect }) => {
 		<div
 			ref={setNodeRef}
 			style={style}
-			className="admin-card"
+			className={`admin-course-builder-block-card ${isSelected ? 'is-selected' : ''}`}
 			onClick={() => onSelect(block.id)}
 			role="button"
 			tabIndex={0}
@@ -77,7 +93,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect }) => {
 				if (e.key === 'Enter' || e.key === ' ') onSelect(block.id);
 			}}
 		>
-			<div className="admin-card-body" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+			<div className="admin-course-builder-block-card-body">
 				<div
 					className="admin-module-card-drag-handle"
 					{...attributes}
@@ -108,15 +124,28 @@ const SortableBlockRow = ({ block, isSelected, onSelect }) => {
 						)}
 					</div>
 					<div style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-						{block.source ? block.source : 'Fără conținut'}
+						{blockPreviewText(block)}
 					</div>
 				</div>
+				{onDelete && (
+					<button
+						type="button"
+						className="lms-btn-icon va-btn-danger admin-block-delete-btn"
+						title="Șterge"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete(block.id);
+						}}
+					>
+						🗑️
+					</button>
+				)}
 			</div>
 		</div>
 	);
 };
 
-const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlocks, disabled }) => {
+const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlocks, onDeleteBlock, disabled }) => {
 	const [activeId, setActiveId] = useState(null);
 
 	const sensors = useSensors(
@@ -143,16 +172,16 @@ const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlo
 
 	if (!blocks || blocks.length === 0) {
 		return (
-			<div className="lms-empty-state">
-				<div className="lms-empty-icon">🧱</div>
-				<div className="lms-empty-title">Nu există content blocks</div>
-				<div className="lms-empty-description">Adaugă primul block pentru a începe.</div>
+			<div className="admin-course-builder-blocks-empty">
+				<div className="admin-course-builder-blocks-empty-icon">🧱</div>
+				<div className="admin-course-builder-blocks-empty-title">Nu există blocuri de conținut</div>
+				<div className="admin-course-builder-blocks-empty-desc">Adaugă primul block pentru a începe.</div>
 			</div>
 		);
 	}
 
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+		<div className="admin-course-builder-blocks-list">
 			<DndContext
 				sensors={sensors}
 				collisionDetection={closestCenter}
@@ -166,6 +195,7 @@ const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlo
 							block={block}
 							isSelected={block.id === selectedBlockId}
 							onSelect={disabled ? () => {} : onSelectBlock}
+							onDelete={disabled ? null : onDeleteBlock}
 						/>
 					))}
 				</SortableContext>

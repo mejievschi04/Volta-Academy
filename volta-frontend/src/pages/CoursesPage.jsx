@@ -289,7 +289,7 @@ const CoursesPage = () => {
 									{/* Thumbnail */}
 									<div className="courses-page-card-thumbnail">
 										{course.image_url ? (
-											<img src={course.image_url} alt={course.title} />
+											<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
 										) : (
 											<div className="courses-page-card-placeholder">
 												<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

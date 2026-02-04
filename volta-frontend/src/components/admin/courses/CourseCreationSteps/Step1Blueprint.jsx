@@ -164,23 +164,6 @@ const Step1Blueprint = ({ data, onUpdate }) => {
 											/>
 										</div>
 										
-										<div className="step1-form-row">
-											<div className="step1-form-group">
-												<label>Durată estimată (ore)</label>
-												<input
-													type="number"
-													min="0"
-													step="0.5"
-													value={module.duration_estimate || ''}
-													onChange={(e) => handleUpdateModule(module.id, { 
-														duration_estimate: e.target.value ? parseFloat(e.target.value) : null 
-													})}
-													className="step1-input"
-												/>
-											</div>
-											
-										</div>
-										
 										{/* Lessons */}
 										<div className="step1-lessons">
 											<div className="step1-lessons-header">
@@ -207,18 +190,6 @@ const Step1Blueprint = ({ data, onUpdate }) => {
 																	placeholder="Titlu lecție"
 																	className="step1-lesson-title-input"
 																/>
-																<div className="step1-lesson-meta">
-																	<input
-																		type="number"
-																		min="0"
-																		placeholder="Durată (min)"
-																		value={lesson.duration_estimate || ''}
-																		onChange={(e) => handleUpdateLesson(module.id, lesson.id, { 
-																			duration_estimate: e.target.value ? parseInt(e.target.value) : null 
-																		})}
-																		className="step1-lesson-duration"
-																	/>
-																</div>
 															</div>
 															<button
 																type="button"

@@ -6,6 +6,7 @@ import QuestionBankBuilderStep1 from './QuestionBankBuilderSteps/Step1Basics';
 import QuestionBankBuilderStep2 from './QuestionBankBuilderSteps/Step2Questions';
 import QuestionBankBuilderStep3 from './QuestionBankBuilderSteps/Step3Review';
 import '../courses/CourseCreationWizard.css';
+import './QuestionBankBuilder.css';
 
 /**
  * QuestionBankBuilder - Component pentru crearea și editarea băncilor de întrebări
@@ -228,10 +229,12 @@ const QuestionBankBuilder = () => {
 
 	if (loading) {
 		return (
-			<div className="admin-container">
-				<div className="admin-courses-loading">
-					<div className="va-spinner va-spinner-lg"></div>
-					<p>Se încarcă banca de întrebări...</p>
+			<div className="question-bank-builder-page">
+				<div className="admin-container">
+					<div className="admin-courses-loading">
+						<div className="va-spinner va-spinner-lg"></div>
+						<p>Se încarcă banca de întrebări...</p>
+					</div>
 				</div>
 			</div>
 		);
@@ -244,8 +247,9 @@ const QuestionBankBuilder = () => {
 	];
 
 	return (
-		<div className="admin-container">
-			<div className="admin-course-builder">
+		<div className="question-bank-builder-page">
+			<div className="admin-container">
+				<div className="admin-course-builder">
 				{/* Header */}
 				<div className="admin-course-builder-header">
 					<div className="admin-course-builder-header-content">
@@ -349,6 +353,7 @@ const QuestionBankBuilder = () => {
 					</div>
 				</div>
 			</div>
+		</div>
 		</div>
 	);
 };

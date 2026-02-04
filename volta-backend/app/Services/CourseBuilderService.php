@@ -12,7 +12,9 @@ use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Models\CourseVersion;
 use App\Models\CourseVersionSnapshot;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -79,6 +81,7 @@ class CourseBuilderService
                     case 'reorderModules':
                         $moduleIds = $op['module_ids'] ?? [];
                         if (is_array($moduleIds) && count($moduleIds) > 0) {
+                            $moduleIds = array_map('intval', array_values($moduleIds));
                             $this->reorderModules($course, $moduleIds);
                             $this->logActivity($actor, 'builder.reorder_modules', Course::class, $course->id, [
                                 'module_ids' => $moduleIds,
@@ -216,7 +219,7 @@ class CourseBuilderService
             // `source` is required in DB; allow empty string for "placeholder" blocks.
             'source' => $data['source'] ?? '',
             'metadata' => $data['metadata'] ?? [],
-            'language' => $data['language'] ?? null,
+            'language' => $data['language'] ?? 'ro',
             'version' => (string)($data['version'] ?? '1'),
             'order' => $data['order'] ?? ($maxOrder + 1),
             'visible' => $data['visible'] ?? true,
@@ -238,6 +241,19 @@ class CourseBuilderService
                     ->update(['order' => $index]);
             }
         });
+    }
+
+    public function deleteContentBlock(ContentBlock $block): void
+    {
+        $lesson = $block->lesson;
+        $block->delete();
+
+        if ($lesson) {
+            $ids = ContentBlock::where('lesson_id', $lesson->id)->orderBy('order')->pluck('id')->all();
+            if (count($ids) > 0) {
+                $this->reorderContentBlocks($lesson, $ids);
+            }
+        }
     }
 
     /**
@@ -371,38 +387,263 @@ class CourseBuilderService
     }
 
     /**
+     * Restore a historical course hint: this will create a NEW course from a snapshot
+     * (safe for active learners; does not mutate the existing published course).
+     */
+    public function restoreCourseFromVersion(int $courseId, int $versionId, ?User $actor = null, bool $includeTeams = true): Course
+    {
+        $sourceCourse = Course::with(['teams'])->findOrFail($courseId);
+
+        $version = CourseVersion::with(['snapshot'])
+            ->where('course_id', $courseId)
+            ->where('id', $versionId)
+            ->firstOrFail();
+
+        $snapshot = $version->snapshot?->snapshot_json;
+        if (!is_array($snapshot)) {
+            throw new \Exception('Snapshot not found for this version.');
+        }
+
+        $courseData = is_array($snapshot['course'] ?? null) ? $snapshot['course'] : [];
+        $modulesData = is_array($snapshot['modules'] ?? null) ? $snapshot['modules'] : [];
+        $lessonsData = is_array($snapshot['lessons'] ?? null) ? $snapshot['lessons'] : [];
+        $blocksData = is_array($snapshot['content_blocks'] ?? null) ? $snapshot['content_blocks'] : [];
+        $courseTestsData = is_array($snapshot['course_tests'] ?? null) ? $snapshot['course_tests'] : [];
+        $progressionRulesData = is_array($snapshot['progression_rules'] ?? null) ? $snapshot['progression_rules'] : [];
+
+        return DB::transaction(function () use (
+            $sourceCourse,
+            $version,
+            $actor,
+            $includeTeams,
+            $courseData,
+            $modulesData,
+            $lessonsData,
+            $blocksData,
+            $courseTestsData,
+            $progressionRulesData
+        ) {
+            // Create a new course based on snapshot fields (but safe defaults for visibility)
+            $newCourse = $sourceCourse->replicate();
+            $allowed = array_fill_keys($newCourse->getFillable(), true);
+
+            foreach ($courseData as $key => $value) {
+                if (!isset($allowed[$key])) continue;
+                if ($key === 'status' || $key === 'workflow_status') continue;
+                $newCourse->{$key} = $value;
+            }
+
+            $newCourse->title = ($courseData['title'] ?? $sourceCourse->title) . " (Restored v{$version->version})";
+            $newCourse->status = 'draft';
+            $newCourse->workflow_status = 'draft';
+            $newCourse->save();
+
+            if ($includeTeams) {
+                $newCourse->teams()->sync($sourceCourse->teams->pluck('id')->all());
+            }
+
+            // Recreate modules
+            $moduleIdMap = [];
+            usort($modulesData, fn ($a, $b) => ((int)($a['order'] ?? 0)) <=> ((int)($b['order'] ?? 0)));
+            foreach ($modulesData as $m) {
+                if (!is_array($m)) continue;
+                $oldId = (int)($m['id'] ?? 0);
+                $newModule = Module::create([
+                    'course_id' => $newCourse->id,
+                    'title' => $m['title'] ?? 'Modul',
+                    'description' => $m['description'] ?? null,
+                    'content' => $m['content'] ?? null,
+                    'order' => (int)($m['order'] ?? 0),
+                    'status' => $m['status'] ?? 'draft',
+                ]);
+                if ($oldId > 0) {
+                    $moduleIdMap[$oldId] = $newModule->id;
+                }
+            }
+
+            // Recreate lessons (two-pass for prerequisites)
+            $lessonIdMap = [];
+            $lessonPrereqOld = []; // newLessonId => oldPrereqId
+            usort($lessonsData, fn ($a, $b) => ((int)($a['order'] ?? 0)) <=> ((int)($b['order'] ?? 0)));
+            foreach ($lessonsData as $l) {
+                if (!is_array($l)) continue;
+                $oldLessonId = (int)($l['id'] ?? 0);
+                $oldModuleId = (int)($l['module_id'] ?? 0);
+                $newModuleId = $moduleIdMap[$oldModuleId] ?? null;
+                if (!$newModuleId) {
+                    continue;
+                }
+
+                $newLesson = Lesson::create([
+                    'course_id' => $newCourse->id,
+                    'module_id' => $newModuleId,
+                    'title' => $l['title'] ?? 'Lecție',
+                    'content' => $l['content'] ?? null,
+                    'video_url' => $l['video_url'] ?? null,
+                    'type' => $l['type'] ?? 'text',
+                    'duration_minutes' => $l['duration_minutes'] ?? null,
+                    'order' => (int)($l['order'] ?? 0),
+                    'status' => $l['status'] ?? 'draft',
+                    'is_preview' => (bool)($l['is_preview'] ?? false),
+                    'is_locked' => (bool)($l['is_locked'] ?? false),
+                    'unlock_after_lesson_id' => null,
+                ]);
+
+                if ($oldLessonId > 0) {
+                    $lessonIdMap[$oldLessonId] = $newLesson->id;
+                }
+
+                if (array_key_exists('unlock_after_lesson_id', $l) && $l['unlock_after_lesson_id']) {
+                    $lessonPrereqOld[$newLesson->id] = (int)$l['unlock_after_lesson_id'];
+                }
+            }
+
+            foreach ($lessonPrereqOld as $newLessonId => $oldPrereqId) {
+                $newPrereqId = $lessonIdMap[$oldPrereqId] ?? null;
+                Lesson::where('id', $newLessonId)->where('course_id', $newCourse->id)->update([
+                    'unlock_after_lesson_id' => $newPrereqId,
+                ]);
+            }
+
+            // Recreate content blocks
+            usort($blocksData, fn ($a, $b) => ((int)($a['order'] ?? 0)) <=> ((int)($b['order'] ?? 0)));
+            foreach ($blocksData as $b) {
+                if (!is_array($b)) continue;
+                $oldLessonId = (int)($b['lesson_id'] ?? 0);
+                $newLessonId = $lessonIdMap[$oldLessonId] ?? null;
+                if (!$newLessonId) continue;
+
+                ContentBlock::create([
+                    'lesson_id' => $newLessonId,
+                    'type' => $b['type'] ?? 'text',
+                    'source' => $b['source'] ?? '',
+                    'metadata' => $b['metadata'] ?? [],
+                    'language' => $b['language'] ?? null,
+                    'version' => (string)($b['version'] ?? '1'),
+                    'order' => (int)($b['order'] ?? 0),
+                    'visible' => array_key_exists('visible', $b) ? (bool)$b['visible'] : true,
+                ]);
+            }
+
+            // Restore course_test pivot rows (remap scope_id for modules/lessons)
+            foreach ($courseTestsData as $row) {
+                if (!is_array($row)) continue;
+                $scope = $row['scope'] ?? 'course';
+                $scopeId = $row['scope_id'] ?? null;
+                $scopeId = $scopeId === null ? null : (int)$scopeId;
+
+                if ($scope === 'module' && $scopeId) {
+                    $scopeId = $moduleIdMap[$scopeId] ?? null;
+                }
+                if ($scope === 'lesson' && $scopeId) {
+                    $scopeId = $lessonIdMap[$scopeId] ?? null;
+                }
+
+                CourseTest::create([
+                    'course_id' => $newCourse->id,
+                    'test_id' => (int)($row['test_id'] ?? 0),
+                    'scope' => $scope,
+                    'scope_id' => $scopeId,
+                    'required' => (bool)($row['required'] ?? false),
+                    'passing_score' => $row['passing_score'] ?? 70,
+                    'order' => $row['order'] ?? 0,
+                    'unlock_after_previous' => (bool)($row['unlock_after_previous'] ?? false),
+                    'unlock_after_test_id' => $row['unlock_after_test_id'] ?? null,
+                ]);
+            }
+
+            // Restore progression rules (best-effort)
+            if (DB::getSchemaBuilder()->hasTable('progression_rules')) {
+                foreach ($progressionRulesData as $r) {
+                    $arr = is_array($r) ? $r : (array)$r;
+                    unset($arr['id'], $arr['created_at'], $arr['updated_at']);
+                    $arr['course_id'] = $newCourse->id;
+                    DB::table('progression_rules')->insert($arr);
+                }
+            }
+
+            // Create an initial version snapshot for the restored course (draft)
+            $this->createCourseVersionSnapshot($newCourse->id, $actor, 'draft');
+
+            $this->logActivity($actor, 'builder.restore_version', Course::class, $newCourse->id, [
+                'source_course_id' => $sourceCourse->id,
+                'source_version_id' => $version->id,
+                'source_version' => $version->version,
+            ]);
+
+            return $newCourse->fresh();
+        });
+    }
+
+    /**
      * Create a new course
      */
     public function createCourse(array $data, ?User $teacher = null): Course
     {
         $settings = $this->buildSettings($data);
-        
-        $course = Course::create([
+        $table = 'courses';
+
+        $createData = [
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'category' => $data['category'] ?? null,
-            'level' => $data['level'] ?? null,
-            'status' => $data['status'] ?? 'draft',
             'teacher_id' => $teacher?->id ?? $data['teacher_id'] ?? null,
             'reward_points' => $data['reward_points'] ?? 50,
-            'settings' => $settings,
-            'progression_rules' => $data['progression_rules'] ?? [],
-            // Legacy fields (for backward compatibility)
-            'short_description' => $data['short_description'] ?? null,
-            'access_type' => 'free', // All courses are free
-            'price' => 0,
-            'currency' => 'RON',
-            'has_certificate' => $settings['certificate']['enabled'] ?? false,
-            'min_test_score' => $settings['certificate']['min_score'] ?? 70,
-            'allow_retake' => $settings['certificate']['allow_retake'] ?? true,
-            'max_retakes' => $settings['certificate']['max_retakes'] ?? 3,
-            'drip_content' => $settings['drip']['enabled'] ?? false,
-            'drip_schedule' => $settings['drip']['schedule'] ?? null,
-        ]);
+        ];
+
+        // Only add columns that exist (for PostgreSQL compatibility)
+        if (Schema::hasColumn($table, 'category')) {
+            $createData['category'] = $data['category'] ?? null;
+        }
+        if (Schema::hasColumn($table, 'level')) {
+            $createData['level'] = $data['level'] ?? null;
+        }
+        if (Schema::hasColumn($table, 'status')) {
+            $createData['status'] = $data['status'] ?? 'draft';
+        }
+        if (Schema::hasColumn($table, 'settings')) {
+            $createData['settings'] = $settings;
+        }
+        if (Schema::hasColumn($table, 'progression_rules')) {
+            $createData['progression_rules'] = $data['progression_rules'] ?? [];
+        }
+        if (Schema::hasColumn($table, 'short_description')) {
+            $createData['short_description'] = $data['short_description'] ?? null;
+        }
+        if (Schema::hasColumn($table, 'access_type')) {
+            $createData['access_type'] = 'free';
+        }
+        if (Schema::hasColumn($table, 'price')) {
+            $createData['price'] = 0;
+        }
+        if (Schema::hasColumn($table, 'currency')) {
+            $createData['currency'] = $data['currency'] ?? 'RON';
+        }
+        if (Schema::hasColumn($table, 'has_certificate')) {
+            $createData['has_certificate'] = $settings['certificate']['enabled'] ?? false;
+        }
+        if (Schema::hasColumn($table, 'min_test_score')) {
+            $createData['min_test_score'] = $settings['certificate']['min_score'] ?? 70;
+        } elseif (Schema::hasColumn($table, 'min_exam_score')) {
+            $createData['min_exam_score'] = $settings['certificate']['min_score'] ?? 70;
+        }
+        if (Schema::hasColumn($table, 'allow_retake')) {
+            $createData['allow_retake'] = $settings['certificate']['allow_retake'] ?? true;
+        }
+        if (Schema::hasColumn($table, 'max_retakes')) {
+            $createData['max_retakes'] = $settings['certificate']['max_retakes'] ?? 3;
+        }
+        if (Schema::hasColumn($table, 'drip_content')) {
+            $createData['drip_content'] = $settings['drip']['enabled'] ?? false;
+        }
+        if (Schema::hasColumn($table, 'drip_schedule')) {
+            $createData['drip_schedule'] = $settings['drip']['schedule'] ?? null;
+        }
+
+        $course = Course::create($createData);
 
         // Handle image upload
         if (isset($data['image'])) {
-            if (is_uploaded_file($data['image'])) {
+            if ($data['image'] instanceof UploadedFile) {
                 $course->image = $data['image']->store('courses', 'public');
                 $course->save();
             } elseif (is_string($data['image'])) {
@@ -439,7 +680,7 @@ class CourseBuilderService
 
         // Handle image upload
         if (isset($data['image'])) {
-            if (is_uploaded_file($data['image'])) {
+            if ($data['image'] instanceof UploadedFile) {
                 if ($course->image) {
                     Storage::disk('public')->delete($course->image);
                 }

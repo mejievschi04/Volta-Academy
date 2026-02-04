@@ -57,7 +57,7 @@ const CourseListItem = React.memo(({
 				</div>
 				<div className="admin-course-table-thumbnail" onClick={() => navigate(`/admin/courses/${course.id}`)}>
 					{course.image_url ? (
-						<img src={course.image_url} alt={course.title} />
+						<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
 					) : (
 						<div className="admin-course-thumbnail-placeholder">📚</div>
 					)}
@@ -133,7 +133,7 @@ const CourseListItem = React.memo(({
 				onClick={() => navigate(`/admin/courses/${course.id}`)}
 			>
 				{course.image_url ? (
-					<img src={course.image_url} alt={course.title} />
+					<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
 				) : (
 					<div className="admin-course-card-thumbnail-placeholder">
 						📚
@@ -211,6 +211,19 @@ const CourseListItem = React.memo(({
 						</button>
 					</div>
 				)}
+
+				<div className="admin-course-card-publish" style={{ marginTop: 'var(--space-3)' }}>
+					<button
+						className="lms-btn-secondary"
+						onClick={(e) => {
+							e.stopPropagation();
+							navigate(`/admin/courses/${course.id}/builder`);
+						}}
+						style={{ width: '100%' }}
+					>
+						🛠 Builder
+					</button>
+				</div>
 			</div>
 		</div>
 	);

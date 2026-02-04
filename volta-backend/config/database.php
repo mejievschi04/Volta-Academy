@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
 
     /*
@@ -98,7 +98,7 @@ return [
 			'prefix_indexes' => true,
 			'schema' => env('DB_SCHEMA', 'public'),
 			// Supabase requires SSL; 'require' works locally and in most environments
-			'sslmode' => env('DB_SSLMODE', 'require'),
+			'sslmode' => env('DB_SSLMODE', 'prefer'),
 		],
 
 

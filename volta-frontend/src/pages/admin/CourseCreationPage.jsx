@@ -11,7 +11,7 @@ const CourseCreationPage = () => {
 
 	const handleSuccess = (courseId) => {
 		if (courseId) {
-			navigate(`/admin/courses/${courseId}`);
+			navigate(`/admin/courses/${courseId}/builder`);
 		} else {
 			navigate('/admin/courses');
 		}

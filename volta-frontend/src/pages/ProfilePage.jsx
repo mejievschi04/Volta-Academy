@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { profileService, adminService, achievementsService } from '../services/api';
+import { profileService, adminService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProfilePage = () => {
@@ -10,7 +10,6 @@ const ProfilePage = () => {
 	const [profileData, setProfileData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [badges, setBadges] = useState([]);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -40,15 +39,6 @@ const ProfilePage = () => {
 				}
 				
 				setProfileData(profile);
-
-				// Fetch badges
-				try {
-					const achievements = await achievementsService.getAchievements();
-					setBadges(achievements.badges || []);
-				} catch (err) {
-					console.error('Error fetching badges:', err);
-					setBadges([]);
-				}
 			} catch (err) {
 				console.error('Error fetching profile:', err);
 				setError('Nu s-a putut încărca profilul');
@@ -184,14 +174,14 @@ const ProfilePage = () => {
 									</div>
 									<div className="va-course-card-meta">
 										<span>
-											{course.completedModules || course.completedLessons || 0} / {course.totalModules || course.totalLessons || 0} module
+											{course.completedModules || course.completedLessons || 0} / {course.totalModules || course.totalLessons || 0} module finalizate
 										</span>
 									</div>
 									<Link
-										to={`/courses/${course.id}/lessons`}
+										to={`/courses/${course.id}`}
 										className="lms-btn-primary lms-btn-sm"
 									>
-										Continuă cursul
+										{(course.progress || 0) >= 100 ? 'Vezi cursul' : 'Continuă cursul'}
 									</Link>
 								</div>
 							))
@@ -244,30 +234,6 @@ const ProfilePage = () => {
 					</div>
 				</div>
 
-			</div>
-
-			{/* Badges Container */}
-			<div className="va-profile-badges-container">
-				<h2 className="va-profile-badges-title">Badge-uri</h2>
-				<div className="va-profile-badges-list">
-					{badges.length > 0 ? (
-						badges.map((badge, index) => (
-							<div key={index} className="va-profile-badge-item">
-								<div className="va-profile-badge-icon">{badge.icon || '🏆'}</div>
-								<div className="va-profile-badge-content">
-									<div className="va-profile-badge-name">{badge.title || badge.name}</div>
-									{badge.description && (
-										<div className="va-profile-badge-description">{badge.description}</div>
-									)}
-								</div>
-							</div>
-						))
-					) : (
-						<div className="va-profile-badges-empty">
-							<p>Nu ai badge-uri încă. Completează cursuri pentru a obține badge-uri!</p>
-						</div>
-					)}
-				</div>
 			</div>
 		</div>
 	);

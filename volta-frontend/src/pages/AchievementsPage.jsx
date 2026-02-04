@@ -1,30 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { achievementsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
-import CertificatePreview from '../components/student/CertificatePreview';
 
 const AchievementsPage = () => {
 	const { user } = useAuth();
-	const { error: showError, success: showSuccess } = useToast();
+	const { error: showError } = useToast();
 	const [achievements, setAchievements] = useState(null);
-	const [certificates, setCertificates] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [previewCertificate, setPreviewCertificate] = useState(null);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setLoading(true);
-				const [achievementsData, certificatesData] = await Promise.all([
-					achievementsService.getAchievements(),
-					achievementsService.getCertificates(),
-				]);
+				const achievementsData = await achievementsService.getAchievements();
 				setAchievements(achievementsData);
-				setCertificates(certificatesData);
 			} catch (err) {
 				logger.error('Error fetching achievements:', err);
 				const errorMessage = 'Nu s-au putut încărca realizările';
@@ -36,34 +28,6 @@ const AchievementsPage = () => {
 		};
 		fetchData();
 	}, []);
-
-	const handlePreviewCertificate = async (cert) => {
-		try {
-			const [certInfo, settings] = await Promise.all([
-				achievementsService.getCertificateInfo(cert.course_id),
-				adminService.getCertificateSettings().catch(() => null), // Fallback if not admin
-			]);
-			setPreviewCertificate({
-				...cert,
-				...certInfo,
-				settings: settings || null,
-			});
-		} catch (err) {
-			logger.error('Error fetching certificate info:', err);
-			showError('Nu s-a putut încărca informațiile certificatului');
-		}
-	};
-
-	const handleDownloadCertificate = async (courseId) => {
-		try {
-			await achievementsService.downloadCertificate(courseId);
-			showSuccess('Certificatul a fost descărcat cu succes');
-		} catch (err) {
-			logger.error('Error downloading certificate:', err);
-			const errorMessage = err.response?.data?.message || 'Eroare la descărcarea certificatului';
-			showError(errorMessage);
-		}
-	};
 
 	if (loading) {
 		return (
@@ -113,100 +77,11 @@ const AchievementsPage = () => {
 						</div>
 					</div>
 					<div className="student-achievements-stat-card">
-						<div className="student-achievements-stat-icon">🏆</div>
-						<div className="student-achievements-stat-content">
-							<div className="student-achievements-stat-value">{achievements.badges_count || 0}</div>
-							<div className="student-achievements-stat-label">Badge-uri obținute</div>
-						</div>
-					</div>
-					<div className="student-achievements-stat-card">
 						<div className="student-achievements-stat-icon">⏱️</div>
 						<div className="student-achievements-stat-content">
 							<div className="student-achievements-stat-value">{achievements.learning_hours || 0}h</div>
 							<div className="student-achievements-stat-label">Ore de învățare</div>
 						</div>
-					</div>
-				</div>
-			)}
-
-			{/* Certificates */}
-			<div className="student-achievements-section">
-				<h2 className="student-achievements-section-title">
-					<span className="student-achievements-section-icon">🎓</span>
-					<span>Certificări</span>
-				</h2>
-				{certificates.length > 0 ? (
-					<div className="student-certificates-grid">
-						{certificates.map((cert) => (
-							<div key={cert.course_id} className="student-certificate-card">
-								{cert.course_thumbnail && (
-									<img 
-										src={cert.course_thumbnail} 
-										alt={cert.course_title}
-										className="student-certificate-thumbnail"
-									/>
-								)}
-								<div className="student-certificate-content">
-									<h3 className="student-certificate-title">{cert.course_title}</h3>
-									{cert.category_name && (
-										<p className="student-certificate-category">{cert.category_name}</p>
-									)}
-									<div className="student-certificate-meta">
-										<span className="student-certificate-date">
-											Finalizat: {new Date(cert.completion_date).toLocaleDateString('ro-RO')}
-										</span>
-										<span className="student-certificate-id">ID: {cert.certificate_id}</span>
-									</div>
-									<div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-										<button
-											className="student-certificate-download-btn"
-											onClick={() => handlePreviewCertificate(cert)}
-											style={{ flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
-										>
-											<span>👁️</span>
-											<span>Preview</span>
-										</button>
-										<button
-											className="student-certificate-download-btn"
-											onClick={() => handleDownloadCertificate(cert.course_id)}
-											style={{ flex: 1 }}
-										>
-											<span>📥</span>
-											<span>Descarcă</span>
-										</button>
-									</div>
-								</div>
-							</div>
-						))}
-					</div>
-				) : (
-					<div className="student-achievements-empty">
-						<p>Nu ai finalizat încă niciun curs pentru a obține certificări.</p>
-						<Link to="/courses" className="student-achievements-empty-link">
-							Explorează cursuri →
-						</Link>
-					</div>
-				)}
-			</div>
-
-			{/* Badges */}
-			{achievements && achievements.badges && achievements.badges.length > 0 && (
-				<div className="student-achievements-section">
-					<h2 className="student-achievements-section-title">
-						<span className="student-achievements-section-icon">🏆</span>
-						<span>Badge-uri</span>
-					</h2>
-					<div className="student-badges-grid">
-						{achievements.badges.map((badge, index) => (
-							<div key={index} className="student-badge-card">
-								<div className="student-badge-icon">{badge.icon || '🏆'}</div>
-								<div className="student-badge-title">{badge.title}</div>
-								<div className="student-badge-description">{badge.description}</div>
-								<div className="student-badge-date">
-									Obținut: {new Date(badge.earned_at).toLocaleDateString('ro-RO')}
-								</div>
-							</div>
-						))}
 					</div>
 				</div>
 			)}
@@ -234,21 +109,8 @@ const AchievementsPage = () => {
 					</div>
 				</div>
 			)}
-
-			{/* Certificate Preview Modal */}
-			{previewCertificate && (
-				<CertificatePreview
-					certificate={previewCertificate}
-					onClose={() => setPreviewCertificate(null)}
-					onDownload={() => {
-						handleDownloadCertificate(previewCertificate.course_id);
-						setPreviewCertificate(null);
-					}}
-				/>
-			)}
 		</div>
 	);
 };
 
 export default AchievementsPage;
-

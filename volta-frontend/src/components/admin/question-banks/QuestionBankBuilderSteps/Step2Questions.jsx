@@ -11,6 +11,10 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		answers: [],
 		points: 1,
 		explanation: '',
+		metadata: {
+			difficulty: '',
+			tags: [],
+		},
 	});
 
 	// AI Generation state
@@ -65,33 +69,39 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 	const saveQuestion = async () => {
 		if (!questionForm.content?.trim()) {
-			alert('Conținutul întrebării este obligatoriu');
+			showToast('Conținutul întrebării este obligatoriu', 'error');
 			return;
 		}
 
 		if (questionForm.type !== 'short_answer' && questionForm.answers.length < 2) {
-			alert('Adaugă cel puțin 2 răspunsuri');
+			showToast('Adaugă cel puțin 2 răspunsuri', 'error');
 			return;
 		}
 
 		if (questionForm.type === 'multiple_choice' && !questionForm.answers.some(a => a.is_correct)) {
-			alert('Selectează cel puțin un răspuns corect');
+			showToast('Selectează cel puțin un răspuns corect', 'error');
 			return;
 		}
 
 		try {
+			const metaDifficulty = questionForm.metadata?.difficulty || '';
+			const metaTags = Array.isArray(questionForm.metadata?.tags) ? questionForm.metadata.tags : [];
+
 			const questionData = {
 				type: questionForm.type,
 				content: questionForm.content.trim(),
 				answers: questionForm.answers,
 				points: questionForm.points || 1,
 				explanation: questionForm.explanation || '',
+				metadata: {
+					difficulty: metaDifficulty || null,
+					tags: metaTags,
+				},
 			};
 
 			if (bankId && !bankId.toString().startsWith('temp-') && editingQuestion !== null && data.questions?.[editingQuestion]?.id && !data.questions[editingQuestion].id.toString().startsWith('temp-')) {
-				// Update existing question: remove old, add new
-				await adminService.removeQuestionFromBank(bankId, data.questions[editingQuestion].id);
-				await adminService.addQuestionToBank(bankId, questionData);
+				// Update existing question
+				await adminService.updateQuestionInBank(bankId, data.questions[editingQuestion].id, questionData);
 				const updated = await adminService.getQuestionBankQuestions(bankId);
 				onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
 			} else if (bankId && !bankId.toString().startsWith('temp-')) {
@@ -121,22 +131,68 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				answers: [],
 				points: 1,
 				explanation: '',
+				metadata: {
+					difficulty: '',
+					tags: [],
+				},
 			});
+			showToast(editingQuestion !== null ? 'Întrebarea a fost actualizată' : 'Întrebarea a fost adăugată', 'success');
 		} catch (err) {
 			console.error('Error saving question:', err);
-			alert('Eroare la salvarea întrebării: ' + (err.response?.data?.message || err.message));
+			showToast('Eroare la salvarea întrebării: ' + (err.response?.data?.message || err.message), 'error');
 		}
+	};
+
+	const persistReorder = async (nextQuestions) => {
+		// Temporary bank: only reorder locally
+		if (!bankId || bankId.toString().startsWith('temp-')) {
+			onUpdate({ questions: nextQuestions.map((q, idx) => ({ ...q, order: idx })) });
+			return;
+		}
+
+		try {
+			const ids = nextQuestions.map((q) => q.id).filter(Boolean);
+			await adminService.reorderQuestionBankQuestions(bankId, ids);
+			const updated = await adminService.getQuestionBankQuestions(bankId);
+			onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
+		} catch (err) {
+			console.error('Error reordering questions:', err);
+			showToast('Eroare la reordonarea întrebărilor', 'error');
+		}
+	};
+
+	const moveQuestion = async (index, direction) => {
+		const list = Array.isArray(data.questions) ? [...data.questions] : [];
+		const nextIndex = direction === 'up' ? index - 1 : index + 1;
+		if (nextIndex < 0 || nextIndex >= list.length) return;
+
+		const tmp = list[index];
+		list[index] = list[nextIndex];
+		list[nextIndex] = tmp;
+
+		await persistReorder(list);
 	};
 
 	const editQuestion = (index) => {
 		const question = data.questions?.[index];
 		if (question) {
+			const meta = question.metadata || {};
+			const tags = Array.isArray(meta.tags)
+				? meta.tags
+				: typeof meta.tags === 'string'
+					? meta.tags.split(',').map((t) => t.trim()).filter(Boolean)
+					: [];
+
 			setQuestionForm({
 				type: question.type || 'multiple_choice',
 				content: question.content || question.text || '',
 				answers: question.answers || [],
 				points: question.points || 1,
 				explanation: question.explanation || '',
+				metadata: {
+					difficulty: meta.difficulty || '',
+					tags,
+				},
 			});
 			setEditingQuestion(index);
 		}
@@ -155,9 +211,10 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				const questions = (data.questions || []).filter((_, i) => i !== index);
 				onUpdate({ questions });
 			}
+			showToast('Întrebarea a fost ștearsă', 'success');
 		} catch (err) {
 			console.error('Error deleting question:', err);
-			alert('Eroare la ștergerea întrebării: ' + (err.response?.data?.message || err.message));
+			showToast('Eroare la ștergerea întrebării: ' + (err.response?.data?.message || err.message), 'error');
 		}
 	};
 
@@ -237,35 +294,39 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	};
 
 	return (
-		<div className="admin-course-builder-step-content">
+		<div className="admin-course-builder-step-content step2-questions">
 			<h2>Întrebări</h2>
 			<p className="admin-course-builder-step-description">
 				Adaugă întrebările pentru banca de întrebări
 			</p>
 
-			<div className="admin-course-builder-form">
-				{errors?.questions && (
-					<div className="lms-error-message">
-						{errors.questions}
-					</div>
-				)}
-
-				{/* AI Generation Button */}
-				<div className="admin-form-section" style={{ marginBottom: '2rem' }}>
-					<div className="admin-form-section-header">
-						<h3 className="admin-form-section-title">Adaugă Întrebări</h3>
-						<button
-							type="button"
-							className="lms-btn-primary"
-							onClick={handleOpenAIModal}
-						>
-							🤖 Generează cu AI
-						</button>
-					</div>
+			{errors?.questions && (
+				<div className="lms-error-message">
+					{errors.questions}
 				</div>
+			)}
 
-				{/* Question Form */}
-				<div className="admin-form-section" style={{ marginBottom: '2rem' }}>
+			{/* Split layout: form left, list right */}
+			<div className="step2-split-layout">
+				{/* Left: Form (scrollable) */}
+				<div className="step2-form-column">
+					<div className="admin-course-builder-form">
+						{/* AI Generation Button */}
+						<div className="admin-form-section" style={{ marginBottom: '1.5rem' }}>
+							<div className="admin-form-section-header">
+								<h3 className="admin-form-section-title">Adaugă Întrebări</h3>
+								<button
+									type="button"
+									className="lms-btn-primary"
+									onClick={handleOpenAIModal}
+								>
+									🤖 Generează cu AI
+								</button>
+							</div>
+						</div>
+
+						{/* Question Form */}
+						<div className="admin-form-section">
 					<h3 className="admin-form-section-title">
 						{editingQuestion !== null ? 'Editează Întrebare' : 'Adaugă Întrebare Nouă'}
 					</h3>
@@ -281,16 +342,16 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									type: e.target.value,
 									answers: e.target.value === 'true_false' 
 										? [
-											{ text: 'True', is_correct: true },
-											{ text: 'False', is_correct: false },
+											{ text: 'Adevărat', is_correct: true },
+											{ text: 'Fals', is_correct: false },
 										]
 										: questionForm.answers,
 								});
 							}}
 						>
-							<option value="multiple_choice">Multiple Choice</option>
-							<option value="true_false">True/False</option>
-							<option value="short_answer">Răspuns Scurt</option>
+							<option value="multiple_choice">Răspuns multiplu</option>
+							<option value="true_false">Adevărat/Fals</option>
+							<option value="short_answer">Răspuns scurt</option>
 						</select>
 					</div>
 
@@ -364,6 +425,52 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					</div>
 
 					<div className="admin-form-group">
+						<label className="admin-form-label">Difficulty (pentru bank rules)</label>
+						<select
+							className="admin-form-select"
+							value={questionForm.metadata?.difficulty || ''}
+							onChange={(e) =>
+								setQuestionForm({
+									...questionForm,
+									metadata: {
+										...(questionForm.metadata || {}),
+										difficulty: e.target.value,
+									},
+								})
+							}
+						>
+							<option value="">—</option>
+							<option value="easy">Ușor</option>
+							<option value="medium">Mediu</option>
+							<option value="hard">Dificil</option>
+						</select>
+						<p className="admin-form-hint">Se folosește la regulile băncii în Editorul de Teste.</p>
+					</div>
+
+
+					<div className="admin-form-group">
+						<label className="admin-form-label">Tags (pentru bank rules)</label>
+						<input
+							type="text"
+							className="admin-form-input"
+							value={(questionForm.metadata?.tags || []).join(', ')}
+							onChange={(e) =>
+								setQuestionForm({
+									...questionForm,
+									metadata: {
+										...(questionForm.metadata || {}),
+										tags: e.target.value
+											.split(',')
+											.map((t) => t.trim())
+											.filter(Boolean),
+									},
+								})
+							}
+							placeholder="ex: tablouri, bucle, oop"
+						/>
+					</div>
+
+					<div className="admin-form-group">
 						<label className="admin-form-label">Explicație (opțional)</label>
 						<textarea
 							className="admin-form-textarea"
@@ -374,7 +481,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 						/>
 					</div>
 
-					<div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+					<div className="step2-form-actions">
 						<button
 							type="button"
 							className="lms-btn-primary"
@@ -394,6 +501,10 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 										answers: [],
 										points: 1,
 										explanation: '',
+										metadata: {
+											difficulty: '',
+											tags: [],
+										},
 									});
 								}}
 							>
@@ -402,9 +513,12 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 						)}
 					</div>
 				</div>
+					</div>
+				</div>
 
-				{/* Questions List */}
-				<div className="admin-form-section">
+				{/* Right: Questions List (sticky) */}
+				<div className="step2-list-column">
+				<div className="admin-form-section step2-questions-list">
 					<h3 className="admin-form-section-title">
 						Întrebări ({data?.questions?.length || 0})
 					</h3>
@@ -414,7 +528,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							{data.questions.map((question, index) => (
 								<div
 									key={question.id || index}
-									className="admin-question-item"
+									className={`admin-question-item ${editingQuestion === index ? 'editing' : ''}`}
 								>
 									<div className="admin-question-item-content">
 										<div className="admin-question-item-header">
@@ -441,6 +555,24 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 											<button
 												type="button"
 												className="lms-btn-secondary lms-btn-sm"
+												onClick={() => moveQuestion(index, 'up')}
+												disabled={index === 0}
+												title="Mută sus"
+											>
+												↑
+											</button>
+											<button
+												type="button"
+												className="lms-btn-secondary lms-btn-sm"
+												onClick={() => moveQuestion(index, 'down')}
+												disabled={index === (data.questions.length - 1)}
+												title="Mută jos"
+											>
+												↓
+											</button>
+											<button
+												type="button"
+												className="lms-btn-secondary lms-btn-sm"
 												onClick={() => editQuestion(index)}
 											>
 												✏️ Editează
@@ -458,15 +590,16 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							))}
 						</div>
 					) : (
-						<div className="lms-empty-state">
-							<div className="lms-empty-icon">❓</div>
-							<h3 className="lms-empty-title">Nu există întrebări</h3>
+						<div className="lms-empty-state step2-empty-state">
+							<div className="lms-empty-icon">📝</div>
+							<h3 className="lms-empty-title">Nicio întrebare încă</h3>
 							<p className="lms-empty-description">
-								Adaugă prima întrebare folosind formularul de mai sus
+								Adaugă prima întrebare folosind formularul alăturat sau generează cu AI
 							</p>
 						</div>
 					)}
 				</div>
+			</div>
 			</div>
 
 			{/* AI Generation Modal */}

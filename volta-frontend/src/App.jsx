@@ -11,8 +11,10 @@ import SplashScreen from './components/SplashScreen';
 import GlobalSearch from './components/GlobalSearch';
 import ThemeToggle from './components/common/ThemeToggle';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
+import AdminStylesLoader from './components/AdminStylesLoader';
 import AITutor from './components/student/AITutor';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { prefetchRoute } from './utils/prefetch';
 /* Modern Design System - Unified & Standardized */
 import './styles/design-system.css';
 import './styles/light-theme-wcag.css';
@@ -28,25 +30,17 @@ import './styles/layout.css';
 import './styles/pages.css';
 import './styles/ui-components.css';
 import './styles/additional-pages.css';
-import './styles/admin-pages.css';
-import './styles/admin-users-modern.css';
-import './styles/admin-team-members-modern.css';
-import './styles/admin-common-modern.css';
-import './styles/admin-components-modern.css';
-import './styles/admin-navigation-modern.css';
-import './styles/student-navigation-modern.css';
 import './styles/exam-results-modern.css';
 import './styles/profile-modern.css';
-import './styles/learning-analytics.css';
 import './styles/lms-dashboard-enterprise.css';
 import './styles/achievements-modern.css';
-import './styles/admin-certificate-settings.css';
-import './styles/admin-creator-split.css';
+/* Student styles - loaded after shared to ensure proper cascade */
+import './styles/student-navigation-modern.css';
 import './styles/student-components.css';
+import './styles/student-overrides.css';
 import './styles/common-components.css';
 import './styles/auth-modern.css';
 import './styles/course-detail-modern.css';
-import './styles/admin-course-detail-modern.css';
 import './components/SplashScreen.css';
 /* Mobile optimizations must be last to override base styles */
 import './styles/mobile-optimizations.css';
@@ -74,7 +68,6 @@ const AdminTeamsPage = lazy(() => import('./pages/admin/AdminTeamsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminActivityLogsPage = lazy(() => import('./pages/admin/AdminActivityLogsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
-const AdminCertificateSettingsPage = lazy(() => import('./pages/admin/AdminCertificateSettingsPage'));
 const AdminTopCoursesPage = lazy(() => import('./pages/admin/AdminTopCoursesPage'));
 const AdminProblematicCoursesPage = lazy(() => import('./pages/admin/AdminProblematicCoursesPage'));
 const AdminAlertsPage = lazy(() => import('./pages/admin/AdminAlertsPage'));
@@ -85,6 +78,8 @@ const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 // const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage')); // Removed - will be rebuilt from scratch
 // const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
+const AdminTestEditorPage = lazy(() => import('./pages/admin/AdminTestEditorPage'));
+const AdminTestReviewsPage = lazy(() => import('./pages/admin/AdminTestReviewsPage'));
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
@@ -338,6 +333,15 @@ function Layout({ children }) {
 			)
 		},
 		{
+			path: '/admin/tests/reviews',
+			label: 'Verificări manuale',
+			icon: (
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			)
+		},
+		{
 			path: '/admin/question-banks',
 			label: 'Question Banks',
 			icon: (
@@ -393,19 +397,11 @@ function Layout({ children }) {
 				</svg>
 			)
 		},
-		{
-			path: '/admin/certificate-settings',
-			label: 'Certificate',
-			icon: (
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-				</svg>
-			)
-		},
 	];
 
 	return (
 		<div className={showUserLayout ? "va-shell va-shell-topnav" : "va-shell"}>
+			<AdminStylesLoader />
 			{mustChangePassword && (
 				<ChangePasswordModal />
 			)}
@@ -465,6 +461,7 @@ function Layout({ children }) {
 									data-tooltip={!isSidebarExpanded ? item.label : undefined}
 									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 									end={item.path === '/admin'}
+									onMouseEnter={() => prefetchRoute(item.path)}
 									onClick={() => {
 										// Close sidebar on mobile when clicking a link
 										if (window.innerWidth <= 768) {
@@ -737,6 +734,7 @@ function Layout({ children }) {
 									data-tooltip={!isSidebarExpanded ? item.label : undefined}
 									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 									end={item.path === '/home'}
+									onMouseEnter={() => prefetchRoute(item.path)}
 									onClick={() => {
 										// Close sidebar on mobile when clicking a link
 										if (window.innerWidth <= 768) {
@@ -877,6 +875,7 @@ function Layout({ children }) {
 									to={item.path}
 									className={({ isActive }) => ['modern-topnav-item', 'va-topnav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 									end={item.path === '/home'}
+									onMouseEnter={() => prefetchRoute(item.path)}
 								>
 									<span className="modern-topnav-item-icon va-topnav-icon">{item.icon}</span>
 									<span className="modern-topnav-item-label va-topnav-label">{item.label}</span>
@@ -1080,6 +1079,17 @@ function App() {
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
 													<CourseDetailPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									{/* Exam/Test page - course context required for correct test attribution */}
+									<Route
+										path="/courses/:courseId/exams/:examId"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<ExamPage />
 												</Suspense>
 											</UserRoute>
 										}
@@ -1301,6 +1311,36 @@ function App() {
 											</AdminRoute>
 										}
 									/>
+									<Route
+										path="/admin/tests/reviews"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminTestReviewsPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/tests/new"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminTestEditorPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/tests/:id"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminTestEditorPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
 									{/* Question Bank Routes */}
 									<Route
 										path="/admin/question-banks"
@@ -1403,16 +1443,6 @@ function App() {
 										}
 									/>
 									<Route
-										path="/admin/certificate-settings"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminCertificateSettingsPage />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
-									<Route
 										path="/admin/top-courses"
 										element={
 											<AdminRoute>
@@ -1501,6 +1531,6 @@ function SplashEntry() {
 	}
 
 	return (
-		<SplashScreen onStart={() => navigate('/login', { replace: true })} durationMs={3800} />
+		<SplashScreen onStart={() => navigate('/login', { replace: true })} durationMs={800} />
 	);
 }

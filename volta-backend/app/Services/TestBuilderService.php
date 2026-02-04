@@ -7,6 +7,7 @@ use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * TestBuilderService
@@ -22,23 +23,30 @@ class TestBuilderService
      */
     public function createTest(array $data, User $creator): Test
     {
-        $test = Test::create([
+        $insert = [
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'type' => $data['type'] ?? 'graded',
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => $data['max_attempts'] ?? null,
-            'randomize_questions' => $data['randomize_questions'] ?? false,
-            'randomize_answers' => $data['randomize_answers'] ?? false,
-            'show_results_immediately' => $data['show_results_immediately'] ?? true,
-            'show_correct_answers' => $data['show_correct_answers'] ?? false,
-            'allow_review' => $data['allow_review'] ?? true,
+            'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
+            'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
+            'show_results_immediately' => (bool)($data['show_results_immediately'] ?? true),
+            'show_correct_answers' => (bool)($data['show_correct_answers'] ?? false),
+            'allow_review' => (bool)($data['allow_review'] ?? true),
+            'requires_manual_verification' => (bool)($data['requires_manual_verification'] ?? false),
             'question_source' => $data['question_source'] ?? 'direct',
-            'question_set_id' => $data['question_set_id'] ?? null,
+            'question_set_id' => !empty($data['question_set_id']) ? (int)$data['question_set_id'] : null,
             'created_by' => $creator->id,
             'version' => $data['version'] ?? '1.0.0',
-        ]);
+        ];
+
+        if (Schema::hasColumn('tests', 'question_selection')) {
+            $insert['question_selection'] = $data['question_selection'] ?? null;
+        }
+
+        $test = Test::create($insert);
 
         // Add questions if provided
         if (isset($data['questions']) && is_array($data['questions'])) {
@@ -68,8 +76,23 @@ class TestBuilderService
         $questions = $data['questions'] ?? null;
         unset($data['questions']);
 
-        // Update test fields
-        $test->update($data);
+        // Filtrează doar coloanele care există în tabel (evită "Undefined column")
+        $table = $test->getTable();
+        $updateData = [];
+        foreach ($data as $key => $value) {
+            if (Schema::hasColumn($table, $key)) {
+                $updateData[$key] = $value;
+            }
+        }
+
+        // question_set_id: asigură int sau null
+        if (array_key_exists('question_set_id', $updateData) && empty($updateData['question_set_id'])) {
+            $updateData['question_set_id'] = null;
+        } elseif (isset($updateData['question_set_id'])) {
+            $updateData['question_set_id'] = (int) $updateData['question_set_id'];
+        }
+
+        $test->update($updateData);
         
         // Refresh to get updated question_source if it was changed
         $test->refresh();

@@ -118,13 +118,16 @@ export const courseProgressService = {
 };
 
 export const examService = {
-  getExam: async (examId) => {
-    const response = await api.get(`/exams/${examId}`);
+  getExam: async (examId, courseId = null) => {
+    const params = courseId ? { course_id: courseId } : {};
+    const response = await api.get(`/exams/${examId}`, { params });
     return response.data;
   },
-  
-  submitExam: async (examId, answers) => {
-    const response = await api.post(`/exams/${examId}/submit`, { answers });
+
+  submitExam: async (examId, answers, courseId = null) => {
+    const payload = { answers };
+    if (courseId) payload.course_id = courseId;
+    const response = await api.post(`/exams/${examId}/submit`, payload);
     return response.data;
   },
 };
@@ -155,32 +158,6 @@ export const achievementsService = {
   getAchievements: async () => {
     const response = await api.get('/achievements');
     return response.data;
-  },
-  
-  getCertificates: async () => {
-    const response = await api.get('/certificates');
-    return response.data;
-  },
-  
-  getCertificateInfo: async (courseId) => {
-    const response = await api.get(`/certificates/${courseId}/info`);
-    return response.data;
-  },
-  
-  downloadCertificate: async (courseId) => {
-    const response = await api.get(`/certificates/${courseId}/download`, {
-      responseType: 'blob',
-    });
-    
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `certificat-${courseId}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
   },
 };
 
@@ -511,6 +488,11 @@ export const adminService = {
     return response.data;
   },
 
+  previewTestSelection: async (id) => {
+    const response = await api.post(`/admin/tests/${id}/selection-preview`);
+    return response.data;
+  },
+
   linkTestToCourse: async (testId, courseId, options = {}) => {
     const response = await api.post(`/admin/tests/${testId}/link-to-course`, {
       course_id: courseId,
@@ -536,6 +518,13 @@ export const adminService = {
 
   createQuestion: async (testId, questionData) => {
     const response = await api.post(`/admin/tests/${testId}/questions`, questionData);
+    return response.data;
+  },
+
+  reorderTestQuestions: async (testId, questionIds) => {
+    const response = await api.post(`/admin/tests/${testId}/questions/reorder`, {
+      question_ids: questionIds,
+    });
     return response.data;
   },
 
@@ -611,6 +600,13 @@ export const adminService = {
 
   getQuestionBankQuestions: async (bankId) => {
     const response = await api.get(`/admin/question-banks/${bankId}/questions`);
+    return response.data;
+  },
+
+  reorderQuestionBankQuestions: async (bankId, questionIds) => {
+    const response = await api.post(`/admin/question-banks/${bankId}/questions/reorder`, {
+      question_ids: questionIds,
+    });
     return response.data;
   },
 
@@ -829,14 +825,27 @@ export const adminService = {
     return response.data;
   },
 
-  // Exam Manual Review
+  // Exam Manual Review (legacy Exam model)
   getPendingExamReviews: async () => {
     const response = await api.get('/admin/exams/pending-reviews');
     return response.data;
   },
   
-  submitManualReview: async (resultId, reviewScores) => {
+  submitExamManualReview: async (resultId, reviewScores) => {
     const response = await api.post(`/admin/exam-results/${resultId}/manual-review`, {
+      manual_review_scores: reviewScores,
+    });
+    return response.data;
+  },
+
+  // Test Manual Review (Test model - standalone tests)
+  getPendingTestReviews: async () => {
+    const response = await api.get('/admin/tests/pending-reviews');
+    return response.data;
+  },
+
+  submitTestManualReview: async (resultId, reviewScores) => {
+    const response = await api.post(`/admin/test-results/${resultId}/manual-review`, {
       manual_review_scores: reviewScores,
     });
     return response.data;
@@ -873,7 +882,9 @@ export const adminService = {
   // Course Builder (Admin) - autosave + drag&drop orchestration
   // ============================================================
   getCourseBuilderStructure: async (courseId) => {
-    const response = await api.get(`/admin/courses/${courseId}/builder/structure`);
+    const response = await api.get(`/admin/courses/${courseId}/builder/structure`, {
+      params: { _t: Date.now() }, // evita cache-ul care poate returna ordinea veche
+    });
     return response.data;
   },
 
@@ -907,10 +918,38 @@ export const adminService = {
     return response.data;
   },
 
+  builderDeleteContentBlock: async (courseId, blockId) => {
+    const response = await api.delete(`/admin/courses/${courseId}/builder/content-blocks/${blockId}`);
+    return response.data;
+  },
+
   builderReorderContentBlocks: async (courseId, lessonId, contentBlockIds) => {
     const response = await api.patch(`/admin/courses/${courseId}/builder/lessons/${lessonId}/content-blocks/reorder`, {
       content_block_ids: contentBlockIds,
     });
+    return response.data;
+  },
+
+  builderUploadContentFile: async (courseId, formData) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  listMediaAssets: async ({ courseId, type, q, page, perPage } = {}) => {
+    const params = {};
+    if (courseId) params.course_id = courseId;
+    if (type) params.type = type;
+    if (q) params.q = q;
+    if (page) params.page = page;
+    if (perPage) params.per_page = perPage;
+    const response = await api.get('/admin/media', { params });
+    return response.data;
+  },
+
+  deleteMediaAsset: async (id) => {
+    const response = await api.delete(`/admin/media/${id}`);
     return response.data;
   },
 
@@ -933,6 +972,33 @@ export const adminService = {
     const response = await api.post(`/admin/courses/${courseId}/builder/clone`, {
       include_teams: includeTeams,
     });
+    return response.data;
+  },
+
+  builderGetVersions: async (courseId) => {
+    const response = await api.get(`/admin/courses/${courseId}/builder/versions`);
+    return response.data;
+  },
+
+  builderRestoreVersion: async (courseId, versionId, includeTeams = true) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/versions/${versionId}/restore`, {
+      include_teams: includeTeams,
+    });
+    return response.data;
+  },
+
+  builderGetTests: async (courseId) => {
+    const response = await api.get(`/admin/courses/${courseId}/builder/tests`);
+    return response.data;
+  },
+
+  builderAttachTest: async (courseId, payload) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/tests/attach`, payload);
+    return response.data;
+  },
+
+  builderDetachTest: async (courseId, testId, payload = {}) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/tests/${testId}/detach`, payload);
     return response.data;
   },
 
@@ -959,24 +1025,6 @@ export const adminService = {
     return response.data;
   },
 
-  // Certificate Settings
-  getCertificateSettings: async () => {
-    const response = await api.get('/admin/certificate-settings');
-    return response.data;
-  },
-
-  updateCertificateSettings: async (settings) => {
-    const response = await api.put('/admin/certificate-settings', settings);
-    return response.data;
-  },
-
-  uploadCertificateLogo: async (formData) => {
-    const response = await api.post('/admin/certificate-settings/logo', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
-  
   // Export & Backup
   exportData: async () => {
     const response = await api.get('/admin/export', {

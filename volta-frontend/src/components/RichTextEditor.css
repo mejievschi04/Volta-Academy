@@ -1,0 +1,205 @@
+/* ============================================
+   RICH TEXT EDITOR - Toolbar & Editor
+   ============================================ */
+
+.rte-container {
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}
+
+/* Toolbar - wrap on multiple rows */
+.rte-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: var(--bg-secondary);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.rte-toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.rte-toolbar-separator {
+	width: 1px;
+	height: 24px;
+	background: var(--border-primary);
+	margin: 0 var(--space-1);
+	flex-shrink: 0;
+}
+
+.rte-toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	height: 32px;
+	padding: 0 var(--space-2);
+	border: none;
+	background: transparent;
+	border-radius: var(--radius-md);
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.rte-toolbar-btn:hover {
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+}
+
+.rte-toolbar-btn.active {
+	background: rgba(var(--color-primary-rgb, 255, 238, 0), 0.2);
+	color: var(--color-primary);
+}
+
+.rte-toolbar-btn strong,
+.rte-toolbar-btn em,
+.rte-toolbar-btn u {
+	font-size: inherit;
+	font-style: inherit;
+	font-weight: inherit;
+	text-decoration: inherit;
+}
+
+.rte-toolbar-select {
+	padding: 6px 28px 6px 10px;
+	height: 32px;
+	min-width: 120px;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	cursor: pointer;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+}
+
+.rte-toolbar-select:hover {
+	border-color: var(--border-secondary);
+}
+
+.rte-toolbar-select:focus {
+	outline: none;
+	border-color: var(--color-primary);
+}
+
+/* Editor area */
+.rte-editor {
+	min-height: 200px;
+	padding: var(--space-4);
+	font-size: var(--font-size-base);
+	line-height: 1.6;
+	color: var(--text-primary);
+	outline: none;
+}
+
+.rte-editor:empty::before {
+	content: attr(data-placeholder);
+	color: var(--text-tertiary);
+}
+
+.rte-editor.focused {
+	outline: none;
+}
+
+.rte-container:has(.rte-editor.focused) {
+	box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.rte-editor h1,
+.rte-editor h2,
+.rte-editor h3,
+.rte-editor h4 {
+	margin: 1em 0 0.5em;
+	color: var(--text-primary);
+}
+
+.rte-editor p {
+	margin: 0 0 0.75em;
+}
+
+.rte-editor ul,
+.rte-editor ol {
+	margin: 0 0 0.75em;
+	padding-left: 1.5em;
+}
+
+.rte-editor a {
+	color: var(--color-primary);
+	text-decoration: underline;
+}
+
+.rte-editor blockquote {
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 4px solid var(--color-primary);
+	color: var(--text-secondary);
+}
+
+.rte-editor pre,
+.rte-editor code {
+	font-family: 'Consolas', 'Monaco', monospace;
+	font-size: 0.9em;
+}
+
+.rte-editor pre {
+	padding: 1em;
+	background: var(--bg-secondary);
+	border-radius: var(--radius-md);
+	overflow-x: auto;
+	margin: 1em 0;
+}
+
+/* Course builder context - more space, clearer toolbar */
+.admin-course-builder-editor-wrap .rte-container {
+	border: none;
+	border-radius: var(--radius-lg);
+	background: var(--bg-primary);
+}
+
+.admin-course-builder-editor-wrap .rte-toolbar {
+	padding: var(--space-3);
+	gap: var(--space-3);
+	background: var(--bg-secondary);
+}
+
+.admin-course-builder-editor-wrap .rte-toolbar-btn {
+	min-width: 36px;
+	height: 36px;
+	font-size: var(--font-size-base);
+}
+
+.admin-course-builder-editor-wrap .rte-toolbar-select {
+	height: 36px;
+	min-width: 140px;
+	padding: 6px 32px 6px 12px;
+}
+
+.admin-course-builder-editor-wrap .rte-editor {
+	min-height: 280px;
+	padding: var(--space-5);
+	font-size: var(--font-size-base);
+}
+
+.admin-course-builder-editor-wrap .admin-settings-label {
+	display: block;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	margin-bottom: var(--space-2);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}

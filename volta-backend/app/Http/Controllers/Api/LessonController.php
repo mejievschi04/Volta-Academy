@@ -10,7 +10,16 @@ class LessonController extends Controller
 {
     public function show($id)
     {
-        $lesson = Lesson::with(['course', 'module'])->findOrFail($id);
+        $lesson = Lesson::with([
+            'course',
+            'module',
+            'contentBlocks' => function ($q) {
+                $q->orderBy('order')
+                    ->where(function ($q) {
+                        $q->where('visible', true)->orWhereNull('visible');
+                    });
+            },
+        ])->findOrFail($id);
 
         return response()->json($lesson);
     }

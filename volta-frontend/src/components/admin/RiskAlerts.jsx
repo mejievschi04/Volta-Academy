@@ -6,8 +6,8 @@ const RiskAlerts = ({ data }) => {
 	return (
 		<div className="admin-risk-alerts">
 			<div className="admin-widget-header">
-				<h3>Risk & Attention Needed</h3>
-				<p className="admin-widget-subtitle">Critical issues requiring action</p>
+				<h3>Riscuri și atenție necesară</h3>
+				<p className="admin-widget-subtitle">Probleme critice care necesită acțiune</p>
 			</div>
 
 			<div className="admin-alerts-list">
@@ -27,17 +27,17 @@ const RiskAlerts = ({ data }) => {
 								<div className="admin-alert-description">{alert.description || 'No description'}</div>
 								<div className="admin-alert-meta">
 									{alert.course && <span className="admin-alert-course">{alert.course}</span>}
-									{alert.count && <span className="admin-alert-count">{alert.count} affected</span>}
+									{alert.count && <span className="admin-alert-count">{alert.count} afectați</span>}
 								</div>
 							</div>
 							<div className="admin-alert-action">
-								<button className="admin-alert-action-btn">View</button>
+								<button className="admin-alert-action-btn">Vezi</button>
 							</div>
 						</div>
 					))
 				) : (
 					<div className="admin-widget-empty">
-						<p>No alerts at this time</p>
+						<p>Nicio alertă momentan</p>
 					</div>
 				)}
 			</div>

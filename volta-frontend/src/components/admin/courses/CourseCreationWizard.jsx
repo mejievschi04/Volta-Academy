@@ -102,10 +102,9 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							await adminService.createLesson({
 								module_id: module.id,
 								title: lessonData.title,
-								description: lessonData.objective || '',
+								content: lessonData.objective || '',
 								type: lessonData.type || 'text',
 								order: lessonData.order || 0,
-								duration_minutes: lessonData.duration_estimate || null,
 							});
 						}
 					}
@@ -117,7 +116,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 			if (onSuccess) {
 				onSuccess(courseId);
 			} else {
-				navigate(`/admin/courses/${courseId}`);
+				navigate(`/admin/courses/${courseId}/builder`);
 			}
 			
 			if (onClose) {
@@ -239,7 +238,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							<div className="course-preview-card">
 								{courseData.image && (
 									<div className="course-preview-thumbnail">
-										<img src={typeof courseData.image === 'string' ? courseData.image : URL.createObjectURL(courseData.image)} alt={courseData.title} />
+										<img src={typeof courseData.image === 'string' ? courseData.image : URL.createObjectURL(courseData.image)} alt={courseData.title} loading="lazy" decoding="async" />
 									</div>
 								)}
 								<div className="course-preview-body">

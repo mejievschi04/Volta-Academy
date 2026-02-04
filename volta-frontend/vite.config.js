@@ -24,13 +24,25 @@ export default defineConfig({
         secure: false,
       },
     },
+    // Warm up frequently used files - eliminates transform waterfalls on first load
+    warmup: {
+      clientFiles: [
+        './src/App.jsx',
+        './src/main.jsx',
+        './src/pages/DashboardPage.jsx',
+        './src/pages/CoursesPage.jsx',
+        './src/pages/LoginPage.jsx',
+        './src/components/SplashScreen.jsx',
+        './src/contexts/AuthContext.jsx',
+      ],
+    },
   },
   build: {
     // Code splitting optimization
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks
+          // Vendor chunks - smaller = faster parallel load
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor';
@@ -44,10 +56,13 @@ export default defineConfig({
             if (id.includes('recharts')) {
               return 'charts-vendor';
             }
-            // Other node_modules
             return 'vendor';
           }
         },
+        // Inline small assets for fewer requests
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
       },
     },
     // Optimize chunk size - increased limit for better splitting
@@ -64,8 +79,17 @@ export default defineConfig({
     // Assets directory
     assetsDir: 'assets',
   },
-  // Optimize dependencies
+  // Optimize dependencies - pre-bundle for faster dev startup
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'axios'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'axios',
+      '@dnd-kit/core',
+      '@dnd-kit/sortable',
+      '@dnd-kit/utilities',
+      'recharts',
+    ],
   },
 })

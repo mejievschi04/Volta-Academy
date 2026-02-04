@@ -70,13 +70,6 @@ class CourseBuilderValidator
                     );
                 }
 
-                if (($lesson->duration_minutes ?? 0) <= 0) {
-                    $addWarning(
-                        'lesson.duration.missing',
-                        "lessons.{$lesson->id}.duration_minutes",
-                        'Durata estimată lipsește (recomandat).'
-                    );
-                }
             }
         }
 

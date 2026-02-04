@@ -35,6 +35,12 @@ class DashboardAdminController extends Controller
             // Problematic Courses
             $problematicCourses = $this->getProblematicCourses();
 
+            // Learning Funnel (real data from course_user)
+            $learningFunnel = $this->getLearningFunnel();
+
+            // User Segments (real data)
+            $userSegments = $this->getUserSegments($dateRange);
+
             // Recent Activities
             $recentActivities = $this->getRecentActivities();
 
@@ -46,9 +52,17 @@ class DashboardAdminController extends Controller
                 return $alert['severity'] === 'critical';
             });
 
+            // Average test completion percentage across all students
+            $avgTestCompletionPercentage = $this->getAvgTestCompletionPercentage();
+
             return response()->json([
                 'kpis' => $kpis,
                 'chart_data' => $chartData,
+                'engagement_metrics' => [
+                    'avg_test_completion_percentage' => $avgTestCompletionPercentage,
+                ],
+                'learning_funnel' => $learningFunnel,
+                'user_segments' => $userSegments,
                 'top_courses' => $topCourses,
                 'problematic_courses' => $problematicCourses,
                 'recent_activities' => $recentActivities,
@@ -255,8 +269,25 @@ class DashboardAdminController extends Controller
             ? round(($completedEnrollments / $totalEnrollments) * 100, 1)
             : 0;
 
-        $previousCompletionRate = 75; // Mock - calculate from previous period
-        $completionTrend = $completionRate - $previousCompletionRate;
+        $previousCompleted = 0;
+        $previousTotal = 0;
+        if (Schema::hasTable('course_user')) {
+            $prevEnd = $start->copy()->subDay();
+            $prevStart = $prevEnd->copy()->subDays($start->diffInDays($end));
+            $previousTotal = DB::table('course_user')
+                ->where('enrolled', true)
+                ->where('enrolled_at', '<=', $prevEnd)
+                ->count();
+            if (Schema::hasColumn('course_user', 'completed_at')) {
+                $previousCompleted = DB::table('course_user')
+                    ->where('enrolled', true)
+                    ->where('enrolled_at', '<=', $prevEnd)
+                    ->whereNotNull('completed_at')
+                    ->count();
+            }
+        }
+        $previousCompletionRate = $previousTotal > 0 ? ($previousCompleted / $previousTotal) * 100 : 0;
+        $completionTrend = round($completionRate - $previousCompletionRate, 1);
 
         // Engagement (average progress across all enrollments)
         $avgProgress = 0;
@@ -268,8 +299,16 @@ class DashboardAdminController extends Controller
         }
 
         $engagement = round($avgProgress, 1);
-        $previousEngagement = 60; // Mock
-        $engagementTrend = $engagement - $previousEngagement;
+        $previousAvgProgress = 0;
+        if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'progress_percentage')) {
+            $prevEnd = $start->copy()->subDay();
+            $previousAvgProgress = DB::table('course_user')
+                ->where('enrolled', true)
+                ->where('updated_at', '<', $start)
+                ->whereNotNull('progress_percentage')
+                ->avg('progress_percentage') ?? 0;
+        }
+        $engagementTrend = round($engagement - $previousAvgProgress, 1);
 
         // Issues/Tickets (mock - implement actual ticket system)
         $issues = 0; // TODO: Count from tickets/issues table
@@ -477,6 +516,152 @@ class DashboardAdminController extends Controller
             ->toArray();
     }
 
+    /**
+     * Learning funnel - real counts from course_user
+     */
+    private function getLearningFunnel()
+    {
+        if (!Schema::hasTable('course_user')) {
+            return [
+                'enrolled' => 0,
+                'started' => 0,
+                'progress_25' => 0,
+                'progress_50' => 0,
+                'progress_75' => 0,
+                'completed' => 0,
+            ];
+        }
+
+        $enrolled = DB::table('course_user')
+            ->where('enrolled', true)
+            ->count();
+
+        $started = 0;
+        if (Schema::hasColumn('course_user', 'started_at')) {
+            $started = DB::table('course_user')
+                ->where('enrolled', true)
+                ->whereNotNull('started_at')
+                ->count();
+        } else {
+            $started = $enrolled; // fallback: consider all enrolled as started
+        }
+
+        $completed = 0;
+        if (Schema::hasColumn('course_user', 'completed_at')) {
+            $completed = DB::table('course_user')
+                ->where('enrolled', true)
+                ->whereNotNull('completed_at')
+                ->count();
+        }
+
+        $progress25 = 0;
+        $progress50 = 0;
+        $progress75 = 0;
+        if (Schema::hasColumn('course_user', 'progress_percentage')) {
+            $progress25 = DB::table('course_user')
+                ->where('enrolled', true)
+                ->where('progress_percentage', '>=', 25)
+                ->count();
+            $progress50 = DB::table('course_user')
+                ->where('enrolled', true)
+                ->where('progress_percentage', '>=', 50)
+                ->count();
+            $progress75 = DB::table('course_user')
+                ->where('enrolled', true)
+                ->where('progress_percentage', '>=', 75)
+                ->count();
+        } else {
+            $progress25 = $started;
+            $progress50 = $started;
+            $progress75 = $completed;
+        }
+
+        return [
+            'enrolled' => $enrolled,
+            'started' => $started,
+            'progress_25' => $progress25,
+            'progress_50' => $progress50,
+            'progress_75' => $progress75,
+            'completed' => $completed,
+        ];
+    }
+
+    /**
+     * User segments - real counts
+     * new: created in last 30 days
+     * at_risk: enrolled, started, but no update in 14+ days and not completed
+     * highly_engaged: at least one enrollment with progress >= 50%
+     * inactive: no course_user activity in 30+ days
+     */
+    private function getUserSegments($dateRange)
+    {
+        $new = User::where('role', 'student')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->count();
+
+        $highlyEngaged = 0;
+        $atRisk = 0;
+        $inactive = 0;
+
+        if (!Schema::hasTable('course_user')) {
+            return [
+                'new' => $new,
+                'at_risk' => 0,
+                'highly_engaged' => 0,
+                'inactive' => 0,
+            ];
+        }
+
+        if (Schema::hasColumn('course_user', 'progress_percentage')) {
+            $highlyEngagedIds = DB::table('course_user')
+                ->join('users', 'course_user.user_id', '=', 'users.id')
+                ->where('users.role', 'student')
+                ->where('course_user.enrolled', true)
+                ->where('course_user.progress_percentage', '>=', 50)
+                ->distinct()
+                ->pluck('course_user.user_id');
+            $highlyEngaged = $highlyEngagedIds->count();
+        }
+
+        $cutoff14d = now()->subDays(14);
+        $cutoff30d = now()->subDays(30);
+
+        $usersActive14d = DB::table('course_user')
+            ->where('updated_at', '>=', $cutoff14d)
+            ->distinct()
+            ->pluck('user_id');
+
+        $usersActive30d = DB::table('course_user')
+            ->where('updated_at', '>=', $cutoff30d)
+            ->distinct()
+            ->pluck('user_id');
+
+        $enrolledStartedNotCompleted = DB::table('course_user')
+            ->join('users', 'course_user.user_id', '=', 'users.id')
+            ->where('users.role', 'student')
+            ->where('course_user.enrolled', true)
+            ->where(function ($q) {
+                $q->whereNotNull('course_user.started_at')
+                    ->orWhereRaw('course_user.progress_percentage > 0');
+            })
+            ->whereNull('course_user.completed_at')
+            ->distinct()
+            ->pluck('course_user.user_id');
+
+        $atRisk = $enrolledStartedNotCompleted->diff($usersActive14d)->count();
+
+        $inactive = User::where('role', 'student')
+            ->whereNotIn('id', $usersActive30d)
+            ->count();
+
+        return [
+            'new' => $new,
+            'at_risk' => $atRisk,
+            'highly_engaged' => $highlyEngaged,
+            'inactive' => $inactive,
+        ];
+    }
+
     private function getRecentActivities()
     {
         $activities = [];
@@ -558,6 +743,22 @@ class DashboardAdminController extends Controller
         });
 
         return array_slice($activities, 0, 30);
+    }
+
+    /**
+     * Get average test completion percentage across all students
+     */
+    private function getAvgTestCompletionPercentage()
+    {
+        if (!Schema::hasTable('test_results')) {
+            return 0;
+        }
+
+        $avg = DB::table('test_results')
+            ->whereNotNull('percentage')
+            ->avg('percentage');
+
+        return $avg !== null ? round((float) $avg, 1) : 0;
     }
 
     private function getAlerts()

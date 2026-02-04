@@ -10,6 +10,7 @@ use App\Services\TestService;
 use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -184,6 +185,7 @@ class QuestionBankAdminController extends Controller
             'points' => 'nullable|integer|min:1',
             'order' => 'nullable|integer|min:0',
             'explanation' => 'nullable|string',
+            'metadata' => 'nullable|array',
         ]);
 
         $this->testService->addQuestionsToBank($bank, [$validated]);
@@ -210,6 +212,7 @@ class QuestionBankAdminController extends Controller
             'points' => 'nullable|integer|min:1',
             'order' => 'nullable|integer|min:0',
             'explanation' => 'nullable|string',
+            'metadata' => 'nullable|array',
         ]);
 
         $question->update($validated);
@@ -233,6 +236,38 @@ class QuestionBankAdminController extends Controller
 
         return response()->json([
             'message' => 'Question removed successfully',
+        ]);
+    }
+
+    /**
+     * Reorder questions inside a question bank.
+     */
+    public function reorderQuestions(Request $request, $id)
+    {
+        $bank = QuestionBank::findOrFail($id);
+
+        $validated = $request->validate([
+            'question_ids' => 'required|array|min:1',
+            'question_ids.*' => 'integer',
+        ]);
+
+        $ids = array_values(array_unique($validated['question_ids']));
+        $count = Question::where('question_bank_id', $bank->id)->whereIn('id', $ids)->count();
+        if ($count !== count($ids)) {
+            return response()->json([
+                'error' => 'Invalid question_ids: some questions do not belong to this question bank.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($bank, $ids) {
+            foreach ($ids as $index => $qid) {
+                Question::where('question_bank_id', $bank->id)->where('id', $qid)->update(['order' => $index]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Questions reordered successfully',
+            'questions' => Question::where('question_bank_id', $bank->id)->orderBy('order')->get(),
         ]);
     }
 

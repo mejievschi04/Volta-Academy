@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
 	DndContext,
-	closestCenter,
+	pointerWithin,
 	KeyboardSensor,
 	PointerSensor,
 	useSensor,
@@ -30,6 +30,11 @@ const parseDndId = (rawId) => {
 
 const ModuleCard = ({
 	module,
+	issueCounts,
+	lessonIssueCounts,
+	bulkMode,
+	selectedLessonIds,
+	onToggleSelectLesson,
 	onEdit,
 	onDelete,
 	onToggleLock,
@@ -41,11 +46,13 @@ const ModuleCard = ({
 	onToggleLessonStatus,
 	onToggleLessonPreview,
 	onSelectLesson,
+	onDeleteLesson,
 }) => {
 	const {
 		attributes,
 		listeners,
 		setNodeRef,
+		setActivatorNodeRef,
 		transform,
 		transition,
 		isDragging,
@@ -65,10 +72,19 @@ const ModuleCard = ({
 		<div
 			ref={setNodeRef}
 			style={style}
+			data-module-id={module.id}
 			className={`admin-module-card ${module.is_locked ? 'locked' : ''} ${module.status === 'draft' ? 'draft' : ''}`}
 		>
 			<div className="admin-module-card-header">
-				<div className="admin-module-card-drag-handle" {...attributes} {...listeners}>
+				<div
+					ref={setActivatorNodeRef}
+					className="admin-module-card-drag-handle"
+					{...attributes}
+					{...listeners}
+					title="Trage pentru reordonare"
+					role="button"
+					tabIndex={0}
+				>
 					⋮⋮
 				</div>
 				<div className="admin-module-card-info">
@@ -76,12 +92,27 @@ const ModuleCard = ({
 						{module.title}
 						{module.is_locked && <span className="admin-module-lock-badge">🔒</span>}
 						{module.status === 'draft' && <span className="admin-module-draft-badge">Draft</span>}
+						{issueCounts?.errors > 0 && (
+							<span
+								className="lms-tag"
+								style={{ marginLeft: 'var(--space-2)', background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.25)' }}
+								title="Erori în acest modul"
+							>
+								E:{issueCounts.errors}
+							</span>
+						)}
+						{issueCounts?.warnings > 0 && (
+							<span
+								className="lms-tag"
+								style={{ marginLeft: 'var(--space-2)', background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.25)' }}
+								title="Avertismente în acest modul"
+							>
+								W:{issueCounts.warnings}
+							</span>
+						)}
 					</h4>
 					<div className="admin-module-card-meta">
 						<span>📖 {module.lessons?.length || 0} lecții</span>
-						{module.estimated_duration_minutes && (
-							<span>⏱️ {module.estimated_duration_minutes} min</span>
-						)}
 						{module.completion_percentage !== undefined && (
 							<span>✅ {module.completion_percentage}% finalizare</span>
 						)}
@@ -107,6 +138,16 @@ const ModuleCard = ({
 					<button className="lms-btn-icon" onClick={() => onAddLesson(module.id)} title="Adaugă lecție">
 						➕
 					</button>
+					{onAddTest && (
+						<button
+							type="button"
+							className="lms-btn-icon"
+							onClick={() => onAddTest({ scope: 'module', scope_id: module.id })}
+							title="Atașează test la modul"
+						>
+							🧪
+						</button>
+					)}
 					<button className="lms-btn-icon" onClick={() => onEdit(module.id)} title="Editează">
 						✏️
 					</button>
@@ -133,18 +174,27 @@ const ModuleCard = ({
 								lesson={lesson}
 								moduleId={module.id}
 								index={index}
+								issueCounts={lessonIssueCounts?.[lesson.id] || null}
+								bulkMode={bulkMode}
+								selected={selectedLessonIds?.includes?.(lesson.id)}
+								onToggleSelect={onToggleSelectLesson}
 								onToggleLessonStatus={onToggleLessonStatus}
 								onToggleLessonPreview={onToggleLessonPreview}
 								onSelectLesson={onSelectLesson}
+								onAddTest={onAddTest}
+								onDeleteLesson={onDeleteLesson}
 							/>
 						))}
 					</SortableContext>
 				) : (
-					<div className="admin-lesson-item" style={{ opacity: 0.7 }}>
-						<div className="admin-lesson-item-info">
-							<span className="admin-lesson-item-title">Nu există lecții</span>
-						</div>
-					</div>
+					<button
+						type="button"
+						className="admin-module-lessons-empty"
+						onClick={() => onAddLesson(module.id)}
+						title="Adaugă prima lecție"
+					>
+						➕ Adaugă lecție
+					</button>
 				)}
 			</div>
 
@@ -152,7 +202,7 @@ const ModuleCard = ({
 	);
 };
 
-const LessonItem = ({ lesson, moduleId, index, onToggleLessonStatus, onToggleLessonPreview, onSelectLesson }) => {
+const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, onToggleSelect, onToggleLessonStatus, onToggleLessonPreview, onSelectLesson, onAddTest, onDeleteLesson }) => {
 	const {
 		attributes,
 		listeners,
@@ -169,7 +219,22 @@ const LessonItem = ({ lesson, moduleId, index, onToggleLessonStatus, onToggleLes
 	};
 
 	return (
-		<div ref={setNodeRef} style={style} className="admin-lesson-item">
+		<div
+			ref={setNodeRef}
+			style={{
+				...style,
+				borderLeft:
+					issueCounts?.errors > 0
+						? '4px solid var(--color-error)'
+						: issueCounts?.warnings > 0
+							? '4px solid var(--color-warning)'
+							: undefined,
+				paddingLeft: issueCounts ? 10 : undefined,
+				background: bulkMode && selected ? 'var(--bg-elevated)' : undefined,
+			}}
+			data-lesson-id={lesson.id}
+			className="admin-lesson-item"
+		>
 			<div className="admin-lesson-item-info">
 				<span className="admin-module-card-drag-handle" {...attributes} {...listeners} style={{ cursor: 'grab' }}>
 					⋮⋮
@@ -184,12 +249,45 @@ const LessonItem = ({ lesson, moduleId, index, onToggleLessonStatus, onToggleLes
 				>
 					{lesson.title}
 				</button>
+				{bulkMode && (
+					<label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'var(--space-2)' }}>
+						<input
+							type="checkbox"
+							checked={!!selected}
+							onChange={(e) => {
+								e.stopPropagation();
+								onToggleSelect?.(lesson.id, e.target.checked);
+							}}
+							onClick={(e) => e.stopPropagation()}
+						/>
+						<span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Select</span>
+					</label>
+				)}
 				{lesson.is_preview && <span className="admin-lesson-preview-badge">Preview</span>}
 				{lesson.is_locked && <span className="admin-lesson-lock-badge">🔒</span>}
+				{issueCounts?.errors > 0 && (
+					<span className="lms-tag" style={{ marginLeft: 'var(--space-2)', background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.25)' }}>
+						E:{issueCounts.errors}
+					</span>
+				)}
+				{issueCounts?.warnings > 0 && (
+					<span className="lms-tag" style={{ marginLeft: 'var(--space-2)', background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.25)' }}>
+						W:{issueCounts.warnings}
+					</span>
+				)}
 			</div>
 			<div className="admin-lesson-item-meta">
 				{lesson.type && <span className="admin-lesson-type">{lesson.type}</span>}
-				{lesson.duration_minutes && <span>⏱️ {lesson.duration_minutes} min</span>}
+				{onAddTest && (
+					<button
+						type="button"
+						className="lms-btn-icon"
+						onClick={() => onAddTest({ scope: 'lesson', scope_id: lesson.id })}
+						title="Atașează test la lecție"
+					>
+						🧪
+					</button>
+				)}
 				{onToggleLessonPreview && (
 					<button
 						type="button"
@@ -210,6 +308,19 @@ const LessonItem = ({ lesson, moduleId, index, onToggleLessonStatus, onToggleLes
 						{lesson.status === 'published' ? '🟢' : '⚪'}
 					</button>
 				)}
+				{onDeleteLesson && (
+					<button
+						type="button"
+						className="lms-btn-icon va-btn-danger"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDeleteLesson(lesson.id);
+						}}
+						title="Șterge lecția"
+					>
+						🗑️
+					</button>
+				)}
 			</div>
 		</div>
 	);
@@ -218,6 +329,7 @@ const LessonItem = ({ lesson, moduleId, index, onToggleLessonStatus, onToggleLes
 const CourseStructureBuilder = ({
 	course,
 	modules,
+	validationReport,
 	onReorderModules,
 	onReorderLessons,
 	onMoveLesson,
@@ -228,15 +340,91 @@ const CourseStructureBuilder = ({
 	onToggleLessonStatus,
 	onToggleLessonPreview,
 	onSelectLesson,
+	onDeleteLesson,
 	onAddModule,
 	onAddLesson,
 	onAddTest,
 	loading,
 }) => {
 	const [activeId, setActiveId] = useState(null);
+	const [bulkMode, setBulkMode] = useState(false);
+	const [selectedLessonIds, setSelectedLessonIds] = useState([]);
+
+	const validation = useMemo(() => {
+		const errors = Array.isArray(validationReport?.errors) ? validationReport.errors : [];
+		const warnings = Array.isArray(validationReport?.warnings) ? validationReport.warnings : [];
+
+		const lessonToModule = new Map();
+		(modules || []).forEach((m) => (m.lessons || []).forEach((l) => lessonToModule.set(l.id, m.id)));
+
+		const moduleErrors = new Map();
+		const moduleWarnings = new Map();
+		const lessonErrors = new Map();
+		const lessonWarnings = new Map();
+
+		const add = (map, id) => map.set(id, (map.get(id) || 0) + 1);
+		const parseModuleId = (path) => {
+			const m = typeof path === 'string' ? path.match(/^modules\.(\d+)\./) : null;
+			return m ? Number(m[1]) : null;
+		};
+		const parseLessonId = (path) => {
+			const m = typeof path === 'string' ? path.match(/^lessons\.(\d+)\./) : null;
+			return m ? Number(m[1]) : null;
+		};
+
+		errors.forEach((it) => {
+			const mId = parseModuleId(it.path);
+			if (mId) add(moduleErrors, mId);
+			const lId = parseLessonId(it.path);
+			if (lId) {
+				add(lessonErrors, lId);
+				const owner = lessonToModule.get(lId);
+				if (owner) add(moduleErrors, owner);
+			}
+		});
+		warnings.forEach((it) => {
+			const mId = parseModuleId(it.path);
+			if (mId) add(moduleWarnings, mId);
+			const lId = parseLessonId(it.path);
+			if (lId) {
+				add(lessonWarnings, lId);
+				const owner = lessonToModule.get(lId);
+				if (owner) add(moduleWarnings, owner);
+			}
+		});
+
+		const lessonIssueCounts = {};
+		(modules || []).forEach((m) =>
+			(m.lessons || []).forEach((l) => {
+				lessonIssueCounts[l.id] = {
+					errors: lessonErrors.get(l.id) || 0,
+					warnings: lessonWarnings.get(l.id) || 0,
+				};
+			})
+		);
+
+		return { moduleErrors, moduleWarnings, lessonIssueCounts };
+	}, [modules, validationReport]);
+
+	useEffect(() => {
+		if (!bulkMode && selectedLessonIds.length > 0) {
+			setSelectedLessonIds([]);
+		}
+	}, [bulkMode, selectedLessonIds.length]);
+
+	const toggleSelectLesson = (lessonId, checked) => {
+		setSelectedLessonIds((prev) => {
+			const has = prev.includes(lessonId);
+			if (checked && !has) return [...prev, lessonId];
+			if (!checked && has) return prev.filter((id) => id !== lessonId);
+			return prev;
+		});
+	};
 
 	const sensors = useSensors(
-		useSensor(PointerSensor),
+		useSensor(PointerSensor, {
+			activationConstraint: { distance: 5 },
+		}),
 		useSensor(KeyboardSensor, {
 			coordinateGetter: sortableKeyboardCoordinates,
 		})
@@ -257,13 +445,24 @@ const CourseStructureBuilder = ({
 		const activeParsed = parseDndId(active.id);
 		const overParsed = parseDndId(over.id);
 
-		// MODULE DnD
-		if (activeParsed.kind === 'module' && overParsed.kind === 'module') {
-			const oldIndex = modules.findIndex((m) => m.id === activeParsed.id);
-			const newIndex = modules.findIndex((m) => m.id === overParsed.id);
-			if (oldIndex !== -1 && newIndex !== -1) {
-				const newModules = arrayMove(modules, oldIndex, newIndex);
-				onReorderModules(newModules.map((m, index) => ({ ...m, order: index })));
+		// MODULE DnD (module–module sau modul plasat peste lecție)
+		if (activeParsed.kind === 'module') {
+			let overModuleId = null;
+			if (overParsed.kind === 'module') {
+				overModuleId = overParsed.id;
+			} else if (overParsed.kind === 'lesson') {
+				const parentModule = modules.find((m) => (m.lessons || []).some((l) => l.id === overParsed.id));
+				if (parentModule) overModuleId = parentModule.id;
+			} else if (overParsed.kind === 'module-container') {
+				overModuleId = overParsed.id;
+			}
+			if (overModuleId) {
+				const oldIndex = modules.findIndex((m) => m.id === activeParsed.id);
+				const newIndex = modules.findIndex((m) => m.id === overModuleId);
+				if (oldIndex !== -1 && newIndex !== -1) {
+					const newModules = arrayMove(modules, oldIndex, newIndex);
+					onReorderModules(newModules.map((m, index) => ({ ...m, order: index })));
+				}
 			}
 			setActiveId(null);
 			return;
@@ -329,11 +528,60 @@ const CourseStructureBuilder = ({
 	return (
 		<div className="admin-course-structure-builder">
 			<div className="admin-course-structure-header">
-				<h2>Structură Curs</h2>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+					<h2>Structură Curs</h2>
+					<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+						<input
+							type="checkbox"
+							checked={bulkMode}
+							onChange={(e) => setBulkMode(e.target.checked)}
+						/>
+						Selectare multiplă
+					</label>
+				</div>
 				<button className="lms-btn-primary" onClick={onAddModule} disabled={loading}>
 					+ Adaugă Modul
 				</button>
 			</div>
+
+			{bulkMode && selectedLessonIds.length > 0 && (
+				<div className="admin-card" style={{ marginBottom: 'var(--space-4)' }}>
+					<div className="admin-card-body" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+						<span className="lms-tag">Selectate: {selectedLessonIds.length}</span>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={() => selectedLessonIds.forEach((id) => onToggleLessonStatus?.(id, 'draft'))}
+						>
+							Setează Draft
+						</button>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={() => selectedLessonIds.forEach((id) => onToggleLessonStatus?.(id, 'published'))}
+						>
+							Setează Publicat
+						</button>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={() => selectedLessonIds.forEach((id) => onToggleLessonPreview?.(id, true))}
+						>
+							Previzualizare ON
+						</button>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={() => selectedLessonIds.forEach((id) => onToggleLessonPreview?.(id, false))}
+						>
+							Previzualizare OFF
+						</button>
+						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setSelectedLessonIds([])}>
+							Golește
+						</button>
+					</div>
+				</div>
+			)}
 
 			{modules.length === 0 ? (
 				<div className="lms-empty-state">
@@ -349,7 +597,7 @@ const CourseStructureBuilder = ({
 			) : (
 				<DndContext
 					sensors={sensors}
-					collisionDetection={closestCenter}
+					collisionDetection={pointerWithin}
 					onDragStart={handleDragStart}
 					onDragEnd={handleDragEnd}
 				>
@@ -359,6 +607,14 @@ const CourseStructureBuilder = ({
 								<ModuleCard
 									key={module.id}
 									module={module}
+									issueCounts={{
+										errors: validation.moduleErrors.get(module.id) || 0,
+										warnings: validation.moduleWarnings.get(module.id) || 0,
+									}}
+									lessonIssueCounts={validation.lessonIssueCounts}
+									bulkMode={bulkMode}
+									selectedLessonIds={selectedLessonIds}
+									onToggleSelectLesson={toggleSelectLesson}
 									onEdit={onEditModule}
 									onDelete={onDeleteModule}
 									onToggleLock={onToggleModuleLock}
@@ -370,6 +626,7 @@ const CourseStructureBuilder = ({
 									onToggleLessonStatus={onToggleLessonStatus}
 									onToggleLessonPreview={onToggleLessonPreview}
 									onSelectLesson={onSelectLesson}
+									onDeleteLesson={onDeleteLesson}
 								/>
 							))}
 						</div>

@@ -53,15 +53,8 @@ const AdminDashboardPage = () => {
 	
 	console.log('Total Users parsed:', totalUsersNum); // Debug log
 
-	// Engagement Metrics
-	const engagementMetrics = dashboardData?.engagement_metrics || {
-		dau: Math.floor(activeUsersNum * 0.3),
-		wau: Math.floor(activeUsersNum * 0.7),
-		mau: activeUsersNum,
-		avgSessionTime: 42,
-		sessionsPerUser: 3.2,
-		satisfactionScore: 4.2
-	};
+	// Engagement Metrics (avg test completion % across students)
+	const avgTestCompletionPct = dashboardData?.engagement_metrics?.avg_test_completion_percentage ?? 0;
 
 	if (loading) {
 		return (
@@ -165,14 +158,17 @@ const AdminDashboardPage = () => {
 				<div className="admin-dashboard-kpi-card">
 					<div className="admin-dashboard-kpi-icon">
 						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<circle cx="12" cy="12" r="10"/>
-							<polyline points="12 6 12 12 16 14"/>
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+							<polyline points="14 2 14 8 20 8"/>
+							<line x1="16" y1="13" x2="8" y2="13"/>
+							<line x1="16" y1="17" x2="8" y2="17"/>
+							<polyline points="10 9 9 9 8 9"/>
 						</svg>
 					</div>
 					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Timp Mediu Sesiune</div>
-						<div className="admin-dashboard-kpi-value">{engagementMetrics.avgSessionTime} min</div>
-						<div className="admin-dashboard-kpi-sublabel">Per utilizator</div>
+						<div className="admin-dashboard-kpi-label">Procent realizare teste</div>
+						<div className="admin-dashboard-kpi-value">{avgTestCompletionPct}%</div>
+						<div className="admin-dashboard-kpi-sublabel">Medie pe studenți</div>
 					</div>
 				</div>
 			</div>
@@ -359,7 +355,7 @@ const AdminDashboardPage = () => {
 					onClose={() => setShowWizard(false)}
 					onSuccess={(courseId) => {
 						setShowWizard(false);
-						navigate(`/admin/courses/${courseId}`);
+						navigate(`/admin/courses/${courseId}/builder`);
 					}}
 				/>
 			)}

@@ -44,22 +44,25 @@ class LessonAdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'module_id' => 'nullable|exists:modules,id',
+            'course_id' => 'nullable|exists:courses,id',
+            'module_id' => 'required|exists:modules,id',
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
+            'content' => 'nullable|string',
+            'description' => 'nullable|string',
+            'type' => 'nullable|string|max:50',
+            'duration_minutes' => 'nullable|integer|min:0',
             'order' => 'nullable|integer|min:0',
         ]);
 
-        // Use CourseBuilderService to create lesson
-        if (!isset($validated['module_id'])) {
-            return response()->json([
-                'error' => 'Module ID is required to create a lesson',
-            ], 422);
-        }
-
         $module = Module::findOrFail($validated['module_id']);
-        $lesson = $this->courseBuilderService->createLesson($module, $validated);
+        $data = [
+            'title' => $validated['title'],
+            'content' => $validated['content'] ?? $validated['description'] ?? '',
+            'type' => $validated['type'] ?? 'text',
+            'duration_minutes' => $validated['duration_minutes'] ?? null,
+            'order' => $validated['order'] ?? null,
+        ];
+        $lesson = $this->courseBuilderService->createLesson($module, $data);
 
         return response()->json([
             'message' => 'Lecție creată cu succes',
@@ -72,15 +75,26 @@ class LessonAdminController extends Controller
         $lesson = Lesson::findOrFail($id);
 
         $validated = $request->validate([
-            'course_id' => 'sometimes|required|exists:courses,id',
+            'course_id' => 'nullable|exists:courses,id',
             'module_id' => 'nullable|exists:modules,id',
             'title' => 'sometimes|required|string|max:255',
-            'content' => 'sometimes|required|string',
+            'content' => 'nullable|string',
+            'description' => 'nullable|string',
+            'type' => 'nullable|string|max:50',
+            'duration_minutes' => 'nullable|integer|min:0',
             'order' => 'nullable|integer|min:0',
         ]);
 
-        // Use CourseBuilderService to update lesson
-        $lesson = $this->courseBuilderService->updateLesson($lesson, $validated);
+        $updateData = array_filter([
+            'course_id' => $validated['course_id'] ?? null,
+            'module_id' => $validated['module_id'] ?? null,
+            'title' => $validated['title'] ?? null,
+            'content' => $validated['content'] ?? $validated['description'] ?? null,
+            'type' => $validated['type'] ?? null,
+            'duration_minutes' => $validated['duration_minutes'] ?? null,
+            'order' => $validated['order'] ?? null,
+        ], fn ($v) => $v !== null);
+        $lesson = $this->courseBuilderService->updateLesson($lesson, $updateData);
 
         return response()->json([
             'message' => 'Lecție actualizată cu succes',

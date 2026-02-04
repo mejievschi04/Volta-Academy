@@ -3,6 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Build arg pentru URL API (se bazează în build de Vite)
+ARG VITE_API_URL=http://localhost:8000/api
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copiază fișierele de dependențe
 COPY package*.json ./
 

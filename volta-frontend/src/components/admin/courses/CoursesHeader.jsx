@@ -61,7 +61,7 @@ const CoursesHeader = ({
 							<button
 								className="admin-search-clear-btn"
 								onClick={() => onSearchChange('')}
-								aria-label="Clear search"
+								aria-label="Golește căutarea"
 							>
 								×
 							</button>
@@ -76,7 +76,7 @@ const CoursesHeader = ({
 									className={`admin-view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
 									onClick={() => onViewModeChange('grid')}
 									title="Vizualizare Grid"
-									aria-label="Grid view"
+									aria-label="Vizualizare grilă"
 								>
 									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 0h6v6H0V0zm7 0h9v6H7V0zM0 7h6v9H0V7zm7 0h9v9H7V7z"/>
@@ -86,7 +86,7 @@ const CoursesHeader = ({
 									className={`admin-view-mode-btn ${viewMode === 'list' || viewMode === 'table' ? 'active' : ''}`}
 									onClick={() => onViewModeChange(viewMode === 'table' ? 'table' : 'list')}
 									title="Vizualizare Listă"
-									aria-label="List view"
+									aria-label="Vizualizare listă"
 								>
 									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 2h16v2H0V2zm0 5h16v2H0V7zm0 5h16v2H0v-2z"/>
@@ -98,7 +98,7 @@ const CoursesHeader = ({
 						<button
 							className={`admin-btn-filter ${showFilters ? 'active' : ''}`}
 							onClick={() => setShowFilters(!showFilters)}
-							aria-label="Toggle filters"
+							aria-label="Comutare filtre"
 						>
 							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 								<path d="M2 3h12v1H2V3zm2 4h8v1H4V7zm3 4h2v1H7v-1z"/>

@@ -6,14 +6,14 @@ const CourseCard = React.memo(({ course = {}, onStart }) => {
 	return (
 		<article className="pro-course-card" tabIndex={0} aria-labelledby={`course-${course.id}-title`}>
 			<div className="pro-course-card-media">
-				<img src={image} alt={`Cover for ${title}`} />
+				<img src={image} alt={`Copertă pentru ${title}`} loading="lazy" decoding="async" />
 				<div className="pro-course-card-overlay">
 					<div className="pro-course-card-meta">
 						<p className="pro-course-category">{category}</p>
 						<p className="pro-course-popularity">⭐ {popularity}</p>
 					</div>
-					<button className="pro-course-start" onClick={() => onStart && onStart(course)} aria-label={`Start ${title}`}>
-						Start Course
+					<button className="pro-course-start" onClick={() => onStart && onStart(course)} aria-label={`Începe ${title}`}>
+						Începe cursul
 					</button>
 				</div>
 			</div>

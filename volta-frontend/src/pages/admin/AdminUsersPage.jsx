@@ -278,7 +278,7 @@ const AdminUsersPage = () => {
 											<div className="admin-users-table-cell-user">
 												<div className="admin-users-table-avatar">
 													{user.avatar ? (
-														<img src={user.avatar} alt={user.name} />
+														<img src={user.avatar} alt={user.name} loading="lazy" decoding="async" />
 													) : (
 														initials
 													)}

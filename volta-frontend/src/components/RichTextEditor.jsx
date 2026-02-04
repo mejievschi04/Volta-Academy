@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
+import './RichTextEditor.css';
 
 const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 	const { warning: showWarning, error: showError } = useToast();
@@ -48,11 +49,35 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 	const handlePaste = (e) => {
 		e.preventDefault();
 		const text = e.clipboardData.getData('text/plain');
+		if (!text) return;
+
+		const editor = editorRef.current;
+		if (!editor) return;
+
 		const selection = window.getSelection();
 		if (selection.rangeCount > 0) {
-			selection.deleteContents();
-			selection.getRangeAt(0).insertNode(document.createTextNode(text));
+			const range = selection.getRangeAt(0);
+			// Asigură-te că selecția e în editor
+			if (editor.contains(range.commonAncestorContainer) || editor === range.commonAncestorContainer) {
+				range.deleteContents();
+				range.insertNode(document.createTextNode(text));
+				range.collapse(false);
+				selection.removeAllRanges();
+				selection.addRange(range);
+			} else {
+				// Cursor în afara editorului: inserează la sfârșit
+				editor.focus();
+				document.execCommand('insertText', false, text);
+			}
+		} else {
+			editor.focus();
+			document.execCommand('insertText', false, text);
 		}
+
+		// Declanșează actualizarea stării (fără asta, paste-ul nu se salvează)
+		const newValue = editor.innerHTML;
+		setInternalValue(newValue);
+		if (onChange) onChange(newValue);
 	};
 
 	const execCommand = (command, value = null) => {
@@ -189,7 +214,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 					<ToolbarButton
 						onClick={() => execCommand('bold')}
 						icon={<strong>B</strong>}
-						title="Bold"
+						title="Aldin"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('italic')}
@@ -199,12 +224,12 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 					<ToolbarButton
 						onClick={() => execCommand('underline')}
 						icon={<u>U</u>}
-						title="Underline"
+						title="Subliniat"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('strikeThrough')}
 						icon={<span style={{ textDecoration: 'line-through' }}>S</span>}
-						title="Strikethrough"
+						title="Tăiat"
 					/>
 				</div>
 
@@ -222,14 +247,14 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 							e.target.value = '';
 						}}
-						title="Heading"
+						title="Titlu"
 					>
-						<option value="">Format</option>
-						<option value="h1">Heading 1</option>
-						<option value="h2">Heading 2</option>
-						<option value="h3">Heading 3</option>
-						<option value="h4">Heading 4</option>
-						<option value="p">Paragraph</option>
+						<option value="">Formatare text</option>
+						<option value="h1">Titlu 1</option>
+						<option value="h2">Titlu 2</option>
+						<option value="h3">Titlu 3</option>
+						<option value="h4">Titlu 4</option>
+						<option value="p">Paragraf</option>
 					</select>
 				</div>
 
@@ -239,23 +264,23 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 				<div className="rte-toolbar-group">
 					<ToolbarButton
 						onClick={() => execCommand('insertUnorderedList')}
-						icon="• List"
-						title="Bullet List"
+						icon="•"
+						title="Listă cu puncte"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('insertOrderedList')}
-						icon="1. List"
-						title="Numbered List"
+						icon="1."
+						title="Listă numerotată"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('outdent')}
 						icon="←"
-						title="Decrease Indent"
+						title="Micșorează alinierea"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('indent')}
 						icon="→"
-						title="Increase Indent"
+						title="Mărește alinierea"
 					/>
 				</div>
 
@@ -265,23 +290,23 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 				<div className="rte-toolbar-group">
 					<ToolbarButton
 						onClick={() => execCommand('justifyLeft')}
-						icon="⬅"
-						title="Align Left"
+						icon="L"
+						title="Aliniere stânga"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyCenter')}
-						icon="⬌"
-						title="Align Center"
+						icon="C"
+						title="Aliniere centru"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyRight')}
-						icon="➡"
-						title="Align Right"
+						icon="R"
+						title="Aliniere dreapta"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyFull')}
-						icon="⬌⬌"
-						title="Justify"
+						icon="J"
+						title="Aliniere pe toată lățimea"
 					/>
 				</div>
 
@@ -292,12 +317,12 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 					<ToolbarButton
 						onClick={() => execCommand('formatBlock', 'blockquote')}
 						icon="❝"
-						title="Quote"
+						title="Citat"
 					/>
 					<ToolbarButton
 						onClick={() => setShowLinkDialog(true)}
 						icon="🔗"
-						title="Insert Link"
+						title="Inserare link"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -305,7 +330,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							setShowColorPicker(true);
 						}}
 						icon="🎨"
-						title="Text Color"
+						title="Culoare text"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -313,12 +338,12 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							setShowColorPicker(true);
 						}}
 						icon="🖌️"
-						title="Background Color"
+						title="Culoare fundal"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('removeFormat')}
 						icon="🧹"
-						title="Clear Formatting"
+						title="Șterge formatare"
 					/>
 				</div>
 

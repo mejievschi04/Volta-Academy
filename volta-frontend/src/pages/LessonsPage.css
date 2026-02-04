@@ -280,6 +280,28 @@
 	flex-shrink: 0;
 }
 
+/* Tests in sidebar */
+.lessons-page-sidebar-test .lessons-page-sidebar-lesson-icon {
+	background: rgba(99, 102, 241, 0.15);
+	color: var(--color-brand-primary);
+}
+
+.lessons-page-sidebar-tests-section {
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border-primary);
+}
+
+.lessons-page-sidebar-tests-header {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-tertiary);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: var(--space-2);
+	padding: 0 var(--space-3);
+}
+
 .lessons-page-sidebar-empty {
 	padding: var(--space-8);
 	text-align: center;
@@ -358,6 +380,53 @@
 
 .lessons-page-lesson-body {
 	margin-bottom: var(--space-8);
+}
+
+/* Content blocks (student view - no labels) */
+.lessons-page-lesson-blocks .lesson-block-card {
+	background: transparent;
+	border: none;
+	margin-bottom: var(--space-6);
+}
+
+.lessons-page-lesson-blocks .lesson-block-card-body {
+	padding: 0;
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content {
+	font-size: var(--font-size-base);
+	line-height: 1.7;
+	color: var(--text-primary);
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content h1,
+.lessons-page-lesson-blocks .lesson-preview-content h2,
+.lessons-page-lesson-blocks .lesson-preview-content h3 {
+	margin-top: var(--space-6);
+	margin-bottom: var(--space-2);
+	color: var(--text-primary);
+	font-weight: var(--font-weight-semibold);
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content p {
+	margin-bottom: var(--space-3);
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content ul,
+.lessons-page-lesson-blocks .lesson-preview-content ol {
+	margin-left: var(--space-6);
+	margin-bottom: var(--space-3);
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content iframe {
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}
+
+.lessons-page-lesson-blocks .lesson-preview-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-lg);
 }
 
 .lessons-page-lesson-content-text {

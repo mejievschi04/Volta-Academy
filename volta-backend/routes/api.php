@@ -9,12 +9,14 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\Admin\CourseAdminController;
 use App\Http\Controllers\Api\Admin\CourseBuilderController;
+use App\Http\Controllers\Api\Admin\QuestionAdminController;
 use App\Http\Controllers\Api\Admin\ExamAdminController;
 use App\Http\Controllers\Api\Admin\EventAdminController;
 use App\Http\Controllers\Api\Admin\DashboardAdminController;
 use App\Http\Controllers\Api\Admin\TeamAdminController;
 use App\Http\Controllers\Api\Admin\UserAdminController;
 use App\Http\Controllers\Api\Admin\ActivityLogAdminController;
+use App\Http\Controllers\Api\Admin\MediaAdminController;
 
 // Public routes
 Route::get('/courses', [CourseController::class, 'index']);
@@ -80,11 +82,6 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
     Route::get('/exam-results', [\App\Http\Controllers\Api\ExamResultController::class, 'index']);
     Route::get('/exam-results/{id}', [\App\Http\Controllers\Api\ExamResultController::class, 'show']);
     
-    // Certificates
-    Route::get('/certificates', [\App\Http\Controllers\Api\CertificateController::class, 'index']);
-    Route::get('/certificates/{courseId}/info', [\App\Http\Controllers\Api\CertificateController::class, 'info']);
-    Route::get('/certificates/{courseId}/download', [\App\Http\Controllers\Api\CertificateController::class, 'generate']);
-    
     // Achievements
     Route::get('/achievements', [\App\Http\Controllers\Api\AchievementController::class, 'index']);
     
@@ -126,6 +123,10 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/courses/{id}/modules/reorder', [CourseAdminController::class, 'reorderModules']);
     Route::get('/courses/{id}/preview', [CourseAdminController::class, 'preview']);
 
+    // Media Library (Admin)
+    Route::get('/media', [MediaAdminController::class, 'index']);
+    Route::delete('/media/{id}', [MediaAdminController::class, 'destroy']);
+
     // Course Builder (Admin) - orchestration endpoints for autosave & drag&drop
     Route::prefix('/courses/{courseId}/builder')->group(function () {
         Route::get('/structure', [CourseBuilderController::class, 'structure']);
@@ -138,11 +139,20 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
         Route::post('/lessons/{lessonId}/content-blocks', [CourseBuilderController::class, 'createContentBlock']);
         Route::patch('/lessons/{lessonId}/content-blocks/reorder', [CourseBuilderController::class, 'reorderContentBlocks']);
         Route::put('/content-blocks/{blockId}', [CourseBuilderController::class, 'updateContentBlock']);
+        Route::delete('/content-blocks/{blockId}', [CourseBuilderController::class, 'deleteContentBlock']);
+        Route::post('/upload', [CourseBuilderController::class, 'uploadContentFile']);
 
         Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
         Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
         Route::post('/publish', [CourseBuilderController::class, 'publish']);
         Route::post('/clone', [CourseBuilderController::class, 'clone']);
+
+        Route::get('/versions', [CourseBuilderController::class, 'versions']);
+        Route::post('/versions/{versionId}/restore', [CourseBuilderController::class, 'restoreVersion']);
+
+        Route::get('/tests', [CourseBuilderController::class, 'tests']);
+        Route::post('/tests/attach', [CourseBuilderController::class, 'attachTest']);
+        Route::post('/tests/{testId}/detach', [CourseBuilderController::class, 'detachTest']);
     });
     
     // Modules Management
@@ -175,6 +185,12 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::put('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'update']);
     Route::delete('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'destroy']);
     Route::post('/tests/{id}/publish', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'publish']);
+    Route::post('/tests/{id}/selection-preview', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'selectionPreview']);
+    Route::get('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getQuestions']);
+    Route::post('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'addQuestion']);
+    Route::post('/tests/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'reorderQuestions']);
+    Route::put('/questions/{id}', [QuestionAdminController::class, 'update']);
+    Route::delete('/questions/{id}', [QuestionAdminController::class, 'destroy']);
     Route::post('/tests/{id}/link-to-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'linkToCourse']);
     Route::post('/tests/{id}/unlink-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'unlinkFromCourse']);
     
@@ -188,6 +204,7 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/question-banks/{id}/questions', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'addQuestion']);
     Route::put('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'updateQuestion']);
     Route::delete('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'removeQuestion']);
+    Route::post('/question-banks/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'reorderQuestions']);
     Route::post('/question-banks/{id}/generate-from-course', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromCourse']);
     Route::post('/question-banks/{id}/generate-from-text', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromText']);
     
@@ -241,19 +258,18 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::get('/activity-logs', [ActivityLogAdminController::class, 'index']);
     Route::get('/activity-logs/{id}', [ActivityLogAdminController::class, 'show']);
     
-    // Exam Manual Review
+    // Exam Manual Review (legacy Exam model)
     Route::get('/exams/pending-reviews', [ExamAdminController::class, 'getPendingReviews']);
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
+
+    // Test Manual Review (Test model - standalone tests)
+    Route::get('/tests/pending-reviews', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getPendingReviews']);
+    Route::post('/test-results/{id}/manual-review', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'submitManualReview']);
     
     // Admin Settings
     Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'index']);
     Route::get('/settings/{key}', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'show']);
     Route::put('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'update']);
-    
-    // Certificate Settings
-    Route::get('/certificate-settings', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'index']);
-    Route::put('/certificate-settings', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'update']);
-    Route::post('/certificate-settings/logo', [\App\Http\Controllers\Api\Admin\CertificateSettingsController::class, 'uploadLogo']);
     
     // Admin System
     Route::get('/export', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'export']);

@@ -130,19 +130,6 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 								<option value="quiz">Quiz</option>
 							</select>
 						</div>
-						<div className="admin-form-group">
-							<label className="admin-form-label">Durată (minute)</label>
-							<input
-								type="number"
-								className="admin-form-input"
-								value={editingLesson.duration_minutes || ''}
-								onChange={(e) => setEditingLesson({ ...editingLesson, duration_minutes: parseInt(e.target.value) || null })}
-								placeholder="Ex: 15"
-								min="1"
-								max="180"
-							/>
-							<p className="admin-form-hint">💡 Pentru mobile-ready: recomandăm max 10 minute</p>
-						</div>
 					</div>
 
 					{/* Content based on type */}

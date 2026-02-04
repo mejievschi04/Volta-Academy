@@ -30,15 +30,20 @@ class TestResult extends Model
         'completed_at',
         'reviewed_at',
         'status',
+        'needs_manual_review',
+        'manual_review_scores',
+        'reviewed_by',
     ];
 
     protected $casts = [
         'passed' => 'boolean',
         'percentage' => 'decimal:2',
         'answers' => 'array',
+        'manual_review_scores' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'needs_manual_review' => 'boolean',
     ];
 
     /**

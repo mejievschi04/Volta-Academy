@@ -13,17 +13,23 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         try {
-            // Get only necessary fields for listing (no full content)
-            // Note: Don't use select() with eager loading as it can cause issues
-            $courses = Course::with([
+            $query = Course::with([
                 'modules' => function($query) {
                     $query->select('id', 'course_id', 'title', 'order');
                 },
                 'teacher' => function($query) {
                     $query->select('id', 'name');
                 }
-            ])
-                ->get()
+            ]);
+
+            // For non-admin users (students), only show published courses
+            $user = $request->user();
+            $isAdmin = $user && in_array($user->role ?? '', ['admin', 'instructor', 'teacher']);
+            if (!$isAdmin && \Illuminate\Support\Facades\Schema::hasColumn('courses', 'status')) {
+                $query->where('status', 'published');
+            }
+
+            $courses = $query->get()
                 ->map(function($course) {
                     try {
                         return [
@@ -33,6 +39,7 @@ class CourseController extends Controller
                             'image' => $course->image ?? null,
                             'image_url' => $course->image_url ?? null,
                             'reward_points' => $course->reward_points ?? 0,
+                            'status' => $course->status ?? 'draft',
                             'modules_count' => $course->modules ? $course->modules->count() : 0,
                             'modules' => $course->modules ? $course->modules->map(function($module) {
                                 return [
@@ -60,6 +67,7 @@ class CourseController extends Controller
                             'image' => null,
                             'image_url' => null,
                             'reward_points' => 0,
+                            'status' => $course->status ?? 'draft',
                             'modules_count' => 0,
                             'modules' => [],
                             'teacher' => null,

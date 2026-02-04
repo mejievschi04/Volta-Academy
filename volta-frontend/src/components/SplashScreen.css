@@ -13,6 +13,7 @@
 	background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
 	z-index: 10000;
 	overflow: hidden;
+	cursor: pointer;
 }
 
 /* Animated background circles */
@@ -178,9 +179,9 @@
 .splash-loader-percentage {
 	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-bold);
-	color: #FFEE00;
+	color: #ffffff;
 	letter-spacing: 2px;
-	text-shadow: 0 0 10px rgba(255, 238, 0, 0.5);
+	text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 /* Loading dots */
@@ -224,11 +225,18 @@
 
 .splash-footer-text {
 	font-size: var(--font-size-xs);
-	color: rgba(255, 255, 255, 0.25);
+	color: #ffffff;
 	letter-spacing: 3px;
 	text-transform: uppercase;
 	font-weight: var(--font-weight-medium);
 	margin: 0;
+	text-align: center;
+}
+
+.splash-skip-hint {
+	font-size: var(--font-size-xs);
+	color: rgba(255, 255, 255, 0.5);
+	margin: var(--space-2) 0 0;
 	text-align: center;
 }
 

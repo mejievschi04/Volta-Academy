@@ -78,12 +78,6 @@ const CourseOverview = ({ course, onQuickAction }) => {
 								{course.level ? course.level.charAt(0).toUpperCase() + course.level.slice(1) : 'N/A'}
 							</span>
 						</div>
-						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Durată estimată:</span>
-							<span className="admin-course-overview-value">
-								{course.estimated_duration_hours || 0} ore
-							</span>
-						</div>
 					</div>
 				</div>
 

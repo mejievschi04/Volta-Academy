@@ -142,6 +142,13 @@ const AdminCourseDetailPage = () => {
 				>
 					← Înapoi
 				</button>
+				<button
+					className="lms-btn-secondary"
+					onClick={() => navigate(`/admin/courses/${id}/builder`)}
+					style={{ marginLeft: 'var(--space-3)' }}
+				>
+					🛠 Builder
+				</button>
 				<h1 className="admin-course-detail-title">
 					{course.title}
 				</h1>

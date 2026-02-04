@@ -729,6 +729,12 @@
 		padding-bottom: var(--space-8) !important;
 	}
 
+	/* Student layout (topnav) - fără bară neagră jos, ecran full height */
+	.va-shell-topnav .va-main,
+	.va-shell-topnav .va-shell-main {
+		padding-bottom: 0 !important;
+	}
+
 	/* Logo - ensure normal display */
 	.va-logo-text,
 	.modern-sidebar-logo,
@@ -1299,15 +1305,15 @@
 	}
 
 	.student-quick-stat {
-		padding: var(--space-4) var(--space-3) !important;
+		padding: var(--space-5) var(--space-4) !important;
 		border-radius: var(--radius-xl) !important;
 		text-align: center !important;
 		display: flex !important;
 		flex-direction: column !important;
 		align-items: center !important;
 		justify-content: center !important;
-		gap: var(--space-2) !important;
-		min-height: 100px !important;
+		gap: var(--space-3) !important;
+		min-height: 110px !important;
 		background: var(--bg-elevated) !important;
 		border: 1px solid var(--border-primary) !important;
 		box-shadow: var(--shadow-sm) !important;
@@ -1322,7 +1328,14 @@
 	.student-quick-stat-icon {
 		font-size: var(--font-size-2xl) !important;
 		line-height: 1 !important;
-		margin-bottom: var(--space-1) !important;
+		margin-bottom: 0 !important;
+		width: 44px !important;
+		height: 44px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		background: var(--bg-tertiary) !important;
+		border-radius: var(--radius-lg) !important;
 	}
 
 	.student-quick-stat-content {
@@ -2188,7 +2201,8 @@
 		background: var(--bg-elevated);
 		border: 1px solid var(--border-primary);
 		border-radius: var(--radius-lg);
-		padding: var(--space-4);
+		padding: var(--space-5);
+		min-height: 100px;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;

@@ -9,6 +9,53 @@
 	padding: 0;
 }
 
+/* Content blocks (student view - no labels) */
+.lesson-page-blocks .lesson-block-card {
+	background: transparent;
+	border: none;
+	margin-bottom: var(--space-6);
+}
+
+.lesson-page-blocks .lesson-block-card-body {
+	padding: 0;
+}
+
+.lesson-page-blocks .lesson-preview-content {
+	font-size: var(--font-size-base);
+	line-height: 1.7;
+	color: var(--text-primary);
+}
+
+.lesson-page-blocks .lesson-preview-content h1,
+.lesson-page-blocks .lesson-preview-content h2,
+.lesson-page-blocks .lesson-preview-content h3 {
+	margin-top: var(--space-6);
+	margin-bottom: var(--space-2);
+	color: var(--text-primary);
+	font-weight: var(--font-weight-semibold);
+}
+
+.lesson-page-blocks .lesson-preview-content p {
+	margin-bottom: var(--space-3);
+}
+
+.lesson-page-blocks .lesson-preview-content ul,
+.lesson-page-blocks .lesson-preview-content ol {
+	margin-left: var(--space-6);
+	margin-bottom: var(--space-3);
+}
+
+.lesson-page-blocks .lesson-preview-content iframe {
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}
+
+.lesson-page-blocks .lesson-preview-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-lg);
+}
+
 /* ============================================
    LOADING & ERROR STATES
    ============================================ */

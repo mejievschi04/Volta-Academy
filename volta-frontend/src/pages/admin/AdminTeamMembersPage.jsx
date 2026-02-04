@@ -243,6 +243,8 @@ const AdminTeamMembersPage = () => {
 												<img 
 													src={member.avatar} 
 													alt={member.name}
+													loading="lazy"
+													decoding="async"
 												/>
 											) : (
 												(member.name?.charAt(0) || 'U').toUpperCase()

@@ -404,25 +404,6 @@ const LessonCreatorPage = () => {
 							)}
 						</div>
 
-						{/* Order Field */}
-						<div className="admin-form-group">
-							<label className="admin-label admin-label-with-icon">
-								<span>🔢</span>
-								<span>Ordine</span>
-							</label>
-							<input
-								type="number"
-								className="admin-form-input"
-								value={formData.order}
-								onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-								min="0"
-								placeholder="Ordinea în care apare lecția în curs"
-							/>
-							<p className="admin-form-help-text">
-								💡 Lecțiile vor fi afișate în ordinea crescătoare a acestui număr (0 = prima lecție)
-							</p>
-						</div>
-
 						{/* Content Field */}
 						<div className="admin-form-group">
 							<div className="admin-form-group-header">
@@ -560,10 +541,6 @@ const LessonCreatorPage = () => {
 										<p className="lesson-preview-placeholder">Conținutul lecției va apărea aici...</p>
 									)}
 									<div className="lesson-preview-meta">
-										<div className="lesson-preview-meta-item">
-											<span className="lesson-preview-meta-label">Ordine:</span>
-											<span className="lesson-preview-meta-value">{formData.order || 0}</span>
-										</div>
 										<div className="lesson-preview-meta-item">
 											<span className="lesson-preview-meta-label">Status:</span>
 											<span className="lesson-preview-meta-value">{formData.status || 'draft'}</span>

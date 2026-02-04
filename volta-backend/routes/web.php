@@ -3,6 +3,20 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LessonController;
 
+// Serve storage files (fallback when symlink doesn't work, e.g. on Windows)
+Route::get('/storage/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath) || !is_file($fullPath)) {
+        abort(404);
+    }
+    // Security: ensure path is within storage/app/public (no directory traversal)
+    $realPath = realpath($fullPath);
+    $storagePath = realpath(storage_path('app/public'));
+    if (!$realPath || !str_starts_with($realPath, $storagePath)) {
+        abort(403);
+    }
+    return response()->file($fullPath);
+})->where('path', '.*');
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);

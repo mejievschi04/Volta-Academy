@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
 import CourseStructureBuilder from '../../components/admin/courses/CourseStructureBuilder';
 import ContentBlocksPanel from '../../components/admin/content-blocks/ContentBlocksPanel';
+import ValidationChecklist from '../../components/admin/courses/ValidationChecklist';
 
 const debounceMs = 900;
 
@@ -21,9 +22,27 @@ const AdminCourseBuilderPage = () => {
 	const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error' | null
 	const [selectedLessonId, setSelectedLessonId] = useState(null);
 	const [validationReport, setValidationReport] = useState(null);
+	const [versionsOpen, setVersionsOpen] = useState(false);
+	const [versionsLoading, setVersionsLoading] = useState(false);
+	const [versions, setVersions] = useState([]);
+	const [testsOpen, setTestsOpen] = useState(false);
+	const [testsLoading, setTestsLoading] = useState(false);
+	const [testsLoaded, setTestsLoaded] = useState(false);
+	const [availableTests, setAvailableTests] = useState([]);
+	const [attachedTests, setAttachedTests] = useState([]);
+	const [attachForm, setAttachForm] = useState({
+		test_id: '',
+		scope: 'course',
+		scope_id: '',
+		required: true,
+		passing_score: 70,
+	});
+	const [activeTab, setActiveTab] = useState('structure'); // structure | lesson | workflow
+	const [editingLessonTitle, setEditingLessonTitle] = useState(null); // lessonId when editing
 
 	const pendingOpsRef = useRef([]);
 	const debounceRef = useRef(null);
+	const runPendingOpsPromiseRef = useRef(null);
 
 	const course = structure?.course || null;
 	const modules = useMemo(() => {
@@ -45,40 +64,79 @@ const AdminCourseBuilderPage = () => {
 		return allLessons.find((l) => l.id === selectedLessonId) || null;
 	}, [allLessons, selectedLessonId]);
 
-	const enqueueOps = (ops) => {
+	useEffect(() => {
+		if (activeTab === 'lesson' && !selectedLessonId) {
+			setActiveTab('structure');
+		}
+	}, [activeTab, selectedLessonId]);
+
+	useEffect(() => {
+		setEditingLessonTitle(null);
+	}, [selectedLessonId]);
+
+	const runPendingOps = async () => {
+		const opsToSend = pendingOpsRef.current;
+		pendingOpsRef.current = [];
+		if (opsToSend.length === 0) return null;
+		try {
+			const next = await adminService.patchCourseBuilderStructure(courseId, opsToSend);
+			setStructure(next);
+			setSaveStatus('saved');
+			return next;
+		} catch (e) {
+			console.error('Builder autosave failed:', e);
+			setSaveStatus('error');
+			return null;
+		} finally {
+			runPendingOpsPromiseRef.current = null;
+		}
+	};
+
+	const enqueueOps = (ops, immediate = false) => {
 		pendingOpsRef.current = [...pendingOpsRef.current, ...ops];
 		setSaveStatus('saving');
 
 		if (debounceRef.current) {
 			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
 		}
 
-		debounceRef.current = setTimeout(async () => {
-			const opsToSend = pendingOpsRef.current;
-			pendingOpsRef.current = [];
-
-			try {
-				const next = await adminService.patchCourseBuilderStructure(courseId, opsToSend);
-				setStructure(next);
-				setSaveStatus('saved');
-			} catch (e) {
-				console.error('Builder autosave failed:', e);
-				setSaveStatus('error');
-			}
-		}, debounceMs);
+		if (immediate) {
+			runPendingOpsPromiseRef.current = runPendingOps();
+		} else {
+			debounceRef.current = setTimeout(() => {
+				runPendingOpsPromiseRef.current = runPendingOps();
+			}, debounceMs);
+		}
 	};
 
-	const fetchStructure = async () => {
+	/** Trimite imediat orice operații în așteptare (reordonare etc.) înainte de refresh */
+	const flushPendingOps = async () => {
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
+		}
+		// Așteaptă dacă există deja un PATCH în curs (ex: reordonare module)
+		if (runPendingOpsPromiseRef.current) {
+			await runPendingOpsPromiseRef.current;
+		}
+		await runPendingOps();
+	};
+
+	const fetchStructure = async (background = false) => {
 		try {
-			setLoading(true);
-			setError(null);
+			await flushPendingOps();
+			if (!background) {
+				setLoading(true);
+				setError(null);
+			}
 			const data = await adminService.getCourseBuilderStructure(courseId);
 			setStructure(data);
 		} catch (e) {
 			console.error('Failed to load course builder structure:', e);
-			setError('Nu s-a putut încărca builder-ul cursului.');
+			if (!background) setError('Nu s-a putut încărca builder-ul cursului.');
 		} finally {
-			setLoading(false);
+			if (!background) setLoading(false);
 		}
 	};
 
@@ -93,15 +151,21 @@ const AdminCourseBuilderPage = () => {
 
 	const handleReorderModules = (newModules) => {
 		const moduleIds = newModules.map((m) => m.id);
-		enqueueOps([{ op: 'reorderModules', module_ids: moduleIds }]);
+		// Actualizare optimistă - utilizatorul vede imediat noua ordine
+		setStructure((prev) => {
+			if (!prev) return prev;
+			const newCourse = { ...prev.course, modules: newModules };
+			return { ...prev, course: newCourse, modules: newModules };
+		});
+		enqueueOps([{ op: 'reorderModules', module_ids: moduleIds }], true);
 	};
 
 	const handleReorderLessons = (moduleId, lessonIds) => {
-		enqueueOps([{ op: 'reorderLessons', module_id: moduleId, lesson_ids: lessonIds }]);
+		enqueueOps([{ op: 'reorderLessons', module_id: moduleId, lesson_ids: lessonIds }], true);
 	};
 
 	const handleMoveLesson = (lessonId, toModuleId, toIndex) => {
-		enqueueOps([{ op: 'moveLesson', lesson_id: lessonId, to_module_id: toModuleId, to_index: toIndex }]);
+		enqueueOps([{ op: 'moveLesson', lesson_id: lessonId, to_module_id: toModuleId, to_index: toIndex }], true);
 	};
 
 	const handleToggleModuleStatus = (moduleId, status) => {
@@ -126,11 +190,23 @@ const AdminCourseBuilderPage = () => {
 		]);
 	};
 
+	const handleUpdateLessonTitle = async (lessonId, newTitle) => {
+		if (!newTitle?.trim()) return;
+		try {
+			await adminService.builderUpdateLesson(courseId, lessonId, { title: newTitle.trim() });
+			showToast('Titlul lecției salvat', 'success');
+			await fetchStructure(true);
+		} catch (e) {
+			console.error('Update lesson title failed:', e);
+			showToast('Eroare la salvarea titlului', 'error');
+		}
+	};
+
 	const handleAddModule = async () => {
 		try {
 			const response = await adminService.builderCreateModule(courseId, { title: 'Modul nou', status: 'draft' });
 			showToast('Modul creat', 'success');
-			await fetchStructure();
+			await fetchStructure(true);
 			return response;
 		} catch (e) {
 			console.error('Create module failed:', e);
@@ -145,15 +221,40 @@ const AdminCourseBuilderPage = () => {
 				title: 'Lecție nouă',
 				type: 'text',
 				status: 'draft',
-				duration_minutes: 5,
 				is_preview: false,
 				content: '',
 			});
 			showToast('Lecție creată', 'success');
-			await fetchStructure();
+			await fetchStructure(true);
 		} catch (e) {
 			console.error('Create lesson failed:', e);
 			showToast('Eroare la crearea lecției', 'error');
+		}
+	};
+
+	const handleDeleteModule = async (moduleId) => {
+		if (!window.confirm('Ștergi acest modul și toate lecțiile din el?')) return;
+		try {
+			await adminService.deleteModule(moduleId);
+			showToast('Modul șters', 'success');
+			setSelectedLessonId(null);
+			await fetchStructure(true);
+		} catch (e) {
+			console.error('Delete module failed:', e);
+			showToast('Eroare la ștergerea modulului', 'error');
+		}
+	};
+
+	const handleDeleteLesson = async (lessonId) => {
+		if (!window.confirm('Ștergi această lecție?')) return;
+		try {
+			await adminService.deleteLesson(lessonId);
+			showToast('Lecție ștearsă', 'success');
+			if (selectedLessonId === lessonId) setSelectedLessonId(null);
+			await fetchStructure(true);
+		} catch (e) {
+			console.error('Delete lesson failed:', e);
+			showToast('Eroare la ștergerea lecției', 'error');
 		}
 	};
 
@@ -212,6 +313,112 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const openTests = async (prefill = {}) => {
+		try {
+			const normalizedPrefill = { ...prefill };
+			if (
+				normalizedPrefill.scope_id !== undefined &&
+				normalizedPrefill.scope_id !== null &&
+				normalizedPrefill.scope_id !== ''
+			) {
+				normalizedPrefill.scope_id = String(normalizedPrefill.scope_id);
+			}
+
+			const base = {
+				test_id: '',
+				scope: selectedLessonId ? 'lesson' : 'course',
+				scope_id: selectedLessonId ? String(selectedLessonId) : '',
+				required: true,
+				passing_score: 70,
+				...normalizedPrefill,
+			};
+			setAttachForm(base);
+			setTestsOpen(true);
+			setTestsLoading(true);
+			const res = await adminService.builderGetTests(courseId);
+			setAvailableTests(Array.isArray(res?.tests) ? res.tests : []);
+			setAttachedTests(Array.isArray(res?.attached) ? res.attached : []);
+			setTestsLoaded(true);
+		} catch (e) {
+			console.error('Load builder tests failed:', e);
+			showToast('Nu s-au putut încărca testele', 'error');
+			setAvailableTests([]);
+			setAttachedTests([]);
+		} finally {
+			setTestsLoading(false);
+		}
+	};
+
+	const attachTest = async () => {
+		try {
+			const payload = {
+				test_id: Number(attachForm.test_id),
+				scope: attachForm.scope,
+				scope_id: attachForm.scope === 'course' ? null : Number(attachForm.scope_id || 0) || null,
+				required: !!attachForm.required,
+				passing_score: Number(attachForm.passing_score ?? 70),
+			};
+			await adminService.builderAttachTest(courseId, payload);
+			showToast('Test atașat', 'success');
+			const res = await adminService.builderGetTests(courseId);
+			setAttachedTests(Array.isArray(res?.attached) ? res.attached : []);
+			setTestsLoaded(true);
+		} catch (e) {
+			console.error('Attach test failed:', e);
+			showToast('Atașarea testului a eșuat', 'error');
+		}
+	};
+
+	const detachTest = async (testId, scope, scopeId) => {
+		if (!window.confirm('Detașezi testul de la curs?')) return;
+		try {
+			await adminService.builderDetachTest(courseId, testId, {
+				scope,
+				scope_id: scopeId ?? null,
+			});
+			showToast('Test detașat', 'success');
+			const res = await adminService.builderGetTests(courseId);
+			setAttachedTests(Array.isArray(res?.attached) ? res.attached : []);
+			setTestsLoaded(true);
+		} catch (e) {
+			console.error('Detach test failed:', e);
+			showToast('Detașarea a eșuat', 'error');
+		}
+	};
+
+	const openVersions = async () => {
+		try {
+			setVersionsOpen(true);
+			setVersionsLoading(true);
+			const res = await adminService.builderGetVersions(courseId);
+			setVersions(Array.isArray(res?.versions) ? res.versions : []);
+		} catch (e) {
+			console.error('Load versions failed:', e);
+			showToast('Nu s-a putut încărca istoricul versiunilor', 'error');
+			setVersions([]);
+		} finally {
+			setVersionsLoading(false);
+		}
+	};
+
+	const restoreVersion = async (versionId) => {
+		if (!window.confirm('Restaurarea va crea un curs NOU (draft) din această versiune. Continui?')) return;
+		try {
+			const res = await adminService.builderRestoreVersion(courseId, versionId, true);
+			const newCourseId = res?.course?.id;
+			if (newCourseId) {
+				showToast('Versiune restaurată (curs nou creat)', 'success');
+				setVersionsOpen(false);
+				navigate(`/admin/courses/${newCourseId}/builder`);
+			} else {
+				showToast('Cursul restaurat nu are ID', 'error');
+			}
+		} catch (e) {
+			console.error('Restore version failed:', e);
+			showToast('Restaurarea a eșuat', 'error');
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="admin-container">
@@ -242,74 +449,142 @@ const AdminCourseBuilderPage = () => {
 	}
 
 	return (
-		<div className="admin-container">
-			<div className="admin-page-header">
-				<div className="admin-page-header-content">
-					<h1 className="admin-page-title">Course Builder</h1>
-					<p className="admin-page-subtitle">
-						{course?.title ? `Editezi: ${course.title}` : 'Editează structura și conținutul cursului'}
-						{course?.workflow_status ? ` • Workflow: ${course.workflow_status}` : ''}
-					</p>
+		<div className="admin-container admin-course-builder-page">
+			{/* Header */}
+			<header className="admin-course-builder-header">
+				<div className="admin-course-builder-header-left">
+					<button
+						type="button"
+						className="admin-course-builder-back"
+						onClick={() => navigate('/admin/courses')}
+					>
+						← Cursuri
+					</button>
+					<div>
+						<h1 className="admin-course-builder-title">
+							{course?.title || 'Constructor curs'}
+						</h1>
+						<p className="admin-course-builder-title-meta">
+							{course?.status === 'published' ? '🟢 Publicat' : '⚪ Draft'}
+							{course?.workflow_status ? ` • ${course.workflow_status}` : ''}
+						</p>
+					</div>
 				</div>
-				<div className="admin-page-header-actions">
-					<AutoSaveIndicator status={saveStatus} />
-					<button className="admin-btn admin-btn-secondary" onClick={() => navigate(`/admin/courses/${courseId}`)}>
-						Detalii
-					</button>
-					<button className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
-						👁️ Preview ca Student
-					</button>
-					<button className="admin-btn admin-btn-secondary" onClick={handleValidate}>
-						Verifică
-					</button>
-					<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview}>
-						Trimite la review
-					</button>
-					<button className="admin-btn admin-btn-primary" onClick={handlePublish}>
-						Publică
-					</button>
+				<div className="admin-course-builder-actions">
+					<div className="admin-course-builder-actions-group">
+						<AutoSaveIndicator status={saveStatus} />
+					</div>
+					<div className="admin-course-builder-actions-group">
+						<button className="admin-btn admin-btn-secondary" onClick={() => navigate(`/admin/courses/${courseId}`)}>
+							Detalii
+						</button>
+						<button className="admin-btn admin-btn-secondary" onClick={() => openTests()}>
+							🧪 Teste
+						</button>
+						<button className="admin-btn admin-btn-secondary" onClick={openVersions}>
+							📜 Istoric
+						</button>
+					</div>
+					<div className="admin-course-builder-actions-group">
+						<button className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
+							👁️ Preview
+						</button>
+						<button className="admin-btn admin-btn-secondary" onClick={handleValidate}>
+							Verifică
+						</button>
+						<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview}>
+							Review
+						</button>
+						<button className="admin-btn admin-btn-primary" onClick={handlePublish}>
+							Publică
+						</button>
+					</div>
 				</div>
-			</div>
+			</header>
 
 			<div className="admin-creator-split">
 				<div className="admin-creator-form-panel">
+					{/* Tabs */}
+					<div className="admin-course-builder-tabs">
+						<button
+							type="button"
+							className={`admin-course-builder-tab ${activeTab === 'structure' ? 'active' : ''}`}
+							onClick={() => setActiveTab('structure')}
+						>
+							📐 Structură
+						</button>
+						<button
+							type="button"
+							className={`admin-course-builder-tab ${activeTab === 'lesson' ? 'active' : ''}`}
+							onClick={() => setActiveTab('lesson')}
+							disabled={!selectedLessonId}
+							title={!selectedLessonId ? 'Selectează o lecție pentru a edita conținutul' : undefined}
+						>
+							📝 Lecție & Conținut
+						</button>
+						<button
+							type="button"
+							className={`admin-course-builder-tab ${activeTab === 'workflow' ? 'active' : ''}`}
+							onClick={() => setActiveTab('workflow')}
+						>
+							✅ Workflow
+						</button>
+					</div>
+
+					{activeTab === 'structure' && (
 					<CourseStructureBuilder
 						course={course}
 						modules={modules}
+						validationReport={validationReport}
 						onReorderModules={handleReorderModules}
 						onReorderLessons={handleReorderLessons}
 						onMoveLesson={handleMoveLesson}
 						onEditModule={(moduleId) => navigate(`/admin/modules/${moduleId}`)}
-						onDeleteModule={() => showToast('Ștergerea modulelor va fi activată în builder', 'info')}
+						onDeleteModule={handleDeleteModule}
 						onToggleModuleLock={() => showToast('Blocarea modulelor va fi activată în builder', 'info')}
+						onDeleteLesson={handleDeleteLesson}
 						onToggleModuleStatus={handleToggleModuleStatus}
 						onToggleLessonStatus={handleToggleLessonStatus}
 						onToggleLessonPreview={handleToggleLessonPreview}
-						onSelectLesson={(lessonId) => setSelectedLessonId(lessonId)}
+						onSelectLesson={(lessonId) => {
+							setSelectedLessonId(lessonId);
+							setActiveTab('lesson');
+						}}
 						onAddModule={handleAddModule}
 						onAddLesson={handleAddLesson}
-						onAddTest={() => showToast('Atașarea testelor va fi activată în builder', 'info')}
+						onAddTest={(prefill) => openTests(prefill || { scope: 'module' })}
 						loading={loading}
 					/>
+					)}
 
-					{selectedLesson && (
+					{activeTab === 'lesson' && selectedLesson && (
 						<>
-							<div className="admin-settings-section" style={{ marginTop: 'var(--space-6)' }}>
-								<h3 className="admin-settings-section-title">Setări lecție</h3>
-								<div className="admin-settings-form-group">
-									<label className="admin-settings-label">Lecție selectată</label>
-									<div style={{ color: 'var(--text-primary)', fontWeight: 'var(--font-weight-semibold)' }}>
-										{selectedLesson.title}
-									</div>
+							<div className="admin-course-builder-lesson-settings">
+								<h3 className="admin-course-builder-lesson-settings-title">Setări lecție</h3>
+								<div className="admin-course-builder-form-group">
+									<label className="admin-course-builder-label">Titlu lecție</label>
+									<input
+										type="text"
+										className="admin-course-builder-input"
+										value={editingLessonTitle !== null ? editingLessonTitle : selectedLesson.title}
+										onChange={(e) => setEditingLessonTitle(e.target.value)}
+										onBlur={(e) => {
+											const v = e.target.value?.trim();
+											setEditingLessonTitle(null);
+											if (v && v !== selectedLesson.title) handleUpdateLessonTitle(selectedLesson.id, v);
+										}}
+										onFocus={() => setEditingLessonTitle(selectedLesson.title)}
+										placeholder="Titlul lecției"
+									/>
 									<div style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-1)' }}>
 										Modul: {selectedLesson.__moduleTitle || '—'}
 									</div>
 								</div>
 
-								<div className="admin-settings-form-group">
-									<label className="admin-settings-label">Prerechizit</label>
+								<div className="admin-course-builder-form-group">
+									<label className="admin-course-builder-label">Prerechizit</label>
 									<select
-										className="admin-settings-select"
+										className="admin-course-builder-select"
 										value={selectedLesson.unlock_after_lesson_id || ''}
 										onChange={(e) =>
 											handleSetLessonPrerequisite(
@@ -327,105 +602,398 @@ const AdminCourseBuilderPage = () => {
 												</option>
 											))}
 									</select>
-									<div className="admin-settings-hint">
+									<div className="admin-course-builder-hint">
 										Cursantul nu poate accesa această lecție până nu finalizează prerechizitul selectat.
 									</div>
 								</div>
 							</div>
 
-							<ContentBlocksPanel courseId={courseId} lesson={selectedLesson} onRefresh={fetchStructure} />
+							<ContentBlocksPanel courseId={courseId} lesson={selectedLesson} onRefresh={() => fetchStructure(true)} />
 						</>
+					)}
+
+					{activeTab === 'workflow' && (
+						<div className="admin-course-builder-workflow">
+							<h3 className="admin-course-builder-workflow-title">Workflow & Validare</h3>
+							<p className="admin-course-builder-workflow-hint">
+								Verifică înainte de publish. La review/publish se creează automat snapshot-uri (Istoric).
+							</p>
+
+							<div className="admin-course-builder-workflow-actions">
+								<button className="admin-btn admin-btn-secondary" onClick={handleValidate}>
+									Verifică
+								</button>
+								<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview}>
+									Trimite la review
+								</button>
+								<button className="admin-btn admin-btn-primary" onClick={handlePublish}>
+									Publică
+								</button>
+								<button className="admin-btn admin-btn-secondary" onClick={openVersions}>
+									Vezi Istoric
+								</button>
+							</div>
+
+							{validationReport && (
+								<ValidationChecklist
+									report={validationReport}
+									modules={modules}
+									lessons={allLessons}
+									onGoToLesson={(lessonId) => {
+										setSelectedLessonId(lessonId);
+										setActiveTab('lesson');
+									}}
+									onGoToModule={(moduleId) => {
+										const el = document.querySelector(`[data-module-id="${moduleId}"]`);
+										if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+									}}
+								/>
+							)}
+						</div>
 					)}
 				</div>
 
-				<aside className="admin-creator-preview-panel">
+				<aside className="admin-creator-preview-panel admin-course-builder-preview-panel">
 					<div className="admin-creator-preview-header">
-						<h3>Preview structură</h3>
+						<h3>Previzualizare structură</h3>
 						<p>Rezumat rapid (cum va arăta pentru cursant)</p>
 					</div>
 					<div className="admin-creator-preview-content">
-						<div className="module-preview-card">
+						<div className="admin-course-builder-preview-card">
+							{course?.image_url && (
+								<div className="admin-course-builder-preview-thumb-wrap">
+									<img src={course.image_url} alt={course?.title} className="admin-course-builder-preview-thumb" loading="lazy" decoding="async" />
+								</div>
+							)}
 							<div className="module-preview-body">
 								<h4 className="module-preview-title">{course?.title || 'Curs'}</h4>
 								<p className="module-preview-description">
 									{course?.short_description || course?.description || 'Fără descriere'}
 								</p>
-								<div className="module-preview-meta">
-									<div className="module-preview-meta-item">
-										<span className="module-preview-meta-label">Module</span>
-										<span className="module-preview-meta-value">{modules.length}</span>
+								<div className="admin-course-builder-preview-tags">
+									<span className={`admin-course-builder-status-badge ${course?.status === 'published' ? 'published' : 'draft'}`}>
+										{course?.status === 'published' ? '🟢 Publicat' : '⚪ Draft'}
+									</span>
+									{course?.workflow_status && (
+										<span className="admin-course-builder-workflow-badge">{course.workflow_status}</span>
+									)}
+									{selectedLesson && (
+										<span className="admin-course-builder-lesson-badge" title={selectedLesson.title}>
+											📝 {selectedLesson.title}
+										</span>
+									)}
+								</div>
+								<div className="admin-course-builder-stats-grid">
+									<div className="admin-course-builder-stat">
+										<span className="admin-course-builder-stat-value">{modules.length}</span>
+										<span className="admin-course-builder-stat-label">Module</span>
 									</div>
-									<div className="module-preview-meta-item">
-										<span className="module-preview-meta-label">Lecții</span>
-										<span className="module-preview-meta-value">
+									<div className="admin-course-builder-stat">
+										<span className="admin-course-builder-stat-value">
 											{modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)}
 										</span>
+										<span className="admin-course-builder-stat-label">Lecții</span>
 									</div>
-									<div className="module-preview-meta-item">
-										<span className="module-preview-meta-label">Status</span>
-										<span className="module-preview-meta-value">{course?.status || 'draft'}</span>
+									<div className="admin-course-builder-stat">
+										<span className="admin-course-builder-stat-value">
+											{testsLoaded ? (Array.isArray(attachedTests) ? attachedTests.length : 0) : '—'}
+										</span>
+										<span className="admin-course-builder-stat-label">Teste</span>
 									</div>
 								</div>
 							</div>
 						</div>
-						<div style={{ marginTop: 'var(--space-4)' }}>
-							{modules.map((m) => (
-								<div key={m.id} style={{ marginBottom: 'var(--space-3)' }}>
-									<div style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-										{m.title || 'Modul'} {m.status === 'draft' ? '(Draft)' : ''}
-									</div>
-									<div style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>
-										{(m.lessons || []).length} lecții
-									</div>
+						<div className="admin-creator-outline">
+							<div className="admin-creator-outline-header">Outline curs</div>
+							{modules.length === 0 ? (
+								<div className="admin-creator-outline-empty">Nu există module încă.</div>
+							) : (
+								<div className="admin-creator-outline-list">
+									{modules.map((m, mIndex) => (
+										<div key={m.id} className="admin-creator-outline-module">
+											<div className="admin-creator-outline-module-row">
+												<span className="admin-creator-outline-module-index">{mIndex + 1}.</span>
+												<span className="admin-creator-outline-module-title">{m.title || 'Modul'}</span>
+												<span className="admin-creator-outline-module-meta">
+													{m.status === 'published' ? '🟢' : '⚪'} {(m.lessons || []).length} lecții
+												</span>
+											</div>
+											{Array.isArray(m.lessons) && m.lessons.length > 0 ? (
+												<div className="admin-creator-outline-lessons">
+													{m.lessons.map((l, lIndex) => (
+														<button
+															key={l.id}
+															type="button"
+															className={`admin-creator-outline-lesson ${
+																selectedLessonId === l.id ? 'is-selected' : ''
+															}`}
+															onClick={() => {
+																setSelectedLessonId(l.id);
+																setActiveTab('lesson');
+															}}
+															title="Deschide lecția"
+														>
+															<span className="admin-creator-outline-lesson-index">
+																{mIndex + 1}.{lIndex + 1}
+															</span>
+															<span className="admin-creator-outline-lesson-title">{l.title}</span>
+															<span className="admin-creator-outline-lesson-meta">
+																{l.status === 'published' ? '🟢' : '⚪'}
+																{l.is_preview ? ' • Preview' : ''}
+															</span>
+														</button>
+													))}
+												</div>
+											) : (
+												<div className="admin-creator-outline-empty">Fără lecții în acest modul.</div>
+											)}
+										</div>
+									))}
 								</div>
-							))}
+							)}
 						</div>
 
 						{validationReport && (
 							<div style={{ marginTop: 'var(--space-6)' }}>
 								<div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-2)' }}>
-									Raport validare
+									Raport validare (ultimul)
 								</div>
 								{validationReport.ok ? (
 									<div style={{ color: 'var(--color-success)' }}>OK</div>
 								) : (
 									<div style={{ color: 'var(--color-error)' }}>Are erori</div>
 								)}
-
-								{Array.isArray(validationReport.errors) && validationReport.errors.length > 0 && (
-									<div style={{ marginTop: 'var(--space-3)' }}>
-										<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-											Erori
-										</div>
-										<ul style={{ margin: 'var(--space-2) 0 0 0', paddingLeft: 'var(--space-4)' }}>
-											{validationReport.errors.map((e, idx) => (
-												<li key={`${e.code || 'err'}-${idx}`} style={{ marginBottom: 'var(--space-2)' }}>
-													{e.message}
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
-
-								{Array.isArray(validationReport.warnings) && validationReport.warnings.length > 0 && (
-									<div style={{ marginTop: 'var(--space-3)' }}>
-										<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-											Avertismente
-										</div>
-										<ul style={{ margin: 'var(--space-2) 0 0 0', paddingLeft: 'var(--space-4)' }}>
-											{validationReport.warnings.map((w, idx) => (
-												<li key={`${w.code || 'warn'}-${idx}`} style={{ marginBottom: 'var(--space-2)' }}>
-													{w.message}
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
 							</div>
 						)}
 					</div>
 				</aside>
 			</div>
+
+			{versionsOpen && (
+				<div
+					className="admin-team-modal-overlay"
+					onClick={() => setVersionsOpen(false)}
+					style={{ zIndex: 10000 }}
+				>
+					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(980px, calc(100vw - 32px))' }}>
+						<div className="admin-team-modal-header">
+							<div>
+								<h2 className="admin-team-modal-title">Istoric versiuni</h2>
+								<p className="admin-page-subtitle" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+									La publish/review se creează snapshot-uri. Restore creează un curs nou (draft) din snapshot.
+								</p>
+							</div>
+							<button type="button" className="admin-team-modal-close" onClick={() => setVersionsOpen(false)}>
+								×
+							</button>
+						</div>
+
+						<div className="admin-team-modal-body">
+							{versionsLoading ? (
+								<div className="lms-dashboard-loading">
+									<div className="lms-spinner"></div>
+									<p>Se încarcă...</p>
+								</div>
+							) : versions.length === 0 ? (
+								<div className="lms-empty-state">
+									<p>Nu există versiuni încă. (Creează una: Trimite la review sau Publică.)</p>
+								</div>
+							) : (
+								<div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+									{versions.map((v) => (
+										<div key={v.id} className="admin-card">
+											<div className="admin-card-body" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-4)', alignItems: 'center' }}>
+												<div style={{ minWidth: 0 }}>
+													<div style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+														v{v.version} • {v.status}
+													</div>
+													<div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-1)' }}>
+														{v.created_at ? new Date(v.created_at).toLocaleString() : '—'}{v.creator?.email ? ` • ${v.creator.email}` : ''}
+													</div>
+												</div>
+
+												<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+													<button className="admin-btn admin-btn-secondary" onClick={() => restoreVersion(v.id)}>
+														Restore
+													</button>
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+
+			{testsOpen && (
+				<div className="admin-team-modal-overlay" onClick={() => setTestsOpen(false)} style={{ zIndex: 10000 }}>
+					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(980px, calc(100vw - 32px))' }}>
+						<div className="admin-team-modal-header">
+							<div>
+								<h2 className="admin-team-modal-title">Teste atașate cursului</h2>
+								<p className="admin-page-subtitle" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+									Atașează un test la curs (scope: course/module/lesson). Doar testele publicate pot fi atașate.
+								</p>
+							</div>
+							<button type="button" className="admin-team-modal-close" onClick={() => setTestsOpen(false)}>
+								×
+							</button>
+						</div>
+
+						<div className="admin-team-modal-body">
+							{testsLoading ? (
+								<div className="lms-dashboard-loading">
+									<div className="lms-spinner"></div>
+									<p>Se încarcă...</p>
+								</div>
+							) : (
+								<>
+									<div className="admin-card" style={{ marginBottom: 'var(--space-4)' }}>
+										<div className="admin-card-body" style={{ display: 'grid', gap: 'var(--space-3)' }}>
+											<div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+												<label className="admin-settings-label">Test</label>
+												<select
+													className="admin-settings-select"
+													value={attachForm.test_id}
+													onChange={(e) => setAttachForm((p) => ({ ...p, test_id: e.target.value }))}
+												>
+													<option value="">Alege un test…</option>
+													{availableTests.map((t) => (
+														<option key={t.id} value={t.id}>
+															{t.title}
+														</option>
+													))}
+												</select>
+											</div>
+
+											<div className="admin-settings-form-row">
+												<div className="admin-settings-form-group">
+													<label className="admin-settings-label">Scope</label>
+													<select
+														className="admin-settings-select"
+														value={attachForm.scope}
+														onChange={(e) => setAttachForm((p) => ({ ...p, scope: e.target.value, scope_id: '' }))}
+													>
+														<option value="course">Course</option>
+														<option value="module">Module</option>
+														<option value="lesson">Lesson</option>
+													</select>
+												</div>
+
+												{attachForm.scope === 'module' && (
+													<div className="admin-settings-form-group">
+														<label className="admin-settings-label">Modul</label>
+														<select
+															className="admin-settings-select"
+															value={attachForm.scope_id}
+															onChange={(e) => setAttachForm((p) => ({ ...p, scope_id: e.target.value }))}
+														>
+															<option value="">Alege modul…</option>
+															{modules.map((m) => (
+																<option key={m.id} value={m.id}>
+																	{m.title}
+																</option>
+															))}
+														</select>
+													</div>
+												)}
+
+												{attachForm.scope === 'lesson' && (
+													<div className="admin-settings-form-group">
+														<label className="admin-settings-label">Lecție</label>
+														<select
+															className="admin-settings-select"
+															value={attachForm.scope_id}
+															onChange={(e) => setAttachForm((p) => ({ ...p, scope_id: e.target.value }))}
+														>
+															<option value="">Alege lecție…</option>
+															{allLessons.map((l) => (
+																<option key={l.id} value={l.id}>
+																	{l.__moduleTitle ? `${l.__moduleTitle} — ` : ''}{l.title}
+																</option>
+															))}
+														</select>
+													</div>
+												)}
+											</div>
+
+											<div className="admin-settings-form-row">
+												<div className="admin-settings-form-group">
+													<label className="admin-settings-label">Punctaj minim (%)</label>
+													<input
+														className="admin-settings-input"
+														type="number"
+														min="0"
+														max="100"
+														value={attachForm.passing_score}
+														onChange={(e) => setAttachForm((p) => ({ ...p, passing_score: e.target.value }))}
+													/>
+												</div>
+												<div className="admin-settings-form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+													<label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+														<input
+															type="checkbox"
+															checked={!!attachForm.required}
+															onChange={(e) => setAttachForm((p) => ({ ...p, required: e.target.checked }))}
+														/>
+														Obligatoriu
+													</label>
+												</div>
+											</div>
+
+											<div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+												<button
+													className="admin-btn admin-btn-primary"
+													onClick={attachTest}
+													disabled={
+														!attachForm.test_id ||
+														(attachForm.scope !== 'course' && !attachForm.scope_id)
+													}
+												>
+													Atașează
+												</button>
+											</div>
+										</div>
+									</div>
+
+									<div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-2)' }}>
+										Deja atașate
+									</div>
+									{attachedTests.length === 0 ? (
+										<div className="lms-empty-state">
+											<p>Nu există teste atașate încă.</p>
+										</div>
+									) : (
+										<div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+											{attachedTests.map((ct) => (
+												<div key={ct.id} className="admin-card">
+													<div className="admin-card-body" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-4)', alignItems: 'center' }}>
+														<div style={{ minWidth: 0 }}>
+															<div style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+																{ct.test?.title || `Test #${ct.test_id}`}
+															</div>
+															<div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-1)' }}>
+																Scope: {ct.scope}{ct.scope_id ? ` (${ct.scope_id})` : ''} • Passing: {ct.passing_score ?? 70}% • {ct.required ? 'Obligatoriu' : 'Opțional'}
+															</div>
+														</div>
+														<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+															<button className="admin-btn admin-btn-secondary" onClick={() => detachTest(ct.test_id, ct.scope, ct.scope_id)}>
+																Detașează
+															</button>
+														</div>
+													</div>
+												</div>
+											))}
+										</div>
+									)}
+								</>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

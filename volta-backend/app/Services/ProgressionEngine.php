@@ -228,7 +228,7 @@ class ProgressionEngine
 
             $previousLessons = Lesson::where('module_id', $targetLesson->module_id)
                 ->where('order', '<', $targetLesson->order)
-                ->where('status', 'published')
+                ->whereIn('status', ['published', 'draft'])
                 ->get();
 
             foreach ($previousLessons as $prevLesson) {
@@ -267,7 +267,7 @@ class ProgressionEngine
             $module = Module::find($rule->condition_id);
             if ($module) {
                 // Check if all lessons in module are completed
-                $lessons = $module->lessons()->where('status', 'published')->get();
+                $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
                 foreach ($lessons as $lesson) {
                     $isCompleted = DB::table('lesson_progress')
                         ->where('user_id', $user->id)
@@ -317,7 +317,7 @@ class ProgressionEngine
         // Check if previous lesson in module is completed
         $previousLesson = Lesson::where('module_id', $lesson->module_id)
             ->where('order', '<', $lesson->order)
-            ->where('status', 'published')
+            ->whereIn('status', ['published', 'draft'])
             ->orderBy('order', 'desc')
             ->first();
 
@@ -344,13 +344,12 @@ class ProgressionEngine
         // Check if previous module is completed
         $previousModule = Module::where('course_id', $course->id)
             ->where('order', '<', $module->order)
-            ->where('status', 'published')
+            ->whereIn('status', ['published', 'draft'])
             ->orderBy('order', 'desc')
             ->first();
 
         if ($previousModule) {
-            // Check if all lessons are completed
-            $lessons = $previousModule->lessons()->where('status', 'published')->get();
+            $lessons = $previousModule->lessons()->whereIn('status', ['published', 'draft'])->get();
             foreach ($lessons as $lesson) {
                 $isCompleted = DB::table('lesson_progress')
                     ->where('user_id', $user->id)

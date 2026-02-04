@@ -491,7 +491,7 @@ const MessagesPage = () => {
 							>
 								<div className="messages-conversation-avatar">
 									{conversation.participant?.avatar ? (
-										<img src={conversation.participant.avatar} alt={conversation.participant?.name || 'User'} />
+										<img src={conversation.participant.avatar} alt={conversation.participant?.name || 'User'} loading="lazy" decoding="async" />
 									) : (
 										<span>{getInitials(conversation.participant?.name || 'U')}</span>
 									)}
@@ -546,7 +546,7 @@ const MessagesPage = () => {
 								<div className="messages-chat-header-info">
 									<div className="messages-chat-avatar">
 										{selectedConversation.participant?.avatar ? (
-											<img src={selectedConversation.participant.avatar} alt={selectedConversation.participant?.name || 'User'} />
+											<img src={selectedConversation.participant.avatar} alt={selectedConversation.participant?.name || 'User'} loading="lazy" decoding="async" />
 										) : (
 											<span>{getInitials(selectedConversation.participant?.name || 'U')}</span>
 										)}
@@ -681,7 +681,7 @@ const MessagesPage = () => {
 										>
 											<div className="messages-user-avatar">
 												{user.avatar ? (
-													<img src={user.avatar} alt={user.name} />
+													<img src={user.avatar} alt={user.name} loading="lazy" decoding="async" />
 												) : (
 													<span>{getInitials(user.name)}</span>
 												)}

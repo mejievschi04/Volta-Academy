@@ -598,7 +598,7 @@ const AdminEventsPage = () => {
 						<button
 							className="admin-search-clear-btn"
 							onClick={() => setSearchQuery('')}
-							aria-label="Clear search"
+							aria-label="Golește căutarea"
 						>
 							×
 						</button>

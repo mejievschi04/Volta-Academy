@@ -76,7 +76,7 @@ const AlertsSection = ({ alerts, loading, onDismiss }) => {
 							<button 
 								className="admin-alert-dismiss"
 								onClick={() => onDismiss(alert.id)}
-								aria-label="Dismiss alert"
+								aria-label="Închide alertă"
 							>
 								×
 							</button>

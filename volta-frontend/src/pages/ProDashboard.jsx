@@ -4,10 +4,10 @@ import ProgressChart from '../components/ui/ProgressChart';
 import CourseCard from '../components/ui/CourseCard';
 
 const sampleStats = [
-	{ title: 'Course Progress', value: '62%', subtitle: 'Overall progress', icon: '📈' },
-	{ title: 'Completed Tests', value: '18', subtitle: 'Last 30 days', icon: '✅' },
-	{ title: 'Recommended', value: '5', subtitle: 'Based on interest', icon: '💡' },
-	{ title: 'Learning Time', value: '24h', subtitle: 'This month', icon: '⏱️' },
+	{ title: 'Progres curs', value: '62%', subtitle: 'Progres total', icon: '📈' },
+	{ title: 'Teste finalizate', value: '18', subtitle: 'Ultimele 30 zile', icon: '✅' },
+	{ title: 'Recomandate', value: '5', subtitle: 'Bazat pe interese', icon: '💡' },
+	{ title: 'Timp învățare', value: '24h', subtitle: 'Luna aceasta', icon: '⏱️' },
 ];
 
 const sampleCourses = [
@@ -24,21 +24,21 @@ const ProDashboard = () => {
 
 	return (
 		<div className="pro-page">
-			<aside className="pro-sidebar" aria-label="Main navigation">
+			<aside className="pro-sidebar" aria-label="Navigare principală">
 				<div className="pro-brand">Volta Pro</div>
 				<nav className="pro-nav">
-					<a href="/home" className="pro-nav-item">Home</a>
-					<a href="/pro-courses" className="pro-nav-item active">Courses</a>
-					<a href="/events" className="pro-nav-item">Events</a>
-					<a href="/profile" className="pro-nav-item">Profile</a>
+					<a href="/home" className="pro-nav-item">Acasă</a>
+					<a href="/pro-courses" className="pro-nav-item active">Cursuri</a>
+					<a href="/events" className="pro-nav-item">Evenimente</a>
+					<a href="/profile" className="pro-nav-item">Profil</a>
 				</nav>
 			</aside>
 
 			<main className="pro-main">
 				<header className="pro-hero">
 					<div>
-						<h1 className="pro-title">Welcome back — continue where you left off</h1>
-						<p className="pro-subtitle">Your personalized learning dashboard with quick insights</p>
+						<h1 className="pro-title">Bine ai revenit — continuă de unde ai rămas</h1>
+						<p className="pro-subtitle">Profilul tău personalizat cu statistici rapide</p>
 					</div>
 					<div className="pro-hero-stats">
 						{sampleStats.map((s) => (
@@ -50,12 +50,12 @@ const ProDashboard = () => {
 				<section className="pro-section">
 					<div className="pro-section-row">
 						<div className="pro-card">
-							<h3>Weekly Progress</h3>
+							<h3>Progres săptămânal</h3>
 							<ProgressChart data={[20, 30, 40, 50, 62]} />
 						</div>
 
 						<div className="pro-card">
-							<h3>Recommended for you</h3>
+							<h3>Recomandate pentru tine</h3>
 							<div className="pro-course-grid">
 								{sampleCourses.map(c => <CourseCard key={c.id} course={c} onStart={handleStart} />)}
 							</div>
