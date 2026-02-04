@@ -42,9 +42,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks - smaller = faster parallel load
+          // React + toate libs care îl folosesc în același chunk (evită "multiple React instances")
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler') || id.includes('recharts')) {
               return 'react-vendor';
             }
             if (id.includes('axios')) {
@@ -52,9 +52,6 @@ export default defineConfig({
             }
             if (id.includes('@dnd-kit')) {
               return 'dnd-vendor';
-            }
-            if (id.includes('recharts')) {
-              return 'charts-vendor';
             }
             return 'vendor';
           }
