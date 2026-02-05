@@ -23,34 +23,51 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	/* Buttons - Minimum touch target */
-	button,
-	.btn,
-	.admin-btn,
-	.va-btn,
-	[role="button"],
-	a[role="button"] {
-		min-height: 44px;
-		min-width: 44px;
-		padding: var(--space-3) var(--space-4);
-		font-size: var(--font-size-base);
-		-webkit-tap-highlight-color: rgba(255, 238, 0, 0.2);
-		tap-highlight-color: rgba(255, 238, 0, 0.2);
+	/* Buttons - PAGES ONLY (nu meniul). Touch target 44px. */
+	.va-shell-main button:not(.admin-settings-toggle-switch),
+	.va-shell-main .btn,
+	.va-shell-main .admin-btn,
+	.va-shell-main .va-btn,
+	.va-shell-main .lms-btn-primary,
+	.va-shell-main .admin-btn-create-course,
+	.va-shell-main .admin-btn-secondary,
+	.va-shell-main [role="button"],
+	.va-shell-main a[role="button"],
+	.admin-container button:not(.admin-settings-toggle-switch),
+	.admin-container .btn,
+	.admin-container .admin-btn,
+	.admin-container .va-btn,
+	.admin-container .lms-btn-primary,
+	.admin-container .admin-btn-create-course,
+	.admin-container .admin-btn-secondary,
+	.admin-container [role="button"],
+	.admin-container a[role="button"] {
+		min-height: var(--btn-mobile-min-height);
+		min-width: var(--btn-mobile-min-width);
+		padding: var(--btn-mobile-padding-y) var(--btn-mobile-padding-x);
+		font-size: var(--btn-mobile-font-size);
+		gap: var(--btn-mobile-gap);
+		-webkit-tap-highlight-color: var(--color-primary-alpha-20);
+		tap-highlight-color: var(--color-primary-alpha-20);
 	}
 
-	/* Small buttons - still maintain minimum */
-	.btn-sm,
-	.admin-btn-sm {
-		min-height: 44px;
-		min-width: 44px;
+	/* Small buttons - pages only */
+	.va-shell-main .btn-sm,
+	.va-shell-main .admin-btn-sm,
+	.admin-container .btn-sm,
+	.admin-container .admin-btn-sm {
+		min-height: var(--btn-mobile-min-height);
+		min-width: var(--btn-mobile-min-width);
 		padding: var(--space-2) var(--space-3);
 	}
 
-	/* Icon buttons */
-	button[aria-label],
-	.icon-btn {
-		min-width: 44px;
-		min-height: 44px;
+	/* Icon buttons - pages only */
+	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch),
+	.va-shell-main .icon-btn,
+	.admin-container button[aria-label]:not(.admin-settings-toggle-switch),
+	.admin-container .icon-btn {
+		min-width: var(--btn-mobile-min-width);
+		min-height: var(--btn-mobile-min-height);
 		padding: var(--space-2);
 		display: flex;
 		align-items: center;
@@ -259,10 +276,39 @@
 	}
 
 	.sidebar.open,
-	.modern-sidebar.open {
-		left: 0;
+	.modern-sidebar.open,
+	.va-sidebar.open,
+	.student-sidebar.open {
+		left: 0 !important;
 	}
 
+
+	/* Mobile sidebar toggle - fundal ca bara de sus, icon alb (students + admins) */
+	.mobile-sidebar-toggle {
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		width: 44px !important;
+		height: 44px !important;
+		min-width: 44px !important;
+		min-height: 44px !important;
+		padding: var(--space-2) !important;
+		background: var(--bg-elevated) !important;
+		border: none !important;
+		border-radius: var(--radius-md) !important;
+		color: var(--text-primary) !important;
+		cursor: pointer !important;
+	}
+	.mobile-sidebar-toggle:hover {
+		background: var(--bg-secondary) !important;
+		color: var(--text-primary) !important;
+	}
+
+	/* Hide desktop sidebar expand button on mobile - admin uses hamburger */
+	.sidebar-expand-toggle.desktop-sidebar-toggle,
+	.modern-sidebar .desktop-sidebar-toggle {
+		display: none !important;
+	}
 
 	/* Top navigation - always visible with logo - must be below sidebar */
 	.topnav,
@@ -284,17 +330,52 @@
 		-webkit-backdrop-filter: none !important;
 	}
 
-	/* Topnav left section - logo and title */
+	/* Topnav left section - logo centered, hamburger on left */
 	.modern-topnav-left,
-	.va-topnav-brand {
+	.va-topnav-brand,
+	.va-shell-topnav .modern-topnav-left,
+	.va-shell-topnav .va-topnav-brand {
 		display: flex !important;
 		align-items: center !important;
+		justify-content: center !important;
 		gap: var(--space-3) !important;
 		flex: 1 !important;
 		min-width: 0 !important;
+		position: relative !important;
 	}
 
-	/* Page title next to logo when sidebar is closed */
+	/* Hamburger stays on left when logo is centered */
+	.modern-topnav .modern-topnav-left .mobile-sidebar-toggle,
+	.modern-topnav .va-topnav-brand .mobile-sidebar-toggle,
+	.va-topnav .modern-topnav-left .mobile-sidebar-toggle,
+	.va-topnav .va-topnav-brand .mobile-sidebar-toggle {
+		position: absolute !important;
+		left: 0 !important;
+	}
+
+	/* Logo in topnav - same size as text (admin + student) */
+	.va-shell-topnav .va-topnav .va-logo-text,
+	.va-shell-topnav .va-topnav .va-logo-icon-img,
+	.admin-topnav .va-logo-text,
+	.admin-topnav .va-logo-icon-img,
+	.modern-topnav .va-logo-text,
+	.modern-topnav .va-logo-icon-img {
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		width: 40px !important;
+		height: 40px !important;
+		flex-shrink: 0 !important;
+	}
+
+	.modern-topnav .va-logo-icon-img,
+	.va-topnav .va-logo-icon-img {
+		width: 40px !important;
+		height: 40px !important;
+		object-fit: contain !important;
+	}
+
+	/* Page title next to logo - no flex so logo+title stay centered */
 	.va-topnav-page-title {
 		display: block !important;
 		font-size: var(--font-size-lg) !important;
@@ -304,9 +385,8 @@
 		white-space: nowrap !important;
 		overflow: hidden !important;
 		text-overflow: ellipsis !important;
-		flex: 1 !important;
+		flex: none !important;
 		min-width: 0 !important;
-		text-align: left !important;
 	}
 
 	/* Hide title when sidebar is expanded */
@@ -330,15 +410,143 @@
 		max-width: 85vw;
 	}
 
-	.modern-sidebar.open .modern-sidebar-brand-text {
+	.modern-sidebar.open .modern-sidebar-brand-text,
+	.student-sidebar.open .modern-sidebar-brand-text {
 		opacity: 1;
 		transform: translateX(0);
 	}
 
-	.modern-sidebar.open .modern-nav-item-label {
-		display: block;
+	/* Sidebar brand - logo + text inline (admin + student) */
+	.modern-sidebar-brand,
+	.va-sidebar-brand,
+	.student-sidebar .modern-sidebar-brand,
+	.student-sidebar .va-sidebar-brand {
+		display: flex !important;
+		flex-direction: row !important;
+		align-items: center !important;
+		justify-content: flex-start !important;
+		gap: var(--space-3) !important;
 	}
 
+	/* Student sidebar - push brand and nav down (below topnav area), logo centered, larger logo + text */
+	.student-sidebar .modern-sidebar-brand,
+	.student-sidebar .va-sidebar-brand {
+		padding-top: calc(56px + var(--space-4)) !important;
+		margin-top: 0 !important;
+		justify-content: center !important;
+		gap: var(--space-4) !important;
+	}
+
+	.student-sidebar .modern-sidebar-logo,
+	.student-sidebar .va-logo-text {
+		width: 48px !important;
+		height: 48px !important;
+		min-width: 48px !important;
+		min-height: 48px !important;
+	}
+
+	.student-sidebar .va-logo-icon-img {
+		width: 48px !important;
+		height: 48px !important;
+		object-fit: contain !important;
+	}
+
+	.student-sidebar .modern-sidebar-brand-text {
+		font-size: 1.25rem !important;
+		font-weight: var(--font-weight-bold) !important;
+	}
+
+
+	.modern-sidebar.open .modern-nav-item-label,
+	.va-sidebar.open .va-nav-label,
+	.student-sidebar.open .modern-nav-item-label,
+	.student-sidebar.open .va-nav-label {
+		display: block !important;
+		opacity: 1 !important;
+		transform: translateX(0) !important;
+	}
+
+	/* Student sidebar nav - moved down, nicer spacing, better alignment */
+	.student-sidebar .modern-nav,
+	.student-sidebar .va-sidebar-nav {
+		padding: var(--space-6) var(--space-4) var(--space-4) !important;
+		gap: 16px !important;
+		margin-top: 0 !important;
+	}
+
+	/* Student sidebar nav items - button-like on mobile, 16px space between */
+	.student-sidebar .modern-nav-item,
+	.student-sidebar .va-nav-btn {
+		margin-bottom: 16px !important;
+		padding: var(--space-3) var(--space-4) !important;
+		min-height: 52px !important;
+		border-radius: var(--radius-xl) !important;
+		align-items: center !important;
+		justify-content: flex-start !important;
+		gap: var(--space-3) !important;
+		text-align: left !important;
+		background: var(--bg-secondary) !important;
+		border: 1px solid var(--border-primary) !important;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+		font-weight: var(--font-weight-medium) !important;
+		transition: all var(--transition-base) !important;
+	}
+
+	.student-sidebar .modern-nav-item:hover,
+	.student-sidebar .va-nav-btn:hover {
+		background: var(--bg-elevated) !important;
+		border-color: var(--color-primary) !important;
+		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.2) !important;
+	}
+
+	.student-sidebar .modern-nav-item.active,
+	.student-sidebar .modern-nav-item.is-active,
+	.student-sidebar .va-nav-btn.active,
+	.student-sidebar .va-nav-btn.is-active {
+		background: var(--color-primary-alpha-15) !important;
+		border-color: var(--color-primary) !important;
+		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.25) !important;
+		color: var(--color-primary) !important;
+	}
+
+	.student-sidebar .modern-nav-item:last-child,
+	.student-sidebar .va-nav-btn:last-child {
+		margin-bottom: 0 !important;
+	}
+
+	/* Icon + text combined - aligned, balanced */
+	.student-sidebar .modern-nav-item-icon,
+	.student-sidebar .va-nav-icon {
+		width: 22px !important;
+		height: 22px !important;
+		min-width: 22px !important;
+		min-height: 22px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		flex-shrink: 0 !important;
+		opacity: 1 !important;
+		color: inherit !important;
+	}
+
+	.student-sidebar .modern-nav-item .modern-nav-item-icon svg,
+	.student-sidebar .va-nav-btn .va-nav-icon svg {
+		width: 22px !important;
+		height: 22px !important;
+	}
+
+	.student-sidebar .modern-nav-item-label,
+	.student-sidebar .va-nav-label {
+		font-size: var(--font-size-base) !important;
+		font-weight: var(--font-weight-medium) !important;
+		line-height: 1.25 !important;
+		white-space: nowrap !important;
+	}
+
+	.student-sidebar .modern-nav-item,
+	.student-sidebar .va-nav-btn {
+		gap: 14px !important;
+	}
 
 	/* Bottom navigation for mobile (if needed for other purposes) */
 	.mobile-bottom-nav {
@@ -392,13 +600,14 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	/* Cards - full width on mobile */
+	/* Cards - full width, compact padding on mobile */
 	.card,
 	.va-card,
 	.admin-card,
 	.course-card {
 		width: 100%;
-		margin-bottom: var(--space-4);
+		padding: var(--space-3) !important;
+		margin-bottom: var(--space-3);
 		border-radius: var(--radius-lg);
 	}
 
@@ -578,15 +787,9 @@
 		display: block !important;
 	}
 
-	/* Hide logo from topnav on desktop - logo should only be in sidebar */
-	.modern-topnav .va-logo-text,
-	.modern-topnav .va-logo-icon-img,
-	.admin-topnav .va-logo-text,
-	.admin-topnav .va-logo-icon-img,
-	.va-topnav .va-logo-text,
-	.va-topnav .va-logo-icon-img,
-	.va-shell-topnav .va-logo-text,
-	.va-shell-topnav .va-logo-icon-img {
+	/* Hide logo from topnav on desktop - logo in sidebar (admin only) */
+	.va-shell .admin-topnav .va-logo-text,
+	.va-shell .admin-topnav .va-logo-icon-img {
 		display: none !important;
 		visibility: hidden !important;
 		opacity: 0 !important;
@@ -595,11 +798,10 @@
 		overflow: hidden !important;
 	}
 
-	/* Hide Volta Academy text from topnav on desktop */
+	/* Hide Volta Academy text from topnav on desktop (both) */
 	.modern-topnav .va-topnav-page-title,
 	.admin-topnav .va-topnav-page-title,
-	.va-topnav .va-topnav-page-title,
-	.va-shell-topnav .va-topnav-page-title {
+	.va-topnav .va-topnav-page-title {
 		display: none !important;
 		visibility: hidden !important;
 		opacity: 0 !important;
@@ -608,11 +810,6 @@
 	/* Hide mobile hamburger button on desktop */
 	.mobile-sidebar-toggle {
 		display: none !important;
-	}
-
-	/* Show desktop sidebar toggle on desktop */
-	.modern-sidebar-toggle {
-		display: flex !important;
 	}
 
 	/* Hide backdrop on desktop */
@@ -907,8 +1104,8 @@
 
 	/* Sidebar mobile controls - only visible on mobile - positioned after nav */
 	.sidebar-mobile-controls {
-		margin-top: var(--space-4);
-		padding: var(--space-3);
+		margin-top: auto;
+		padding: var(--space-4) var(--space-3);
 		border-top: 1px solid var(--border-primary);
 		display: flex;
 		flex-direction: column;
@@ -1037,8 +1234,9 @@
 
 	/* Mobile Logout Button - positioned at bottom */
 	.sidebar-mobile-logout {
-		margin-top: auto;
+		margin-top: var(--space-2);
 		padding: var(--space-3);
+		padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
 		border-top: 1px solid var(--border-primary);
 	}
 
@@ -1051,9 +1249,9 @@
 		padding: var(--space-2-5) var(--space-3);
 		border-radius: var(--radius-md);
 		min-height: 44px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-primary);
-		color: var(--text-primary);
+		background: var(--bg-secondary) !important;
+		border: 1px solid var(--border-primary) !important;
+		color: var(--text-primary) !important;
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
 		cursor: pointer;
@@ -1062,7 +1260,7 @@
 
 	.sidebar-mobile-logout-btn:hover,
 	.sidebar-mobile-logout-btn:active {
-		background: var(--bg-elevated);
+		background: var(--bg-elevated) !important;
 		border-color: var(--color-primary);
 		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.15);
 		transform: scale(0.98);
@@ -1107,7 +1305,6 @@
 	.va-shell-main-topnav .student-dashboard-welcome,
 	.va-shell-main-topnav .courses-header h1,
 	.va-shell-main-topnav .events-header h1,
-	.va-shell-main-topnav .exam-results-header h1,
 	.va-shell-main-topnav .va-profile-name,
 	.va-shell-main-topnav .va-profile-role,
 	.va-shell-main-topnav .va-profile-bio,
@@ -1116,19 +1313,17 @@
 		text-align: center !important;
 	}
 
-	/* Center all text in student pages containers */
+	/* Center all text in student pages containers (exam-results: left-aligned) */
 	.student-dashboard-page,
 	.courses-page,
 	.events-page,
-	.exam-results-page,
 	.va-profile-container {
 		text-align: center !important;
 	}
 
-	/* Center course cards, event cards, and exam result items content */
+	/* Center course cards, event cards content (exam results: left-aligned) */
 	.course-card,
-	.event-card,
-	.exam-result-item {
+	.event-card {
 		text-align: center !important;
 	}
 
@@ -1145,14 +1340,7 @@
 	.event-card h4,
 	.event-card p,
 	.event-card .event-card-title,
-	.event-card .event-card-description,
-	.exam-result-item h1,
-	.exam-result-item h2,
-	.exam-result-item h3,
-	.exam-result-item h4,
-	.exam-result-item p,
-	.exam-result-item .exam-result-title,
-	.exam-result-item .exam-result-description {
+	.event-card .event-card-description {
 		text-align: center !important;
 	}
 
@@ -1443,90 +1631,117 @@
 		justify-content: center !important;
 	}
 
-	/* Course Progress Cards - Centered */
+	/* Course Progress Cards - Horizontal layout, left-aligned */
 	.student-course-progress-card {
-		text-align: center !important;
+		text-align: left !important;
 		display: flex !important;
 		flex-direction: column !important;
-		align-items: center !important;
+		align-items: stretch !important;
+		padding: var(--space-4) !important;
+		gap: var(--space-4) !important;
+		border-radius: var(--radius-xl) !important;
+		background: var(--bg-elevated) !important;
+		border: 1px solid var(--border-primary) !important;
+		box-shadow: var(--shadow-sm) !important;
 	}
 
 	.student-course-progress-header {
 		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-3) !important;
+		flex-direction: row !important;
+		align-items: flex-start !important;
+		gap: var(--space-4) !important;
 		width: 100% !important;
-		text-align: center !important;
-		margin-bottom: var(--space-4) !important;
+		text-align: left !important;
+		margin-bottom: 0 !important;
 	}
 
 	.student-course-progress-thumbnail {
-		margin: 0 auto !important;
+		width: 100px !important;
+		height: 100px !important;
+		min-width: 100px !important;
+		min-height: 100px !important;
 		border-radius: var(--radius-lg) !important;
+		object-fit: cover !important;
+		flex-shrink: 0 !important;
+		margin: 0 !important;
 	}
 
 	.student-course-progress-info {
-		width: 100% !important;
-		text-align: center !important;
+		flex: 1 !important;
+		min-width: 0 !important;
+		text-align: left !important;
 	}
 
 	.student-course-progress-title-row {
 		display: flex !important;
-		flex-direction: column !important;
+		flex-direction: row !important;
 		align-items: center !important;
+		flex-wrap: wrap !important;
 		gap: var(--space-2) !important;
-		margin-bottom: var(--space-2) !important;
+		margin-bottom: var(--space-1) !important;
 	}
 
 	.student-course-progress-title {
-		text-align: center !important;
-		font-size: var(--font-size-lg) !important;
+		text-align: left !important;
+		font-size: var(--font-size-base) !important;
+		font-weight: var(--font-weight-semibold) !important;
 		margin: 0 !important;
+		line-height: 1.3 !important;
+		-webkit-line-clamp: 2 !important;
+		display: -webkit-box !important;
+		-webkit-box-orient: vertical !important;
+		overflow: hidden !important;
 	}
 
 	.student-course-mandatory-badge {
-		display: inline-block !important;
-		margin: 0 auto !important;
+		display: inline-flex !important;
+		margin: 0 !important;
+		flex-shrink: 0 !important;
 	}
 
 	.student-course-progress-teacher {
-		text-align: center !important;
+		text-align: left !important;
 		margin: 0 !important;
+		font-size: var(--font-size-sm) !important;
 	}
 
 	.student-course-progress-body {
 		display: flex !important;
 		flex-direction: column !important;
-		align-items: center !important;
+		align-items: stretch !important;
 		gap: var(--space-3) !important;
 		width: 100% !important;
-		margin-bottom: var(--space-4) !important;
+		margin-bottom: 0 !important;
 	}
 
 	.student-course-progress-next {
 		display: flex !important;
 		flex-direction: column !important;
-		align-items: center !important;
+		align-items: flex-start !important;
 		gap: var(--space-1) !important;
-		text-align: center !important;
+		text-align: left !important;
 		width: 100% !important;
+		padding-top: var(--space-3) !important;
+		border-top: 1px solid var(--border-primary) !important;
+		margin-top: var(--space-2) !important;
 	}
 
 	.student-course-progress-next-label,
 	.student-course-progress-next-module {
-		text-align: center !important;
+		text-align: left !important;
 	}
 
 	.student-course-progress-footer {
 		display: flex !important;
-		justify-content: center !important;
+		justify-content: stretch !important;
 		width: 100% !important;
+		margin-top: var(--space-3) !important;
 	}
 
 	.student-course-progress-footer .student-btn {
 		width: 100% !important;
 		justify-content: center !important;
+		min-height: 44px !important;
 	}
 
 	/* Incomplete Lessons Widget - Centered */
@@ -1740,17 +1955,25 @@
 	.courses-grid {
 		display: grid !important;
 		grid-template-columns: 1fr !important;
-		gap: var(--space-4) !important;
-		margin-top: var(--space-4) !important;
+		gap: var(--space-3) !important;
+		margin-top: var(--space-3) !important;
 	}
 
 	.course-card {
 		width: 100% !important;
 		margin: 0 !important;
-		border-radius: var(--radius-xl) !important;
+		border-radius: var(--radius-lg) !important;
 		overflow: hidden !important;
 		box-shadow: var(--shadow-md) !important;
 		transition: all var(--transition-base) !important;
+	}
+
+	.course-card-content {
+		padding: var(--space-3) var(--space-4) !important;
+	}
+
+	.course-card-thumbnail {
+		height: 140px !important;
 	}
 
 	.course-card:active {
@@ -1782,43 +2005,60 @@
 	.events-grid {
 		display: grid !important;
 		grid-template-columns: 1fr !important;
-		gap: var(--space-4) !important;
-		margin-top: var(--space-4) !important;
+		gap: var(--space-3) !important;
+		margin-top: var(--space-3) !important;
 	}
 
-	.event-card {
+	.event-card,
+	.va-card-enhanced {
 		width: 100% !important;
 		margin: 0 !important;
-		border-radius: var(--radius-xl) !important;
+		border-radius: var(--radius-lg) !important;
 		overflow: hidden !important;
 		box-shadow: var(--shadow-md) !important;
 		transition: all var(--transition-base) !important;
 	}
 
-	.event-card:active {
+	.va-card-body {
+		padding: var(--space-3) var(--space-4) !important;
+	}
+
+	.event-card:active,
+	.va-card-enhanced:active {
 		transform: scale(0.98) !important;
 		box-shadow: var(--shadow-lg) !important;
 	}
 
-	/* Exam Results Page - Mobile Optimization */
+	/* Exam Results Page - Mobile Optimization (left-aligned) */
 	.exam-results-page {
 		padding: 0 var(--space-4) var(--space-6) !important;
-		padding-top: var(--space-1) !important;
+		padding-top: var(--space-2) !important;
+		text-align: left !important;
 	}
 
+	.exam-results-page-header,
 	.exam-results-header {
-		text-align: center !important;
+		text-align: left !important;
 		margin-top: 0 !important;
 		margin-bottom: var(--space-5) !important;
 		padding-top: 0 !important;
 		padding-bottom: var(--space-3) !important;
-		border-bottom: 1px solid var(--border-primary) !important;
 	}
 
+	.exam-results-page-title,
 	.exam-results-header h1 {
 		font-size: var(--font-size-2xl) !important;
 		margin-bottom: var(--space-2) !important;
-		text-align: center !important;
+		text-align: left !important;
+	}
+
+	.exam-results-page-subtitle {
+		text-align: left !important;
+	}
+
+	.exam-results-section-title {
+		text-align: left !important;
+		font-size: var(--font-size-lg) !important;
 	}
 
 	.exam-results-list {
@@ -1834,6 +2074,8 @@
 		border-radius: var(--radius-xl) !important;
 		background: var(--bg-elevated) !important;
 		border: 1px solid var(--border-primary) !important;
+		text-align: left !important;
+		min-height: 44px !important;
 		box-shadow: var(--shadow-sm) !important;
 	}
 
@@ -1844,32 +2086,8 @@
 	}
 
 	.va-profile-header {
-		text-align: center !important;
 		margin-top: 0 !important;
 		margin-bottom: var(--space-5) !important;
-		padding-top: 0 !important;
-	}
-
-	.va-profile-info {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-4) !important;
-		text-align: center !important;
-	}
-
-	.va-profile-avatar {
-		margin: 0 auto !important;
-	}
-
-	.va-profile-name {
-		text-align: center !important;
-		font-size: var(--font-size-xl) !important;
-	}
-
-	.va-profile-role {
-		text-align: center !important;
-		font-size: var(--font-size-sm) !important;
 	}
 
 	.va-profile-stats {
@@ -1998,40 +2216,131 @@
 	}
 
 	/* Optimize messages layout for mobile */
+	.messages-sidebar {
+		display: flex;
+		flex-direction: column;
+		background: var(--bg-elevated);
+	}
+
 	.messages-sidebar-header {
-		padding: var(--space-4);
+		padding: var(--space-4) var(--space-3);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		flex-shrink: 0;
+		border-bottom: 1px solid var(--border-primary);
 	}
 
 	.messages-title {
 		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-semibold);
+		margin: 0;
 	}
 
 	.messages-search {
+		padding: var(--space-3);
+		flex-shrink: 0;
+	}
+
+	.messages-search-input {
+		width: 100%;
+		min-height: 44px;
 		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-lg);
+		font-size: 16px;
 	}
 
 	.messages-conversations-list {
 		flex: 1;
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
+		padding: var(--space-2);
 	}
 
 	.messages-conversation-item {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
-		min-height: 64px;
+		min-height: 60px;
+		margin-bottom: var(--space-2);
+		border-radius: var(--radius-lg);
+		background: var(--bg-secondary);
+		transition: all var(--transition-base);
 	}
 
-	.messages-conversation-avatar {
+	.messages-conversation-item:active {
+		transform: scale(0.98);
+	}
+
+	.messages-conversation-item.active {
+		background: var(--color-primary-alpha-15);
+		box-shadow: 0 0 0 1px var(--color-primary);
+	}
+
+	.messages-conversation-item .messages-conversation-avatar {
 		width: 48px;
 		height: 48px;
 		min-width: 48px;
 		min-height: 48px;
-		color: #000000 !important; /* Black text on yellow background */
+		flex-shrink: 0;
+		color: #000000 !important;
 	}
 
-	.messages-conversation-avatar span,
-	.messages-conversation-avatar * {
-		color: #000000 !important; /* Ensure all text inside avatar is black */
+	.messages-conversation-item .messages-conversation-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: var(--radius-full);
+	}
+
+	.messages-conversation-item .messages-conversation-avatar span,
+	.messages-conversation-item .messages-conversation-avatar * {
+		color: #000000 !important;
+	}
+
+	.messages-conversation-item .messages-conversation-content {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0;
+	}
+
+	.messages-conversation-item .messages-conversation-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		flex: 1;
+		min-width: 0;
+		margin-bottom: 0;
+	}
+
+	.messages-conversation-item .messages-conversation-name {
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-primary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		flex: 1;
+		min-width: 0;
+		text-align: left;
+	}
+
+	.messages-conversation-item .messages-conversation-time {
+		font-size: var(--font-size-xs);
+		color: var(--text-tertiary);
+		flex-shrink: 0;
+		margin-left: auto;
+	}
+
+	.messages-conversation-item .messages-conversation-preview {
+		display: none;
 	}
 
 	.messages-chat-header {
@@ -2113,65 +2422,76 @@
 		border-radius: var(--radius-md);
 	}
 
-	/* Profile Header - Modern card design */
+	/* Profile Header - Clean card design */
 	.va-profile-header {
 		margin-bottom: var(--space-6);
 		background: var(--bg-elevated);
-		border-radius: var(--radius-lg);
-		padding: var(--space-4);
+		border-radius: var(--radius-xl);
+		padding: var(--space-5);
 		border: 1px solid var(--border-primary);
-		box-shadow: var(--shadow-sm);
+		box-shadow: var(--shadow-md);
 	}
 
 	.va-profile-cover {
-		display: none; /* Hide cover on mobile for cleaner design */
+		display: none;
 	}
 
 	.va-profile-info {
 		display: flex !important;
 		flex-direction: row !important;
 		align-items: center !important;
-		gap: var(--space-4) !important;
+		gap: var(--space-5) !important;
 		margin-top: 0 !important;
 		padding: 0 !important;
+		min-height: 0 !important;
 	}
 
 	.va-profile-avatar {
-		width: 64px !important;
-		height: 64px !important;
+		width: 72px !important;
+		height: 72px !important;
 		flex-shrink: 0 !important;
 	}
 
 	.va-profile-avatar-inner {
-		width: 64px !important;
-		height: 64px !important;
-		font-size: var(--font-size-xl) !important;
-		border: 3px solid var(--bg-primary) !important;
+		width: 72px !important;
+		height: 72px !important;
+		font-size: var(--font-size-2xl) !important;
+		font-weight: var(--font-weight-bold) !important;
+		color: #000000 !important;
+		border: 4px solid var(--bg-primary) !important;
 		box-shadow: var(--shadow-md) !important;
 	}
 
 	.va-profile-details {
 		flex: 1;
-		padding-bottom: 0;
+		padding: 0;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-1);
+		gap: var(--space-2);
+		align-items: flex-start;
 	}
 
 	.va-profile-name {
-		font-size: var(--font-size-xl);
-		font-weight: var(--font-weight-semibold);
-		margin: 0;
-		color: var(--text-primary);
-		line-height: 1.3;
+		font-size: var(--font-size-xl) !important;
+		font-weight: var(--font-weight-bold) !important;
+		margin: 0 !important;
+		color: var(--text-primary) !important;
+		line-height: 1.25 !important;
+		letter-spacing: -0.02em;
+		word-break: break-word;
 	}
 
 	.va-profile-role {
-		font-size: var(--font-size-sm);
-		margin: 0;
-		color: var(--text-secondary);
-		line-height: 1.4;
+		font-size: var(--font-size-sm) !important;
+		margin: 0 !important;
+		color: var(--text-secondary) !important;
+		line-height: 1.4 !important;
+		font-weight: var(--font-weight-medium) !important;
+		padding: var(--space-1) var(--space-2);
+		background: var(--bg-secondary);
+		border-radius: var(--radius-md);
+		display: inline-block;
 	}
 
 	.va-profile-badges {
@@ -2183,8 +2503,8 @@
 
 	.va-profile-badge {
 		font-size: var(--font-size-xs);
-		padding: var(--space-1-5) var(--space-3);
-		border-radius: var(--radius-full);
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius-md);
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-primary);
 	}
@@ -2350,9 +2670,41 @@
 		background: var(--bg-primary);
 		border: 1px solid var(--border-primary);
 		border-radius: var(--radius-md);
-		padding: var(--space-4);
+		padding: var(--space-3) !important;
 		transition: all var(--transition-base);
 		box-shadow: var(--shadow-sm);
+	}
+
+	.va-course-card-header {
+		margin-bottom: var(--space-2) !important;
+	}
+
+	.va-course-card-description {
+		margin-bottom: var(--space-2) !important;
+	}
+
+	.va-course-card-progress-bar {
+		margin-bottom: var(--space-2) !important;
+	}
+
+	.va-course-card-meta {
+		margin-bottom: var(--space-2) !important;
+	}
+
+	.pro-course-card-body {
+		padding: var(--space-3) var(--space-4) !important;
+	}
+
+	.pro-course-card-media {
+		height: 140px !important;
+	}
+
+	.va-completed-course-card {
+		padding: var(--space-3) var(--space-4) !important;
+	}
+
+	.va-completed-course-card-header {
+		margin-bottom: var(--space-2) !important;
 	}
 
 	.va-course-card:hover {
@@ -2644,6 +2996,38 @@
 		padding: var(--space-3);
 	}
 
+	/* Cards - smaller padding on small phones */
+	.card,
+	.va-card,
+	.admin-card,
+	.course-card,
+	.event-card,
+	.va-card-enhanced {
+		padding: var(--space-2) var(--space-3) !important;
+		margin-bottom: var(--space-3);
+	}
+
+	.course-card-content,
+	.pro-course-card-body,
+	.va-card-body {
+		padding: var(--space-2) var(--space-3) !important;
+	}
+
+	.va-course-card,
+	.va-completed-course-card {
+		padding: var(--space-2) var(--space-3) !important;
+	}
+
+	.course-card-thumbnail,
+	.pro-course-card-media {
+		height: 120px !important;
+	}
+
+	.courses-grid,
+	.events-grid {
+		gap: var(--space-2) !important;
+	}
+
 	h1 {
 		font-size: var(--font-size-2xl);
 	}
@@ -2657,21 +3041,1943 @@
 }
 
 /* ============================================
+   12b. ADMIN COURSES PAGE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.admin-courses-page-header {
+		margin-bottom: var(--space-4);
+	}
+
+	.admin-courses-header-content {
+		gap: var(--space-4);
+		margin-bottom: var(--space-4);
+	}
+
+	.admin-courses-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.admin-courses-subtitle {
+		font-size: var(--font-size-sm);
+	}
+
+	.admin-courses-header-actions .lms-btn-primary {
+		padding: var(--space-2) var(--space-4);
+		font-size: var(--font-size-sm);
+		width: 100%;
+		justify-content: center;
+	}
+
+	.admin-courses-header-actions {
+		flex-direction: column;
+		width: 100%;
+	}
+
+	.admin-courses-header-actions .admin-btn,
+	.admin-courses-header-actions .admin-btn-create-course {
+		width: 100%;
+		justify-content: center;
+		min-height: 44px;
+	}
+
+	.admin-courses-toolbar {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.admin-courses-search-wrapper {
+		width: 100%;
+	}
+
+	.admin-courses-search-input {
+		font-size: 16px; /* Prevent iOS zoom on focus */
+		min-height: 44px;
+	}
+
+	.admin-courses-toolbar-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.admin-view-mode-toggle {
+		display: flex;
+		gap: var(--space-1);
+	}
+
+	.admin-btn-filter {
+		flex: 1;
+		justify-content: center;
+		min-height: 44px;
+	}
+
+	.admin-courses-filters-panel {
+		padding: var(--space-3);
+		margin-top: var(--space-2);
+	}
+
+	.admin-filter-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.admin-filter-btn {
+		flex: 1 1 calc(50% - var(--space-1));
+		min-width: 0;
+	}
+
+	.admin-bulk-actions-bar {
+		flex-direction: column;
+		gap: var(--space-3);
+		padding: var(--space-3);
+	}
+
+	.admin-bulk-actions-buttons {
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.admin-bulk-actions-buttons .lms-btn-secondary,
+	.admin-bulk-actions-buttons .va-btn-danger {
+		flex: 1 1 auto;
+		min-width: 120px;
+	}
+
+	/* Course cards - grid view */
+	.admin-course-card {
+		padding: var(--space-3);
+	}
+
+	.admin-course-card-thumbnail {
+		height: 140px;
+		border-radius: var(--radius-md);
+	}
+
+	.admin-course-card-title {
+		font-size: var(--font-size-base);
+		line-height: 1.3;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+	}
+
+	.admin-course-card-stats {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-2);
+	}
+
+	.admin-course-card-stat-label {
+		font-size: var(--font-size-xs);
+	}
+
+	.admin-course-card-stat-value {
+		font-size: var(--font-size-sm);
+	}
+
+	.admin-course-card-publish .lms-btn-primary,
+	.admin-course-card-publish .lms-btn-secondary {
+		width: 100%;
+		justify-content: center;
+		min-height: 44px;
+	}
+
+	/* Course table rows - list view */
+	.admin-course-table-row {
+		padding: var(--space-3);
+		gap: var(--space-3);
+	}
+
+	.admin-course-table-thumbnail {
+		height: 120px;
+		border-radius: var(--radius-md);
+	}
+
+	.admin-course-table-title {
+		font-size: var(--font-size-base);
+	}
+
+	.admin-course-table-metrics {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-2);
+	}
+
+	.admin-courses-grid-container {
+		gap: var(--space-3);
+	}
+
+	.admin-courses-loading {
+		padding: var(--space-6);
+	}
+
+	.lms-empty-state {
+		padding: var(--space-4);
+	}
+
+	/* Hide table header on mobile - rows become card-like */
+	.admin-courses-table .admin-courses-table-header {
+		display: none;
+	}
+
+	/* Admin Tests/Events - search wrapper with filters */
+	.admin-courses-search-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		width: 100%;
+	}
+
+	.admin-courses-search {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.admin-courses-filters {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		width: 100%;
+	}
+
+	.admin-courses-filter-select {
+		width: 100%;
+		min-height: 44px;
+		font-size: 16px; /* Prevent iOS zoom */
+		padding: var(--space-2) var(--space-3);
+		min-width: 0;
+	}
+
+	.admin-courses-view-toggle {
+		display: flex;
+		gap: var(--space-2);
+		align-self: flex-start;
+	}
+
+	.admin-courses-view-toggle button {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.admin-course-card-actions {
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.admin-course-card-action-btn {
+		flex: 1 1 auto;
+		min-height: 26px;
+		min-width: 0;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-courses-page-header {
+		margin-bottom: var(--space-3);
+	}
+
+	.admin-courses-header-content {
+		margin-bottom: var(--space-3);
+	}
+
+	.admin-courses-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.admin-courses-toolbar-actions {
+		flex-wrap: wrap;
+	}
+
+	.admin-course-card-thumbnail {
+		height: 120px;
+	}
+
+	.admin-course-card-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-course-table-thumbnail {
+		height: 100px;
+	}
+
+	.admin-course-table-metrics {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-bulk-actions-buttons .lms-btn-secondary,
+	.admin-bulk-actions-buttons .va-btn-danger {
+		min-width: 100%;
+	}
+}
+
+/* ============================================
+   12c. ADMIN ANALYTICS PAGE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.analytics-page {
+		padding: var(--space-4);
+	}
+
+	.analytics-header {
+		margin-bottom: var(--space-4);
+	}
+
+	.analytics-header-content {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-4);
+	}
+
+	.analytics-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.analytics-subtitle {
+		font-size: var(--font-size-sm);
+	}
+
+	.analytics-header-actions {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-3);
+	}
+
+	.analytics-period-tabs {
+		display: flex;
+		justify-content: stretch;
+		padding: var(--space-1);
+	}
+
+	.analytics-period-btn {
+		flex: 1;
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.analytics-back-btn {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.analytics-kpis {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
+	}
+
+	.analytics-kpi-card {
+		padding: var(--space-3);
+		gap: var(--space-3);
+	}
+
+	.analytics-kpi-icon {
+		width: 40px;
+		height: 40px;
+	}
+
+	.analytics-kpi-value {
+		font-size: var(--font-size-lg);
+	}
+
+	.analytics-charts-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-4);
+		margin-bottom: var(--space-4);
+	}
+
+	.analytics-card {
+		padding: var(--space-4);
+	}
+
+	.analytics-chart-container {
+		min-height: 180px;
+	}
+
+	.analytics-card-header {
+		margin-bottom: var(--space-3);
+	}
+
+	.analytics-card-header h3 {
+		font-size: var(--font-size-base);
+	}
+
+	.analytics-top-courses,
+	.analytics-problematic {
+		min-height: 160px;
+	}
+
+	.analytics-problematic-item {
+		padding: var(--space-3);
+	}
+
+	.analytics-section {
+		margin-bottom: var(--space-6);
+	}
+
+	.analytics-section-title {
+		font-size: var(--font-size-lg);
+	}
+
+	.analytics-ai-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.analytics-ai-card {
+		padding: var(--space-4);
+		gap: var(--space-3);
+	}
+
+	.analytics-activity-filters {
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.analytics-filter-btn {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.analytics-activity-feed {
+		padding: var(--space-3);
+	}
+
+	.analytics-activity-item {
+		gap: var(--space-3);
+		padding: var(--space-2);
+	}
+}
+
+@media (max-width: 480px) {
+	.analytics-page {
+		padding: var(--space-3);
+	}
+
+	.analytics-header {
+		margin-bottom: var(--space-3);
+	}
+
+	.analytics-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.analytics-kpi-card {
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.analytics-kpi-icon {
+		width: 36px;
+		height: 36px;
+	}
+
+	.analytics-kpi-value {
+		font-size: var(--font-size-base);
+	}
+
+	.analytics-card {
+		padding: var(--space-3);
+	}
+
+	.analytics-chart-container {
+		min-height: 160px;
+	}
+
+	.analytics-problematic-item {
+		padding: var(--space-2);
+	}
+
+	.analytics-ai-card {
+		padding: var(--space-3);
+		flex-direction: column;
+	}
+
+	.analytics-ai-icon {
+		font-size: 1.5rem;
+	}
+}
+
+/* ============================================
+   12d. USER COURSES PAGE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.courses-page-search-input {
+		font-size: 16px; /* Prevent iOS zoom on focus */
+		min-height: 44px;
+	}
+
+	.courses-page-filter-chip {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-4);
+	}
+
+	.courses-page-view-btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.courses-page-sort-select {
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.courses-page-create-btn {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	/* Student courses page cards - left-aligned, clean layout on mobile */
+	.courses-page-modern .courses-page-card {
+		text-align: left !important;
+	}
+
+	.courses-page-modern .courses-page-card-content {
+		text-align: left !important;
+	}
+
+	.courses-page-modern .courses-page-card-title,
+	.courses-page-modern .courses-page-card-description,
+	.courses-page-modern .courses-page-card-meta,
+	.courses-page-modern .courses-page-card-meta-item {
+		text-align: left !important;
+	}
+
+	.courses-page-modern .courses-page-card-thumbnail {
+		height: 200px !important;
+	}
+}
+
+@media (max-width: 480px) {
+	.courses-page-hero {
+		padding: var(--space-4) var(--space-3) var(--space-4);
+	}
+
+	.courses-page-toolbar {
+		padding: var(--space-3);
+	}
+
+	.courses-page-content {
+		padding: 0 var(--space-3) var(--space-4);
+	}
+
+	/* Student courses page cards - improved mobile layout */
+	.courses-page-modern .courses-page-card {
+		text-align: left !important;
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: stretch !important;
+		border-radius: var(--radius-xl) !important;
+		overflow: hidden !important;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+		border: 1px solid var(--border-primary) !important;
+	}
+
+	.courses-page-modern .courses-page-card-thumbnail {
+		height: 180px !important;
+		width: 100% !important;
+		flex-shrink: 0 !important;
+	}
+
+	.courses-page-modern .courses-page-card-content {
+		padding: var(--space-4) !important;
+		text-align: left !important;
+		gap: var(--space-3) !important;
+	}
+
+	.courses-page-modern .courses-page-card-title {
+		text-align: left !important;
+		font-size: var(--font-size-lg) !important;
+		font-weight: var(--font-weight-bold) !important;
+		line-height: 1.35 !important;
+		-webkit-line-clamp: 2 !important;
+	}
+
+	.courses-page-modern .courses-page-card-description {
+		text-align: left !important;
+		font-size: var(--font-size-sm) !important;
+		-webkit-line-clamp: 2 !important;
+	}
+
+	.courses-page-modern .courses-page-card-status {
+		justify-content: flex-start !important;
+	}
+
+	.courses-page-modern .courses-page-card-meta {
+		text-align: left !important;
+		justify-content: flex-start !important;
+		border-top: 1px solid var(--border-primary) !important;
+		padding-top: var(--space-3) !important;
+		margin-top: var(--space-2) !important;
+	}
+
+	.courses-page-modern .courses-page-card-meta-item {
+		text-align: left !important;
+	}
+
+	.courses-page-modern .courses-page-card:active {
+		transform: scale(0.98) !important;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+	}
+}
+
+/* ============================================
+   12e. USER LESSONS PAGE & LESSON PAGE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.lessons-page-sidebar-back-btn {
+		min-height: 44px;
+	}
+
+	.lessons-page-lesson-item {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.lessons-page-lesson-actions .lessons-page-btn,
+	.lesson-page-btn {
+		min-height: 44px;
+	}
+
+	.lesson-page-header {
+		padding: var(--space-4);
+	}
+
+	.lesson-page-content {
+		padding: var(--space-4);
+	}
+
+	.lesson-page-blocks .lesson-preview-content {
+		font-size: var(--font-size-base);
+	}
+
+	.lesson-page-blocks .lesson-preview-content img,
+	.lesson-page-blocks .lesson-preview-content iframe {
+		max-width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.lessons-page-sidebar-header {
+		padding: var(--space-3);
+	}
+
+	.lessons-page-lesson-viewer {
+		padding: var(--space-3);
+	}
+
+	.lessons-page-lesson-blocks .lesson-preview-content {
+		font-size: var(--font-size-base);
+		line-height: 1.7;
+	}
+
+	.lessons-page-lesson-blocks .lesson-preview-content img,
+	.lessons-page-lesson-blocks .lesson-preview-content iframe {
+		max-width: 100%;
+		border-radius: var(--radius-md);
+	}
+
+	.lessons-page-lesson-blocks .lesson-block-card iframe,
+	.lessons-page-lesson-blocks iframe {
+		max-width: 100%;
+	}
+
+	.lesson-page-header {
+		padding: var(--space-3);
+	}
+
+	.lesson-page-content {
+		padding: var(--space-3);
+	}
+
+	.lesson-page-main {
+		padding: var(--space-4);
+	}
+}
+
+/* ============================================
+   12f. ADMIN COURSE DETAIL & COURSE BUILDER - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.admin-course-detail-back-btn {
+		min-height: 44px;
+		width: 100%;
+		justify-content: center;
+	}
+
+	.admin-course-overview-actions .lms-btn-primary,
+	.admin-course-overview-actions .lms-btn-secondary {
+		min-height: 44px;
+	}
+
+	.admin-course-builder-back {
+		min-height: 44px;
+	}
+
+	.admin-course-builder-actions .admin-btn-primary,
+	.admin-course-builder-actions .admin-btn-secondary {
+		min-height: 44px;
+	}
+
+	.admin-course-builder-add-buttons button {
+		min-height: 44px;
+	}
+
+	.admin-course-builder-input {
+		font-size: 16px;
+	}
+
+	.admin-creator-outline-item,
+	.admin-creator-lesson-item {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-course-detail-page {
+		padding: var(--space-3);
+	}
+
+	.admin-course-overview-header {
+		padding: var(--space-4);
+	}
+
+	.admin-course-overview-card {
+		padding: var(--space-4);
+	}
+
+	.admin-course-overview-kpi {
+		padding: var(--space-2) var(--space-3);
+		min-height: 70px;
+	}
+
+	.admin-course-builder-page {
+		padding: var(--space-3);
+	}
+
+	.admin-course-builder-header {
+		padding: var(--space-4);
+	}
+
+	.admin-course-builder-lesson-settings,
+	.admin-course-builder-workflow {
+		padding: var(--space-4);
+	}
+
+	.admin-course-builder-content-blocks-panel {
+		padding: var(--space-3);
+	}
+}
+
+/* ============================================
+   12g. ADMIN USERS PAGE & QUESTION BANKS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.admin-page-header {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-4);
+	}
+
+	.admin-page-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.admin-users-filters {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.admin-users-filter-select {
+		width: 100%;
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.admin-users-table-wrapper {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.admin-users-table {
+		min-width: 600px;
+	}
+
+	.admin-users-actions .lms-btn-secondary {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.admin-users-modal {
+		width: 95%;
+		max-width: 100%;
+		margin: var(--space-4);
+		max-height: 90vh;
+		overflow-y: auto;
+	}
+
+	.admin-form-input {
+		font-size: 16px;
+	}
+
+	.admin-users-modal-footer button {
+		min-height: 44px;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-users-modal {
+		width: 100%;
+		margin: var(--space-2);
+		max-height: 95vh;
+	}
+
+	.admin-users-modal-header,
+	.admin-users-modal-body {
+		padding: var(--space-4);
+	}
+}
+
+/* ============================================
+   12g2. ADMIN TEST EDITOR & REVIEWS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.admin-page-header-actions {
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.admin-page-header-actions .admin-btn {
+		flex: 1 1 calc(50% - var(--space-1));
+		min-height: 44px;
+	}
+
+	.admin-test-creator-split {
+		margin-top: var(--space-4);
+	}
+
+	.admin-settings-input,
+	.admin-settings-select,
+	.admin-settings-textarea {
+		font-size: 16px;
+	}
+
+	.admin-settings-tab {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.admin-settings-form-row {
+		flex-direction: column;
+	}
+
+	.admin-test-review-card {
+		padding: var(--space-4);
+	}
+
+	.admin-test-review-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-3);
+	}
+
+	.admin-test-review-body {
+		padding: var(--space-3);
+	}
+
+	.admin-test-review-body input,
+	.admin-test-review-body textarea {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.admin-test-review-body .admin-btn-create-course,
+	.admin-test-review-body .lms-btn-primary {
+		min-height: 44px;
+		width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-page-header-actions .admin-btn {
+		flex: 1 1 100%;
+	}
+
+	.admin-test-review-card {
+		padding: var(--space-3);
+	}
+}
+
+/* ============================================
+   12g3. ADMIN COURSE CREATION WIZARD & CREATORS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.course-creation-wizard-page {
+		padding: var(--space-4);
+	}
+
+	.course-creation-wizard {
+		padding: var(--space-4);
+	}
+
+	.course-creation-wizard-header {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-3);
+	}
+
+	.course-creation-wizard-close {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.course-creation-wizard-steps-indicator {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: var(--space-2);
+	}
+
+	.course-creation-wizard-content {
+		flex-direction: column;
+	}
+
+	.course-creation-wizard-form-panel,
+	.course-creation-wizard-preview-panel {
+		width: 100%;
+	}
+
+	.course-creation-wizard-form-panel input,
+	.course-creation-wizard-form-panel select,
+	.course-creation-wizard-form-panel textarea {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.course-creation-wizard-footer {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.course-creation-wizard-btn {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.admin-lesson-creator-page,
+	.admin-module-creator-page {
+		padding: var(--space-4);
+	}
+
+	.admin-lesson-creator-page .admin-form-input,
+	.admin-lesson-creator-page .admin-form-select,
+	.admin-module-creator-page .admin-form-input,
+	.admin-module-creator-page .admin-form-select {
+		font-size: 16px;
+	}
+
+	.admin-lesson-creator-page .admin-btn,
+	.admin-module-creator-page .admin-btn {
+		min-height: 44px;
+	}
+
+	.admin-lesson-creator-page .admin-block-card {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+}
+
+@media (max-width: 480px) {
+	.course-creation-wizard-page,
+	.course-creation-wizard {
+		padding: var(--space-3);
+	}
+}
+
+/* ============================================
+   12h. USER COURSE DETAIL, EXAM, PROFILE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.course-detail-back-btn,
+	.course-detail-action-btn {
+		min-height: 44px;
+	}
+
+	.course-detail-sidebar-back {
+		min-height: 44px;
+		align-items: center;
+	}
+
+	.course-detail-lesson,
+	.course-detail-module-header {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.course-detail-quiz-answer-option {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.course-detail-quiz-question-flag {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.course-detail-navigation .lms-btn-primary,
+	.course-detail-navigation .lms-btn-secondary {
+		min-height: 44px;
+	}
+
+	.student-exam-page {
+		padding: var(--space-4);
+	}
+
+	.student-exam-page .lms-btn-primary,
+	.student-exam-page .lms-btn-secondary,
+	.student-exam-page button {
+		min-height: 44px;
+	}
+
+	.va-profile-back-button .lms-btn-secondary {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.va-profile-stats {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+	}
+
+	.va-profile-section .lms-btn-primary,
+	.va-profile-section .lms-btn-secondary {
+		min-height: 44px;
+	}
+}
+
+@media (max-width: 480px) {
+	.course-detail-hero {
+		padding: var(--space-4) var(--space-3);
+	}
+
+	.course-detail-content {
+		padding: var(--space-4) var(--space-3);
+	}
+
+	.course-detail-quiz-questions-body {
+		padding: var(--space-3);
+	}
+
+	.student-exam-page {
+		padding: var(--space-3);
+	}
+
+	.va-profile-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.va-profile-section {
+		padding: var(--space-4);
+	}
+}
+
+/* ============================================
+   12i. USER EVENT DETAIL, MESSAGES, ACHIEVEMENTS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.va-main .va-card-enhanced .va-card-body {
+		padding: var(--space-4) !important;
+	}
+
+	.va-main .page-header {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-4);
+	}
+
+	.va-main .lms-btn-primary,
+	.va-main .lms-btn-secondary {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.messages-page {
+		height: 100vh;
+		height: 100dvh;
+	}
+
+	.messages-search-input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.messages-new-conversation-btn {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.messages-chat-back-btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.messages-chat-input-form input,
+	.messages-chat-input-form textarea {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.messages-chat-send-btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.student-achievements-page {
+		padding: var(--space-4);
+	}
+
+	.student-achievements-header {
+		margin-bottom: var(--space-4);
+	}
+
+	.student-achievements-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.student-achievements-stats {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+	}
+
+	.student-achievements-stat-card {
+		padding: var(--space-4);
+		min-height: 100px;
+	}
+
+	.student-milestone-item {
+		padding: var(--space-4);
+		min-height: 44px;
+	}
+}
+
+@media (max-width: 480px) {
+	.va-main .va-card-body {
+		padding: var(--space-3) !important;
+	}
+
+	.student-achievements-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.student-achievements-stat-card {
+		padding: var(--space-3);
+	}
+
+	.student-milestone-item {
+		padding: var(--space-3);
+	}
+}
+
+/* ============================================
+   12i2. STUDENT COMPONENTS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	/* Course Progress Widget */
+	.student-course-progress-card {
+		padding: var(--space-4);
+	}
+
+	.student-course-progress-thumbnail {
+		height: 100px;
+		border-radius: var(--radius-md);
+	}
+
+	.student-course-progress-footer .student-btn {
+		min-height: 44px;
+		width: 100%;
+		justify-content: center;
+	}
+
+	/* Resume Learning */
+	.student-btn-resume {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	/* Incomplete Lessons & Pending Exams */
+	.student-incomplete-lesson-item,
+	.student-pending-exam-item {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.student-btn-link {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	/* Badges Widget */
+	.student-badges-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+	}
+
+	.student-badge-item {
+		padding: var(--space-3);
+	}
+
+	/* Lesson Notes */
+	.student-lesson-notes-textarea {
+		font-size: 16px;
+		min-height: 120px;
+	}
+
+	/* Note Taking System */
+	.note-taking-toggle {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.note-taking-panel {
+		width: 100%;
+		max-width: 100%;
+	}
+
+	.note-taking-search-input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.note-taking-action-btn,
+	.note-taking-add-btn,
+	.note-taking-item-action {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.note-taking-textarea {
+		font-size: 16px;
+	}
+
+	/* Enhanced Video Player */
+	.enhanced-video-player {
+		border-radius: 0;
+	}
+
+	.enhanced-video-control-btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.enhanced-video-progress-container {
+		height: 8px;
+	}
+
+	.enhanced-video-progress-handle {
+		width: 20px;
+		height: 20px;
+	}
+
+	.enhanced-video-controls-bar {
+		padding: var(--space-2);
+		gap: var(--space-2);
+	}
+
+	.enhanced-video-shortcuts-hint {
+		display: none;
+	}
+
+	/* Progress Indicator */
+	.student-progress-indicator {
+		min-height: 8px;
+	}
+
+	/* Active Courses Grid */
+	.student-active-courses-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	/* Course Structure (CourseDetailPage) */
+	.student-course-structure {
+		padding: var(--space-4);
+	}
+
+	.student-course-structure-module,
+	.student-course-structure-lesson,
+	.student-course-structure-exam {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.student-course-structure-module-toggle {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	/* Va Stack - generic student page wrapper */
+	.va-stack {
+		padding: var(--space-4);
+	}
+}
+
+@media (max-width: 480px) {
+	.student-badges-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.student-course-progress-thumbnail {
+		height: 80px;
+	}
+
+	.enhanced-video-controls-bar {
+		flex-wrap: wrap;
+	}
+
+	.enhanced-video-controls-left,
+	.enhanced-video-controls-right {
+		gap: var(--space-2);
+	}
+}
+
+/* ============================================
+   12i3. GLOBAL SEARCH, AI TUTOR, SHARED COMPONENTS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	/* Global Search */
+	.global-search-modal {
+		width: 95%;
+		max-width: 100%;
+		margin: var(--space-4);
+		max-height: 85vh;
+	}
+
+	.global-search-input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.global-search-clear {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.global-search-result {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	/* Course Header (student) */
+	.student-course-header {
+		padding: var(--space-4);
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.student-course-header-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.student-course-header-progress {
+		width: 100%;
+	}
+
+	/* Milestone Notification */
+	.student-milestone-notification {
+		width: 95%;
+		max-width: 100%;
+		padding: var(--space-4);
+		bottom: max(var(--space-4), env(safe-area-inset-bottom));
+	}
+
+	.student-milestone-notification-close {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	/* Progress Visualization */
+	.progress-vis-card {
+		padding: var(--space-4);
+	}
+
+	.progress-vis-milestones-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.progress-vis-milestone-card {
+		padding: var(--space-3);
+	}
+
+	.progress-vis-milestone-marker {
+		min-width: 36px;
+		min-height: 36px;
+	}
+
+	/* Lesson Progress Indicator */
+	.student-lesson-progress-indicator {
+		padding: var(--space-3);
+	}
+
+	.student-lesson-progress-bar {
+		height: 8px;
+	}
+
+	/* Pro Course Card (UI) */
+	.pro-course-card {
+		padding: 0;
+	}
+
+	.pro-course-start {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.pro-course-card-body {
+		padding: var(--space-4);
+	}
+}
+
+@media (max-width: 480px) {
+	.global-search-modal {
+		width: 100%;
+		margin: var(--space-2);
+	}
+
+	.student-milestone-notification {
+		width: 100%;
+		margin: var(--space-2);
+	}
+
+	.progress-vis-stats {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ============================================
+   12j. USER CALENDAR, COMPLETED COURSES, EXAM RESULTS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.va-calendar-header {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-4);
+	}
+
+	.va-calendar-header .lms-btn-primary {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.va-events-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.va-event-card {
+		padding: var(--space-4);
+	}
+
+	.va-completed-courses-cards {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.va-completed-course-card {
+		padding: var(--space-4);
+	}
+
+	.va-completed-course-card-actions .lms-btn-secondary {
+		min-height: 44px;
+	}
+
+	.exam-results-page {
+		padding: var(--space-4);
+		text-align: left;
+	}
+
+	.exam-results-page-header {
+		margin-bottom: var(--space-4);
+		text-align: left;
+	}
+
+	.exam-results-page-title {
+		font-size: var(--font-size-2xl);
+		text-align: left;
+	}
+
+	.exam-results-page-subtitle {
+		text-align: left;
+	}
+
+	.exam-results-grid {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		gap: var(--space-4);
+	}
+
+	.exam-result-item {
+		padding: var(--space-4);
+		min-height: 44px;
+		text-align: left;
+	}
+
+	.exam-result-item:active {
+		transform: scale(0.98);
+		box-shadow: var(--shadow-md);
+	}
+
+	.exam-result-header,
+	.exam-result-meta,
+	.exam-result-score {
+		text-align: left;
+	}
+
+	.exam-result-details {
+		position: static !important;
+		max-height: none !important;
+		padding: var(--space-4);
+		border-radius: var(--radius-xl);
+	}
+
+	.exam-result-details-header {
+		flex-wrap: wrap;
+		gap: var(--space-3);
+	}
+
+	.exam-result-details-header .lms-btn-secondary {
+		min-height: 44px;
+		width: 100%;
+		justify-content: center;
+	}
+
+	.exam-result-summary {
+		padding: var(--space-4);
+	}
+
+	.exam-result-score-display {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.exam-result-score-display-item-right {
+		text-align: left;
+	}
+
+	.exam-result-question {
+		padding: var(--space-4);
+	}
+
+	.exam-result-question-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+	}
+
+	.exam-result-answer {
+		padding: var(--space-3);
+		min-height: 44px;
+	}
+
+	.exam-results-empty {
+		text-align: center;
+		padding: var(--space-8) var(--space-4);
+	}
+}
+
+@media (max-width: 480px) {
+	.va-event-card {
+		padding: var(--space-3);
+	}
+
+	.va-completed-course-card {
+		padding: var(--space-3);
+	}
+
+	.exam-results-page {
+		padding: var(--space-3);
+	}
+
+	.exam-results-page-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.exam-result-item {
+		padding: var(--space-3);
+	}
+
+	.exam-result-details {
+		padding: var(--space-3);
+	}
+
+	.exam-result-question {
+		padding: var(--space-3);
+	}
+
+	.exam-result-answer {
+		padding: var(--space-2) var(--space-3);
+	}
+}
+
+/* ============================================
+   12k. PRO COURSES & PRO DASHBOARD - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.pro-page {
+		flex-direction: column;
+	}
+
+	.pro-sidebar {
+		position: relative;
+		width: 100%;
+		flex-direction: row;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		padding: var(--space-2);
+		gap: var(--space-2);
+	}
+
+	.pro-nav {
+		flex-direction: row;
+		flex-wrap: nowrap;
+		gap: var(--space-2);
+	}
+
+	.pro-nav-item {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+		white-space: nowrap;
+	}
+
+	.pro-main {
+		width: 100%;
+		padding: var(--space-4);
+	}
+
+	.pro-hero {
+		padding: var(--space-4);
+	}
+
+	.pro-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.pro-filters {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.pro-input,
+	.pro-select {
+		width: 100%;
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.pro-course-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.pro-card {
+		padding: var(--space-4);
+	}
+
+	.pro-hero-stats {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+	}
+
+	.pro-section-row {
+		flex-direction: column;
+	}
+}
+
+@media (max-width: 480px) {
+	.pro-main {
+		padding: var(--space-3);
+	}
+
+	.pro-hero {
+		padding: var(--space-3);
+	}
+
+	.pro-hero-stats {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ============================================
+   12l. ADMIN SETTINGS, TEAMS, ACTIVITY - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.admin-settings-content {
+		padding: var(--space-4);
+	}
+
+	.admin-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.admin-card {
+		padding: var(--space-4);
+	}
+
+	.admin-card-actions .admin-btn {
+		min-height: 44px;
+	}
+
+	.admin-team-modal,
+	.admin-activity-modal {
+		width: 95%;
+		max-width: 100%;
+		margin: var(--space-4);
+		max-height: 90vh;
+		overflow-y: auto;
+	}
+
+	.admin-activity-logs-table,
+	.admin-alerts-list {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.admin-alert-item {
+		display: flex;
+		padding: var(--space-3);
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-3);
+	}
+
+	.admin-alert-dismiss {
+		min-width: 44px;
+		min-height: 44px;
+		align-self: flex-end;
+	}
+
+	.admin-alert-action {
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+	}
+
+	.admin-activity-item {
+		padding: var(--space-3);
+		gap: var(--space-3);
+	}
+
+	.admin-section-card {
+		padding: var(--space-4);
+	}
+
+	.admin-page-header .lms-btn-secondary {
+		min-height: 44px;
+	}
+
+	.admin-activity-logs-filters {
+		padding: var(--space-4);
+	}
+
+	.admin-activity-logs-filters-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+
+	.admin-activity-logs-filter-input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.admin-activity-logs-table,
+	.admin-activity-logs-list {
+		font-size: var(--font-size-sm);
+	}
+
+	.admin-activity-logs-item {
+		display: flex;
+		padding: var(--space-3);
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+	}
+
+	.admin-activity-logs-pagination button {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-settings-content {
+		padding: var(--space-3);
+	}
+
+	.admin-card {
+		padding: var(--space-3);
+	}
+
+	.admin-team-modal {
+		width: 100%;
+		margin: var(--space-2);
+	}
+}
+
+/* ============================================
+   12m. CALENDAR VIEW, QUIZ, REWARDS - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+	.va-calendar-view {
+		padding: var(--space-4);
+	}
+
+	.va-calendar-header-view {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.va-calendar-nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+	}
+
+	.va-calendar-nav .lms-btn-secondary {
+		min-height: 44px;
+		min-width: 44px;
+		padding: var(--space-2);
+	}
+
+	.va-calendar-month-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.va-calendar-header-view .lms-btn-primary {
+		min-height: 44px;
+		width: 100%;
+	}
+
+	.va-calendar-weekday {
+		font-size: var(--font-size-xs);
+	}
+
+	.va-calendar-day {
+		min-height: 60px;
+		padding: var(--space-1);
+	}
+
+	.va-calendar-day-number {
+		font-size: var(--font-size-sm);
+	}
+
+	.va-course-detail-layout {
+		flex-direction: column;
+	}
+
+	.va-course-sidebar {
+		width: 100%;
+		max-height: 40vh;
+		overflow-y: auto;
+		border-right: none;
+		border-bottom: 1px solid var(--border-primary);
+	}
+
+	.va-course-sidebar-back {
+		min-height: 44px;
+	}
+
+	.va-course-sidebar-module {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.va-course-content-main {
+		margin-left: 0;
+		padding: var(--space-4);
+	}
+
+	.va-quiz-answer-option,
+	.va-quiz-question-option,
+	.va-answer-option {
+		min-height: 44px;
+		padding: var(--space-3);
+	}
+
+	.va-quiz-overview {
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.va-rewards-header {
+		margin-bottom: var(--space-4);
+	}
+
+	.va-certificates-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-4);
+	}
+
+	.va-certificate {
+		padding: var(--space-4);
+	}
+}
+
+@media (max-width: 480px) {
+	.va-calendar-view {
+		padding: var(--space-3);
+	}
+
+	.va-calendar-day {
+		min-height: 50px;
+	}
+
+	.va-course-content-main {
+		padding: var(--space-3);
+	}
+
+	.va-certificate {
+		padding: var(--space-3);
+	}
+}
+
+/* ============================================
    13. AUTH PAGES (LOGIN/REGISTER) - Mobile
    ============================================ */
 
 @media (max-width: 768px) {
-	/* Auth Container - Full screen, centered */
+	/* Auth Container - Full screen, safe area, scrollable for keyboard */
 	.modern-auth-container {
 		padding: 0 !important;
+		padding-left: max(var(--space-4), env(safe-area-inset-left)) !important;
+		padding-right: max(var(--space-4), env(safe-area-inset-right)) !important;
+		padding-top: max(var(--space-4), env(safe-area-inset-top)) !important;
+		padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)) !important;
 		min-height: 100vh !important;
 		min-height: 100dvh !important;
 		display: flex !important;
 		align-items: center !important;
-		justify-content: center !important;
+		justify-content: flex-start !important;
 		background-color: var(--bg-primary) !important;
 		overflow-y: auto !important;
+		overflow-x: hidden !important;
 		-webkit-overflow-scrolling: touch !important;
+		overscroll-behavior-y: contain !important;
 	}
 
 	.modern-auth-background {
@@ -2685,30 +4991,31 @@
 		z-index: 1 !important;
 		width: 100% !important;
 		max-width: 100% !important;
-		padding: var(--space-4) var(--space-4) !important;
+		padding: var(--space-2) 0 var(--space-6) 0 !important;
 		display: flex !important;
 		align-items: center !important;
 		justify-content: center !important;
-		min-height: 100vh !important;
-		min-height: 100dvh !important;
+		min-height: min(100vh, 100dvh) !important;
+		flex: 1 !important;
 	}
 
 	.modern-auth-card {
 		width: 100% !important;
-		max-width: 420px !important;
-		padding: var(--space-8) var(--space-5) !important;
-		border-radius: var(--radius-xl) !important;
+		max-width: 360px !important;
+		padding: var(--space-5) var(--space-4) !important;
+		border-radius: var(--radius-lg) !important;
 		box-shadow: var(--shadow-xl) !important;
 		backdrop-filter: blur(20px) !important;
 		background-color: var(--bg-elevated) !important;
 		border: 1px solid var(--border-primary) !important;
-		margin: 0 auto !important;
+		margin: auto 0 !important;
+		flex-shrink: 0 !important;
 	}
 
-	/* Auth Header - Centered, clean spacing */
+	/* Auth Header - Centered, compact on mobile */
 	.modern-auth-header {
 		text-align: center !important;
-		margin-bottom: var(--space-8) !important;
+		margin-bottom: var(--space-4) !important;
 		padding: 0 !important;
 	}
 
@@ -2716,41 +5023,41 @@
 		display: flex !important;
 		justify-content: center !important;
 		align-items: center !important;
-		margin-bottom: var(--space-6) !important;
+		margin-bottom: var(--space-3) !important;
 		padding: 0 !important;
 	}
 
 	.modern-auth-logo-img {
-		height: 44px !important;
+		height: 40px !important;
 		width: auto !important;
 		object-fit: contain !important;
 		display: block !important;
 	}
 
 	.modern-auth-title {
-		font-size: var(--font-size-2xl) !important;
+		font-size: var(--font-size-xl) !important;
 		font-weight: var(--font-weight-bold) !important;
 		color: var(--text-primary) !important;
-		margin: 0 0 var(--space-3) 0 !important;
+		margin: 0 0 var(--space-2) 0 !important;
 		line-height: 1.3 !important;
 		letter-spacing: -0.01em !important;
 		padding: 0 !important;
 	}
 
 	.modern-auth-subtitle {
-		font-size: var(--font-size-sm) !important;
+		font-size: var(--font-size-xs) !important;
 		color: var(--text-tertiary) !important;
 		margin: 0 !important;
-		line-height: 1.5 !important;
-		padding: 0 var(--space-2) !important;
+		line-height: 1.4 !important;
+		padding: 0 var(--space-1) !important;
 		opacity: 0.8 !important;
 	}
 
-	/* Auth Form - Clean, well-spaced */
+	/* Auth Form - Compact on mobile */
 	.modern-auth-form {
 		display: flex !important;
 		flex-direction: column !important;
-		gap: var(--space-6) !important;
+		gap: var(--space-4) !important;
 		width: 100% !important;
 	}
 
@@ -2773,33 +5080,42 @@
 	.modern-form-input-wrapper {
 		position: relative !important;
 		width: 100% !important;
-		display: flex !important;
-		align-items: center !important;
+		min-width: 0 !important;
+		display: block !important;
+		isolation: isolate !important;
 	}
 
 	.modern-form-icon {
 		position: absolute !important;
-		left: var(--space-4) !important;
+		left: 14px !important;
+		top: 50% !important;
+		transform: translateY(-50%) !important;
 		width: 20px !important;
 		height: 20px !important;
 		color: var(--text-tertiary) !important;
-		z-index: 1 !important;
+		z-index: 2 !important;
 		pointer-events: none !important;
-		flex-shrink: 0 !important;
 	}
 
 	.modern-form-input {
+		position: relative !important;
+		z-index: 1 !important;
 		width: 100% !important;
-		padding: var(--space-4) var(--space-12) var(--space-4) var(--space-12) !important;
+		min-width: 0 !important;
+		box-sizing: border-box !important;
+		padding: 14px 14px 14px 48px !important;
 		background-color: var(--bg-secondary) !important;
 		border: 1px solid var(--border-primary) !important;
 		border-radius: var(--radius-lg) !important;
 		color: var(--text-primary) !important;
-		font-size: var(--font-size-base) !important;
+		font-size: 16px !important; /* Prevents iOS zoom on focus */
 		font-family: var(--font-family) !important;
-		min-height: 52px !important;
+		min-height: 48px !important;
 		box-sizing: border-box !important;
 		transition: all var(--transition-base) !important;
+		-webkit-appearance: none !important;
+		appearance: none !important;
+		touch-action: manipulation !important;
 	}
 
 	.modern-form-input:focus {
@@ -2809,9 +5125,14 @@
 		background-color: var(--bg-elevated) !important;
 	}
 
+	/* Password field - extra right padding for toggle button */
+	.modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
+		padding-right: 52px !important;
+	}
+
 	.modern-password-toggle {
 		position: absolute !important;
-		right: var(--space-3) !important;
+		right: 6px !important;
 		top: 50% !important;
 		transform: translateY(-50%) !important;
 		width: 44px !important;
@@ -2884,10 +5205,13 @@
 		align-items: center !important;
 		justify-content: center !important;
 		gap: var(--space-2) !important;
-		margin-top: var(--space-4) !important;
-		min-height: 52px !important;
+		margin-top: var(--space-3) !important;
+		min-height: 48px !important;
 		box-shadow: var(--shadow-md) !important;
 		box-sizing: border-box !important;
+		-webkit-tap-highlight-color: rgba(255, 238, 0, 0.3) !important;
+		touch-action: manipulation !important;
+		user-select: none !important;
 	}
 
 	/* Span color inside submit button - Must override button color */
@@ -2926,12 +5250,8 @@
 		transform: none !important;
 	}
 
-	.modern-auth-submit span,
-	button.modern-auth-submit span,
-	.modern-auth-form button.modern-auth-submit span,
-	.modern-auth-form .modern-auth-submit span,
-	button[type="submit"].modern-auth-submit span,
-	.modern-auth-form button[type="submit"]	.modern-auth-submit svg {
+	.modern-auth-submit svg,
+	.modern-auth-form button.modern-auth-submit svg {
 		width: 20px !important;
 		height: 20px !important;
 		flex-shrink: 0 !important;
@@ -2978,17 +5298,31 @@
 }
 
 @media (max-width: 480px) {
+	.modern-auth-container {
+		padding-left: max(var(--space-3), env(safe-area-inset-left)) !important;
+		padding-right: max(var(--space-3), env(safe-area-inset-right)) !important;
+	}
+
 	.modern-auth-content {
-		padding: var(--space-3) var(--space-3) !important;
+		padding: var(--space-2) 0 var(--space-4) 0 !important;
 	}
 
 	.modern-auth-card {
-		padding: var(--space-6) var(--space-4) !important;
+		max-width: 340px !important;
+		padding: var(--space-4) var(--space-3) !important;
 		border-radius: var(--radius-lg) !important;
 	}
 
+	.modern-auth-header {
+		margin-bottom: var(--space-3) !important;
+	}
+
+	.modern-auth-logo {
+		margin-bottom: var(--space-2) !important;
+	}
+
 	.modern-auth-logo-img {
-		height: 40px !important;
+		height: 36px !important;
 	}
 
 	.modern-auth-title {
@@ -3001,27 +5335,31 @@
 	}
 
 	.modern-auth-form {
-		gap: var(--space-5) !important;
+		gap: var(--space-4) !important;
 	}
 
 	.modern-form-input {
-		padding: var(--space-3-5) var(--space-11) var(--space-3-5) var(--space-11) !important;
-		font-size: var(--font-size-sm) !important;
+		padding: 12px 12px 12px 44px !important; /* 44px left = icon(18) + left(12) + gap(14) */
+		font-size: 16px !important; /* Keep 16px to prevent iOS zoom */
 		min-height: 48px !important;
 	}
 
+	.modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
+		padding-right: 48px !important;
+	}
+
 	.modern-form-icon {
-		left: var(--space-3) !important;
+		left: 12px !important;
 		width: 18px !important;
 		height: 18px !important;
 	}
 
 	.modern-password-toggle {
 		right: var(--space-2) !important;
-		width: 40px !important;
-		height: 40px !important;
-		min-width: 40px !important;
-		min-height: 40px !important;
+		width: 44px !important;
+		height: 44px !important;
+		min-width: 44px !important;
+		min-height: 44px !important;
 	}
 
 	.modern-password-toggle svg {
@@ -3031,8 +5369,33 @@
 
 	.modern-auth-submit {
 		padding: var(--space-3-5) var(--space-5) !important;
-		font-size: var(--font-size-sm) !important;
+		font-size: var(--font-size-base) !important;
 		min-height: 48px !important;
+	}
+
+	.modern-auth-footer {
+		margin-top: var(--space-4) !important;
+		padding-top: var(--space-3) !important;
+	}
+}
+
+/* Extra small phones (320px) */
+@media (max-width: 360px) {
+	.modern-auth-card {
+		max-width: 100% !important;
+		padding: var(--space-3) var(--space-2) !important;
+	}
+
+	.modern-auth-title {
+		font-size: var(--font-size-lg) !important;
+	}
+
+	.modern-auth-subtitle {
+		font-size: 0.75rem !important;
+	}
+
+	.modern-auth-form {
+		gap: var(--space-4) !important;
 	}
 }
 
@@ -3128,12 +5491,20 @@
 	}
 
 	.modern-auth-container {
-		padding-top: var(--space-3) !important;
-		padding-bottom: var(--space-3) !important;
+		padding-top: max(var(--space-2), env(safe-area-inset-top)) !important;
+		padding-bottom: max(var(--space-2), env(safe-area-inset-bottom)) !important;
+		align-items: flex-start !important;
+		justify-content: center !important;
+	}
+
+	.modern-auth-content {
+		min-height: auto !important;
+		padding: var(--space-2) 0 !important;
 	}
 
 	.modern-auth-card {
-		padding: var(--space-5) var(--space-4) !important;
+		padding: var(--space-4) var(--space-5) !important;
+		margin: var(--space-2) auto !important;
 	}
 
 	.modern-auth-header {
@@ -3141,18 +5512,33 @@
 	}
 
 	.modern-auth-logo {
-		margin-bottom: var(--space-3) !important;
+		margin-bottom: var(--space-2) !important;
 	}
 
 	.modern-auth-logo-img {
-		height: 32px !important;
+		height: 36px !important;
 	}
 
 	.modern-auth-title {
 		font-size: var(--font-size-xl) !important;
+		margin-bottom: var(--space-1) !important;
+	}
+
+	.modern-auth-subtitle {
+		font-size: var(--font-size-xs) !important;
+		display: none !important; /* Save space in landscape */
 	}
 
 	.modern-auth-form {
 		gap: var(--space-4) !important;
+	}
+
+	.modern-form-input {
+		min-height: 44px !important;
+	}
+
+	.modern-auth-footer {
+		margin-top: var(--space-4) !important;
+		padding-top: var(--space-3) !important;
 	}
 }

@@ -177,22 +177,25 @@ const AdminQuestionBanksPage = () => {
 				</div>
 
 				{/* Search and Filters */}
-				<div className="admin-courses-search-wrapper">
-					<div className="admin-courses-search">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<circle cx="11" cy="11" r="8"/>
-							<path d="m21 21-4.35-4.35"/>
-						</svg>
-						<input
-							type="text"
-							placeholder="Caută bănci de întrebări..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="admin-courses-search-input"
-						/>
+				<div className="admin-courses-toolbar">
+					<div className="admin-courses-search-wrapper">
+						<div className="admin-courses-search">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<circle cx="11" cy="11" r="8"/>
+								<path d="m21 21-4.35-4.35"/>
+							</svg>
+							<input
+								type="text"
+								placeholder="Caută bănci de întrebări..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="admin-courses-search-input"
+							/>
+						</div>
 					</div>
 
-					<div className="admin-courses-filters">
+					<div className="admin-courses-toolbar-actions">
+						<div className="admin-courses-filters">
 						{/* Status Filter */}
 						<select
 							value={filters.status}
@@ -215,35 +218,6 @@ const AdminQuestionBanksPage = () => {
 							<option value="alphabetical">Alfabetic</option>
 							<option value="questions">Nr. întrebări</option>
 						</select>
-
-						{/* View Mode Toggle */}
-						<div className="admin-courses-view-toggle">
-							<button
-								className={viewMode === 'grid' ? 'active' : ''}
-								onClick={() => setViewMode('grid')}
-								title="Grid View"
-							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<rect x="3" y="3" width="7" height="7"/>
-									<rect x="14" y="3" width="7" height="7"/>
-									<rect x="3" y="14" width="7" height="7"/>
-									<rect x="14" y="14" width="7" height="7"/>
-								</svg>
-							</button>
-							<button
-								className={viewMode === 'list' ? 'active' : ''}
-								onClick={() => setViewMode('list')}
-								title="List View"
-							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<line x1="8" y1="6" x2="21" y2="6"/>
-									<line x1="8" y1="12" x2="21" y2="12"/>
-									<line x1="8" y1="18" x2="21" y2="18"/>
-									<line x1="3" y1="6" x2="3.01" y2="6"/>
-									<line x1="3" y1="12" x2="3.01" y2="12"/>
-									<line x1="3" y1="18" x2="3.01" y2="18"/>
-								</svg>
-							</button>
 						</div>
 					</div>
 				</div>

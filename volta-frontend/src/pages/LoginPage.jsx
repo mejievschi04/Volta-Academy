@@ -33,7 +33,9 @@ const LoginPage = () => {
 				navigate('/home');
 			}
 		} catch (err) {
-			setError(err.response?.data?.message || 'Eroare la autentificare');
+			const data = err.response?.data;
+			const msg = data?.errors?.email?.[0] || data?.message || err.response?.data?.message || 'Eroare la autentificare';
+			setError(msg);
 		} finally {
 			setLoading(false);
 		}

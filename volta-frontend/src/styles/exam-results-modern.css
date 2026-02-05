@@ -509,7 +509,17 @@
 		padding: var(--space-4);
 	}
 
+	.exam-results-grid {
+		grid-template-columns: 1fr;
+	}
+
 	.exam-result-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+	}
+
+	.exam-result-meta {
 		flex-direction: column;
 		align-items: flex-start;
 	}
@@ -521,5 +531,24 @@
 	.exam-result-question-header {
 		flex-direction: column;
 		align-items: flex-start;
+		gap: var(--space-2);
+	}
+}
+
+@media (max-width: 480px) {
+	.exam-results-page {
+		padding: var(--space-3);
+	}
+
+	.exam-results-page-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.exam-result-item {
+		padding: var(--space-3);
+	}
+
+	.exam-result-details {
+		padding: var(--space-3);
 	}
 }

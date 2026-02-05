@@ -501,7 +501,7 @@
 
 .view-toggle-btn.active {
 	background-color: var(--color-primary);
-	color: white;
+	color: #000000;
 }
 
 .courses-page-subtitle {
@@ -557,7 +557,7 @@
 .filter-chip.active {
 	background-color: var(--color-primary);
 	border-color: var(--color-primary);
-	color: white;
+	color: #000000;
 }
 
 .courses-search {

@@ -187,12 +187,21 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-6);
+	width: 100%;
+	min-width: 0;
+}
+
+.modern-auth-form .modern-form-group {
+	margin-bottom: 0;
 }
 
 .modern-form-group {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
+	width: 100%;
+	min-width: 0;
+	margin-bottom: 0;
 }
 
 .modern-form-label {
@@ -204,24 +213,32 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 
 .modern-form-input-wrapper {
 	position: relative;
-	display: flex;
-	align-items: center;
+	display: block;
+	width: 100%;
+	min-width: 0;
+	isolation: isolate;
 }
 
 .modern-form-icon {
 	position: absolute;
-	left: var(--space-4);
+	left: 14px;
+	top: 50%;
+	transform: translateY(-50%);
 	width: 20px;
 	height: 20px;
 	color: var(--text-tertiary);
 	pointer-events: none;
-	z-index: 1;
+	z-index: 2;
 	transition: color var(--transition-base);
 }
 
 .modern-form-input {
+	position: relative;
+	z-index: 1;
 	width: 100%;
-	padding: var(--space-4) var(--space-4) var(--space-4) var(--space-12);
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 14px 14px 14px 48px; /* left 48px = icon(20) + left(14) + gap(14) */
 	background-color: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-lg);
@@ -238,8 +255,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	background-color: var(--bg-elevated);
 }
 
-.modern-form-input:focus + .modern-form-icon,
-.modern-form-input:focus ~ .modern-form-icon {
+.modern-form-input-wrapper:focus-within .modern-form-icon {
 	color: var(--color-primary);
 }
 
@@ -249,14 +265,16 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 
 /* Password input with toggle button - needs extra padding on right */
 .modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
-	padding-right: 48px;
+	padding-right: 52px;
 }
 
 .modern-password-toggle {
 	position: absolute;
-	right: var(--space-3);
-	width: 36px;
-	height: 36px;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 40px;
+	height: 40px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -266,7 +284,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	cursor: pointer;
 	border-radius: var(--radius-md);
 	transition: all var(--transition-base);
-	z-index: 1;
+	z-index: 2;
 }
 
 .modern-password-toggle:hover {

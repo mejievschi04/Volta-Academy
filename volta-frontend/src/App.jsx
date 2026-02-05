@@ -21,6 +21,7 @@ import './styles/light-theme-wcag.css';
 import './styles/dark-theme-wcag.css';
 import './styles/unified-cards.css';
 import './styles/components.css';
+import './styles/button-modern.css';
 import './styles/common-patterns.css';
 import './styles/micro-interactions.css';
 import './styles/empty-states.css';
@@ -79,7 +80,6 @@ const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 // const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
 const AdminTestEditorPage = lazy(() => import('./pages/admin/AdminTestEditorPage'));
-const AdminTestReviewsPage = lazy(() => import('./pages/admin/AdminTestReviewsPage'));
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
@@ -333,15 +333,6 @@ function Layout({ children }) {
 			)
 		},
 		{
-			path: '/admin/tests/reviews',
-			label: 'Verificări manuale',
-			icon: (
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-				</svg>
-			)
-		},
-		{
 			path: '/admin/question-banks',
 			label: 'Question Banks',
 			icon: (
@@ -419,26 +410,6 @@ function Layout({ children }) {
 					)}
 					
 					<aside className={`modern-sidebar va-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
-						{/* Toggle Button - Hamburger Icon */}
-						<button
-							className="modern-sidebar-toggle"
-							onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-							title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
-							aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
-						>
-							{isSidebarExpanded ? (
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-									<path d="M15 18l-6-6 6-6"/>
-								</svg>
-							) : (
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-									<line x1="3" y1="6" x2="21" y2="6"/>
-									<line x1="3" y1="12" x2="21" y2="12"/>
-									<line x1="3" y1="18" x2="21" y2="18"/>
-								</svg>
-							)}
-						</button>
-
 						<div className="modern-sidebar-brand va-sidebar-brand">
 							<span className="modern-sidebar-logo va-logo-text">
 								<img 
@@ -563,6 +534,18 @@ function Layout({ children }) {
 							</div>
 						)}
 					</aside>
+
+					{/* Desktop: expand/collapse button - outside sidebar, bottom right */}
+					<button
+						className={`sidebar-expand-toggle desktop-sidebar-toggle ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}
+						onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+						title={isSidebarExpanded ? "Restrânge meniul" : "Extinde meniul"}
+						aria-label={isSidebarExpanded ? "Restrânge meniul" : "Extinde meniul"}
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isSidebarExpanded ? 'none' : 'rotate(180deg)' }}>
+							<polyline points="15 18 9 12 15 6"/>
+						</svg>
+					</button>
 
 					{/* Top Navigation Bar for Admin */}
 					<header className={`modern-topnav admin-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
@@ -690,30 +673,10 @@ function Layout({ children }) {
 						/>
 					)}
 
-					{/* Student Sidebar - Mobile */}
+					{/* Student Sidebar - Mobile (same structure as admin) */}
 					<aside className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
-						{/* Toggle Button - Hamburger Icon */}
-						<button
-							className="modern-sidebar-toggle"
-							onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-							title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
-							aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
-						>
-							{isSidebarExpanded ? (
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-									<path d="M15 18l-6-6 6-6"/>
-								</svg>
-							) : (
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-									<line x1="3" y1="6" x2="21" y2="6"/>
-									<line x1="3" y1="12" x2="21" y2="12"/>
-									<line x1="3" y1="18" x2="21" y2="18"/>
-								</svg>
-							)}
-						</button>
-
 						<div className="modern-sidebar-brand va-sidebar-brand">
-							<span className="modern-sidebar-logo">
+							<span className="modern-sidebar-logo va-logo-text">
 								<img 
 									src={logoShort} 
 									alt="Volta Academy" 
@@ -862,7 +825,7 @@ function Layout({ children }) {
 									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
 								/>
 							</span>
-							{/* Volta Academy text - shown when sidebar is closed on mobile */}
+							{/* Volta Academy text - shown when sidebar is closed on mobile (same as admin) */}
 							{isMobile && !isSidebarExpanded && (
 								<span className="va-topnav-page-title">Volta Academy</span>
 							)}
@@ -1316,7 +1279,7 @@ function App() {
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<AdminTestReviewsPage />
+													<AdminTestsPage />
 												</Suspense>
 											</AdminRoute>
 										}

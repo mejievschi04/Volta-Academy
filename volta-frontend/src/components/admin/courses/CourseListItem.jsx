@@ -98,36 +98,22 @@ const CourseListItem = React.memo(({
 
 	return (
 		<div
-			className={`admin-course-card ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
+			className={`admin-course-card admin-course-card-simple ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
 		>
-			{/* Card Header - Checkbox and Status Badge */}
-			<div className="admin-course-card-header">
-				<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
-					<input
-						type="checkbox"
-						checked={selected}
-						onChange={(e) => {
-							e.stopPropagation();
-							onSelect(course.id, e.target.checked);
-						}}
-						className="admin-checkbox-input"
-					/>
-				</div>
-				{statusBadge && (
-					<div
-						className="admin-course-card-status-badge"
-						style={{
-							backgroundColor: statusBadge.bg,
-							color: statusBadge.color,
-							borderColor: statusBadge.color,
-						}}
-					>
-						{statusBadge.label}
-					</div>
-				)}
+			{/* Checkbox overlay pe imagine */}
+			<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
+				<input
+					type="checkbox"
+					checked={selected}
+					onChange={(e) => {
+						e.stopPropagation();
+						onSelect(course.id, e.target.checked);
+					}}
+					className="admin-checkbox-input"
+				/>
 			</div>
 
-			{/* Course Thumbnail */}
+			{/* Poza */}
 			<div 
 				className="admin-course-card-thumbnail"
 				onClick={() => navigate(`/admin/courses/${course.id}`)}
@@ -139,92 +125,27 @@ const CourseListItem = React.memo(({
 						📚
 					</div>
 				)}
-			</div>
-
-			{/* Course Content */}
-			<div className="admin-course-card-content">
-				{/* Title Section */}
-				<div className="admin-course-card-title-section">
-					<h3 
-						className="admin-course-card-title"
-						onClick={() => navigate(`/admin/courses/${course.id}`)}
+				{statusBadge && (
+					<div
+						className="admin-course-card-status-badge admin-course-card-status-overlay"
+						style={{
+							backgroundColor: statusBadge.bg,
+							color: statusBadge.color,
+							borderColor: statusBadge.color,
+						}}
 					>
-						{course.title}
-					</h3>
-				</div>
-
-				{/* Modules */}
-				<div className="admin-course-card-meta">
-					{course.modules_count !== undefined && (
-						<span className="admin-course-card-meta-item">
-							{course.modules_count} module
-						</span>
-					)}
-				</div>
-
-				{/* Statistics Grid */}
-				<div className="admin-course-card-stats">
-					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">ÎNSCRIERI</div>
-						<div className="admin-course-card-stat-value">
-							{course.enrollments_count || 0}
-						</div>
-					</div>
-					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">FINALIZARE</div>
-						<div className="admin-course-card-stat-value">
-							{course.completion_rate || 0}%
-						</div>
-					</div>
-					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">RATING</div>
-						<div className="admin-course-card-stat-value">
-							{course.rating ? (
-								<>⭐ {course.rating.toFixed(1)}</>
-							) : (
-								'N/A'
-							)}
-						</div>
-					</div>
-					<div className="admin-course-card-stat">
-						<div className="admin-course-card-stat-label">ACTUALIZAT</div>
-						<div className="admin-course-card-stat-value admin-course-card-stat-value-small">
-							{formatDate(course.updated_at)}
-						</div>
-					</div>
-				</div>
-
-				{/* Publish Button for Drafts */}
-				{course.status !== 'published' && (
-					<div className="admin-course-card-publish">
-						<button
-							className="lms-btn-primary"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleQuickAction('publish', e);
-							}}
-							disabled={loading}
-							style={{ width: '100%' }}
-						>
-							<span>✅</span>
-							Publish
-						</button>
+						{statusBadge.label}
 					</div>
 				)}
-
-				<div className="admin-course-card-publish" style={{ marginTop: 'var(--space-3)' }}>
-					<button
-						className="lms-btn-secondary"
-						onClick={(e) => {
-							e.stopPropagation();
-							navigate(`/admin/courses/${course.id}/builder`);
-						}}
-						style={{ width: '100%' }}
-					>
-						🛠 Builder
-					</button>
-				</div>
 			</div>
+
+			{/* Titlu */}
+			<h3 
+				className="admin-course-card-title"
+				onClick={() => navigate(`/admin/courses/${course.id}`)}
+			>
+				{course.title}
+			</h3>
 		</div>
 	);
 }, (prevProps, nextProps) => {

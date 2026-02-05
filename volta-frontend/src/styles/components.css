@@ -649,9 +649,28 @@
 	.card {
 		padding: var(--space-4);
 	}
+}
 
-	.btn {
-		padding: var(--space-3) var(--space-5);
-		font-size: var(--font-size-sm);
+/* Desktop - butoane PAGES ONLY (nu meniul) */
+@media (min-width: 769px) {
+	.va-shell-main button:not(.btn-sm):not(.btn-lg):not(.admin-settings-toggle-switch),
+	.va-shell-main .btn:not(.btn-sm):not(.btn-lg),
+	.va-shell-main .admin-btn:not(.admin-btn-sm):not(.btn-sm),
+	.va-shell-main .va-btn:not(.btn-sm),
+	.va-shell-main .lms-btn-primary,
+	.va-shell-main .admin-btn-create-course,
+	.va-shell-main .admin-btn-secondary,
+	.admin-container button:not(.btn-sm):not(.btn-lg):not(.admin-settings-toggle-switch),
+	.admin-container .btn:not(.btn-sm):not(.btn-lg),
+	.admin-container .admin-btn:not(.admin-btn-sm):not(.btn-sm),
+	.admin-container .va-btn:not(.btn-sm),
+	.admin-container .lms-btn-primary,
+	.admin-container .admin-btn-create-course,
+	.admin-container .admin-btn-secondary {
+		min-height: var(--btn-desktop-min-height);
+		padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
+		font-size: var(--btn-desktop-font-size);
+		gap: var(--btn-desktop-gap);
+		border-radius: var(--btn-desktop-radius);
 	}
 }

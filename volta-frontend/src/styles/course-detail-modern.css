@@ -468,7 +468,7 @@
 	height: 32px;
 	border-radius: var(--radius-full);
 	background: var(--color-primary);
-	color: white;
+	color: #000000;
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	flex-shrink: 0;

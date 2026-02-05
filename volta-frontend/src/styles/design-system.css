@@ -29,6 +29,8 @@
 
 	/* Background Colors - Dark Gray instead of Pure Black - WCAG Compliant */
 	--bg-primary: #121212; /* Dark gray - Material Design dark surface */
+	--bg-sidebar-toggle: #0D0D0D; /* Mai închis pentru butonul expand sidebar */
+	--bg-sidebar-toggle-hover: #151515;
 	--bg-secondary: #1E1E1E; /* Slightly lighter for subtle elevation */
 	--bg-tertiary: #2A2A2A; /* Even lighter for more elevation */
 	--bg-elevated: #2D2D2D; /* Elevated surfaces - medium gray for depth */
@@ -65,15 +67,39 @@
 	--btn-secondary-bg: transparent;
 	--btn-secondary-text: var(--color-brand-primary);
 	--btn-secondary-border: var(--color-brand-primary);
-	--btn-secondary-hover: rgba(255, 238, 0, 0.1);
+	--btn-secondary-hover: var(--color-primary-alpha-10);
+
+	/* Button Dimensions - mari, rotunjite, moderne */
+	--btn-desktop-padding-y: var(--space-4);
+	--btn-desktop-padding-x: var(--space-8);
+	--btn-desktop-min-height: 52px;
+	--btn-desktop-font-size: var(--font-size-base);
+	--btn-desktop-gap: var(--space-3);
+	--btn-desktop-radius: var(--radius-3xl);
+
+	--btn-mobile-padding-y: var(--space-4);
+	--btn-mobile-padding-x: var(--space-6);
+	--btn-mobile-min-height: 52px;
+	--btn-mobile-min-width: 52px;
+	--btn-mobile-font-size: var(--font-size-base);
+	--btn-mobile-gap: var(--space-3);
+
+	/* AI Tutor - uses brand colors */
+	--accent-ai: var(--color-primary);
+	--accent-neural: var(--color-primary-hover);
+	--accent-ai-rgb: 255, 238, 0;
+	--accent-warning: var(--color-warning);
+	--text-inverse: var(--color-black);
+	--bg-surface: var(--bg-primary);
 
 	/* Shadows - Subtle Elevation */
+	--shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.2);
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
 	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
 	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
 	--shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
 	--shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.7);
-	--shadow-focus: 0 0 0 3px rgba(255, 238, 0, 0.3);
+	--shadow-focus: 0 0 0 3px var(--color-primary-alpha-30);
 	
 	/* Extended Shadow System - State-specific */
 	--shadow-hover: var(--shadow-md);
@@ -86,11 +112,13 @@
 	--radius-lg: 12px;
 	--radius-xl: 16px;
 	--radius-2xl: 20px;
+	--radius-3xl: 24px;
 	--radius-full: 9999px;
 
 	/* Spacing - 8px Base System */
 	--space-1: 4px;
 	--space-2: 8px;
+	--space-2-5: 10px;
 	--space-3: 12px;
 	--space-4: 16px;
 	--space-5: 20px;
@@ -99,6 +127,12 @@
 	--space-10: 40px;
 	--space-12: 48px;
 	--space-16: 64px;
+
+	/* Primary Color Alpha - for overlays, highlights, focus rings */
+	--color-primary-alpha-10: rgba(255, 238, 0, 0.1);
+	--color-primary-alpha-15: rgba(255, 238, 0, 0.15);
+	--color-primary-alpha-20: rgba(255, 238, 0, 0.2);
+	--color-primary-alpha-30: rgba(255, 238, 0, 0.3);
 	
 	/* Extended Spacing - Component-specific */
 	--space-card: var(--space-6);      /* 24px - Card padding */
@@ -170,7 +204,12 @@
 	/* Border Colors - More Defined for Better Separation - WCAG Compliant */
 	--border-primary: #C8C8C8; /* Medium gray border for subtle separation */
 	--border-secondary: #B8B8B8; /* Darker gray for stronger separation */
-	/* Note: Button colors, primary colors, and status colors inherit from :root as they are the same for both themes */
+
+	/* Primary Alpha - slightly stronger on light backgrounds for visibility */
+	--color-primary-alpha-10: rgba(255, 238, 0, 0.12);
+	--color-primary-alpha-15: rgba(255, 238, 0, 0.18);
+	--color-primary-alpha-20: rgba(255, 238, 0, 0.25);
+	--color-primary-alpha-30: rgba(255, 238, 0, 0.35);
 
 	/* Shadows - Soft, Layered, Modern */
 	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -178,7 +217,7 @@
 	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 	--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 	--shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-	--shadow-focus: 0 0 0 3px rgba(255, 238, 0, 0.3);
+	--shadow-focus: 0 0 0 3px var(--color-primary-alpha-30);
 	
 	/* Extended Shadow System - State-specific */
 	--shadow-hover: var(--shadow-md);
@@ -275,6 +314,30 @@ a:hover {
 
 .opacity-70 { opacity: 0.7; }
 .opacity-50 { opacity: 0.5; }
+
+/* ============================================
+   4b. SELECTION & REDUCED MOTION
+   ============================================ */
+::selection {
+	background-color: var(--color-primary-alpha-20);
+	color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+
+	:root {
+		--transition-fast: 0ms;
+		--transition-base: 0ms;
+		--transition-smooth: 0ms;
+	}
+}
 
 /* ============================================
    5. SCROLLBAR STYLING

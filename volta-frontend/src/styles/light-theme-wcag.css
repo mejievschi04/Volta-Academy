@@ -7,6 +7,8 @@
 [data-theme="light"] {
 	/* Background Colors - More Gray, Less White - WCAG Compliant */
 	--bg-primary: #E5E5E5; /* Medium gray instead of light gray */
+	--bg-sidebar-toggle: #B8B8B8; /* Mai închis pentru butonul expand sidebar */
+	--bg-sidebar-toggle-hover: #A8A8A8; /* Hover pe butonul expand */
 	--bg-secondary: #D5D5D5; /* Darker gray for subtle elevation */
 	--bg-tertiary: #C8C8C8; /* Even darker gray for more elevation */
 	--bg-elevated: #E8E8E8; /* Elevated surfaces - medium gray */
@@ -114,11 +116,70 @@
 	color: #111827 !important; /* WCAG AAA: 15.8:1 */
 }
 
+/* Avatar topnav - fundal galben, text negru (brand rule) */
+[data-theme="light"] .admin-topnav-user-avatar,
+[data-theme="light"] .admin-topnav-user-avatar * {
+	color: #000000 !important;
+}
+
+/* Butoane galbene - text NEGRU (brand rule) */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .lms-btn-primary,
+[data-theme="light"] .admin-btn-create-course,
+[data-theme="light"] .admin-btn-primary,
+[data-theme="light"] .admin-btn-filter.active,
+[data-theme="light"] .admin-event-btn-primary,
+[data-theme="light"] .student-btn-primary,
+[data-theme="light"] .admin-btn-ai-creator,
+[data-theme="light"] .student-exam-btn-primary,
+[data-theme="light"] .student-certificate-download-btn,
+[data-theme="light"] .btn-primary *,
+[data-theme="light"] .lms-btn-primary *,
+[data-theme="light"] .admin-btn-create-course *,
+[data-theme="light"] .admin-btn-primary *,
+[data-theme="light"] .admin-dashboard-btn-primary *,
+[data-theme="light"] .admin-btn-filter.active *,
+[data-theme="light"] .admin-event-btn-primary *,
+[data-theme="light"] .student-btn-primary *,
+[data-theme="light"] .admin-btn-ai-creator *,
+[data-theme="light"] .student-exam-btn-primary *,
+[data-theme="light"] .student-certificate-download-btn *,
+[data-theme="light"] .admin-team-member-action-btn-role,
+[data-theme="light"] .admin-team-member-action-btn-role *,
+[data-theme="light"] .course-detail-lesson-number,
+[data-theme="light"] .course-detail-lesson-number *,
+[data-theme="light"] .view-toggle-btn.active,
+[data-theme="light"] .view-toggle-btn.active *,
+[data-theme="light"] .filter-chip.active,
+[data-theme="light"] .filter-chip.active * {
+	color: #000000 !important;
+}
+
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]) {
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.desktop-sidebar-toggle):not(.admin-settings-toggle-switch) {
 	color: #111827 !important; /* WCAG AAA: ~12:1 */
 	background-color: #E8E8E8 !important;
 	border-color: #C8C8C8 !important;
+}
+
+/* Desktop sidebar expand - fundal mai închis */
+[data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle {
+	background-color: #B8B8B8 !important;
+	background: #B8B8B8 !important;
+}
+[data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle:hover {
+	background-color: #A8A8A8 !important;
+	background: #A8A8A8 !important;
+}
+
+/* Mobile sidebar toggle - same as topnav */
+[data-theme="light"] .mobile-sidebar-toggle {
+	background-color: #E8E8E8 !important;
+	color: #111827 !important;
+}
+[data-theme="light"] .mobile-sidebar-toggle:hover {
+	background-color: #D5D5D5 !important;
+	color: #111827 !important;
 }
 
 /* Form elements focus states */

@@ -35,40 +35,12 @@
 }
 
 /* ============================================
-   2. SIDEBAR TOGGLE BUTTON
-   ============================================ */
-.modern-sidebar-toggle {
-	width: 100%;
-	height: 64px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: var(--bg-primary) !important;
-	border: none;
-	border-bottom: 1px solid var(--border-primary);
-	color: var(--text-secondary);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	flex-shrink: 0;
-}
-
-.modern-sidebar-toggle:hover {
-	background-color: var(--bg-secondary);
-	color: var(--color-primary);
-	transform: scale(1.05);
-}
-
-.modern-sidebar.expanded .modern-sidebar-toggle {
-	justify-content: flex-end;
-	padding-right: var(--space-4);
-}
-
-/* ============================================
-   3. SIDEBAR BRAND / LOGO
+   2. SIDEBAR BRAND / LOGO
    ============================================ */
 .modern-sidebar-brand,
 .va-sidebar-brand {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-4);
@@ -433,7 +405,7 @@
 [data-theme="light"] .modern-nav-item.is-active .modern-nav-item-label,
 [data-theme="light"] .va-nav-btn.active .va-nav-label,
 [data-theme="light"] .va-nav-btn.is-active .va-nav-label {
-	color: var(--bg-primary) !important;
+	color: #000000 !important;
 	font-weight: var(--font-weight-semibold);
 }
 
@@ -952,7 +924,7 @@
 	height: 36px;
 	border-radius: var(--radius-full);
 	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-	color: #4b5563; /* Gri închis pentru inițiale */
+	color: #000000; /* Negru pe fundal galben (brand rule) */
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1160,7 +1132,7 @@
 		right: var(--space-4);
 	}
 
-	/* Mobile hamburger button in topnav */
+	/* Mobile hamburger button in topnav - matches topnav background */
 	.mobile-sidebar-toggle {
 		display: flex !important;
 		visibility: visible !important;
@@ -1171,7 +1143,7 @@
 		min-width: 44px;
 		min-height: 44px;
 		padding: var(--space-2);
-		background: transparent;
+		background: var(--bg-elevated) !important;
 		border: none;
 		border-radius: var(--radius-md);
 		color: var(--text-primary);
@@ -1181,16 +1153,11 @@
 	}
 
 	.mobile-sidebar-toggle:hover {
-		background: var(--bg-secondary);
+		background: var(--bg-secondary) !important;
 	}
 
 	.mobile-sidebar-toggle:active {
 		transform: scale(0.95);
-	}
-
-	/* Hide desktop sidebar toggle on mobile */
-	.modern-sidebar-toggle {
-		display: none !important;
 	}
 
 	/* Backdrop overlay */
@@ -1252,9 +1219,35 @@
 		display: none !important;
 	}
 
-	/* Show desktop sidebar toggle on desktop */
-	.modern-sidebar-toggle {
+	/* Desktop sidebar expand - visual continuation of sidebar (tab on right edge) */
+	.sidebar-expand-toggle.desktop-sidebar-toggle {
 		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		position: fixed;
+		top: 0;
+		left: 72px;
+		width: 28px;
+		height: 72px;
+		padding: 0;
+		background: var(--bg-sidebar-toggle, #0D0D0D) !important;
+		background-color: var(--bg-sidebar-toggle, #0D0D0D) !important;
+		border: 1px solid var(--border-primary);
+		border-left: none;
+		border-radius: 0 var(--radius-md) var(--radius-md) 0;
+		box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+		color: var(--text-secondary);
+		cursor: pointer;
+		z-index: calc(var(--z-fixed) + 1);
+		transition: left var(--transition-smooth), background var(--transition-base), color var(--transition-base);
+	}
+	.sidebar-expand-toggle.desktop-sidebar-toggle.sidebar-expanded {
+		left: 280px;
+	}
+	.sidebar-expand-toggle.desktop-sidebar-toggle:hover {
+		background: var(--bg-sidebar-toggle-hover, var(--bg-secondary)) !important;
+		background-color: var(--bg-sidebar-toggle-hover, var(--bg-secondary)) !important;
+		color: var(--text-secondary);
 	}
 
 	/* Hide backdrop on desktop */

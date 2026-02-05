@@ -63,12 +63,12 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-6);
-	padding: var(--space-8) var(--space-8);
+	padding: var(--space-6) var(--space-8);
 	position: relative;
 	z-index: 2;
 	background: var(--bg-elevated);
 	border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-	height: 176px;
+	min-height: 176px;
 }
 
 .va-profile-avatar {
@@ -87,7 +87,7 @@
 	justify-content: center;
 	font-size: var(--font-size-4xl);
 	font-weight: var(--font-weight-bold);
-	color: white;
+	color: #000000 !important;
 	border: 5px solid var(--bg-elevated);
 	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 238, 0, 0.2);
 	position: relative;

@@ -659,9 +659,13 @@ body.admin-view .va-main {
 	margin-top: var(--space-1);
 }
 
+/* Toggle switch - exclude from generic button styles (va-shell-main, admin-container) */
 .admin-settings-toggle-switch {
-	width: 44px;
-	height: 24px;
+	width: 44px !important;
+	height: 24px !important;
+	min-width: 44px !important;
+	min-height: 24px !important;
+	padding: 0 !important;
 	background-color: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-full);
@@ -669,6 +673,7 @@ body.admin-view .va-main {
 	cursor: pointer;
 	transition: all var(--transition-base);
 	flex-shrink: 0;
+	font-size: 0 !important; /* Prevent text/icon sizing from button rules */
 }
 
 .admin-settings-toggle-switch.active {

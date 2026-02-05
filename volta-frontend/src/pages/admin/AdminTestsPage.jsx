@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import AdminTestReviewsPage from './AdminTestReviewsPage';
 
 const AdminTestsPage = () => {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const isReviewsTab = location.pathname === '/admin/tests/reviews';
 	const { showToast } = useToast();
 	const [tests, setTests] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -167,42 +170,79 @@ const AdminTestsPage = () => {
 					<div className="admin-courses-header-text">
 						<h1 className="admin-courses-title">Teste</h1>
 						<p className="admin-courses-subtitle">
-							Gestionează și creează teste pentru cursuri
+							{isReviewsTab
+								? 'Rezultate cu întrebări deschise (răspuns scurt, eseu) care necesită notare manuală'
+								: 'Gestionează și creează teste pentru cursuri'}
 						</p>
 					</div>
-					<div className="admin-courses-header-actions" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-						<button
-							className="admin-btn admin-btn-secondary"
-							onClick={() => navigate('/admin/tests/reviews')}
-						>
-							Verificări manuale
-						</button>
-						<button className="admin-btn-create-course" onClick={handleCreateTest}>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
-							</svg>
-							Creează Test
-						</button>
+					<div className="admin-courses-header-actions" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+						<nav className="admin-tests-tabs" style={{ display: 'flex', gap: 'var(--space-1)', marginRight: 'var(--space-4)' }}>
+							<NavLink
+								to="/admin/tests"
+								end
+								className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
+								style={({ isActive }) => ({
+									padding: 'var(--space-2) var(--space-4)',
+									borderRadius: 'var(--radius-md)',
+									fontSize: 'var(--font-size-sm)',
+									fontWeight: 500,
+									textDecoration: 'none',
+									color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+									background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+									border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+								})}
+							>
+								Lista teste
+							</NavLink>
+							<NavLink
+								to="/admin/tests/reviews"
+								className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
+								style={({ isActive }) => ({
+									padding: 'var(--space-2) var(--space-4)',
+									borderRadius: 'var(--radius-md)',
+									fontSize: 'var(--font-size-sm)',
+									fontWeight: 500,
+									textDecoration: 'none',
+									color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+									background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+									border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+								})}
+							>
+								Verificări manuale
+							</NavLink>
+						</nav>
+						{!isReviewsTab && (
+							<button className="admin-btn-create-course" onClick={handleCreateTest}>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
+								</svg>
+								Creează Test
+							</button>
+						)}
 					</div>
 				</div>
 
-				{/* Search and Filters */}
-				<div className="admin-courses-search-wrapper">
-					<div className="admin-courses-search">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<circle cx="11" cy="11" r="8"/>
-							<path d="m21 21-4.35-4.35"/>
-						</svg>
-						<input
-							type="text"
-							placeholder="Caută teste..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="admin-courses-search-input"
-						/>
+				{/* Search and Filters - only on list tab */}
+				{!isReviewsTab && (
+				<div className="admin-courses-toolbar">
+					<div className="admin-courses-search-wrapper">
+						<div className="admin-courses-search">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<circle cx="11" cy="11" r="8"/>
+								<path d="m21 21-4.35-4.35"/>
+							</svg>
+							<input
+								type="text"
+								placeholder="Caută teste..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="admin-courses-search-input"
+							/>
+						</div>
 					</div>
 
-					<div className="admin-courses-filters">
+					<div className="admin-courses-toolbar-actions">
+						<div className="admin-courses-filters">
 						{/* Status Filter */}
 						<select
 							value={filters.status}
@@ -237,40 +277,17 @@ const AdminTestsPage = () => {
 							<option value="alphabetical">Alfabetic</option>
 							<option value="questions">Nr. întrebări</option>
 						</select>
-
-						{/* View Mode Toggle */}
-						<div className="admin-courses-view-toggle">
-							<button
-								className={viewMode === 'grid' ? 'active' : ''}
-								onClick={() => setViewMode('grid')}
-								title="Vizualizare grilă"
-							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<rect x="3" y="3" width="7" height="7"/>
-									<rect x="14" y="3" width="7" height="7"/>
-									<rect x="3" y="14" width="7" height="7"/>
-									<rect x="14" y="14" width="7" height="7"/>
-								</svg>
-							</button>
-							<button
-								className={viewMode === 'list' ? 'active' : ''}
-								onClick={() => setViewMode('list')}
-								title="Vizualizare listă"
-							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<line x1="8" y1="6" x2="21" y2="6"/>
-									<line x1="8" y1="12" x2="21" y2="12"/>
-									<line x1="8" y1="18" x2="21" y2="18"/>
-									<line x1="3" y1="6" x2="3.01" y2="6"/>
-									<line x1="3" y1="12" x2="3.01" y2="12"/>
-									<line x1="3" y1="18" x2="3.01" y2="18"/>
-								</svg>
-							</button>
 						</div>
 					</div>
 				</div>
+				)}
 			</div>
 
+			{/* Content: Reviews or Tests List/Grid */}
+			{isReviewsTab ? (
+				<AdminTestReviewsPage embedded />
+			) : (
+			<>
 			{/* Tests List/Grid */}
 			{loading && tests.length === 0 ? (
 				<div className="admin-courses-loading">
@@ -489,6 +506,8 @@ const AdminTestsPage = () => {
 						</div>
 					)}
 				</div>
+			)}
+			</>
 			)}
 		</div>
 	);

@@ -104,9 +104,10 @@
 	line-height: 1;
 }
 
-/* Light theme - dark icons for better contrast */
-[data-theme="light"] .admin-dashboard-btn-icon {
-	color: #1f2937;
+/* Icon negru pe butoane galbene (brand rule) */
+.admin-dashboard-btn-primary .admin-dashboard-btn-icon,
+.admin-dashboard-btn-link .admin-dashboard-btn-icon {
+	color: #000000 !important;
 }
 
 .admin-dashboard-btn-primary {
@@ -520,33 +521,159 @@
 
 @media (max-width: 768px) {
 	.admin-dashboard-page {
-		padding: var(--space-4);
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.admin-dashboard-header {
+		margin-bottom: var(--space-5);
+		padding-bottom: var(--space-4);
 	}
 
 	.admin-dashboard-header-content {
 		flex-direction: column;
 		align-items: stretch;
+		gap: var(--space-4);
+	}
+
+	.admin-dashboard-title {
+		font-size: var(--font-size-2xl);
+	}
+
+	.admin-dashboard-subtitle {
+		font-size: var(--font-size-sm);
 	}
 
 	.admin-dashboard-header-actions {
 		width: 100%;
 		flex-direction: column;
+		gap: var(--space-2);
 	}
 
 	.admin-dashboard-btn {
 		width: 100%;
+		padding: var(--space-3) var(--space-4);
+		justify-content: center;
 	}
 
 	.admin-dashboard-kpis {
 		grid-template-columns: 1fr;
+		gap: var(--space-3);
+		margin-bottom: var(--space-5);
+	}
+
+	.admin-dashboard-kpi-card {
+		padding: var(--space-4);
+		gap: var(--space-3);
+	}
+
+	.admin-dashboard-kpi-icon svg {
+		width: 24px;
+		height: 24px;
+	}
+
+	.admin-dashboard-kpi-value {
+		font-size: var(--font-size-2xl);
+	}
+
+	.admin-dashboard-grid {
+		gap: var(--space-4);
+	}
+
+	.admin-dashboard-section {
+		padding: var(--space-4);
+		margin-bottom: var(--space-4);
+	}
+
+	.admin-dashboard-section-header {
+		margin-bottom: var(--space-4);
+		padding-bottom: var(--space-3);
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-2);
+	}
+
+	.admin-dashboard-section-title {
+		font-size: var(--font-size-lg);
+	}
+
+	.admin-dashboard-courses-list {
+		gap: var(--space-3);
 	}
 
 	.admin-dashboard-course-item {
 		flex-direction: column;
 		align-items: stretch;
+		padding: var(--space-3);
+		gap: var(--space-3);
+	}
+
+	.admin-dashboard-quick-action {
+		padding: var(--space-3);
+	}
+
+	.admin-dashboard-activity-item {
+		padding: var(--space-3);
+	}
+
+	.admin-dashboard-empty {
+		padding: var(--space-6) var(--space-4);
+	}
+
+	.admin-dashboard-empty-icon svg {
+		width: 40px;
+		height: 40px;
+	}
+
+	.admin-dashboard-empty-title {
+		font-size: var(--font-size-lg);
 	}
 
 	.admin-dashboard-btn-sm {
 		width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-dashboard-page {
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.admin-dashboard-header {
+		margin-bottom: var(--space-4);
+		padding-bottom: var(--space-3);
+	}
+
+	.admin-dashboard-title {
+		font-size: var(--font-size-xl);
+	}
+
+	.admin-dashboard-kpis {
+		gap: var(--space-2);
+		margin-bottom: var(--space-4);
+	}
+
+	.admin-dashboard-kpi-card {
+		padding: var(--space-3);
+	}
+
+	.admin-dashboard-kpi-value {
+		font-size: var(--font-size-xl);
+	}
+
+	.admin-dashboard-section {
+		padding: var(--space-3);
+		margin-bottom: var(--space-3);
+	}
+
+	.admin-dashboard-section-title {
+		font-size: var(--font-size-base);
+	}
+
+	.admin-dashboard-course-item {
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.admin-dashboard-course-metrics {
+		gap: var(--space-2);
 	}
 }

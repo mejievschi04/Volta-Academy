@@ -4,7 +4,7 @@ import { useToast } from '../../contexts/ToastContext';
 
 const MANUAL_TYPES = ['short_answer', 'essay'];
 
-const AdminTestReviewsPage = () => {
+const AdminTestReviewsPage = ({ embedded = false }) => {
 	const { showToast } = useToast();
 	const [results, setResults] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -106,16 +106,18 @@ const AdminTestReviewsPage = () => {
 
 	return (
 		<div className="admin-container">
-			<div className="admin-courses-page-header">
-				<div className="admin-courses-header-content">
-					<div className="admin-courses-header-text">
-						<h1 className="admin-courses-title">Verificări manuale teste</h1>
-						<p className="admin-courses-subtitle">
-							Rezultate cu întrebări deschise (răspuns scurt, eseu) care necesită notare manuală
-						</p>
+			{!embedded && (
+				<div className="admin-courses-page-header">
+					<div className="admin-courses-header-content">
+						<div className="admin-courses-header-text">
+							<h1 className="admin-courses-title">Verificări manuale teste</h1>
+							<p className="admin-courses-subtitle">
+								Rezultate cu întrebări deschise (răspuns scurt, eseu) care necesită notare manuală
+							</p>
+						</div>
 					</div>
 				</div>
-			</div>
+			)}
 
 			{results.length === 0 ? (
 				<div className="lms-empty-state">

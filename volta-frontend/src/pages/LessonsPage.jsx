@@ -24,6 +24,7 @@ const LessonsPage = () => {
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [isCompleting, setIsCompleting] = useState(false);
 	const [expandedModules, setExpandedModules] = useState(new Set());
+	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	// Get lessonId from URL or auto-select first lesson
 	const lessonIdFromUrl = searchParams.get('lesson');
@@ -35,7 +36,7 @@ const LessonsPage = () => {
 		}
 	}, [courseId]);
 
-	// Auto-open first lesson when course loads
+	// Auto-open first lesson when course loads (no lesson in URL)
 	useEffect(() => {
 		if (!loading && modules.length > 0 && !selectedLessonId) {
 			// Find first lesson from first module
@@ -49,6 +50,19 @@ const LessonsPage = () => {
 					// Expand first module
 					setExpandedModules(new Set([firstModule.id]));
 				}
+			}
+		}
+	}, [loading, modules, selectedLessonId]);
+
+	// Expand module containing lesson when loading from URL (?lesson=1)
+	useEffect(() => {
+		if (!loading && modules.length > 0 && selectedLessonId) {
+			const lessonId = parseInt(selectedLessonId, 10);
+			const moduleContainingLesson = modules.find(m => 
+				m.lessons?.some(l => (l.id === lessonId || l.id === selectedLessonId))
+			);
+			if (moduleContainingLesson) {
+				setExpandedModules(prev => new Set([...prev, moduleContainingLesson.id]));
 			}
 		}
 	}, [loading, modules, selectedLessonId]);
@@ -116,7 +130,7 @@ const LessonsPage = () => {
 
 	const handleLessonClick = (lessonId) => {
 		setSelectedLessonId(lessonId);
-		// Scroll to top
+		setSidebarOpen(false); // Close sidebar on mobile when selecting lesson
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	};
 
@@ -293,19 +307,38 @@ const LessonsPage = () => {
 	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
 
 	return (
-		<div className="lessons-page-modern lessons-page-player-layout">
+		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
+			{/* Mobile overlay when sidebar open */}
+			{sidebarOpen && (
+				<div 
+					className="lessons-page-sidebar-overlay" 
+					onClick={() => setSidebarOpen(false)}
+					aria-hidden="true"
+				/>
+			)}
 			{/* Sidebar - Lessons Menu */}
 			<aside className="lessons-page-sidebar">
 				<div className="lessons-page-sidebar-header">
-					<button 
-						className="lessons-page-sidebar-back-btn"
-						onClick={() => navigate(-1)}
-					>
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<path d="M19 12H5M12 19l-7-7 7-7"/>
-						</svg>
-						<span>Înapoi</span>
-					</button>
+					<div className="lessons-page-sidebar-header-actions">
+						<button 
+							className="lessons-page-sidebar-back-btn"
+							onClick={() => navigate(-1)}
+						>
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<path d="M19 12H5M12 19l-7-7 7-7"/>
+							</svg>
+							<span>Înapoi</span>
+						</button>
+						<button 
+							className="lessons-page-sidebar-close-btn"
+							onClick={() => setSidebarOpen(false)}
+							aria-label="Închide meniul"
+						>
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<path d="M18 6L6 18M6 6l12 12"/>
+							</svg>
+						</button>
+					</div>
 					<h2 className="lessons-page-sidebar-title">{course.title}</h2>
 					{progress && (
 						<div className="lessons-page-sidebar-progress">
@@ -430,6 +463,20 @@ const LessonsPage = () => {
 
 			{/* Main Content - Lesson Viewer */}
 			<main className="lessons-page-main-content">
+				{/* Mobile: toggle sidebar button */}
+				<button
+					type="button"
+					className="lessons-page-sidebar-toggle"
+					onClick={() => setSidebarOpen(true)}
+					aria-label="Deschide meniul lecțiilor"
+				>
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<line x1="3" y1="6" x2="21" y2="6"/>
+						<line x1="3" y1="12" x2="21" y2="12"/>
+						<line x1="3" y1="18" x2="21" y2="18"/>
+					</svg>
+					<span>Lecții</span>
+				</button>
 				{currentLessonLoading ? (
 					<div className="lessons-page-lesson-loading">
 						<div className="lessons-page-spinner"></div>

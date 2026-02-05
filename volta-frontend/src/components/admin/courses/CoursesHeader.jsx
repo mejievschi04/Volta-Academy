@@ -78,7 +78,7 @@ const CoursesHeader = ({
 									title="Vizualizare Grid"
 									aria-label="Vizualizare grilă"
 								>
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 0h6v6H0V0zm7 0h9v6H7V0zM0 7h6v9H0V7zm7 0h9v9H7V7z"/>
 									</svg>
 								</button>
@@ -88,7 +88,7 @@ const CoursesHeader = ({
 									title="Vizualizare Listă"
 									aria-label="Vizualizare listă"
 								>
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 2h16v2H0V2zm0 5h16v2H0V7zm0 5h16v2H0v-2z"/>
 									</svg>
 								</button>

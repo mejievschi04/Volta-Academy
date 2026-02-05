@@ -311,7 +311,7 @@
 	height: 36px;
 	border-radius: var(--radius-full);
 	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-	color: #4b5563; /* Gri închis pentru inițiale */
+	color: #000000; /* Negru pe fundal galben (brand rule) */
 	display: flex;
 	align-items: center;
 	justify-content: center;
