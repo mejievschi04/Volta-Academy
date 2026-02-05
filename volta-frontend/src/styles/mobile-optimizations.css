@@ -241,6 +241,7 @@
 	}
 
 	/* Sidebar - overlay on mobile - MUST be above backdrop, no blur on sidebar itself */
+	/* Flex layout: brand (top), nav (scrollable middle), controls + logout (bottom) */
 	.sidebar,
 	.modern-sidebar,
 	.va-sidebar,
@@ -249,12 +250,12 @@
 		left: -100%;
 		top: 0;
 		height: 100vh;
+		height: 100dvh; /* Dynamic viewport - adaptează la bara de adrese pe mobile */
 		width: 280px;
 		max-width: 85vw;
 		z-index: 1000 !important;
 		transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		overflow-y: auto;
-		-webkit-overflow-scrolling: touch;
+		overflow: hidden; /* Flex children controlează scroll-ul */
 		background: var(--bg-elevated);
 		box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5);
 		pointer-events: auto;
@@ -416,7 +417,7 @@
 		transform: translateX(0);
 	}
 
-	/* Sidebar brand - logo + text inline (admin + student) */
+	/* Sidebar brand - logo + text inline (admin + student) - fix top */
 	.modern-sidebar-brand,
 	.va-sidebar-brand,
 	.student-sidebar .modern-sidebar-brand,
@@ -426,6 +427,22 @@
 		align-items: center !important;
 		justify-content: flex-start !important;
 		gap: var(--space-3) !important;
+		flex-shrink: 0 !important;
+	}
+
+	/* Nav - zona scrollabilă, ocupă spațiul rămas, flexibilă la înălțime */
+	.sidebar .modern-nav,
+	.sidebar .va-sidebar-nav,
+	.modern-sidebar .modern-nav,
+	.modern-sidebar .va-sidebar-nav,
+	.va-sidebar .modern-nav,
+	.va-sidebar .va-sidebar-nav,
+	.student-sidebar .modern-nav,
+	.student-sidebar .va-sidebar-nav {
+		flex: 1 1 0 !important;
+		min-height: 0 !important;
+		overflow-y: auto !important;
+		-webkit-overflow-scrolling: touch !important;
 	}
 
 	/* Student sidebar - push brand and nav down (below topnav area), logo centered, larger logo + text */
@@ -1102,8 +1119,9 @@
 		display: none !important;
 	}
 
-	/* Sidebar mobile controls - only visible on mobile - positioned after nav */
+	/* Sidebar mobile controls - only visible on mobile - fix bottom */
 	.sidebar-mobile-controls {
+		flex-shrink: 0 !important;
 		margin-top: auto;
 		padding: var(--space-4) var(--space-3);
 		border-top: 1px solid var(--border-primary);
@@ -1232,8 +1250,9 @@
 		display: none;
 	}
 
-	/* Mobile Logout Button - positioned at bottom */
+	/* Mobile Logout Button - positioned at bottom, fix */
 	.sidebar-mobile-logout {
+		flex-shrink: 0 !important;
 		margin-top: var(--space-2);
 		padding: var(--space-3);
 		padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
