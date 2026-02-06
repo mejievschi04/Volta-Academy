@@ -69,18 +69,18 @@
 	--btn-secondary-border: var(--color-brand-primary);
 	--btn-secondary-hover: var(--color-primary-alpha-10);
 
-	/* Button Dimensions - mari, rotunjite, moderne */
-	--btn-desktop-padding-y: var(--space-4);
-	--btn-desktop-padding-x: var(--space-8);
-	--btn-desktop-min-height: 52px;
-	--btn-desktop-font-size: var(--font-size-base);
-	--btn-desktop-gap: var(--space-3);
-	--btn-desktop-radius: var(--radius-3xl);
+	/* Button Dimensions - compacte, rotunjite */
+	--btn-desktop-padding-y: var(--space-3);
+	--btn-desktop-padding-x: var(--space-5);
+	--btn-desktop-min-height: 40px;
+	--btn-desktop-font-size: var(--font-size-sm);
+	--btn-desktop-gap: var(--space-2);
+	--btn-desktop-radius: var(--radius-2xl);
 
-	--btn-mobile-padding-y: var(--space-4);
-	--btn-mobile-padding-x: var(--space-6);
-	--btn-mobile-min-height: 52px;
-	--btn-mobile-min-width: 52px;
+	--btn-mobile-padding-y: var(--space-3);
+	--btn-mobile-padding-x: var(--space-4);
+	--btn-mobile-min-height: 40px;
+	--btn-mobile-min-width: 40px;
 	--btn-mobile-font-size: var(--font-size-base);
 	--btn-mobile-gap: var(--space-3);
 

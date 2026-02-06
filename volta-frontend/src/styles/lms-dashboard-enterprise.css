@@ -799,13 +799,14 @@
    10. BUTTONS
    ============================================ */
 .lms-btn-primary {
-	padding: var(--space-3) var(--space-6);
+	padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
 	background-color: var(--btn-primary-bg);
 	color: var(--btn-primary-text);
 	border: 1px solid var(--btn-primary-border);
-	border-radius: var(--radius-lg);
-	font-size: var(--font-size-sm);
+	border-radius: var(--btn-desktop-radius);
+	font-size: var(--btn-desktop-font-size);
 	font-weight: var(--font-weight-semibold);
+	min-height: var(--btn-desktop-min-height);
 	cursor: pointer;
 	transition: all var(--transition-base);
 	font-family: var(--font-family);
@@ -832,13 +833,14 @@
 }
 
 .lms-btn-secondary {
-	padding: var(--space-3) var(--space-6);
+	padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
 	background-color: var(--btn-secondary-bg);
 	color: var(--btn-secondary-text);
 	border: 1px solid var(--btn-secondary-border);
-	border-radius: var(--radius-lg);
-	font-size: var(--font-size-sm);
+	border-radius: var(--btn-desktop-radius);
+	font-size: var(--btn-desktop-font-size);
 	font-weight: var(--font-weight-medium);
+	min-height: var(--btn-desktop-min-height);
 	cursor: pointer;
 	transition: all var(--transition-base);
 	font-family: var(--font-family);

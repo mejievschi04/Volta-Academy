@@ -113,21 +113,38 @@
 	min-height: 100px;
 }
 
-.build-course-modal-file {
-	width: 100%;
-	padding: var(--space-2);
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
+.build-course-modal-file-wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
 }
 
-.build-course-modal-file::file-selector-button {
-	padding: var(--space-2) var(--space-3);
-	margin-right: var(--space-3);
+.build-course-modal-file {
+	position: absolute;
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	z-index: -1;
+}
+
+.build-course-modal-file-trigger {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-3) var(--space-4);
 	background: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-md);
 	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
 	cursor: pointer;
+	transition: border-color 0.2s, background 0.2s;
+}
+
+.build-course-modal-file-trigger:hover {
+	background: var(--bg-tertiary);
+	border-color: var(--border-secondary);
 }
 
 .build-course-modal-preview {
@@ -164,37 +181,70 @@
 	border-top: 1px solid var(--border-primary);
 }
 
-.build-course-modal-btn {
-	padding: var(--space-3) var(--space-6);
-	border-radius: var(--radius-lg);
+/* Butoane conform design system - mari, rotunjite, moderne */
+.build-course-modal .lms-btn-primary,
+.build-course-modal .lms-btn-secondary {
+	min-height: var(--btn-desktop-min-height);
+	padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
+	border-radius: var(--btn-desktop-radius);
+	font-size: var(--btn-desktop-font-size);
 	font-weight: var(--font-weight-semibold);
-	font-size: var(--font-size-base);
-	cursor: pointer;
-	transition: all 0.2s;
+	letter-spacing: 0.02em;
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.build-course-modal .lms-btn-primary {
+	background: var(--color-brand-primary) !important;
+	color: #000000 !important;
 	border: none;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.build-course-modal-btn-secondary {
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	border: 1px solid var(--border-primary);
+.build-course-modal .lms-btn-primary:hover:not(:disabled) {
+	background: var(--color-brand-hover) !important;
+	color: #000000 !important;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	transform: translateY(-2px);
 }
 
-.build-course-modal-btn-secondary:hover {
-	background: var(--bg-tertiary);
-	border-color: var(--border-secondary);
-}
-
-.build-course-modal-btn-primary {
-	background: var(--color-primary);
-	color: var(--color-black);
-}
-
-.build-course-modal-btn-primary:hover:not(:disabled) {
-	background: var(--color-primary-hover);
-}
-
-.build-course-modal-btn-primary:disabled {
+.build-course-modal .lms-btn-primary:disabled {
 	opacity: 0.7;
 	cursor: not-allowed;
+	background: var(--color-brand-primary) !important;
+	color: #000000 !important;
+}
+
+/* Ambele teme: galben, text negru */
+[data-theme="light"] .build-course-modal .lms-btn-primary,
+:root:not([data-theme="light"]) .build-course-modal .lms-btn-primary {
+	background: var(--color-brand-primary) !important;
+	color: #000000 !important;
+}
+
+[data-theme="light"] .build-course-modal .lms-btn-primary:hover:not(:disabled),
+:root:not([data-theme="light"]) .build-course-modal .lms-btn-primary:hover:not(:disabled) {
+	background: var(--color-brand-hover) !important;
+	color: #000000 !important;
+}
+
+.build-course-modal .lms-btn-secondary {
+	background: var(--btn-secondary-bg);
+	color: var(--btn-secondary-text);
+	border: 1px solid var(--btn-secondary-border);
+}
+
+.build-course-modal .lms-btn-secondary:hover:not(:disabled) {
+	background: var(--btn-secondary-hover);
+	box-shadow: 0 4px 16px var(--color-primary-alpha-20);
+	transform: translateY(-2px);
+}
+
+.build-course-modal .lms-btn-primary:focus-visible,
+.build-course-modal .lms-btn-secondary:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--color-primary-alpha-30);
+}
+
+.build-course-modal-actions .build-course-modal-btn {
+	min-width: 140px;
 }

@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch),
+	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -1555,8 +1555,7 @@
 	}
 
 	.student-global-progress-percentage {
-		text-align: center !important;
-		margin-top: var(--space-2) !important;
+		text-align: left !important;
 		font-size: var(--font-size-lg) !important;
 		font-weight: var(--font-weight-semibold) !important;
 	}

@@ -43,11 +43,7 @@
 	border-color: var(--border-secondary);
 }
 
-/* Student global progress - ensure visibility */
-.student-global-progress-bar-container {
-	background-color: var(--bg-secondary);
-}
-
+/* Student global progress - fill only, no track */
 .student-global-progress-fill {
 	background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
 }

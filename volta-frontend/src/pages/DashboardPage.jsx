@@ -105,14 +105,16 @@ const DashboardPage = () => {
 							</div>
 						</div>
 						<div className="student-global-progress-bar-container">
+							<div className="student-global-progress-bar-header">
+								<span className="student-global-progress-percentage">
+									{global_progress.percentage}%
+								</span>
+							</div>
 							<div className="student-global-progress-bar">
-								<div 
+								<div
 									className="student-global-progress-fill"
 									style={{ width: `${global_progress.percentage}%` }}
-								></div>
-							</div>
-							<div className="student-global-progress-percentage">
-								{global_progress.percentage}%
+								/>
 							</div>
 						</div>
 					</div>

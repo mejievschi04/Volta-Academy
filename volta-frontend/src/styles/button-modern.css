@@ -3,7 +3,7 @@
    Stil modern, aranjat, consistent
    ============================================ */
 
-/* Base - butoane mari, rotunjite, moderne */
+/* Base - butoane compacte, rotunjite */
 .va-shell-main .btn,
 .va-shell-main .admin-btn,
 .va-shell-main .lms-btn-primary,
@@ -14,13 +14,13 @@
 .admin-container .lms-btn-primary,
 .admin-container .admin-btn-create-course,
 .admin-container .admin-btn-secondary {
-	min-height: 52px;
-	padding: var(--space-4) var(--space-8);
-	border-radius: var(--radius-3xl);
-	font-size: var(--font-size-base);
+	min-height: var(--btn-desktop-min-height);
+	padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
+	border-radius: var(--btn-desktop-radius);
+	font-size: var(--btn-desktop-font-size);
 	font-weight: var(--font-weight-semibold);
 	letter-spacing: 0.02em;
-	gap: var(--space-3);
+	gap: var(--btn-desktop-gap);
 	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 	-webkit-font-smoothing: antialiased;
 }
@@ -33,7 +33,7 @@
 .admin-container .lms-btn-primary,
 .admin-container .admin-btn-create-course {
 	color: #000000 !important;
-	border-radius: var(--radius-3xl);
+	border-radius: var(--btn-desktop-radius);
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 	border: none;
 }
@@ -89,7 +89,7 @@
 .va-shell-main .admin-btn-secondary,
 .admin-container .btn-secondary,
 .admin-container .admin-btn-secondary {
-	border-radius: var(--radius-3xl);
+	border-radius: var(--btn-desktop-radius);
 }
 
 .va-shell-main .btn-secondary:hover:not(:disabled),
@@ -136,15 +136,15 @@
 	flex-wrap: wrap;
 }
 
-/* Card/table action buttons - tot mari și rotunjite */
+/* Card/table action buttons - compacte */
 .va-shell-main .admin-course-card-action-btn,
 .va-shell-main .admin-course-table-action-btn,
 .admin-container .admin-course-card-action-btn,
 .admin-container .admin-course-table-action-btn {
-	min-height: 26px;
-	padding: 4px 8px;
+	min-height: 32px;
+	padding: var(--space-2) var(--space-3);
 	border-radius: var(--radius-md);
-	font-size: 11px;
+	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-medium);
 	transition: all 0.2s ease;
 }

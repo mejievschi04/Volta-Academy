@@ -75,15 +75,21 @@ const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initi
 					<div className="build-course-modal-field">
 						<label className="build-course-modal-label">Imagine curs</label>
 						<p className="build-course-modal-hint">Imagine reprezentativă (opțional)</p>
-						<input
-							type="file"
-							accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-							onChange={(e) => {
-								const file = e.target.files?.[0];
-								setImage(file || null);
-							}}
-							className="build-course-modal-file"
-						/>
+						<div className="build-course-modal-file-wrap">
+							<input
+								type="file"
+								id="build-course-modal-image"
+								accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+								onChange={(e) => {
+									const file = e.target.files?.[0];
+									setImage(file || null);
+								}}
+								className="build-course-modal-file"
+							/>
+							<label htmlFor="build-course-modal-image" className="build-course-modal-file-trigger">
+								{image ? image.name : 'Alege imagine'}
+							</label>
+						</div>
 						{image && (
 							<div className="build-course-modal-preview">
 								<img
@@ -98,17 +104,18 @@ const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initi
 					<div className="build-course-modal-field">
 						<label className="build-course-modal-label">Fișier PDF cu informația brută</label>
 						<p className="build-course-modal-hint">Opțional – conținut pentru generare curs</p>
-						<input
-							type="file"
-							accept=".pdf,application/pdf"
-							onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-							className="build-course-modal-file"
-						/>
-						{pdfFile && (
-							<p className="build-course-modal-hint" style={{ marginTop: 'var(--space-2)', color: 'var(--color-primary)' }}>
-								📄 {pdfFile.name}
-							</p>
-						)}
+						<div className="build-course-modal-file-wrap">
+							<input
+								type="file"
+								id="build-course-modal-pdf"
+								accept=".pdf,application/pdf"
+								onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+								className="build-course-modal-file"
+							/>
+							<label htmlFor="build-course-modal-pdf" className="build-course-modal-file-trigger">
+								{pdfFile ? `📄 ${pdfFile.name}` : 'Alege fișier PDF'}
+							</label>
+						</div>
 					</div>
 
 					{error && (
@@ -118,14 +125,14 @@ const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initi
 					<div className="build-course-modal-actions">
 						<button
 							type="button"
-							className="build-course-modal-btn build-course-modal-btn-secondary"
+							className="lms-btn-secondary build-course-modal-btn"
 							onClick={onClose}
 						>
 							Anulează
 						</button>
 						<button
 							type="submit"
-							className="build-course-modal-btn build-course-modal-btn-primary"
+							className="lms-btn-primary build-course-modal-btn"
 							disabled={loading}
 						>
 							{loading ? 'Se creează...' : 'Continuă la Builder'}
