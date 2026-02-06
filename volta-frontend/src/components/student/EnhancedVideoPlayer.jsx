@@ -382,7 +382,7 @@ const EnhancedVideoPlayer = forwardRef(({
 						<button
 							className="enhanced-video-control-btn"
 							onClick={togglePlay}
-							aria-label={isPlaying ? 'Pause' : 'Play'}
+							aria-label={isPlaying ? 'Pauză' : 'Redare'}
 						>
 							{isPlaying ? (
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -398,7 +398,7 @@ const EnhancedVideoPlayer = forwardRef(({
 						<button
 							className="enhanced-video-control-btn"
 							onClick={() => seek(-10)}
-							aria-label="Rewind 10 seconds"
+							aria-label="Înapoi 10 secunde"
 						>
 							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
 								<path d="M4 10L14 4V10L14 16L4 10Z" fill="currentColor"/>
@@ -410,7 +410,7 @@ const EnhancedVideoPlayer = forwardRef(({
 						<button
 							className="enhanced-video-control-btn"
 							onClick={() => seek(10)}
-							aria-label="Forward 10 seconds"
+							aria-label="Înainte 10 secunde"
 						>
 							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
 								<path d="M6 4V16L16 10L6 4Z" fill="currentColor"/>
@@ -428,7 +428,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							<button
 								className="enhanced-video-control-btn"
 								onClick={toggleMute}
-								aria-label={isMuted ? 'Unmute' : 'Mute'}
+								aria-label={isMuted ? 'Cu sunet' : 'Fără sunet'}
 							>
 								{isMuted || volume === 0 ? (
 									<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -501,7 +501,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							<button
 								className="enhanced-video-control-btn"
 								onClick={togglePiP}
-								aria-label="Picture-in-Picture"
+								aria-label="Imagine în imagine"
 							>
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
 									<path d="M2 4H8V10H2V4Z" fill="currentColor"/>
@@ -516,7 +516,7 @@ const EnhancedVideoPlayer = forwardRef(({
 						<button
 							className="enhanced-video-control-btn"
 							onClick={toggleFullscreen}
-							aria-label="Fullscreen"
+							aria-label="Ecran complet"
 						>
 							{isFullscreen ? (
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -543,7 +543,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							<kbd>←</kbd>/<kbd>→</kbd> Seek
 						</div>
 						<div className="enhanced-video-shortcut-item">
-							<kbd>M</kbd> Mute
+							<kbd>M</kbd> Fără sunet
 						</div>
 						<div className="enhanced-video-shortcut-item">
 							<kbd>F</kbd> Fullscreen

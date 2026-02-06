@@ -522,6 +522,7 @@ class ExamController extends Controller
                                                     'completed_at' => now(),
                                                     'updated_at' => now(),
                                                 ]);
+                                            app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                         }
                                     }
                                 }
@@ -546,6 +547,7 @@ class ExamController extends Controller
                                             'completed_at' => now(),
                                             'updated_at' => now(),
                                         ]);
+                                    app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                 }
                             } catch (\Exception $e) {
                                 \Log::warning('Error recalculating course progress', [

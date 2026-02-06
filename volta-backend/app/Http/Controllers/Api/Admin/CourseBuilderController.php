@@ -81,7 +81,8 @@ class CourseBuilderController extends Controller
         }
 
         $path = $file->store("content-blocks/{$type}", 'public');
-        $url = Storage::disk('public')->url($path);
+        // Returnează path relativ – frontend-ul adaugă origin-ul corect (proxy / producție)
+        $url = '/storage/' . ltrim($path, '/');
 
         $asset = MediaAsset::create([
             'course_id' => $courseId,
@@ -428,18 +429,29 @@ class CourseBuilderController extends Controller
             return response()->json($report, 422);
         }
 
-        DB::transaction(function () use ($course) {
+        $validated = $request->validate([
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'exists:teams,id',
+        ]);
+        $teamIds = $validated['team_ids'] ?? [];
+
+        DB::transaction(function () use ($course, $teamIds) {
             $course->update(['status' => 'published', 'workflow_status' => 'published']);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
+            if (count($teamIds) > 0) {
+                $course->teams()->sync($teamIds);
+            }
         });
 
-        // Create a published snapshot version for history/audit
         $this->courseBuilderService->createCourseVersionSnapshot($course->id, $request->user(), 'published');
+
+        $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished($course, $teamIds);
 
         return response()->json([
             'ok' => true,
             'course' => $course->fresh(),
+            'notified_count' => $notifiedCount,
         ]);
     }
 

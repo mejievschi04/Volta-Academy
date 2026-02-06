@@ -369,7 +369,7 @@ const AdminAnalyticsPage = () => {
 								))}
 							</ul>
 						) : (
-							<div className="analytics-empty">Toate cursurile performează bine</div>
+							<div className="analytics-empty">Toate cursurile au performanță bună</div>
 						)}
 					</div>
 				</div>
@@ -446,7 +446,7 @@ const AdminAnalyticsPage = () => {
 													hour: '2-digit',
 													minute: '2-digit',
 											  })
-											: 'Recent'}
+											: 'Recentă'}
 									</time>
 								</div>
 							</div>

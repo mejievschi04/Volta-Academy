@@ -51,7 +51,7 @@ const ContentBlockEditor = ({ courseId, block, onChange }) => {
 
 					<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
 						<div className="admin-settings-hint" style={{ margin: 0 }}>
-							Upload sau alege o imagine existentă din Media Library.
+							Încarcă sau alege o imagine existentă din biblioteca media.
 						</div>
 						<button
 							type="button"

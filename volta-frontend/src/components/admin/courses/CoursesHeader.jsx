@@ -42,7 +42,7 @@ const CoursesHeader = ({
 							type="button"
 						>
 							<span>+</span>
-							Creează Curs
+							Build Curs
 						</button>
 					</div>
 				</div>
@@ -127,7 +127,7 @@ const CoursesHeader = ({
 									>
 										{status === 'all' ? 'Toate' : 
 										 status === 'published' ? 'Publicate' :
-										 status === 'draft' ? 'Draft' : 'Arhivate'}
+										 status === 'draft' ? 'Ciornă' : 'Arhivate'}
 									</button>
 								))}
 							</div>

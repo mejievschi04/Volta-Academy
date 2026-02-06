@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import CourseCreationWizard from '../../components/admin/courses/CourseCreationWizard';
+import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import './AdminDashboardPage.css';
 
 const AdminDashboardPage = () => {
@@ -10,7 +10,8 @@ const AdminDashboardPage = () => {
 	const navigate = useNavigate();
 	const [dashboardData, setDashboardData] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [showWizard, setShowWizard] = useState(false);
+	const [showBuildModal, setShowBuildModal] = useState(false);
+	const [creatingCourse, setCreatingCourse] = useState(false);
 
 	useEffect(() => {
 		const fetchDashboard = async () => {
@@ -73,7 +74,7 @@ const AdminDashboardPage = () => {
 			<div className="admin-dashboard-header">
 				<div className="admin-dashboard-header-content">
 					<div>
-						<h1 className="admin-dashboard-title">Dashboard Admin</h1>
+						<h1 className="admin-dashboard-title">Panou Admin</h1>
 						<p className="admin-dashboard-subtitle">
 							Vizualizare generală a platformei de învățare
 						</p>
@@ -81,10 +82,10 @@ const AdminDashboardPage = () => {
 					<div className="admin-dashboard-header-actions">
 						<button 
 							className="admin-dashboard-btn admin-dashboard-btn-primary"
-							onClick={() => setShowWizard(true)}
+							onClick={() => setShowBuildModal(true)}
 						>
 							<span className="admin-dashboard-btn-icon">+</span>
-							Creează Curs
+							Build Curs
 						</button>
 						<button 
 							className="admin-dashboard-btn admin-dashboard-btn-secondary"
@@ -349,14 +350,36 @@ const AdminDashboardPage = () => {
 				</div>
 			</div>
 
-			{/* Course Creation Wizard */}
-			{showWizard && (
-				<CourseCreationWizard
-					onClose={() => setShowWizard(false)}
-					onSuccess={(courseId) => {
-						setShowWizard(false);
-						navigate(`/admin/courses/${courseId}/builder`);
+			{showBuildModal && (
+				<BuildCourseModal
+					onClose={() => setShowBuildModal(false)}
+					onSubmit={async ({ title, description, image }) => {
+						setCreatingCourse(true);
+						try {
+							let payload;
+							if (image) {
+								const formData = new FormData();
+								formData.append('title', title);
+								formData.append('description', description);
+								formData.append('status', 'draft');
+								formData.append('image', image);
+								payload = formData;
+							} else {
+								payload = { title, description, status: 'draft' };
+							}
+							const result = await adminService.createCourse(payload);
+							const courseId = result?.course?.id;
+							if (courseId) {
+								setShowBuildModal(false);
+								navigate(`/admin/courses/${courseId}/builder`);
+							}
+						} catch (err) {
+							console.error('Error creating course:', err);
+						} finally {
+							setCreatingCourse(false);
+						}
 					}}
+					loading={creatingCourse}
 				/>
 			)}
 		</div>

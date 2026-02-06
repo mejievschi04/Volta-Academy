@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
+import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 
 const AdminCoursesPage = () => {
 	const navigate = useNavigate();
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [creatingCourse, setCreatingCourse] = useState(false);
 	const [error, setError] = useState(null);
 	
 	// Filters and search
@@ -98,9 +100,38 @@ const AdminCoursesPage = () => {
 		}
 	};
 
-	// Handle course creation
+	// Deschide modalul Build Curs
+	const [showBuildModal, setShowBuildModal] = useState(false);
+
 	const handleCreateCourse = () => {
-		navigate('/admin/courses/new');
+		setShowBuildModal(true);
+	};
+
+	const handleBuildSubmit = async ({ title, description, image }) => {
+		setCreatingCourse(true);
+		try {
+			let payload;
+			if (image) {
+				const formData = new FormData();
+				formData.append('title', title);
+				formData.append('description', description);
+				formData.append('status', 'draft');
+				formData.append('image', image);
+				payload = formData;
+			} else {
+				payload = { title, description, status: 'draft' };
+			}
+			const result = await adminService.createCourse(payload);
+			const courseId = result?.course?.id;
+			if (courseId) {
+				setShowBuildModal(false);
+				navigate(`/admin/courses/${courseId}/builder`);
+			}
+		} catch (err) {
+			console.error('Error creating course:', err);
+		} finally {
+			setCreatingCourse(false);
+		}
 	};
 
 	// Filtered courses
@@ -123,6 +154,13 @@ const AdminCoursesPage = () => {
 
 	return (
 		<div className="admin-container">
+			{showBuildModal && (
+				<BuildCourseModal
+					onClose={() => setShowBuildModal(false)}
+					onSubmit={handleBuildSubmit}
+					loading={creatingCourse}
+				/>
+			)}
 			<CoursesHeader
 				searchQuery={searchQuery}
 				onSearchChange={setSearchQuery}
@@ -133,7 +171,7 @@ const AdminCoursesPage = () => {
 				onCreateCourse={handleCreateCourse}
 				selectedCount={selectedCourses.size}
 				onBulkAction={handleBulkAction}
-				loading={loading}
+				loading={loading || creatingCourse}
 				viewMode={viewMode}
 				onViewModeChange={setViewMode}
 			/>
@@ -147,7 +185,7 @@ const AdminCoursesPage = () => {
 				<div className="lms-empty-state">
 					<p>Nu există cursuri disponibile.</p>
 					<button className="lms-btn-primary" onClick={handleCreateCourse}>
-						+ Creează primul curs
+						+ Build primul curs
 					</button>
 				</div>
 			) : (

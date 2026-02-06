@@ -35,7 +35,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 			setMeta(res?.meta || null);
 		} catch (e) {
 			console.error('Load media failed:', e);
-			showToast('Nu s-a putut încărca media library', 'error');
+			showToast('Nu s-a putut încărca biblioteca media', 'error');
 			setData([]);
 			setMeta(null);
 		} finally {
@@ -53,8 +53,8 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 	const canNext = (meta?.current_page || 1) < (meta?.last_page || 1);
 
 	const title = useMemo(() => {
-		if (effectiveType) return `Media Library (${effectiveType})`;
-		return 'Media Library';
+		if (effectiveType) return `Biblioteca media (${effectiveType})`;
+		return 'Biblioteca media';
 	}, [effectiveType]);
 
 	if (!open) return null;
@@ -66,7 +66,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 					<div>
 						<h2 className="admin-team-modal-title">{title}</h2>
 						<p className="admin-page-subtitle" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-							Alege un fișier deja încărcat (reuse) sau caută după nume.
+							Alege un fișier deja încărcat (reutilizare) sau caută după nume.
 						</p>
 					</div>
 					<button type="button" className="admin-team-modal-close" onClick={onClose}>
@@ -154,7 +154,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 												type="button"
 												className="admin-btn admin-btn-secondary"
 												onClick={async () => {
-													if (!window.confirm('Ștergi acest fișier din Media Library?')) return;
+													if (!window.confirm('Ștergi acest fișier din biblioteca media?')) return;
 													try {
 														await adminService.deleteMediaAsset(a.id);
 														showToast('Șters', 'success');

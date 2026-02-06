@@ -793,7 +793,7 @@ const AdminEventsPage = () => {
 
 								const getStatusLabel = (status) => {
 									const labels = {
-										draft: 'Draft',
+										draft: 'Ciornă',
 										published: 'Publicat',
 										upcoming: 'Viitor',
 										live: 'Live',
@@ -823,7 +823,7 @@ const AdminEventsPage = () => {
 
 								const getStatusBadge = (status) => {
 									const badges = {
-										draft: { label: 'Draft', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
+										draft: { label: 'Ciornă', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
 										published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
 										upcoming: { label: 'Viitor', color: '#FFEE00', bgColor: 'rgba(255, 238, 0, 0.15)' },
 										live: { label: 'Live', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },

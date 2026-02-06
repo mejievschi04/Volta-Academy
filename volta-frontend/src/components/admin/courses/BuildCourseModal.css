@@ -1,0 +1,200 @@
+.build-course-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: var(--bg-overlay);
+	backdrop-filter: blur(8px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: var(--z-modal-backdrop);
+	padding: var(--space-4);
+}
+
+.build-course-modal {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	box-shadow: var(--shadow-2xl);
+	max-width: 520px;
+	width: 100%;
+	max-height: 90vh;
+	overflow-y: auto;
+}
+
+.build-course-modal-header {
+	position: relative;
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.build-course-modal-header h2 {
+	font-size: var(--font-size-2xl);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+}
+
+.build-course-modal-subtitle {
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	margin: 0;
+}
+
+.build-course-modal-close {
+	position: absolute;
+	top: var(--space-4);
+	right: var(--space-4);
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	border-radius: var(--radius-md);
+	color: var(--text-secondary);
+	font-size: 1.5rem;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.build-course-modal-close:hover {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.build-course-modal-form {
+	padding: var(--space-6);
+}
+
+.build-course-modal-field {
+	margin-bottom: var(--space-5);
+}
+
+.build-course-modal-label {
+	display: block;
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	margin-bottom: var(--space-2);
+}
+
+.build-course-modal-required {
+	color: var(--color-error);
+}
+
+.build-course-modal-hint {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	margin: calc(-1 * var(--space-1)) 0 var(--space-2) 0;
+}
+
+.build-course-modal-input,
+.build-course-modal-textarea {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-size: var(--font-size-base);
+	font-family: inherit;
+	transition: border-color 0.2s;
+}
+
+.build-course-modal-input:focus,
+.build-course-modal-textarea:focus {
+	outline: none;
+	border-color: var(--color-primary);
+}
+
+.build-course-modal-textarea {
+	resize: vertical;
+	min-height: 100px;
+}
+
+.build-course-modal-file {
+	width: 100%;
+	padding: var(--space-2);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.build-course-modal-file::file-selector-button {
+	padding: var(--space-2) var(--space-3);
+	margin-right: var(--space-3);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	cursor: pointer;
+}
+
+.build-course-modal-preview {
+	margin-top: var(--space-3);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	border: 1px solid var(--border-primary);
+}
+
+.build-course-modal-preview img {
+	width: 100%;
+	height: auto;
+	max-height: 200px;
+	object-fit: cover;
+	display: block;
+}
+
+.build-course-modal-error {
+	padding: var(--space-3);
+	background: rgba(231, 76, 60, 0.1);
+	border: 1px solid var(--color-error);
+	border-radius: var(--radius-md);
+	color: var(--color-error);
+	font-size: var(--font-size-sm);
+	margin-bottom: var(--space-4);
+}
+
+.build-course-modal-actions {
+	display: flex;
+	gap: var(--space-3);
+	justify-content: flex-end;
+	margin-top: var(--space-6);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border-primary);
+}
+
+.build-course-modal-btn {
+	padding: var(--space-3) var(--space-6);
+	border-radius: var(--radius-lg);
+	font-weight: var(--font-weight-semibold);
+	font-size: var(--font-size-base);
+	cursor: pointer;
+	transition: all 0.2s;
+	border: none;
+}
+
+.build-course-modal-btn-secondary {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	border: 1px solid var(--border-primary);
+}
+
+.build-course-modal-btn-secondary:hover {
+	background: var(--bg-tertiary);
+	border-color: var(--border-secondary);
+}
+
+.build-course-modal-btn-primary {
+	background: var(--color-primary);
+	color: var(--color-black);
+}
+
+.build-course-modal-btn-primary:hover:not(:disabled) {
+	background: var(--color-primary-hover);
+}
+
+.build-course-modal-btn-primary:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}

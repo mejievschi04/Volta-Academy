@@ -46,6 +46,8 @@ class AuthController extends Controller
             'ip' => $request->ip(),
         ]);
 
+        app(\App\Services\NotificationService::class)->notifyRegistrationRequested($user);
+
         // Nu facem auto-login - utilizatorul așteaptă aprobarea admin
         return response()->json([
             'message' => 'Cererea ta de înregistrare a fost trimisă. Un administrator va verifica contul în curând. Vei putea te autentifica după aprobare.',

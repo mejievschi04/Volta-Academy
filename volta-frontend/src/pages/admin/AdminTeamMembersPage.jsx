@@ -69,7 +69,7 @@ const AdminTeamMembersPage = () => {
 
 	const getRoleLabel = (role) => {
 		const labels = {
-			admin: 'Admin',
+			admin: 'Administrator',
 			manager: 'Manager',
 			instructor: 'Instructor',
 			teacher: 'Instructor',
@@ -455,7 +455,7 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 		}}>
 			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-members-modal-header">
-					<h2 className="admin-team-members-modal-title">Editare Rol & Permisiuni - {member.name}</h2>
+					<h2 className="admin-team-members-modal-title">Editare rol și permisiuni - {member.name}</h2>
 					<button
 						type="button"
 						className="admin-team-members-modal-close"

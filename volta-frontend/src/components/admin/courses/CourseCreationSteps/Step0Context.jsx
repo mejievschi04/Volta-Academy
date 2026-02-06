@@ -75,7 +75,7 @@ const Step0Context = ({ data, onUpdate }) => {
 							<div className="step0-image-preview">
 								<img 
 									src={typeof data.image === 'string' ? data.image : URL.createObjectURL(data.image)} 
-									alt="Preview" 
+									alt="Previzualizare" 
 									loading="lazy"
 									decoding="async"
 								/>

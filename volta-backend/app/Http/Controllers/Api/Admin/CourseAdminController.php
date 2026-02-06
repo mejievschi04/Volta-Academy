@@ -341,7 +341,7 @@ class CourseAdminController extends Controller
             'short_description' => 'nullable|string|max:200',
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'status' => 'nullable|in:draft,published,archived',
             'access_type' => 'nullable|in:free',
             'price' => 'nullable|numeric|min:0',

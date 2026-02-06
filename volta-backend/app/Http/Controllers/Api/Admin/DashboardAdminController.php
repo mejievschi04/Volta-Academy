@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Team;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Models\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
@@ -47,10 +48,30 @@ class DashboardAdminController extends Controller
             // Alerts
             $alerts = $this->getAlerts();
 
-            // Notifications (critical alerts)
-            $notifications = array_filter($alerts, function($alert) {
-                return $alert['severity'] === 'critical';
-            });
+            // Stored notifications for current user (admin)
+            $storedNotifications = [];
+            if ($request->user()) {
+                $storedNotifications = Notification::where('user_id', $request->user()->id)
+                    ->whereNull('read_at')
+                    ->orderByDesc('created_at')
+                    ->take(20)
+                    ->get()
+                    ->map(fn ($n) => [
+                        'id' => $n->id,
+                        'type' => $n->type,
+                        'title' => $n->title,
+                        'description' => $n->description,
+                        'action_url' => $n->action_url,
+                        'severity' => $n->severity,
+                        'created_at' => $n->created_at?->toISOString(),
+                    ])
+                    ->all();
+            }
+
+            // Notifications = stored + critical alerts
+            $criticalAlerts = array_filter($alerts, fn($a) => ($a['severity'] ?? '') === 'critical');
+            $notifications = array_merge($storedNotifications, $criticalAlerts);
+            usort($notifications, fn($a, $b) => strtotime($b['created_at'] ?? 0) - strtotime($a['created_at'] ?? 0));
 
             // Average test completion percentage across all students
             $avgTestCompletionPercentage = $this->getAvgTestCompletionPercentage();
@@ -761,6 +782,17 @@ class DashboardAdminController extends Controller
         return $avg !== null ? round((float) $avg, 1) : 0;
     }
 
+    private function getPlatformAverageCompletionRate(): float
+    {
+        if (!Schema::hasTable('course_user') || !Schema::hasColumn('course_user', 'completed_at')) {
+            return 50;
+        }
+        $total = DB::table('course_user')->where('enrolled', true)->count();
+        if ($total === 0) return 50;
+        $completed = DB::table('course_user')->where('enrolled', true)->whereNotNull('completed_at')->count();
+        return round(($completed / $total) * 100, 1);
+    }
+
     private function getAlerts()
     {
         $alerts = [];
@@ -822,6 +854,42 @@ class DashboardAdminController extends Controller
                 'action_url' => "/admin/users/{$instructor->id}",
                 'created_at' => now()->toDateTimeString(),
             ];
+        }
+
+        // Course success below/above average
+        $avgRate = $this->getPlatformAverageCompletionRate();
+        foreach (Course::where('status', 'published')->get() as $course) {
+            $enrollments = 0;
+            $completed = 0;
+            if (Schema::hasTable('course_user')) {
+                $enrollments = DB::table('course_user')->where('course_id', $course->id)->where('enrolled', true)->count();
+                if ($enrollments > 0 && Schema::hasColumn('course_user', 'completed_at')) {
+                    $completed = DB::table('course_user')->where('course_id', $course->id)->where('enrolled', true)->whereNotNull('completed_at')->count();
+                }
+            }
+            if ($enrollments < 3) continue;
+            $rate = $enrollments > 0 ? round(($completed / $enrollments) * 100, 1) : 0;
+            if ($rate < $avgRate - 15 && $rate < 30) {
+                $alerts[] = [
+                    'id' => 'alert_success_below_' . $course->id,
+                    'type' => 'course_success_below',
+                    'severity' => 'warning',
+                    'title' => 'Rată de finalizare sub medie',
+                    'description' => 'Cursul "' . $course->title . '" are ' . $rate . '% (medie: ' . $avgRate . '%)',
+                    'action_url' => "/admin/courses/{$course->id}",
+                    'created_at' => now()->toDateTimeString(),
+                ];
+            } elseif ($rate > $avgRate + 15 && $rate >= 50) {
+                $alerts[] = [
+                    'id' => 'alert_success_above_' . $course->id,
+                    'type' => 'course_success_above',
+                    'severity' => 'info',
+                    'title' => 'Rată de finalizare peste medie',
+                    'description' => 'Cursul "' . $course->title . '" are ' . $rate . '% (medie: ' . $avgRate . '%)',
+                    'action_url' => "/admin/courses/{$course->id}",
+                    'created_at' => now()->toDateTimeString(),
+                ];
+            }
         }
 
         return $alerts;

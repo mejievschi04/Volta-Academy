@@ -63,8 +63,25 @@ class StudentDashboardController extends Controller
         // Get pending exams
         $pendingExams = $this->getPendingExams($user, $courses);
 
-        // Notifications for student (exam reminders, next lesson, etc.)
-        $notifications = $this->getStudentNotifications($user, $nextLesson, $pendingExams, $incompleteLessons);
+        // Notifications: stored (e.g. course_published) + computed (exam reminders, next lesson)
+        $stored = \App\Models\Notification::where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->orderByDesc('created_at')
+            ->take(10)
+            ->get()
+            ->map(fn ($n) => [
+                'id' => 'stored_' . $n->id,
+                'title' => $n->title,
+                'message' => $n->description,
+                'severity' => $n->severity ?? 'info',
+                'type' => $n->type,
+                'created_at' => $n->created_at?->toIso8601String(),
+                'link' => $n->action_url,
+            ])
+            ->all();
+        $computed = $this->getStudentNotifications($user, $nextLesson, $pendingExams, $incompleteLessons);
+        $notifications = array_merge($stored, $computed);
+        usort($notifications, fn ($a, $b) => strtotime($b['created_at'] ?? 0) - strtotime($a['created_at'] ?? 0));
 
         return response()->json([
             'global_progress' => $globalProgress,

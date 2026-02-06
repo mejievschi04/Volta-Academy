@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import MediaUploader from '../../media/MediaUploader';
 import MediaLibraryModal from '../../media/MediaLibraryModal';
+import { toImageUrl } from '../../../../utils/imageUrl';
 
 const SortableGalleryItem = ({ item, index, onRemove }) => {
 	const stableId = item.id || `gallery-img-${index}`;
@@ -75,7 +76,7 @@ const SortableGalleryItem = ({ item, index, onRemove }) => {
 			</button>
 			<div style={{ aspectRatio: '1', overflow: 'hidden', borderRadius: 8 }}>
 				<img
-					src={item.url || ''}
+					src={toImageUrl(item.url) || item.url || ''}
 					alt={item.alt || ''}
 					style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
 					loading="lazy"
@@ -137,7 +138,7 @@ const GalleryBlockEditor = ({ courseId, block, onChange }) => {
 		<div style={{ display: 'grid', gap: 'var(--space-4)' }}>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
 				<div className="admin-settings-hint" style={{ margin: 0 }}>
-					Adaugă imagini, reordonează-le prin drag & drop. Upload sau alege din Media Library.
+					Adaugă imagini, reordonează-le prin tragere. Încarcă sau alege din biblioteca media.
 				</div>
 				<button
 					type="button"
@@ -193,7 +194,7 @@ const GalleryBlockEditor = ({ courseId, block, onChange }) => {
 						borderRadius: 12,
 					}}
 				>
-					Nicio imagine. Upload sau alege din bibliotecă.
+					Nicio imagine. Încarcă sau alege din bibliotecă.
 				</div>
 			)}
 

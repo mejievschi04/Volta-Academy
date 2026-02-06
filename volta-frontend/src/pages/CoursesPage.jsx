@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { coursesService, dashboardService } from '../services/api';
+import { toImageUrl } from '../utils/imageUrl';
 import { useAuth } from '../contexts/AuthContext';
 import './CoursesPage.css';
 
@@ -104,7 +105,7 @@ const CoursesPage = () => {
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-			draft: { label: 'Draft', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+			draft: { label: 'Ciornă', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
 			archived: { label: 'Arhivat', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' },
 		};
 		return badges[status] || badges.draft;
@@ -212,7 +213,7 @@ const CoursesPage = () => {
 								className={`courses-page-filter-chip ${statusFilter === 'draft' ? 'active' : ''}`}
 								onClick={() => setStatusFilter('draft')}
 							>
-								Draft
+								Ciornă
 							</button>
 							<button
 								className={`courses-page-filter-chip ${statusFilter === 'archived' ? 'active' : ''}`}
@@ -289,7 +290,7 @@ const CoursesPage = () => {
 									{/* Thumbnail */}
 									<div className="courses-page-card-thumbnail">
 										{course.image_url ? (
-											<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
+											<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
 										) : (
 											<div className="courses-page-card-placeholder">
 												<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

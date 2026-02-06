@@ -55,7 +55,7 @@ const MediaUploader = ({ courseId, accept, suggestedType, onUploaded, disabled }
 					disabled={disabled || uploading || !file}
 					onClick={upload}
 				>
-					{uploading ? 'Se încarcă…' : 'Upload'}
+					{uploading ? 'Se încarcă…' : 'Încarcă'}
 				</button>
 				<div style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
 					{label}

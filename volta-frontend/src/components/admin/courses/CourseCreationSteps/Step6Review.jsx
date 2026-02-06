@@ -58,7 +58,7 @@ const Step6Review = ({ data, onUpdate, onPublish, loading }) => {
 							onChange={(e) => onUpdate({ status: e.target.value })}
 							className="step6-select"
 						>
-							<option value="draft">Draft</option>
+							<option value="draft">Ciornă</option>
 							<option value="published">Publicat</option>
 						</select>
 					</div>

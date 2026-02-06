@@ -79,20 +79,18 @@ class Course extends Model
 
     /**
      * Get the full URL for the course image
+     * Returnează URL relativ /storage/... - frontend-ul îl transformă în absolut cu origin-ul curent
      */
     public function getImageUrlAttribute()
     {
         if (!$this->image) {
             return null;
         }
-        
-        // If image is already a full URL, return it as is
+
         if (filter_var($this->image, FILTER_VALIDATE_URL)) {
             return $this->image;
         }
-        
-        // Return relative URL that will go through Vite proxy
-        // This ensures the image is accessible through the frontend dev server
+
         return '/storage/' . ltrim($this->image, '/');
     }
 

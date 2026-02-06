@@ -338,7 +338,7 @@ const QuestionBankBuilder = () => {
 									onClick={handleSave}
 									disabled={saving}
 								>
-									{saving ? 'Se salvează...' : 'Salvează ca Draft'}
+									{saving ? 'Se salvează...' : 'Salvează ca ciornă'}
 								</button>
 								<button
 									type="button"

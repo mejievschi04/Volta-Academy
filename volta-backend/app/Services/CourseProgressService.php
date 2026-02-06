@@ -214,6 +214,7 @@ class CourseProgressService
                                 'completed_at' => Carbon::now(),
                                 'updated_at' => Carbon::now(),
                             ]);
+                        app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $lesson->module->course);
                     }
                 }
             } else {

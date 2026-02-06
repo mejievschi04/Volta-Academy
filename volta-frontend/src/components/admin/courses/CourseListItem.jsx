@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toImageUrl } from '../../../utils/imageUrl';
 
 const CourseListItem = React.memo(({
 	course,
@@ -15,7 +16,7 @@ const CourseListItem = React.memo(({
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Draft', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
+			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
 			archived: { label: 'Arhivat', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
 			disabled: { label: 'Dezactivat', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
 		};
@@ -57,7 +58,7 @@ const CourseListItem = React.memo(({
 				</div>
 				<div className="admin-course-table-thumbnail" onClick={() => navigate(`/admin/courses/${course.id}`)}>
 					{course.image_url ? (
-						<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
+						<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
 					) : (
 						<div className="admin-course-thumbnail-placeholder">📚</div>
 					)}
@@ -119,7 +120,7 @@ const CourseListItem = React.memo(({
 				onClick={() => navigate(`/admin/courses/${course.id}`)}
 			>
 				{course.image_url ? (
-					<img src={course.image_url} alt={course.title} loading="lazy" decoding="async" />
+					<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
 				) : (
 					<div className="admin-course-card-thumbnail-placeholder">
 						📚

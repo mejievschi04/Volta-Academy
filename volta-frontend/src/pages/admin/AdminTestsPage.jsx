@@ -117,7 +117,7 @@ const AdminTestsPage = () => {
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Draft', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
+			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
 			archived: { label: 'Arhivat', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
 		};
 		return badges[status] || badges.draft;
@@ -126,8 +126,8 @@ const AdminTestsPage = () => {
 	// Get type badge
 	const getTypeBadge = (type) => {
 		const badges = {
-			practice: { label: 'Practice', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
-			graded: { label: 'Graded', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
+			practice: { label: 'Exersare', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
+			graded: { label: 'Notat', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
 			final: { label: 'Final', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },
 		};
 		return badges[type] || badges.graded;
@@ -251,7 +251,7 @@ const AdminTestsPage = () => {
 						>
 							<option value="all">Toate statusurile</option>
 							<option value="published">Publicat</option>
-							<option value="draft">Draft</option>
+							<option value="draft">Ciornă</option>
 							<option value="archived">Arhivat</option>
 						</select>
 

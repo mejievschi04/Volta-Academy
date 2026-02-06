@@ -23,8 +23,8 @@ const RiskAlerts = ({ data }) => {
 								{!alert.type && '⚠️'}
 							</div>
 							<div className="admin-alert-content">
-								<div className="admin-alert-title">{alert.title || 'Alert'}</div>
-								<div className="admin-alert-description">{alert.description || 'No description'}</div>
+								<div className="admin-alert-title">{alert.title || 'Alertă'}</div>
+								<div className="admin-alert-description">{alert.description || 'Fără descriere'}</div>
 								<div className="admin-alert-meta">
 									{alert.course && <span className="admin-alert-course">{alert.course}</span>}
 									{alert.count && <span className="admin-alert-count">{alert.count} afectați</span>}

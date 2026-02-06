@@ -195,7 +195,7 @@ const AdminTestEditorPage = () => {
 			return;
 		}
 		if ((test.question_source || 'direct') === 'bank') {
-			showToast('Acest test folosește Question Bank. Schimbă sursa pe “Direct” ca să adaugi întrebări aici.', 'info');
+			showToast('Acest test folosește o bancă de întrebări. Schimbă sursa pe “Direct” ca să adaugi întrebări aici.', 'info');
 			return;
 		}
 		try {
@@ -428,7 +428,7 @@ const AdminTestEditorPage = () => {
 										value={test.status || 'draft'}
 										onChange={(e) => scheduleSave({ status: e.target.value })}
 									>
-										<option value="draft">Draft</option>
+										<option value="draft">Ciornă</option>
 										<option value="published">Publicat</option>
 										<option value="archived">Arhivat</option>
 									</select>
@@ -456,7 +456,7 @@ const AdminTestEditorPage = () => {
 										}}
 									>
 										<option value="direct">Direct (în test)</option>
-										<option value="bank">Din Question Bank</option>
+										<option value="bank">Din banca de întrebări</option>
 									</select>
 									<div className="admin-settings-hint">
 										Direct = întrebările sunt salvate în test. Bank = testul folosește întrebările dintr-o bancă reutilizabilă.
@@ -465,7 +465,7 @@ const AdminTestEditorPage = () => {
 
 								{(test.question_source || 'direct') === 'bank' && (
 									<div className="admin-settings-form-group">
-										<label className="admin-settings-label">Question Bank</label>
+										<label className="admin-settings-label">Banca de întrebări</label>
 										<select
 											className="admin-settings-select"
 											value={test.question_set_id || ''}
@@ -481,7 +481,7 @@ const AdminTestEditorPage = () => {
 											))}
 										</select>
 										<div className="admin-settings-hint">
-											Editezi banca din „Question Banks”.
+											Editezi banca din „Banci de întrebări”.
 										</div>
 									</div>
 								)}
@@ -702,10 +702,10 @@ const AdminTestEditorPage = () => {
 							<div className="admin-card" style={{ marginTop: 'var(--space-4)' }}>
 								<div className="admin-card-body">
 									<div style={{ fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-2)' }}>
-										Acest test folosește o Question Bank
+										Acest test folosește o bancă de întrebări
 									</div>
 									<div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-										Întrebările se editează în Question Bank-ul selectat. Pentru întrebări “direct”, schimbă sursa în “Direct”.
+										Întrebările se editează în banca de întrebări selectată. Pentru întrebări “direct”, schimbă sursa în “Direct”.
 									</div>
 								</div>
 							</div>

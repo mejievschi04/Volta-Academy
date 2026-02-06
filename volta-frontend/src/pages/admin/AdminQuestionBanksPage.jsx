@@ -106,7 +106,7 @@ const AdminQuestionBanksPage = () => {
 	const getStatusBadge = (status) => {
 		const badges = {
 			active: { label: 'Activă', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Draft', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
+			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
 			archived: { label: 'Arhivată', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
 		};
 		return badges[status] || badges.draft;
@@ -204,7 +204,7 @@ const AdminQuestionBanksPage = () => {
 						>
 							<option value="all">Toate statusurile</option>
 							<option value="active">Active</option>
-							<option value="draft">Draft</option>
+							<option value="draft">Ciornă</option>
 							<option value="archived">Arhivate</option>
 						</select>
 

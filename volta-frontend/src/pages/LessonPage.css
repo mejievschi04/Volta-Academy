@@ -56,6 +56,19 @@
 	border-radius: var(--radius-lg);
 }
 
+.lesson-page-blocks .lesson-img-link,
+.lesson-preview-content .lesson-img-link {
+	display: inline-block;
+	color: var(--color-brand-primary);
+	text-decoration: underline;
+	margin: var(--space-2) 0;
+}
+
+.lesson-page-blocks .lesson-img-link:hover,
+.lesson-preview-content .lesson-img-link:hover {
+	text-decoration: none;
+}
+
 /* ============================================
    LOADING & ERROR STATES
    ============================================ */

@@ -91,7 +91,7 @@ const ModuleCard = ({
 					<h4 className="admin-module-card-title">
 						{module.title}
 						{module.is_locked && <span className="admin-module-lock-badge">🔒</span>}
-						{module.status === 'draft' && <span className="admin-module-draft-badge">Draft</span>}
+						{module.status === 'draft' && <span className="admin-module-draft-badge">Ciornă</span>}
 						{issueCounts?.errors > 0 && (
 							<span
 								className="lms-tag"
@@ -123,7 +123,7 @@ const ModuleCard = ({
 						<button
 							className="lms-btn-icon"
 							onClick={() => onToggleStatus(module.id, module.status === 'published' ? 'draft' : 'published')}
-							title={module.status === 'published' ? 'Treci în Draft' : 'Publică modul'}
+							title={module.status === 'published' ? 'Treci în ciornă' : 'Publică modul'}
 						>
 							{module.status === 'published' ? '🟢' : '⚪'}
 						</button>
@@ -260,7 +260,7 @@ const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, 
 							}}
 							onClick={(e) => e.stopPropagation()}
 						/>
-						<span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Select</span>
+						<span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Selectare</span>
 					</label>
 				)}
 				{lesson.is_preview && <span className="admin-lesson-preview-badge">Preview</span>}
@@ -303,7 +303,7 @@ const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, 
 						type="button"
 						className="lms-btn-icon"
 						onClick={() => onToggleLessonStatus(lesson.id, lesson.status === 'published' ? 'draft' : 'published')}
-						title={lesson.status === 'published' ? 'Treci în Draft' : 'Publică lecția'}
+						title={lesson.status === 'published' ? 'Treci în ciornă' : 'Publică lecția'}
 					>
 						{lesson.status === 'published' ? '🟢' : '⚪'}
 					</button>
@@ -553,7 +553,7 @@ const CourseStructureBuilder = ({
 							className="admin-btn admin-btn-secondary"
 							onClick={() => selectedLessonIds.forEach((id) => onToggleLessonStatus?.(id, 'draft'))}
 						>
-							Setează Draft
+							Setează ciornă
 						</button>
 						<button
 							type="button"

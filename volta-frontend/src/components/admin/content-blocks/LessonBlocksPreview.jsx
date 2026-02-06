@@ -1,4 +1,5 @@
 import React from 'react';
+import { toImageUrl } from '../../../utils/imageUrl';
 
 const normalizeYouTubeEmbed = (url) => {
 	if (!url) return null;
@@ -57,11 +58,18 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 				const label = `${idx + 1}. ${b.type || 'block'}`;
 
 				if (b.type === 'text') {
+					const html = (b.source || '').replace(
+						/<img([^>]*)\ssrc=["']([^"']+)["']/gi,
+						(_, attrs, src) => {
+							const url = toImageUrl(src) || src;
+							return `<a href="${url}" target="_blank" rel="noreferrer" class="lesson-img-link">Deschide imagine</a>`;
+						}
+					);
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
 							<div
 								className="lesson-preview-content"
-								dangerouslySetInnerHTML={{ __html: b.source || '' }}
+								dangerouslySetInnerHTML={{ __html: html }}
 							/>
 						</BlockCard>
 					);
@@ -109,16 +117,12 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 				}
 
 				if (b.type === 'image') {
+					const imgUrl = toImageUrl(b.source);
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
-							{b.source ? (
-								<a href={b.source} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
-									<img
-										src={b.source}
-										alt=""
-										style={{ width: '100%', height: 'auto', borderRadius: 12, border: '1px solid var(--border-primary)' }}
-										loading="lazy"
-									/>
+							{imgUrl ? (
+								<a href={imgUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+									Deschide imagine
 								</a>
 							) : (
 								<div style={{ color: 'var(--text-tertiary)' }}>Fără imagine</div>
@@ -139,22 +143,21 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 										gap: 'var(--space-3)',
 									}}
 								>
-									{imgs.map((img, i) => (
-										<a
-											key={img.id || i}
-											href={img.url}
-											target="_blank"
-											rel="noreferrer"
-											style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-primary)' }}
-										>
-											<img
-												src={img.url}
-												alt={img.alt || ''}
-												style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
-												loading="lazy"
-											/>
-										</a>
-									))}
+									{imgs.map((img, i) => {
+										const imgUrl = toImageUrl(img.url) || img.url;
+										return imgUrl ? (
+											<a
+												key={img.id || i}
+												href={imgUrl}
+												target="_blank"
+												rel="noreferrer"
+												className="lms-btn-secondary"
+												style={{ display: 'inline-block', marginRight: 'var(--space-2)', marginBottom: 'var(--space-2)' }}
+											>
+												{img.alt || `Imagine ${i + 1}`}
+											</a>
+										) : null;
+									})}
 								</div>
 							) : (
 								<div style={{ color: 'var(--text-tertiary)' }}>Galerie goală</div>

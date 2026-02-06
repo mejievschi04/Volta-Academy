@@ -491,7 +491,7 @@ const MessagesPage = () => {
 							>
 								<div className="messages-conversation-avatar">
 									{conversation.participant?.avatar ? (
-										<img src={conversation.participant.avatar} alt={conversation.participant?.name || 'User'} loading="lazy" decoding="async" />
+										<img src={conversation.participant.avatar} alt={conversation.participant?.name || 'Utilizator'} loading="lazy" decoding="async" />
 									) : (
 										<span>{getInitials(conversation.participant?.name || 'U')}</span>
 									)}
@@ -506,7 +506,7 @@ const MessagesPage = () => {
 												? formatTime(conversation.lastMessage.created_at)
 												: conversation.updated_at 
 													? formatTime(conversation.updated_at)
-													: 'Recent'}
+													: 'Recentă'}
 										</span>
 									</div>
 									<div className="messages-conversation-preview">
@@ -546,7 +546,7 @@ const MessagesPage = () => {
 								<div className="messages-chat-header-info">
 									<div className="messages-chat-avatar">
 										{selectedConversation.participant?.avatar ? (
-											<img src={selectedConversation.participant.avatar} alt={selectedConversation.participant?.name || 'User'} loading="lazy" decoding="async" />
+											<img src={selectedConversation.participant.avatar} alt={selectedConversation.participant?.name || 'Utilizator'} loading="lazy" decoding="async" />
 										) : (
 											<span>{getInitials(selectedConversation.participant?.name || 'U')}</span>
 										)}

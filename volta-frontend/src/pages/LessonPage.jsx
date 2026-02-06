@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toImageUrl } from '../utils/imageUrl';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -250,10 +251,17 @@ const LessonPage = () => {
 								);
 							}
 							if (hasLegacyContent) {
+								const html = (lesson.content || '').replace(
+									/<img([^>]*)\ssrc=["']([^"']+)["']/gi,
+									(_, attrs, src) => {
+										const url = toImageUrl(src) || src;
+										return `<a href="${url}" target="_blank" rel="noreferrer" class="lesson-img-link">Deschide imagine</a>`;
+									}
+								);
 								return (
 									<div
 										className="lesson-page-content-text"
-										dangerouslySetInnerHTML={{ __html: lesson.content }}
+										dangerouslySetInnerHTML={{ __html: html }}
 									/>
 								);
 							}

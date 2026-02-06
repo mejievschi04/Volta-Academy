@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toImageUrl } from '../utils/imageUrl';
 import { coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -111,7 +112,7 @@ const CourseDetailPage = () => {
 			<div className="course-detail-hero">
 				<div className="course-detail-hero-background">
 					{course.image_url && (
-						<img src={course.image_url} alt={course.title} className="course-detail-hero-image" loading="lazy" decoding="async" />
+						<img src={toImageUrl(course.image_url)} alt={course.title} className="course-detail-hero-image" loading="lazy" decoding="async" />
 					)}
 					<div className="course-detail-hero-overlay"></div>
 				</div>
@@ -129,7 +130,7 @@ const CourseDetailPage = () => {
 							{/* Status Badge - only draft/archived (published courses don't need a badge) */}
 							{course.status && course.status !== 'published' && (
 								<div className="course-detail-status-badge">
-									{course.status === 'draft' && <span className="course-status-badge draft">Draft</span>}
+									{course.status === 'draft' && <span className="course-status-badge draft">Ciornă</span>}
 									{course.status === 'archived' && <span className="course-status-badge archived">Arhivat</span>}
 								</div>
 							)}
@@ -241,7 +242,7 @@ const CourseDetailPage = () => {
 						{/* Thumbnail */}
 						<div className="course-detail-hero-right">
 							{course.image_url ? (
-								<img src={course.image_url} alt={course.title} className="course-detail-thumbnail" loading="lazy" decoding="async" />
+								<img src={toImageUrl(course.image_url)} alt={course.title} className="course-detail-thumbnail" loading="lazy" decoding="async" />
 							) : (
 								<div className="course-detail-thumbnail-placeholder">
 									<span>📚</span>

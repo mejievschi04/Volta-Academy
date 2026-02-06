@@ -307,21 +307,19 @@ export const adminService = {
   },
   
   createCourse: async (courseData) => {
-    // Check if courseData is FormData
     const isFormData = courseData instanceof FormData;
-    const headers = isFormData 
-      ? { 'Content-Type': 'multipart/form-data' }
-      : { 'Content-Type': 'application/json' };
-    
-    // If not FormData, remove modules and prepare JSON payload
-    const payload = isFormData 
-      ? courseData 
+    const config = isFormData
+      ? {} // axios setează automat Content-Type cu boundary pentru FormData
+      : {
+          headers: { 'Content-Type': 'application/json' },
+        };
+    const payload = isFormData
+      ? courseData
       : (() => {
-          const { modules, ...coursePayload } = courseData;
-          return coursePayload;
+          const { modules, ...rest } = courseData;
+          return rest;
         })();
-    
-    const response = await api.post('/admin/courses', payload, { headers });
+    const response = await api.post('/admin/courses', payload, config);
     return response.data;
   },
   
@@ -973,8 +971,8 @@ export const adminService = {
     return response.data;
   },
 
-  builderPublishCourse: async (courseId) => {
-    const response = await api.post(`/admin/courses/${courseId}/builder/publish`);
+  builderPublishCourse: async (courseId, teamIds = []) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/publish`, { team_ids: teamIds });
     return response.data;
   },
 
