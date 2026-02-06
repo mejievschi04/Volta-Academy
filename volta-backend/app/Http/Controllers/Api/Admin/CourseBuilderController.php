@@ -439,14 +439,29 @@ class CourseBuilderController extends Controller
             $course->update(['status' => 'published', 'workflow_status' => 'published']);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            if (count($teamIds) > 0) {
+            if (count($teamIds) > 0 && \Illuminate\Support\Facades\Schema::hasTable('course_team')) {
                 $course->teams()->sync($teamIds);
             }
         });
 
-        $this->courseBuilderService->createCourseVersionSnapshot($course->id, $request->user(), 'published');
+        $notifiedCount = 0;
+        try {
+            $this->courseBuilderService->createCourseVersionSnapshot($course->id, $request->user(), 'published');
+        } catch (\Throwable $e) {
+            \Log::warning('CourseBuilderController::publish - createCourseVersionSnapshot failed', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-        $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished($course, $teamIds);
+        try {
+            $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished($course, $teamIds);
+        } catch (\Throwable $e) {
+            \Log::warning('CourseBuilderController::publish - notifyCoursePublished failed', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'ok' => true,

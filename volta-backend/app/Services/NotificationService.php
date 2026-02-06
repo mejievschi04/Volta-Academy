@@ -17,20 +17,32 @@ class NotificationService
      */
     public function notifyCoursePublished(Course $course, array $teamIds = []): int
     {
+        if (!Schema::hasTable('notifications')) {
+            return 0;
+        }
+
         $userIds = $this->getTargetStudentIds($course, $teamIds);
         $count = 0;
+        $description = 'Cursul "' . $course->title . '" este acum disponibil.';
 
         foreach ($userIds as $userId) {
-            Notification::create([
-                'user_id' => $userId,
-                'type' => 'course_published',
-                'title' => 'Curs nou disponibil',
-                'description' => "Cursul „{$course->title}" este acum disponibil.",
-                'data' => ['course_id' => $course->id],
-                'action_url' => "/courses/{$course->id}",
-                'severity' => 'info',
-            ]);
-            $count++;
+            try {
+                Notification::create([
+                    'user_id' => $userId,
+                    'type' => 'course_published',
+                    'title' => 'Curs nou disponibil',
+                    'description' => $description,
+                    'data' => ['course_id' => $course->id],
+                    'action_url' => '/courses/' . $course->id,
+                    'severity' => 'info',
+                ]);
+                $count++;
+            } catch (\Throwable $e) {
+                \Log::warning('NotificationService::notifyCoursePublished failed for user ' . $userId, [
+                    'error' => $e->getMessage(),
+                    'course_id' => $course->id,
+                ]);
+            }
         }
 
         return $count;
@@ -41,6 +53,10 @@ class NotificationService
      */
     public function notifyCourseCompleted(User $student, Course $course): void
     {
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
         $admins = User::where('role', 'admin')->pluck('id');
 
         foreach ($admins as $adminId) {
@@ -48,7 +64,7 @@ class NotificationService
                 'user_id' => $adminId,
                 'type' => 'course_completed',
                 'title' => 'Curs finalizat',
-                'description' => $student->name . ' a finalizat cursul „' . $course->title . '"',
+                'description' => $student->name . ' a finalizat cursul "' . $course->title . '"',
                 'data' => ['course_id' => $course->id, 'user_id' => $student->id],
                 'action_url' => "/admin/courses/{$course->id}",
                 'severity' => 'info',
@@ -61,6 +77,10 @@ class NotificationService
      */
     public function notifyRegistrationRequested(User $user): void
     {
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
         $admins = User::where('role', 'admin')->pluck('id');
 
         foreach ($admins as $adminId) {
@@ -81,16 +101,20 @@ class NotificationService
      */
     public function notifyCourseSuccessRate(Course $course, string $direction): void
     {
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
         $admins = User::where('role', 'admin')->pluck('id');
         $rate = $this->getCourseCompletionRate($course->id);
 
         if ($direction === 'below') {
             $title = 'Rată de finalizare sub medie';
-            $desc = "Cursul „{$course->title}" are o rată de finalizare de {$rate}% (sub medie).";
+            $desc = 'Cursul "' . $course->title . '" are o rată de finalizare de ' . $rate . '% (sub medie).';
             $severity = 'warning';
         } else {
             $title = 'Rată de finalizare peste medie';
-            $desc = "Cursul „{$course->title}" are o rată de finalizare de {$rate}% (peste medie).";
+            $desc = 'Cursul "' . $course->title . '" are o rată de finalizare de ' . $rate . '% (peste medie).';
             $severity = 'success';
         }
 
@@ -109,7 +133,7 @@ class NotificationService
 
     private function getTargetStudentIds(Course $course, array $teamIds): array
     {
-        if (count($teamIds) > 0) {
+        if (count($teamIds) > 0 && Schema::hasTable('team_user')) {
             return DB::table('team_user')
                 ->whereIn('team_id', $teamIds)
                 ->join('users', 'team_user.user_id', '=', 'users.id')

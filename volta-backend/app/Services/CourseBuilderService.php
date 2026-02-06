@@ -356,13 +356,18 @@ class CourseBuilderService
         $structure = $this->getBuilderStructure($courseId);
 
         // Ensure snapshot is fully serializable (arrays only)
+        $progressionRules = [];
+        if (Schema::hasTable('progression_rules')) {
+            $progressionRules = DB::table('progression_rules')->where('course_id', $courseId)->get()->toArray();
+        }
+
         $snapshot = [
             'course' => $course->fresh()->toArray(),
             'modules' => collect($structure['modules'] ?? [])->map(fn ($m) => is_object($m) ? $m->toArray() : $m)->all(),
             'lessons' => collect($structure['lessons'] ?? [])->map(fn ($l) => is_object($l) ? $l->toArray() : $l)->all(),
             'content_blocks' => collect($structure['content_blocks'] ?? [])->map(fn ($b) => is_object($b) ? $b->toArray() : $b)->all(),
             'course_tests' => CourseTest::where('course_id', $courseId)->get()->toArray(),
-            'progression_rules' => DB::table('progression_rules')->where('course_id', $courseId)->get()->toArray(),
+            'progression_rules' => $progressionRules,
             'captured_at' => now()->toISOString(),
         ];
 
