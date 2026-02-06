@@ -17,6 +17,7 @@ const AdminUsersPage = () => {
 	const [sortBy, setSortBy] = useState('role'); // 'role', 'name', 'email'
 	const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
 	const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'admin', 'student'
+	const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'active'
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -31,8 +32,16 @@ const AdminUsersPage = () => {
 	}, []);
 
 	const fetchInitialData = async () => {
-		await Promise.all([fetchUsers(), fetchTeams()]);
+		await fetchTeams();
 	};
+
+	useEffect(() => {
+		fetchInitialData();
+	}, []);
+
+	useEffect(() => {
+		fetchUsers();
+	}, [statusFilter]);
 
 	useEffect(() => {
 		applyFiltersAndSort();
@@ -41,7 +50,9 @@ const AdminUsersPage = () => {
 	const fetchUsers = async () => {
 		try {
 			setLoading(true);
-			const data = await adminService.getUsers();
+			const params = {};
+			if (statusFilter !== 'all') params.status = statusFilter;
+			const data = await adminService.getUsers(params);
 			// Include all users including admins
 			setUsers(data);
 		} catch (err) {
@@ -67,6 +78,11 @@ const AdminUsersPage = () => {
 		// Filter by role
 		if (roleFilter !== 'all') {
 			filtered = filtered.filter(user => user.role === roleFilter);
+		}
+
+		// Filter by status (pending = cereri în așteptare)
+		if (statusFilter !== 'all') {
+			filtered = filtered.filter(user => (user.status || 'active') === statusFilter);
 		}
 
 		// Sort
@@ -170,6 +186,29 @@ const AdminUsersPage = () => {
 		}
 	};
 
+	const handleApprove = async (id) => {
+		try {
+			await adminService.approveUser(id);
+			showSuccess('Cererea a fost aprobată');
+			fetchUsers();
+		} catch (err) {
+			logger.error('Error approving user:', err);
+			showError('Eroare la aprobare: ' + (err.response?.data?.message || err.message));
+		}
+	};
+
+	const handleReject = async (id) => {
+		if (!confirm('Sigur dorești să respingi această cerere? Utilizatorul va fi șters.')) return;
+		try {
+			await adminService.rejectUser(id);
+			showSuccess('Cererea a fost respinsă');
+			fetchUsers();
+		} catch (err) {
+			logger.error('Error rejecting user:', err);
+			showError('Eroare la respingere: ' + (err.response?.data?.message || err.message));
+		}
+	};
+
 	const getCompletionColor = (percentage) => {
 		// Use only the two colors - Cyprus Green for all progress
 		return 'var(--text-primary)';
@@ -220,6 +259,18 @@ const AdminUsersPage = () => {
 
 			{/* Filters */}
 			<div className="admin-users-filters">
+				<div className="admin-users-filter-group">
+					<label className="admin-users-filter-label">Cereri / Status:</label>
+					<select
+						className="admin-users-filter-select"
+						value={statusFilter}
+						onChange={(e) => setStatusFilter(e.target.value)}
+					>
+						<option value="all">Toți utilizatorii</option>
+						<option value="pending">Cereri în așteptare</option>
+						<option value="active">Aprobați</option>
+					</select>
+				</div>
 				<div className="admin-users-filter-group">
 					<label className="admin-users-filter-label">Filtrează după rol:</label>
 					<select
@@ -298,6 +349,11 @@ const AdminUsersPage = () => {
 											<span className={`admin-users-role-badge ${user.role}`}>
 												{getRoleLabel(user.role)}
 											</span>
+											{(user.status || 'active') === 'pending' && (
+												<span className="admin-users-status-badge admin-users-status-pending" title="Cerere în așteptare">
+													În așteptare
+												</span>
+											)}
 										</td>
 										<td>
 											{Array.isArray(user.teams) && user.teams.length > 0
@@ -341,24 +397,49 @@ const AdminUsersPage = () => {
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
-												<button
-													className="lms-btn-secondary lms-btn-sm"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleEdit(user);
-													}}
-												>
-													Editează
-												</button>
-												<button
-													className="lms-btn-secondary lms-btn-sm va-btn-danger"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDelete(user.id);
-													}}
-												>
-													Șterge
-												</button>
+												{(user.status || 'active') === 'pending' ? (
+													<>
+														<button
+															className="lms-btn-primary lms-btn-sm"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleApprove(user.id);
+															}}
+														>
+															Aprobă
+														</button>
+														<button
+															className="lms-btn-secondary lms-btn-sm va-btn-danger"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleReject(user.id);
+															}}
+														>
+															Respinge
+														</button>
+													</>
+												) : (
+													<>
+														<button
+															className="lms-btn-secondary lms-btn-sm"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleEdit(user);
+															}}
+														>
+															Editează
+														</button>
+														<button
+															className="lms-btn-secondary lms-btn-sm va-btn-danger"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleDelete(user.id);
+															}}
+														>
+															Șterge
+														</button>
+													</>
+												)}
 											</div>
 										</td>
 									</tr>

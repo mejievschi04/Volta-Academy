@@ -317,6 +317,23 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	flex-shrink: 0;
 }
 
+.modern-auth-success {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	background-color: rgba(34, 197, 94, 0.1);
+	border: 1px solid rgba(34, 197, 94, 0.3);
+	border-radius: var(--radius-lg);
+	font-size: var(--font-size-sm);
+	color: rgb(22, 163, 74);
+}
+
+.modern-auth-success svg {
+	flex-shrink: 0;
+	color: rgb(22, 163, 74);
+}
+
 @keyframes shake {
 	0%, 100% { transform: translateX(0); }
 	25% { transform: translateX(-8px); }

@@ -156,7 +156,7 @@
 }
 
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.desktop-sidebar-toggle):not(.admin-settings-toggle-switch) {
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.desktop-sidebar-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn) {
 	color: #111827 !important; /* WCAG AAA: ~12:1 */
 	background-color: #E8E8E8 !important;
 	border-color: #C8C8C8 !important;

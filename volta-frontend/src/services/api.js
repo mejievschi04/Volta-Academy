@@ -727,8 +727,8 @@ export const adminService = {
   },
 
   // Users
-  getUsers: async () => {
-    const response = await api.get('/admin/users');
+  getUsers: async (params = {}) => {
+    const response = await api.get('/admin/users', { params });
     // Handle paginated response (Laravel returns {data: [...], current_page, etc.})
     // or plain array response
     const data = response.data;
@@ -752,6 +752,16 @@ export const adminService = {
   
   deleteUser: async (id) => {
     const response = await api.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  approveUser: async (id) => {
+    const response = await api.post(`/admin/users/${id}/approve`);
+    return response.data;
+  },
+
+  rejectUser: async (id) => {
+    const response = await api.post(`/admin/users/${id}/reject`);
     return response.data;
   },
 

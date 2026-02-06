@@ -9,6 +9,7 @@ use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -293,6 +294,7 @@ class UserAdminController extends Controller
         $validated['must_change_password'] = true; // User must change password on first login
         $validated['level'] = 1; // Default value, not used in UI
         $validated['points'] = 0; // Default value, not used in UI
+        $validated['status'] = 'active'; // Admin-created users sunt activi imediat
         $validated['name'] = strip_tags($validated['name']); // Sanitize HTML tags
         $validated['email'] = strtolower(trim($validated['email'])); // Normalize email
         $validated['bio'] = isset($validated['bio']) ? strip_tags($validated['bio']) : null; // Sanitize bio
@@ -352,6 +354,56 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Utilizator șters cu succes',
+        ]);
+    }
+
+    /**
+     * Aprobă o cerere de înregistrare (status pending -> active)
+     */
+    public function approve($id)
+    {
+        $user = User::findOrFail($id);
+        if (($user->status ?? 'active') !== 'pending') {
+            return response()->json([
+                'message' => 'Acest utilizator nu așteaptă aprobare',
+            ], 422);
+        }
+        $user->status = 'active';
+        $user->save();
+
+        Log::info('Admin approved user registration', [
+            'admin_id' => Auth::id(),
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Cererea a fost aprobată. Utilizatorul poate accesa platforma.',
+            'user' => $user->load(['teams', 'courses']),
+        ]);
+    }
+
+    /**
+     * Respinge o cerere de înregistrare (șterge utilizatorul pending)
+     */
+    public function reject(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        if (($user->status ?? 'active') !== 'pending') {
+            return response()->json([
+                'message' => 'Acest utilizator nu așteaptă aprobare',
+            ], 422);
+        }
+        $email = $user->email;
+        $user->delete();
+
+        Log::info('Admin rejected user registration', [
+            'admin_id' => Auth::id(),
+            'rejected_email' => $email,
+        ]);
+
+        return response()->json([
+            'message' => 'Cererea a fost respinsă',
         ]);
     }
 

@@ -63,6 +63,9 @@ class StudentDashboardController extends Controller
         // Get pending exams
         $pendingExams = $this->getPendingExams($user, $courses);
 
+        // Notifications for student (exam reminders, next lesson, etc.)
+        $notifications = $this->getStudentNotifications($user, $nextLesson, $pendingExams, $incompleteLessons);
+
         return response()->json([
             'global_progress' => $globalProgress,
             'active_courses' => $activeCourses,
@@ -70,6 +73,7 @@ class StudentDashboardController extends Controller
             'test_completion_percentage' => $testCompletionPercentage,
             'incomplete_lessons' => $incompleteLessons,
             'pending_exams' => $pendingExams,
+            'notifications' => $notifications,
             'stats' => [
                 'total_courses' => $courses->count(),
                 'active_courses_count' => count($activeCourses),
@@ -407,6 +411,43 @@ class StudentDashboardController extends Controller
         return array_slice($pendingExams, 0, 10); // Return top 10
     }
 
+
+    /**
+     * Get notifications for student (exam reminders, next lesson, etc.)
+     */
+    private function getStudentNotifications($user, $nextLesson, $pendingExams, $incompleteLessons)
+    {
+        $notifications = [];
+        $now = Carbon::now();
+
+        // Next lesson recommendation
+        if ($nextLesson) {
+            $notifications[] = [
+                'id' => 'next-lesson-' . ($nextLesson['id'] ?? uniqid()),
+                'title' => 'Lecție recomandată: ' . ($nextLesson['title'] ?? 'Continuă învățarea'),
+                'message' => $nextLesson['course_title'] ?? null,
+                'severity' => 'info',
+                'type' => 'next_lesson',
+                'created_at' => $now->toIso8601String(),
+                'link' => '/courses/' . ($nextLesson['course_id'] ?? '') . '/lessons/' . ($nextLesson['id'] ?? ''),
+            ];
+        }
+
+        // Pending exams (first 3)
+        foreach (array_slice($pendingExams, 0, 3) as $i => $exam) {
+            $notifications[] = [
+                'id' => 'pending-exam-' . ($exam['id'] ?? $i),
+                'title' => 'Test de dat: ' . ($exam['title'] ?? 'Test'),
+                'message' => $exam['course_title'] ?? null,
+                'severity' => 'warning',
+                'type' => 'pending_exam',
+                'created_at' => $now->toIso8601String(),
+                'link' => '/courses/' . ($exam['course_id'] ?? ''),
+            ];
+        }
+
+        return $notifications;
+    }
 
     /**
      * Get total exams passed

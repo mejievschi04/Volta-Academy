@@ -1,6 +1,6 @@
 /* ============================================
    SPLASH SCREEN - Modern Loading Design
-   Elegant, Minimal, Professional
+   Logo mare, typewriter "volta academy", buton Începe dreapta jos
    ============================================ */
 
 .splash-page {
@@ -13,7 +13,32 @@
 	background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
 	z-index: 10000;
 	overflow: hidden;
-	cursor: pointer;
+}
+
+/* Efect aprindere lumină - ecranul întunecat, apoi lumina se aprinde */
+.splash-light-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	background: #000000;
+	animation: lightTurnOn 1.2s ease-out forwards;
+	pointer-events: none;
+}
+
+
+@keyframes lightTurnOn {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.splash-light-overlay {
+		animation-duration: 0.5s;
+	}
 }
 
 /* Animated background circles */
@@ -27,7 +52,7 @@
 .splash-circle {
 	position: absolute;
 	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 238, 0, 0.1) 0%, transparent 70%);
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
 	filter: blur(60px);
 	animation: circleFloat 8s ease-in-out infinite;
 }
@@ -66,178 +91,207 @@
 	gap: var(--space-10);
 	padding: var(--space-8);
 	position: relative;
-	z-index: 1;
-	animation: contentFadeIn 0.8s ease-out;
+	z-index: 2;
 }
 
-/* Logo with glow */
-.splash-logo-wrapper {
+.splash-center-area {
 	position: relative;
+	min-width: 120px;
+	min-height: 120px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-6);
+}
+
+/* Bec - lampa se aprinde #FFEE00, apoi dispare (doar lampa) */
+.splash-bulb-container {
+	position: absolute;
+	inset: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	animation: logoEntrance 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+	transition: opacity 0.7s ease-out, filter 0.6s ease, transform 0.7s ease-out;
 }
 
-.splash-logo-glow {
-	position: absolute;
-	width: 200px;
-	height: 200px;
-	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 238, 0, 0.3) 0%, transparent 70%);
-	filter: blur(30px);
-	animation: glowPulse 2s ease-in-out infinite;
-	z-index: -1;
+.splash-bulb-container.bulb {
+	opacity: 1;
+	filter: brightness(0.5);
+	transform: scale(1);
 }
 
-.splash-logo {
-	width: 140px;
-	height: 140px;
+.splash-bulb-container.bulb .splash-bulb-icon {
+	color: #FFEE00;
+}
+
+.splash-bulb-container.bulb-on {
+	opacity: 1;
+	filter: drop-shadow(0 0 24px rgba(255, 238, 0, 0.6));
+	transform: scale(1.08);
+}
+
+.splash-bulb-container.bulb-on .splash-bulb-icon {
+	color: #FFEE00;
+}
+
+.splash-bulb-container.logo {
+	opacity: 0;
+	transform: scale(0.85);
+	pointer-events: none;
+}
+
+.splash-bulb-icon {
+	width: 90px;
+	height: 90px;
+	transition: color 0.5s ease;
+}
+
+/* Logo - rămâne vizibil, nu dispare; apare când becul dispare */
+.splash-logo-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+
+.splash-logo-container.logo {
+	opacity: 1;
+	transform: scale(1);
+	animation: logoEmergeFromBulb 0.9s ease-out both;
+}
+
+.splash-logo-container.typewriter {
+	opacity: 1;
+	transform: scale(1);
+}
+
+.splash-logo-img {
+	width: 120px;
+	height: 120px;
 	object-fit: contain;
-	filter: drop-shadow(0 0 40px rgba(255, 238, 0, 0.5));
-	position: relative;
-	z-index: 1;
-	animation: logoFloat 3s ease-in-out 1.2s infinite;
 }
 
-/* Brand name */
-.splash-brand {
+@keyframes logoEmergeFromBulb {
+	0% {
+		opacity: 0;
+		transform: scale(0.7);
+	}
+	60% {
+		opacity: 1;
+		transform: scale(1.02);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Typewriter - sub logo */
+.splash-typewriter {
 	display: flex;
-	flex-direction: column;
 	align-items: center;
-	gap: var(--space-2);
-	animation: brandFadeIn 0.8s ease-out 0.6s both;
+	justify-content: center;
+	min-height: 2.5em;
+	animation: brandFadeIn 0.5s ease-out;
 }
 
-.splash-brand-name {
-	font-size: var(--font-size-5xl);
-	font-weight: var(--font-weight-bold);
+.splash-typewriter-text {
+	font-size: 3.25rem;
+	font-weight: var(--font-weight-semibold);
 	color: #ffffff;
-	letter-spacing: 12px;
+	letter-spacing: 8px;
 	text-transform: uppercase;
-	margin: 0;
-	line-height: 1;
-	text-shadow: 0 0 20px rgba(255, 238, 0, 0.3);
 }
 
-.splash-brand-line {
-	width: 80px;
-	height: 2px;
-	background: linear-gradient(90deg, transparent, #FFEE00, transparent);
-	margin: var(--space-2) 0;
-	animation: lineExpand 0.8s ease-out 0.8s both;
-}
-
-.splash-brand-academy {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-medium);
-	color: rgba(255, 255, 255, 0.6);
-	letter-spacing: 6px;
-	text-transform: uppercase;
-	margin: 0;
-}
-
-/* Loader */
-.splash-loader {
-	width: 100%;
-	max-width: 350px;
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-	align-items: center;
-	animation: loaderFadeIn 0.8s ease-out 1s both;
-}
-
-.splash-loader-track {
-	width: 100%;
-	height: 3px;
-	background: rgba(255, 255, 255, 0.1);
-	border-radius: var(--radius-full);
-	overflow: hidden;
-	position: relative;
-}
-
-.splash-loader-progress {
-	height: 100%;
-	background: linear-gradient(90deg, #FFEE00 0%, #FFF700 50%, #FFEE00 100%);
-	border-radius: var(--radius-full);
-	transition: width 0.3s ease;
-	position: relative;
-	overflow: hidden;
-}
-
-.splash-loader-glow {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-	animation: loaderShimmer 2s ease-in-out infinite;
-}
-
-.splash-loader-percentage {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-bold);
+.splash-typewriter-cursor {
+	font-size: 3.25rem;
 	color: #ffffff;
-	letter-spacing: 2px;
-	text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+	margin-left: 2px;
+	animation: cursorBlink 0.8s step-end infinite;
 }
 
-/* Loading dots */
-.splash-dots {
-	display: flex;
-	gap: var(--space-2);
-	align-items: center;
-	animation: dotsFadeIn 0.8s ease-out 1.2s both;
-}
-
-.splash-dot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: #FFEE00;
-	box-shadow: 0 0 10px rgba(255, 238, 0, 0.6);
-	animation: dotBounce 1.4s ease-in-out infinite;
-}
-
-.splash-dot:nth-child(1) {
-	animation-delay: 0s;
-}
-
-.splash-dot:nth-child(2) {
-	animation-delay: 0.2s;
-}
-
-.splash-dot:nth-child(3) {
-	animation-delay: 0.4s;
-}
-
-/* Footer */
-.splash-footer {
+/* Loading indicator când așteptăm auth/prefetch */
+.splash-loading-dots {
 	position: absolute;
-	bottom: var(--space-6);
+	bottom: var(--space-8);
 	left: 50%;
 	transform: translateX(-50%);
-	z-index: 1;
-	animation: footerFadeIn 0.8s ease-out 1.4s both;
+	z-index: 10;
+	font-size: var(--font-size-sm);
+	color: rgba(255, 255, 255, 0.6);
+	animation: splashLoadingPulse 1.2s ease-in-out infinite;
 }
 
-.splash-footer-text {
-	font-size: var(--font-size-xs);
-	color: #ffffff;
-	letter-spacing: 3px;
-	text-transform: uppercase;
+@media (max-width: 768px) {
+	.splash-loading-dots {
+		bottom: max(var(--space-6), env(safe-area-inset-bottom));
+	}
+}
+
+@keyframes splashLoadingPulse {
+	0%, 100% { opacity: 0.5; }
+	50% { opacity: 1; }
+}
+
+/* Buton Recenzie - stânga jos */
+.splash-review-btn {
+	position: absolute;
+	bottom: var(--space-8);
+	left: var(--space-8);
+	z-index: 10;
+	padding: var(--space-3) var(--space-5);
+	font-size: var(--font-size-base);
 	font-weight: var(--font-weight-medium);
-	margin: 0;
-	text-align: center;
+	color: rgba(255, 255, 255, 0.9) !important;
+	background: transparent !important;
+	background-color: transparent !important;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: opacity 0.2s ease, border-color 0.2s ease;
+	animation: buttonFadeIn 0.5s ease-out both;
 }
 
-.splash-skip-hint {
-	font-size: var(--font-size-xs);
-	color: rgba(255, 255, 255, 0.5);
-	margin: var(--space-2) 0 0;
-	text-align: center;
+.splash-review-btn:hover {
+	color: #ffffff !important;
+	border-color: rgba(255, 255, 255, 0.5);
+	opacity: 0.9;
+}
+
+/* Buton Începe - dreapta jos - text negru, fundal galben (override theme) */
+.splash-page .splash-start-btn,
+.splash-start-btn {
+	position: absolute;
+	bottom: var(--space-8);
+	right: var(--space-8);
+	z-index: 10;
+	padding: var(--space-3) var(--space-6);
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: #000000 !important;
+	background: #FFEE00 !important;
+	background-color: #FFEE00 !important;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transition: transform 0.2s ease, background 0.2s ease;
+	animation: buttonFadeIn 0.5s ease-out both;
+}
+
+.splash-page .splash-start-btn:hover,
+.splash-start-btn:hover {
+	color: #000000 !important;
+	background: #e6d900 !important;
+	background-color: #e6d900 !important;
+	transform: scale(1.02);
+}
+
+.splash-page .splash-start-btn:active,
+.splash-start-btn:active {
+	color: #000000 !important;
+	transform: scale(0.98);
 }
 
 /* Animations */
@@ -303,67 +357,23 @@
 	}
 }
 
-@keyframes lineExpand {
-	from {
-		width: 0;
-		opacity: 0;
-	}
-	to {
-		width: 80px;
+@keyframes cursorBlink {
+	0%, 50% {
 		opacity: 1;
+	}
+	51%, 100% {
+		opacity: 0;
 	}
 }
 
-@keyframes loaderFadeIn {
+@keyframes buttonFadeIn {
 	from {
 		opacity: 0;
-		transform: translateY(15px);
+		transform: translateY(10px);
 	}
 	to {
 		opacity: 1;
 		transform: translateY(0);
-	}
-}
-
-@keyframes loaderShimmer {
-	0% {
-		left: -100%;
-	}
-	100% {
-		left: 100%;
-	}
-}
-
-@keyframes dotsFadeIn {
-	from {
-		opacity: 0;
-		transform: scale(0);
-	}
-	to {
-		opacity: 1;
-		transform: scale(1);
-	}
-}
-
-@keyframes dotBounce {
-	0%, 100% {
-		transform: translateY(0);
-		opacity: 1;
-	}
-	50% {
-		transform: translateY(-10px);
-		opacity: 0.7;
-	}
-}
-
-@keyframes footerFadeIn {
-	from {
-		opacity: 0;
-		transform: translateX(-50%) translateY(10px);
-	}
-	to {
-		opacity: 1;
-		transform: translateX(-50%) translateY(0);
 	}
 }
 
@@ -374,28 +384,39 @@
 		padding: var(--space-6) var(--space-4);
 	}
 
-	.splash-logo {
-		width: 120px;
-		height: 120px;
+	.splash-center-area {
+		min-width: 100px;
+		min-height: 100px;
 	}
 
-	.splash-logo-glow {
-		width: 180px;
-		height: 180px;
+	.splash-bulb-icon {
+		width: 70px;
+		height: 70px;
 	}
 
-	.splash-brand-name {
-		font-size: var(--font-size-3xl);
-		letter-spacing: 8px;
+	.splash-logo-img {
+		width: 100px;
+		height: 100px;
 	}
 
-	.splash-brand-academy {
+	.splash-typewriter-text,
+	.splash-typewriter-cursor {
+		font-size: 1.75rem;
+		letter-spacing: 3px;
+	}
+
+	.splash-review-btn {
+		bottom: var(--space-6);
+		left: var(--space-6);
+		padding: var(--space-2-5) var(--space-4);
+		font-size: var(--font-size-sm);
+	}
+
+	.splash-start-btn {
+		bottom: var(--space-6);
+		right: var(--space-6);
+		padding: var(--space-2-5) var(--space-5);
 		font-size: var(--font-size-base);
-		letter-spacing: 4px;
-	}
-
-	.splash-loader {
-		max-width: 100%;
 	}
 }
 
@@ -405,27 +426,38 @@
 		padding: var(--space-4) var(--space-3);
 	}
 
-	.splash-logo {
-		width: 100px;
-		height: 100px;
+	.splash-center-area {
+		min-width: 80px;
+		min-height: 80px;
 	}
 
-	.splash-logo-glow {
-		width: 160px;
-		height: 160px;
-	}
-
-	.splash-brand-name {
-		font-size: var(--font-size-2xl);
-		letter-spacing: 6px;
-	}
-
-	.splash-brand-academy {
-		font-size: var(--font-size-sm);
-		letter-spacing: 3px;
-	}
-
-	.splash-brand-line {
+	.splash-bulb-icon {
 		width: 60px;
+		height: 60px;
+	}
+
+	.splash-logo-img {
+		width: 80px;
+		height: 80px;
+	}
+
+	.splash-typewriter-text,
+	.splash-typewriter-cursor {
+		font-size: 1.25rem;
+		letter-spacing: 2px;
+	}
+
+	.splash-review-btn {
+		bottom: var(--space-6);
+		left: var(--space-4);
+		padding: var(--space-2) var(--space-3);
+		font-size: 0.8125rem;
+	}
+
+	.splash-start-btn {
+		bottom: var(--space-6);
+		right: var(--space-4);
+		padding: var(--space-2) var(--space-4);
+		font-size: var(--font-size-sm);
 	}
 }

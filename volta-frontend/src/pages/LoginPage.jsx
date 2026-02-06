@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { prefetchRoute } from '../utils/prefetch';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
@@ -12,6 +12,8 @@ const LoginPage = () => {
 	const [loading, setLoading] = useState(false);
 	const { login } = useAuth();
 	const navigate = useNavigate();
+	const location = useLocation();
+	const successMessage = location.state?.message;
 
 	// Prefetch likely post-login routes for instant navigation
 	useEffect(() => {
@@ -65,6 +67,15 @@ const LoginPage = () => {
 
 					{/* Form */}
 					<form onSubmit={handleSubmit} className="modern-auth-form">
+						{successMessage && (
+							<div className="modern-auth-success">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+									<polyline points="22 4 12 14.01 9 11.01"></polyline>
+								</svg>
+								<span>{successMessage}</span>
+							</div>
+						)}
 						{error && (
 							<div className="modern-auth-error">
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

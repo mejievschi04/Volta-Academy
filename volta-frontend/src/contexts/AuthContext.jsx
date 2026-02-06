@@ -45,7 +45,10 @@ export const AuthProvider = ({ children }) => {
 
 	const register = async (name, email, password) => {
 		const data = await authService.register(name, email, password);
-		setUser(data.user);
+		// Nu setăm user dacă e pending approval - utilizatorul așteaptă aprobarea admin
+		if (!data.pending_approval && data.user) {
+			setUser(data.user);
+		}
 		return data;
 	};
 

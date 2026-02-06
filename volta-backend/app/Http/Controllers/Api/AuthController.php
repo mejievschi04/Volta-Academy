@@ -36,28 +36,20 @@ class AuthController extends Controller
             'role' => 'student',
             'level' => 1,
             'points' => 0,
+            'status' => 'pending', // În așteptarea aprobării admin
         ]);
 
         // Log registration
-        Log::info('User registered', [
+        Log::info('User registered (pending approval)', [
             'user_id' => $user->id,
             'email' => $user->email,
             'ip' => $request->ip(),
         ]);
 
-        // Auto login after registration
-        Auth::login($user);
-
+        // Nu facem auto-login - utilizatorul așteaptă aprobarea admin
         return response()->json([
-            'message' => 'Utilizator creat cu succes',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'level' => $user->level,
-                'points' => $user->points,
-            ],
+            'message' => 'Cererea ta de înregistrare a fost trimisă. Un administrator va verifica contul în curând. Vei putea te autentifica după aprobare.',
+            'pending_approval' => true,
         ], 201);
     }
 
@@ -69,6 +61,14 @@ class AuthController extends Controller
         ]);
 
         $credentials = $request->only('email', 'password');
+
+        // Verifică dacă utilizatorul are status pending (așteaptă aprobare)
+        $user = User::where('email', $request->email)->first();
+        if ($user && ($user->status ?? 'active') === 'pending') {
+            throw ValidationException::withMessages([
+                'email' => ['Contul tău este în așteptarea aprobării. Un administrator va verifica cererea în curând.'],
+            ]);
+        }
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();

@@ -242,6 +242,8 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/users', [UserAdminController::class, 'store']);
     Route::put('/users/{id}', [UserAdminController::class, 'update']);
     Route::delete('/users/{id}', [UserAdminController::class, 'destroy']);
+    Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
+    Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     

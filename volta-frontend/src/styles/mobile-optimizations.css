@@ -445,31 +445,32 @@
 		-webkit-overflow-scrolling: touch !important;
 	}
 
-	/* Student sidebar - push brand and nav down (below topnav area), logo centered, larger logo + text */
+	/* Student sidebar - brand compact, mai sus ca să încapă tot meniul */
 	.student-sidebar .modern-sidebar-brand,
 	.student-sidebar .va-sidebar-brand {
-		padding-top: calc(56px + var(--space-4)) !important;
+		padding: calc(56px + var(--space-2)) var(--space-3) var(--space-3) !important;
 		margin-top: 0 !important;
 		justify-content: center !important;
-		gap: var(--space-4) !important;
+		gap: var(--space-2) !important;
+		min-height: auto !important;
 	}
 
 	.student-sidebar .modern-sidebar-logo,
 	.student-sidebar .va-logo-text {
-		width: 48px !important;
-		height: 48px !important;
-		min-width: 48px !important;
-		min-height: 48px !important;
+		width: 40px !important;
+		height: 40px !important;
+		min-width: 40px !important;
+		min-height: 40px !important;
 	}
 
 	.student-sidebar .va-logo-icon-img {
-		width: 48px !important;
-		height: 48px !important;
+		width: 40px !important;
+		height: 40px !important;
 		object-fit: contain !important;
 	}
 
 	.student-sidebar .modern-sidebar-brand-text {
-		font-size: 1.25rem !important;
+		font-size: 1.1rem !important;
 		font-weight: var(--font-weight-bold) !important;
 	}
 
@@ -483,20 +484,20 @@
 		transform: translateX(0) !important;
 	}
 
-	/* Student sidebar nav - moved down, nicer spacing, better alignment */
+	/* Student sidebar nav - padding redus ca să încapă tot meniul */
 	.student-sidebar .modern-nav,
 	.student-sidebar .va-sidebar-nav {
-		padding: var(--space-6) var(--space-4) var(--space-4) !important;
-		gap: 16px !important;
+		padding: var(--space-3) var(--space-4) var(--space-4) !important;
+		gap: var(--space-2) !important;
 		margin-top: 0 !important;
 	}
 
-	/* Student sidebar nav items - button-like on mobile, 16px space between */
+	/* Student sidebar nav items - mai compacte */
 	.student-sidebar .modern-nav-item,
 	.student-sidebar .va-nav-btn {
-		margin-bottom: 16px !important;
-		padding: var(--space-3) var(--space-4) !important;
-		min-height: 52px !important;
+		margin-bottom: var(--space-2) !important;
+		padding: var(--space-2) var(--space-3) !important;
+		min-height: 44px !important;
 		border-radius: var(--radius-xl) !important;
 		align-items: center !important;
 		justify-content: flex-start !important;
@@ -1099,6 +1100,51 @@
 		margin-top: 0 !important;
 	}
 
+	/* Viewport dinamic pe mobile - paginile se adaptează la înălțimea ecranului (100dvh) */
+	.va-shell-topnav .va-shell-main,
+	.va-shell-topnav .va-main {
+		min-height: calc(100vh - 56px);
+		min-height: calc(100dvh - 56px);
+	}
+
+	/* Scroll doar când conținutul depășește ecranul - 100svh evită bara neagră pe iOS */
+	.va-shell-topnav .va-shell-main {
+		height: calc(100svh - 56px) !important;
+		height: calc(100dvh - 56px) !important;
+		overflow-y: auto !important;
+		-webkit-overflow-scrolling: touch !important;
+		background-color: var(--bg-primary) !important;
+	}
+
+	/* Elimină bara neagră - fără padding, background consistent */
+	.va-shell-topnav .va-main {
+		padding-bottom: 0 !important;
+		background-color: var(--bg-primary) !important;
+	}
+
+	body:has(.va-shell-topnav) {
+		padding: 0 !important;
+		margin: 0 !important;
+		min-height: 100svh !important;
+		min-height: 100dvh !important;
+		overflow-x: hidden !important;
+		background-color: var(--bg-primary) !important;
+	}
+
+	html:has(.va-shell-topnav) {
+		padding: 0 !important;
+		margin: 0 !important;
+		height: 100% !important;
+	}
+
+	/* #root și va-shell - fill viewport, același background */
+	#root:has(.va-shell-topnav),
+	.va-shell.va-shell-topnav {
+		min-height: 100% !important;
+		height: 100% !important;
+		background-color: var(--bg-primary) !important;
+	}
+
 	/* Admin sidebar - adjust main content when sidebar is open */
 	.va-shell-main-topnav {
 		margin-left: 0 !important;
@@ -1117,6 +1163,18 @@
 	/* Hide student topnav navigation on mobile - it's in sidebar */
 	.va-topnav .modern-topnav-nav.desktop-only {
 		display: none !important;
+	}
+
+	/* Student notifications dropdown - centrat pe mobile */
+	.va-shell-topnav .va-topnav-notifications-dropdown,
+	.va-shell-topnav .admin-topnav-notifications-dropdown {
+		position: fixed !important;
+		left: 50% !important;
+		right: auto !important;
+		top: calc(56px + var(--space-2)) !important;
+		transform: translateX(-50%) !important;
+		width: calc(100vw - var(--space-8)) !important;
+		max-width: 360px !important;
 	}
 
 	/* Sidebar mobile controls - only visible on mobile - fix bottom */
@@ -2003,43 +2061,118 @@
 	/* Events Page - Mobile Optimization */
 	.events-page {
 		padding: 0 var(--space-4) var(--space-6) !important;
-		padding-top: var(--space-1) !important;
+		padding-top: var(--space-2) !important;
 	}
 
+	.events-page-header,
 	.events-header {
-		text-align: center !important;
-		margin-top: 0 !important;
-		margin-bottom: var(--space-5) !important;
-		padding-top: 0 !important;
-		padding-bottom: var(--space-3) !important;
-		border-bottom: 1px solid var(--border-primary) !important;
+		margin-bottom: var(--space-4) !important;
+		text-align: left !important;
 	}
 
+	.events-page-title,
 	.events-header h1 {
-		font-size: var(--font-size-2xl) !important;
+		font-size: var(--font-size-xl) !important;
 		margin-bottom: var(--space-2) !important;
-		text-align: center !important;
+		line-height: 1.3 !important;
 	}
 
+	.events-page-subtitle {
+		font-size: var(--font-size-sm) !important;
+		line-height: 1.5 !important;
+	}
+
+	/* Filters - stack vertical, full width */
+	.va-events-filters {
+		flex-direction: column !important;
+		gap: var(--space-2) !important;
+		margin-bottom: var(--space-4) !important;
+	}
+
+	.events-filter-select {
+		width: 100% !important;
+		min-height: 44px !important;
+		padding: var(--space-2) var(--space-3) !important;
+		font-size: var(--font-size-base) !important;
+	}
+
+	/* Events grid - single column, compact gap */
 	.events-grid {
 		display: grid !important;
 		grid-template-columns: 1fr !important;
-		gap: var(--space-3) !important;
-		margin-top: var(--space-3) !important;
+		gap: var(--space-4) !important;
+		margin-top: 0 !important;
 	}
 
+	/* Event cards - compact, touch-friendly */
+	.events-page .va-card-enhanced,
 	.event-card,
 	.va-card-enhanced {
 		width: 100% !important;
 		margin: 0 !important;
-		border-radius: var(--radius-lg) !important;
+		padding: 0 !important;
+		border-radius: var(--radius-xl) !important;
 		overflow: hidden !important;
 		box-shadow: var(--shadow-md) !important;
-		transition: all var(--transition-base) !important;
+		border: 1px solid var(--border-primary) !important;
 	}
 
-	.va-card-body {
+	/* Thumbnail - height redus pe mobile */
+	.events-page .events-card-thumbnail {
+		height: 140px !important;
+		min-height: 140px !important;
+	}
+
+	.events-page .va-card-body,
+	.events-page .va-card-enhanced .va-card-body {
 		padding: var(--space-3) var(--space-4) !important;
+	}
+
+	.events-page .va-card-title {
+		font-size: var(--font-size-base) !important;
+		line-height: 1.35 !important;
+		-webkit-line-clamp: 2 !important;
+		display: -webkit-box !important;
+		-webkit-box-orient: vertical !important;
+		overflow: hidden !important;
+	}
+
+	/* Title + badge - wrap pe mobile */
+	.events-page .events-card-header {
+		flex-wrap: wrap !important;
+		gap: var(--space-2) !important;
+		align-items: center !important;
+	}
+
+	.events-page .events-card-status-badge {
+		flex-shrink: 0 !important;
+		font-size: 0.7rem !important;
+		padding: 0.2rem 0.5rem !important;
+	}
+
+	/* Descriere - line-clamp pe mobile */
+	.events-page .va-card-body p {
+		font-size: var(--font-size-sm) !important;
+		margin-bottom: var(--space-2) !important;
+		-webkit-line-clamp: 2 !important;
+		display: -webkit-box !important;
+		-webkit-box-orient: vertical !important;
+		overflow: hidden !important;
+	}
+
+	/* Butoane card eveniment - full width, stack vertical */
+	.events-page .events-card-actions {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: var(--space-2) !important;
+		margin-top: var(--space-3) !important;
+	}
+
+	.events-page .events-card-actions .lms-btn-primary,
+	.events-page .events-card-actions .lms-btn-secondary {
+		width: 100% !important;
+		min-height: 44px !important;
+		justify-content: center !important;
 	}
 
 	.event-card:active,
@@ -2140,14 +2273,52 @@
 
 	/* ============================================
 	   MESSAGES PAGE - Mobile Split View
+	   100dvh = dynamic viewport - se adaptează la înălțimea ecranului (ex. când bara browser dispare)
 	   ============================================ */
 
 	/* Messages Page - Mobile Split View (2 pages) */
 	.messages-page {
 		height: calc(100vh - 56px);
+		height: calc(100dvh - 56px); /* 100dvh = viewport dinamic, se adaptează la bara browser */
 		width: 100vw;
 		left: 0;
 		padding: 0;
+		min-height: 0;
+	}
+
+	/* messages-container - full height pentru flex children */
+	.messages-container {
+		min-height: 0 !important;
+	}
+
+	/* messages-main: flex column - header fix, mesaje scroll, input fix jos */
+	.messages-main {
+		display: flex !important;
+		flex-direction: column !important;
+		min-height: 0 !important;
+		height: 100% !important;
+	}
+
+	.messages-chat-header {
+		flex-shrink: 0 !important;
+	}
+
+	/* Zona mesaje - flex 1, min-height 0 pentru overflow scroll corect */
+	.messages-chat-messages {
+		flex: 1 1 0 !important;
+		min-height: 0 !important;
+		overflow-y: auto !important;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	/* Bara de scriere - fix jos, safe-area pentru notch/home indicator */
+	.messages-chat-input-form {
+		flex-shrink: 0 !important;
+		padding: var(--space-3) var(--space-4) !important;
+		padding-bottom: max(var(--space-3), env(safe-area-inset-bottom)) !important;
+		gap: var(--space-2) !important;
+		border-top: 1px solid var(--border-primary);
+		background: var(--bg-elevated);
 	}
 
 	.messages-container {
@@ -2166,6 +2337,9 @@
 		z-index: 1;
 		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		transform: translateX(0);
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
 	}
 
 	.messages-sidebar.mobile-hidden {
@@ -2395,11 +2569,6 @@
 	.messages-message {
 		margin-bottom: var(--space-3);
 		max-width: 85%;
-	}
-
-	.messages-chat-input-form {
-		padding: var(--space-3) var(--space-4);
-		gap: var(--space-2);
 	}
 
 	.messages-chat-input {
@@ -3047,6 +3216,25 @@
 		gap: var(--space-2) !important;
 	}
 
+	/* Events - și mai compact pe ecrane foarte mici */
+	.events-page {
+		padding: 0 var(--space-3) var(--space-4) !important;
+	}
+
+	.events-page .events-card-thumbnail {
+		height: 120px !important;
+		min-height: 120px !important;
+	}
+
+	.events-page .va-card-body,
+	.events-page .va-card-enhanced .va-card-body {
+		padding: var(--space-2) var(--space-3) !important;
+	}
+
+	.events-page .va-card-title {
+		font-size: var(--font-size-sm) !important;
+	}
+
 	h1 {
 		font-size: var(--font-size-2xl);
 	}
@@ -3522,6 +3710,65 @@
    ============================================ */
 
 @media (max-width: 768px) {
+	/* Layout: fără suprapunere - flow normal, gap între secțiuni */
+	.courses-page-modern {
+		display: flex !important;
+		flex-direction: column !important;
+		min-height: 0;
+	}
+
+	.courses-page-hero {
+		flex-shrink: 0;
+	}
+
+	.courses-page-toolbar {
+		flex-shrink: 0;
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: stretch !important;
+		gap: var(--space-4) !important;
+		position: relative;
+		z-index: 1;
+	}
+
+	.courses-page-search-wrapper {
+		flex-shrink: 0;
+		order: 1;
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+	}
+
+	.courses-page-toolbar-right {
+		order: 2;
+		display: flex !important;
+		flex-wrap: wrap !important;
+		gap: var(--space-3) !important;
+		align-items: center !important;
+	}
+
+	.courses-page-filters {
+		order: 1;
+		width: 100%;
+	}
+
+	.courses-page-view-toggle {
+		order: 2;
+		flex-shrink: 0;
+	}
+
+	.courses-page-sort-select {
+		order: 3;
+		flex: 1;
+		min-width: 120px;
+	}
+
+	.courses-page-content {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+	}
+
 	.courses-page-search-input {
 		font-size: 16px; /* Prevent iOS zoom on focus */
 		min-height: 44px;
@@ -3646,8 +3893,111 @@
    ============================================ */
 
 @media (max-width: 768px) {
+	/* Sidebar sub meniu - nu sub topnav */
+	.va-shell-topnav .lessons-page-sidebar {
+		top: 56px !important;
+		height: calc(100vh - 56px) !important;
+		height: calc(100dvh - 56px) !important;
+	}
+
+	.lessons-page-main-content {
+		padding-top: 65px !important;
+	}
+
+	.lessons-page-sidebar-toggle {
+		top: calc(56px + var(--space-2)) !important;
+		padding: var(--space-2) var(--space-3) !important;
+		font-size: var(--font-size-xs) !important;
+		min-height: 38px;
+		gap: var(--space-1) !important;
+	}
+
+	.lessons-page-sidebar-toggle svg {
+		width: 18px !important;
+		height: 18px !important;
+	}
+
 	.lessons-page-sidebar-back-btn {
-		min-height: 44px;
+		min-height: 38px;
+		padding: var(--space-2) var(--space-3) !important;
+		font-size: var(--font-size-xs) !important;
+	}
+
+	.lessons-page-sidebar-close-btn {
+		width: 38px !important;
+		height: 38px !important;
+		min-width: 38px !important;
+		min-height: 38px !important;
+	}
+
+	/* Sidebar module header - mai mic pe mobile */
+	.lessons-page-sidebar-module-header {
+		padding: var(--space-2) var(--space-2-5) !important;
+		min-height: 38px;
+	}
+
+	.lessons-page-sidebar-module-number {
+		width: 20px !important;
+		height: 20px !important;
+		font-size: 0.7rem !important;
+	}
+
+	.lessons-page-sidebar-module-title {
+		font-size: 0.75rem !important;
+	}
+
+	/* Sidebar lesson item - mai mic pe mobile */
+	.lessons-page-sidebar-lesson {
+		padding: var(--space-2) var(--space-2) !important;
+		min-height: 36px;
+		font-size: 0.75rem !important;
+	}
+
+	.lessons-page-sidebar-lesson-title {
+		font-size: 0.75rem !important;
+		line-height: 1.3 !important;
+	}
+
+	.lessons-page-sidebar-lesson-icon {
+		width: 18px !important;
+		height: 18px !important;
+	}
+
+	.lessons-page-sidebar-lesson-icon svg {
+		width: 10px !important;
+		height: 10px !important;
+	}
+
+	.lessons-page-sidebar-lessons {
+		padding: var(--space-2) var(--space-2-5) var(--space-2) !important;
+		gap: var(--space-1) !important;
+	}
+
+	/* Secțiunea Teste - aceleași dimensiuni ca lecțiile */
+	.lessons-page-sidebar-tests-section {
+		margin-top: var(--space-2) !important;
+		padding: var(--space-2) var(--space-2-5) var(--space-2) !important;
+		padding-top: var(--space-2) !important;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1) !important;
+	}
+
+	.lessons-page-sidebar-tests-section .lessons-page-sidebar-lesson,
+	.lessons-page-sidebar-test {
+		padding: var(--space-2) var(--space-2) !important;
+		min-height: 36px;
+		font-size: 0.75rem !important;
+	}
+
+	.lessons-page-sidebar-tests-header {
+		font-size: 0.65rem !important;
+		margin-bottom: var(--space-2) !important;
+		padding: 0 var(--space-3) !important;
+	}
+
+	.lessons-page-sidebar-content {
+		padding: var(--space-3) !important;
 	}
 
 	.lessons-page-lesson-item {
@@ -3658,6 +4008,21 @@
 	.lessons-page-lesson-actions .lessons-page-btn,
 	.lesson-page-btn {
 		min-height: 44px;
+	}
+
+	.lessons-page-lesson-actions .lessons-page-btn-secondary {
+		background: #FFEE00 !important;
+		color: #000 !important;
+		border-color: #FFEE00 !important;
+		padding: var(--space-2) var(--space-4) !important;
+		font-size: var(--font-size-xs) !important;
+		min-height: 40px !important;
+	}
+
+	.lessons-page-lesson-actions .lessons-page-btn-secondary:hover {
+		background: #E6D600 !important;
+		color: #000 !important;
+		border-color: #E6D600 !important;
 	}
 
 	.lesson-page-header {
@@ -3679,8 +4044,103 @@
 }
 
 @media (max-width: 480px) {
+	.lessons-page-main-content {
+		padding-top: 62px !important;
+	}
+
+	.lessons-page-sidebar-toggle {
+		padding: var(--space-1) var(--space-2) !important;
+		font-size: 0.75rem !important;
+		min-height: 34px;
+		left: var(--space-2) !important;
+	}
+
+	.lessons-page-sidebar-toggle svg {
+		width: 16px !important;
+		height: 16px !important;
+	}
+
 	.lessons-page-sidebar-header {
-		padding: var(--space-3);
+		padding: var(--space-2) var(--space-3) !important;
+	}
+
+	.lessons-page-sidebar-back-btn {
+		min-height: 34px !important;
+		padding: var(--space-1) var(--space-2) !important;
+		font-size: 0.75rem !important;
+	}
+
+	.lessons-page-sidebar-close-btn {
+		width: 34px !important;
+		height: 34px !important;
+		min-width: 34px !important;
+		min-height: 34px !important;
+	}
+
+	/* Sidebar - și mai mic pe ecrane foarte mici */
+	.lessons-page-sidebar-module-header {
+		padding: var(--space-1) var(--space-2) !important;
+		min-height: 34px;
+	}
+
+	.lessons-page-sidebar-module-number {
+		width: 18px !important;
+		height: 18px !important;
+		font-size: 0.65rem !important;
+	}
+
+	.lessons-page-sidebar-module-title {
+		font-size: 0.7rem !important;
+	}
+
+	.lessons-page-sidebar-lesson {
+		padding: var(--space-1) var(--space-2) !important;
+		min-height: 32px;
+		font-size: 0.7rem !important;
+	}
+
+	.lessons-page-sidebar-lesson-title {
+		font-size: 0.7rem !important;
+		line-height: 1.3 !important;
+	}
+
+	.lessons-page-sidebar-lesson-icon {
+		width: 16px !important;
+		height: 16px !important;
+	}
+
+	.lessons-page-sidebar-lesson-icon svg {
+		width: 9px !important;
+		height: 9px !important;
+	}
+
+	.lessons-page-sidebar-lessons {
+		padding: var(--space-2) !important;
+		gap: var(--space-1) !important;
+	}
+
+	/* Secțiunea Teste - și mai mică pe ecrane foarte mici */
+	.lessons-page-sidebar-tests-section {
+		margin-top: var(--space-2) !important;
+		padding: var(--space-2) !important;
+		padding-top: var(--space-2) !important;
+	}
+
+	.lessons-page-sidebar-tests-section .lessons-page-sidebar-lesson,
+	.lessons-page-sidebar-test {
+		padding: var(--space-1) var(--space-2) !important;
+		min-height: 32px;
+		font-size: 0.7rem !important;
+	}
+
+	.lessons-page-sidebar-tests-header {
+		font-size: 0.6rem !important;
+		margin-bottom: var(--space-1) !important;
+		padding: 0 var(--space-2) !important;
+	}
+
+	.lessons-page-sidebar-content {
+		padding: var(--space-2) !important;
 	}
 
 	.lessons-page-lesson-viewer {
@@ -5426,6 +5886,7 @@
 	.splash-page {
 		position: fixed !important;
 		inset: 0 !important;
+		padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left) !important;
 		display: flex !important;
 		flex-direction: column !important;
 		align-items: center !important;
@@ -5436,63 +5897,80 @@
 	}
 
 	.splash-content {
-		gap: var(--space-8) !important;
+		gap: var(--space-6) !important;
 		padding: var(--space-6) var(--space-4) !important;
+		max-height: 100%;
+		overflow: hidden;
 	}
 
-	.splash-logo {
-		width: 120px !important;
-		height: 120px !important;
+	.splash-center-area {
+		min-width: 100px !important;
+		min-height: 100px !important;
+		gap: var(--space-4) !important;
 	}
 
-	.splash-logo-glow {
-		width: 180px !important;
-		height: 180px !important;
+	.splash-bulb-icon {
+		width: 70px !important;
+		height: 70px !important;
 	}
 
-	.splash-brand-name {
-		font-size: var(--font-size-3xl) !important;
-		letter-spacing: 8px !important;
+	.splash-logo-container {
+		flex-shrink: 0;
 	}
 
-	.splash-brand-academy {
-		font-size: var(--font-size-base) !important;
-		letter-spacing: 4px !important;
+	.splash-logo-img {
+		width: 100px !important;
+		height: 100px !important;
 	}
 
-	.splash-loader {
-		max-width: 100% !important;
+	.splash-typewriter {
+		min-height: 2em;
+		overflow: hidden;
+	}
+
+	.splash-typewriter-text,
+	.splash-typewriter-cursor {
+		font-size: 1.75rem !important;
+		letter-spacing: 2px !important;
+	}
+
+	.splash-review-btn,
+	.splash-start-btn {
+		bottom: max(var(--space-6), env(safe-area-inset-bottom)) !important;
 	}
 }
 
 @media (max-width: 480px) {
 	.splash-content {
-		gap: var(--space-6) !important;
+		gap: var(--space-4) !important;
 		padding: var(--space-4) var(--space-3) !important;
 	}
 
-	.splash-logo {
-		width: 100px !important;
-		height: 100px !important;
+	.splash-center-area {
+		min-width: 90px !important;
+		min-height: 90px !important;
+		gap: var(--space-3) !important;
 	}
 
-	.splash-logo-glow {
-		width: 160px !important;
-		height: 160px !important;
-	}
-
-	.splash-brand-name {
-		font-size: var(--font-size-2xl) !important;
-		letter-spacing: 6px !important;
-	}
-
-	.splash-brand-academy {
-		font-size: var(--font-size-sm) !important;
-		letter-spacing: 3px !important;
-	}
-
-	.splash-brand-line {
+	.splash-bulb-icon {
 		width: 60px !important;
+		height: 60px !important;
+	}
+
+	.splash-logo-img {
+		width: 80px !important;
+		height: 80px !important;
+	}
+
+	.splash-typewriter-text,
+	.splash-typewriter-cursor {
+		font-size: 1.25rem !important;
+		letter-spacing: 1px !important;
+	}
+
+	.splash-review-btn,
+	.splash-start-btn {
+		bottom: max(var(--space-6), env(safe-area-inset-bottom)) !important;
 	}
 }
 
@@ -5507,6 +5985,31 @@
 
 	.mobile-bottom-nav {
 		height: 56px;
+	}
+
+	/* Splash - spațiu redus în landscape */
+	.splash-content {
+		padding: var(--space-4) var(--space-4) !important;
+	}
+
+	.splash-center-area {
+		min-height: 70px !important;
+		gap: var(--space-2) !important;
+	}
+
+	.splash-bulb-icon {
+		width: 55px !important;
+		height: 55px !important;
+	}
+
+	.splash-logo-img {
+		width: 70px !important;
+		height: 70px !important;
+	}
+
+	.splash-typewriter-text,
+	.splash-typewriter-cursor {
+		font-size: 1.25rem !important;
 	}
 
 	.modern-auth-container {

@@ -19,10 +19,15 @@ const RegisterPage = () => {
 		setLoading(true);
 
 		try {
-			await register(name, email, password);
-			navigate('/home');
+			const result = await register(name, email, password);
+			// Dacă e pending approval, nu facem redirect la home - mergem la login cu mesaj
+			if (result?.pending_approval) {
+				navigate('/login', { state: { message: result?.message || 'Cererea ta a fost trimisă. Un administrator va verifica contul în curând.' } });
+			} else {
+				navigate('/home');
+			}
 		} catch (err) {
-			setError(err.response?.data?.message || 'Eroare la înregistrare');
+			setError(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Eroare la înregistrare');
 		} finally {
 			setLoading(false);
 		}

@@ -367,19 +367,165 @@
 }
 
 /* ============================================
+   STUDENT NOTIFICATIONS (topnav)
+   ============================================ */
+.va-shell-topnav .va-topnav-notifications,
+.va-shell-topnav .admin-topnav-notifications {
+	position: relative;
+}
+
+.va-shell-topnav .admin-topnav-notification-btn {
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-secondary);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	position: relative;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.va-shell-topnav .admin-topnav-notification-btn:hover {
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.2);
+	transform: translateY(-1px);
+}
+
+.va-shell-topnav .admin-topnav-notification-badge {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 4px;
+	background: linear-gradient(135deg, var(--color-error) 0%, #dc2626 100%);
+	color: white;
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid var(--bg-elevated);
+	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+	animation: pulse 2s infinite;
+}
+
+.va-shell-topnav .va-topnav-notifications-dropdown,
+.va-shell-topnav .admin-topnav-notifications-dropdown {
+	position: absolute;
+	top: calc(100% + var(--space-2));
+	right: 0;
+	width: 360px;
+	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+	z-index: var(--z-dropdown);
+	overflow: hidden;
+	animation: slideDown 0.2s ease-out;
+	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.va-shell-topnav .admin-topnav-notifications-header {
+	padding: var(--space-4) var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.va-shell-topnav .admin-topnav-notifications-header h3 {
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.va-shell-topnav .admin-topnav-notifications-list {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+.va-shell-topnav .admin-topnav-notification-item {
+	display: flex;
+	gap: var(--space-3);
+	padding: var(--space-4) var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+	transition: all var(--transition-base);
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+}
+
+.va-shell-topnav .admin-topnav-notification-item:hover {
+	background-color: var(--bg-secondary);
+}
+
+.va-shell-topnav .admin-topnav-notification-item:last-child {
+	border-bottom: none;
+}
+
+.va-shell-topnav .admin-topnav-notification-icon {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+	color: var(--color-primary);
+}
+
+.va-shell-topnav .admin-topnav-notification-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.va-shell-topnav .admin-topnav-notification-title {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+	margin-bottom: var(--space-1);
+}
+
+.va-shell-topnav .admin-topnav-notification-time {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.va-shell-topnav .admin-topnav-notifications-empty {
+	padding: var(--space-8) var(--space-6);
+	text-align: center;
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+}
+
+/* ============================================
    2. STUDENT MAIN CONTENT AREA
    ============================================ */
 .va-shell-topnav .va-shell-main {
 	padding-top: 64px; /* Compensate for fixed topnav (64px height) */
-	padding-bottom: 0; /* Fără padding jos - elimina bara neagră fixă */
-	height: calc(100vh - 64px); /* Fixed height, no scroll */
-	overflow: hidden; /* Prevent page scroll */
-	background-color: var(--bg-primary);
+	padding-bottom: 0 !important; /* Elimină bara neagră */
+	height: calc(100vh - 64px);
+	min-height: calc(100vh - 64px);
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	background-color: var(--bg-primary) !important;
 }
 
 .va-shell-topnav .va-main {
-	padding-bottom: 0;
+	padding-bottom: 0 !important;
 	height: 100%;
+	min-height: 100%;
+	background-color: var(--bg-primary) !important;
+}
+
+/* va-shell - fill viewport, același background */
+.va-shell.va-shell-topnav {
+	min-height: 100vh;
+	background-color: var(--bg-primary) !important;
 }
 
 /* ============================================
@@ -402,7 +548,8 @@
 }
 
 /* Courses page - scrollable (only if many courses) */
-.va-shell-topnav .courses-page {
+.va-shell-topnav .courses-page,
+.va-shell-topnav .courses-page-modern {
 	padding: var(--space-2) var(--space-8) var(--space-8);
 	max-width: 1600px;
 	margin: 0 auto;
@@ -458,8 +605,9 @@
 /* Unified course page - special handling */
 .va-shell-topnav .unified-course-page {
 	padding-top: 0; /* Already handled */
-	height: 100%;
-	overflow: hidden;
+	min-height: 100%;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
 }
 
 /* Legacy pages + Exam page - scrollable content, scrollbar hidden */
@@ -536,10 +684,11 @@
 		padding-top: 56px !important; /* Mobile topnav height */
 	}
 
-	/* Messages page - mobile topnav 56px */
+	/* Messages page - mobile topnav 56px, 100dvh pentru înălțime dinamică */
 	.va-shell-topnav .messages-page {
 		top: 56px !important;
 		height: calc(100vh - 56px) !important;
+		height: calc(100dvh - 56px) !important;
 	}
 
 	/* Pagina test pe mobile - topnav 56px, full height */
@@ -577,5 +726,10 @@
 		height: 20px;
 		display: block !important;
 		visibility: visible !important;
+	}
+
+	/* Courses page - padding redus pe mobile, fără suprapunere */
+	.va-shell-topnav .courses-page-modern {
+		padding: var(--space-2) var(--space-4) var(--space-6) !important;
 	}
 }

@@ -227,6 +227,21 @@
 	border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
+.admin-users-status-badge {
+	display: inline-block;
+	margin-left: var(--space-2);
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	font-size: 0.75rem;
+	font-weight: var(--font-weight-medium);
+}
+
+.admin-users-status-pending {
+	background-color: rgba(251, 191, 36, 0.2);
+	color: #f59e0b;
+	border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
 /* ============================================
    5. PROGRESS BAR
    ============================================ */

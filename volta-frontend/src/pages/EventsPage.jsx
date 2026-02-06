@@ -178,22 +178,25 @@ const EventsPage = () => {
 										onClick={() => navigate(`/events/${event.id}`)}
 									>
 										{event.thumbnail && (
-											<div style={{
-												width: '100%',
-												height: '200px',
-												backgroundImage: `url(${event.thumbnail})`,
-												backgroundSize: 'cover',
-												backgroundPosition: 'center',
-												borderRadius: '8px 8px 0 0',
-											}} />
+											<div
+												className="events-card-thumbnail"
+												style={{
+													width: '100%',
+													height: '200px',
+													backgroundImage: `url(${event.thumbnail})`,
+													backgroundSize: 'cover',
+													backgroundPosition: 'center',
+													borderRadius: '8px 8px 0 0',
+												}}
+											/>
 										)}
 										<div className="va-card-body">
-											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+											<div className="events-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
 												<h3 className="va-card-title" style={{ marginBottom: 0, flex: 1 }}>
 													📅 {event.title}
 												</h3>
 												{statusBadge && (
-													<span style={{
+													<span className="events-card-status-badge" style={{
 														padding: '0.25rem 0.75rem',
 														borderRadius: '12px',
 														fontSize: '0.75rem',
@@ -249,7 +252,7 @@ const EventsPage = () => {
 													</div>
 												)}
 											</div>
-											<div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+											<div className="events-card-actions">
 												<button
 													className="lms-btn-primary"
 													onClick={(e) => {

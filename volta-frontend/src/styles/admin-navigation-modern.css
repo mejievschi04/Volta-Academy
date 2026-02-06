@@ -766,6 +766,8 @@
 	border-bottom: 1px solid var(--border-primary);
 	transition: all var(--transition-base);
 	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
 }
 
 .admin-topnav-notification-item:hover {
@@ -1127,9 +1129,15 @@
 		padding-top: 56px !important;
 	}
 
-	.admin-topnav-notifications-dropdown {
+	.admin-topnav-notifications-dropdown,
+	.va-topnav-notifications-dropdown {
+		position: fixed;
+		left: 50%;
+		right: auto;
+		top: calc(56px + var(--space-2));
+		transform: translateX(-50%);
 		width: calc(100vw - var(--space-8));
-		right: var(--space-4);
+		max-width: 360px;
 	}
 
 	/* Mobile hamburger button in topnav - matches topnav background */

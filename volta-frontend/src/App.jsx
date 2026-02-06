@@ -11,6 +11,7 @@ import SplashScreen from './components/SplashScreen';
 import GlobalSearch from './components/GlobalSearch';
 import ThemeToggle from './components/common/ThemeToggle';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
+import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
 import AdminStylesLoader from './components/AdminStylesLoader';
 import AITutor from './components/student/AITutor';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -849,6 +850,9 @@ function Layout({ children }) {
 						<div className="modern-topnav-right">
 							{user && (
 								<>
+									{/* Notifications - studenți */}
+									<StudentTopNavNotifications />
+
 									{/* Theme Toggle - Desktop only */}
 									<div className="admin-topnav-control desktop-only">
 										<span className="admin-topnav-control-label">Temă</span>
@@ -1478,22 +1482,40 @@ function AppWithErrorBoundary() {
 
 export default AppWithErrorBoundary;
 
-// Splash entry route component
+// Splash entry - afișează splash-ul în timp ce se încarcă auth, prefetch, etc.
 function SplashEntry() {
-	const { user } = useAuth();
+	const { user, loading } = useAuth();
 	const navigate = useNavigate();
+	const [prefetchDone, setPrefetchDone] = useState(false);
+
+	// Prefetch pagini critice – butonul apare doar după ce totul e încărcat
+	useEffect(() => {
+		Promise.all([
+			import('./pages/LoginPage'),
+			import('./pages/DashboardPage'),
+			import('./pages/CoursesPage'),
+		])
+			.then(() => setPrefetchDone(true))
+			.catch(() => setPrefetchDone(true));
+	}, []);
 
 	useEffect(() => {
-		if (user) {
+		if (!loading && user) {
 			navigate('/home', { replace: true });
 		}
-	}, [user, navigate]);
+	}, [user, loading, navigate]);
 
 	if (user) {
 		return null;
 	}
 
+	// appReady = auth gata ȘI prefetch gata
+	const appReady = !loading && prefetchDone;
+
 	return (
-		<SplashScreen onStart={() => navigate('/login', { replace: true })} durationMs={800} />
+		<SplashScreen
+			onStart={() => navigate('/login', { replace: true })}
+			appReady={appReady}
+		/>
 	);
 }

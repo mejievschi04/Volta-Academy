@@ -681,7 +681,7 @@
 		justify-content: center;
 		gap: var(--space-2);
 		position: fixed;
-		top: calc(56px + var(--space-3)); /* Below topnav (56px on mobile) */
+		top: calc(56px + var(--space-2)); /* Below topnav (56px on mobile) */
 		left: var(--space-4);
 		z-index: 50;
 		padding: var(--space-2) var(--space-4);
@@ -704,7 +704,7 @@
 
 	.lessons-page-main-content {
 		margin-left: 0;
-		padding-top: 120px; /* Space for toggle button (below topnav) */
+		padding-top: 65px; /* Space for toggle button (below topnav) */
 	}
 
 	.lessons-page-lesson-viewer {
@@ -750,7 +750,7 @@
 	}
 
 	.lessons-page-main-content {
-		padding-top: 110px;
+		padding-top: 62px;
 	}
 
 	.lessons-page-lesson-viewer {
@@ -1442,16 +1442,20 @@
 }
 
 .lessons-page-btn-secondary {
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	border: 2px solid var(--border-primary);
+	background: #FFEE00 !important;
+	color: #000 !important;
+	border: 2px solid #FFEE00 !important;
+	padding: var(--space-2) var(--space-4) !important;
+	font-size: var(--font-size-xs) !important;
+	min-height: 40px;
 }
 
 .lessons-page-btn-secondary:hover {
-	background: var(--bg-tertiary);
-	border-color: var(--color-brand-primary);
+	background: #E6D600 !important;
+	color: #000 !important;
+	border-color: #E6D600 !important;
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.15);
+	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.35);
 }
 
 /* ============================================
