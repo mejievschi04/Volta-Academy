@@ -157,7 +157,13 @@ const AdminUsersPage = () => {
 			fetchUsers();
 		} catch (err) {
 			logger.error('Error saving user:', err);
-			showError('Eroare la salvarea utilizatorului: ' + (err.response?.data?.message || err.message));
+			const data = err.response?.data;
+			let msg = data?.message || err.message;
+			if (data?.errors && typeof data.errors === 'object') {
+				const parts = Object.entries(data.errors).flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map(m => `${k}: ${m}`));
+				if (parts.length > 0) msg = parts.join(parts.length > 1 ? '; ' : '');
+			}
+			showError('Eroare la salvarea utilizatorului: ' + (msg || 'Eroare necunoscută'));
 		}
 	};
 
@@ -217,9 +223,12 @@ const AdminUsersPage = () => {
 	const getRoleLabel = (role) => {
 		const roles = {
 			admin: 'Administrator',
+			manager: 'Manager',
+			instructor: 'Instructor',
+			teacher: 'Profesor',
 			student: 'Utilizator',
 		};
-		return roles[role] || 'Utilizator';
+		return roles[role] || role || 'Utilizator';
 	};
 
 	if (loading) {
@@ -281,6 +290,9 @@ const AdminUsersPage = () => {
 						<option value="all">Toate</option>
 						<option value="student">Utilizatori</option>
 						<option value="admin">Administratori</option>
+						<option value="manager">Manageri</option>
+						<option value="instructor">Instructori</option>
+						<option value="teacher">Profesori</option>
 					</select>
 				</div>
 			</div>
@@ -539,6 +551,9 @@ const AdminUsersPage = () => {
 									>
 										<option value="student">Utilizator</option>
 										<option value="admin">Administrator</option>
+										<option value="manager">Manager</option>
+										<option value="instructor">Instructor</option>
+										<option value="teacher">Profesor</option>
 									</select>
 								</div>
 								{!editingUser && (
