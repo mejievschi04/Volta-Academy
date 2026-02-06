@@ -42,7 +42,7 @@ const CoursesHeader = ({
 							type="button"
 						>
 							<span>+</span>
-							Build Curs
+							Creează curs
 						</button>
 					</div>
 				</div>

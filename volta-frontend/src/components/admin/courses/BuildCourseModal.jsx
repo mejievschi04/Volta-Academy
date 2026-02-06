@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './BuildCourseModal.css';
 
 /**
  * Modal pentru creare curs - titlu, imagine, descriere
  * După submit → redirect la Builder
  */
-const BuildCourseModal = ({ onClose, onSubmit, loading }) => {
-	const [title, setTitle] = useState('');
-	const [description, setDescription] = useState('');
+const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initialDescription = '', initialPdfFile = null }) => {
+	const [title, setTitle] = useState(initialTitle);
+	const [description, setDescription] = useState(initialDescription);
 	const [image, setImage] = useState(null);
+	const [pdfFile, setPdfFile] = useState(initialPdfFile);
 	const [error, setError] = useState('');
+
+	useEffect(() => {
+		if (initialTitle) setTitle(initialTitle);
+		if (initialDescription) setDescription(initialDescription);
+		if (initialPdfFile) setPdfFile(initialPdfFile);
+	}, [initialTitle, initialDescription, initialPdfFile]);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -18,14 +25,14 @@ const BuildCourseModal = ({ onClose, onSubmit, loading }) => {
 			setError('Titlul este obligatoriu');
 			return;
 		}
-		onSubmit({ title: title.trim(), description: description.trim() || '', image });
+		onSubmit({ title: title.trim(), description: description.trim() || '', image, pdfFile });
 	};
 
 	return (
 		<div className="build-course-modal-backdrop" onClick={onClose}>
 			<div className="build-course-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="build-course-modal-header">
-					<h2>Build Curs Nou</h2>
+					<h2>Creează curs nou</h2>
 					<p className="build-course-modal-subtitle">
 						Completează informațiile de bază, apoi continuă în Builder
 					</p>
@@ -85,6 +92,22 @@ const BuildCourseModal = ({ onClose, onSubmit, loading }) => {
 									loading="lazy"
 								/>
 							</div>
+						)}
+					</div>
+
+					<div className="build-course-modal-field">
+						<label className="build-course-modal-label">Fișier PDF cu informația brută</label>
+						<p className="build-course-modal-hint">Opțional – conținut pentru generare curs</p>
+						<input
+							type="file"
+							accept=".pdf,application/pdf"
+							onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+							className="build-course-modal-file"
+						/>
+						{pdfFile && (
+							<p className="build-course-modal-hint" style={{ marginTop: 'var(--space-2)', color: 'var(--color-primary)' }}>
+								📄 {pdfFile.name}
+							</p>
 						)}
 					</div>
 

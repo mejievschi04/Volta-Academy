@@ -183,7 +183,7 @@ Răspunde în format JSON:
 						{aiProcessing ? '⏳ Procesează cu AI...' : '🤖 Procesează Video cu AI'}
 					</button>
 					<p className="admin-form-hint">
-						AI-ul va genera: transcriere, capitole, highlights, rezumat, context pentru AI Tutor și întrebări quiz
+						Volt va genera: transcriere, capitole, highlights, rezumat, context pentru Volt și întrebări quiz
 					</p>
 				</div>
 			)}
@@ -260,10 +260,10 @@ Răspunde în format JSON:
 						</div>
 					)}
 
-					{/* AI Tutor Context */}
+					{/* Volt Context */}
 					{aiResults.tutorContext && (
 						<div className="ai-result-section">
-							<h5>🤖 AI Tutor Context</h5>
+							<h5>⚡ Volt Context</h5>
 							<textarea
 								className="admin-form-textarea"
 								value={aiResults.tutorContext}
@@ -272,7 +272,7 @@ Răspunde în format JSON:
 									onUpdate({ ai_tutor_context: e.target.value });
 								}}
 								rows={4}
-								placeholder="Context pentru AI Tutor..."
+								placeholder="Context pentru Volt..."
 							/>
 						</div>
 					)}

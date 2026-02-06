@@ -169,65 +169,59 @@ const EventDetailPage = () => {
 		event.status !== 'completed' && event.status !== 'cancelled';
 
 	return (
-		<div className="va-main fade-in">
+		<div className="va-main event-detail-page fade-in">
 			<button 
-				className="lms-btn-secondary" 
+				className="lms-btn-secondary event-detail-back" 
 				onClick={() => navigate('/events')}
 				style={{ marginBottom: '1.5rem' }}
 			>
 				← Înapoi la Evenimente
 			</button>
 
-			<div className="va-card-enhanced">
+			<div className="va-card-enhanced event-detail-card">
 				{event.thumbnail && (
-					<div style={{
-						width: '100%',
-						height: '300px',
-						backgroundImage: `url(${event.thumbnail})`,
-						backgroundSize: 'cover',
-						backgroundPosition: 'center',
-						borderRadius: '8px 8px 0 0',
-					}} />
+					<div 
+						className="event-detail-thumbnail"
+						style={{
+							width: '100%',
+							height: '300px',
+							backgroundImage: `url(${event.thumbnail})`,
+							backgroundSize: 'cover',
+							backgroundPosition: 'center',
+							borderRadius: '8px 8px 0 0',
+						}} 
+					/>
 				)}
-				<div className="va-card-body" style={{ padding: '2rem' }}>
-					<div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+				<div className="va-card-body event-detail-body">
+					<div className="event-detail-header">
 						<h1 className="va-page-title" style={{ flex: 1 }}>
 							{event.title}
 						</h1>
 						{statusBadge && (
-							<span style={{
-								padding: '0.5rem 1rem',
-								borderRadius: '12px',
-								fontSize: '0.9rem',
-								fontWeight: 'bold',
-								background: statusBadge.color,
-								color: '#fff',
-							}}>
+							<span 
+								className="event-detail-status-badge"
+								style={{
+									padding: '0.5rem 1rem',
+									borderRadius: '12px',
+									fontSize: '0.9rem',
+									fontWeight: 'bold',
+									background: statusBadge.color,
+									color: '#fff',
+									flexShrink: 0,
+								}}
+							>
 								{statusBadge.label}
 							</span>
 						)}
 					</div>
 
 					{event.short_description && (
-						<p style={{ 
-							fontSize: '1.1rem', 
-							color: 'var(--va-muted)', 
-							marginBottom: '1.5rem',
-							lineHeight: '1.6',
-						}}>
+						<p className="event-detail-short-desc">
 							{event.short_description}
 						</p>
 					)}
 
-					<div style={{ 
-						display: 'grid', 
-						gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-						gap: '1rem',
-						marginBottom: '2rem',
-						padding: '1.5rem',
-						background: 'var(--va-surface-2)',
-						borderRadius: '12px',
-					}}>
+					<div className="event-detail-meta-grid">
 						<div>
 							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>🏷️ Tip</div>
 							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</div>
@@ -270,30 +264,19 @@ const EventDetailPage = () => {
 					</div>
 
 					{event.description && (
-						<div style={{ marginBottom: '2rem' }}>
-							<h2 style={{ marginBottom: '1rem', color: 'var(--va-text)' }}>Descriere</h2>
-							<div style={{ 
-								color: 'var(--va-text)', 
-								lineHeight: '1.8',
-								whiteSpace: 'pre-wrap',
-							}}>
+						<div className="event-detail-description">
+							<h2>Descriere</h2>
+							<div className="event-detail-description-text">
 								{event.description}
 							</div>
 						</div>
 					)}
 
 					{/* Actions */}
-					<div style={{ 
-						display: 'flex', 
-						gap: '1rem', 
-						flexWrap: 'wrap',
-						padding: '1.5rem',
-						background: 'var(--va-surface-2)',
-						borderRadius: '12px',
-					}}>
+					<div className="event-detail-actions">
 						{canRegister && (
 							<button
-								className="lms-btn-primary"
+								className="lms-btn-primary event-detail-action-btn"
 								onClick={handleRegister}
 								disabled={actionLoading}
 								style={{ 
@@ -374,18 +357,9 @@ const EventDetailPage = () => {
 
 					{/* KPI Metrics */}
 					{event.registrations_count > 0 && (
-						<div style={{ 
-							marginTop: '2rem',
-							padding: '1.5rem',
-							background: 'var(--va-surface-2)',
-							borderRadius: '12px',
-						}}>
+						<div className="event-detail-stats">
 							<h3 style={{ marginBottom: '1rem', color: 'var(--va-text)' }}>Statistici</h3>
-							<div style={{ 
-								display: 'grid', 
-								gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-								gap: '1rem',
-							}}>
+							<div className="event-detail-stats-grid">
 								<div>
 									<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Înscrieri</div>
 									<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFEE00' }}>

@@ -63,9 +63,8 @@ const DashboardPage = () => {
 		stats 
 	} = dashboardData;
 
-	// Separate mandatory and optional courses
+	// Mandatory courses (optional courses merged into main list)
 	const mandatoryCourses = active_courses.filter(course => course.is_mandatory === true || course.pivot?.is_mandatory === true);
-	const optionalCourses = active_courses.filter(course => !(course.is_mandatory === true || course.pivot?.is_mandatory === true));
 
 	return (
 		<div className="student-dashboard-page">
@@ -182,36 +181,42 @@ const DashboardPage = () => {
 						</div>
 					)}
 
-					{/* Optional Courses */}
-					<div className="student-widget student-active-courses-widget">
-						<div className="student-widget-header">
-							<div>
-								<h3>Cursuri Opționale</h3>
-								<p className="student-widget-subtitle">Continuă dezvoltarea profesională</p>
+					{/* Cursuri - non-mandatory courses, or empty state when no courses */}
+					{(() => {
+						const otherCourses = active_courses.filter(c => !(c.is_mandatory === true || c.pivot?.is_mandatory === true));
+						if (otherCourses.length === 0 && active_courses.length > 0) return null; // only mandatory, no second section
+						return (
+							<div className="student-widget student-active-courses-widget">
+								<div className="student-widget-header">
+									<div>
+										<h3>Cursuri</h3>
+										<p className="student-widget-subtitle">Continuă dezvoltarea profesională</p>
+									</div>
+									<span className="student-widget-count">{otherCourses.length || active_courses.length}</span>
+								</div>
+								<div className="student-widget-content">
+									{active_courses.length === 0 ? (
+										<div className="student-widget-empty-state">
+											<div className="student-widget-empty-icon">📚</div>
+											<p className="student-widget-empty">Nu ai cursuri active momentan.</p>
+											<button 
+												className="student-btn student-btn-primary"
+												onClick={() => navigate('/courses')}
+											>
+												Explorează Cursuri
+											</button>
+										</div>
+									) : (
+										<div className="student-active-courses-grid">
+											{otherCourses.map((course) => (
+												<CourseProgressWidget key={course.id} course={course} />
+											))}
+										</div>
+									)}
+								</div>
 							</div>
-							<span className="student-widget-count">{optionalCourses.length || active_courses.length}</span>
-						</div>
-						<div className="student-widget-content">
-							{(optionalCourses.length === 0 && mandatoryCourses.length > 0) || active_courses.length === 0 ? (
-								<div className="student-widget-empty-state">
-									<div className="student-widget-empty-icon">📚</div>
-									<p className="student-widget-empty">Nu ai cursuri opționale active momentan.</p>
-									<button 
-										className="student-btn student-btn-primary"
-										onClick={() => navigate('/courses')}
-									>
-										Explorează Cursuri
-									</button>
-								</div>
-							) : (
-								<div className="student-active-courses-grid">
-									{(optionalCourses.length > 0 ? optionalCourses : active_courses).map((course) => (
-										<CourseProgressWidget key={course.id} course={course} />
-									))}
-								</div>
-							)}
-						</div>
-					</div>
+						);
+					})()}
 				</div>
 
 				{/* Right Column */}

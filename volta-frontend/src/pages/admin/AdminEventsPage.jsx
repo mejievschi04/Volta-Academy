@@ -1027,14 +1027,13 @@ const AdminEventsPage = () => {
 			{showModal && (
 				<div
 					className="admin-event-modal-overlay"
-					onClick={(e) => {
-						if (e.target === e.currentTarget) {
-							setShowModal(false);
-							setErrors({});
-							setTouched({});
-							setCurrentStep(1);
-						}
-					}}
+								onClick={(e) => {
+									if (e.target === e.currentTarget) {
+										setShowModal(false);
+										setErrors({});
+										setTouched({});
+									}
+								}}
 				>
 					<div className="admin-event-modal">
 						<div className="admin-event-modal-header">
@@ -1122,6 +1121,20 @@ const AdminEventsPage = () => {
 										<option value="webinar">📹 Webinar</option>
 										<option value="workshop">🔧 Workshop</option>
 									</select>
+								</div>
+
+								<div className="admin-form-group">
+									<label className="admin-form-label">
+										<span>📍</span>
+										<span>Locație</span>
+									</label>
+									<input
+										type="text"
+										className="admin-form-input admin-event-input"
+										value={formData.location}
+										onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+										placeholder="Adresă sau Online"
+									/>
 								</div>
 
 								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>

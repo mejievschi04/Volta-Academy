@@ -4,6 +4,7 @@ import { adminService } from '../../services/api';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
+import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const AdminCoursesPage = () => {
 	const navigate = useNavigate();
@@ -100,23 +101,42 @@ const AdminCoursesPage = () => {
 		}
 	};
 
-	// Deschide modalul Build Curs
+	// Deschide modalul Creează curs
 	const [showBuildModal, setShowBuildModal] = useState(false);
+	const [voltTitle, setVoltTitle] = useState('');
+	const [voltDescription, setVoltDescription] = useState('');
+	const [voltPdfFile, setVoltPdfFile] = useState(null);
 
-	const handleCreateCourse = () => {
+	const handleCreateCourse = (voltData) => {
+		if (voltData?.answers) {
+			setVoltTitle(voltData.answers[0] || '');
+			const [desc, mod, lec, det, fis] = voltData.answers.slice(1);
+			const parts = [desc].filter(Boolean);
+			if (mod) parts.push(`Module: ${mod}`);
+			if (lec) parts.push(`Lecții/modul: ${lec}`);
+			if (det) parts.push(`Nivel detaliu: ${det}`);
+			if (fis) parts.push(`Fișier brut: ${fis}`);
+			setVoltDescription(parts.join('\n\n'));
+			setVoltPdfFile(voltData.pdfFile || null);
+		} else {
+			setVoltTitle('');
+			setVoltDescription(voltData?.chatData || '');
+			setVoltPdfFile(null);
+		}
 		setShowBuildModal(true);
 	};
 
-	const handleBuildSubmit = async ({ title, description, image }) => {
+	const handleBuildSubmit = async ({ title, description, image, pdfFile }) => {
 		setCreatingCourse(true);
 		try {
 			let payload;
-			if (image) {
+			if (image || pdfFile) {
 				const formData = new FormData();
 				formData.append('title', title);
 				formData.append('description', description);
 				formData.append('status', 'draft');
-				formData.append('image', image);
+				if (image) formData.append('image', image);
+				if (pdfFile) formData.append('pdf_file', pdfFile);
 				payload = formData;
 			} else {
 				payload = { title, description, status: 'draft' };
@@ -156,9 +176,12 @@ const AdminCoursesPage = () => {
 		<div className="admin-container">
 			{showBuildModal && (
 				<BuildCourseModal
-					onClose={() => setShowBuildModal(false)}
+					onClose={() => { setShowBuildModal(false); setVoltTitle(''); setVoltDescription(''); setVoltPdfFile(null); }}
 					onSubmit={handleBuildSubmit}
 					loading={creatingCourse}
+					initialTitle={voltTitle}
+					initialDescription={voltDescription}
+					initialPdfFile={voltPdfFile}
 				/>
 			)}
 			<CoursesHeader
@@ -185,7 +208,7 @@ const AdminCoursesPage = () => {
 				<div className="lms-empty-state">
 					<p>Nu există cursuri disponibile.</p>
 					<button className="lms-btn-primary" onClick={handleCreateCourse}>
-						+ Build primul curs
+						+ Creează primul curs
 					</button>
 				</div>
 			) : (
@@ -201,7 +224,10 @@ const AdminCoursesPage = () => {
 									onQuickAction={handleQuickAction}
 									loading={loading}
 									viewMode={viewMode}
-									onPreview={() => navigate(`/admin/courses/${course.id}/preview`)}
+									onPreview={() => {
+										sessionStorage.setItem('studentPreviewFromAdmin', 'true');
+										navigate(`/courses/${course.id}/detail`);
+									}}
 								/>
 							))}
 						</div>
@@ -223,7 +249,10 @@ const AdminCoursesPage = () => {
 									onQuickAction={handleQuickAction}
 									loading={loading}
 									viewMode={viewMode}
-									onPreview={() => navigate(`/admin/courses/${course.id}/preview`)}
+									onPreview={() => {
+										sessionStorage.setItem('studentPreviewFromAdmin', 'true');
+										navigate(`/courses/${course.id}/detail`);
+									}}
 								/>
 							))}
 						</div>
@@ -231,6 +260,20 @@ const AdminCoursesPage = () => {
 				</div>
 			)}
 
+			<VoltInstructor
+				questions={[
+					'Ce titlu vrei pentru curs?',
+					'Descrie pe scurt conținutul și scopul cursului.',
+					'Câte module vrei să aibă cursul?',
+					'Câte lecții aproximativ per modul?',
+					'Cât de desfășurată să fie informația? (pe scurt / mediu / detaliat)',
+					'Încarcă un fișier PDF cu informația brută (opțional)',
+				]}
+				pdfUploadQuestionIndex={5}
+				actions={[
+					{ label: '+ Curs nou', onClick: handleCreateCourse, primary: true },
+				]}
+			/>
 		</div>
 	);
 };

@@ -183,8 +183,9 @@ function Layout({ children }) {
 	React.useEffect(() => {
 		if (isAdmin) {
 			if (isAdminPage) {
-				// We're on an admin page - mark that we're in admin context
+				// We're on an admin page - mark that we're in admin context, clear student preview
 				sessionStorage.setItem('messagesFromAdmin', 'true');
+				sessionStorage.removeItem('studentPreviewFromAdmin');
 				setCameFromAdmin(true);
 			} else if (isMessagesPage) {
 				// We're on messages - check if we came from admin
@@ -197,6 +198,9 @@ function Layout({ children }) {
 			}
 		}
 	}, [location.pathname, isAdmin, isAdminPage, isMessagesPage]);
+
+	// Student preview mode: admin viewing as student - no admin UI, 100% student experience
+	const isStudentPreviewMode = isAdmin && showUserLayout && sessionStorage.getItem('studentPreviewFromAdmin') === 'true';
 	
 	// Update toggle state when location changes
 	React.useEffect(() => {
@@ -392,8 +396,8 @@ function Layout({ children }) {
 	];
 
 	return (
-		<div className={showUserLayout ? "va-shell va-shell-topnav" : "va-shell"}>
-			<AdminStylesLoader />
+		<div className={`${showUserLayout ? "va-shell va-shell-topnav" : "va-shell"} ${isStudentPreviewMode ? "student-preview-mode" : ""}`}>
+			<AdminStylesLoader loadOnAdminPagesOnly={true} />
 			{mustChangePassword && (
 				<ChangePasswordModal />
 			)}
@@ -731,8 +735,8 @@ function Layout({ children }) {
 								)}
 							</div>
 
-							{/* View Switcher (only for admins) */}
-							{isAdmin && (
+							{/* View Switcher (only for admins, hidden in student preview mode) */}
+							{isAdmin && !isStudentPreviewMode && (
 								<div className="sidebar-mobile-control-item">
 									<span className="sidebar-mobile-control-icon">
 										{isUserPage ? (
@@ -859,8 +863,8 @@ function Layout({ children }) {
 										<ThemeToggle />
 									</div>
 
-									{/* View Switcher (only for admins) - Desktop only */}
-									{isAdmin && (
+									{/* View Switcher (only for admins, hidden in student preview mode) - Desktop only */}
+									{isAdmin && !isStudentPreviewMode && (
 										<div className="admin-topnav-control desktop-only">
 											<span className="admin-topnav-control-label">Vizionare</span>
 											<button
@@ -906,9 +910,9 @@ function Layout({ children }) {
 										</div>
 										<div className="admin-topnav-user-info">
 											<p className="admin-topnav-user-name">{user.name || 'Utilizator'}</p>
-											<p className="admin-topnav-user-role">
-												{isAdmin ? 'Administrator' : 'Student'}
-											</p>
+										<p className="admin-topnav-user-role">
+											{isStudentPreviewMode ? 'Student' : (isAdmin ? 'Administrator' : 'Student')}
+										</p>
 										</div>
 										<button
 											onClick={logout}
@@ -935,6 +939,22 @@ function Layout({ children }) {
 					{/* AI Tutor - Only on courses page */}
 					{showUserLayout && user && location.pathname === '/courses' && (
 						<AITutor />
+					)}
+
+					{/* Înapoi la Admin - minimal button when admin views as student */}
+					{isStudentPreviewMode && (
+						<button
+							type="button"
+							className="student-preview-back-to-admin"
+							onClick={() => {
+								sessionStorage.removeItem('studentPreviewFromAdmin');
+								navigate('/admin/courses', { replace: true });
+							}}
+							title="Înapoi la Admin"
+							aria-label="Înapoi la Admin"
+						>
+							← Admin
+						</button>
 					)}
 				</>
 			)}

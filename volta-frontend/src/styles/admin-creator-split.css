@@ -6,9 +6,10 @@
 /* Split Container */
 .admin-creator-split {
 	display: grid;
-	grid-template-columns: 1fr 400px;
-	gap: var(--space-6);
+	grid-template-columns: 1fr 380px;
+	gap: var(--space-5);
 	margin-top: var(--space-4);
+	align-items: start;
 }
 
 /* ============================================
@@ -152,10 +153,11 @@
 	text-align: left;
 	border: 1px solid transparent;
 	background: transparent;
-	padding: 6px 8px;
+	padding: var(--space-2) var(--space-3);
 	border-radius: var(--radius-md);
 	color: var(--text-primary);
 	cursor: pointer;
+	transition: all 0.15s ease;
 }
 
 .admin-creator-outline-lesson:hover {
@@ -164,9 +166,9 @@
 }
 
 .admin-creator-outline-lesson.is-selected {
-	background: var(--bg-elevated);
-	border-color: var(--border-secondary);
-	box-shadow: var(--shadow-sm);
+	background: rgba(255, 238, 0, 0.08);
+	border-color: rgba(255, 238, 0, 0.3);
+	box-shadow: 0 0 0 1px rgba(255, 238, 0, 0.15);
 }
 
 .admin-creator-outline-lesson-index {

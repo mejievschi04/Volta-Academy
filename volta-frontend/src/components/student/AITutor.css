@@ -16,37 +16,45 @@
 	height: auto;
 }
 
-/* Floating Button */
+/* Floating Button - stil Volt */
 .ai-tutor-floating-button {
-	width: 64px;
-	height: 64px;
-	border-radius: var(--radius-full);
-	background: linear-gradient(135deg, var(--accent-ai) 0%, var(--accent-neural) 100%);
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #FFEE00 0%, #FFD700 100%);
 	border: none;
-	color: #000000 !important;
+	color: #000 !important;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	box-shadow: var(--shadow-xl);
-	transition: all var(--transition-base);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	transition: transform 0.2s ease, background 0.2s ease;
 	position: relative;
 }
 
 .ai-tutor-floating-button:hover {
-	transform: scale(1.08);
-	box-shadow: var(--shadow-2xl), 0 0 24px rgba(var(--accent-ai-rgb), 0.35);
+	background: linear-gradient(135deg, #FFF176 0%, #FFEE00 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .ai-tutor-floating-button:active {
-	transform: scale(0.96);
+	transform: translateY(0);
 }
 
 .ai-tutor-floating-button .ai-tutor-icon {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-bold);
-	letter-spacing: -0.02em;
-	color: #000000 !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	color: #000 !important;
+}
+
+.ai-tutor-floating-button .ai-tutor-icon svg {
+	width: 100%;
+	height: 100%;
 }
 
 .ai-tutor-typing-indicator-badge {
@@ -97,8 +105,8 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: var(--space-4);
-	background: linear-gradient(135deg, var(--accent-ai) 0%, var(--accent-neural) 100%);
-	color: #000000 !important;
+	background: linear-gradient(135deg, #FFEE00 0%, #FFD700 100%);
+	color: #000 !important;
 	user-select: none;
 	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 	flex-shrink: 0;
@@ -115,18 +123,29 @@
 .ai-tutor-header-left {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
+	gap: var(--space-2);
 }
 
 .ai-tutor-icon {
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-bold);
-	letter-spacing: -0.02em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	color: #000;
+}
+
+.ai-tutor-icon svg {
+	width: 100%;
+	height: 100%;
 }
 
 .ai-tutor-title {
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-semibold);
+	font-size: 1.25rem;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: #000;
 }
 
 .ai-tutor-typing-indicator {
@@ -211,8 +230,9 @@
 }
 
 .ai-tutor-message-user .ai-tutor-message-content {
-	background: linear-gradient(135deg, var(--accent-ai) 0%, var(--accent-neural) 100%);
-	color: var(--text-inverse);
+	background: linear-gradient(135deg, #FFEE00 0%, #FFD700 100%);
+	color: #000 !important;
+	border: none;
 	border-bottom-right-radius: var(--radius-sm);
 }
 
@@ -232,7 +252,7 @@
 .ai-tutor-typing-dots span {
 	width: 8px;
 	height: 8px;
-	background: var(--accent-ai);
+	background: #FFEE00;
 	border-radius: var(--radius-full);
 	animation: typingDot 1.4s infinite;
 	opacity: 0.7;
@@ -246,34 +266,38 @@
 	30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Quick Actions */
+/* Quick Actions - stil Volt */
 .ai-tutor-quick-actions {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: var(--space-2);
-	padding: var(--space-3) var(--space-4);
+	padding: var(--space-4);
 	border-top: 1px solid var(--border-primary);
 	background: var(--bg-secondary);
 	flex-shrink: 0;
 }
 
 .ai-tutor-quick-action {
+	flex: 1;
+	min-width: 0;
 	padding: var(--space-2) var(--space-3);
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-md);
-	font-size: var(--font-size-xs);
+	font-size: var(--font-size-caption);
 	font-weight: var(--font-weight-medium);
 	cursor: pointer;
 	transition: all var(--transition-base);
 	color: var(--text-primary);
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .ai-tutor-quick-action:hover {
-	background: rgba(var(--accent-ai-rgb), 0.12);
+	background: rgba(255, 238, 0, 0.12);
 	border-color: var(--accent-ai);
-	color: var(--accent-ai);
+	color: var(--text-primary);
 }
 
 /* Input Form */
@@ -303,14 +327,14 @@
 }
 
 .ai-tutor-input:focus {
-	border-color: var(--accent-ai);
-	box-shadow: 0 0 0 2px rgba(var(--accent-ai-rgb), 0.2);
+	border-color: #FFEE00;
+	box-shadow: 0 0 0 2px rgba(255, 238, 0, 0.25);
 }
 
 .ai-tutor-send-button {
 	padding: var(--space-3) var(--space-4);
-	background: linear-gradient(135deg, var(--accent-ai) 0%, var(--accent-neural) 100%);
-	color: #000000 !important;
+	background: linear-gradient(135deg, #FFEE00 0%, #FFD700 100%);
+	color: #000 !important;
 	border: none;
 	border-radius: var(--radius-lg);
 	font-size: var(--font-size-base);
@@ -396,9 +420,12 @@
 	.ai-tutor-quick-actions {
 		padding: var(--space-3) var(--space-4);
 		gap: var(--space-2);
+		flex-wrap: wrap;
 	}
 
 	.ai-tutor-quick-action {
+		flex: 1 1 45%;
+		min-width: 0;
 		padding: var(--space-2-5) var(--space-3);
 		font-size: var(--font-size-sm);
 		min-height: 44px;

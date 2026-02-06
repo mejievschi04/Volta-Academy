@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const AdminQuestionBanksPage = () => {
 	const navigate = useNavigate();
@@ -100,6 +101,40 @@ const AdminQuestionBanksPage = () => {
 	// Handle create bank
 	const handleCreateBank = () => {
 		navigate('/admin/question-banks/new/builder');
+	};
+
+	// Handle create bank with Volt (questions + generate)
+	const handleCreateBankWithVolt = async (voltData) => {
+		if (!voltData?.answers?.length) {
+			handleCreateBank();
+			return;
+		}
+		try {
+			const title = voltData.answers[0]?.trim() || 'Bancă nouă';
+			const [desc, teme, nr, tip, pdf] = voltData.answers.slice(1);
+			const parts = [desc].filter(Boolean);
+			if (teme) parts.push(`Teme: ${teme}`);
+			if (nr) parts.push(`Nr. întrebări: ${nr}`);
+			if (tip) parts.push(`Tipuri: ${tip}`);
+			if (pdf) parts.push(`Fișier brut: ${pdf}`);
+			const description = parts.join('\n\n');
+			const saved = await adminService.createQuestionBank({
+				title,
+				description: description || null,
+				status: 'draft',
+			});
+			const bankId = saved?.bank?.id ?? saved?.id ?? saved?.data?.id;
+			if (bankId) {
+				showToast('Banca creată. Adaugă întrebări în builder.', 'success');
+				navigate(`/admin/question-banks/${bankId}/builder`);
+			} else {
+				handleCreateBank();
+			}
+		} catch (err) {
+			console.error('Error creating bank:', err);
+			showToast('Eroare la crearea băncii', 'error');
+			handleCreateBank();
+		}
 	};
 
 	// Get status badge
@@ -416,6 +451,24 @@ const AdminQuestionBanksPage = () => {
 					)}
 				</div>
 			)}
+
+			<VoltInstructor
+				actions={[
+					{
+						label: 'Creează bancă',
+						onClick: handleCreateBankWithVolt,
+						primary: true,
+						questions: [
+							'Ce nume vrei pentru banca de întrebări?',
+							'Despre ce teme vor fi întrebările? Descrie în detaliu.',
+							'Câte întrebări aproximativ vrei să generezi?',
+							'Ce tipuri de întrebări? (multiplu răspuns, răspuns scurt, eseu, adevărat/fals, mixt)',
+							'Ai material sursă în PDF? Încarcă sau scrie „nu".',
+						],
+						pdfUploadQuestionIndex: 4,
+					},
+				]}
+			/>
 		</div>
 	);
 };

@@ -33,7 +33,7 @@ const AITutor = ({ course, lesson, progress, assessmentMistakes = [], tutorSetti
 				// Course-specific tutor
 				setMessages([{
 					role: 'assistant',
-					content: `Bună! Sunt AI Tutor-ul tău pentru cursul "${course.title}". 
+					content: `Bună! Sunt Volt, asistentul tău pentru cursul "${course.title}". 
 
 ${lesson ? `Acum studiezi: **${lesson.title}**` : ''}
 ${progress ? `Progres curs: ${Math.round(progress.completion_percentage || 0)}%` : ''}
@@ -49,7 +49,7 @@ ${assessmentMistakes.length > 0 ? '- Corectarea greșelilor din teste' : ''}`
 				// General tutor (no course context)
 				setMessages([{
 					role: 'assistant',
-					content: `Bună! Sunt AI Tutor-ul tău. 
+					content: `Bună! Sunt Volt, asistentul tău. 
 
 Sunt aici să te ajut cu:
 - Întrebări generale despre învățare
@@ -136,7 +136,7 @@ Cum te pot ajuta astăzi?`
 			
 			if (context.course) {
 				// Course-specific prompt
-				contextPrompt = `Ești un AI Tutor pentru un curs online. 
+				contextPrompt = `Ești Volt, un asistent AI pentru un curs online. 
 
 Context:
 - Curs: ${context.course.title}
@@ -167,7 +167,7 @@ ${context.mistakes.length > 0 ? 'Studentul a făcut greșeli recente. Ajută-l s
 Răspunde concis, clar și util, respectând tone-ul și depth-ul configurate.`;
 			} else {
 				// General tutor prompt (no course context)
-				contextPrompt = `Ești un AI Tutor general pentru o platformă de învățare online.
+				contextPrompt = `Ești Volt, un asistent AI general pentru o platformă de învățare online.
 
 Rolul tău:
 - Ajută utilizatorii cu întrebări generale despre învățare
@@ -239,6 +239,12 @@ Răspunde concis, clar și util. Dacă întrebarea este despre un curs specific 
 		}, 100);
 	};
 
+	const boltIcon = (
+		<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+			<path d="M18 2L10 14h6l-3 14 12-16h-6L18 2z" fill="currentColor"/>
+		</svg>
+	);
+
 	return (
 		<div className={`ai-tutor-container ${isMinimized ? 'minimized' : 'expanded'}`}>
 			{/* Floating Button - When Minimized */}
@@ -246,10 +252,10 @@ Răspunde concis, clar și util. Dacă întrebarea este despre un curs specific 
 				<button
 					className="ai-tutor-floating-button"
 					onClick={() => setIsMinimized(false)}
-					title="Deschide AI Tutor"
-					aria-label="Deschide AI Tutor"
+					title="Deschide Volt"
+					aria-label="Deschide Volt"
 				>
-					<span className="ai-tutor-icon">AI</span>
+					<span className="ai-tutor-icon">{boltIcon}</span>
 					{isTyping && <span className="ai-tutor-typing-indicator-badge">⏳</span>}
 				</button>
 			)}
@@ -260,8 +266,8 @@ Răspunde concis, clar și util. Dacă întrebarea este despre un curs specific 
 					{/* Header */}
 					<div className="ai-tutor-header">
 						<div className="ai-tutor-header-left">
-							<span className="ai-tutor-icon">AI</span>
-							<span className="ai-tutor-title">Tutor</span>
+							<span className="ai-tutor-icon">{boltIcon}</span>
+							<span className="ai-tutor-title">VOLT</span>
 							{isTyping && <span className="ai-tutor-typing-indicator">⏳</span>}
 						</div>
 						<button
@@ -322,7 +328,7 @@ Răspunde concis, clar și util. Dacă întrebarea este despre un curs specific 
 							className="ai-tutor-input"
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
-							placeholder="Întreabă AI Tutor..."
+							placeholder="Întreabă Volt..."
 							disabled={isTyping}
 						/>
 						<button

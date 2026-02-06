@@ -82,7 +82,8 @@ const AdminCourseDetailPage = () => {
 					}
 					break;
 				case 'preview':
-					// Navigate to student course detail page
+					// Navigate to student course detail page - full student experience
+					sessionStorage.setItem('studentPreviewFromAdmin', 'true');
 					navigate(`/courses/${course.id}/detail`);
 					break;
 				default:

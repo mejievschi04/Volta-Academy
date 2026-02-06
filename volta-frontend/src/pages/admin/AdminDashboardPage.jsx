@@ -85,7 +85,7 @@ const AdminDashboardPage = () => {
 							onClick={() => setShowBuildModal(true)}
 						>
 							<span className="admin-dashboard-btn-icon">+</span>
-							Build Curs
+							Creează curs
 						</button>
 						<button 
 							className="admin-dashboard-btn admin-dashboard-btn-secondary"

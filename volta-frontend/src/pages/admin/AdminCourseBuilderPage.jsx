@@ -8,6 +8,7 @@ import CourseStructureBuilder from '../../components/admin/courses/CourseStructu
 import ContentBlocksPanel from '../../components/admin/content-blocks/ContentBlocksPanel';
 import ValidationChecklist from '../../components/admin/courses/ValidationChecklist';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const debounceMs = 900;
 
@@ -183,16 +184,6 @@ const AdminCourseBuilderPage = () => {
 		enqueueOps([{ op: 'toggleLessonPreview', lesson_id: lessonId, is_preview: isPreview }]);
 	};
 
-	const handleSetLessonPrerequisite = (lessonId, unlockAfterLessonId) => {
-		enqueueOps([
-			{
-				op: 'setLessonPrerequisite',
-				lesson_id: lessonId,
-				unlock_after_lesson_id: unlockAfterLessonId || null,
-			},
-		]);
-	};
-
 	const handleUpdateLessonTitle = async (lessonId, newTitle) => {
 		if (!newTitle?.trim()) return;
 		try {
@@ -205,9 +196,20 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const handleAddModule = async () => {
+	const handleAddModule = async (voltData) => {
+		const title = voltData?.answers?.[0]?.trim() || 'Modul nou';
+		const [desc, lec, det, fis] = voltData?.answers?.slice(1) || [];
+		const parts = [desc].filter(Boolean);
+		if (lec) parts.push(`Lecții: ${lec}`);
+		if (det) parts.push(`Nivel detaliu: ${det}`);
+		if (fis) parts.push(`Fișier brut: ${fis}`);
+		const description = parts.join('\n\n');
 		try {
-			const response = await adminService.builderCreateModule(courseId, { title: 'Modul nou', status: 'draft' });
+			const response = await adminService.builderCreateModule(courseId, {
+				title,
+				description: description || undefined,
+				status: 'draft',
+			});
 			showToast('Modul creat', 'success');
 			await fetchStructure(true);
 			return response;
@@ -232,6 +234,35 @@ const AdminCourseBuilderPage = () => {
 		} catch (e) {
 			console.error('Create lesson failed:', e);
 			showToast('Eroare la crearea lecției', 'error');
+		}
+	};
+
+	const handleGenerateLesson = async (voltData) => {
+		const moduleId = modules[0]?.id;
+		if (!moduleId) return;
+		const title = voltData?.answers?.[0]?.trim() || 'Lecție generată';
+		let content = voltData?.chatData || '';
+		if (voltData?.pdfFile) {
+			content += `\n\n[PDF atașat: ${voltData.pdfFile.name}]`;
+		}
+		try {
+			const lesson = await adminService.builderCreateLesson(courseId, {
+				module_id: moduleId,
+				title,
+				type: 'text',
+				status: 'draft',
+				is_preview: false,
+				content: content ? `[Brief pentru generare conținut]\n\n${content}` : '',
+			});
+			showToast('Lecție creată. Conținutul va fi generat.', 'success');
+			await fetchStructure(true);
+			if (lesson?.lesson?.id) {
+				setSelectedLessonId(lesson.lesson.id);
+				setActiveTab('lesson');
+			}
+		} catch (e) {
+			console.error('Generate lesson failed:', e);
+			showToast('Eroare la generarea lecției', 'error');
 		}
 	};
 
@@ -263,7 +294,8 @@ const AdminCourseBuilderPage = () => {
 
 	const handlePreviewAsStudent = () => {
 		if (!courseId) return;
-		window.open(`/courses/${courseId}/detail`, '_blank', 'noopener,noreferrer');
+		sessionStorage.setItem('studentPreviewFromAdmin', 'true');
+		navigate(`/courses/${courseId}/detail`);
 	};
 
 	const handleValidate = async () => {
@@ -454,6 +486,7 @@ const AdminCourseBuilderPage = () => {
 						type="button"
 						className="admin-course-builder-back"
 						onClick={() => navigate('/admin/courses')}
+						aria-label="Înapoi la cursuri"
 					>
 						← Cursuri
 					</button>
@@ -597,31 +630,6 @@ const AdminCourseBuilderPage = () => {
 									</div>
 								</div>
 
-								<div className="admin-course-builder-form-group">
-									<label className="admin-course-builder-label">Prerechizit</label>
-									<select
-										className="admin-course-builder-select"
-										value={selectedLesson.unlock_after_lesson_id || ''}
-										onChange={(e) =>
-											handleSetLessonPrerequisite(
-												selectedLesson.id,
-												e.target.value ? Number(e.target.value) : null
-											)
-										}
-									>
-										<option value="">Fără prerechizit</option>
-										{allLessons
-											.filter((l) => l.id !== selectedLesson.id)
-											.map((l) => (
-												<option key={l.id} value={l.id}>
-													{l.__moduleTitle ? `${l.__moduleTitle} — ` : ''}{l.title}
-												</option>
-											))}
-									</select>
-									<div className="admin-course-builder-hint">
-										Cursantul nu poate accesa această lecție până nu finalizează prerechizitul selectat.
-									</div>
-								</div>
 							</div>
 
 							<ContentBlocksPanel courseId={courseId} lesson={selectedLesson} onRefresh={() => fetchStructure(true)} />
@@ -1010,6 +1018,35 @@ const AdminCourseBuilderPage = () => {
 					</div>
 				</div>
 			)}
+
+			<VoltInstructor
+				questions={[
+					'Ce titlu vrei pentru modul?',
+					'Descrie pe scurt conținutul modulului.',
+					'Câte lecții aproximativ în acest modul?',
+					'Cât de desfășurată să fie informația? (pe scurt / mediu / detaliat)',
+					'Încarcă un fișier PDF cu informația brută (opțional)',
+				]}
+				pdfUploadQuestionIndex={4}
+				actions={[
+					{ label: '+ Modul', onClick: handleAddModule, primary: true },
+					{
+						label: 'Generează lecție',
+						onClick: handleGenerateLesson,
+						disabled: !modules?.length,
+						questions: [
+							'Ce titlu vrei pentru lecție?',
+							'Despre ce temă/subiect este lecția? Descrie în detaliu.',
+							'Ce nivel de detaliu? (intro pentru începători / mediu / avansat)',
+							'Ce tip de conținut preferi? (text explicativ, pași practici, exemple, definiții, mixt)',
+							'Ce structură preferi? (secțiuni cu titluri, liste, paragrafe, puncte cheie)',
+							'Ce obiective de învățare trebuie să atingă studentul după lecție?',
+							'Ai material sursă în PDF? Încarcă sau scrie „nu”.',
+						],
+						pdfUploadQuestionIndex: 6,
+					},
+				]}
+			/>
 		</div>
 	);
 };

@@ -180,6 +180,7 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     
     // Tests Management (Standalone Test Builder)
     Route::get('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'index']);
+    Route::get('/tests/pending-reviews', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getPendingReviews']);
     Route::get('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'show']);
     Route::post('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'store']);
     Route::put('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'update']);
@@ -265,7 +266,6 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
 
     // Test Manual Review (Test model - standalone tests)
-    Route::get('/tests/pending-reviews', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getPendingReviews']);
     Route::post('/test-results/{id}/manual-review', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'submitManualReview']);
     
     // Admin Settings

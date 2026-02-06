@@ -3,6 +3,7 @@ import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminTestReviewsPage from './AdminTestReviewsPage';
+import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const AdminTestsPage = () => {
 	const navigate = useNavigate();
@@ -508,6 +509,20 @@ const AdminTestsPage = () => {
 				</div>
 			)}
 			</>
+			)}
+
+			{!isReviewsTab && (
+				<VoltInstructor
+					questions={[
+						'Ce titlu vrei pentru test?',
+						'Câte întrebări aproximativ?',
+						'Despre ce teme vor fi întrebările?',
+					]}
+					actions={[
+						{ label: '+ Test', onClick: handleCreateTest, primary: true },
+						{ label: 'Bănci', onClick: () => navigate('/admin/question-banks') },
+					]}
+				/>
 			)}
 		</div>
 	);

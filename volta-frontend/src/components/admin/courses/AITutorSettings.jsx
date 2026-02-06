@@ -57,9 +57,9 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 
 	return (
 		<div className="ai-tutor-settings">
-			<h3 className="admin-form-section-title">🤖 Setări AI Tutor</h3>
+			<h3 className="admin-form-section-title">⚡ Setări Volt</h3>
 			<p className="admin-form-hint">
-				Configurează comportamentul AI Tutor pentru acest curs. Aceste setări se aplică tuturor studenților.
+				Configurează comportamentul Volt pentru acest curs. Aceste setări se aplică tuturor studenților.
 			</p>
 
 			{/* Tone */}
@@ -100,7 +100,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 			<div className="admin-form-group">
 				<label className="admin-form-label">Allowed Topics (Teme Permise)</label>
 				<p className="admin-form-hint">
-					AI Tutor va răspunde doar despre aceste teme. Lasă gol pentru a permite toate temele.
+					Volt va răspunde doar despre aceste teme. Lasă gol pentru a permite toate temele.
 				</p>
 				<div className="topics-input-group">
 					<input
@@ -149,7 +149,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 			<div className="admin-form-group">
 				<label className="admin-form-label">Restricted Topics (Teme Restricționate)</label>
 				<p className="admin-form-hint">
-					AI Tutor NU va răspunde despre aceste teme. Util pentru a evita subiecte sensibile sau off-topic.
+					Volt NU va răspunde despre aceste teme. Util pentru a evita subiecte sensibile sau off-topic.
 				</p>
 				<div className="topics-input-group">
 					<input
