@@ -17,9 +17,10 @@ class ContentBlock extends Model
 
     protected $fillable = [
         'lesson_id',
-        'type', // video, text, audio, file, link, live
-        'source', // URL, file path, text content, etc.
+        'type', // text, video, file, image, gallery, interactive, assignment, etc.
+        'source', // URL, file path, or legacy text content
         'metadata', // Additional metadata (duration, size, etc.)
+        'payload', // Structured JSON payload for block content (instructiuni.md)
         'language',
         'version',
         'order',
@@ -28,6 +29,7 @@ class ContentBlock extends Model
 
     protected $casts = [
         'metadata' => 'array',
+        'payload' => 'array',
         'visible' => 'boolean',
         'order' => 'integer',
     ];

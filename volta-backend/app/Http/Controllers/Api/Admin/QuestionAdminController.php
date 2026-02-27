@@ -13,7 +13,14 @@ class QuestionAdminController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $question = Question::findOrFail($id);
+        $question = Question::with(['test', 'questionBank'])->findOrFail($id);
+        if (auth()->user()->isInstructor()) {
+            $ok = ($question->test_id && $question->test && (int) $question->test->created_by === (int) auth()->id())
+                || ($question->question_bank_id && $question->questionBank && (int) $question->questionBank->created_by === (int) auth()->id());
+            if (!$ok) {
+                abort(403, 'Acces interzis.');
+            }
+        }
 
         $validated = $request->validate([
             'type' => 'sometimes|required|string',
@@ -35,7 +42,14 @@ class QuestionAdminController extends Controller
      */
     public function destroy(int $id)
     {
-        $question = Question::findOrFail($id);
+        $question = Question::with(['test', 'questionBank'])->findOrFail($id);
+        if (auth()->user()->isInstructor()) {
+            $ok = ($question->test_id && $question->test && (int) $question->test->created_by === (int) auth()->id())
+                || ($question->question_bank_id && $question->questionBank && (int) $question->questionBank->created_by === (int) auth()->id());
+            if (!$ok) {
+                abort(403, 'Acces interzis.');
+            }
+        }
         $question->delete();
 
         return response()->json([

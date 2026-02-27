@@ -287,7 +287,8 @@ const CoursesPage = () => {
 									className={`courses-page-card ${viewMode === 'list' ? 'list-view' : ''}`}
 									onClick={() => navigate(coursePath)}
 								>
-									{/* Thumbnail */}
+									{/* Folder tab (visual) - rendered via CSS ::before */}
+									{/* Thumbnail / content area (grey box) */}
 									<div className="courses-page-card-thumbnail">
 										{course.image_url ? (
 											<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
@@ -375,6 +376,10 @@ const CoursesPage = () => {
 												</span>
 											)}
 										</div>
+									</div>
+									{/* Plus / action in colț (design tip dosar) */}
+									<div className="courses-page-card-corner-action" onClick={(e) => { e.stopPropagation(); navigate(coursePath); }} title={isAdmin ? 'Deschide curs' : 'Vezi curs'} aria-label={isAdmin ? 'Deschide curs' : 'Vezi curs'}>
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 									</div>
 								</div>
 							);

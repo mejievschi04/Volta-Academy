@@ -20,11 +20,18 @@ class LessonAdminController extends Controller
     public function index(Request $request)
     {
         $query = Lesson::with(['course', 'module']);
-
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('course', fn($q) => $q->where('teacher_id', auth()->id()));
+        }
         if ($request->has('course_id')) {
             $query->where('course_id', $request->course_id);
+            if (auth()->user()->isInstructor()) {
+                $c = Course::find($request->course_id);
+                if (!$c || (int) $c->teacher_id !== (int) auth()->id()) {
+                    abort(403, 'Acces interzis.');
+                }
+            }
         }
-
         if ($request->has('module_id')) {
             $query->where('module_id', $request->module_id);
         }
@@ -37,7 +44,9 @@ class LessonAdminController extends Controller
     public function show($id)
     {
         $lesson = Lesson::with(['course', 'module'])->findOrFail($id);
-
+        if (auth()->user()->isInstructor() && (int) $lesson->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         return response()->json($lesson);
     }
 
@@ -54,7 +63,10 @@ class LessonAdminController extends Controller
             'order' => 'nullable|integer|min:0',
         ]);
 
-        $module = Module::findOrFail($validated['module_id']);
+        $module = Module::with('course')->findOrFail($validated['module_id']);
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $data = [
             'title' => $validated['title'],
             'content' => $validated['content'] ?? $validated['description'] ?? '',
@@ -72,7 +84,10 @@ class LessonAdminController extends Controller
 
     public function update(Request $request, $id)
     {
-        $lesson = Lesson::findOrFail($id);
+        $lesson = Lesson::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $lesson->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'course_id' => 'nullable|exists:courses,id',
@@ -104,7 +119,10 @@ class LessonAdminController extends Controller
 
     public function destroy($id)
     {
-        $lesson = Lesson::findOrFail($id);
+        $lesson = Lesson::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $lesson->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $this->courseBuilderService->deleteLesson($lesson);
 
         return response()->json([
@@ -117,7 +135,10 @@ class LessonAdminController extends Controller
      */
     public function reorder(Request $request, $moduleId)
     {
-        $module = Module::findOrFail($moduleId);
+        $module = Module::with('course')->findOrFail($moduleId);
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'lesson_ids' => 'required|array',

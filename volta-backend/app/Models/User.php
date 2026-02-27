@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -34,6 +35,7 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
         'suspended_until' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function courses() {
@@ -82,4 +84,19 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'sender_id');
     }
 
+    public function isAdmin(): bool
+    {
+        return ($this->role ?? '') === 'admin';
+    }
+
+    public function isInstructor(): bool
+    {
+        return ($this->role ?? '') === 'instructor';
+    }
+
+    /** Admin or instructor (instructor has limited access: only courses and tests). */
+    public function canAccessAdmin(): bool
+    {
+        return $this->isAdmin() || $this->isInstructor();
+    }
 }

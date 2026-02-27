@@ -13,6 +13,13 @@ use Carbon\Carbon;
 
 class EventAdminController extends Controller
 {
+    public function __construct()
+    {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot gestiona evenimentele.');
+        }
+    }
+
     public function index(Request $request)
     {
         $query = Event::with(['instructor:id,name,email', 'course:id,title']);

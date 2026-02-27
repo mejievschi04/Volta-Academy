@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn),
+	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -6045,6 +6045,12 @@
 /* ============================================
    14. LOADING PAGE (SPLASH SCREEN) - Mobile
    ============================================ */
+
+/* Forțează text typewriter alb pe splash, indiferent de temă (loads last) */
+.splash-page .splash-typewriter .splash-typewriter-text,
+.splash-page .splash-typewriter .splash-typewriter-cursor {
+	color: #ffffff !important;
+}
 
 @media (max-width: 768px) {
 	.splash-page {

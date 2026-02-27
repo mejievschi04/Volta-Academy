@@ -17,11 +17,18 @@ class ExamAdminController extends Controller
     public function index(Request $request)
     {
         $query = Exam::with(['course']);
-
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('course', fn($q) => $q->where('teacher_id', auth()->id()));
+        }
         if ($request->has('course_id')) {
             $query->where('course_id', $request->course_id);
+            if (auth()->user()->isInstructor()) {
+                $c = Course::find($request->course_id);
+                if (!$c || (int) $c->teacher_id !== (int) auth()->id()) {
+                    abort(403, 'Acces interzis.');
+                }
+            }
         }
-
 
         $exams = $query->get()->map(function($exam) {
             return [
@@ -30,6 +37,8 @@ class ExamAdminController extends Controller
                 'title' => $exam->title,
                 'max_score' => $exam->max_score,
                 'max_attempts' => $exam->max_attempts,
+                'time_limit_minutes' => $exam->time_limit_minutes,
+                'passing_score' => $exam->passing_score,
                 'course_title' => $exam->course ? $exam->course->title : null,
                 'created_at' => $exam->created_at,
                 'updated_at' => $exam->updated_at,
@@ -42,6 +51,9 @@ class ExamAdminController extends Controller
     public function show($id)
     {
         $exam = Exam::with(['course', 'questions.answers'])->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $exam->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         return response()->json($exam);
     }
 
@@ -53,13 +65,15 @@ class ExamAdminController extends Controller
             'title' => 'required|string|max:255',
             'max_score' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
+            'time_limit_minutes' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'is_required' => 'nullable|boolean',
             'questions' => 'nullable|array',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:multiple_choice,open_text',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,short_answer,essay,matching,ordering,open_text',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
+            'questions.*.payload' => 'nullable|array',
             'questions.*.answers' => 'nullable|array',
             'questions.*.answers.*.answer_text' => 'required|string',
             'questions.*.answers.*.is_correct' => 'nullable|boolean',
@@ -86,6 +100,13 @@ class ExamAdminController extends Controller
                 \Log::error('Module not found', [
                     'module_id' => $validated['module_id']
                 ]);
+            }
+        }
+
+        if (auth()->user()->isInstructor()) {
+            $course = Course::findOrFail($courseId);
+            if ((int) $course->teacher_id !== (int) auth()->id()) {
+                abort(403, 'Acces interzis. Poți crea examene doar pentru cursurile tale.');
             }
         }
 
@@ -125,6 +146,9 @@ class ExamAdminController extends Controller
         if (isset($validated['passing_score'])) {
             $examData['passing_score'] = (int)$validated['passing_score'];
         }
+        if (isset($validated['time_limit_minutes'])) {
+            $examData['time_limit_minutes'] = (int)$validated['time_limit_minutes'];
+        }
         if (isset($validated['is_required'])) {
             $examData['is_required'] = (bool)$validated['is_required'];
         }
@@ -149,12 +173,17 @@ class ExamAdminController extends Controller
         // Create questions and answers if provided
         if (isset($validated['questions'])) {
             foreach ($validated['questions'] as $questionData) {
+                $payload = $this->validateQuestionPayload(
+                    $questionData['question_type'] ?? 'multiple_choice',
+                    $questionData['payload'] ?? null
+                );
                 $question = ExamQuestion::create([
                     'exam_id' => $exam->id,
                     'question_text' => $questionData['question_text'],
                     'question_type' => $questionData['question_type'] ?? 'multiple_choice',
                     'points' => $questionData['points'] ?? 1,
                     'order' => $questionData['order'] ?? 0,
+                    'payload' => $payload,
                 ]);
 
                 if (isset($questionData['answers'])) {
@@ -190,7 +219,10 @@ class ExamAdminController extends Controller
 
     public function update(Request $request, $id)
     {
-        $exam = Exam::findOrFail($id);
+        $exam = Exam::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $exam->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'course_id' => 'nullable|integer|exists:courses,id',
@@ -198,14 +230,16 @@ class ExamAdminController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'max_score' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
+            'time_limit_minutes' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'is_required' => 'nullable|boolean',
             'questions' => 'nullable|array',
             'questions.*.id' => 'nullable|exists:exam_questions,id',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:multiple_choice,open_text',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,short_answer,essay,matching,ordering,open_text',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
+            'questions.*.payload' => 'nullable|array',
             'questions.*.answers' => 'nullable|array',
             'questions.*.answers.*.id' => 'nullable|exists:exam_answers,id',
             'questions.*.answers.*.answer_text' => 'required|string',
@@ -249,8 +283,11 @@ class ExamAdminController extends Controller
         }
         
         // Add optional fields if provided
-        if (isset($validated['passing_score'])) {
+        if (array_key_exists('passing_score', $validated)) {
             $updateData['passing_score'] = (int)$validated['passing_score'];
+        }
+        if (array_key_exists('time_limit_minutes', $validated)) {
+            $updateData['time_limit_minutes'] = $validated['time_limit_minutes'] !== null ? (int)$validated['time_limit_minutes'] : null;
         }
         if (isset($validated['is_required'])) {
             $updateData['is_required'] = (bool)$validated['is_required'];
@@ -263,6 +300,10 @@ class ExamAdminController extends Controller
             $existingQuestionIds = [];
             
             foreach ($validated['questions'] as $questionData) {
+                $payload = $this->validateQuestionPayload(
+                    $questionData['question_type'] ?? 'multiple_choice',
+                    $questionData['payload'] ?? null
+                );
                 if (isset($questionData['id'])) {
                     // Update existing question
                     $question = ExamQuestion::findOrFail($questionData['id']);
@@ -271,6 +312,7 @@ class ExamAdminController extends Controller
                         'question_type' => $questionData['question_type'] ?? $question->question_type ?? 'multiple_choice',
                         'points' => $questionData['points'] ?? $question->points,
                         'order' => $questionData['order'] ?? $question->order,
+                        'payload' => $payload,
                     ]);
                     $existingQuestionIds[] = $question->id;
                 } else {
@@ -281,6 +323,7 @@ class ExamAdminController extends Controller
                         'question_type' => $questionData['question_type'] ?? 'multiple_choice',
                         'points' => $questionData['points'] ?? 1,
                         'order' => $questionData['order'] ?? 0,
+                        'payload' => $payload,
                     ]);
                     $existingQuestionIds[] = $question->id;
                 }
@@ -332,6 +375,13 @@ class ExamAdminController extends Controller
 
     public function destroy($id)
     {
+        $examModel = Exam::with('course')->find($id);
+        if (!$examModel) {
+            return response()->json(['error' => 'Test negăsit'], 404);
+        }
+        if (auth()->user()->isInstructor() && (int) $examModel->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $exam = DB::table('exams')->where('id', $id)->first();
 
         if (!$exam) {
@@ -345,13 +395,44 @@ class ExamAdminController extends Controller
         ]);
     }
 
+    /**
+     * Validate and normalize question payload for matching/ordering types.
+     */
+    protected function validateQuestionPayload(?string $questionType, $payload): ?array
+    {
+        if (!is_array($payload)) {
+            return $questionType === 'matching' ? ['pairs' => []] : ($questionType === 'ordering' ? ['items' => []] : null);
+        }
+        if ($questionType === 'matching') {
+            $pairs = $payload['pairs'] ?? [];
+            if (!is_array($pairs)) {
+                return ['pairs' => []];
+            }
+            return [
+                'pairs' => array_values(array_map(function ($p) {
+                    return [
+                        'left' => is_array($p) ? ($p['left'] ?? '') : '',
+                        'right' => is_array($p) ? ($p['right'] ?? '') : '',
+                    ];
+                }, $pairs)),
+            ];
+        }
+        if ($questionType === 'ordering') {
+            $items = $payload['items'] ?? [];
+            return ['items' => is_array($items) ? array_values($items) : []];
+        }
+        return $payload;
+    }
+
     public function getPendingReviews(Request $request)
     {
-        $results = ExamResult::with(['exam.course', 'exam.questions', 'user:id,name,email'])
+        $query = ExamResult::with(['exam.course', 'exam.questions', 'user:id,name,email'])
             ->where('needs_manual_review', true)
-            ->whereNull('reviewed_at')
-            ->orderBy('completed_at', 'desc')
-            ->get();
+            ->whereNull('reviewed_at');
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('exam', fn($q) => $q->whereHas('course', fn($q2) => $q2->where('teacher_id', auth()->id())));
+        }
+        $results = $query->orderBy('completed_at', 'desc')->get();
 
         return response()->json($results);
     }
@@ -364,8 +445,11 @@ class ExamAdminController extends Controller
             'manual_review_scores.*.score' => 'required|numeric|min:0',
         ]);
 
-        $result = ExamResult::with('exam.questions')->findOrFail($resultId);
-        
+        $result = ExamResult::with('exam.course', 'exam.questions')->findOrFail($resultId);
+        if (auth()->user()->isInstructor() && (int) $result->exam->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
         // Calculate new total score
         $autoScore = $result->score; // Score from multiple choice questions
         $manualScore = 0;

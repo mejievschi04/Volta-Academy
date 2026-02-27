@@ -443,6 +443,87 @@
 	min-height: 44px;
 }
 
+/* Submenu group (e.g. Cursuri, Teste, Bănci de întrebări) */
+.modern-nav-group,
+.va-nav-group {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.modern-nav-group .modern-nav-group-label {
+	text-decoration: none;
+	color: inherit;
+}
+
+/* Părintele (Cursuri, Teste & Bănci) nu e niciodată activ – doar subitem-ul curent e galben */
+.modern-nav-group .modern-nav-group-label,
+.modern-nav-group button.va-nav-btn {
+	background-color: transparent !important;
+	color: var(--text-secondary) !important;
+	font-weight: inherit !important;
+}
+.modern-nav-group .modern-nav-group-label::before,
+.modern-nav-group button.va-nav-btn::before {
+	display: none !important;
+}
+.modern-nav-group .modern-nav-group-label:hover,
+.modern-nav-group button.va-nav-btn:hover {
+	background-color: rgba(31, 41, 55, 0.08) !important;
+	color: var(--text-primary) !important;
+}
+
+/* Buton parent (toggle submeniu) – aspect ca un nav item, fără galben */
+.modern-nav-group .modern-nav-group-label.va-nav-btn[type="button"],
+.modern-nav-group button.modern-nav-group-label {
+	width: 100%;
+	text-align: left;
+	background: transparent !important;
+	border: none;
+	cursor: pointer;
+	font: inherit;
+}
+
+.modern-nav-submenu-chevron {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	transition: transform 0.2s ease;
+}
+.modern-nav-group-label.submenu-open .modern-nav-submenu-chevron {
+	transform: rotate(-180deg);
+}
+
+.modern-nav-submenu {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-left: calc(var(--space-3) + 20px);
+	margin-top: 2px;
+}
+
+.modern-nav-subitem {
+	padding-left: var(--space-4);
+	font-size: var(--font-size-sm);
+}
+
+/* Doar subitem-ul activ primește galben */
+.modern-nav-subitem.active,
+.modern-nav-subitem.is-active {
+	background-color: var(--color-primary) !important;
+	color: #1f2937 !important;
+	font-weight: var(--font-weight-semibold);
+}
+.modern-nav-subitem .modern-nav-item-label {
+	font-weight: 500;
+}
+.modern-nav-subitem.active .modern-nav-item-label,
+.modern-nav-subitem.is-active .modern-nav-item-label {
+	font-weight: var(--font-weight-semibold);
+	color: #1f2937 !important;
+}
+
 /* ============================================
    5. ADMIN TOP NAVIGATION
    ============================================ */
@@ -935,6 +1016,14 @@
 	flex-shrink: 0;
 	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
 	border: 2px solid rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+}
+
+.admin-topnav-user-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: inherit;
 }
 
 .admin-topnav-user-info {
@@ -1227,7 +1316,7 @@
 		display: none !important;
 	}
 
-	/* Desktop sidebar expand - visual continuation of sidebar (tab on right edge) */
+	/* Desktop sidebar expand - visual continuation of sidebar (tab on right edge), no shadow */
 	.sidebar-expand-toggle.desktop-sidebar-toggle {
 		display: flex !important;
 		align-items: center;
@@ -1243,7 +1332,7 @@
 		border: 1px solid var(--border-primary);
 		border-left: none;
 		border-radius: 0 var(--radius-md) var(--radius-md) 0;
-		box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+		box-shadow: none;
 		color: var(--text-secondary);
 		cursor: pointer;
 		z-index: calc(var(--z-fixed) + 1);

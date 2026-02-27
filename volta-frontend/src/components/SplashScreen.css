@@ -196,17 +196,20 @@
 	animation: brandFadeIn 0.5s ease-out;
 }
 
+/* Alb pentru ambele teme – selector specific ca să nu fie suprascris de --text-primary */
+.splash-page .splash-typewriter .splash-typewriter-text,
 .splash-typewriter-text {
 	font-size: 3.25rem;
 	font-weight: var(--font-weight-semibold);
-	color: #ffffff;
+	color: #ffffff !important;
 	letter-spacing: 8px;
 	text-transform: uppercase;
 }
 
+.splash-page .splash-typewriter .splash-typewriter-cursor,
 .splash-typewriter-cursor {
 	font-size: 3.25rem;
-	color: #ffffff;
+	color: #ffffff !important;
 	margin-left: 2px;
 	animation: cursorBlink 0.8s step-end infinite;
 }

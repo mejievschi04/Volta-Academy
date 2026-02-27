@@ -1,0 +1,9 @@
+{
+  "name": "volta-academy",
+  "private": true,
+  "description": "Volta Academy LMS – monorepo root",
+  "scripts": {
+    "audit:lms": "node scripts/test-lms-audit.js",
+    "test:lms": "node scripts/test-lms-audit.js"
+  }
+}

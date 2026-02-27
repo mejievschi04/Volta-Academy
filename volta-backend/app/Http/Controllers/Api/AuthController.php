@@ -182,11 +182,16 @@ class AuthController extends Controller
                 return response()->json($responseData, 401);
             }
 
+            $avatarUrl = $user->avatar
+                ? ('/storage/' . ltrim($user->avatar, '/'))
+                : null;
+
             return response()->json([
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'avatar' => $avatarUrl,
                     'role' => $user->role ?? 'student',
                     'level' => $user->level ?? 1,
                     'points' => $user->points ?? 0,

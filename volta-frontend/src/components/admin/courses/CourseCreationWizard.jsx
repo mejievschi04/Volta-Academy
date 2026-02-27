@@ -5,14 +5,24 @@ import { useToast } from '../../../contexts/ToastContext';
 import Step0Context from './CourseCreationSteps/Step0Context';
 import Step1Blueprint from './CourseCreationSteps/Step1Blueprint';
 import Step3Content from './CourseCreationSteps/Step3Content';
+import Step4Assessment from './CourseCreationSteps/Step4Assessment';
+import Step5CompletionRules from './CourseCreationSteps/Step5CompletionRules';
 import Step6Review from './CourseCreationSteps/Step6Review';
 import './CourseCreationWizard.css';
 
 /**
- * Course Creation Wizard - Conform TODO.md
- * Flow complet pas cu pas pentru crearea cursurilor
- * AI este strict opțional și non-intruziv
+ * Course Creation Wizard — 6 steps (instructiuni.md):
+ * 1 Course setup, 2 Curriculum, 3 Lesson content, 4 Quiz/assessment, 5 Completion rules, 6 Publishing.
  */
+const STEPS = [
+	{ id: 0, title: 'Setare curs', shortTitle: 'Setare', icon: '📝' },
+	{ id: 1, title: 'Curriculum', shortTitle: 'Curriculum', icon: '📐' },
+	{ id: 2, title: 'Conținut lecții', shortTitle: 'Conținut', icon: '📚' },
+	{ id: 3, title: 'Quiz / Evaluare', shortTitle: 'Quiz', icon: '❓' },
+	{ id: 4, title: 'Reguli finalizare', shortTitle: 'Finalizare', icon: '✅' },
+	{ id: 5, title: 'Publicare', shortTitle: 'Publicare', icon: '✓' },
+];
+
 const CourseCreationWizard = ({ onClose, onSuccess }) => {
 	const navigate = useNavigate();
 	const { success: showSuccess, error: showError } = useToast();
@@ -20,35 +30,50 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 	const [currentStep, setCurrentStep] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [courseData, setCourseData] = useState({
-		// PAS 0: Informații de bază
 		title: '',
 		description: '',
-		
-		// PAS 1: Structura pedagogică
-		structure: {
-			modules: []
-		},
-		
-		// PAS 2: Conținut
+		category: '',
+		level: 'beginner',
+		marketing_tags: [],
+		estimated_duration_hours: null,
+		visibility: 'public',
+		structure: { modules: [] },
 		content_blocks: {},
-		
-		// PAS 3: Publicare
+		completion_rules: { sequential_unlock: true, min_test_score: 70, has_certificate: false },
+		publish_status: 'draft',
+		access_type: 'free',
+		enrollment_type: 'open',
 		status: 'draft',
 	});
-	
-	// Navigation
+
+	const canProceedFromStep = (step) => {
+		if (step === 0) return !!(courseData.title?.trim());
+		return true;
+	};
+
 	const handleNext = () => {
-		if (currentStep < 3) {
+		if (currentStep < STEPS.length - 1 && canProceedFromStep(currentStep)) {
 			setCurrentStep(currentStep + 1);
 		}
 	};
-	
+
 	const handleBack = () => {
 		if (currentStep > 0) {
 			setCurrentStep(currentStep - 1);
 		} else {
-			onClose();
+			handleCloseAttempt();
 		}
+	};
+
+	const hasUnsavedData = () => {
+		return !!(courseData.title?.trim() || courseData.description?.trim() || (courseData.structure?.modules?.length > 0));
+	};
+
+	const handleCloseAttempt = () => {
+		if (hasUnsavedData() && !window.confirm('Ai date nesalvate. Ești sigur că vrei să închizi?')) {
+			return;
+		}
+		if (onClose) onClose();
 	};
 	
 	// Update course data
@@ -59,170 +84,239 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 		}));
 	};
 	
-	// Publish course
-	const handlePublish = async () => {
+	const handleCreate = async () => {
 		setLoading(true);
 		try {
-		// Prepare course data for API
-		const formData = new FormData();
-		
-		// Basic info
-		formData.append('title', courseData.title || 'Curs nou');
-		formData.append('description', courseData.description || '');
-		formData.append('status', courseData.status || 'published');
-		formData.append('visibility', courseData.visibility || 'public');
-		
-		// Image (required)
-		if (courseData.image) {
-			formData.append('image', courseData.image);
-		}
-			
-			
-			// Create course
+			const formData = new FormData();
+			formData.append('title', courseData.title?.trim() || 'Curs nou');
+			formData.append('description', courseData.description || '');
+			formData.append('status', courseData.publish_status === 'published' ? 'published' : 'draft');
+			if (courseData.category) formData.append('category', courseData.category);
+			formData.append('level', courseData.level || 'beginner');
+			if (courseData.estimated_duration_hours != null && courseData.estimated_duration_hours !== '') {
+				formData.append('estimated_duration_hours', String(courseData.estimated_duration_hours));
+			}
+			formData.append('visibility', courseData.visibility || 'public');
+			formData.append('enrollment_type', courseData.enrollment_type || 'open');
+			formData.append('sequential_unlock', courseData.completion_rules?.sequential_unlock !== false ? '1' : '0');
+			formData.append('min_test_score', String(courseData.completion_rules?.min_test_score ?? 70));
+			formData.append('has_certificate', courseData.completion_rules?.has_certificate ? '1' : '0');
+			if (Array.isArray(courseData.marketing_tags) && courseData.marketing_tags.length > 0) {
+				formData.append('marketing_tags', JSON.stringify(courseData.marketing_tags));
+			}
+			if (courseData.image) {
+				formData.append('image', courseData.image);
+			}
+
 			const result = await adminService.createCourse(formData);
 			const courseId = result.course?.id;
-			
+
 			if (!courseId) {
-				throw new Error('Course creation failed - no ID returned');
+				throw new Error('Crearea cursului nu a returnat un ID');
 			}
-			
-			// Create modules and lessons from structure
+
+			// Map client-side lesson id -> real lesson id (from API) for content_blocks and assessments
+			const lessonIdMap = {};
+			const lessonTitleMap = {};
+
 			if (courseData.structure?.modules?.length > 0) {
 				for (const moduleData of courseData.structure.modules) {
-					const module = await adminService.createModule({
+					const moduleRes = await adminService.createModule({
 						course_id: courseId,
 						title: moduleData.title,
 						description: moduleData.objective || '',
 						order: moduleData.order || 0,
 					});
-					
-					// Create lessons for this module
-					if (moduleData.lessons && moduleData.lessons.length > 0 && module?.id) {
+					const createdModule = moduleRes?.module ?? moduleRes;
+					const moduleId = createdModule?.id;
+					if (moduleData.lessons?.length > 0 && moduleId) {
 						for (const lessonData of moduleData.lessons) {
-							await adminService.createLesson({
-								module_id: module.id,
+							const lessonRes = await adminService.createLesson({
+								module_id: moduleId,
 								title: lessonData.title,
 								content: lessonData.objective || '',
 								type: lessonData.type || 'text',
 								order: lessonData.order || 0,
 							});
+							const createdLesson = lessonRes?.lesson ?? lessonRes;
+							const realLessonId = createdLesson?.id;
+							if (realLessonId != null && lessonData.id != null) {
+								lessonIdMap[lessonData.id] = realLessonId;
+								lessonTitleMap[lessonData.id] = lessonData.title || 'Lecție';
+							}
 						}
 					}
 				}
 			}
-			
-			showSuccess('Cursul a fost creat și publicat cu succes!');
-			
+
+			// Persist content blocks from Step 3 (builder API)
+			const contentBlocks = courseData.content_blocks || {};
+			for (const clientLessonId of Object.keys(contentBlocks)) {
+				const realLessonId = lessonIdMap[clientLessonId];
+				if (!realLessonId) continue;
+				const blocks = contentBlocks[clientLessonId];
+				if (!Array.isArray(blocks) || blocks.length === 0) continue;
+				for (let i = 0; i < blocks.length; i++) {
+					const b = blocks[i];
+					try {
+						await adminService.builderCreateContentBlock(courseId, realLessonId, {
+							type: b.type || 'text',
+							source: b.source ?? '',
+							payload: b.payload ?? null,
+							metadata: b.metadata ?? null,
+							visible: b.visible !== false,
+							order: i,
+						});
+					} catch (e) {
+						console.warn('Content block create failed', b.type, e);
+					}
+				}
+			}
+
+			// Create tests from Step 4 (quiz assessments) and attach to course/lesson
+			const assessments = courseData.assessments || {};
+			for (const clientLessonId of Object.keys(assessments)) {
+				const realLessonId = lessonIdMap[clientLessonId];
+				const lessonTitle = lessonTitleMap[clientLessonId] || 'Lecție';
+				const list = assessments[clientLessonId];
+				if (!Array.isArray(list)) continue;
+				for (const assessment of list) {
+					if (assessment.type !== 'quiz') continue;
+					try {
+						const testPayload = {
+							title: `Quiz: ${lessonTitle}`,
+							description: '',
+							type: 'graded',
+							status: 'draft',
+							time_limit_minutes: assessment.time_limit_minutes ?? null,
+							max_attempts: assessment.max_attempts ?? 3,
+							randomize_questions: !!assessment.randomize,
+							randomize_answers: false,
+							show_results_immediately: true,
+							show_correct_answers: false,
+							allow_review: true,
+							question_source: 'direct',
+						};
+						const testRes = await adminService.createTest(testPayload);
+						const test = testRes?.test ?? testRes;
+						const testId = test?.id;
+						if (!testId) continue;
+
+						const questions = assessment.questions || [];
+						for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+							const q = questions[qIdx];
+							const answers = (q.answers || []).map((a) => ({
+								text: a.answer_text ?? a.text ?? '',
+								is_correct: !!a.is_correct,
+								order: a.order ?? 0,
+							}));
+							try {
+								await adminService.createQuestion(testId, {
+									type: q.question_type || 'single_choice',
+									content: q.question_text ?? q.content ?? '',
+									answers: answers.length ? answers : [{ text: '', is_correct: false, order: 0 }],
+									points: q.points ?? 1,
+									order: qIdx,
+									metadata: q.payload ? { payload: q.payload } : null,
+								});
+							} catch (eq) {
+								console.warn('Question create failed', eq);
+							}
+						}
+
+						if (realLessonId) {
+							await adminService.builderAttachTest(courseId, {
+								test_id: testId,
+								scope: 'lesson',
+								scope_id: realLessonId,
+								required: true,
+								passing_score: assessment.passing_threshold ?? 70,
+							});
+						}
+					} catch (e) {
+						console.warn('Test create/attach failed', assessment, e);
+					}
+				}
+			}
+
+			showSuccess('Cursul a fost creat. Conținutul și quiz-urile au fost salvate. Poți edita din builder.');
 			if (onSuccess) {
 				onSuccess(courseId);
 			} else {
 				navigate(`/admin/courses/${courseId}/builder`);
 			}
-			
-			if (onClose) {
-				onClose();
-			}
+			if (onClose) onClose();
 		} catch (err) {
-			console.error('Error publishing course:', err);
-			showError('Eroare la publicarea cursului: ' + (err.response?.data?.message || err.message));
+			console.error('Error creating course:', err);
+			showError(err.response?.data?.message || err.message || 'Eroare la crearea cursului');
 		} finally {
 			setLoading(false);
 		}
 	};
-	
-	const steps = [
-		{ number: 0, title: 'Informații de bază', icon: '📝' },
-		{ number: 1, title: 'Structură', icon: '📐' },
-		{ number: 2, title: 'Conținut', icon: '📚' },
-		{ number: 3, title: 'Publicare', icon: '🚀' },
-	];
-	
-	const progress = ((currentStep + 1) / steps.length) * 100;
+
+	const progress = ((currentStep + 1) / STEPS.length) * 100;
 	
 	return (
-		<div className="course-creation-wizard-page">
-			<div className="course-creation-wizard">
+		<div className="course-creation-wizard-page" role="main" aria-label="Creare curs nou">
+			<div className="course-creation-wizard" role="application" aria-label="Wizard creare curs">
 				{/* Header */}
 				<div className="course-creation-wizard-header">
 					<div>
-						<h2>Creează Curs Nou</h2>
+						<h2>Creează curs nou</h2>
 						<p className="course-creation-wizard-subtitle">
-							{steps[currentStep].icon} {steps[currentStep].title}
+							{STEPS[currentStep].icon} {STEPS[currentStep].title}
 						</p>
 					</div>
 					{onClose && (
-						<button type="button" className="course-creation-wizard-close" onClick={onClose}>×</button>
+						<button type="button" className="course-creation-wizard-close" onClick={handleCloseAttempt} aria-label="Închide wizard">×</button>
 					)}
 				</div>
-				
-				{/* Progress Bar */}
-				<div className="course-creation-wizard-progress">
+
+				{/* Progress Bar - indicator vizual conform standardelor */}
+				<div className="course-creation-wizard-progress" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-label="Progres pași">
 					<div className="course-creation-wizard-progress-bar">
-						<div 
-							className="course-creation-wizard-progress-fill"
-							style={{ width: `${progress}%` }}
-						/>
+						<div className="course-creation-wizard-progress-fill" style={{ width: `${progress}%` }} />
 					</div>
 					<span className="course-creation-wizard-progress-text">
-						Pasul {currentStep + 1} din {steps.length}
+						Pasul {currentStep + 1} din {STEPS.length}
 					</span>
 				</div>
-				
-				{/* Steps Indicator */}
-				<div className="course-creation-wizard-steps-indicator">
-					{steps.map((step, index) => (
-						<div
-							key={step.number}
+
+				{/* Steps Indicator - permite revenire la pași anteriori (NN/G) */}
+				<nav className="course-creation-wizard-steps-indicator" aria-label="Pași creare curs">
+					{STEPS.map((step, index) => (
+						<button
+							key={step.id}
+							type="button"
 							className={`course-creation-wizard-step-indicator ${
-								index === currentStep ? 'active' : 
-								index < currentStep ? 'completed' : ''
+								index === currentStep ? 'active' : index < currentStep ? 'completed' : ''
 							}`}
-							onClick={() => {
-								// Allow going back to completed steps
-								if (index <= currentStep) {
-									setCurrentStep(index);
-								}
-							}}
+							onClick={() => index <= currentStep && setCurrentStep(index)}
+							disabled={index > currentStep}
+							aria-current={index === currentStep ? 'step' : undefined}
+							aria-label={`Pas ${index + 1}: ${step.title}${index < currentStep ? ', completat' : ''}`}
 						>
-							<div className="course-creation-wizard-step-indicator-icon">
+							<span className="course-creation-wizard-step-indicator-icon">
 								{index < currentStep ? '✓' : step.icon}
-							</div>
-							<div className="course-creation-wizard-step-indicator-label">
-								{step.title}
-							</div>
-						</div>
+							</span>
+							<span className="course-creation-wizard-step-indicator-label">{step.shortTitle}</span>
+						</button>
 					))}
-				</div>
+				</nav>
 				
 				{/* Content - Split Layout */}
 				<div className="course-creation-wizard-content course-creation-wizard-split">
 					<div className="course-creation-wizard-form-panel">
-						{currentStep === 0 && (
-							<Step0Context
-								data={courseData}
-								onUpdate={updateCourseData}
-							/>
-						)}
-						
-						{currentStep === 1 && (
-							<Step1Blueprint
-								data={courseData}
-								onUpdate={updateCourseData}
-							/>
-						)}
-						
-						{currentStep === 2 && (
-							<Step3Content
-								data={courseData}
-								onUpdate={updateCourseData}
-							/>
-						)}
-						
-						{currentStep === 3 && (
+						{currentStep === 0 && <Step0Context data={courseData} onUpdate={updateCourseData} />}
+						{currentStep === 1 && <Step1Blueprint data={courseData} onUpdate={updateCourseData} />}
+						{currentStep === 2 && <Step3Content data={courseData} onUpdate={updateCourseData} />}
+						{currentStep === 3 && <Step4Assessment data={courseData} onUpdate={updateCourseData} />}
+						{currentStep === 4 && <Step5CompletionRules data={courseData} onUpdate={updateCourseData} />}
+						{currentStep === 5 && (
 							<Step6Review
 								data={courseData}
 								onUpdate={updateCourseData}
-								onPublish={handlePublish}
+								onCreate={handleCreate}
 								loading={loading}
 							/>
 						)}
@@ -271,27 +365,26 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 						className="course-creation-wizard-btn course-creation-wizard-btn-secondary"
 						onClick={handleBack}
 					>
-						{currentStep === 0 ? (onClose ? 'Anulează' : '← Înapoi') : '← Înapoi'}
+						{currentStep === 0 ? 'Anulează' : '← Înapoi'}
 					</button>
-					
-					{currentStep < 3 && (
+					{currentStep < STEPS.length - 1 && (
 						<button
 							type="button"
 							className="course-creation-wizard-btn course-creation-wizard-btn-primary"
 							onClick={handleNext}
+							disabled={!canProceedFromStep(currentStep)}
 						>
 							Continuă →
 						</button>
 					)}
-					
-					{currentStep === 3 && (
+					{currentStep === STEPS.length - 1 && (
 						<button
 							type="button"
 							className="course-creation-wizard-btn course-creation-wizard-btn-primary"
-							onClick={handlePublish}
-							disabled={loading}
+							onClick={handleCreate}
+							disabled={loading || !courseData.title?.trim()}
 						>
-							{loading ? 'Publicare...' : '🚀 Publică Curs'}
+							{loading ? 'Se creează...' : 'Creează curs'}
 						</button>
 					)}
 				</div>

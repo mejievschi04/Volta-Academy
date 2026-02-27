@@ -13,22 +13,26 @@ class HandleCors
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Allowed origins from environment variable or default to localhost
-        $frontendUrl = env('FRONTEND_URL');
-        $allowedOrigins = $frontendUrl 
-            ? [$frontendUrl] 
-            : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
-        
-        // Allow multiple origins if comma-separated
-        if ($frontendUrl && str_contains($frontendUrl, ',')) {
-            $allowedOrigins = array_map('trim', explode(',', $frontendUrl));
+        // Use config so it works with config:cache (env() only in config files)
+        $allowedOrigins = config('cors.allowed_origins', [
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:5175',
+        ]);
+        if (!is_array($allowedOrigins) || empty($allowedOrigins)) {
+            $allowedOrigins = ['http://localhost:5173'];
         }
-        
+
         $origin = $request->headers->get('Origin');
-        
+        $patterns = config('cors.allowed_origins_patterns', []);
+        $allowOrigin = $origin && (
+            in_array($origin, $allowedOrigins) ||
+            (is_array($patterns) && collect($patterns)->contains(fn ($p) => preg_match($p, $origin)))
+        ) ? $origin : $allowedOrigins[0];
+
         // Handle preflight requests
         if ($request->getMethod() === 'OPTIONS') {
-            $allowedOrigin = in_array($origin, $allowedOrigins) ? $origin : $allowedOrigins[0];
+            $allowedOrigin = $allowOrigin;
             return response('', 200)
                 ->header('Access-Control-Allow-Origin', $allowedOrigin)
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
@@ -40,8 +44,7 @@ class HandleCors
         $response = $next($request);
 
         // Add CORS headers to response
-        $allowedOrigin = in_array($origin, $allowedOrigins) ? $origin : $allowedOrigins[0];
-        $response->headers->set('Access-Control-Allow-Origin', $allowedOrigin);
+        $response->headers->set('Access-Control-Allow-Origin', $allowOrigin);
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
         $response->headers->set('Access-Control-Allow-Credentials', 'true');

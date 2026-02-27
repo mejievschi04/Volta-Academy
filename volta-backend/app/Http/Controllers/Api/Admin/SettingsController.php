@@ -18,6 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller
 {
+    public function __construct()
+    {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot accesa setările.');
+        }
+    }
+
     /**
      * Get all settings
      */

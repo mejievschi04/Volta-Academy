@@ -16,13 +16,23 @@ use Illuminate\Support\Facades\Log;
 
 class UserAdminController extends Controller
 {
+    public function __construct()
+    {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot gestiona utilizatorii.');
+        }
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
-        
-        // Build query with filters
-        $query = User::with(['teams', 'courses', 'assignedCourses']);
-        
+        $trashedOnly = $request->boolean('trashed');
+
+        // Build query: normal users sau doar cei din coș (șterși soft)
+        $query = $trashedOnly
+            ? User::onlyTrashed()->with(['teams', 'courses', 'assignedCourses'])
+            : User::with(['teams', 'courses', 'assignedCourses']);
+
         // Search filter
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -347,13 +357,34 @@ class UserAdminController extends Controller
         ]);
     }
 
+    /**
+     * Ștergere soft: utilizatorul este mutat în coș (deleted_at).
+     * Poate fi restabilit cu restore() păstrând progresul.
+     */
     public function destroy($id)
     {
         $user = User::findOrFail($id);
-        $user->delete();
+        if ($user->id === Auth::id()) {
+            return response()->json(['message' => 'Nu te poți șterge pe tine însuți.'], 422);
+        }
+        $user->delete(); // soft delete
 
         return response()->json([
-            'message' => 'Utilizator șters cu succes',
+            'message' => 'Utilizator mutat în coș. Poate fi restabilit din Coș.',
+        ]);
+    }
+
+    /**
+     * Restabilește un utilizator din coș (cu tot progresul).
+     */
+    public function restore($id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+        $user->restore();
+
+        return response()->json([
+            'message' => 'Utilizator restabilit cu succes',
+            'user' => $user->load(['teams', 'courses', 'assignedCourses']),
         ]);
     }
 

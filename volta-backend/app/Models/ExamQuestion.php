@@ -15,7 +15,18 @@ class ExamQuestion extends Model
         'question_type',
         'order',
         'points',
+        'payload',
     ];
+
+    protected $casts = [
+        'payload' => 'array',
+    ];
+
+    /** Questions that require manual grading (short_answer, essay) */
+    public function requiresManualGrading(): bool
+    {
+        return in_array($this->question_type, ['short_answer', 'essay', 'open_text'], true);
+    }
 
     public function exam()
     {

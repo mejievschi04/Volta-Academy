@@ -4,6 +4,137 @@
    ============================================ */
 
 /* ============================================
+   0. ADMIN CONTENT PAGE (Cursuri, Teste, Bănci)
+   ============================================ */
+.admin-content-page .admin-content-page-header {
+	margin-bottom: var(--space-6);
+}
+
+.admin-content-page-title {
+	font-size: var(--font-size-3xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2) 0;
+	letter-spacing: -0.02em;
+}
+
+.admin-content-tabs {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+	margin-top: var(--space-4);
+}
+
+.admin-content-tab {
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: transparent;
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: color, background, border-color var(--transition-base);
+}
+
+.admin-content-tab:hover {
+	color: var(--text-primary);
+}
+
+.admin-content-tab.active {
+	color: var(--color-primary);
+	background: rgba(255, 238, 0, 0.1);
+	border-color: var(--color-primary);
+}
+
+.admin-content-tab-panel {
+	margin-top: 0;
+}
+
+/* Generic admin modal (e.g. course maps create/edit) */
+.admin-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background-color: var(--bg-overlay, rgba(0, 0, 0, 0.5));
+	backdrop-filter: blur(6px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	padding: var(--space-4);
+}
+
+.admin-modal {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-xl);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-2xl);
+	width: 100%;
+	max-width: 480px;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.admin-modal.admin-modal-lg {
+	max-width: 560px;
+}
+
+.admin-modal-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0;
+	padding: var(--space-6);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-modal-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--space-6);
+}
+
+.admin-modal-actions {
+	padding: var(--space-4) var(--space-6);
+	border-top: 1px solid var(--border-primary);
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-3);
+	flex-shrink: 0;
+}
+
+.admin-form-label {
+	display: block;
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	color: var(--text-secondary);
+	margin-bottom: var(--space-1);
+}
+
+.admin-form-label + .admin-form-input,
+.admin-form-label + select.admin-form-input {
+	margin-top: 0;
+	margin-bottom: var(--space-4);
+}
+
+.admin-form-input {
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-primary);
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-size: var(--font-size-base);
+}
+
+.admin-text-muted {
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+}
+
+/* ============================================
    1. COURSES HEADER
    ============================================ */
 .admin-courses-page-header {
@@ -516,54 +647,61 @@
 }
 
 /* ============================================
-   3. COURSE LIST ITEM (Grid View)
+   3. COURSE LIST ITEM (Grid View) - design dosar: galben, tab, gri, plus
    ============================================ */
 .admin-course-card {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-xl);
-	overflow: hidden;
-	border: 1px solid var(--border-primary);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	--admin-card-yellow: #FFEE00;
+	--admin-card-grey: #CCCCCC;
+	background-color: var(--admin-card-yellow);
+	border-radius: 8px;
+	overflow: visible;
+	border: 2px solid var(--border-primary);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	transition: all 0.25s ease;
 	cursor: pointer;
 	display: flex;
 	flex-direction: column;
 	position: relative;
+	min-height: 200px;
+	margin-top: 16px;
 }
 
+/* Tab dosar – iese în afară deasupra cardului */
 .admin-course-card::before {
 	content: '';
 	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.5) 100%);
-	opacity: 0;
-	transition: opacity 0.3s ease;
+	top: -16px;
+	right: 24px;
+	width: 72px;
+	height: 16px;
+	background: var(--admin-card-yellow);
+	border: 2px solid var(--border-primary);
+	border-bottom: none;
+	border-radius: 8px 8px 0 0;
+	z-index: 2;
+	box-sizing: border-box;
 }
 
 .admin-course-card:hover {
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 	border-color: var(--color-primary);
-	transform: translateY(-4px);
+	transform: translateY(-2px);
 }
 
 .admin-course-card:hover::before {
-	opacity: 1;
+	border-color: var(--color-primary);
 }
 
 .admin-course-card.selected {
 	border-color: var(--color-primary);
-	border-width: 2px;
-	box-shadow: 0 4px 16px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 4px 16px rgba(255, 238, 0, 0.25);
 }
 
 .admin-course-card.selected::before {
-	opacity: 1;
+	border-color: var(--color-primary);
 }
 
-/* Card simplificat - doar poză și titlu */
+/* Card simplificat: dreptunghi gri centrat + titlu + plus colț */
 .admin-course-card-simple {
 	display: flex;
 	flex-direction: column;
@@ -573,13 +711,19 @@
 	position: absolute;
 	top: var(--space-2);
 	left: var(--space-2);
-	z-index: 2;
+	z-index: 3;
 	margin-top: 0;
 }
 
+/* Dreptunghi gri interior – ~56% lățime, colțuri ascuțite */
 .admin-course-card-simple .admin-course-card-thumbnail {
-	margin-top: 0;
-	height: 200px;
+	margin: 16px auto 12px;
+	width: 56%;
+	height: 120px;
+	background: var(--admin-card-grey);
+	border-radius: 0;
+	overflow: hidden;
+	flex-shrink: 0;
 }
 
 .admin-course-card-simple .admin-course-card-status-overlay {
@@ -590,15 +734,224 @@
 }
 
 .admin-course-card-simple .admin-course-card-title {
-	padding: var(--space-3) var(--space-4);
+	padding: 0 16px 14px;
+	padding-right: 52px;
 	font-size: var(--font-size-base);
 	font-weight: var(--font-weight-semibold);
+	color: #000;
 	margin: 0;
 	line-height: 1.3;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+}
+
+/* Pătrat negru cu plus – colțuri ascuțite, dreapta jos */
+.admin-course-card-corner-action {
+	position: absolute;
+	bottom: 12px;
+	right: 12px;
+	width: 32px;
+	height: 32px;
+	background: #000;
+	border: 2px solid #000;
+	border-radius: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	cursor: pointer;
+	transition: transform 0.2s ease;
+	z-index: 3;
+}
+
+.admin-course-card-corner-action:hover {
+	transform: scale(1.05);
+}
+
+.admin-course-card-corner-action:focus {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+/* Card mapă – aspect dosar; click pe card = intră la cursurile mapei */
+.admin-course-card-map {
+	display: flex;
+	flex-direction: column;
+	min-height: 240px;
+	position: relative;
+}
+.admin-course-card-map[role="button"] {
+	cursor: pointer;
+}
+
+/* Un singur buton X roșu – dreapta sus, șterge mapa (!important ca să nu fie suprascris de .admin-container button) */
+.admin-course-card-map .admin-course-map-delete-btn {
+	position: absolute;
+	top: var(--space-3);
+	right: var(--space-3);
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: #c62828 !important;
+	background-color: #c62828 !important;
+	border: 2px solid #b71c1c !important;
+	border-color: #b71c1c !important;
+	border-radius: 6px;
+	color: #fff !important;
+	cursor: pointer;
+	transition: background 0.2s, border-color 0.2s, transform 0.2s;
+	box-shadow: none;
+}
+.admin-course-card-map .admin-course-map-delete-btn:hover {
+	background: #b71c1c !important;
+	background-color: #b71c1c !important;
+	border-color: #8b0000 !important;
+	color: #fff !important;
+	transform: scale(1.05);
+	box-shadow: none;
+}
+.admin-course-card-map .admin-course-map-delete-btn:focus {
+	outline: 2px solid #c62828;
+	outline-offset: 2px;
+}
+.admin-course-card-map .admin-course-map-delete-btn svg {
+	flex-shrink: 0;
+	stroke: #fff;
+}
+
+/* Edit – stânga jos, 36×36 ca butonul de ștergere, doar icon */
+.admin-course-map-edit-btn {
+	position: absolute;
+	bottom: var(--space-4);
+	left: var(--space-4);
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	min-height: 36px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.9);
+	border: 2px solid var(--border-primary);
+	border-radius: 6px;
+	color: #1a1a1a;
+	cursor: pointer;
+	transition: transform 0.2s, background 0.2s, border-color 0.2s;
+	z-index: 5;
+	box-shadow: none;
+}
+.admin-course-map-edit-btn:hover {
+	background: #fff;
+	border-color: var(--color-primary);
+	transform: scale(1.05);
+}
+.admin-course-map-edit-btn:focus {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+.admin-course-map-edit-btn svg {
+	flex-shrink: 0;
+}
+
+/* Buton + – dreapta jos, 36×36, fundal accent AI */
+.admin-course-map-plus-btn {
+	position: absolute;
+	bottom: var(--space-4);
+	right: var(--space-4);
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	min-height: 36px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-ai);
+	background-color: var(--accent-ai);
+	border: 2px solid var(--border-primary);
+	border-radius: 6px;
+	color: #1a1a1a;
+	cursor: pointer;
+	transition: transform 0.2s, background 0.2s, border-color 0.2s;
+	z-index: 5;
+	box-shadow: none;
+}
+.admin-course-map-plus-btn:hover {
+	background: var(--accent-ai);
+	background-color: var(--accent-ai);
+	border-color: var(--color-primary);
+	transform: scale(1.05);
+}
+.admin-course-map-plus-btn:focus {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+.admin-course-map-plus-btn svg {
+	flex-shrink: 0;
+	stroke: #1a1a1a;
+}
+
+.admin-course-map-grey {
+	width: 58%;
+	margin: 20px auto 14px;
+	min-height: 0;
+	padding: var(--space-4) var(--space-5);
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: var(--space-2);
+}
+
+.admin-course-map-icon {
+	display: block;
+	text-align: center;
+	font-size: 2rem;
+	line-height: 1;
+	margin-bottom: var(--space-1);
+}
+
+.admin-course-card-map .admin-course-map-name {
+	display: block;
+	text-align: center;
+	font-weight: 700;
+	font-size: var(--font-size-base);
+	color: #1a1a1a !important;
+	background-color: transparent !important;
+	border: none;
+	padding: 0;
+}
+
+.admin-course-card-map .admin-course-card-description {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	color: #333;
+	line-height: 1.4;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.admin-course-map-actions {
+	margin-top: auto;
+	padding: var(--space-3) var(--space-4) var(--space-4);
+	border-top: 1px solid var(--border-primary);
+	flex-wrap: wrap;
+	gap: var(--space-2);
 }
 
 .admin-course-card-header {
@@ -1005,6 +1358,19 @@
 	color: var(--color-error);
 }
 
+.admin-course-card-action-btn-primary {
+	background: rgba(255, 238, 0, 0.2);
+	border-color: var(--color-primary);
+	color: var(--text-primary);
+	font-weight: 600;
+}
+
+.admin-course-card-action-btn-primary:hover {
+	background: rgba(255, 238, 0, 0.3);
+	border-color: var(--color-primary);
+	color: var(--text-primary);
+}
+
 .admin-course-card-meta {
 	display: flex;
 	flex-direction: column;
@@ -1090,10 +1456,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 64px;
-	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
-	color: var(--text-tertiary);
-	opacity: 0.4;
+	font-size: 48px;
+	background: var(--admin-card-grey, #D8D8D8);
+	color: #666;
+	opacity: 0.7;
 	position: relative;
 }
 
@@ -1120,24 +1486,32 @@
 	opacity: 0.8;
 }
 
+/* Placeholder doar cu emoji (teste, bănci întrebări) – fără „Imagine obligatorie” */
+.admin-course-card-thumbnail-placeholder.admin-course-card-thumbnail-placeholder-icon-only::before,
+.admin-course-card-thumbnail-placeholder.admin-course-card-thumbnail-placeholder-icon-only::after {
+	content: none;
+}
+.admin-course-card-thumbnail-placeholder.admin-course-card-thumbnail-placeholder-icon-only {
+	font-size: 56px;
+	opacity: 1;
+}
+
 /* ============================================
    LIGHT THEME - IMPROVED CONTRAST
    ============================================ */
 [data-theme="light"] .admin-course-card {
-	border: 1px solid #d1d5db;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	background-color: #E8E8E8;
+	border: 2px solid var(--border-primary);
+	background-color: var(--admin-card-yellow);
 }
 
 [data-theme="light"] .admin-course-card:hover {
 	border-color: var(--color-primary);
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 [data-theme="light"] .admin-course-card.selected {
 	border-color: var(--color-primary);
-	border-width: 2px;
-	box-shadow: 0 4px 16px rgba(255, 238, 0, 0.3);
+	box-shadow: 0 4px 20px rgba(255, 238, 0, 0.3);
 }
 
 [data-theme="light"] .admin-course-card-header {

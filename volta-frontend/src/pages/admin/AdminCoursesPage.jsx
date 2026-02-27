@@ -1,17 +1,31 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import VoltInstructor from '../../components/admin/VoltInstructor';
+import AdminCourseMapsPage from './AdminCourseMapsPage';
 
-const AdminCoursesPage = () => {
+const AdminCoursesPage = ({ embedded }) => {
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [creatingCourse, setCreatingCourse] = useState(false);
 	const [error, setError] = useState(null);
+
+	// Sub-view: mape (listă mape) | courses (listă cursuri). Curs = alcătuit din mape; în mape sunt cursurile.
+	const [coursesView, setCoursesView] = useState(() => {
+		const view = searchParams.get('view');
+		if (view === 'courses') return 'courses';
+		return 'maps'; // implicit: mape (curs = mape, în mape sunt cursurile)
+	});
+	const [selectedMap, setSelectedMap] = useState(() => {
+		const mapId = searchParams.get('map');
+		if (mapId) return { id: parseInt(mapId, 10), name: '' };
+		return null;
+	});
 	
 	// Filters and search
 	const [searchQuery, setSearchQuery] = useState('');
@@ -25,7 +39,22 @@ const AdminCoursesPage = () => {
 	// Selection
 	const [selectedCourses, setSelectedCourses] = useState(new Set());
 
-	// Fetch courses
+	// Sync URL with view (when embedded)
+	useEffect(() => {
+		if (!embedded) return;
+		const next = new URLSearchParams(searchParams);
+		if (coursesView === 'maps') {
+			next.set('view', 'maps');
+			next.delete('map');
+		} else {
+			next.set('view', 'courses');
+			if (selectedMap?.id) next.set('map', String(selectedMap.id));
+			else next.delete('map');
+		}
+		setSearchParams(next, { replace: true });
+	}, [embedded, coursesView, selectedMap?.id]);
+
+	// Fetch courses (optional filter by course_map_id)
 	const fetchCourses = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -36,6 +65,7 @@ const AdminCoursesPage = () => {
 				status: filters.status !== 'all' ? filters.status : undefined,
 				sort: sortBy
 			};
+			if (selectedMap?.id) params.course_map_id = selectedMap.id;
 			
 			const data = await adminService.getCourses(params);
 			setCourses(Array.isArray(data) ? data : []);
@@ -45,7 +75,7 @@ const AdminCoursesPage = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [searchQuery, filters, sortBy]);
+	}, [searchQuery, filters, sortBy, selectedMap?.id]);
 
 	useEffect(() => {
 		fetchCourses();
@@ -159,6 +189,16 @@ const AdminCoursesPage = () => {
 		return courses;
 	}, [courses]);
 
+	const openMapCourses = (map) => {
+		setSelectedMap({ id: map.id, name: map.name });
+		setCoursesView('courses');
+	};
+
+	const goToMaps = () => {
+		setSelectedMap(null);
+		setCoursesView('maps');
+	};
+
 	if (error) {
 		return (
 			<div className="admin-container">
@@ -168,6 +208,18 @@ const AdminCoursesPage = () => {
 						Încearcă din nou
 					</button>
 				</div>
+			</div>
+		);
+	}
+
+	// View Mape: listă mape; în mape sunt cursuri; click pe mapă → view Cursuri filtrat
+	if (coursesView === 'maps') {
+		return (
+			<div className="admin-container">
+				<AdminCourseMapsPage
+					embedded
+					onOpenMap={openMapCourses}
+				/>
 			</div>
 		);
 	}
@@ -206,10 +258,21 @@ const AdminCoursesPage = () => {
 				</div>
 			) : filteredCourses.length === 0 ? (
 				<div className="lms-empty-state">
-					<p>Nu există cursuri disponibile.</p>
-					<button className="lms-btn-primary" onClick={handleCreateCourse}>
-						+ Creează primul curs
-					</button>
+					<p>
+						{selectedMap
+							? 'Nu există cursuri în această mapă. Adaugă cursuri din „Gestionează cursuri” pe mapa respectivă.'
+							: 'Nu există cursuri disponibile.'}
+					</p>
+					{!selectedMap && (
+						<button className="lms-btn-primary" onClick={handleCreateCourse}>
+							+ Creează primul curs
+						</button>
+					)}
+					{selectedMap && (
+						<button type="button" className="lms-btn-secondary" onClick={goToMaps}>
+							Înapoi la mape
+						</button>
+					)}
 				</div>
 			) : (
 				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>

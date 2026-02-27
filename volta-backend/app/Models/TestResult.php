@@ -21,6 +21,8 @@ class TestResult extends Model
         'user_id',
         'score',
         'max_score',
+        'correct_answers_count',
+        'total_questions',
         'percentage',
         'passed',
         'time_taken_minutes',

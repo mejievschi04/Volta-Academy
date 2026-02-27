@@ -1,0 +1,241 @@
+/* Admin Statistics Page */
+.admin-statistics-page .admin-statistics-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+	padding: var(--space-12);
+	color: var(--text-tertiary);
+}
+
+.admin-statistics-section {
+	margin-bottom: var(--space-10);
+	padding: var(--space-6);
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+}
+
+.admin-statistics-section-title {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2);
+}
+
+.admin-statistics-section-desc {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+	margin: 0 0 var(--space-6);
+}
+
+.admin-statistics-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+}
+
+.admin-statistics-filter-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.admin-statistics-filter-label {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-secondary);
+}
+
+.admin-statistics-filter-select {
+	min-width: 200px;
+	padding: var(--space-2) var(--space-3);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+}
+
+.admin-statistics-table-wrap {
+	overflow-x: auto;
+}
+
+.admin-statistics-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-size-sm);
+}
+
+.admin-statistics-table th,
+.admin-statistics-table td {
+	padding: var(--space-3) var(--space-4);
+	text-align: left;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-statistics-table th {
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	background-color: var(--bg-secondary);
+}
+
+.admin-statistics-table tbody tr:hover {
+	background-color: var(--bg-secondary);
+}
+
+.admin-statistics-cell-student {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.admin-statistics-cell-name {
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+}
+
+.admin-statistics-cell-email {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}
+
+.admin-statistics-progress {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 100px;
+}
+
+.admin-statistics-progress-bar {
+	flex: 1;
+	height: 8px;
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+}
+
+.admin-statistics-progress-fill {
+	height: 100%;
+	background-color: var(--color-primary);
+	border-radius: var(--radius-full);
+	transition: width 0.2s ease;
+}
+
+.admin-statistics-progress-text {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	min-width: 2.5em;
+}
+
+.admin-statistics-tests {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.admin-statistics-test-badge {
+	display: inline-block;
+	padding: var(--space-1) var(--space-2);
+	font-size: var(--font-size-xs);
+	border-radius: var(--radius-md);
+	background-color: var(--bg-secondary);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-primary);
+}
+
+.admin-statistics-test-badge.passed {
+	background-color: var(--color-success-bg, rgba(34, 197, 94, 0.15));
+	color: var(--color-success, #22c55e);
+	border-color: var(--color-success, #22c55e);
+}
+
+.admin-statistics-test-badge.failed {
+	background-color: var(--color-error-bg, rgba(239, 68, 68, 0.15));
+	color: var(--color-error, #ef4444);
+	border-color: var(--color-error, #ef4444);
+}
+
+.admin-statistics-empty {
+	text-align: center;
+	color: var(--text-tertiary);
+	padding: var(--space-8);
+}
+
+/* Expandable rows */
+.admin-statistics-th-expand,
+.admin-statistics-td-expand {
+	width: 40px;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.admin-statistics-chevron {
+	display: inline-block;
+	font-size: 10px;
+	color: var(--text-tertiary);
+	transition: transform 0.2s ease;
+	transform: rotate(-90deg);
+}
+
+.admin-statistics-chevron.open {
+	transform: rotate(0);
+}
+
+.admin-statistics-row-clickable {
+	cursor: pointer;
+}
+
+.admin-statistics-row-clickable:hover {
+	background-color: var(--bg-secondary);
+}
+
+.admin-statistics-cell-title {
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+}
+
+.admin-statistics-summary-badge {
+	display: inline-block;
+	padding: var(--space-1) var(--space-2);
+	font-size: var(--font-size-xs);
+	border-radius: var(--radius-md);
+	background-color: var(--bg-secondary);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-primary);
+}
+
+.admin-statistics-expanded-row td {
+	padding: 0;
+	vertical-align: top;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-statistics-expanded-cell {
+	background-color: var(--bg-secondary);
+}
+
+.admin-statistics-expanded-inner {
+	padding: var(--space-4) var(--space-6) var(--space-6) 56px;
+}
+
+.admin-statistics-inner-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-size-sm);
+}
+
+.admin-statistics-inner-table th,
+.admin-statistics-inner-table td {
+	padding: var(--space-2) var(--space-4);
+	text-align: left;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-statistics-inner-table th {
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+	font-size: var(--font-size-xs);
+}

@@ -105,9 +105,10 @@ const QuestionBankBuilder = () => {
 						category: bankData.category || null,
 						status: 'draft',
 					});
-					if (saved?.id) {
-						setBankId(saved.id);
-						window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+					const newId = saved?.bank?.id ?? saved?.id;
+					if (newId) {
+						setBankId(newId);
+						window.history.replaceState({}, '', `/admin/question-banks/${newId}/builder`);
 						showToast('Banca de întrebări a fost creată', 'success');
 					}
 				} catch (err) {
@@ -165,9 +166,10 @@ const QuestionBankBuilder = () => {
 				showToast('Banca de întrebări a fost actualizată', 'success');
 			} else {
 				const saved = await adminService.createQuestionBank(bankPayload);
-				if (saved?.id) {
-					setBankId(saved.id);
-					window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+				const newId = saved?.bank?.id ?? saved?.id;
+				if (newId) {
+					setBankId(newId);
+					window.history.replaceState({}, '', `/admin/question-banks/${newId}/builder`);
 					showToast('Banca de întrebări a fost creată', 'success');
 				}
 			}
@@ -203,7 +205,7 @@ const QuestionBankBuilder = () => {
 				title: bankData.title.trim(),
 				description: bankData.description || null,
 				category: bankData.category || null,
-				status: 'active',
+				status: 'published',
 			};
 
 			if (bankId) {
@@ -211,9 +213,10 @@ const QuestionBankBuilder = () => {
 				showToast('Banca de întrebări a fost publicată', 'success');
 			} else {
 				const saved = await adminService.createQuestionBank(bankPayload);
-				if (saved?.id) {
-					setBankId(saved.id);
-					window.history.replaceState({}, '', `/admin/question-banks/${saved.id}/builder`);
+				const newId = saved?.bank?.id ?? saved?.id;
+				if (newId) {
+					setBankId(newId);
+					window.history.replaceState({}, '', `/admin/question-banks/${newId}/builder`);
 					showToast('Banca de întrebări a fost creată și publicată', 'success');
 				}
 			}

@@ -21,7 +21,10 @@ class ProgressionRulesController extends Controller
     public function index($courseId)
     {
         $course = Course::findOrFail($courseId);
-        
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
         $rules = $course->progressionRules()
             ->orderBy('priority')
             ->orderBy('created_at')
@@ -36,6 +39,9 @@ class ProgressionRulesController extends Controller
     public function store(Request $request, $courseId)
     {
         $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'type' => 'required|in:lesson_completion,test_passing,minimum_score,order_constraint,time_requirement,prerequisite',
@@ -77,6 +83,9 @@ class ProgressionRulesController extends Controller
     public function update(Request $request, $courseId, $ruleId)
     {
         $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $rule = ProgressionRule::where('course_id', $course->id)
             ->findOrFail($ruleId);
 
@@ -109,6 +118,9 @@ class ProgressionRulesController extends Controller
     public function destroy($courseId, $ruleId)
     {
         $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $rule = ProgressionRule::where('course_id', $course->id)
             ->findOrFail($ruleId);
 
@@ -128,6 +140,9 @@ class ProgressionRulesController extends Controller
     public function toggle($courseId, $ruleId)
     {
         $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $rule = ProgressionRule::where('course_id', $course->id)
             ->findOrFail($ruleId);
 
@@ -148,6 +163,9 @@ class ProgressionRulesController extends Controller
     public function reorder(Request $request, $courseId)
     {
         $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'rule_ids' => 'required|array',

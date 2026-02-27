@@ -224,7 +224,26 @@ docker compose logs postgres
 
 ---
 
-## 8. Checklist pre-deploy
+## 8. Audit LMS (testare aplicație)
+
+Pentru a verifica că API-ul și fluxurile LMS funcționează corect și a identifica **ce nu e în regulă**:
+
+```bash
+# Din root-ul proiectului (backend pornit)
+node scripts/test-lms-audit.js
+```
+
+Cu cont admin (pentru verificări complete):
+
+```bash
+API_URL=http://localhost:8000/api LMS_TEST_ADMIN_EMAIL=admin@example.com LMS_TEST_ADMIN_PASSWORD=parola node scripts/test-lms-audit.js
+```
+
+Raportul este afișat în consolă și salvat în **`LMS_AUDIT_REPORT.md`**. Vezi **`scripts/README.md`** pentru detalii.
+
+---
+
+## 9. Checklist pre-deploy
 
 - [ ] .env creat și completat
 - [ ] APP_KEY generat

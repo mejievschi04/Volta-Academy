@@ -8,6 +8,13 @@ use Illuminate\Http\Request;
 
 class ActivityLogAdminController extends Controller
 {
+    public function __construct()
+    {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot accesa jurnalul de activitate.');
+        }
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 50);

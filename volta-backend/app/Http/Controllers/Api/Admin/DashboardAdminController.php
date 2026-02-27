@@ -76,12 +76,16 @@ class DashboardAdminController extends Controller
             // Average test completion percentage across all students
             $avgTestCompletionPercentage = $this->getAvgTestCompletionPercentage();
 
+            // Statistici cursuri și teste (admin: toate; instructor: doar ale lui)
+            $courseTestStats = $this->getCourseAndTestStats($request);
+
             return response()->json([
                 'kpis' => $kpis,
                 'chart_data' => $chartData,
                 'engagement_metrics' => [
                     'avg_test_completion_percentage' => $avgTestCompletionPercentage,
                 ],
+                'course_test_stats' => $courseTestStats,
                 'learning_funnel' => $learningFunnel,
                 'user_segments' => $userSegments,
                 'top_courses' => $topCourses,
@@ -780,6 +784,66 @@ class DashboardAdminController extends Controller
             ->avg('percentage');
 
         return $avg !== null ? round((float) $avg, 1) : 0;
+    }
+
+    /**
+     * Statistici cursuri și teste. Instructor: doar cursurile și testele proprii.
+     */
+    private function getCourseAndTestStats(Request $request)
+    {
+        $user = $request->user();
+        $isInstructor = $user && $user->isInstructor();
+        $userId = $user ? (int) $user->id : 0;
+
+        $courseQuery = Course::query();
+        if ($isInstructor) {
+            $courseQuery->where('teacher_id', $userId);
+        }
+        $coursesTotal = $courseQuery->count();
+        $coursesPublished = (clone $courseQuery)->where('status', 'published')->count();
+        $coursesDraft = (clone $courseQuery)->where(function ($q) {
+            $q->where('status', 'draft')->orWhereNull('status');
+        })->count();
+
+        $testQuery = Test::query();
+        if ($isInstructor && Schema::hasColumn('tests', 'created_by')) {
+            $testQuery->where('created_by', $userId);
+        }
+        $testsTotal = $testQuery->count();
+        $testsPublished = (clone $testQuery)->where('status', 'published')->count();
+        $testsDraft = (clone $testQuery)->where(function ($q) {
+            $q->where('status', 'draft')->orWhereNull('status');
+        })->count();
+
+        $pendingReviews = 0;
+        if (Schema::hasTable('test_results')) {
+            $pendingReviewsQuery = DB::table('test_results')
+                ->where(function ($q) {
+                    $q->where('needs_manual_review', true);
+                    if (Schema::hasColumn('test_results', 'status')) {
+                        $q->orWhere('status', 'pending_review');
+                    }
+                })
+                ->whereNull('reviewed_at');
+            if ($isInstructor && Schema::hasColumn('tests', 'created_by')) {
+                $pendingReviewsQuery->whereIn('test_id', Test::where('created_by', $userId)->pluck('id'));
+            }
+            $pendingReviews = $pendingReviewsQuery->count();
+        }
+
+        return [
+            'courses' => [
+                'total' => $coursesTotal,
+                'published' => $coursesPublished,
+                'draft' => $coursesDraft,
+            ],
+            'tests' => [
+                'total' => $testsTotal,
+                'published' => $testsPublished,
+                'draft' => $testsDraft,
+                'pending_reviews' => $pendingReviews,
+            ],
+        ];
     }
 
     private function getPlatformAverageCompletionRate(): float

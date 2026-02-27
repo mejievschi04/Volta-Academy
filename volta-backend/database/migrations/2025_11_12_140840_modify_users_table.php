@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->integer('level')->default(1);
             $table->integer('points')->default(0);
-            $table->string('role')->default('student'); // student | teacher | admin
+            $table->string('role')->default('student'); // student | teacher | instructor | admin
         });
     }
 

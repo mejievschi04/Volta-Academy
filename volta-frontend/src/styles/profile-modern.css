@@ -71,10 +71,75 @@
 	min-height: 176px;
 }
 
-.va-profile-avatar {
+.va-profile-avatar-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-3);
 	flex-shrink: 0;
+}
+
+.va-profile-avatar {
 	position: relative;
 	z-index: 3;
+}
+
+.va-profile-avatar-img {
+	width: 120px;
+	height: 120px;
+	border-radius: var(--radius-full);
+	object-fit: cover;
+	border: 5px solid var(--bg-elevated);
+	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 238, 0, 0.2);
+	display: block;
+}
+
+.va-profile-avatar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	justify-content: center;
+}
+
+.va-profile-avatar-input {
+	position: absolute;
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	z-index: -1;
+}
+
+.va-profile-avatar-btn {
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	color: var(--text-primary);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.va-profile-avatar-btn:hover:not(:disabled) {
+	background: var(--bg-tertiary);
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+}
+
+.va-profile-avatar-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.va-profile-avatar-btn-remove {
+	color: var(--text-tertiary);
+}
+
+.va-profile-avatar-btn-remove:hover:not(:disabled) {
+	border-color: var(--color-error);
+	color: var(--color-error);
 }
 
 .va-profile-avatar-inner {

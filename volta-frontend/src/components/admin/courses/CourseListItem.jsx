@@ -101,7 +101,7 @@ const CourseListItem = React.memo(({
 		<div
 			className={`admin-course-card admin-course-card-simple ${selected ? 'selected' : ''} ${course.hasAlerts ? 'has-alerts' : ''}`}
 		>
-			{/* Checkbox overlay pe imagine */}
+			{/* Checkbox overlay */}
 			<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
 				<input
 					type="checkbox"
@@ -114,7 +114,7 @@ const CourseListItem = React.memo(({
 				/>
 			</div>
 
-			{/* Poza */}
+			{/* Zonă conținut gri (thumbnail) */}
 			<div 
 				className="admin-course-card-thumbnail"
 				onClick={() => navigate(`/admin/courses/${course.id}`)}
@@ -147,6 +147,16 @@ const CourseListItem = React.memo(({
 			>
 				{course.title}
 			</h3>
+
+			{/* Plus / acțiune colț - deschide curs */}
+			<div
+				className="admin-course-card-corner-action"
+				onClick={(e) => { e.stopPropagation(); navigate(`/admin/courses/${course.id}`); }}
+				title="Deschide curs"
+				aria-label="Deschide curs"
+			>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+			</div>
 		</div>
 	);
 }, (prevProps, nextProps) => {

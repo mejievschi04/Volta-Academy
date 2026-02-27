@@ -34,6 +34,10 @@ class TestAdminController extends Controller
     {
         $query = Test::with(['creator', 'questionBank']);
 
+        if (auth()->user()->isInstructor()) {
+            $query->where('created_by', auth()->id());
+        }
+
         // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -76,6 +80,10 @@ class TestAdminController extends Controller
                 $query->withPivot('scope', 'scope_id', 'required', 'passing_score');
             }
         ])->findOrFail($id);
+
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar testele tale.');
+        }
 
         return response()->json($test);
     }
@@ -136,6 +144,9 @@ class TestAdminController extends Controller
     public function update(Request $request, $id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți edita doar testele tale.');
+        }
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -183,6 +194,9 @@ class TestAdminController extends Controller
     public function destroy($id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți șterge doar testele tale.');
+        }
 
         try {
             $this->testBuilderService->deleteTest($test);
@@ -202,6 +216,9 @@ class TestAdminController extends Controller
     public function publish($id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         try {
             $test = $this->testBuilderService->publishTest($test);
@@ -222,6 +239,9 @@ class TestAdminController extends Controller
     public function linkToCourse(Request $request, $id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
@@ -234,8 +254,10 @@ class TestAdminController extends Controller
             'unlock_after_test_id' => 'nullable|exists:tests,id',
         ]);
 
-        // Use CourseBuilderService to attach test
         $course = \App\Models\Course::findOrFail($validated['course_id']);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Poți atașa testul doar la cursurile tale.');
+        }
         app(\App\Services\CourseBuilderService::class)
             ->attachTest($course, $test, $validated);
 
@@ -250,6 +272,9 @@ class TestAdminController extends Controller
     public function unlinkFromCourse(Request $request, $id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
@@ -257,10 +282,13 @@ class TestAdminController extends Controller
             'scope_id' => 'nullable|integer',
         ]);
 
-        // Use CourseBuilderService to detach test
+        $course = \App\Models\Course::findOrFail($validated['course_id']);
+        if (auth()->user()->isInstructor() && ((int) $test->created_by !== (int) auth()->id() || (int) $course->teacher_id !== (int) auth()->id())) {
+            abort(403, 'Acces interzis.');
+        }
         app(\App\Services\CourseBuilderService::class)
             ->detachTest(
-                \App\Models\Course::findOrFail($validated['course_id']),
+                $course,
                 $test,
                 $validated['scope'] ?? null,
                 $validated['scope_id'] ?? null
@@ -277,6 +305,9 @@ class TestAdminController extends Controller
     public function getQuestions($id)
     {
         $test = Test::with(['questions', 'questionBank.questions'])->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         if ($test->question_source === 'bank' && $test->questionBank) {
             return response()->json($test->questionBank->questions()->orderBy('order')->get());
@@ -291,6 +322,9 @@ class TestAdminController extends Controller
     public function addQuestion(Request $request, $id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         if ($test->question_source === 'bank') {
             return response()->json([
@@ -334,6 +368,9 @@ class TestAdminController extends Controller
     public function reorderQuestions(Request $request, $id)
     {
         $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         if ($test->question_source === 'bank') {
             return response()->json([
@@ -373,6 +410,9 @@ class TestAdminController extends Controller
     public function selectionPreview(Request $request, $id)
     {
         $test = Test::with(['questions', 'questionBank.questions'])->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         if ($test->question_source !== 'bank' || !$test->questionBank) {
             $qs = $test->questions()->orderBy('order')->get();
@@ -454,7 +494,7 @@ class TestAdminController extends Controller
      */
     public function getPendingReviews(Request $request)
     {
-        $results = TestResult::with([
+        $query = TestResult::with([
             'test' => fn($q) => $q->with(['questions', 'questionBank.questions', 'courses']),
             'user:id,name,email',
         ])
@@ -462,9 +502,11 @@ class TestAdminController extends Controller
                 $q->where('status', 'pending_review')
                   ->orWhere('needs_manual_review', true);
             })
-            ->whereNull('reviewed_at')
-            ->orderBy('completed_at', 'desc')
-            ->get();
+            ->whereNull('reviewed_at');
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('test', fn($q) => $q->where('created_by', auth()->id()));
+        }
+        $results = $query->orderBy('completed_at', 'desc')->get();
 
         return response()->json($results);
     }
@@ -481,6 +523,9 @@ class TestAdminController extends Controller
         ]);
 
         $result = TestResult::with(['test.questions', 'test.questionBank.questions'])->findOrFail($resultId);
+        if (auth()->user()->isInstructor() && (int) $result->test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți verifica doar rezultatele testelor tale.');
+        }
 
         if ($result->reviewed_at) {
             return response()->json([

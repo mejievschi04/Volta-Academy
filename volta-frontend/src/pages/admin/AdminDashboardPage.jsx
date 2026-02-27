@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import './AdminDashboardPage.css';
 
 const AdminDashboardPage = () => {
@@ -10,8 +9,6 @@ const AdminDashboardPage = () => {
 	const navigate = useNavigate();
 	const [dashboardData, setDashboardData] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [showBuildModal, setShowBuildModal] = useState(false);
-	const [creatingCourse, setCreatingCourse] = useState(false);
 
 	useEffect(() => {
 		const fetchDashboard = async () => {
@@ -57,6 +54,11 @@ const AdminDashboardPage = () => {
 	// Engagement Metrics (avg test completion % across students)
 	const avgTestCompletionPct = dashboardData?.engagement_metrics?.avg_test_completion_percentage ?? 0;
 
+	// Statistici cursuri și teste
+	const courseTestStats = dashboardData?.course_test_stats ?? null;
+	const coursesStats = courseTestStats?.courses ?? { total: 0, published: 0, draft: 0 };
+	const testsStats = courseTestStats?.tests ?? { total: 0, published: 0, draft: 0, pending_reviews: 0 };
+
 	if (loading) {
 		return (
 			<div className="admin-dashboard-page">
@@ -80,14 +82,20 @@ const AdminDashboardPage = () => {
 						</p>
 					</div>
 					<div className="admin-dashboard-header-actions">
-						<button 
+						<button
 							className="admin-dashboard-btn admin-dashboard-btn-primary"
-							onClick={() => setShowBuildModal(true)}
+							onClick={() => navigate('/admin/courses/new')}
 						>
 							<span className="admin-dashboard-btn-icon">+</span>
 							Creează curs
 						</button>
-						<button 
+						<button
+							className="admin-dashboard-btn admin-dashboard-btn-secondary"
+							onClick={() => navigate('/admin/content')}
+						>
+							Cursuri & Teste
+						</button>
+						<button
 							className="admin-dashboard-btn admin-dashboard-btn-secondary"
 							onClick={() => navigate('/admin/analytics')}
 						>
@@ -173,6 +181,43 @@ const AdminDashboardPage = () => {
 					</div>
 				</div>
 			</div>
+
+			{/* Statistici cursuri și teste */}
+			{courseTestStats && (
+				<div className="admin-dashboard-section admin-dashboard-stats-block">
+					<div className="admin-dashboard-section-header">
+						<h2 className="admin-dashboard-section-title">Statistici cursuri și teste</h2>
+						<button
+							type="button"
+							className="admin-dashboard-btn admin-dashboard-btn-link"
+							onClick={() => navigate('/admin/content')}
+						>
+							Cursuri, Teste & Bănci →
+						</button>
+					</div>
+					<div className="admin-dashboard-course-test-stats">
+						<div className="admin-dashboard-ct-stat-card">
+							<div className="admin-dashboard-ct-stat-label">Cursuri</div>
+							<div className="admin-dashboard-ct-stat-value">{coursesStats.total}</div>
+							<div className="admin-dashboard-ct-stat-sublabel">
+								{coursesStats.published} publicate · {coursesStats.draft} ciornă
+							</div>
+						</div>
+						<div className="admin-dashboard-ct-stat-card">
+							<div className="admin-dashboard-ct-stat-label">Teste</div>
+							<div className="admin-dashboard-ct-stat-value">{testsStats.total}</div>
+							<div className="admin-dashboard-ct-stat-sublabel">
+								{testsStats.published} publicate · {testsStats.draft} ciornă
+								{testsStats.pending_reviews > 0 && (
+									<span className="admin-dashboard-ct-stat-pending">
+										· {testsStats.pending_reviews} în așteptare verificare
+									</span>
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Main Content Grid */}
 			<div className="admin-dashboard-grid">
@@ -349,39 +394,6 @@ const AdminDashboardPage = () => {
 					)}
 				</div>
 			</div>
-
-			{showBuildModal && (
-				<BuildCourseModal
-					onClose={() => setShowBuildModal(false)}
-					onSubmit={async ({ title, description, image }) => {
-						setCreatingCourse(true);
-						try {
-							let payload;
-							if (image) {
-								const formData = new FormData();
-								formData.append('title', title);
-								formData.append('description', description);
-								formData.append('status', 'draft');
-								formData.append('image', image);
-								payload = formData;
-							} else {
-								payload = { title, description, status: 'draft' };
-							}
-							const result = await adminService.createCourse(payload);
-							const courseId = result?.course?.id;
-							if (courseId) {
-								setShowBuildModal(false);
-								navigate(`/admin/courses/${courseId}/builder`);
-							}
-						} catch (err) {
-							console.error('Error creating course:', err);
-						} finally {
-							setCreatingCourse(false);
-						}
-					}}
-					loading={creatingCourse}
-				/>
-			)}
 		</div>
 	);
 };

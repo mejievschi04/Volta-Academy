@@ -29,6 +29,7 @@ class Course extends Model
         // Legacy fields (kept for backward compatibility, will be migrated to settings)
         'short_description',
         'access_type',
+        'enrollment_type',
         'price',
         'currency',
         'objectives',
@@ -180,5 +181,15 @@ class Course extends Model
         return $this->belongsToMany(User::class, 'course_user')
                     ->withPivot('is_mandatory', 'assigned_at', 'enrolled', 'enrolled_at', 'started_at', 'completed_at', 'progress_percentage')
                     ->withTimestamps();
+    }
+
+    /**
+     * Mapele de curs în care apare acest curs.
+     */
+    public function courseMaps()
+    {
+        return $this->belongsToMany(CourseMap::class, 'course_map_course')
+            ->withPivot('order')
+            ->withTimestamps();
     }
 }

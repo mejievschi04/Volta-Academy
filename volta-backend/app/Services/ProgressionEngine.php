@@ -259,14 +259,47 @@ class ProgressionEngine
 
     /**
      * Check prerequisite
+     * Supports: module (all lessons + required tests), lesson (single), required_lessons (condition_value JSON array of lesson ids).
      */
     protected function checkPrerequisite(User $user, ProgressionRule $rule, Course $course): bool
     {
-        // Check if prerequisite course/module/lesson is completed
+        // Required lessons: condition_value as JSON array of lesson ids
+        if ($rule->condition_type === 'lesson' && $rule->condition_value) {
+            $lessonIds = json_decode($rule->condition_value, true);
+            if (is_array($lessonIds)) {
+                foreach ($lessonIds as $lessonId) {
+                    $lessonId = (int) $lessonId;
+                    if ($lessonId <= 0) continue;
+                    $completed = DB::table('lesson_progress')
+                        ->where('user_id', $user->id)
+                        ->where('lesson_id', $lessonId)
+                        ->where(function ($q) {
+                            $q->where('completed', true)->orWhere('progress_percentage', '>=', 100);
+                        })
+                        ->exists();
+                    if (!$completed) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        // Single lesson prerequisite (sequential unlock)
+        if ($rule->condition_type === 'lesson' && $rule->condition_id) {
+            return DB::table('lesson_progress')
+                ->where('user_id', $user->id)
+                ->where('lesson_id', $rule->condition_id)
+                ->where(function ($q) {
+                    $q->where('completed', true)->orWhere('progress_percentage', '>=', 100);
+                })
+                ->exists();
+        }
+
+        // Module prerequisite: all lessons + required tests in module
         if ($rule->condition_type === 'module' && $rule->condition_id) {
             $module = Module::find($rule->condition_id);
             if ($module) {
-                // Check if all lessons in module are completed
                 $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
                 foreach ($lessons as $lesson) {
                     $isCompleted = DB::table('lesson_progress')
@@ -275,10 +308,16 @@ class ProgressionEngine
                         ->where('completed', true)
                         ->exists();
                     if (!$isCompleted) {
+                        $isCompleted = DB::table('lesson_progress')
+                            ->where('user_id', $user->id)
+                            ->where('lesson_id', $lesson->id)
+                            ->where('progress_percentage', '>=', 100)
+                            ->exists();
+                    }
+                    if (!$isCompleted) {
                         return false;
                     }
                 }
-                // Check required tests
                 $requiredTests = CourseTest::where('course_id', $module->course_id)
                     ->where('scope', 'module')
                     ->where('scope_id', $module->id)

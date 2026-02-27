@@ -331,3 +331,37 @@
 	object-fit: cover;
 	display: block;
 }
+
+/* Tags */
+.step0-tags-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.step0-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: 6px;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+}
+
+.step0-tag-remove {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--text-secondary);
+	font-size: 1rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.step0-tag-remove:hover {
+	color: var(--error);
+}

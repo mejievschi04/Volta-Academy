@@ -22,7 +22,9 @@ class MediaAdminController extends Controller
         $perPage = (int)($validated['per_page'] ?? 24);
 
         $query = MediaAsset::query()->orderByDesc('id');
-
+        if (auth()->user()->isInstructor()) {
+            $query->where('uploaded_by_user_id', auth()->id());
+        }
         if (!empty($validated['course_id'])) {
             $query->where('course_id', (int)$validated['course_id']);
         }
@@ -70,6 +72,9 @@ class MediaAdminController extends Controller
     public function destroy(Request $request, int $id)
     {
         $asset = MediaAsset::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $asset->uploaded_by_user_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți șterge doar fișierele încărcate de tine.');
+        }
 
         if ($asset->path) {
             Storage::disk($asset->disk ?: 'public')->delete($asset->path);

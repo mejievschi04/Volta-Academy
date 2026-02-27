@@ -135,6 +135,9 @@ class AIController extends Controller
      */
     public function generateCourse(Request $request)
     {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot folosi generarea AI de cursuri.');
+        }
         return $this->streamResponse($request, 'course');
     }
 
@@ -143,6 +146,9 @@ class AIController extends Controller
      */
     public function generateTest(Request $request)
     {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot folosi generarea AI de teste.');
+        }
         return $this->streamResponse($request, 'test');
     }
 

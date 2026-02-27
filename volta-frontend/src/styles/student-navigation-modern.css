@@ -320,6 +320,14 @@
 	flex-shrink: 0;
 	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
 	border: 2px solid rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+}
+
+.va-shell-topnav .admin-topnav-user-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: inherit;
 }
 
 .va-shell-topnav .admin-topnav-user-info {

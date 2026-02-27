@@ -23,8 +23,17 @@ class ModuleAdminController extends Controller
             $q->orderBy('order');
         }]);
 
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('course', fn($q) => $q->where('teacher_id', auth()->id()));
+        }
         if ($request->has('course_id')) {
             $query->where('course_id', $request->course_id);
+            if (auth()->user()->isInstructor()) {
+                $c = Course::find($request->course_id);
+                if (!$c || (int) $c->teacher_id !== (int) auth()->id()) {
+                    abort(403, 'Acces interzis.');
+                }
+            }
         }
 
         $modules = $query->orderBy('order')->get();
@@ -37,7 +46,9 @@ class ModuleAdminController extends Controller
         $module = Module::with(['course', 'lessons' => function($q) {
             $q->orderBy('order');
         }])->findOrFail($id);
-
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         return response()->json($module);
     }
 
@@ -51,8 +62,10 @@ class ModuleAdminController extends Controller
             'order' => 'nullable|integer|min:0',
         ]);
 
-        // Use CourseBuilderService to create module
         $course = Course::findOrFail($validated['course_id']);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $module = $this->courseBuilderService->createModule($course, $validated);
 
         return response()->json([
@@ -63,7 +76,10 @@ class ModuleAdminController extends Controller
 
     public function update(Request $request, $id)
     {
-        $module = Module::findOrFail($id);
+        $module = Module::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'course_id' => 'sometimes|required|exists:courses,id',
@@ -108,7 +124,10 @@ class ModuleAdminController extends Controller
 
     public function destroy($id)
     {
-        $module = Module::findOrFail($id);
+        $module = Module::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $this->courseBuilderService->deleteModule($module);
 
         return response()->json([
@@ -118,7 +137,10 @@ class ModuleAdminController extends Controller
 
     public function toggleLock($id)
     {
-        $module = Module::findOrFail($id);
+        $module = Module::with('course')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $module->is_locked = !$module->is_locked;
         $module->save();
 

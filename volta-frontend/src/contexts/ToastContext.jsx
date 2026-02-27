@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import Toast from '../components/common/Toast';
+import { setApiErrorNotifier } from '../api';
 
 const ToastContext = createContext(null);
 
@@ -46,6 +47,12 @@ export const ToastProvider = ({ children }) => {
 
 	const warning = useCallback((message, duration) => {
 		return showToast(message, 'warning', duration);
+	}, [showToast]);
+
+	// Wire API interceptor to show toast on 5xx/network errors
+	useEffect(() => {
+		setApiErrorNotifier((msg, type, duration) => showToast(msg, type || 'error', duration));
+		return () => setApiErrorNotifier(null);
 	}, [showToast]);
 
 	return (

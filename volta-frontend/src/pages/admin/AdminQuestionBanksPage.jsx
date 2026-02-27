@@ -277,87 +277,49 @@ const AdminQuestionBanksPage = () => {
 						<div className="admin-courses-grid-container">
 							{filteredAndSortedBanks.map(bank => {
 								const statusBadge = getStatusBadge(bank.status);
-								
 								return (
 									<div
 										key={bank.id}
-										className="admin-course-card"
+										className={`admin-course-card admin-course-card-simple ${selectedBanks.has(bank.id) ? 'selected' : ''}`}
 										onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
 									>
-										{/* Header with badges */}
-										<div className="admin-course-card-header">
-											<div className="admin-course-card-badges">
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: statusBadge.bg,
-														color: statusBadge.color,
-														borderColor: statusBadge.color,
-													}}
-												>
-													{statusBadge.label}
-												</div>
+										<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
+											<input
+												type="checkbox"
+												checked={selectedBanks.has(bank.id)}
+												onChange={(e) => {
+													e.stopPropagation();
+													handleSelectBank(bank.id, e.target.checked);
+												}}
+												className="admin-checkbox-input"
+											/>
+										</div>
+										<div className="admin-course-card-thumbnail">
+											<div className="admin-course-card-thumbnail-placeholder admin-course-card-thumbnail-placeholder-icon-only">📋</div>
+											<div
+												className="admin-course-card-status-badge admin-course-card-status-overlay"
+												style={{
+													backgroundColor: statusBadge.bg,
+													color: statusBadge.color,
+													borderColor: statusBadge.color,
+												}}
+											>
+												{statusBadge.label}
 											</div>
 										</div>
-
-										{/* Content */}
-										<div className="admin-course-card-content">
-											<h3 className="admin-course-card-title">{bank.title}</h3>
-											{bank.description && (
-												<p className="admin-course-card-description">
-													{bank.description.length > 100 
-														? bank.description.substring(0, 100) + '...' 
-														: bank.description}
-												</p>
-											)}
-
-											{/* Stats */}
-											<div className="admin-course-card-stats">
-												<span className="admin-course-card-stat">
-													📝 {bank.questions_count || 0} întrebări
-												</span>
-												{bank.tests_count > 0 && (
-													<span className="admin-course-card-stat">
-														📋 {bank.tests_count} teste
-													</span>
-												)}
-												{bank.creator && (
-													<span className="admin-course-card-stat">
-														👤 {bank.creator.name || 'Necunoscut'}
-													</span>
-												)}
-											</div>
-										</div>
-
-										{/* Actions */}
-										<div className="admin-course-card-actions">
-											<button
-												className="admin-course-card-action-btn"
-												onClick={(e) => {
-													e.stopPropagation();
-													navigate(`/admin/question-banks/${bank.id}/builder`);
-												}}
-											>
-												✏️ Editează
-											</button>
-											<button
-												className="admin-course-card-action-btn"
-												onClick={(e) => {
-													e.stopPropagation();
-													navigate(`/admin/question-banks/${bank.id}/questions`);
-												}}
-											>
-												📋 Întrebări
-											</button>
-											<button
-												className="admin-course-card-action-btn va-btn-danger"
-												onClick={(e) => {
-													e.stopPropagation();
-													handleQuickAction(bank.id, 'delete');
-												}}
-											>
-												🗑️ Șterge
-											</button>
+										<h3
+											className="admin-course-card-title"
+											onClick={(e) => { e.stopPropagation(); navigate(`/admin/question-banks/${bank.id}/builder`); }}
+										>
+											{bank.title}
+										</h3>
+										<div
+											className="admin-course-card-corner-action"
+											onClick={(e) => { e.stopPropagation(); navigate(`/admin/question-banks/${bank.id}/builder`); }}
+											title="Deschide bancă"
+											aria-label="Deschide bancă"
+										>
+											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 										</div>
 									</div>
 								);

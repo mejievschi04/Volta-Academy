@@ -34,6 +34,9 @@ class QuestionBankAdminController extends Controller
     public function index(Request $request)
     {
         $query = QuestionBank::with(['creator', 'questions']);
+        if (auth()->user()->isInstructor()) {
+            $query->where('created_by', auth()->id());
+        }
 
         // Filter by status
         if ($request->has('status')) {
@@ -65,6 +68,9 @@ class QuestionBankAdminController extends Controller
     public function show($id)
     {
         $bank = QuestionBank::with(['creator', 'questions', 'tests'])->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
+        }
         return response()->json($bank);
     }
 
@@ -101,6 +107,9 @@ class QuestionBankAdminController extends Controller
     public function update(Request $request, $id)
     {
         $bank = QuestionBank::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -122,6 +131,9 @@ class QuestionBankAdminController extends Controller
     public function destroy($id)
     {
         $bank = QuestionBank::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         // Check if bank is used in any tests
         if ($bank->tests()->count() > 0) {
@@ -143,6 +155,9 @@ class QuestionBankAdminController extends Controller
     public function addQuestions(Request $request, $id)
     {
         $bank = QuestionBank::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'questions' => 'required|array',
@@ -168,6 +183,9 @@ class QuestionBankAdminController extends Controller
     public function getQuestions($id)
     {
         $bank = QuestionBank::with('questions')->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         return response()->json($bank->questions);
     }
 

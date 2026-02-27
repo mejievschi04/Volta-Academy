@@ -9,6 +9,13 @@ use Illuminate\Http\Request;
 
 class TeamAdminController extends Controller
 {
+    public function __construct()
+    {
+        if (auth()->check() && auth()->user()->isInstructor()) {
+            abort(403, 'Doar administratorii pot gestiona echipele.');
+        }
+    }
+
     public function index()
     {
         $teams = Team::with(['owner', 'users', 'courses'])->get();

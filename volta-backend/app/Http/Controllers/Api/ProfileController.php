@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -132,11 +133,16 @@ class ProfileController extends Controller
             ];
         });
 
+        $avatarUrl = $user->avatar
+            ? ('/storage/' . ltrim($user->avatar, '/'))
+            : null;
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'avatar' => $avatarUrl,
                 'level' => $user->level,
                 'points' => $user->points,
                 'role' => $user->role,
@@ -163,6 +169,82 @@ class ProfileController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Upload or update profile picture (avatar).
+     * Accepts multipart/form-data with field "avatar" (image file).
+     */
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,gif,webp|max:2048',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Neautentificat'], 401);
+        }
+
+        $file = $request->file('avatar');
+        $ext = $file->getClientOriginalExtension() ?: 'jpg';
+        $path = $file->storeAs('avatars', $user->id . '_' . time() . '.' . $ext, 'public');
+
+        if ($user->avatar) {
+            try {
+                Storage::disk('public')->delete($user->avatar);
+            } catch (\Exception $e) {
+                Log::warning('Could not delete old avatar: ' . $e->getMessage());
+            }
+        }
+
+        $user->avatar = $path;
+        $user->save();
+
+        Cache::forget("profile_user_{$user->id}");
+
+        $avatarUrl = '/storage/' . ltrim($path, '/');
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar' => $avatarUrl,
+                'role' => $user->role,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove profile picture.
+     */
+    public function removeAvatar(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Neautentificat'], 401);
+        }
+
+        if ($user->avatar) {
+            try {
+                Storage::disk('public')->delete($user->avatar);
+            } catch (\Exception $e) {
+                Log::warning('Could not delete avatar: ' . $e->getMessage());
+            }
+            $user->avatar = null;
+            $user->save();
+            Cache::forget("profile_user_{$user->id}");
+        }
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar' => null,
+                'role' => $user->role,
+            ],
+        ]);
     }
 }
 

@@ -25,11 +25,21 @@ class CourseBuilderController extends Controller
         protected CourseBuilderValidator $courseBuilderValidator
     ) {}
 
+    private function ensureCourseAccess(int $courseId): Course
+    {
+        $course = Course::findOrFail($courseId);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți edita doar cursurile tale.');
+        }
+        return $course;
+    }
+
     /**
      * Returns the normalized builder structure for a course.
      */
     public function structure(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $structure = $this->courseBuilderService->getBuilderStructure($courseId);
 
         return response()->json($structure);
@@ -42,6 +52,7 @@ class CourseBuilderController extends Controller
      */
     public function patchStructure(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $request->validate([
             'ops' => 'required|array|min:1',
             'ops.*.op' => 'required|string|max:64',
@@ -61,7 +72,7 @@ class CourseBuilderController extends Controller
 
     public function uploadContentFile(Request $request, int $courseId)
     {
-        Course::findOrFail($courseId);
+        $this->ensureCourseAccess($courseId);
 
         $validated = $request->validate([
             'file' => 'required|file|max:10240', // 10MB
@@ -128,7 +139,7 @@ class CourseBuilderController extends Controller
 
     public function createModule(Request $request, int $courseId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = $this->ensureCourseAccess($courseId);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -158,6 +169,7 @@ class CourseBuilderController extends Controller
 
     public function createLesson(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $validated = $request->validate([
             'module_id' => 'required|exists:modules,id',
             'title' => 'required|string|max:255',
@@ -196,6 +208,7 @@ class CourseBuilderController extends Controller
 
     public function updateLesson(Request $request, int $courseId, int $lessonId)
     {
+        $this->ensureCourseAccess($courseId);
         $lesson = Lesson::where('id', $lessonId)
             ->where('course_id', $courseId)
             ->firstOrFail();
@@ -236,6 +249,7 @@ class CourseBuilderController extends Controller
 
     public function createContentBlock(Request $request, int $courseId, int $lessonId)
     {
+        $this->ensureCourseAccess($courseId);
         try {
             $lesson = Lesson::where('id', $lessonId)
                 ->where('course_id', $courseId)
@@ -245,6 +259,7 @@ class CourseBuilderController extends Controller
                 'type' => 'required|string|max:50',
                 'source' => 'nullable|string',
                 'metadata' => 'nullable|array',
+                'payload' => 'nullable|array',
                 'language' => 'nullable|string|max:25',
                 'visible' => 'nullable|boolean',
             ]);
@@ -283,6 +298,7 @@ class CourseBuilderController extends Controller
 
     public function updateContentBlock(Request $request, int $courseId, int $blockId)
     {
+        $this->ensureCourseAccess($courseId);
         $block = ContentBlock::query()
             ->where('id', $blockId)
             ->whereHas('lesson', function ($q) use ($courseId) {
@@ -294,6 +310,7 @@ class CourseBuilderController extends Controller
             'type' => 'sometimes|required|string|max:50',
             'source' => 'nullable|string',
             'metadata' => 'nullable|array',
+            'payload' => 'nullable|array',
             'language' => 'nullable|string|max:25',
             'visible' => 'nullable|boolean',
             'order' => 'nullable|integer|min:0',
@@ -321,6 +338,7 @@ class CourseBuilderController extends Controller
 
     public function deleteContentBlock(Request $request, int $courseId, int $blockId)
     {
+        $this->ensureCourseAccess($courseId);
         $block = ContentBlock::query()
             ->where('id', $blockId)
             ->whereHas('lesson', function ($q) use ($courseId) {
@@ -351,6 +369,7 @@ class CourseBuilderController extends Controller
 
     public function reorderContentBlocks(Request $request, int $courseId, int $lessonId)
     {
+        $this->ensureCourseAccess($courseId);
         $lesson = Lesson::where('id', $lessonId)
             ->where('course_id', $courseId)
             ->firstOrFail();
@@ -381,6 +400,7 @@ class CourseBuilderController extends Controller
 
     public function validateCourse(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $course = Course::with(['modules.lessons.contentBlocks'])->findOrFail($courseId);
         $report = $this->courseBuilderValidator->validate($course);
 
@@ -389,6 +409,7 @@ class CourseBuilderController extends Controller
 
     public function submitForReview(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $course = Course::with(['modules.lessons.contentBlocks'])->findOrFail($courseId);
         $report = $this->courseBuilderValidator->validate($course);
 
@@ -422,8 +443,9 @@ class CourseBuilderController extends Controller
 
     public function publish(Request $request, int $courseId)
     {
-        $course = Course::with(['modules.lessons'])->findOrFail($courseId);
-        $report = $this->courseBuilderValidator->validate($course->load(['modules.lessons.contentBlocks']));
+        $course = $this->ensureCourseAccess($courseId);
+        $course->load(['modules.lessons', 'modules.lessons.contentBlocks']);
+        $report = $this->courseBuilderValidator->validate($course);
 
         if (!($report['ok'] ?? false)) {
             return response()->json($report, 422);
@@ -472,6 +494,7 @@ class CourseBuilderController extends Controller
 
     public function clone(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $validated = $request->validate([
             'include_teams' => 'nullable|boolean',
         ]);
@@ -492,6 +515,7 @@ class CourseBuilderController extends Controller
      */
     public function versions(Request $request, int $courseId)
     {
+        $this->ensureCourseAccess($courseId);
         $versions = CourseVersion::with([
             'creator:id,name,email',
             'snapshot:id,course_version_id,created_at',
@@ -509,6 +533,7 @@ class CourseBuilderController extends Controller
      */
     public function restoreVersion(Request $request, int $courseId, int $versionId)
     {
+        $this->ensureCourseAccess($courseId);
         $validated = $request->validate([
             'include_teams' => 'nullable|boolean',
         ]);
@@ -530,13 +555,13 @@ class CourseBuilderController extends Controller
      */
     public function tests(Request $request, int $courseId)
     {
-        // Ensure course exists
-        Course::findOrFail($courseId);
+        $this->ensureCourseAccess($courseId);
 
-        $tests = Test::query()
-            ->where('status', 'published')
-            ->orderByDesc('created_at')
-            ->get();
+        $testsQuery = Test::query()->where('status', 'published');
+        if (auth()->user()->isInstructor()) {
+            $testsQuery->where('created_by', auth()->id());
+        }
+        $tests = $testsQuery->orderByDesc('created_at')->get();
 
         $attached = CourseTest::where('course_id', $courseId)
             ->with(['test'])
@@ -554,7 +579,7 @@ class CourseBuilderController extends Controller
      */
     public function attachTest(Request $request, int $courseId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = $this->ensureCourseAccess($courseId);
 
         $validated = $request->validate([
             'test_id' => 'required|exists:tests,id',
@@ -596,7 +621,7 @@ class CourseBuilderController extends Controller
      */
     public function detachTest(Request $request, int $courseId, int $testId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = $this->ensureCourseAccess($courseId);
         $test = Test::findOrFail($testId);
 
         $validated = $request->validate([

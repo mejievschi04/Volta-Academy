@@ -17,40 +17,42 @@ use App\Http\Controllers\Api\Admin\TeamAdminController;
 use App\Http\Controllers\Api\Admin\UserAdminController;
 use App\Http\Controllers\Api\Admin\ActivityLogAdminController;
 use App\Http\Controllers\Api\Admin\MediaAdminController;
+use App\Http\Controllers\Api\Admin\CourseMapAdminController;
+use App\Http\Controllers\Api\Admin\StatisticsAdminController;
 
-// Public routes
-Route::get('/courses', [CourseController::class, 'index']);
-Route::get('/courses/{id}', [CourseController::class, 'show']);
-// Lessons routes for users
-Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
-// Public event routes
-Route::get('/events', [EventController::class, 'index']);
-Route::get('/events/{id}', [EventController::class, 'show']);
-Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
-Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
-Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
+// Public routes – throttle to prevent abuse (e.g. scraping, DoS)
+Route::middleware('throttle:120,1')->group(function () {
+    Route::get('/courses', [CourseController::class, 'index']);
+    Route::get('/courses/{id}', [CourseController::class, 'show']);
+    Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
+    Route::get('/events', [EventController::class, 'index']);
+    Route::get('/events/{id}', [EventController::class, 'show']);
+    Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
+    Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
+    Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
+});
 
 // CSRF cookie endpoint (needed for session-based auth with CORS)
 Route::get('/csrf-cookie', function () {
     return response()->json(['message' => 'CSRF cookie set']);
 })->middleware('web');
 
-// Test endpoint to check if cookies are working
-Route::get('/test-session', function (Request $request) {
-    $sessionId = $request->session()->getId();
-    $request->session()->put('test', 'value');
-    
-    return response()->json([
-        'session_id' => $sessionId,
-        'has_session' => $request->hasSession(),
-        'cookies_received' => array_keys($request->cookies->all()),
-        'cookie_header' => $request->header('Cookie'),
-    ]);
-});
+// Debug-only: check cookies/session (disabled in production)
+if (config('app.debug')) {
+    Route::get('/test-session', function (Request $request) {
+        $sessionId = $request->session()->getId();
+        $request->session()->put('test', 'value');
+        return response()->json([
+            'session_id' => $sessionId,
+            'has_session' => $request->hasSession(),
+            'cookies_received' => array_keys($request->cookies->all()),
+        ]);
+    });
+}
 
 // Auth routes with rate limiting (prevent brute force attacks)
-Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 attempts per minute
-Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 attempts per minute
+Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:15,1'); // 15 attempts per minute
+Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:15,1'); // 15 attempts per minute
 Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth');
 Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth');
 Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth', 'throttle:3,1']); // 3 attempts per minute for password change
@@ -59,6 +61,8 @@ Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::
 Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/profile', [ProfileController::class, 'index']);
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
+    Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
     // Lesson completion removed - we use modules now, course completion is through quiz passing
     // Route::post('/lessons/{id}/complete', [LessonController::class, 'complete']);
     Route::get('/courses/{courseId}/progress/{userId}', [LessonController::class, 'getProgress']);
@@ -103,7 +107,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
 });
 
 // Admin routes (require admin role) with rate limiting
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttle:120,1'])->prefix('admin')->group(function () { // 120 requests per minute for admin
+Route::middleware(['auth', \App\Http\Middleware\AdminOrInstructorMiddleware::class, 'throttle:120,1'])->prefix('admin')->group(function () { // admin + instructor (instructor: doar cursuri și teste)
     // Admin Dashboard
     Route::get('/dashboard', [DashboardAdminController::class, 'index']);
     
@@ -122,6 +126,16 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/courses/{id}/actions/{action}', [CourseAdminController::class, 'quickAction']);
     Route::post('/courses/{id}/modules/reorder', [CourseAdminController::class, 'reorderModules']);
     Route::get('/courses/{id}/preview', [CourseAdminController::class, 'preview']);
+
+    // Course maps (folders to group courses)
+    Route::get('/course-maps', [CourseMapAdminController::class, 'index']);
+    Route::get('/course-maps/{id}', [CourseMapAdminController::class, 'show']);
+    Route::post('/course-maps', [CourseMapAdminController::class, 'store']);
+    Route::put('/course-maps/{id}', [CourseMapAdminController::class, 'update']);
+    Route::delete('/course-maps/{id}', [CourseMapAdminController::class, 'destroy']);
+    Route::post('/course-maps/{id}/courses', [CourseMapAdminController::class, 'attachCourses']);
+    Route::delete('/course-maps/{id}/courses/{courseId}', [CourseMapAdminController::class, 'detachCourse']);
+    Route::post('/course-maps/{id}/courses/reorder', [CourseMapAdminController::class, 'reorderCourses']);
 
     // Media Library (Admin)
     Route::get('/media', [MediaAdminController::class, 'index']);
@@ -243,6 +257,7 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/users', [UserAdminController::class, 'store']);
     Route::put('/users/{id}', [UserAdminController::class, 'update']);
     Route::delete('/users/{id}', [UserAdminController::class, 'destroy']);
+    Route::post('/users/{id}/restore', [UserAdminController::class, 'restore']);
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
@@ -257,6 +272,9 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, 'throttl
     Route::post('/team-members/{id}/remove-from-team', [UserAdminController::class, 'removeFromTeam']);
     
     
+    // Statistici (doar admin)
+    Route::get('/statistics/course-test-detail', [StatisticsAdminController::class, 'courseTestDetail']);
+
     // Activity Logs
     Route::get('/activity-logs', [ActivityLogAdminController::class, 'index']);
     Route::get('/activity-logs/{id}', [ActivityLogAdminController::class, 'show']);

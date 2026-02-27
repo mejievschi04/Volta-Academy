@@ -6,7 +6,7 @@
 /* Global Light Theme Overrides - Replace all white backgrounds */
 [data-theme="light"] {
 	/* Background Colors - More Gray, Less White - WCAG Compliant */
-	--bg-primary: #E5E5E5; /* Medium gray instead of light gray */
+	--bg-primary: rgba(229, 229, 229, 1); /* Medium gray instead of light gray */
 	--bg-sidebar-toggle: #B8B8B8; /* Mai închis pentru butonul expand sidebar */
 	--bg-sidebar-toggle-hover: #A8A8A8; /* Hover pe butonul expand */
 	--bg-secondary: #D5D5D5; /* Darker gray for subtle elevation */
@@ -25,7 +25,7 @@
 	--text-disabled: #9CA3AF;
 
 	/* Border Colors - Defined for better separation */
-	--border-primary: #C8C8C8;
+	--border-primary: rgba(200, 200, 200, 1);
 	--border-secondary: #B8B8B8;
 }
 
@@ -162,14 +162,15 @@
 	border-color: #C8C8C8 !important;
 }
 
-/* Desktop sidebar expand - fundal mai închis */
+/* Desktop sidebar expand - fundal aliniat cu nav (rgba 229) */
 [data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle {
-	background-color: #B8B8B8 !important;
-	background: #B8B8B8 !important;
+	background-color: rgba(229, 229, 229, 1) !important;
+	background: rgba(229, 229, 229, 1) !important;
+	box-shadow: none !important;
 }
 [data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle:hover {
-	background-color: #A8A8A8 !important;
-	background: #A8A8A8 !important;
+	background-color: #F0F0F0 !important;
+	background: #F0F0F0 !important;
 }
 
 /* Mobile sidebar toggle - same as topnav */

@@ -4,6 +4,12 @@ import { logger } from "./utils/logger";
 // Get API URL from environment variable, fallback to proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
+/** Optional: set by ToastProvider so 5xx/network errors show a toast */
+let apiErrorNotifier = null;
+export function setApiErrorNotifier(fn) {
+  apiErrorNotifier = typeof fn === "function" ? fn : null;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // dacă folosești cookie-uri / sesiuni
@@ -43,9 +49,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Don't log 401 errors for /auth/me - this is normal when user is not authenticated
     const isAuthMe401 = error.response?.status === 401 && error.config?.url === '/auth/me';
-    
+    const status = error.response?.status;
+    const is5xx = status >= 500 && status < 600;
+    const isNetwork = error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
+
     if (!isAuthMe401) {
       logger.api.error('API Response Error:', error);
       if (error.code === 'ECONNABORTED') {
@@ -56,7 +64,26 @@ api.interceptors.response.use(
         logger.api.error('Server error:', error.response.status, error.response.data);
       }
     }
-    // For /auth/me 401, silently reject (this is expected behavior)
+
+    // Show toast for 5xx or network errors so user gets feedback
+    if (apiErrorNotifier && (is5xx || isNetwork)) {
+      let message = 'Eroare la comunicarea cu serverul.';
+      if (error.code === 'ECONNABORTED') {
+        message = 'Serverul nu răspunde la timp. Încearcă din nou.';
+      } else if (error.code === 'ERR_NETWORK') {
+        message = 'Eroare de rețea. Verifică conexiunea sau dacă serverul rulează.';
+      } else if (is5xx && (error.response?.data?.message || error.response?.data?.error)) {
+        message = error.response.data.message || error.response.data.error;
+      } else if (is5xx) {
+        message = `Eroare server (${status}). Încearcă mai târziu.`;
+      }
+      try {
+        apiErrorNotifier(message, 'error', 6000);
+      } catch (e) {
+        logger.api.error('apiErrorNotifier failed', e);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -5,10 +5,10 @@ import { useToast } from '../../contexts/ToastContext';
 import AdminTestReviewsPage from './AdminTestReviewsPage';
 import VoltInstructor from '../../components/admin/VoltInstructor';
 
-const AdminTestsPage = () => {
+const AdminTestsPage = ({ embedded, reviewsTab = false, onSubTabChange }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const isReviewsTab = location.pathname === '/admin/tests/reviews';
+	const isReviewsTab = embedded ? reviewsTab : location.pathname === '/admin/tests/reviews';
 	const { showToast } = useToast();
 	const [tests, setTests] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -178,39 +178,82 @@ const AdminTestsPage = () => {
 					</div>
 					<div className="admin-courses-header-actions" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
 						<nav className="admin-tests-tabs" style={{ display: 'flex', gap: 'var(--space-1)', marginRight: 'var(--space-4)' }}>
-							<NavLink
-								to="/admin/tests"
-								end
-								className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
-								style={({ isActive }) => ({
-									padding: 'var(--space-2) var(--space-4)',
-									borderRadius: 'var(--radius-md)',
-									fontSize: 'var(--font-size-sm)',
-									fontWeight: 500,
-									textDecoration: 'none',
-									color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
-									background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-									border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
-								})}
-							>
-								Lista teste
-							</NavLink>
-							<NavLink
-								to="/admin/tests/reviews"
-								className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
-								style={({ isActive }) => ({
-									padding: 'var(--space-2) var(--space-4)',
-									borderRadius: 'var(--radius-md)',
-									fontSize: 'var(--font-size-sm)',
-									fontWeight: 500,
-									textDecoration: 'none',
-									color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
-									background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-									border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
-								})}
-							>
-								Verificări manuale
-							</NavLink>
+							{embedded && onSubTabChange ? (
+								<>
+									<button
+										type="button"
+										className={`admin-tests-tab ${!isReviewsTab ? 'active' : ''}`}
+										style={{
+											padding: 'var(--space-2) var(--space-4)',
+											borderRadius: 'var(--radius-md)',
+											fontSize: 'var(--font-size-sm)',
+											fontWeight: 500,
+											textDecoration: 'none',
+											color: !isReviewsTab ? 'var(--color-primary)' : 'var(--text-secondary)',
+											background: !isReviewsTab ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+											border: `1px solid ${!isReviewsTab ? 'var(--color-primary)' : 'transparent'}`,
+											cursor: 'pointer',
+										}}
+										onClick={() => onSubTabChange('')}
+									>
+										Lista teste
+									</button>
+									<button
+										type="button"
+										className={`admin-tests-tab ${isReviewsTab ? 'active' : ''}`}
+										style={{
+											padding: 'var(--space-2) var(--space-4)',
+											borderRadius: 'var(--radius-md)',
+											fontSize: 'var(--font-size-sm)',
+											fontWeight: 500,
+											textDecoration: 'none',
+											color: isReviewsTab ? 'var(--color-primary)' : 'var(--text-secondary)',
+											background: isReviewsTab ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+											border: `1px solid ${isReviewsTab ? 'var(--color-primary)' : 'transparent'}`,
+											cursor: 'pointer',
+										}}
+										onClick={() => onSubTabChange('reviews')}
+									>
+										Verificări manuale
+									</button>
+								</>
+							) : (
+								<>
+									<NavLink
+										to="/admin/tests"
+										end
+										className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
+										style={({ isActive }) => ({
+											padding: 'var(--space-2) var(--space-4)',
+											borderRadius: 'var(--radius-md)',
+											fontSize: 'var(--font-size-sm)',
+											fontWeight: 500,
+											textDecoration: 'none',
+											color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+											background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+											border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+										})}
+									>
+										Lista teste
+									</NavLink>
+									<NavLink
+										to="/admin/tests/reviews"
+										className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
+										style={({ isActive }) => ({
+											padding: 'var(--space-2) var(--space-4)',
+											borderRadius: 'var(--radius-md)',
+											fontSize: 'var(--font-size-sm)',
+											fontWeight: 500,
+											textDecoration: 'none',
+											color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+											background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
+											border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+										})}
+									>
+										Verificări manuale
+									</NavLink>
+								</>
+							)}
 						</nav>
 						{!isReviewsTab && (
 							<button className="admin-btn-create-course" onClick={handleCreateTest}>
@@ -308,100 +351,49 @@ const AdminTestsPage = () => {
 						<div className="admin-courses-grid-container">
 							{filteredAndSortedTests.map(test => {
 								const statusBadge = getStatusBadge(test.status);
-								const typeBadge = getTypeBadge(test.type);
-								
 								return (
 									<div
 										key={test.id}
-										className="admin-course-card"
+										className={`admin-course-card admin-course-card-simple ${selectedTests.has(test.id) ? 'selected' : ''}`}
 										onClick={() => navigate(`/admin/tests/${test.id}`)}
 									>
-										{/* Header with badges */}
-										<div className="admin-course-card-header">
-											<div className="admin-course-card-badges">
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: statusBadge.bg,
-														color: statusBadge.color,
-														borderColor: statusBadge.color,
-													}}
-												>
-													{statusBadge.label}
-												</div>
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: typeBadge.bg,
-														color: typeBadge.color,
-														borderColor: typeBadge.color,
-													}}
-												>
-													{typeBadge.label}
-												</div>
-											</div>
-										</div>
-
-										{/* Content */}
-										<div className="admin-course-card-content">
-											<h3 className="admin-course-card-title">{test.title}</h3>
-											{test.description && (
-												<p className="admin-course-card-description">
-													{test.description.length > 100 
-														? test.description.substring(0, 100) + '...' 
-														: test.description}
-												</p>
-											)}
-
-											{/* Stats */}
-											<div className="admin-course-card-stats">
-												<span className="admin-course-card-stat">
-													📝 {test.questions_count || 0} întrebări
-												</span>
-												{test.time_limit_minutes && (
-													<span className="admin-course-card-stat">
-														⏱️ {test.time_limit_minutes} min
-													</span>
-												)}
-												{test.attempts_count > 0 && (
-													<span className="admin-course-card-stat">
-														👥 {test.attempts_count} încercări
-													</span>
-												)}
-											</div>
-										</div>
-
-										{/* Actions */}
-										<div className="admin-course-card-actions">
-											<button
-												className="admin-course-card-action-btn"
-												onClick={(e) => {
+										<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
+											<input
+												type="checkbox"
+												checked={selectedTests.has(test.id)}
+												onChange={(e) => {
 													e.stopPropagation();
-													navigate(`/admin/tests/${test.id}`);
+													handleSelectTest(test.id, e.target.checked);
+												}}
+												className="admin-checkbox-input"
+											/>
+										</div>
+										<div className="admin-course-card-thumbnail">
+											<div className="admin-course-card-thumbnail-placeholder admin-course-card-thumbnail-placeholder-icon-only">📝</div>
+											<div
+												className="admin-course-card-status-badge admin-course-card-status-overlay"
+												style={{
+													backgroundColor: statusBadge.bg,
+													color: statusBadge.color,
+													borderColor: statusBadge.color,
 												}}
 											>
-												✏️ Editează
-											</button>
-											{test.status !== 'published' && (
-												<button
-													className="admin-course-card-action-btn"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleQuickAction(test.id, 'publish');
-													}}
-												>
-													✅ Publică
-												</button>
-											)}
-											<button
-												className="admin-course-card-action-btn va-btn-danger"
-												onClick={(e) => {
-													e.stopPropagation();
-													handleQuickAction(test.id, 'delete');
-												}}
-											>
-												🗑️ Șterge
-											</button>
+												{statusBadge.label}
+											</div>
+										</div>
+										<h3
+											className="admin-course-card-title"
+											onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${test.id}`); }}
+										>
+											{test.title}
+										</h3>
+										<div
+											className="admin-course-card-corner-action"
+											onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${test.id}`); }}
+											title="Deschide test"
+											aria-label="Deschide test"
+										>
+											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 										</div>
 									</div>
 								);

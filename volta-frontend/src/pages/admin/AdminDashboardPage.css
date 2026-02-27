@@ -261,6 +261,51 @@
 /* ============================================
    MAIN GRID
    ============================================ */
+/* Statistici cursuri și teste */
+.admin-dashboard-stats-block {
+	margin-bottom: var(--space-6);
+}
+
+.admin-dashboard-course-test-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: var(--space-4);
+}
+
+.admin-dashboard-ct-stat-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4);
+	box-shadow: var(--shadow-sm);
+}
+
+.admin-dashboard-ct-stat-label {
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin-bottom: var(--space-1);
+}
+
+.admin-dashboard-ct-stat-value {
+	font-size: var(--font-size-2xl);
+	font-weight: 700;
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+}
+
+.admin-dashboard-ct-stat-sublabel {
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+.admin-dashboard-ct-stat-pending {
+	color: var(--color-primary);
+	font-weight: 500;
+}
+
 .admin-dashboard-grid {
 	display: grid;
 	grid-template-columns: 1fr 380px;

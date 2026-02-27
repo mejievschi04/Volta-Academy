@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth, AuthContext } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -63,6 +63,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
+const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage'));
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
 const AdminCourseDetailPage = lazy(() => import('./pages/admin/AdminCourseDetailPage'));
 const AdminEventsPage = lazy(() => import('./pages/admin/AdminEventsPage'));
@@ -81,9 +82,11 @@ const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 // const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
 const AdminTestEditorPage = lazy(() => import('./pages/admin/AdminTestEditorPage'));
+const AdminTestCreationPage = lazy(() => import('./pages/admin/AdminTestCreationPage'));
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
+const AdminContentPage = lazy(() => import('./pages/admin/AdminContentPage'));
 // const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage')); // Removed - will be rebuilt from scratch
 const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
 const ProDashboard = lazy(() => import('./pages/ProDashboard'));
@@ -167,6 +170,9 @@ function Layout({ children }) {
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
+
+	// Submeniul "Cursuri, Teste & Bănci" se deschide doar la click pe parent
+	const [contentSubmenuOpen, setContentSubmenuOpen] = React.useState(false);
 
 	// Detect mobile viewport
 	const [isMobile, setIsMobile] = React.useState(() => window.innerWidth <= 768);
@@ -320,31 +326,28 @@ function Layout({ children }) {
 			)
 		},
 		{
-			path: '/admin/courses',
-			label: 'Cursuri',
+			path: '/admin/statistics',
+			label: 'Statistici',
+			icon: (
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+					<path d="M18 9L13 14L9 10L7 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			)
+		},
+		{
+			path: '/admin/content',
+			label: 'Cursuri, Teste & Bănci',
 			icon: (
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
-			)
-		},
-		{
-			path: '/admin/tests',
-			label: 'Teste',
-			icon: (
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-				</svg>
-			)
-		},
-		{
-			path: '/admin/question-banks',
-			label: 'Banci de întrebări',
-			icon: (
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H20V18M20 18V21M9 7H15M9 11H15M9 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-				</svg>
-			)
+			),
+			children: [
+				{ path: '/admin/content', search: '?tab=courses', label: 'Cursuri' },
+				{ path: '/admin/content', search: '?tab=tests', label: 'Teste' },
+				{ path: '/admin/content', search: '?tab=banks', label: 'Bănci de întrebări' },
+			]
 		},
 		{
 			path: '/admin/events',
@@ -431,23 +434,76 @@ function Layout({ children }) {
 
 						<nav className="modern-nav va-sidebar-nav">
 							{adminNavItems.map((item) => (
-								<NavLink
-									key={item.path}
-									to={item.path}
-									data-tooltip={!isSidebarExpanded ? item.label : undefined}
-									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
-									end={item.path === '/admin'}
-									onMouseEnter={() => prefetchRoute(item.path)}
-									onClick={() => {
-										// Close sidebar on mobile when clicking a link
-										if (window.innerWidth <= 768) {
-											setIsSidebarExpanded(false);
-										}
-									}}
-								>
-									<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-									<span className="modern-nav-item-label va-nav-label">{item.label}</span>
-								</NavLink>
+								item.children ? (
+									<div key={item.path} className="modern-nav-group va-nav-group">
+										{isSidebarExpanded ? (
+											<button
+												type="button"
+												className={`modern-nav-item modern-nav-group-label va-nav-btn ${contentSubmenuOpen ? 'submenu-open' : ''}`}
+												aria-expanded={contentSubmenuOpen}
+												aria-haspopup="true"
+												data-tooltip={undefined}
+												onClick={() => setContentSubmenuOpen((o) => !o)}
+												onMouseEnter={() => prefetchRoute(item.path)}
+											>
+												<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
+												<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+												<span className="modern-nav-submenu-chevron" aria-hidden>
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+												</span>
+											</button>
+										) : (
+											<NavLink
+												to={item.path}
+												data-tooltip={item.label}
+												className={({ isActive }) => ['modern-nav-item', 'modern-nav-group-label', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
+												onMouseEnter={() => prefetchRoute(item.path)}
+												onClick={() => { if (window.innerWidth <= 768) setIsSidebarExpanded(false); }}
+											>
+												<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
+												<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+											</NavLink>
+										)}
+										{isSidebarExpanded && contentSubmenuOpen && (
+											<div className="modern-nav-submenu">
+												{item.children.map((child) => {
+													const childTab = child.search ? new URLSearchParams(child.search).get('tab') : null;
+													const currentTab = new URLSearchParams(location.search).get('tab');
+													const isChildActive = location.pathname === child.path && (!childTab || currentTab === childTab);
+													return (
+														<Link
+															key={child.path + (child.search || '')}
+															to={{ pathname: child.path, search: child.search || '' }}
+															className={['modern-nav-item', 'modern-nav-subitem', 'va-nav-btn', isChildActive ? 'active is-active' : ''].join(' ').trim()}
+															aria-current={isChildActive ? 'page' : undefined}
+															onMouseEnter={() => prefetchRoute(child.path)}
+															onClick={() => {
+																if (window.innerWidth <= 768) setIsSidebarExpanded(false);
+															}}
+														>
+															<span className="modern-nav-item-label va-nav-label">{child.label}</span>
+														</Link>
+													);
+												})}
+											</div>
+										)}
+									</div>
+								) : (
+									<NavLink
+										key={item.path}
+										to={item.path}
+										data-tooltip={!isSidebarExpanded ? item.label : undefined}
+										className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
+										end={item.path === '/admin'}
+										onMouseEnter={() => prefetchRoute(item.path)}
+										onClick={() => {
+											if (window.innerWidth <= 768) setIsSidebarExpanded(false);
+										}}
+									>
+										<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
+										<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+									</NavLink>
+								)
 							))}
 						</nav>
 
@@ -630,11 +686,15 @@ function Layout({ children }) {
 							{user && (
 								<div className="admin-topnav-user">
 									<div className="admin-topnav-user-avatar">
-										{user.name
-											?.split(' ')
-											.map((n) => n[0])
-											.join('')
-											.toUpperCase() || 'A'}
+										{user.avatar ? (
+											<img src={user.avatar} alt={user.name || ''} />
+										) : (
+											user.name
+												?.split(' ')
+												.map((n) => n[0])
+												.join('')
+												.toUpperCase() || 'A'
+										)}
 									</div>
 									<div className="admin-topnav-user-info">
 										<p className="admin-topnav-user-name">{user.name || 'Administrator'}</p>
@@ -902,11 +962,15 @@ function Layout({ children }) {
 									{/* User Info - Desktop only */}
 									<div className="admin-topnav-user desktop-only">
 										<div className="admin-topnav-user-avatar">
-											{user.name
-												?.split(' ')
-												.map((n) => n[0])
-												.join('')
-												.toUpperCase() || 'U'}
+											{user.avatar ? (
+												<img src={user.avatar} alt={user.name || ''} />
+											) : (
+												user.name
+													?.split(' ')
+													.map((n) => n[0])
+													.join('')
+													.toUpperCase() || 'U'
+											)}
 										</div>
 										<div className="admin-topnav-user-info">
 											<p className="admin-topnav-user-name">{user.name || 'Utilizator'}</p>
@@ -1195,14 +1259,28 @@ function App() {
 										}
 									/>
 									<Route
-										path="/admin/courses"
+										path="/admin/statistics"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<AdminCoursesPage />
+													<AdminStatisticsPage />
 												</Suspense>
 											</AdminRoute>
 										}
+									/>
+									<Route
+										path="/admin/content"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<AdminContentPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/courses"
+										element={<Navigate to="/admin/content?tab=courses" replace />}
 									/>
 									{/* Course Creation Route */}
 									<Route
@@ -1287,33 +1365,21 @@ function App() {
 											</AdminRoute>
 										}
 									/>
-									{/* Test Routes */}
-									<Route
-										path="/admin/tests"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminTestsPage />
-												</Suspense>
-											</AdminRoute>
-										}
-									/>
+									{/* Test list/reviews redirect to content page */}
 									<Route
 										path="/admin/tests/reviews"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminTestsPage />
-												</Suspense>
-											</AdminRoute>
-										}
+										element={<Navigate to="/admin/content?tab=tests&sub=reviews" replace />}
+									/>
+									<Route
+										path="/admin/tests"
+										element={<Navigate to="/admin/content?tab=tests" replace />}
 									/>
 									<Route
 										path="/admin/tests/new"
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<AdminTestEditorPage />
+													<AdminTestCreationPage />
 												</Suspense>
 											</AdminRoute>
 										}
@@ -1328,16 +1394,10 @@ function App() {
 											</AdminRoute>
 										}
 									/>
-									{/* Question Bank Routes */}
+									{/* Question Bank list redirect; builder routes below */}
 									<Route
 										path="/admin/question-banks"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminQuestionBanksPage />
-												</Suspense>
-											</AdminRoute>
-										}
+										element={<Navigate to="/admin/content?tab=banks" replace />}
 									/>
 									<Route
 										path="/admin/question-banks/new/builder"

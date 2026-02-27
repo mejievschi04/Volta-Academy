@@ -432,15 +432,17 @@ class ExamController extends Controller
 
             $answers = $request->input('answers', []);
             
-            // Calculate score
+            // Calculate score and count correct answers (for statistics: X din Y întrebări)
             $score = 0;
             $totalPoints = 0;
+            $correctAnswersCount = 0;
             $needsManualReview = false;
-            
+            $totalQuestions = $questions->count();
+
             foreach ($questions as $question) {
                 $points = $question->points ?? 1;
                 $totalPoints += $points;
-                
+
                 if (in_array($question->type ?? '', ['short_answer', 'essay'], true)) {
                     $needsManualReview = true;
                 } else {
@@ -449,18 +451,19 @@ class ExamController extends Controller
                     if (!is_array($questionAnswers)) {
                         $questionAnswers = [];
                     }
-                    
+
                     $correctAnswerIndex = null;
-                    
+
                     foreach ($questionAnswers as $idx => $answer) {
                         if (is_array($answer) && ($answer['is_correct'] ?? false)) {
                             $correctAnswerIndex = $idx;
                             break;
                         }
                     }
-                    
+
                     if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
                         $score += $points;
+                        $correctAnswersCount++;
                     }
                 }
             }
@@ -485,6 +488,8 @@ class ExamController extends Controller
                 'attempt_number' => $nextAttempt,
                 'score' => $score,
                 'max_score' => $totalPoints,
+                'correct_answers_count' => $correctAnswersCount,
+                'total_questions' => $totalQuestions,
                 'percentage' => $percentage,
                 'passed' => $passed,
                 'answers' => $answers,

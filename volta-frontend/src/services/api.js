@@ -166,6 +166,20 @@ export const profileService = {
     const response = await api.get('/profile');
     return response.data;
   },
+
+  uploadAvatar: async (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/profile/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  removeAvatar: async () => {
+    const response = await api.delete('/profile/avatar');
+    return response.data;
+  },
 };
 
 export const eventsService = {
@@ -569,6 +583,53 @@ export const adminService = {
     return response.data;
   },
 
+  // Course maps (folders to group courses)
+  getStatisticsCourseTestDetail: async (params = {}) => {
+    const response = await api.get('/admin/statistics/course-test-detail', { params });
+    return response.data;
+  },
+
+  getCourseMaps: async (params = {}) => {
+    const response = await api.get('/admin/course-maps', { params });
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data?.data && Array.isArray(data.data)) return data.data;
+    return [];
+  },
+
+  getCourseMap: async (id) => {
+    const response = await api.get(`/admin/course-maps/${id}`);
+    return response.data;
+  },
+
+  createCourseMap: async (payload) => {
+    const response = await api.post('/admin/course-maps', payload);
+    return response.data;
+  },
+
+  updateCourseMap: async (id, payload) => {
+    const response = await api.put(`/admin/course-maps/${id}`, payload);
+    return response.data;
+  },
+
+  deleteCourseMap: async (id) => {
+    await api.delete(`/admin/course-maps/${id}`);
+  },
+
+  attachCoursesToMap: async (mapId, courseIds) => {
+    const response = await api.post(`/admin/course-maps/${mapId}/courses`, { course_ids: courseIds });
+    return response.data;
+  },
+
+  detachCourseFromMap: async (mapId, courseId) => {
+    await api.delete(`/admin/course-maps/${mapId}/courses/${courseId}`);
+  },
+
+  reorderCourseMapCourses: async (mapId, order) => {
+    const response = await api.post(`/admin/course-maps/${mapId}/courses/reorder`, { order });
+    return response.data;
+  },
+
   // Question Banks
   getQuestionBanks: async (params = {}) => {
     const response = await api.get('/admin/question-banks', { params });
@@ -750,6 +811,11 @@ export const adminService = {
   
   deleteUser: async (id) => {
     const response = await api.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  restoreUser: async (id) => {
+    const response = await api.post(`/admin/users/${id}/restore`);
     return response.data;
   },
 

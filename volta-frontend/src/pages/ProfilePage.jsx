@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { profileService, adminService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const ProfilePage = () => {
 	const { userId } = useParams(); // Optional user ID from URL
 	const navigate = useNavigate();
-	const { user: currentUser } = useAuth();
+	const { user: currentUser, checkAuth } = useAuth();
+	const { showToast } = useToast();
+	const fileInputRef = useRef(null);
 	const [profileData, setProfileData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [uploadingAvatar, setUploadingAvatar] = useState(false);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -49,6 +53,47 @@ const ProfilePage = () => {
 		fetchData();
 	}, [userId, isViewingOtherUser]);
 
+	const handleAvatarChange = async (e) => {
+		const file = e.target?.files?.[0];
+		if (!file || !file.type.startsWith('image/')) {
+			showToast('Alege o imagine (JPG, PNG, GIF sau WebP)', 'error');
+			return;
+		}
+		if (file.size > 2 * 1024 * 1024) {
+			showToast('Imaginea trebuie să aibă maxim 2 MB', 'error');
+			return;
+		}
+		try {
+			setUploadingAvatar(true);
+			const data = await profileService.uploadAvatar(file);
+			if (data?.user) {
+				setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, avatar: data.user.avatar } } : prev);
+				await checkAuth();
+				showToast('Poza de profil a fost actualizată', 'success');
+			}
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Eroare la încărcarea pozei', 'error');
+		} finally {
+			setUploadingAvatar(false);
+			if (fileInputRef.current) fileInputRef.current.value = '';
+		}
+	};
+
+	const handleRemoveAvatar = async () => {
+		if (!window.confirm('Ștergi poza de profil?')) return;
+		try {
+			setUploadingAvatar(true);
+			await profileService.removeAvatar();
+			setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, avatar: null } } : prev);
+			await checkAuth();
+			showToast('Poza de profil a fost ștearsă', 'success');
+		} catch (err) {
+			showToast('Eroare la ștergerea pozei', 'error');
+		} finally {
+			setUploadingAvatar(false);
+		}
+	};
+
 	if (loading) { return null; }
 
 		if (error || !profileData) {
@@ -83,14 +128,54 @@ const ProfilePage = () => {
 			<div className="va-profile-header">
 				<div className="va-profile-cover"></div>
 				<div className="va-profile-info">
-					<div className="va-profile-avatar">
-						<div className="va-profile-avatar-inner">
-							{profileData.user.name
-								.split(' ')
-								.map((n) => n[0])
-								.join('')
-								.toUpperCase()}
+					<div className="va-profile-avatar-wrap">
+						<div className="va-profile-avatar">
+							{profileData.user.avatar ? (
+								<img
+									src={profileData.user.avatar}
+									alt={profileData.user.name}
+									className="va-profile-avatar-img"
+								/>
+							) : (
+								<div className="va-profile-avatar-inner">
+									{profileData.user.name
+										.split(' ')
+										.map((n) => n[0])
+										.join('')
+										.toUpperCase()}
+								</div>
+							)}
 						</div>
+						{!isViewingOtherUser && (
+							<div className="va-profile-avatar-actions">
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept="image/jpeg,image/png,image/gif,image/webp"
+									className="va-profile-avatar-input"
+									onChange={handleAvatarChange}
+									disabled={uploadingAvatar}
+								/>
+								<button
+									type="button"
+									className="va-profile-avatar-btn"
+									onClick={() => fileInputRef.current?.click()}
+									disabled={uploadingAvatar}
+								>
+									{uploadingAvatar ? 'Se încarcă...' : 'Schimbă poza'}
+								</button>
+								{profileData.user.avatar && (
+									<button
+										type="button"
+										className="va-profile-avatar-btn va-profile-avatar-btn-remove"
+										onClick={handleRemoveAvatar}
+										disabled={uploadingAvatar}
+									>
+										Șterge poza
+									</button>
+								)}
+							</div>
+						)}
 					</div>
 					<div className="va-profile-details">
 						<h1 className="va-profile-name">{profileData.user.name}</h1>

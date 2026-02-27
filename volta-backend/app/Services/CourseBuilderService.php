@@ -216,9 +216,9 @@ class CourseBuilderService
         return ContentBlock::create([
             'lesson_id' => $lesson->id,
             'type' => $data['type'],
-            // `source` is required in DB; allow empty string for "placeholder" blocks.
             'source' => $data['source'] ?? '',
             'metadata' => $data['metadata'] ?? [],
+            'payload' => $data['payload'] ?? null,
             'language' => $data['language'] ?? 'ro',
             'version' => (string)($data['version'] ?? '1'),
             'order' => $data['order'] ?? ($maxOrder + 1),
@@ -523,6 +523,7 @@ class CourseBuilderService
                     'type' => $b['type'] ?? 'text',
                     'source' => $b['source'] ?? '',
                     'metadata' => $b['metadata'] ?? [],
+                    'payload' => $b['payload'] ?? null,
                     'language' => $b['language'] ?? null,
                     'version' => (string)($b['version'] ?? '1'),
                     'order' => (int)($b['order'] ?? 0),
@@ -615,7 +616,10 @@ class CourseBuilderService
             $createData['short_description'] = $data['short_description'] ?? null;
         }
         if (Schema::hasColumn($table, 'access_type')) {
-            $createData['access_type'] = 'free';
+            $createData['access_type'] = $data['access_type'] ?? 'free';
+        }
+        if (Schema::hasColumn($table, 'enrollment_type')) {
+            $createData['enrollment_type'] = $data['enrollment_type'] ?? 'open';
         }
         if (Schema::hasColumn($table, 'price')) {
             $createData['price'] = 0;
@@ -642,6 +646,18 @@ class CourseBuilderService
         }
         if (Schema::hasColumn($table, 'drip_schedule')) {
             $createData['drip_schedule'] = $settings['drip']['schedule'] ?? null;
+        }
+        if (Schema::hasColumn($table, 'estimated_duration_hours')) {
+            $createData['estimated_duration_hours'] = $data['estimated_duration_hours'] ?? null;
+        }
+        if (Schema::hasColumn($table, 'visibility')) {
+            $createData['visibility'] = $data['visibility'] ?? 'public';
+        }
+        if (Schema::hasColumn($table, 'sequential_unlock')) {
+            $createData['sequential_unlock'] = $data['sequential_unlock'] ?? true;
+        }
+        if (Schema::hasColumn($table, 'marketing_tags')) {
+            $createData['marketing_tags'] = is_array($data['marketing_tags'] ?? null) ? $data['marketing_tags'] : [];
         }
 
         $course = Course::create($createData);
@@ -677,6 +693,12 @@ class CourseBuilderService
             'reward_points' => $data['reward_points'] ?? $course->reward_points,
             'settings' => $settings,
         ];
+        if (array_key_exists('access_type', $data)) {
+            $updateData['access_type'] = $data['access_type'];
+        }
+        if (array_key_exists('enrollment_type', $data)) {
+            $updateData['enrollment_type'] = $data['enrollment_type'];
+        }
 
         // Update progression rules if provided
         if (isset($data['progression_rules'])) {

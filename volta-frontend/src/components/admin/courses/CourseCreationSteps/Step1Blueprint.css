@@ -377,3 +377,24 @@
 .step1-btn-add-module:hover {
 	opacity: 0.9;
 }
+
+/* Drag and drop */
+.step1-drag-handle {
+	cursor: grab;
+	background: none;
+	border: none;
+	padding: 0.25rem;
+	color: var(--text-secondary);
+	font-size: 1rem;
+	line-height: 1;
+}
+.step1-drag-handle:active {
+	cursor: grabbing;
+}
+.step1-dragging {
+	opacity: 0.85;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.step1-lesson-item .step1-drag-handle {
+	margin-right: 0.25rem;
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import Modal from '../../components/common/Modal';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -14,10 +15,12 @@ const AdminUsersPage = () => {
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
 	const [editingUser, setEditingUser] = useState(null);
-	const [sortBy, setSortBy] = useState('role'); // 'role', 'name', 'email'
-	const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
-	const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'admin', 'student'
-	const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'active'
+	const [sortBy, setSortBy] = useState('role');
+	const [sortOrder, setSortOrder] = useState('asc');
+	const [roleFilter, setRoleFilter] = useState('all');
+	const [statusFilter, setStatusFilter] = useState('all');
+	const [searchQuery, setSearchQuery] = useState('');
+	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' (coș)
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -41,7 +44,7 @@ const AdminUsersPage = () => {
 
 	useEffect(() => {
 		fetchUsers();
-	}, [statusFilter]);
+	}, [statusFilter, usersView, searchQuery]);
 
 	useEffect(() => {
 		applyFiltersAndSort();
@@ -52,9 +55,10 @@ const AdminUsersPage = () => {
 			setLoading(true);
 			const params = {};
 			if (statusFilter !== 'all') params.status = statusFilter;
+			if (searchQuery.trim()) params.search = searchQuery.trim();
+			if (usersView === 'trash') params.trashed = 1;
 			const data = await adminService.getUsers(params);
-			// Include all users including admins
-			setUsers(data);
+			setUsers(Array.isArray(data) ? data : []);
 		} catch (err) {
 			console.error('Error fetching users:', err);
 			setError('Nu s-au putut încărca utilizatorii');
@@ -181,14 +185,25 @@ const AdminUsersPage = () => {
 	};
 
 	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi acest utilizator?')) return;
-
+		if (!confirm('Utilizatorul va fi mutat în coș și poate fi restabilit ulterior cu tot progresul. Continuă?')) return;
 		try {
 			await adminService.deleteUser(id);
+			showSuccess('Utilizator mutat în coș');
 			fetchUsers();
 		} catch (err) {
 			logger.error('Error deleting user:', err);
-			showError('Eroare la ștergerea utilizatorului: ' + (err.response?.data?.message || err.message));
+			showError('Eroare: ' + (err.response?.data?.message || err.message));
+		}
+	};
+
+	const handleRestore = async (id) => {
+		try {
+			await adminService.restoreUser(id);
+			showSuccess('Utilizator restabilit cu succes');
+			fetchUsers();
+		} catch (err) {
+			logger.error('Error restoring user:', err);
+			showError('Eroare la restabilire: ' + (err.response?.data?.message || err.message));
 		}
 	};
 
@@ -248,16 +263,18 @@ const AdminUsersPage = () => {
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
 					<p className="admin-page-subtitle">Gestionează toți utilizatorii din platformă</p>
 				</div>
-				<button
-					className="lms-btn-primary"
-					onClick={() => {
-						setEditingUser(null);
-						setFormData({ name: '', email: '', password: '', role: 'student', bio: '' });
-						setShowModal(true);
-					}}
-				>
-					+ Adaugă Utilizator
-				</button>
+				{usersView === 'active' && (
+					<button
+						className="lms-btn-primary"
+						onClick={() => {
+							setEditingUser(null);
+							setFormData({ name: '', email: '', password: '', role: 'student', bio: '' });
+							setShowModal(true);
+						}}
+					>
+						+ Adaugă Utilizator
+					</button>
+				)}
 			</div>
 
 			{error && (
@@ -266,8 +283,36 @@ const AdminUsersPage = () => {
 				</div>
 			)}
 
-			{/* Filters */}
+			{/* View toggle: Utilizatori | Coș */}
+			<nav className="admin-users-view-tabs" aria-label="Listă utilizatori sau coș">
+				<button
+					type="button"
+					className={`admin-users-view-tab ${usersView === 'active' ? 'active' : ''}`}
+					onClick={() => setUsersView('active')}
+				>
+					Utilizatori
+				</button>
+				<button
+					type="button"
+					className={`admin-users-view-tab ${usersView === 'trash' ? 'active' : ''}`}
+					onClick={() => setUsersView('trash')}
+				>
+					Coș
+				</button>
+			</nav>
+
+			{/* Căutare și filtre */}
 			<div className="admin-users-filters">
+				<div className="admin-users-search-wrap">
+					<input
+						type="text"
+						className="admin-users-search-input"
+						placeholder="Caută după nume sau email..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						aria-label="Caută utilizatori"
+					/>
+				</div>
 				<div className="admin-users-filter-group">
 					<label className="admin-users-filter-label">Cereri / Status:</label>
 					<select
@@ -335,7 +380,8 @@ const AdminUsersPage = () => {
 								return (
 									<tr
 										key={user.id}
-										onClick={() => navigate(`/admin/users/${user.id}/profile`)}
+										onClick={() => usersView === 'active' && navigate(`/admin/users/${user.id}/profile`)}
+										className={usersView === 'trash' ? 'admin-users-row-trash' : ''}
 									>
 										<td>
 											<div className="admin-users-table-cell-user">
@@ -409,7 +455,17 @@ const AdminUsersPage = () => {
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
-												{(user.status || 'active') === 'pending' ? (
+												{usersView === 'trash' ? (
+													<button
+														className="lms-btn-primary lms-btn-sm"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleRestore(user.id);
+														}}
+													>
+														Restabilește
+													</button>
+												) : (user.status || 'active') === 'pending' ? (
 													<>
 														<button
 															className="lms-btn-primary lms-btn-sm"
@@ -448,7 +504,7 @@ const AdminUsersPage = () => {
 																handleDelete(user.id);
 															}}
 														>
-															Șterge
+															Mută în coș
 														</button>
 													</>
 												)}
@@ -474,25 +530,27 @@ const AdminUsersPage = () => {
 				</table>
 			</div>
 
-			{/* Modal */}
-			{showModal && (
-				<div className="admin-users-modal-overlay" onClick={(e) => {
-					if (e.target === e.currentTarget) {
-						setShowModal(false);
-					}
-				}}>
-					<div className="admin-users-modal" onClick={(e) => e.stopPropagation()}>
-						<div className="admin-users-modal-header">
-							<h2 className="admin-users-modal-title">{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
-							<button
-								type="button"
-								className="admin-users-modal-close"
-								onClick={() => setShowModal(false)}
-								title="Închide"
-							>
-								×
-							</button>
-						</div>
+			{/* Modal – componentă accesibilă (focus trap, Escape, ARIA) */}
+			<Modal
+				isOpen={showModal}
+				onClose={() => setShowModal(false)}
+				ariaLabelledby="admin-users-modal-title"
+				closeOnBackdropClick
+				className="admin-users-modal-overlay"
+			>
+				<div className="admin-users-modal">
+					<div className="admin-users-modal-header">
+						<h2 id="admin-users-modal-title" className="admin-users-modal-title">{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
+						<button
+							type="button"
+							className="admin-users-modal-close"
+							onClick={() => setShowModal(false)}
+							title="Închide"
+							aria-label="Închide"
+						>
+							×
+						</button>
+					</div>
 						<div className="admin-users-modal-body">
 							<form onSubmit={handleSubmit} className="admin-users-modal-form">
 								<div className="admin-form-group">
@@ -577,9 +635,8 @@ const AdminUsersPage = () => {
 								</div>
 							</form>
 						</div>
-					</div>
 				</div>
-			)}
+			</Modal>
 		</div>
 	);
 };

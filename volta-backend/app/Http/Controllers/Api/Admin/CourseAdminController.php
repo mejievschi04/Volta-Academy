@@ -75,9 +75,19 @@ class CourseAdminController extends Controller
         }
 
 
-        // Instructor filter
-        if ($request->has('instructor') && $request->instructor) {
+        // Instructor: doar cursurile proprii
+        if (auth()->user()->isInstructor()) {
+            $query->where('teacher_id', auth()->id());
+        } elseif ($request->has('instructor') && $request->instructor) {
             $query->where('teacher_id', $request->instructor);
+        }
+
+        // Filter by course map (cursuri din această mapă)
+        if ($request->has('course_map_id') && Schema::hasTable('course_map_course')) {
+            $mapId = (int) $request->course_map_id;
+            if ($mapId > 0) {
+                $query->whereHas('courseMaps', fn ($q) => $q->where('course_maps.id', $mapId));
+            }
         }
 
         // Level filter (if level column exists)
@@ -131,6 +141,21 @@ class CourseAdminController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normalize marketing_tags from request (array or JSON string from FormData).
+     */
+    private function normalizeMarketingTags($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        return [];
     }
 
     private function addCourseMetrics($course)
@@ -219,6 +244,10 @@ class CourseAdminController extends Controller
     public function show($id)
     {
         try {
+            $course = Course::findOrFail($id);
+            if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+                abort(403, 'Acces interzis. Poți accesa doar cursurile tale.');
+            }
             // Load course with all relationships
             $course = Course::with([
                 'modules' => function($query) {
@@ -235,7 +264,7 @@ class CourseAdminController extends Controller
                     $query->with('questions');
                 }
             ])->findOrFail($id);
-            
+
             // Add counts
             $course->modules_count = $course->modules->count();
             $course->lessons_count = $course->modules->sum(function($module) {
@@ -339,11 +368,13 @@ class CourseAdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'short_description' => 'nullable|string|max:200',
+            'category' => 'nullable|string|max:100',
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'status' => 'nullable|in:draft,published,archived',
             'access_type' => 'nullable|in:free',
+            'enrollment_type' => 'nullable|string|in:open,by_invite,paid',
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'level' => 'nullable|in:beginner,intermediate,advanced',
@@ -356,7 +387,7 @@ class CourseAdminController extends Controller
             'meta_title' => 'nullable|string|max:60',
             'meta_description' => 'nullable|string|max:160',
             'meta_keywords' => 'nullable|array',
-            'marketing_tags' => 'nullable|array',
+            'marketing_tags' => 'nullable', // array or JSON string (FormData)
             // Certificate
             'has_certificate' => 'nullable|boolean',
             'min_test_score' => 'nullable|integer|min:0|max:100',
@@ -371,14 +402,20 @@ class CourseAdminController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
+        if (auth()->user()->isInstructor()) {
+            $validated['teacher_id'] = auth()->id();
+        }
+
         $data = [
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'short_description' => $validated['short_description'] ?? null,
+            'category' => $validated['category'] ?? null,
             'teacher_id' => $validated['teacher_id'] ?? null,
             'reward_points' => $validated['reward_points'] ?? 50,
             'status' => $validated['status'] ?? 'draft',
-            'access_type' => 'free', // All courses are free
+            'access_type' => $validated['access_type'] ?? 'free',
+            'enrollment_type' => $validated['enrollment_type'] ?? 'open',
             'price' => 0,
             'currency' => $validated['currency'] ?? 'RON',
             'level' => $validated['level'] ?? null,
@@ -391,7 +428,7 @@ class CourseAdminController extends Controller
             'meta_title' => $validated['meta_title'] ?? null,
             'meta_description' => $validated['meta_description'] ?? null,
             'meta_keywords' => $validated['meta_keywords'] ?? [],
-            'marketing_tags' => $validated['marketing_tags'] ?? [],
+            'marketing_tags' => $this->normalizeMarketingTags($validated['marketing_tags'] ?? null),
             // Certificate
             'has_certificate' => $validated['has_certificate'] ?? false,
             'min_test_score' => $validated['min_test_score'] ?? $validated['min_exam_score'] ?? 70, // Support both old and new field names
@@ -424,15 +461,20 @@ class CourseAdminController extends Controller
     public function update(Request $request, $id)
     {
         $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți edita doar cursurile tale.');
+        }
 
         $rules = [
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'short_description' => 'nullable|string|max:200',
+            'category' => 'nullable|string|max:100',
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
             'status' => 'nullable|in:draft,published,archived,disabled',
             'access_type' => 'nullable|in:free',
+            'enrollment_type' => 'nullable|string|in:open,by_invite,paid',
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'level' => 'nullable|in:beginner,intermediate,advanced',
@@ -445,7 +487,7 @@ class CourseAdminController extends Controller
             'meta_title' => 'nullable|string|max:60',
             'meta_description' => 'nullable|string|max:160',
             'meta_keywords' => 'nullable|array',
-            'marketing_tags' => 'nullable|array',
+            'marketing_tags' => 'nullable', // array or JSON string (FormData)
             // Certificate
             'has_certificate' => 'nullable|boolean',
             'min_test_score' => 'nullable|integer|min:0|max:100',
@@ -471,10 +513,14 @@ class CourseAdminController extends Controller
 
         $validated = $request->validate($rules);
 
+        if (auth()->user()->isInstructor()) {
+            $validated['teacher_id'] = auth()->id();
+        }
+
         $data = [];
         $fields = [
             'title', 'description', 'short_description', 'teacher_id', 'reward_points',
-            'status', 'access_type', 'price', 'currency', 'level',
+            'status', 'access_type', 'enrollment_type', 'price', 'currency', 'level',
             'objectives', 'requirements', 'estimated_duration_hours',
             'sequential_unlock', 'min_completion_percentage',
             // SEO & Marketing
@@ -487,10 +533,12 @@ class CourseAdminController extends Controller
         
         foreach ($fields as $field) {
             if (isset($validated[$field])) {
-                $data[$field] = $validated[$field];
+                $data[$field] = $field === 'marketing_tags'
+                    ? $this->normalizeMarketingTags($validated[$field])
+                    : $validated[$field];
             }
         }
-        
+
         // Force access_type to 'free' and price to 0
         $data['access_type'] = 'free';
         $data['price'] = 0;
@@ -519,6 +567,9 @@ class CourseAdminController extends Controller
     public function destroy($id)
     {
         $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți șterge doar cursurile tale.');
+        }
         $this->courseBuilderService->deleteCourse($course);
 
         return response()->json([
@@ -529,13 +580,16 @@ class CourseAdminController extends Controller
     public function getTeachers()
     {
         try {
-            // Check if users table exists
             if (!Schema::hasTable('users')) {
                 return response()->json([]);
             }
-            
+            if (auth()->user()->isInstructor()) {
+                $teachers = User::where('id', auth()->id())->get(['id', 'name', 'email']);
+                return response()->json($teachers);
+            }
             $teachers = User::where('role', 'teacher')
                 ->orWhere('role', 'admin')
+                ->orWhere('role', 'instructor')
                 ->get(['id', 'name', 'email']);
 
             return response()->json($teachers);
@@ -555,6 +609,9 @@ class CourseAdminController extends Controller
     public function attachTeams(Request $request, $id)
     {
         $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'team_ids' => 'required|array',
@@ -573,6 +630,9 @@ class CourseAdminController extends Controller
     public function quickAction(Request $request, $id, $action)
     {
         $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         switch ($action) {
             case 'publish':
@@ -627,7 +687,11 @@ class CourseAdminController extends Controller
                 'action' => 'required|in:publish,archive,disable,delete,unpublish',
             ]);
 
-            $courses = Course::whereIn('id', $validated['course_ids'])->get();
+            $query = Course::whereIn('id', $validated['course_ids']);
+            if (auth()->user()->isInstructor()) {
+                $query->where('teacher_id', auth()->id());
+            }
+            $courses = $query->get();
 
             if ($courses->isEmpty()) {
                 return response()->json([
@@ -717,6 +781,9 @@ class CourseAdminController extends Controller
     public function reorderModules(Request $request, $id)
     {
         $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
 
         $validated = $request->validate([
             'module_ids' => 'required|array',
@@ -747,9 +814,13 @@ class CourseAdminController extends Controller
         ]);
     }
 
-    // Preview course (for admin)
+    // Preview course (for admin / instructor)
     public function preview($id)
     {
+        $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
         $course = Course::with([
             'modules' => function($query) {
                 $query->orderBy('order')->with(['lessons' => function($q) {

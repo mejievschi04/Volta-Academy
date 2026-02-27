@@ -31,7 +31,10 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 	};
 
 	return (
-		<div 
+		<div
+			role="alert"
+			aria-live={type === 'error' || type === 'warning' ? 'assertive' : 'polite'}
+			aria-atomic="true"
 			className={`toast toast-${type}`}
 			onClick={handleClose}
 			style={{
@@ -58,9 +61,14 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 		>
 			<div style={{ fontSize: 'var(--font-size-lg)', flexShrink: 0 }}>{icons[type]}</div>
 			<div className="toast-message" style={{ flex: 1, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>{message}</div>
-			<button 
-				className="toast-close" 
-				onClick={handleClose}
+			<button
+				type="button"
+				className="toast-close"
+				aria-label="Închide notificare"
+				onClick={(e) => {
+					e.stopPropagation();
+					handleClose();
+				}}
 				style={{
 					width: '20px',
 					height: '20px',
