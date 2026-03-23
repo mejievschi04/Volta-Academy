@@ -1,5 +1,6 @@
 # Multi-stage build pentru Frontend React + Vite
-FROM node:20-alpine AS builder
+# Vite 7 necesită Node ^20.19.0 sau >=22.12.0
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
