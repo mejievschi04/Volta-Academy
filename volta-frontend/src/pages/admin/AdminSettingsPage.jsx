@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const AdminSettingsPage = () => {
 	const { success, error: showError } = useToast();
@@ -14,6 +15,8 @@ const AdminSettingsPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [activeTab, setActiveTab] = useState('general');
+	const [confirmAction, setConfirmAction] = useState(null); // 'clearCache' | { type: 'importBackup', file }
+	const [confirmLoading, setConfirmLoading] = useState(false);
 
 
 	useEffect(() => {
@@ -86,46 +89,49 @@ const AdminSettingsPage = () => {
 		}
 	};
 
-	const handleClearCache = async () => {
-		if (!confirm('Sigur dorești să ștergi cache-ul? Această acțiune nu poate fi anulată.')) {
-			return;
-		}
+	const handleClearCacheClick = () => {
+		setConfirmAction('clearCache');
+	};
+
+	const handleConfirmClearCache = async () => {
+		setConfirmLoading(true);
 		try {
 			await adminService.clearCache();
+			setConfirmAction(null);
 			success('Cache-ul a fost șters cu succes');
 		} catch (err) {
 			console.error('Error clearing cache:', err);
 			showError('Eroare la ștergerea cache-ului');
+		} finally {
+			setConfirmLoading(false);
 		}
 	};
 
-	const handleImportBackup = async (event) => {
+	const handleImportBackupSelect = (event) => {
 		const file = event.target.files[0];
-		if (!file) {
-			return;
-		}
-
+		if (!file) return;
 		if (!file.name.endsWith('.json')) {
 			showError('Fișierul trebuie să fie de tip JSON');
-			return;
-		}
-
-		if (!confirm('ATENȚIE! Importarea backup-ului va suprascrie datele existente. Ești sigur că vrei să continui?')) {
 			event.target.value = '';
 			return;
 		}
+		setConfirmAction({ type: 'importBackup', file });
+		event.target.value = '';
+	};
 
+	const handleConfirmImportBackup = async () => {
+		if (!confirmAction?.file) return;
+		const file = confirmAction.file;
+		setConfirmLoading(true);
 		try {
-			setSaving(true);
 			const result = await adminService.importBackup(file);
+			setConfirmAction(null);
 			success(`Backup-ul a fost importat cu succes! Data backup: ${result.imported_date || 'necunoscută'}`);
-			event.target.value = '';
 		} catch (err) {
 			console.error('Error importing backup:', err);
 			showError(err.response?.data?.message || 'Eroare la importarea backup-ului');
-			event.target.value = '';
 		} finally {
-			setSaving(false);
+			setConfirmLoading(false);
 		}
 	};
 
@@ -192,7 +198,7 @@ const AdminSettingsPage = () => {
 								<div className="admin-settings-toggle">
 									<div className="admin-settings-toggle-info">
 										<label className="admin-settings-toggle-label">
-											Inregistrări Active
+											Înregistrări active
 										</label>
 										<p className="admin-settings-toggle-description">
 											Permite utilizatorilor noi să se înregistreze pe platformă
@@ -265,7 +271,7 @@ const AdminSettingsPage = () => {
 							<div className="admin-settings-actions-grid">
 								<button
 									className="admin-settings-action-btn"
-									onClick={handleClearCache}
+									onClick={handleClearCacheClick}
 								>
 									<span className="admin-settings-action-icon">🗑️</span>
 									<div className="admin-settings-action-content">
@@ -286,7 +292,7 @@ const AdminSettingsPage = () => {
 						<div className="admin-settings-section-header">
 							<h2 className="admin-settings-section-title">
 								<span className="admin-settings-section-icon">💾</span>
-								<span>Backup & Export</span>
+								<span>Backup și export</span>
 							</h2>
 							<p className="admin-settings-section-description">
 								Gestionează backup-urile și exportă datele platformei
@@ -345,7 +351,7 @@ const AdminSettingsPage = () => {
 									<input
 										type="file"
 										accept=".json"
-										onChange={handleImportBackup}
+										onChange={handleImportBackupSelect}
 										disabled={saving}
 										style={{ display: 'none' }}
 									/>
@@ -390,6 +396,20 @@ const AdminSettingsPage = () => {
 					</button>
 				</div>
 			</div>
+
+			<ConfirmModal
+				open={confirmAction === 'clearCache' || confirmAction?.type === 'importBackup'}
+				onClose={() => setConfirmAction(null)}
+				onConfirm={confirmAction === 'clearCache' ? handleConfirmClearCache : handleConfirmImportBackup}
+				title={confirmAction === 'clearCache' ? 'Șterge cache' : 'Importare backup'}
+				message={confirmAction === 'clearCache'
+					? 'Sigur dorești să ștergi cache-ul? Această acțiune nu poate fi anulată.'
+					: 'ATENȚIE! Importarea backup-ului va suprascrie datele existente. Ești sigur că vrei să continui?'}
+				confirmLabel={confirmAction === 'clearCache' ? 'Șterge cache' : 'Importă'}
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={confirmLoading}
+			/>
 		</div>
 	);
 };

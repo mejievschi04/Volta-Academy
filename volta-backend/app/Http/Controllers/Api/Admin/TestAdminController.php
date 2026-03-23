@@ -350,11 +350,13 @@ class TestAdminController extends Controller
             'type' => $validated['type'],
             'content' => $validated['content'] ?? '',
             'answers' => $validated['answers'],
-            'points' => $validated['points'] ?? 1,
+            'points' => $validated['points'] ?? null,
             'order' => $validated['order'] ?? ($maxOrder + 1),
             'explanation' => $validated['explanation'] ?? null,
             'metadata' => $validated['metadata'] ?? null,
         ]);
+
+        $this->autoDistributePointsIfNoManual($test->id);
 
         return response()->json([
             'message' => 'Question added successfully',
@@ -487,6 +489,42 @@ class TestAdminController extends Controller
             'selected' => $selected,
             'note' => 'Preview uses a stable seed. Student attempts use a per-user/per-attempt deterministic seed.',
         ]);
+    }
+
+    /**
+     * Dacă niciuna dintre întrebările testului nu are punctaj manual, distribuie 100 puncte egal.
+     */
+    protected function autoDistributePointsIfNoManual(int $testId): void
+    {
+        $questions = Question::where('test_id', $testId)->orderBy('order')->get(['id', 'points']);
+        $count = $questions->count();
+        if ($count === 0) {
+            return;
+        }
+
+        $hasManualPoints = $questions->contains(function ($q) {
+            return $q->points !== null && $q->points !== '';
+        });
+
+        if ($hasManualPoints) {
+            return;
+        }
+
+        DB::transaction(function () use ($questions, $count) {
+            if ($count > 100) {
+                foreach ($questions as $q) {
+                    Question::where('id', $q->id)->update(['points' => 1]);
+                }
+                return;
+            }
+
+            $base = intdiv(100, $count);
+            $remainder = 100 - ($base * $count);
+            foreach ($questions->values() as $idx => $q) {
+                $points = $base + ($idx < $remainder ? 1 : 0);
+                Question::where('id', $q->id)->update(['points' => $points]);
+            }
+        });
     }
 
     /**

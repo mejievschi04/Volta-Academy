@@ -35,7 +35,7 @@ const ProCourses = () => {
 			<aside className="pro-sidebar" aria-label="Navigare principală">
 				<div className="pro-brand">Volta Pro</div>
 				<nav className="pro-nav">
-					<a href="/home" className="pro-nav-item">Acasă</a>
+					<a href="/courses" className="pro-nav-item">Cursuri</a>
 					<a href="/pro-courses" className="pro-nav-item active">Cursuri</a>
 					<a href="/events" className="pro-nav-item">Evenimente</a>
 					<a href="/profile" className="pro-nav-item">Profil</a>

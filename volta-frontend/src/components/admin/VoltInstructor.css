@@ -169,8 +169,7 @@
 	border-bottom-right-radius: var(--radius-sm);
 }
 
-[data-theme="dark"] .volt-instructor-message-user .volt-instructor-message-content,
-:root:not([data-theme="light"]) .volt-instructor-message-user .volt-instructor-message-content {
+.volt-instructor-message-user .volt-instructor-message-content {
 	color: #000 !important;
 }
 
@@ -314,31 +313,6 @@
 .volt-instructor-quick-action:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
-}
-
-/* Dark theme: negru pe galben, nu alb */
-[data-theme="dark"] .volt-instructor-floating-btn,
-[data-theme="dark"] .volt-instructor-floating-btn .volt-instructor-fox-icon,
-[data-theme="dark"] .volt-instructor-header,
-[data-theme="dark"] .volt-instructor-header *,
-[data-theme="dark"] .volt-instructor-fox-icon,
-[data-theme="dark"] .volt-instructor-toggle,
-[data-theme="dark"] .volt-instructor-primary-action,
-[data-theme="dark"] .volt-instructor-primary-action:hover:not(:disabled),
-:root:not([data-theme="light"]) .volt-instructor-floating-btn,
-:root:not([data-theme="light"]) .volt-instructor-floating-btn .volt-instructor-fox-icon,
-:root:not([data-theme="light"]) .volt-instructor-header,
-:root:not([data-theme="light"]) .volt-instructor-header *,
-:root:not([data-theme="light"]) .volt-instructor-fox-icon,
-:root:not([data-theme="light"]) .volt-instructor-toggle,
-:root:not([data-theme="light"]) .volt-instructor-primary-action,
-:root:not([data-theme="light"]) .volt-instructor-primary-action:hover:not(:disabled) {
-	color: #000 !important;
-}
-
-[data-theme="dark"] .volt-instructor-send-btn,
-:root:not([data-theme="light"]) .volt-instructor-send-btn {
-	color: #000 !important;
 }
 
 /* Mobile */

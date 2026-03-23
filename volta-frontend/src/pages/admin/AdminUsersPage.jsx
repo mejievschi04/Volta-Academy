@@ -4,6 +4,7 @@ import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import Modal from '../../components/common/Modal';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -21,6 +22,8 @@ const AdminUsersPage = () => {
 	const [statusFilter, setStatusFilter] = useState('all');
 	const [searchQuery, setSearchQuery] = useState('');
 	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' (coș)
+	const [confirmAction, setConfirmAction] = useState(null); // { type: 'trash'|'reject', userId }
+	const [confirmLoading, setConfirmLoading] = useState(false);
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -184,15 +187,23 @@ const AdminUsersPage = () => {
 		setShowModal(true);
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm('Utilizatorul va fi mutat în coș și poate fi restabilit ulterior cu tot progresul. Continuă?')) return;
+	const handleDeleteClick = (id) => {
+		setConfirmAction({ type: 'trash', userId: id });
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!confirmAction?.userId) return;
+		setConfirmLoading(true);
 		try {
-			await adminService.deleteUser(id);
+			await adminService.deleteUser(confirmAction.userId);
 			showSuccess('Utilizator mutat în coș');
+			setConfirmAction(null);
 			fetchUsers();
 		} catch (err) {
 			logger.error('Error deleting user:', err);
 			showError('Eroare: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setConfirmLoading(false);
 		}
 	};
 
@@ -218,15 +229,23 @@ const AdminUsersPage = () => {
 		}
 	};
 
-	const handleReject = async (id) => {
-		if (!confirm('Sigur dorești să respingi această cerere? Utilizatorul va fi șters.')) return;
+	const handleRejectClick = (id) => {
+		setConfirmAction({ type: 'reject', userId: id });
+	};
+
+	const handleConfirmReject = async () => {
+		if (!confirmAction?.userId || confirmAction?.type !== 'reject') return;
+		setConfirmLoading(true);
 		try {
-			await adminService.rejectUser(id);
+			await adminService.rejectUser(confirmAction.userId);
 			showSuccess('Cererea a fost respinsă');
+			setConfirmAction(null);
 			fetchUsers();
 		} catch (err) {
 			logger.error('Error rejecting user:', err);
 			showError('Eroare la respingere: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setConfirmLoading(false);
 		}
 	};
 
@@ -480,7 +499,7 @@ const AdminUsersPage = () => {
 															className="lms-btn-secondary lms-btn-sm va-btn-danger"
 															onClick={(e) => {
 																e.stopPropagation();
-																handleReject(user.id);
+																handleRejectClick(user.id);
 															}}
 														>
 															Respinge
@@ -501,7 +520,7 @@ const AdminUsersPage = () => {
 															className="lms-btn-secondary lms-btn-sm va-btn-danger"
 															onClick={(e) => {
 																e.stopPropagation();
-																handleDelete(user.id);
+																handleDeleteClick(user.id);
 															}}
 														>
 															Mută în coș
@@ -637,6 +656,20 @@ const AdminUsersPage = () => {
 						</div>
 				</div>
 			</Modal>
+
+			<ConfirmModal
+				open={!!confirmAction}
+				onClose={() => setConfirmAction(null)}
+				onConfirm={confirmAction?.type === 'reject' ? handleConfirmReject : handleConfirmDelete}
+				title={confirmAction?.type === 'reject' ? 'Respinge cerere' : 'Mutare în coș'}
+				message={confirmAction?.type === 'reject'
+					? 'Sigur dorești să respingi această cerere? Utilizatorul va fi șters.'
+					: 'Utilizatorul va fi mutat în coș și poate fi restabilit ulterior cu tot progresul. Continuă?'}
+				confirmLabel={confirmAction?.type === 'reject' ? 'Respinge' : 'Mută în coș'}
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={confirmLoading}
+			/>
 		</div>
 	);
 };

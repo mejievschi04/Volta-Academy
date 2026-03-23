@@ -16,10 +16,10 @@ const AdminRoute = ({ children }) => {
 	if (user.role !== 'admin') {
 		// Redirect students to their home page
 		if (user.role === 'student' || !user.role || user.role === '') {
-			return <Navigate to="/home" replace />;
+			return <Navigate to="/courses" replace />;
 		}
 		// Redirect other users to home
-		return <Navigate to="/home" replace />;
+		return <Navigate to="/courses" replace />;
 	}
 
 	return children;

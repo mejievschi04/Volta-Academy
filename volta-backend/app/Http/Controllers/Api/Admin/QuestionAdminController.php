@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Question;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class QuestionAdminController extends Controller
 {
@@ -33,6 +34,9 @@ class QuestionAdminController extends Controller
         ]);
 
         $question->update($validated);
+        if ($question->test_id) {
+            $this->autoDistributePointsIfNoManual((int) $question->test_id);
+        }
 
         return response()->json($question->fresh());
     }
@@ -50,11 +54,51 @@ class QuestionAdminController extends Controller
                 abort(403, 'Acces interzis.');
             }
         }
+        $testId = $question->test_id ? (int) $question->test_id : null;
         $question->delete();
+        if ($testId) {
+            $this->autoDistributePointsIfNoManual($testId);
+        }
 
         return response()->json([
             'message' => 'Question deleted successfully',
         ]);
+    }
+
+    /**
+     * Dacă niciuna dintre întrebările testului nu are punctaj manual, distribuie 100 puncte egal.
+     */
+    protected function autoDistributePointsIfNoManual(int $testId): void
+    {
+        $questions = Question::where('test_id', $testId)->orderBy('order')->get(['id', 'points']);
+        $count = $questions->count();
+        if ($count === 0) {
+            return;
+        }
+
+        $hasManualPoints = $questions->contains(function ($q) {
+            return $q->points !== null && $q->points !== '';
+        });
+
+        if ($hasManualPoints) {
+            return;
+        }
+
+        DB::transaction(function () use ($questions, $count) {
+            if ($count > 100) {
+                foreach ($questions as $q) {
+                    Question::where('id', $q->id)->update(['points' => 1]);
+                }
+                return;
+            }
+
+            $base = intdiv(100, $count);
+            $remainder = 100 - ($base * $count);
+            foreach ($questions->values() as $idx => $q) {
+                $points = $base + ($idx < $remainder ? 1 : 0);
+                Question::where('id', $q->id)->update(['points' => $points]);
+            }
+        });
     }
 }
 

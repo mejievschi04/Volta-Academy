@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const AdminQuestionBanksPage = () => {
@@ -22,6 +23,8 @@ const AdminQuestionBanksPage = () => {
 	
 	// Selection
 	const [selectedBanks, setSelectedBanks] = useState(new Set());
+	const [deleteConfirmBankId, setDeleteConfirmBankId] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	// Fetch question banks
 	const fetchBanks = useCallback(async () => {
@@ -79,11 +82,8 @@ const AdminQuestionBanksPage = () => {
 		try {
 			switch (action) {
 				case 'delete':
-					if (window.confirm('Ești sigur că vrei să ștergi această bancă de întrebări?')) {
-						await adminService.deleteQuestionBank(bankId);
-						showToast('Banca de întrebări a fost ștearsă cu succes', 'success');
-					}
-					break;
+					setDeleteConfirmBankId(bankId);
+					return;
 				case 'archive':
 					await adminService.updateQuestionBank(bankId, { status: 'archived' });
 					showToast('Banca de întrebări a fost arhivată', 'success');
@@ -91,10 +91,25 @@ const AdminQuestionBanksPage = () => {
 				default:
 					console.warn('Unknown action:', action);
 			}
-			fetchBanks();
+			if (action !== 'delete') fetchBanks();
 		} catch (err) {
 			console.error('Error performing action:', err);
 			showToast('Eroare la executarea acțiunii', 'error');
+		}
+	};
+
+	const handleConfirmDeleteBank = async () => {
+		if (!deleteConfirmBankId) return;
+		setDeleteLoading(true);
+		try {
+			await adminService.deleteQuestionBank(deleteConfirmBankId);
+			showToast('Banca de întrebări a fost ștearsă cu succes', 'success');
+			setDeleteConfirmBankId(null);
+			fetchBanks();
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Eroare la ștergere', 'error');
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -430,6 +445,18 @@ const AdminQuestionBanksPage = () => {
 						pdfUploadQuestionIndex: 4,
 					},
 				]}
+			/>
+
+			<ConfirmModal
+				open={!!deleteConfirmBankId}
+				onClose={() => setDeleteConfirmBankId(null)}
+				onConfirm={handleConfirmDeleteBank}
+				title="Șterge bancă de întrebări"
+				message="Ești sigur că vrei să ștergi această bancă de întrebări?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
 			/>
 		</div>
 	);

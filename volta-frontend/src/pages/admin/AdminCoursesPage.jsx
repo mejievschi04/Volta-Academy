@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 import CoursesHeader from '../../components/admin/courses/CoursesHeader';
 import CourseListItem from '../../components/admin/courses/CourseListItem';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
@@ -9,6 +10,7 @@ import AdminCourseMapsPage from './AdminCourseMapsPage';
 
 const AdminCoursesPage = ({ embedded }) => {
 	const navigate = useNavigate();
+	const { showToast } = useToast();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -116,7 +118,7 @@ const AdminCoursesPage = ({ embedded }) => {
 			fetchCourses();
 		} catch (err) {
 			console.error('Error performing bulk action:', err);
-			alert('Eroare la executarea acțiunii');
+			showToast(err?.response?.data?.message || 'Eroare la executarea acțiunii', 'error');
 		}
 	};
 
@@ -127,7 +129,7 @@ const AdminCoursesPage = ({ embedded }) => {
 			fetchCourses();
 		} catch (err) {
 			console.error('Error performing quick action:', err);
-			alert('Eroare la executarea acțiunii');
+			showToast(err?.response?.data?.message || 'Eroare la executarea acțiunii', 'error');
 		}
 	};
 

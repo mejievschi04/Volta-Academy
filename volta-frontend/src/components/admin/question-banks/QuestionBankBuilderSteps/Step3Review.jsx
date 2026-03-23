@@ -1,5 +1,10 @@
 import React from 'react';
 
+const getQuestionTypeLabel = (type) => {
+	const labels = { multiple_choice: 'Răspuns multiplu', true_false: 'Adevărat/Fals', short_answer: 'Răspuns scurt' };
+	return labels[type] || type || 'Răspuns multiplu';
+};
+
 const QuestionBankBuilderStep3 = ({ data, onUpdate, errors, bankId, onPublish, loading }) => {
 	// Safety check: ensure data exists
 	if (!data) {
@@ -90,7 +95,7 @@ const QuestionBankBuilderStep3 = ({ data, onUpdate, errors, bankId, onPublish, l
 										#{index + 1}: {question.content || question.text || 'Fără conținut'}
 									</div>
 									<div className="admin-question-item-meta">
-										{question.points || 1} puncte • {question.type || 'multiple_choice'}
+										{question.points || 1} puncte • {getQuestionTypeLabel(question.type)}
 									</div>
 								</div>
 							))}

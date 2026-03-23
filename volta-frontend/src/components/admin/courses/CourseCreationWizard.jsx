@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 import Step0Context from './CourseCreationSteps/Step0Context';
 import Step1Blueprint from './CourseCreationSteps/Step1Blueprint';
 import Step3Content from './CourseCreationSteps/Step3Content';
@@ -10,17 +11,14 @@ import Step5CompletionRules from './CourseCreationSteps/Step5CompletionRules';
 import Step6Review from './CourseCreationSteps/Step6Review';
 import './CourseCreationWizard.css';
 
-/**
- * Course Creation Wizard — 6 steps (instructiuni.md):
- * 1 Course setup, 2 Curriculum, 3 Lesson content, 4 Quiz/assessment, 5 Completion rules, 6 Publishing.
- */
+/** Pași wizard: titlu scurt pentru indicator, descriere pentru claritate */
 const STEPS = [
-	{ id: 0, title: 'Setare curs', shortTitle: 'Setare', icon: '📝' },
-	{ id: 1, title: 'Curriculum', shortTitle: 'Curriculum', icon: '📐' },
-	{ id: 2, title: 'Conținut lecții', shortTitle: 'Conținut', icon: '📚' },
-	{ id: 3, title: 'Quiz / Evaluare', shortTitle: 'Quiz', icon: '❓' },
-	{ id: 4, title: 'Reguli finalizare', shortTitle: 'Finalizare', icon: '✅' },
-	{ id: 5, title: 'Publicare', shortTitle: 'Publicare', icon: '✓' },
+	{ id: 0, title: 'Setare curs', shortTitle: 'Setare', desc: 'Titlu, descriere, nivel și vizibilitate' },
+	{ id: 1, title: 'Curriculum', shortTitle: 'Structură', desc: 'Module și lecții' },
+	{ id: 2, title: 'Conținut lecții', shortTitle: 'Conținut', desc: 'Blocuri de conținut per lecție' },
+	{ id: 3, title: 'Quiz / Evaluare', shortTitle: 'Quiz', desc: 'Întrebări și punctaj minim' },
+	{ id: 4, title: 'Reguli finalizare', shortTitle: 'Reguli', desc: 'Deblocare secvențială și certificat' },
+	{ id: 5, title: 'Publicare', shortTitle: 'Final', desc: 'Verificare și creare curs' },
 ];
 
 const CourseCreationWizard = ({ onClose, onSuccess }) => {
@@ -29,6 +27,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 	
 	const [currentStep, setCurrentStep] = useState(0);
 	const [loading, setLoading] = useState(false);
+	const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 	const [courseData, setCourseData] = useState({
 		title: '',
 		description: '',
@@ -70,9 +69,15 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 	};
 
 	const handleCloseAttempt = () => {
-		if (hasUnsavedData() && !window.confirm('Ai date nesalvate. Ești sigur că vrei să închizi?')) {
+		if (hasUnsavedData()) {
+			setShowCloseConfirm(true);
 			return;
 		}
+		if (onClose) onClose();
+	};
+
+	const handleConfirmClose = () => {
+		setShowCloseConfirm(false);
 		if (onClose) onClose();
 	};
 	
@@ -264,7 +269,8 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 					<div>
 						<h2>Creează curs nou</h2>
 						<p className="course-creation-wizard-subtitle">
-							{STEPS[currentStep].icon} {STEPS[currentStep].title}
+							{STEPS[currentStep].title}
+							{STEPS[currentStep].desc && <span className="course-creation-wizard-step-desc-inline"> — {STEPS[currentStep].desc}</span>}
 						</p>
 					</div>
 					{onClose && (
@@ -297,7 +303,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							aria-label={`Pas ${index + 1}: ${step.title}${index < currentStep ? ', completat' : ''}`}
 						>
 							<span className="course-creation-wizard-step-indicator-icon">
-								{index < currentStep ? '✓' : step.icon}
+								{index < currentStep ? '✓' : index + 1}
 							</span>
 							<span className="course-creation-wizard-step-indicator-label">{step.shortTitle}</span>
 						</button>
@@ -359,13 +365,23 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 				</div>
 				
 				{/* Footer */}
+				<ConfirmModal
+					open={showCloseConfirm}
+					onClose={() => setShowCloseConfirm(false)}
+					onConfirm={handleConfirmClose}
+					title="Date nesalvate"
+					message="Ai date nesalvate. Ești sigur că vrei să închizi?"
+					confirmLabel="Închide"
+					cancelLabel="Rămân"
+					variant="primary"
+				/>
 				<div className="course-creation-wizard-footer">
 					<button
 						type="button"
 						className="course-creation-wizard-btn course-creation-wizard-btn-secondary"
 						onClick={handleBack}
 					>
-						{currentStep === 0 ? 'Anulează' : '← Înapoi'}
+						{currentStep === 0 ? 'Anulare' : '← Înapoi'}
 					</button>
 					{currentStep < STEPS.length - 1 && (
 						<button

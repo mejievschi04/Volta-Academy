@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 const ModuleCreatorPage = () => {
 	const { id } = useParams(); // module ID if editing
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
+	const { showToast } = useToast();
 	const courseId = searchParams.get('course_id');
 
 	const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ const ModuleCreatorPage = () => {
 	useEffect(() => {
 		// Require course_id to create/edit modules
 		if (!courseId && !id) {
-			alert('Trebuie să selectezi un curs pentru a crea un modul!');
+			showToast('Selectează un curs pentru a crea un modul', 'error');
 			navigate('/admin/courses');
 			return;
 		}
@@ -54,7 +56,7 @@ const ModuleCreatorPage = () => {
 			});
 		} catch (err) {
 			console.error('Error fetching module:', err);
-			alert('Eroare la încărcarea modulului');
+			showToast('Eroare la încărcarea modulului', 'error');
 		} finally {
 			setLoading(false);
 		}
@@ -78,7 +80,7 @@ const ModuleCreatorPage = () => {
 		
 		// Validate before submit
 		if (!validate()) {
-			alert('Te rugăm să completezi toate câmpurile obligatorii corect!');
+			showToast('Completează toate câmpurile obligatorii', 'error');
 			return;
 		}
 		
@@ -86,10 +88,10 @@ const ModuleCreatorPage = () => {
 			setLoading(true);
 			if (id && id !== 'new') {
 				await adminService.updateModule(id, formData);
-				alert('Modul actualizat cu succes!');
+				showToast('Modul actualizat cu succes', 'success');
 			} else {
 				await adminService.createModule(formData);
-				alert('Modul creat cu succes!');
+				showToast('Modul creat cu succes', 'success');
 			}
 			
 			// Navigate back to course detail page
@@ -100,7 +102,7 @@ const ModuleCreatorPage = () => {
 			}
 		} catch (err) {
 			console.error('Error saving module:', err);
-			alert('Eroare la salvarea modulului: ' + (err.response?.data?.message || err.message || 'Eroare necunoscută'));
+			showToast(err?.response?.data?.message || err?.message || 'Eroare la salvarea modulului', 'error');
 		} finally {
 			setLoading(false);
 		}
@@ -154,7 +156,7 @@ const ModuleCreatorPage = () => {
 									className={`admin-form-input ${errors.title ? 'error' : ''}`}
 									value={formData.title}
 									onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-									placeholder="Ex: Introducere în React"
+									placeholder="Titlul modulului"
 									maxLength={255}
 								/>
 								{errors.title && (

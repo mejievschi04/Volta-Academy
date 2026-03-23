@@ -3,6 +3,7 @@ import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const AdminLessonsPage = () => {
 	const { success: showSuccess, error: showError } = useToast();
@@ -12,6 +13,8 @@ const AdminLessonsPage = () => {
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
 	const [editingLesson, setEditingLesson] = useState(null);
+	const [deleteConfirmLessonId, setDeleteConfirmLessonId] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formData, setFormData] = useState({
 		course_id: '',
 		title: '',
@@ -76,15 +79,23 @@ const AdminLessonsPage = () => {
 		setShowModal(true);
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi această lecție?')) return;
+	const handleDeleteClick = (id) => {
+		setDeleteConfirmLessonId(id);
+	};
 
+	const handleConfirmDeleteLesson = async () => {
+		if (!deleteConfirmLessonId) return;
+		setDeleteLoading(true);
 		try {
-			await adminService.deleteLesson(id);
+			await adminService.deleteLesson(deleteConfirmLessonId);
+			setDeleteConfirmLessonId(null);
 			fetchLessons();
+			showSuccess('Lecție ștearsă cu succes!');
 		} catch (err) {
 			logger.error('Error deleting lesson:', err);
 			showError('Eroare la ștergerea lecției: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -135,33 +146,13 @@ const AdminLessonsPage = () => {
 							className="admin-card"
 						>
 							<div className="admin-card-body">
-								{/* Header with icon */}
-								<div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-									<div style={{ 
-										width: '56px', 
-										height: '56px', 
-										borderRadius: 'var(--radius-xl)', 
-										background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', 
-										display: 'flex', 
-										alignItems: 'center', 
-										justifyContent: 'center',
-										fontSize: '28px',
-										flexShrink: 0,
-										boxShadow: 'var(--shadow-md)'
-									}}>
-										📚
-									</div>
-									<div style={{ flex: 1, minWidth: 0 }}>
-										<h3 className="admin-card-title" style={{ marginBottom: 'var(--space-2)' }}>
+								<div className="admin-lessons-card-header">
+									<div className="admin-lessons-card-icon" aria-hidden>📚</div>
+									<div className="admin-lessons-card-content">
+										<h3 className="admin-card-title admin-lessons-card-title-wrap">
 											{lesson.title}
 										</h3>
-										<div className="admin-card-description" style={{ 
-											fontSize: 'var(--font-size-sm)', 
-											display: 'flex',
-											alignItems: 'center',
-											gap: 'var(--space-2)',
-											flexWrap: 'wrap'
-										}}>
+										<div className="admin-card-description admin-lessons-card-meta">
 											<span>📚 <strong>{lesson.course?.title || 'N/A'}</strong></span>
 											<span>•</span>
 											<span>🔢 Ordine: <strong>{lesson.order || 0}</strong></span>
@@ -170,7 +161,7 @@ const AdminLessonsPage = () => {
 								</div>
 
 								{lesson.content && (
-									<p className="admin-card-description" style={{ marginBottom: 'var(--space-4)' }}>
+									<p className="admin-card-description admin-lessons-card-preview">
 										{lesson.content.substring(0, 150)}{lesson.content.length > 150 ? '...' : ''}
 									</p>
 								)}
@@ -185,7 +176,7 @@ const AdminLessonsPage = () => {
 									</button>
 									<button
 										className="admin-btn admin-btn-sm admin-btn-danger"
-										onClick={() => handleDelete(lesson.id)}
+										onClick={() => handleDeleteClick(lesson.id)}
 									>
 										<span className="admin-btn-icon">🗑️</span>
 										<span>Șterge</span>
@@ -235,6 +226,7 @@ const AdminLessonsPage = () => {
 								className="admin-team-modal-close"
 								onClick={() => setShowModal(false)}
 								title="Închide"
+								aria-label="Închide"
 							>
 								×
 							</button>
@@ -287,7 +279,7 @@ const AdminLessonsPage = () => {
 										min="0"
 									/>
 								</div>
-								<div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+								<div className="admin-form-actions-inline">
 									<button
 										type="button"
 										className="admin-btn admin-btn-secondary"
@@ -304,6 +296,18 @@ const AdminLessonsPage = () => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={!!deleteConfirmLessonId}
+				onClose={() => setDeleteConfirmLessonId(null)}
+				onConfirm={handleConfirmDeleteLesson}
+				title="Șterge lecție"
+				message="Sigur dorești să ștergi această lecție?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

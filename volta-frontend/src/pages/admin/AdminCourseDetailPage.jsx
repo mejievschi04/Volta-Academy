@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService, coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
 import '../../styles/admin-course-detail-modern.css';
 
@@ -13,6 +14,8 @@ const AdminCourseDetailPage = () => {
 	const [course, setCourse] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	useEffect(() => {
 		if (id) {
@@ -75,11 +78,7 @@ const AdminCourseDetailPage = () => {
 					fetchCourseData();
 					break;
 				case 'delete':
-					if (window.confirm('Ești sigur că vrei să ștergi acest curs? Această acțiune este ireversibilă.')) {
-						await adminService.deleteCourse(course.id);
-						showToast('Cursul a fost șters cu succes', 'success');
-						navigate('/admin/courses');
-					}
+					setShowDeleteConfirm(true);
 					break;
 				case 'preview':
 					// Navigate to student course detail page - full student experience
@@ -92,6 +91,21 @@ const AdminCourseDetailPage = () => {
 		} catch (err) {
 			console.error('Error performing action:', err);
 			showToast('Eroare la efectuarea acțiunii', 'error');
+		}
+	};
+
+	const handleConfirmDeleteCourse = async () => {
+		if (!course) return;
+		setDeleteLoading(true);
+		try {
+			await adminService.deleteCourse(course.id);
+			showToast('Cursul a fost șters cu succes', 'success');
+			setShowDeleteConfirm(false);
+			navigate('/admin/courses');
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Eroare la ștergere', 'error');
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -157,6 +171,18 @@ const AdminCourseDetailPage = () => {
 
 			{/* Course Overview */}
 			<CourseOverview course={course} onQuickAction={handleQuickAction} />
+
+			<ConfirmModal
+				open={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={handleConfirmDeleteCourse}
+				title="Șterge curs"
+				message="Ești sigur că vrei să ștergi acest curs? Această acțiune este ireversibilă."
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

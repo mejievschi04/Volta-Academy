@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
+import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * AI Assessment Generator - Conform defacut.md secțiunea 6
@@ -9,6 +10,7 @@ import { openaiService } from '../../../../services/openaiService';
  * - Anti-pattern detection
  */
 const AIAssessmentGenerator = ({ courseData, lessonData, moduleData, assessmentType, onQuestionsGenerated }) => {
+	const { showToast } = useToast();
 	const [generating, setGenerating] = useState(false);
 	const [generatedQuestions, setGeneratedQuestions] = useState([]);
 	const [difficultyAnalysis, setDifficultyAnalysis] = useState(null);
@@ -96,11 +98,11 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing questions response:', e);
-				alert('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.');
+				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating questions:', error);
-			alert('Eroare la generarea întrebărilor: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la generarea întrebărilor: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setGenerating(false);
 		}
@@ -109,7 +111,7 @@ Răspunde în format JSON:
 	// Analyze difficulty balance
 	const handleAnalyzeDifficulty = async (questions) => {
 		if (!questions || questions.length === 0) {
-			alert('Nu există întrebări de analizat');
+			showToast('Nu există întrebări de analizat', 'info');
 			return;
 		}
 

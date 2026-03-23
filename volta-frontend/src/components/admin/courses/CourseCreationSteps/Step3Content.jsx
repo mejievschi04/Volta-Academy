@@ -30,7 +30,7 @@ const BLOCK_TYPES = [
 	{ id: 'audio', label: 'Audio', icon: '🎵' },
 	{ id: 'file', label: 'Fișier', icon: '📎' },
 	{ id: 'link', label: 'Link', icon: '🔗' },
-	{ id: 'live', label: 'Live Session', icon: '🔴' },
+	{ id: 'live', label: 'Sesiune live', icon: '🔴' },
 	{ id: 'image_gallery', label: 'Galerie imagini', icon: '🖼️' },
 	{ id: 'assignment', label: 'Tema / Assignment', icon: '📝' },
 ];
@@ -57,7 +57,7 @@ function SortableBlockItem({ block, index, isSelected, onSelect, onDelete, typeI
 			style={style}
 			className={`step3-block-list-item ${isSelected ? 'selected' : ''} ${isDragging ? 'step3-dragging' : ''}`}
 		>
-			<button type="button" className="step3-drag-handle" {...attributes} {...listeners} aria-label="Reorder block">⋮⋮</button>
+			<button type="button" className="step3-drag-handle" {...attributes} {...listeners} aria-label="Reordonare bloc">⋮⋮</button>
 			<button
 				type="button"
 				className="step3-block-list-content"
@@ -67,7 +67,7 @@ function SortableBlockItem({ block, index, isSelected, onSelect, onDelete, typeI
 				<span className="step3-block-list-icon">{typeInfo?.icon}</span>
 				<span className="step3-block-list-label">{typeInfo?.label || block.type}</span>
 			</button>
-			<button type="button" className="step3-btn-remove" onClick={(e) => { e.stopPropagation(); onDelete(block.id); }} aria-label="Remove block">🗑️</button>
+			<button type="button" className="step3-btn-remove" onClick={(e) => { e.stopPropagation(); onDelete(block.id); }} aria-label="Șterge bloc">🗑️</button>
 		</div>
 	);
 }
@@ -239,7 +239,7 @@ function ContentEditor({ block, onUpdate }) {
 					type="text"
 					value={payload.scheduled_at || ''}
 					onChange={(e) => updatePayload('scheduled_at', e.target.value)}
-					placeholder="ex: 2025-03-01 14:00"
+					placeholder="Data și ora (AAAA-LL-ZZ HH:MM)"
 					className="step3-input"
 				/>
 			</div>
@@ -254,7 +254,7 @@ function ContentEditor({ block, onUpdate }) {
 				<textarea
 					value={(payload.images || []).join('\n')}
 					onChange={(e) => updatePayload('images', e.target.value.split('\n').filter(Boolean))}
-					placeholder="https://exemplu.com/1.jpg\nhttps://exemplu.com/2.jpg"
+					placeholder="https://… (câte un URL pe linie)"
 					rows={5}
 					className="step3-textarea"
 				/>
@@ -286,7 +286,7 @@ function ContentEditor({ block, onUpdate }) {
 					min={0}
 					value={payload.due_days ?? ''}
 					onChange={(e) => updatePayload('due_days', e.target.value ? parseInt(e.target.value, 10) : null)}
-					placeholder="ex: 7"
+					placeholder="Număr de zile"
 					className="step3-input"
 				/>
 				<label>Punctaj maxim</label>

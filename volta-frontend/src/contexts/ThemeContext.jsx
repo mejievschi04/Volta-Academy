@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 
 const ThemeContext = createContext(null);
 
@@ -10,25 +10,14 @@ export const useTheme = () => {
 	return context;
 };
 
+/** Tema este întotdeauna light; tema dark a fost eliminată. */
 export const ThemeProvider = ({ children }) => {
-	const [theme, setTheme] = useState(() => {
-		// Get theme from localStorage or default to 'dark'
-		const savedTheme = localStorage.getItem('volta-theme');
-		return savedTheme || 'dark';
-	});
-
 	useEffect(() => {
-		// Apply theme to document
-		document.documentElement.setAttribute('data-theme', theme);
-		localStorage.setItem('volta-theme', theme);
-	}, [theme]);
-
-	const toggleTheme = () => {
-		setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-	};
+		document.documentElement.setAttribute('data-theme', 'light');
+	}, []);
 
 	return (
-		<ThemeContext.Provider value={{ theme, toggleTheme }}>
+		<ThemeContext.Provider value={{ theme: 'light' }}>
 			{children}
 		</ThemeContext.Provider>
 	);

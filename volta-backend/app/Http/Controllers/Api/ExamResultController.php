@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExamResult;
+use App\Models\Test;
 use App\Models\TestResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,178 @@ use Illuminate\Support\Facades\Schema;
 
 class ExamResultController extends Controller
 {
+    protected function normalizeAnswerIndex($value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+        return null;
+    }
+
+    protected function isAnswerCorrectFlag($answer): bool
+    {
+        if (!is_array($answer)) {
+            return false;
+        }
+
+        $value = $answer['is_correct'] ?? $answer['isCorrect'] ?? $answer['correct'] ?? false;
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return (int) $value === 1;
+        }
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+        }
+        return false;
+    }
+
+    protected function answerText($answer): string
+    {
+        if (!is_array($answer)) {
+            return (string) $answer;
+        }
+
+        return (string) (
+            $answer['text']
+            ?? $answer['answer_text']
+            ?? $answer['content']
+            ?? $answer['label']
+            ?? ''
+        );
+    }
+
+    protected function resolveAnswersOrderForTestAttempt(Test $test, $question, int $userId, int $attemptNumber): array
+    {
+        $answers = $question->answers ?? [];
+        if (!is_array($answers)) {
+            $answers = [];
+        }
+
+        if (($question->type ?? '') !== 'multiple_choice' && ($question->type ?? '') !== 'true_false') {
+            return ['answers' => $answers, 'correct_index' => null];
+        }
+
+        if ($test->randomize_answers && count($answers) > 1) {
+            $seedBase = "{$test->id}:{$userId}:{$attemptNumber}:q{$question->id}";
+            $indexed = [];
+            foreach ($answers as $idx => $ans) {
+                $key = hash('sha1', $seedBase . ":a{$idx}:" . $this->answerText($ans));
+                $indexed[] = ['key' => $key, 'ans' => $ans];
+            }
+            usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
+            $answers = array_values(array_map(fn ($x) => $x['ans'], $indexed));
+        }
+
+        $correctAnswerIndex = null;
+        foreach ($answers as $idx => $answer) {
+            if ($this->isAnswerCorrectFlag($answer)) {
+                $correctAnswerIndex = $idx;
+                break;
+            }
+        }
+
+        return ['answers' => $answers, 'correct_index' => $correctAnswerIndex];
+    }
+
+    protected function selectQuestionsForTestAttempt(Test $test, int $userId, int $attemptNumber)
+    {
+        $base = collect();
+
+        if ($test->question_source === 'bank' && $test->questionBank) {
+            $base = $test->questionBank->questions()->orderBy('order')->get();
+        } else {
+            $base = $test->questions()->orderBy('order')->get();
+        }
+
+        if ($base->isEmpty()) {
+            return $base;
+        }
+
+        if ($test->question_source !== 'bank') {
+            if ($test->randomize_questions) {
+                $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
+                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+            }
+            return $base;
+        }
+
+        $sel = $test->question_selection;
+        if (!is_array($sel) || empty($sel)) {
+            if ($test->randomize_questions) {
+                $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
+                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+            }
+            return $base;
+        }
+
+        $mode = (string) ($sel['mode'] ?? '');
+        $count = (int) ($sel['count'] ?? 0);
+        $difficulty = $sel['difficulty'] ?? null;
+        $tags = $sel['tags'] ?? null;
+
+        $difficultyList = [];
+        if (is_string($difficulty) && $difficulty !== '') $difficultyList = [$difficulty];
+        if (is_array($difficulty)) $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
+
+        $tagList = [];
+        if (is_string($tags) && $tags !== '') $tagList = [$tags];
+        if (is_array($tags)) $tagList = array_values(array_filter(array_map('strval', $tags)));
+        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
+
+        $filtered = $base->filter(function ($q) use ($difficultyList, $tagList) {
+            $meta = is_array($q->metadata) ? $q->metadata : [];
+            $qDifficulty = isset($meta['difficulty']) ? (string) $meta['difficulty'] : '';
+            $qTags = $meta['tags'] ?? [];
+            if (is_string($qTags)) $qTags = array_map('trim', explode(',', $qTags));
+            if (!is_array($qTags)) $qTags = [];
+            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string) $t)), $qTags)));
+
+            if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
+                return false;
+            }
+
+            if (!empty($tagList)) {
+                $hasAny = false;
+                foreach ($tagList as $t) {
+                    if (in_array($t, $qTags, true)) {
+                        $hasAny = true;
+                        break;
+                    }
+                }
+                if (!$hasAny) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
+
+        if ($filtered->isEmpty()) {
+            $filtered = $base->values();
+        }
+
+        $useRandom = ($mode === 'random') || $test->randomize_questions;
+        if ($useRandom) {
+            $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
+            $filtered = $filtered->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
+        }
+
+        if ($count > 0) {
+            $filtered = $filtered->take($count)->values();
+        }
+
+        return $filtered;
+    }
+
     /**
      * Get all exam results for the authenticated user
      * Includes both legacy ExamResult and new TestResult
@@ -117,10 +290,27 @@ class ExamResultController extends Controller
                 ];
             });
             
-            // Combine and sort by completed_at descending
+            // Combine, keep only latest attempt per exam/test, then sort by completed_at descending
             $allResults = $examResults->concat($testResults)
-                ->sortByDesc(function($result) {
-                    return $result['completed_at'] ? strtotime($result['completed_at']) : 0;
+                ->groupBy(function ($result) {
+                    if (($result['type'] ?? null) === 'test') {
+                        return 'test:' . ($result['test_id'] ?? 'none');
+                    }
+                    return 'exam:' . ($result['exam_id'] ?? 'none');
+                })
+                ->map(function ($group) {
+                    return $group->sort(function ($a, $b) {
+                        $dateA = isset($a['completed_at']) ? strtotime((string) $a['completed_at']) : 0;
+                        $dateB = isset($b['completed_at']) ? strtotime((string) $b['completed_at']) : 0;
+                        if ($dateA === $dateB) {
+                            return ($b['attempt_number'] ?? 0) <=> ($a['attempt_number'] ?? 0);
+                        }
+                        return $dateB <=> $dateA;
+                    })->first();
+                })
+                ->filter()
+                ->sortByDesc(function ($result) {
+                    return $result['completed_at'] ? strtotime((string) $result['completed_at']) : 0;
                 })
                 ->values();
             
@@ -191,38 +381,22 @@ class ExamResultController extends Controller
                     ]);
                 }
                 
-                // Get questions (from test or question bank)
+                // Rebuild exact question set for this attempt (same deterministic selection as exam submit/show)
                 $questions = collect();
                 try {
-                    if ($testResult->test->question_source === 'bank') {
-                        // Load question bank if not already loaded
-                        if (!$testResult->test->relationLoaded('questionBank')) {
-                            $testResult->test->load('questionBank');
-                        }
-                        if ($testResult->test->questionBank) {
-                            // Load questions from question bank if not already loaded
-                            if (!$testResult->test->questionBank->relationLoaded('questions')) {
-                                $testResult->test->questionBank->load(['questions' => function($query) {
-                                    $query->orderBy('order');
-                                }]);
-                            }
-                            $questions = $testResult->test->questionBank->questions ?? collect();
-                        }
-                    } else {
-                        // Load questions directly from test if not already loaded
-                        if (!$testResult->test->relationLoaded('questions')) {
-                            $testResult->test->load(['questions' => function($query) {
-                                $query->orderBy('order');
-                            }]);
-                        }
-                        $questions = $testResult->test->questions ?? collect();
+                    if (!$testResult->test->relationLoaded('questionBank')) {
+                        $testResult->test->load('questionBank');
                     }
+                    $questions = $this->selectQuestionsForTestAttempt(
+                        $testResult->test,
+                        (int) $testResult->user_id,
+                        (int) ($testResult->attempt_number ?? 1)
+                    );
                 } catch (\Exception $e) {
-                    Log::warning('Error loading questions for test result', [
+                    Log::warning('Error rebuilding attempt questions for test result', [
                         'test_result_id' => $testResult->id,
                         'error' => $e->getMessage(),
                     ]);
-                    $questions = collect();
                 }
                 
                 // Get user answers
@@ -255,7 +429,7 @@ class ExamResultController extends Controller
                         'type' => $testResult->test->type,
                         'status' => $testResult->test->status,
                         'course' => $course,
-                        'questions' => $questions->map(function($question) use ($userAnswers) {
+                        'questions' => $questions->map(function($question) use ($userAnswers, $testResult) {
                             if (!$question) {
                                 return null;
                             }
@@ -263,19 +437,32 @@ class ExamResultController extends Controller
                             // Get user answer for this question (try both string and int keys)
                             $userAnswer = $userAnswers[$question->id] ?? $userAnswers[(string)$question->id] ?? $userAnswers[(int)$question->id] ?? null;
                             
+                            $normalizedUserAnswer = $this->normalizeAnswerIndex($userAnswer);
+
+                            // Build answer list in the same deterministic order as attempt payload
+                            $resolved = $this->resolveAnswersOrderForTestAttempt(
+                                $testResult->test,
+                                $question,
+                                (int) $testResult->user_id,
+                                (int) ($testResult->attempt_number ?? 1)
+                            );
+                            $orderedAnswers = $resolved['answers'];
+                            $correctAnswerIndex = $resolved['correct_index'];
+
                             // Process answers array to include correct answer indicators
                             $processedAnswers = [];
-                            if ($question->answers && is_array($question->answers)) {
-                                foreach ($question->answers as $index => $answer) {
+                            if (is_array($orderedAnswers)) {
+                                foreach ($orderedAnswers as $index => $answer) {
                                     $answerData = is_array($answer) ? $answer : ['text' => $answer];
-                                    $isCorrect = $answerData['is_correct'] ?? false;
+                                    $isCorrect = $this->isAnswerCorrectFlag($answerData);
                                     
                                     $processedAnswers[] = [
                                         'id' => $index,
-                                        'text' => $answerData['text'] ?? $answerData['content'] ?? '',
-                                        'answer_text' => $answerData['text'] ?? $answerData['content'] ?? '', // For compatibility
-                                        'content' => $answerData['text'] ?? $answerData['content'] ?? '',
+                                        'text' => $this->answerText($answerData),
+                                        'answer_text' => $this->answerText($answerData), // For compatibility
+                                        'content' => $this->answerText($answerData),
                                         'is_correct' => $isCorrect,
+                                        'is_selected' => ($normalizedUserAnswer !== null && $normalizedUserAnswer === $index),
                                         'order' => $answerData['order'] ?? $index,
                                     ];
                                 }
@@ -283,16 +470,8 @@ class ExamResultController extends Controller
                             
                             // Determine if user's answer is correct
                             $isUserAnswerCorrect = false;
-                            $correctAnswerIndex = null;
-                            if ($userAnswer !== null && $question->type !== 'short_answer') {
-                                // For multiple choice/true_false, check if user answer index matches correct answer
-                                foreach ($processedAnswers as $idx => $ans) {
-                                    if ($ans['is_correct']) {
-                                        $correctAnswerIndex = $idx;
-                                        break;
-                                    }
-                                }
-                                $isUserAnswerCorrect = ($userAnswer == $correctAnswerIndex);
+                            if ($normalizedUserAnswer !== null && $question->type !== 'short_answer') {
+                                $isUserAnswerCorrect = ($normalizedUserAnswer === $correctAnswerIndex);
                             }
                             
                             return [
@@ -306,6 +485,7 @@ class ExamResultController extends Controller
                                 'explanation' => $question->explanation ?? null,
                                 'answers' => $processedAnswers,
                                 'user_answer' => $userAnswer,
+                                'user_answer_index' => $normalizedUserAnswer,
                                 'is_correct' => $isUserAnswerCorrect,
                                 'correct_answer_index' => $correctAnswerIndex,
                             ];
@@ -365,6 +545,8 @@ class ExamResultController extends Controller
                         // Get user answer for this question (try both string and int keys)
                         $userAnswer = $userAnswers[$question->id] ?? $userAnswers[(string)$question->id] ?? $userAnswers[(int)$question->id] ?? null;
                         
+                        $normalizedUserAnswer = $this->normalizeAnswerIndex($userAnswer);
+
                         // Process answers
                         $processedAnswers = [];
                         foreach ($question->answers as $index => $answer) {
@@ -374,6 +556,7 @@ class ExamResultController extends Controller
                                 'answer_text' => $answer->answer_text ?? $answer->content ?? '',
                                 'content' => $answer->answer_text ?? $answer->content ?? '',
                                 'is_correct' => $answer->is_correct ?? false,
+                                'is_selected' => ($normalizedUserAnswer !== null && $normalizedUserAnswer === $index),
                                 'order' => $answer->order ?? $index,
                             ];
                         }
@@ -381,14 +564,14 @@ class ExamResultController extends Controller
                         // Determine if user's answer is correct
                         $isUserAnswerCorrect = false;
                         $correctAnswerIndex = null;
-                        if ($userAnswer !== null) {
+                        if ($normalizedUserAnswer !== null) {
                             foreach ($processedAnswers as $idx => $ans) {
                                 if ($ans['is_correct']) {
                                     $correctAnswerIndex = $idx;
                                     break;
                                 }
                             }
-                            $isUserAnswerCorrect = ($userAnswer == $correctAnswerIndex);
+                            $isUserAnswerCorrect = ($normalizedUserAnswer === $correctAnswerIndex);
                         }
                         
                         return [
@@ -402,6 +585,7 @@ class ExamResultController extends Controller
                             'explanation' => $question->explanation ?? null,
                             'answers' => $processedAnswers,
                             'user_answer' => $userAnswer,
+                            'user_answer_index' => $normalizedUserAnswer,
                             'is_correct' => $isUserAnswerCorrect,
                             'correct_answer_index' => $correctAnswerIndex,
                         ];

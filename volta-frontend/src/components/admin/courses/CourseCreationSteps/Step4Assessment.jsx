@@ -37,9 +37,9 @@ const QUESTION_TYPES = [
 
 const assessmentTypes = [
 	{ id: 'quiz', label: 'Quiz', icon: '❓' },
-	{ id: 'assignment', label: 'Assignment', icon: '📝' },
-	{ id: 'task', label: 'Task practic', icon: '🛠️' },
-	{ id: 'self-assessment', label: 'Self-assessment', icon: '✅' },
+	{ id: 'assignment', label: 'Temă', icon: '📝' },
+	{ id: 'task', label: 'Sarcină practică', icon: '🛠️' },
+	{ id: 'self-assessment', label: 'Auto-evaluare', icon: '✅' },
 	{ id: 'feedback', label: 'Feedback deschis', icon: '💬' },
 ];
 
@@ -53,11 +53,11 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 	return (
 		<div ref={setNodeRef} style={style} className={`step4-question-card ${isDragging ? 'step4-dragging' : ''}`}>
 			<div className="step4-question-card-header">
-				<button type="button" className="step4-drag-handle" {...attributes} {...listeners} aria-label="Reorder question">⋮⋮</button>
+				<button type="button" className="step4-drag-handle" {...attributes} {...listeners} aria-label="Reordonare întrebare">⋮⋮</button>
 				<span className="step4-question-number">{index + 1}</span>
 				<span className="step4-question-type-badge">{typeInfo?.icon} {typeInfo?.label}</span>
-				{needsManualGrading && <span className="step4-manual-badge">Manual grading</span>}
-				<button type="button" className="step4-btn-remove" onClick={onDelete} aria-label="Remove question">🗑️</button>
+				{needsManualGrading && <span className="step4-manual-badge">Notare manuală</span>}
+				<button type="button" className="step4-btn-remove" onClick={onDelete} aria-label="Șterge întrebare">🗑️</button>
 			</div>
 			<div className="step4-question-card-body">
 				<label>Întrebare</label>
@@ -330,7 +330,7 @@ function QuizPreview({ assessment }) {
 	const questions = assessment?.questions || [];
 	return (
 		<div className="step4-preview">
-			<h4>Preview quiz</h4>
+			<h4>Previzualizare quiz</h4>
 			<div className="step4-preview-questions">
 				{questions.length === 0 && <p className="step4-preview-empty">Niciună întrebare.</p>}
 				{questions.map((q, i) => (

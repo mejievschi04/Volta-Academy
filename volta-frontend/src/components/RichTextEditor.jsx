@@ -1,7 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
+import { extractPdfTextAsHtml } from '../utils/pdfTextExtractor';
 import './RichTextEditor.css';
+
+/** Paletă culori pentru text/fundal - o singură sursă pentru afișare corectă */
+const RTE_COLOR_PALETTE = [
+	'#ffee00', '#ffcc00', '#ffd700', '#ffff00',
+	'#ffffff', '#cccccc', '#999999', '#666666', '#000000',
+	'#ff6b6b', '#ff5252', '#ff1744', '#d32f2f',
+	'#4ade80', '#22c55e', '#10b981', '#059669',
+	'#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8',
+	'#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9',
+	'#f472b6', '#ec4899', '#db2777', '#be185d',
+];
 
 const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 	const { warning: showWarning, error: showError } = useToast();
@@ -48,30 +60,49 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 
 	const handlePaste = (e) => {
 		e.preventDefault();
-		const text = e.clipboardData.getData('text/plain');
-		if (!text) return;
-
 		const editor = editorRef.current;
 		if (!editor) return;
 
+		const html = e.clipboardData.getData('text/html');
+		const text = e.clipboardData.getData('text/plain');
+		const contentToInsert = html || text;
+		if (!contentToInsert) return;
+
+		const insertAsHtml = Boolean(html);
 		const selection = window.getSelection();
-		if (selection.rangeCount > 0) {
+
+		const insertAtSelection = () => {
+			if (!selection || selection.rangeCount === 0) return false;
 			const range = selection.getRangeAt(0);
-			// Asigură-te că selecția e în editor
-			if (editor.contains(range.commonAncestorContainer) || editor === range.commonAncestorContainer) {
-				range.deleteContents();
-				range.insertNode(document.createTextNode(text));
-				range.collapse(false);
-				selection.removeAllRanges();
-				selection.addRange(range);
-			} else {
-				// Cursor în afara editorului: inserează la sfârșit
-				editor.focus();
-				document.execCommand('insertText', false, text);
+			if (!(editor.contains(range.commonAncestorContainer) || editor === range.commonAncestorContainer)) {
+				return false;
 			}
-		} else {
+
+			range.deleteContents();
+			if (insertAsHtml) {
+				const fragment = document.createRange().createContextualFragment(contentToInsert);
+				const lastNode = fragment.lastChild;
+				range.insertNode(fragment);
+				if (lastNode) {
+					range.setStartAfter(lastNode);
+					range.collapse(true);
+				}
+			} else {
+				range.insertNode(document.createTextNode(contentToInsert));
+				range.collapse(false);
+			}
+			selection.removeAllRanges();
+			selection.addRange(range);
+			return true;
+		};
+
+		if (!insertAtSelection()) {
 			editor.focus();
-			document.execCommand('insertText', false, text);
+			if (insertAsHtml) {
+				document.execCommand('insertHTML', false, contentToInsert);
+			} else {
+				document.execCommand('insertText', false, contentToInsert);
+			}
 		}
 
 		// Declanșează actualizarea stării (fără asta, paste-ul nu se salvează)
@@ -133,66 +164,47 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 
 		setUploadingPdf(true);
 		try {
-			// Create a data URL for the PDF
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const dataUrl = e.target.result;
-				
-				// Insert PDF link into editor
-				const pdfLink = `<div style="margin: 1.5rem 0; padding: 1rem; background: rgba(255,238,0,0.1); border: 1px solid rgba(255,238,0,0.3); border-radius: 12px;">
-					<a href="${dataUrl}" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; color: #ffee00; text-decoration: none; font-weight: 600;">
-						<span style="font-size: 1.5rem;">📄</span>
-						<span>${pdfFileName}</span>
-						<span style="font-size: 0.85rem; opacity: 0.7;">(Deschide PDF)</span>
-					</a>
-				</div>`;
-				
-				// Insert at cursor position or append
-				const selection = window.getSelection();
-				if (selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0);
-					const div = document.createElement('div');
-					div.innerHTML = pdfLink;
-					range.insertNode(div);
+			const html = await extractPdfTextAsHtml(pdfFile);
+
+			// Inserare ca text (paragrafe) în editor, nu ca link sau fișier
+			const selection = window.getSelection();
+			if (selection.rangeCount > 0) {
+				const range = selection.getRangeAt(0);
+				const editor = editorRef.current;
+				if (editor && (editor.contains(range.commonAncestorContainer) || editor === range.commonAncestorContainer)) {
+					const fragment = document.createRange().createContextualFragment(html);
+					range.deleteContents();
+					range.insertNode(fragment);
+					range.collapse(false);
 				} else {
-					// Append to end
 					if (editorRef.current) {
-						editorRef.current.innerHTML += pdfLink;
+						editorRef.current.innerHTML += html;
 					}
 				}
-				
-				// Trigger change event
+			} else {
 				if (editorRef.current) {
-					const event = new Event('input', { bubbles: true });
-					editorRef.current.dispatchEvent(event);
+					editorRef.current.innerHTML += html;
 				}
+			}
 
-				setPdfFile(null);
-				setPdfFileName('');
-				setShowPdfUpload(false);
-				if (fileInputRef.current) {
-					fileInputRef.current.value = '';
-				}
-			};
-			reader.readAsDataURL(pdfFile);
+			if (editorRef.current) {
+				const event = new Event('input', { bubbles: true });
+				editorRef.current.dispatchEvent(event);
+			}
+
+			setPdfFile(null);
+			setPdfFileName('');
+			setShowPdfUpload(false);
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
 		} catch (error) {
-			logger.error('Error uploading PDF:', error);
-			showError('Eroare la încărcarea PDF-ului');
+			logger.error('Error extracting PDF text:', error);
+			showError(error?.message || 'Eroare la extragerea textului din PDF. Încearcă un alt fișier.');
 		} finally {
 			setUploadingPdf(false);
 		}
 	};
-
-	// Predefined colors
-	const colorPalette = [
-		'#ffee00', '#ffcc00', '#ffd700', '#ffff00',
-		'#ffffff', '#cccccc', '#999999', '#666666', '#000000',
-		'#ff6b6b', '#ff5252', '#ff1744', '#d32f2f',
-		'#4ade80', '#22c55e', '#10b981', '#059669',
-		'#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8',
-		'#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9',
-		'#f472b6', '#ec4899', '#db2777', '#be185d',
-	];
 
 	const ToolbarButton = ({ onClick, icon, title, active = false }) => (
 		<button
@@ -209,34 +221,9 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 		<div className="rte-container" style={style}>
 			{/* Toolbar */}
 			<div className="rte-toolbar">
-				{/* Text Formatting */}
-				<div className="rte-toolbar-group">
-					<ToolbarButton
-						onClick={() => execCommand('bold')}
-						icon={<strong>B</strong>}
-						title="Aldin"
-					/>
-					<ToolbarButton
-						onClick={() => execCommand('italic')}
-						icon={<em>I</em>}
-						title="Italic"
-					/>
-					<ToolbarButton
-						onClick={() => execCommand('underline')}
-						icon={<u>U</u>}
-						title="Subliniat"
-					/>
-					<ToolbarButton
-						onClick={() => execCommand('strikeThrough')}
-						icon={<span style={{ textDecoration: 'line-through' }}>S</span>}
-						title="Tăiat"
-					/>
-				</div>
-
-				<div className="rte-toolbar-separator" />
-
-				{/* Headings */}
-				<div className="rte-toolbar-group">
+				{/* Stil paragraf: titlu, antet, paragraf normal */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label" id="rte-format-label">Stil:</span>
 					<select
 						className="rte-toolbar-select"
 						onChange={(e) => {
@@ -247,82 +234,113 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 							e.target.value = '';
 						}}
-						title="Titlu"
+						title="Alege stilul paragrafului: titlu principal, titlu (antet), subtitlu sau paragraf normal"
+						aria-labelledby="rte-format-label"
 					>
-						<option value="">Formatare text</option>
-						<option value="h1">Titlu 1</option>
-						<option value="h2">Titlu 2</option>
-						<option value="h3">Titlu 3</option>
-						<option value="h4">Titlu 4</option>
-						<option value="p">Paragraf</option>
+						<option value="">Paragraf / Titlu</option>
+						<option value="h1">Titlu principal (cel mai mare)</option>
+						<option value="h2">Titlu (antet)</option>
+						<option value="h3">Subtitlu</option>
+						<option value="h4">Subtițior</option>
+						<option value="p">Paragraf normal</option>
 					</select>
 				</div>
 
 				<div className="rte-toolbar-separator" />
 
-				{/* Lists */}
-				<div className="rte-toolbar-group">
+				{/* Text: aldine, italic, etc. */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label" id="rte-text-label">Text:</span>
+					<ToolbarButton
+						onClick={() => execCommand('bold')}
+						icon={<strong>B</strong>}
+						title="Aldin (text gros)"
+					/>
+					<ToolbarButton
+						onClick={() => execCommand('italic')}
+						icon={<em>I</em>}
+						title="Italic (text înclinat)"
+					/>
+					<ToolbarButton
+						onClick={() => execCommand('underline')}
+						icon={<u>U</u>}
+						title="Subliniat"
+					/>
+					<ToolbarButton
+						onClick={() => execCommand('strikeThrough')}
+						icon={<span style={{ textDecoration: 'line-through' }}>S</span>}
+						title="Tăiat (text barat)"
+					/>
+				</div>
+
+				<div className="rte-toolbar-separator" />
+
+				{/* Liste și aliniere */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label" id="rte-list-label">Liste:</span>
 					<ToolbarButton
 						onClick={() => execCommand('insertUnorderedList')}
 						icon="•"
-						title="Listă cu puncte"
+						title="Listă cu puncte (bullet)"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('insertOrderedList')}
 						icon="1."
-						title="Listă numerotată"
+						title="Listă numerotată (1, 2, 3…)"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('outdent')}
 						icon="←"
-						title="Micșorează alinierea"
+						title="Micșorează alinierea (indent stânga)"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('indent')}
 						icon="→"
-						title="Mărește alinierea"
+						title="Mărește alinierea (indent dreapta)"
 					/>
 				</div>
 
 				<div className="rte-toolbar-separator" />
 
-				{/* Alignment */}
-				<div className="rte-toolbar-group">
+				{/* Aliniere text */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label" id="rte-align-label">Aliniere:</span>
 					<ToolbarButton
 						onClick={() => execCommand('justifyLeft')}
 						icon="L"
-						title="Aliniere stânga"
+						title="Aliniere la stânga"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyCenter')}
 						icon="C"
-						title="Aliniere centru"
+						title="Aliniere la centru"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyRight')}
 						icon="R"
-						title="Aliniere dreapta"
+						title="Aliniere la dreapta"
 					/>
 					<ToolbarButton
 						onClick={() => execCommand('justifyFull')}
 						icon="J"
-						title="Aliniere pe toată lățimea"
+						title="Aliniere pe toată lățimea (justificat)"
 					/>
 				</div>
 
 				<div className="rte-toolbar-separator" />
 
-				{/* Other */}
-				<div className="rte-toolbar-group">
+				{/* Citat, link, culori */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label">Mai mult:</span>
 					<ToolbarButton
 						onClick={() => execCommand('formatBlock', 'blockquote')}
 						icon="❝"
-						title="Citat"
+						title="Citat (bloc evidențiat)"
 					/>
 					<ToolbarButton
 						onClick={() => setShowLinkDialog(true)}
 						icon="🔗"
-						title="Inserare link"
+						title="Inserare link (legătură)"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -343,14 +361,15 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 					<ToolbarButton
 						onClick={() => execCommand('removeFormat')}
 						icon="🧹"
-						title="Șterge formatare"
+						title="Șterge formatare (revine la text simplu)"
 					/>
 				</div>
 
 				<div className="rte-toolbar-separator" />
 
-				{/* Media & Content */}
-				<div className="rte-toolbar-group">
+				{/* Media */}
+				<div className="rte-toolbar-group rte-toolbar-group-labeled">
+					<span className="rte-toolbar-label">Media:</span>
 					<ToolbarButton
 						onClick={() => {
 							const url = prompt('Introdu URL-ul imaginii:');
@@ -377,7 +396,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 						}}
 						icon="🖼️"
-						title="Inserare Imagine"
+						title="Inserare imagine (URL)"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -428,7 +447,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 						}}
 						icon="🎥"
-						title="Inserare Video"
+						title="Inserare video (YouTube, Vimeo)"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -464,7 +483,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 						}}
 						icon="💻"
-						title="Inserare Cod"
+						title="Inserare cod (bloc monospace)"
 					/>
 					<ToolbarButton
 						onClick={() => {
@@ -474,7 +493,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 							}
 						}}
 						icon="📄"
-						title="Încarcă PDF"
+						title="Încarcă și inserează PDF"
 					/>
 				</div>
 			</div>
@@ -507,6 +526,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 			{/* Color Picker Modal */}
 			{showColorPicker && (
 				<ColorPickerModal
+					palette={RTE_COLOR_PALETTE}
 					selectedColor={selectedColor}
 					onColorSelect={handleColorSelect}
 					onClose={() => setShowColorPicker(false)}
@@ -550,87 +570,62 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style }) => {
 };
 
 // Color Picker Modal Component
-const ColorPickerModal = ({ selectedColor, onColorSelect, onClose, type }) => {
-	const [customColor, setCustomColor] = useState(selectedColor);
+const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorSelect, onClose, type }) => {
+	const [customColor, setCustomColor] = useState(selectedColor || '#ffee00');
+
+	useEffect(() => {
+		setCustomColor(selectedColor || '#ffee00');
+	}, [selectedColor]);
+
+	const colors = Array.isArray(palette) && palette.length > 0 ? palette : RTE_COLOR_PALETTE;
 
 	return (
 		<div
 			className="rte-modal-overlay"
 			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="rte-color-picker-title"
 		>
 			<div
 				className="rte-modal"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="rte-modal-header">
-					<h3 style={{
-						margin: 0,
-						background: 'linear-gradient(135deg, #ffffff, #ffee00)',
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-						backgroundClip: 'text',
-						fontSize: '1.25rem',
-						fontWeight: 700,
-					}}>
-						{type === 'foreground' ? '🎨 Culoare Text' : '🖌️ Culoare Fundal'}
+					<h3 id="rte-color-picker-title" className="rte-modal-title">
+						{type === 'foreground' ? '🎨 Culoare text' : '🖌️ Culoare fundal'}
 					</h3>
 					<button
 						type="button"
 						onClick={onClose}
 						className="rte-modal-close"
+						aria-label="Închide"
 					>
 						×
 					</button>
 				</div>
 
 				<div className="rte-modal-body">
-					{/* Color Palette */}
+					{/* Paletă culori - grid cu clase CSS pentru încărcare corectă */}
 					<div style={{ marginBottom: '1.5rem' }}>
-						<label style={{
-							display: 'block',
-							marginBottom: '0.75rem',
-							color: 'rgba(255,255,255,0.7)',
-							fontSize: '0.9rem',
-							fontWeight: 600,
-						}}>
+						<label className="rte-color-palette-label">
 							Paletă de culori
 						</label>
-						<div style={{
-							display: 'grid',
-							gridTemplateColumns: 'repeat(8, 1fr)',
-							gap: '0.5rem',
-						}}>
-							{['#ffee00', '#ffcc00', '#ffd700', '#ffff00', '#ffffff', '#cccccc', '#999999', '#666666', '#000000',
-								'#ff6b6b', '#ff5252', '#ff1744', '#d32f2f', '#4ade80', '#22c55e', '#10b981', '#059669',
-								'#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9',
-								'#f472b6', '#ec4899', '#db2777', '#be185d'].map((color) => (
-								<button
-									key={color}
-									type="button"
-									onClick={() => onColorSelect(color)}
-									style={{
-										width: '100%',
-										aspectRatio: '1',
-										background: color,
-										border: selectedColor === color ? '3px solid #ffee00' : '2px solid rgba(255,255,255,0.2)',
-										borderRadius: '8px',
-										cursor: 'pointer',
-										transition: 'all 0.2s ease',
-										boxShadow: selectedColor === color ? '0 0 12px rgba(255,238,0,0.5)' : 'none',
-									}}
-									onMouseEnter={(e) => {
-										if (selectedColor !== color) {
-											e.currentTarget.style.transform = 'scale(1.1)';
-											e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (selectedColor !== color) {
-											e.currentTarget.style.transform = 'scale(1)';
-											e.currentTarget.style.boxShadow = 'none';
-										}
-									}}
-									title={color}
+						{/* div cu role="button" ca să nu se aplice stilurile globale de pe button */}
+						<style>{colors.map((hex, i) => 
+							`.rte-color-palette-grid .rte-color-swatch.rte-swatch-idx-${i} { background-color: ${hex} !important; background: ${hex} !important; }`
+						).join('\n')}</style>
+						<div className="rte-color-palette-grid">
+							{colors.map((hex, i) => (
+								<div
+									key={`${hex}-${i}`}
+									role="button"
+									tabIndex={0}
+									className={`rte-color-swatch rte-swatch-idx-${i} ${selectedColor === hex ? 'is-selected' : ''}`}
+									onClick={() => onColorSelect(hex)}
+									onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onColorSelect(hex); } }}
+									title={hex}
+									aria-label={`Culoare ${hex}`}
 								/>
 							))}
 						</div>
@@ -760,7 +755,7 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 									onInsert();
 								}
 							}}
-							placeholder="https://example.com sau example.com"
+							placeholder="https://… sau domeniu.extensie"
 							autoFocus
 							style={{
 								width: '100%',
@@ -786,7 +781,7 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 							color: 'rgba(255,255,255,0.6)',
 							fontSize: '0.85rem',
 						}}>
-							💡 Poți introduce URL complet (https://...) sau doar domeniul (example.com)
+							💡 Poți introduce un URL complet (https://…) sau doar domeniul.
 						</div>
 					</div>
 
@@ -933,7 +928,7 @@ const PdfUploadModal = ({ pdfFile, pdfFileName, uploadingPdf, onFileSelect, onUp
 								color: 'rgba(255,255,255,0.6)',
 								fontSize: '0.9rem',
 							}}>
-								Maxim 10MB
+								Maxim 10MB · Textul din PDF va fi extras și inserat ca conținut în lecție
 							</div>
 						</div>
 					) : (
@@ -1067,7 +1062,7 @@ const PdfUploadModal = ({ pdfFile, pdfFileName, uploadingPdf, onFileSelect, onUp
 							) : (
 								<>
 									<span>✅</span>
-									<span>Inserare PDF</span>
+									<span>Extrage text și inserează</span>
 								</>
 							)}
 						</button>

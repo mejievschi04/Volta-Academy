@@ -9,11 +9,10 @@ if (typeof requestIdleCallback !== 'undefined') {
 	requestIdleCallback(
 		() => {
 			Promise.all([
-				import('../pages/DashboardPage'),
 				import('../pages/CoursesPage'),
 				import('../pages/admin/AdminDashboardPage'),
 			]).then(() => {
-				['/home', '/courses', '/admin'].forEach((p) => prefetched.add(p));
+				['/courses', '/admin'].forEach((p) => prefetched.add(p));
 			}).catch(() => {});
 		},
 		{ timeout: 2000 }
@@ -21,8 +20,8 @@ if (typeof requestIdleCallback !== 'undefined') {
 }
 
 const routePrefetchers = [
-	{ prefix: '/home', fn: () => import('../pages/DashboardPage') },
 	{ prefix: '/courses', fn: () => import('../pages/CoursesPage') },
+	{ prefix: '/courses/map', fn: () => import('../pages/CourseMapPage') },
 	{ prefix: '/messages', fn: () => import('../pages/MessagesPage') },
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
 	{ prefix: '/profile', fn: () => import('../pages/ProfilePage') },

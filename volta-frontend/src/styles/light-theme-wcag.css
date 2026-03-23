@@ -156,21 +156,10 @@
 }
 
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.desktop-sidebar-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn) {
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn) {
 	color: #111827 !important; /* WCAG AAA: ~12:1 */
 	background-color: #E8E8E8 !important;
 	border-color: #C8C8C8 !important;
-}
-
-/* Desktop sidebar expand - fundal aliniat cu nav (rgba 229) */
-[data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle {
-	background-color: rgba(229, 229, 229, 1) !important;
-	background: rgba(229, 229, 229, 1) !important;
-	box-shadow: none !important;
-}
-[data-theme="light"] .sidebar-expand-toggle.desktop-sidebar-toggle:hover {
-	background-color: #F0F0F0 !important;
-	background: #F0F0F0 !important;
 }
 
 /* Mobile sidebar toggle - same as topnav */

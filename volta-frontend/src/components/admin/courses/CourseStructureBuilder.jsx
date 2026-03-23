@@ -47,7 +47,13 @@ const ModuleCard = ({
 	onToggleLessonPreview,
 	onSelectLesson,
 	onDeleteLesson,
+	moduleMenuOpen,
+	onModuleMenuToggle,
+	lessonMenuOpen,
+	onLessonMenuToggle,
 }) => {
+	const open = moduleMenuOpen === module.id;
+
 	const {
 		attributes,
 		listeners,
@@ -68,12 +74,16 @@ const ModuleCard = ({
 		id: toModuleContainerKey(module.id),
 	});
 
+	const closeMenu = () => onModuleMenuToggle?.(null);
+
 	return (
 		<div
 			ref={setNodeRef}
 			style={style}
 			data-module-id={module.id}
 			className={`admin-module-card ${module.is_locked ? 'locked' : ''} ${module.status === 'draft' ? 'draft' : ''}`}
+			role="listitem"
+			aria-label={`Modul: ${module.title || 'Fără titlu'}`}
 		>
 			<div className="admin-module-card-header">
 				<div
@@ -84,76 +94,69 @@ const ModuleCard = ({
 					title="Trage pentru reordonare"
 					role="button"
 					tabIndex={0}
+					aria-label="Trage pentru reordonare"
 				>
-					⋮⋮
+					<span className="admin-drag-handle-icon" aria-hidden>≡</span>
 				</div>
 				<div className="admin-module-card-info">
 					<h4 className="admin-module-card-title">
-						{module.title}
-						{module.is_locked && <span className="admin-module-lock-badge">🔒</span>}
+						{module.title || 'Fără titlu'}
 						{module.status === 'draft' && <span className="admin-module-draft-badge">Ciornă</span>}
 						{issueCounts?.errors > 0 && (
-							<span
-								className="lms-tag"
-								style={{ marginLeft: 'var(--space-2)', background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.25)' }}
-								title="Erori în acest modul"
-							>
-								E:{issueCounts.errors}
-							</span>
+							<span className="admin-module-issue-badge errors" title="Erori validare">{issueCounts.errors}</span>
 						)}
 						{issueCounts?.warnings > 0 && (
-							<span
-								className="lms-tag"
-								style={{ marginLeft: 'var(--space-2)', background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.25)' }}
-								title="Avertismente în acest modul"
-							>
-								W:{issueCounts.warnings}
-							</span>
+							<span className="admin-module-issue-badge warnings" title="Avertismente">{issueCounts.warnings}</span>
 						)}
 					</h4>
 					<div className="admin-module-card-meta">
-						<span>📖 {module.lessons?.length || 0} lecții</span>
-						{module.completion_percentage !== undefined && (
-							<span>✅ {module.completion_percentage}% finalizare</span>
-						)}
+						<span>{module.lessons?.length || 0} lecții</span>
 					</div>
 				</div>
 				<div className="admin-module-card-actions">
-					{onToggleStatus && (
-						<button
-							className="lms-btn-icon"
-							onClick={() => onToggleStatus(module.id, module.status === 'published' ? 'draft' : 'published')}
-							title={module.status === 'published' ? 'Treci în ciornă' : 'Publică modul'}
-						>
-							{module.status === 'published' ? '🟢' : '⚪'}
-						</button>
-					)}
 					<button
-						className="lms-btn-icon"
-						onClick={() => onToggleLock(module.id)}
-						title={module.is_locked ? 'Deblochează' : 'Blochează'}
+						type="button"
+						className="admin-module-card-btn-add"
+						onClick={() => onAddLesson(module.id)}
+						title="Adaugă lecție"
+						aria-label="Adaugă lecție"
 					>
-						{module.is_locked ? '🔓' : '🔒'}
+						+ Lecție
 					</button>
-					<button className="lms-btn-icon" onClick={() => onAddLesson(module.id)} title="Adaugă lecție">
-						➕
-					</button>
-					{onAddTest && (
+					<div className="admin-module-card-menu-wrap">
 						<button
 							type="button"
-							className="lms-btn-icon"
-							onClick={() => onAddTest({ scope: 'module', scope_id: module.id })}
-							title="Atașează test la modul"
+							className="admin-module-card-menu-btn"
+							onClick={() => onModuleMenuToggle?.(moduleMenuOpen === module.id ? null : module.id)}
+							aria-expanded={open}
+							aria-haspopup="true"
+							aria-label="Acțiuni modul"
 						>
-							🧪
+							⋯
 						</button>
-					)}
-					<button className="lms-btn-icon" onClick={() => onEdit(module.id)} title="Editează">
-						✏️
-					</button>
-					<button className="lms-btn-icon va-btn-danger" onClick={() => onDelete(module.id)} title="Șterge">
-						🗑️
-					</button>
+						{open && (
+							<>
+								<div className="admin-module-card-menu-backdrop" onClick={closeMenu} aria-hidden="true" />
+								<div className="admin-module-card-menu" role="menu">
+									{onToggleStatus && (
+										<button type="button" role="menuitem" onClick={() => { onToggleStatus(module.id, module.status === 'published' ? 'draft' : 'published'); closeMenu(); }}>
+											{module.status === 'published' ? 'Treci în ciornă' : 'Publică modul'}
+										</button>
+									)}
+									<button type="button" role="menuitem" onClick={() => { onToggleLock(module.id); closeMenu(); }}>
+										{module.is_locked ? 'Deblochează' : 'Blochează'}
+									</button>
+									{onAddTest && (
+										<button type="button" role="menuitem" onClick={() => { onAddTest({ scope: 'module', scope_id: module.id }); closeMenu(); }}>
+											Atașează test
+										</button>
+									)}
+									<button type="button" role="menuitem" onClick={() => { onEdit(module.id); closeMenu(); }}>Editează modul</button>
+									<button type="button" role="menuitem" className="va-menu-danger" onClick={() => { onDelete(module.id); closeMenu(); }}>Șterge modul</button>
+								</div>
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 
@@ -162,6 +165,8 @@ const ModuleCard = ({
 				ref={setDroppableRef}
 				className={`admin-module-lessons ${isOver ? 'is-over' : ''}`}
 				style={isOver ? { outline: '2px dashed var(--border-secondary)', outlineOffset: '2px', borderRadius: 'var(--radius-md)' } : undefined}
+				role="list"
+				aria-label="Lecții modul"
 			>
 				{module.lessons && module.lessons.length > 0 ? (
 					<SortableContext
@@ -183,6 +188,8 @@ const ModuleCard = ({
 								onSelectLesson={onSelectLesson}
 								onAddTest={onAddTest}
 								onDeleteLesson={onDeleteLesson}
+								lessonMenuOpen={lessonMenuOpen}
+								onLessonMenuToggle={onLessonMenuToggle}
 							/>
 						))}
 					</SortableContext>
@@ -191,7 +198,7 @@ const ModuleCard = ({
 						type="button"
 						className="admin-module-lessons-empty"
 						onClick={() => onAddLesson(module.id)}
-						title="Adaugă prima lecție"
+						title="Adaugă prima lecție – vei alege titlul și tipul"
 					>
 						➕ Adaugă lecție
 					</button>
@@ -202,7 +209,22 @@ const ModuleCard = ({
 	);
 };
 
-const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, onToggleSelect, onToggleLessonStatus, onToggleLessonPreview, onSelectLesson, onAddTest, onDeleteLesson }) => {
+const LessonItem = ({
+	lesson,
+	moduleId,
+	index,
+	issueCounts,
+	bulkMode,
+	selected,
+	onToggleSelect,
+	onToggleLessonStatus,
+	onToggleLessonPreview,
+	onSelectLesson,
+	onAddTest,
+	onDeleteLesson,
+	lessonMenuOpen,
+	onLessonMenuToggle,
+}) => {
 	const {
 		attributes,
 		listeners,
@@ -218,6 +240,9 @@ const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, 
 		opacity: isDragging ? 0.6 : 1,
 	};
 
+	const open = lessonMenuOpen === lesson.id;
+	const closeMenu = () => onLessonMenuToggle?.(null);
+
 	return (
 		<div
 			ref={setNodeRef}
@@ -225,101 +250,90 @@ const LessonItem = ({ lesson, moduleId, index, issueCounts, bulkMode, selected, 
 				...style,
 				borderLeft:
 					issueCounts?.errors > 0
-						? '4px solid var(--color-error)'
+						? '3px solid var(--color-error)'
 						: issueCounts?.warnings > 0
-							? '4px solid var(--color-warning)'
+							? '3px solid var(--color-warning)'
 							: undefined,
-				paddingLeft: issueCounts ? 10 : undefined,
+				paddingLeft: issueCounts ? 8 : undefined,
 				background: bulkMode && selected ? 'var(--bg-elevated)' : undefined,
 			}}
 			data-lesson-id={lesson.id}
 			className="admin-lesson-item"
+			role="listitem"
+			aria-label={`Lecție ${index + 1}: ${lesson.title || 'Fără titlu'}`}
 		>
-			<div className="admin-lesson-item-info">
-				<span className="admin-module-card-drag-handle" {...attributes} {...listeners} style={{ cursor: 'grab' }}>
-					⋮⋮
+			<span
+				className="admin-lesson-drag-handle"
+				{...attributes}
+				{...listeners}
+				role="button"
+				tabIndex={0}
+				aria-label="Reordonare"
+				title="Trage pentru reordonare"
+			>
+				<span className="admin-drag-handle-icon" aria-hidden>≡</span>
+			</span>
+			<span className="admin-lesson-item-number">{index + 1}</span>
+			<button
+				type="button"
+				className="admin-lesson-item-title"
+				onClick={() => onSelectLesson?.(lesson.id)}
+				title="Deschide conținutul lecției"
+				aria-label={`Deschide: ${lesson.title || 'Fără titlu'}`}
+			>
+				{lesson.title || 'Fără titlu'}
+			</button>
+			{lesson.is_preview && <span className="admin-lesson-preview-badge">Preview</span>}
+			{(issueCounts?.errors > 0 || issueCounts?.warnings > 0) && (
+				<span className="admin-lesson-issue-dots" title={`Erori: ${issueCounts?.errors || 0}, Avertismente: ${issueCounts?.warnings || 0}`}>
+					{issueCounts?.errors > 0 && <span className="dot error" />}
+					{issueCounts?.warnings > 0 && <span className="dot warning" />}
 				</span>
-				<span className="admin-lesson-item-number">{index + 1}.</span>
+			)}
+			{bulkMode && (
+				<label className="admin-lesson-bulk-check">
+					<input
+						type="checkbox"
+						checked={!!selected}
+						onChange={(e) => { e.stopPropagation(); onToggleSelect?.(lesson.id, e.target.checked); }}
+						onClick={(e) => e.stopPropagation()}
+					/>
+					<span>Select</span>
+				</label>
+			)}
+			<div className="admin-lesson-item-menu-wrap">
 				<button
 					type="button"
-					className="admin-lesson-item-title"
-					style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
-					onClick={() => onSelectLesson?.(lesson.id)}
-					title="Selectează lecția"
+					className="admin-lesson-item-menu-btn"
+					onClick={(e) => { e.stopPropagation(); onLessonMenuToggle?.(open ? null : lesson.id); }}
+					aria-expanded={open}
+					aria-haspopup="true"
+					aria-label="Acțiuni lecție"
 				>
-					{lesson.title}
+					⋯
 				</button>
-				{bulkMode && (
-					<label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'var(--space-2)' }}>
-						<input
-							type="checkbox"
-							checked={!!selected}
-							onChange={(e) => {
-								e.stopPropagation();
-								onToggleSelect?.(lesson.id, e.target.checked);
-							}}
-							onClick={(e) => e.stopPropagation()}
-						/>
-						<span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Selectare</span>
-					</label>
-				)}
-				{lesson.is_preview && <span className="admin-lesson-preview-badge">Preview</span>}
-				{lesson.is_locked && <span className="admin-lesson-lock-badge">🔒</span>}
-				{issueCounts?.errors > 0 && (
-					<span className="lms-tag" style={{ marginLeft: 'var(--space-2)', background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.25)' }}>
-						E:{issueCounts.errors}
-					</span>
-				)}
-				{issueCounts?.warnings > 0 && (
-					<span className="lms-tag" style={{ marginLeft: 'var(--space-2)', background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.25)' }}>
-						W:{issueCounts.warnings}
-					</span>
-				)}
-			</div>
-			<div className="admin-lesson-item-meta">
-				{lesson.type && <span className="admin-lesson-type">{lesson.type}</span>}
-				{onAddTest && (
-					<button
-						type="button"
-						className="lms-btn-icon"
-						onClick={() => onAddTest({ scope: 'lesson', scope_id: lesson.id })}
-						title="Atașează test la lecție"
-					>
-						🧪
-					</button>
-				)}
-				{onToggleLessonPreview && (
-					<button
-						type="button"
-						className="lms-btn-icon"
-						onClick={() => onToggleLessonPreview(lesson.id, !lesson.is_preview)}
-						title={lesson.is_preview ? 'Dezactivează preview' : 'Activează preview'}
-					>
-						{lesson.is_preview ? '👁️' : '👁️‍🗨️'}
-					</button>
-				)}
-				{onToggleLessonStatus && (
-					<button
-						type="button"
-						className="lms-btn-icon"
-						onClick={() => onToggleLessonStatus(lesson.id, lesson.status === 'published' ? 'draft' : 'published')}
-						title={lesson.status === 'published' ? 'Treci în ciornă' : 'Publică lecția'}
-					>
-						{lesson.status === 'published' ? '🟢' : '⚪'}
-					</button>
-				)}
-				{onDeleteLesson && (
-					<button
-						type="button"
-						className="lms-btn-icon va-btn-danger"
-						onClick={(e) => {
-							e.stopPropagation();
-							onDeleteLesson(lesson.id);
-						}}
-						title="Șterge lecția"
-					>
-						🗑️
-					</button>
+				{open && (
+					<>
+						<div className="admin-lesson-item-menu-backdrop" onClick={(e) => { e.stopPropagation(); closeMenu(); }} aria-hidden="true" />
+						<div className="admin-lesson-item-menu" role="menu" onClick={(e) => e.stopPropagation()}>
+							{onAddTest && (
+								<button type="button" role="menuitem" onClick={() => { onAddTest({ scope: 'lesson', scope_id: lesson.id }); closeMenu(); }}>Atașează test</button>
+							)}
+							{onToggleLessonPreview && (
+								<button type="button" role="menuitem" onClick={() => { onToggleLessonPreview(lesson.id, !lesson.is_preview); closeMenu(); }}>
+									{lesson.is_preview ? 'Dezactivează preview' : 'Activează preview'}
+								</button>
+							)}
+							{onToggleLessonStatus && (
+								<button type="button" role="menuitem" onClick={() => { onToggleLessonStatus(lesson.id, lesson.status === 'published' ? 'draft' : 'published'); closeMenu(); }}>
+									{lesson.status === 'published' ? 'Treci în ciornă' : 'Publică lecția'}
+								</button>
+							)}
+							{onDeleteLesson && (
+								<button type="button" role="menuitem" className="va-menu-danger" onClick={() => { onDeleteLesson(lesson.id); closeMenu(); }}>Șterge lecția</button>
+							)}
+						</div>
+					</>
 				)}
 			</div>
 		</div>
@@ -349,6 +363,8 @@ const CourseStructureBuilder = ({
 	const [activeId, setActiveId] = useState(null);
 	const [bulkMode, setBulkMode] = useState(false);
 	const [selectedLessonIds, setSelectedLessonIds] = useState([]);
+	const [moduleMenuOpen, setModuleMenuOpen] = useState(null);
+	const [lessonMenuOpen, setLessonMenuOpen] = useState(null);
 
 	const validation = useMemo(() => {
 		const errors = Array.isArray(validationReport?.errors) ? validationReport.errors : [];
@@ -528,20 +544,16 @@ const CourseStructureBuilder = ({
 	return (
 		<div className="admin-course-structure-builder">
 			<div className="admin-course-structure-header">
-				<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-					<h2>Structură Curs</h2>
-					<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-						<input
-							type="checkbox"
-							checked={bulkMode}
-							onChange={(e) => setBulkMode(e.target.checked)}
-						/>
-						Selectare multiplă
+				<h2 className="admin-course-structure-title">Structură curs</h2>
+				<div className="admin-course-structure-header-actions">
+					<label className="admin-course-structure-bulk-label">
+						<input type="checkbox" checked={bulkMode} onChange={(e) => setBulkMode(e.target.checked)} />
+						<span>Selectare multiplă</span>
 					</label>
+					<button type="button" className="admin-course-structure-add-module" onClick={() => onAddModule?.()} disabled={loading}>
+						+ Modul
+					</button>
 				</div>
-				<button className="lms-btn-primary" onClick={onAddModule} disabled={loading}>
-					+ Adaugă Modul
-				</button>
 			</div>
 
 			{bulkMode && selectedLessonIds.length > 0 && (
@@ -584,14 +596,14 @@ const CourseStructureBuilder = ({
 			)}
 
 			{modules.length === 0 ? (
-				<div className="lms-empty-state">
-					<div className="lms-empty-icon">📚</div>
-					<div className="lms-empty-title">Nu există module</div>
-					<div className="lms-empty-description">
-						Adaugă primul modul pentru a începe construirea cursului
-					</div>
-					<button className="lms-btn-primary" onClick={onAddModule}>
-						+ Adaugă Modul
+				<div className="admin-course-structure-empty">
+					<div className="admin-course-structure-empty-icon" aria-hidden="true">📚</div>
+					<p className="admin-course-structure-empty-title">Adaugă primul modul</p>
+					<p className="admin-course-structure-empty-desc">
+						Apoi adaugă lecții în modul. Apasă pe o lecție în sidebar pentru a scrie conținutul.
+					</p>
+					<button type="button" className="admin-course-structure-empty-btn" onClick={() => onAddModule?.()}>
+						+ Adaugă modul
 					</button>
 				</div>
 			) : (
@@ -602,7 +614,7 @@ const CourseStructureBuilder = ({
 					onDragEnd={handleDragEnd}
 				>
 					<SortableContext items={modules.map((m) => toModuleKey(m.id))} strategy={verticalListSortingStrategy}>
-						<div className="admin-modules-list">
+						<div className="admin-modules-list" role="list" aria-label="Module curs">
 							{modules.map((module) => (
 								<ModuleCard
 									key={module.id}
@@ -627,6 +639,10 @@ const CourseStructureBuilder = ({
 									onToggleLessonPreview={onToggleLessonPreview}
 									onSelectLesson={onSelectLesson}
 									onDeleteLesson={onDeleteLesson}
+									moduleMenuOpen={moduleMenuOpen}
+									onModuleMenuToggle={setModuleMenuOpen}
+									lessonMenuOpen={lessonMenuOpen}
+									onLessonMenuToggle={setLessonMenuOpen}
 								/>
 							))}
 						</div>

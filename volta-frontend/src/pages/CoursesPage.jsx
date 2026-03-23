@@ -1,14 +1,23 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { coursesService, dashboardService } from '../services/api';
+import { coursesService, courseMapsService } from '../services/api';
 import { toImageUrl } from '../utils/imageUrl';
 import { useAuth } from '../contexts/AuthContext';
 import './CoursesPage.css';
 
 /**
- * Modern Courses Page for Creators
- * Pagină modernă pentru creatori/instructori să gestioneze cursurile
+ * Modern Courses Page
+ * Pentru studenți: design tip AcademyOcean (dosar cu tab colorat, buton Deschide, footer).
+ * Pentru admin: gestiune cursuri cu filtre și view toggle.
  */
+const COURSE_MAP_ACCENT_COLORS = [
+	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
+];
+
+const COURSE_TAB_COLORS = [
+	'#b8e986', '#f5a623', '#7ed321', '#bd9de0', '#f8b4c4', '#7dd3fc', '#d4a574', '#60a5fa', '#fef08a'
+];
+
 const CoursesPage = () => {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
@@ -17,6 +26,7 @@ const CoursesPage = () => {
 	const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
 	
 	const [courses, setCourses] = useState([]);
+	const [courseMaps, setCourseMaps] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const fetchingRef = useRef(false);
@@ -39,9 +49,18 @@ const CoursesPage = () => {
 				setLoading(true);
 				setError(null);
 				
-				const data = await coursesService.getAll();
-				const fetchedCourses = Array.isArray(data) ? data : [];
-				setCourses(fetchedCourses);
+				if (isAdmin) {
+					const data = await coursesService.getAll();
+					setCourses(Array.isArray(data) ? data : []);
+					setCourseMaps([]);
+				} else {
+					const [mapsData, coursesData] = await Promise.all([
+						courseMapsService.getMaps(),
+						coursesService.getAll(),
+					]);
+					setCourseMaps(Array.isArray(mapsData) ? mapsData : []);
+					setCourses(Array.isArray(coursesData) ? coursesData : []);
+				}
 			} catch (err) {
 				console.error('Error fetching courses:', err);
 				setError('Nu s-au putut încărca cursurile');
@@ -141,20 +160,34 @@ const CoursesPage = () => {
 	}
 	
 	return (
-		<div className="courses-page-modern">
+		<div className={`courses-page-modern ${!isAdmin ? 'courses-page-student' : ''}`}>
+			<div className={!isAdmin ? 'courses-page-student-main' : undefined}>
 			{/* Hero Header */}
 			<div className="courses-page-hero">
 				<div className="courses-page-hero-content">
 					<div className="courses-page-hero-text">
 						<h1 className="courses-page-hero-title">
-							{isAdmin ? 'Cursurile mele' : 'Cursuri Disponibile'}
+							{isAdmin ? 'Cursurile mele' : 'Cursuri'}
 						</h1>
-						<p className="courses-page-hero-subtitle">
-							{isAdmin 
-								? 'Gestionează și creează cursuri pentru instruirea personalului'
-								: 'Explorează și înscrie-te la cursuri pentru dezvoltarea profesională'}
-						</p>
 					</div>
+					{!isAdmin && (
+						<div className="courses-page-search-wrapper courses-page-hero-search">
+							<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<circle cx="11" cy="11" r="8"/>
+								<path d="m21 21-4.35-4.35"/>
+							</svg>
+							<input
+								type="text"
+								className="courses-page-search-input"
+								placeholder="Caută cursuri..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
+							{searchQuery && (
+								<button type="button" className="courses-page-search-clear" onClick={() => setSearchQuery('')} aria-label="Golește căutarea">×</button>
+							)}
+						</div>
+					)}
 					{isAdmin && (
 						<button
 							className="courses-page-create-btn"
@@ -169,7 +202,8 @@ const CoursesPage = () => {
 				</div>
 			</div>
 			
-			{/* Search and Filters Bar */}
+			{/* Search and Filters Bar - doar pentru admin; student are search în hero */}
+			{isAdmin && (
 			<div className="courses-page-toolbar">
 				<div className="courses-page-search-wrapper">
 					<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -185,8 +219,10 @@ const CoursesPage = () => {
 					/>
 					{searchQuery && (
 						<button
+							type="button"
 							className="courses-page-search-clear"
 							onClick={() => setSearchQuery('')}
+							aria-label="Golește căutarea"
 						>
 							×
 						</button>
@@ -266,28 +302,79 @@ const CoursesPage = () => {
 					</select>
 				</div>
 			</div>
+			)}
 			
-			{/* Courses Grid/List */}
+			{/* Courses Grid/List (sau Mape pentru studenți) */}
 			<div className="courses-page-content">
-				{filteredAndSortedCourses.length > 0 ? (
+				{/* Student: afișăm mape (foldere) dacă există */}
+				{!isAdmin && courseMaps.length > 0 ? (
+					<div className="courses-page-maps-grid">
+						{courseMaps.map((map, index) => {
+							const accentColor = COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+							const courseCount = map.courses_count ?? 0;
+							const summary = map.description || `${courseCount} cursuri`;
+							return (
+								<article
+									key={map.id}
+									className="course-map-card"
+									onClick={() => navigate(`/courses/map/${map.id}`)}
+								>
+									<button
+										type="button"
+										className="course-map-card-menu"
+										aria-label="Opțiuni"
+										onClick={(e) => { e.stopPropagation(); }}
+									>
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+									</button>
+									<div className="course-map-card-body">
+										<div className="course-map-card-icon-wrap" style={{ '--map-accent': accentColor }}>
+											<svg className="course-map-card-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+												<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+												<line x1="12" y1="11" x2="12" y2="17"/>
+												<line x1="9" y1="14" x2="15" y2="14"/>
+											</svg>
+										</div>
+										<div className="course-map-card-content">
+											<h3 className="course-map-card-title">{map.name}</h3>
+											<p className="course-map-card-summary">{summary}</p>
+											<div className="course-map-card-footer">
+												<span className="course-map-card-cta-label">Deschide</span>
+												<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+											</div>
+										</div>
+									</div>
+								</article>
+							);
+						})}
+					</div>
+				) : filteredAndSortedCourses.length > 0 ? (
 					<div className={viewMode === 'grid' ? 'courses-page-grid' : 'courses-page-list'}>
-						{filteredAndSortedCourses.map((course) => {
+						{filteredAndSortedCourses.map((course, index) => {
 							const statusBadge = getStatusBadge(course.status || 'draft');
 							const totalModules = course.modules_count || course.modules?.length || 0;
 							const totalLessons = course.lessons_count || 0;
+							const tabColor = COURSE_TAB_COLORS[index % COURSE_TAB_COLORS.length];
 							
 							// Determine navigation path based on user role
 							const coursePath = isAdmin 
 								? `/admin/courses/${course.id}` 
-								: `/courses/${course.id}/detail`;
+								: `/courses/${course.id}`;
 							
 							return (
 								<div
 									key={course.id}
-									className={`courses-page-card ${viewMode === 'list' ? 'list-view' : ''}`}
+									className={`courses-page-card ${viewMode === 'list' ? 'list-view' : ''} ${!isAdmin ? 'courses-page-card-student' : ''}`}
+									style={!isAdmin ? { '--course-tab-color': tabColor } : undefined}
 									onClick={() => navigate(coursePath)}
 								>
-									{/* Folder tab (visual) - rendered via CSS ::before */}
+									{/* Student: tab colorat cu titlul cursului */}
+									{!isAdmin && (
+										<div className="courses-page-card-tab" style={{ backgroundColor: tabColor }}>
+											{course.title}
+										</div>
+									)}
+									{/* Folder tab (visual) - rendered via CSS ::before for admin */}
 									{/* Thumbnail / content area (grey box) */}
 									<div className="courses-page-card-thumbnail">
 										{course.image_url ? (
@@ -336,11 +423,14 @@ const CoursesPage = () => {
 											</div>
 										)}
 										
-										{/* Title */}
-										<h3 className="courses-page-card-title">{course.title}</h3>
+										{/* Title (admin) sau descriere scurtă (student) */}
+										{isAdmin && <h3 className="courses-page-card-title">{course.title}</h3>}
+										{!isAdmin && (
+											<p className="courses-page-card-description">{course.short_description || course.title}</p>
+										)}
 										
-										{/* Description */}
-										{course.short_description && (
+										{/* Description - doar pentru admin (student are mai sus) */}
+										{isAdmin && course.short_description && (
 											<p className="courses-page-card-description">
 												{course.short_description}
 											</p>
@@ -377,10 +467,19 @@ const CoursesPage = () => {
 											)}
 										</div>
 									</div>
-									{/* Plus / action in colț (design tip dosar) */}
+									{/* Student: buton Deschide (verde); Admin: plus în colț */}
+									{!isAdmin ? (
+										<button
+											className="courses-page-card-open-btn"
+											onClick={(e) => { e.stopPropagation(); navigate(coursePath); }}
+										>
+											Deschide
+										</button>
+									) : (
 									<div className="courses-page-card-corner-action" onClick={(e) => { e.stopPropagation(); navigate(coursePath); }} title={isAdmin ? 'Deschide curs' : 'Vezi curs'} aria-label={isAdmin ? 'Deschide curs' : 'Vezi curs'}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 									</div>
+									)}
 								</div>
 							);
 						})}
@@ -428,6 +527,8 @@ const CoursesPage = () => {
 						)}
 					</div>
 				)}
+			</div>
+
 			</div>
 		</div>
 	);

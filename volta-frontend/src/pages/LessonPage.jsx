@@ -5,6 +5,8 @@ import { lessonsService, coursesService, courseProgressService } from '../servic
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
+import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
+import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import './LessonPage.css';
 
 const LessonPage = () => {
@@ -20,6 +22,8 @@ const LessonPage = () => {
 	const [error, setError] = useState(null);
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [isCompleting, setIsCompleting] = useState(false);
+	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
+	const [finalizingCourse, setFinalizingCourse] = useState(false);
 
 	// Handle auto-complete function
 	const handleAutoComplete = useCallback(async () => {
@@ -157,9 +161,61 @@ const LessonPage = () => {
 		}
 	};
 
+	const nextLessonTarget = getNextLessonIdAfter(course?.modules, lessonId);
+	const isLastLessonInCourse = nextLessonTarget === null;
+
 	const handleNext = () => {
-		// Navigate to next lesson or back to course
+		if (typeof nextLessonTarget === 'number') {
+			navigate(`/courses/${courseId}/lessons/${nextLessonTarget}`);
+			return;
+		}
 		navigate(`/courses/${courseId}`);
+	};
+
+	const handleFinalizeCourse = async () => {
+		if (finalizingCourse) return;
+		setFinalizingCourse(true);
+		try {
+			if (!user?.id) {
+				navigate(`/courses/${courseId}`);
+				return;
+			}
+			if (!isCompleted) {
+				await lessonsService.complete(lessonId);
+				setIsCompleted(true);
+			}
+			const p = await courseProgressService.getCourseProgress(courseId);
+			if (p?.next_exam?.id) {
+				navigate(`/courses/${courseId}/exams/${p.next_exam.id}`);
+				return;
+			}
+			if (p?.course_complete) {
+				setShowCourseCongrats(true);
+				return;
+			}
+			try {
+				await coursesService.finishCourse(courseId);
+			} catch (err) {
+				const status = err?.response?.status;
+				const nextId = err?.response?.data?.next_test_id;
+				if (status === 409 && nextId) {
+					navigate(`/courses/${courseId}/exams/${nextId}`);
+					return;
+				}
+				throw err;
+			}
+			setShowCourseCongrats(true);
+		} catch (err) {
+			console.error('Finalize course:', err);
+			showToast('Nu s-a putut finaliza cursul. Încearcă din nou.', 'error');
+		} finally {
+			setFinalizingCourse(false);
+		}
+	};
+
+	const handleCongratsClose = () => {
+		setShowCourseCongrats(false);
+		navigate('/courses');
 	};
 
 	if (loading) {
@@ -193,6 +249,11 @@ const LessonPage = () => {
 
 	return (
 		<div className="lesson-page-modern">
+			<CourseCongratulationsModal
+				open={showCourseCongrats}
+				courseTitle={course?.title}
+				onClose={handleCongratsClose}
+			/>
 			{/* Header */}
 			<div className="lesson-page-header">
 				<div className="lesson-page-header-content">
@@ -292,13 +353,30 @@ const LessonPage = () => {
 						)}
 						
 						<button
+							type="button"
 							className="lesson-page-btn lesson-page-btn-secondary"
-							onClick={handleNext}
+							disabled={finalizingCourse}
+							onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNext}
 						>
-							<span>Următoarea lecție</span>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M5 12h14M12 5l7 7-7 7"/>
-							</svg>
+							{isLastLessonInCourse ? (
+								finalizingCourse ? (
+									<span>Se procesează…</span>
+								) : (
+									<>
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+											<path d="M20 6L9 17l-5-5"/>
+										</svg>
+										<span>Finalizează</span>
+									</>
+								)
+							) : (
+								<>
+									<span>Următoarea lecție</span>
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M5 12h14M12 5l7 7-7 7"/>
+									</svg>
+								</>
+							)}
 						</button>
 					</div>
 				</div>

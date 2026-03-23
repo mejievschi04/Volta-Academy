@@ -69,14 +69,6 @@ const EventsPage = () => {
 		return labels[type] || type;
 	};
 
-	const getAccessTypeLabel = (accessType) => {
-		const labels = {
-			free: 'Gratuit',
-			course_included: 'Inclus în curs',
-		};
-		return labels[accessType] || accessType;
-	};
-
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#10b981' },
@@ -136,15 +128,6 @@ const EventsPage = () => {
 					<option value="physical">Fizic</option>
 					<option value="webinar">Webinar</option>
 					<option value="workshop">Workshop</option>
-				</select>
-				<select
-					value={filters.access_type}
-					onChange={(e) => setFilters({ ...filters, access_type: e.target.value })}
-					className="events-filter-select"
-				>
-					<option value="all">Toate accesurile</option>
-					<option value="free">Gratuit</option>
-					<option value="course_included">Inclus în curs</option>
 				</select>
 				<select
 					value={filters.date_filter}
@@ -219,11 +202,6 @@ const EventsPage = () => {
 											<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
 												<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
 													<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
-													{event.access_type && (
-														<span>💰 <strong style={{ color: 'var(--va-text)' }}>
-															{getAccessTypeLabel(event.access_type)}
-														</strong></span>
-													)}
 												</div>
 												{event.instructor && (
 													<div style={{ marginBottom: '0.5rem' }}>

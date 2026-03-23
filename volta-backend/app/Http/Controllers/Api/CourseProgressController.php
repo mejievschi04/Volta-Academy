@@ -7,9 +7,11 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Exam;
+use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CourseProgressController extends Controller
 {
@@ -166,6 +168,109 @@ class CourseProgressController extends Controller
             
             return response()->json([
                 'error' => 'Nu s-a putut încărca progresul cursului',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Student: after the last lesson, mark course finished when no required test remains (or course already complete).
+     */
+    public function finishCourse($courseId)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['message' => 'Utilizator neautentificat'], 401);
+            }
+
+            $course = Course::findOrFail($courseId);
+
+            $this->progressService->calculateCourseProgress($user, $course);
+
+            if ($this->progressService->getNextIncompleteLesson($user, $course)) {
+                return response()->json([
+                    'message' => 'Finalizează toate lecțiile înainte de a încheia cursul.',
+                ], 422);
+            }
+
+            $nextTest = $this->progressService->getNextIncompleteTest($user, $course);
+            if ($nextTest) {
+                return response()->json([
+                    'message' => 'Trebuie să finalizezi testul înainte de a încheia cursul.',
+                    'next_test_id' => $nextTest->id,
+                ], 409);
+            }
+
+            $existing = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            $wasAlreadyCompleted = $existing && $existing->completed_at;
+
+            if (!$existing) {
+                DB::table('course_user')->insert([
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'enrolled' => true,
+                    'enrolled_at' => now(),
+                    'progress_percentage' => 100,
+                    'completed_at' => now(),
+                    'started_at' => now(),
+                    'is_mandatory' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $completedAt = $existing->completed_at ?? now();
+                DB::table('course_user')
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->update([
+                        'progress_percentage' => 100,
+                        'completed_at' => $completedAt,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            if (!$wasAlreadyCompleted) {
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'completed_course',
+                    'model_type' => 'Course',
+                    'model_id' => $course->id,
+                    'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
+                    'new_values' => [
+                        'course_id' => $course->id,
+                        'course_title' => $course->title,
+                        'progress_percentage' => 100,
+                        'completed_at' => now()->toDateTimeString(),
+                    ],
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
+            }
+
+            \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
+            \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+
+            $completedAtOut = $wasAlreadyCompleted
+                ? $existing->completed_at
+                : now()->toDateTimeString();
+
+            return response()->json([
+                'message' => 'Cursul a fost marcat ca finalizat.',
+                'completed_at' => $completedAtOut,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in CourseProgressController::finishCourse', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Nu s-a putut finaliza cursul',
                 'message' => $e->getMessage(),
             ], 500);
         }

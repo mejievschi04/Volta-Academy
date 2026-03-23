@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
+import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * Text Lesson Editor - Conform defacut.md secțiunea 5.2
@@ -11,6 +12,7 @@ import { openaiService } from '../../../../services/openaiService';
  * - Difficulty score (AI)
  */
 const TextLessonEditor = ({ lesson, onUpdate }) => {
+	const { showToast } = useToast();
 	const [aiProcessing, setAiProcessing] = useState(false);
 	const [readingTime, setReadingTime] = useState(null);
 	const [difficultyScore, setDifficultyScore] = useState(null);
@@ -29,7 +31,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 	// AI rewrite/simplify/expand
 	const handleAITransform = async (action) => {
 		if (!lesson.content || !lesson.content.trim()) {
-			alert('Te rugăm să adaugi mai întâi conținut');
+			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
 			return;
 		}
 
@@ -69,7 +71,7 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 			calculateReadingTime(transformedText);
 		} catch (error) {
 			console.error(`Error ${action} text:`, error);
-			alert(`Eroare la ${action} text: ` + (error.message || 'Eroare necunoscută'));
+			showToast(`Eroare la ${action} text: ` + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiProcessing(false);
 		}
@@ -78,7 +80,7 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 	// Calculate difficulty score with AI
 	const handleCalculateDifficulty = async () => {
 		if (!lesson.content || !lesson.content.trim()) {
-			alert('Te rugăm să adaugi mai întâi conținut');
+			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
 			return;
 		}
 
@@ -134,7 +136,7 @@ Răspunde în format JSON:
 			}
 		} catch (error) {
 			console.error('Error calculating difficulty:', error);
-			alert('Eroare la calcularea dificultății: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la calcularea dificultății: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiProcessing(false);
 		}

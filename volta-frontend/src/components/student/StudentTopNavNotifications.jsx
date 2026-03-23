@@ -1,6 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { dashboardService } from '../../services/api';
+
+const DISMISSED_NOTIFICATIONS_KEY = 'va_dismissed_student_notifications';
+
+const getDismissedNotifications = () => {
+	try {
+		const raw = localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY);
+		const parsed = raw ? JSON.parse(raw) : [];
+		return Array.isArray(parsed) ? new Set(parsed.map(String)) : new Set();
+	} catch {
+		return new Set();
+	}
+};
+
+const saveDismissedNotifications = (idsSet) => {
+	try {
+		localStorage.setItem(DISMISSED_NOTIFICATIONS_KEY, JSON.stringify(Array.from(idsSet)));
+	} catch {
+		// ignore storage errors
+	}
+};
 
 const StudentTopNavNotifications = () => {
 	const [notifications, setNotifications] = useState([]);
@@ -12,13 +32,40 @@ const StudentTopNavNotifications = () => {
 		const loadNotifications = async () => {
 			try {
 				const data = await dashboardService.getStudentDashboard();
-				setNotifications(data?.notifications || []);
+				const allNotifications = data?.notifications || [];
+				const dismissed = getDismissedNotifications();
+				const visible = allNotifications.filter((n) => !dismissed.has(String(n.id)));
+				setNotifications(visible);
 			} catch (err) {
 				console.error('Error loading student notifications:', err);
 			}
 		};
 		loadNotifications();
 	}, [location.pathname]);
+
+	const dismissByIds = useCallback((ids) => {
+		if (!ids?.length) return;
+		const dismissed = getDismissedNotifications();
+		ids.forEach((id) => dismissed.add(String(id)));
+		saveDismissedNotifications(dismissed);
+		setNotifications((prev) => prev.filter((n) => !ids.map(String).includes(String(n.id))));
+	}, []);
+
+	const handleClearAll = useCallback(
+		(e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			dismissByIds(notifications.map((n) => n.id));
+		},
+		[notifications, dismissByIds]
+	);
+
+	const handleNotificationRead = useCallback(
+		(notifId) => {
+			dismissByIds([notifId]);
+		},
+		[dismissByIds]
+	);
 
 	useEffect(() => {
 		const handleClickOutside = (event) => {
@@ -38,7 +85,7 @@ const StudentTopNavNotifications = () => {
 		<div className="va-topnav-notifications admin-topnav-notifications" ref={notificationsRef}>
 			<button
 				className="admin-topnav-notification-btn"
-				onClick={() => setShowNotifications(!showNotifications)}
+				onClick={() => setShowNotifications((prev) => !prev)}
 				aria-label="Notificări"
 			>
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -51,8 +98,17 @@ const StudentTopNavNotifications = () => {
 			</button>
 			{showNotifications && (
 				<div className="va-topnav-notifications-dropdown admin-topnav-notifications-dropdown">
-					<div className="admin-topnav-notifications-header">
+					<div className="admin-topnav-notifications-header va-topnav-notifications-header-row">
 						<h3>Notificări</h3>
+						{notifications.length > 0 && (
+							<button
+								type="button"
+								className="va-topnav-notifications-clear-btn"
+								onClick={handleClearAll}
+							>
+								Curăță
+							</button>
+						)}
 					</div>
 					{notifications.length > 0 ? (
 						<div className="admin-topnav-notifications-list">
@@ -88,14 +144,22 @@ const StudentTopNavNotifications = () => {
 										key={notif.id}
 										to={notif.link}
 										className="admin-topnav-notification-item"
-										onClick={() => setShowNotifications(false)}
+										onClick={() => {
+											handleNotificationRead(notif.id);
+											setShowNotifications(false);
+										}}
 									>
 										{content}
 									</Link>
 								) : (
-									<div key={notif.id} className="admin-topnav-notification-item">
+									<button
+										key={notif.id}
+										type="button"
+										className="admin-topnav-notification-item va-topnav-notification-item-plain"
+										onClick={() => handleNotificationRead(notif.id)}
+									>
 										{content}
-									</div>
+									</button>
 								);
 							})}
 						</div>

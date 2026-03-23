@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import { examResultsService } from '../services/api';
-import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
 
 const ExamResultsPage = () => {
@@ -10,10 +8,24 @@ const ExamResultsPage = () => {
 	const [error, setError] = useState(null);
 	const [selectedResult, setSelectedResult] = useState(null);
 	const [loadingDetails, setLoadingDetails] = useState(false);
+	const [filterStatus, setFilterStatus] = useState('all'); // all | passed | failed
+	const [sortBy, setSortBy] = useState('recent'); // recent | oldest
 
 	useEffect(() => {
 		fetchResults();
 	}, []);
+
+	const filteredAndSortedResults = useMemo(() => {
+		let list = [...results];
+		if (filterStatus === 'passed') list = list.filter((r) => r.passed);
+		if (filterStatus === 'failed') list = list.filter((r) => !r.passed);
+		list.sort((a, b) => {
+			const dateA = new Date(a.completed_at || 0).getTime();
+			const dateB = new Date(b.completed_at || 0).getTime();
+			return sortBy === 'recent' ? dateB - dateA : dateA - dateB;
+		});
+		return list;
+	}, [results, filterStatus, sortBy]);
 
 	const fetchResults = async () => {
 		try {
@@ -45,6 +57,9 @@ const ExamResultsPage = () => {
 
 	const getUserAnswer = (question) => {
 		// Check if question already has user_answer from backend
+		if (question.user_answer_index !== undefined) {
+			return question.user_answer_index;
+		}
 		if (question.user_answer !== undefined) {
 			return question.user_answer;
 		}
@@ -57,21 +72,28 @@ const ExamResultsPage = () => {
 		return question.question_type || question.type || 'multiple_choice';
 	};
 
+	const normalizeAnswerIndex = (value) => {
+		if (value === null || value === undefined || value === '') return null;
+		const parsed = Number(value);
+		return Number.isNaN(parsed) ? null : parsed;
+	};
+
 	const isCorrectAnswer = (question) => {
 		// Check if backend already calculated this
 		if (question.is_correct !== undefined) {
 			return question.is_correct;
 		}
 		// Fallback to old calculation
-		if (getQuestionType(question) === 'open_text' || getQuestionType(question) === 'short_answer') {
-			return null; // Open text questions need manual review
+		if (['open_text', 'short_answer', 'essay'].includes(getQuestionType(question))) {
+			return null; // Răspuns deschis – notare manuală
 		}
 		
 		const userAnswer = getUserAnswer(question);
+		const normalizedUserAnswer = normalizeAnswerIndex(userAnswer);
 		if (userAnswer === null) return false;
 		
 		const correctAnswerIndex = question.answers?.findIndex(a => a.is_correct) ?? -1;
-		return userAnswer === correctAnswerIndex;
+		return normalizedUserAnswer !== null && normalizedUserAnswer === correctAnswerIndex;
 	};
 
 	const getManualReviewScore = (questionId) => {
@@ -110,10 +132,33 @@ const ExamResultsPage = () => {
 			<div className="exam-results-grid">
 				{/* Results List */}
 				<div>
-					<h2 className="exam-results-section-title">Teste Completate</h2>
-					{results.length > 0 ? (
+					<div className="exam-results-toolbar">
+						<h2 className="exam-results-section-title">Teste completate</h2>
+						<div className="exam-results-filters">
+							<select
+								value={filterStatus}
+								onChange={(e) => setFilterStatus(e.target.value)}
+								className="exam-results-select"
+								aria-label="Filtrează după status"
+							>
+								<option value="all">Toate</option>
+								<option value="passed">Promovate</option>
+								<option value="failed">Nepromovate</option>
+							</select>
+							<select
+								value={sortBy}
+								onChange={(e) => setSortBy(e.target.value)}
+								className="exam-results-select"
+								aria-label="Sortare"
+							>
+								<option value="recent">Cele mai recente</option>
+								<option value="oldest">Cele mai vechi</option>
+							</select>
+						</div>
+					</div>
+					{filteredAndSortedResults.length > 0 ? (
 						<div className="exam-results-list">
-							{results.map((result) => (
+							{filteredAndSortedResults.map((result) => (
 								<button
 									key={result.id}
 									type="button"
@@ -151,8 +196,16 @@ const ExamResultsPage = () => {
 					) : (
 						<div className="exam-results-empty">
 							<div className="exam-results-empty-icon">📝</div>
-							<div className="exam-results-empty-title">Nu ai completat niciun test</div>
-							<div className="exam-results-empty-text">Completează teste pentru a vedea rezultatele aici</div>
+							<div className="exam-results-empty-title">
+								{results.length === 0
+									? 'Nu ai completat niciun test'
+									: 'Niciun rezultat nu corespunde filtrelor'}
+							</div>
+							<div className="exam-results-empty-text">
+								{results.length === 0
+									? 'Completează teste pentru a vedea rezultatele aici'
+									: 'Schimbă filtrele sau afișează toate rezultatele.'}
+							</div>
 						</div>
 					)}
 				</div>
@@ -225,7 +278,8 @@ const ExamResultsPage = () => {
 								<div className="exam-result-questions">
 									{selectedResult.exam.questions.map((question, index) => {
 										const userAnswer = getUserAnswer(question);
-										const isOpenText = getQuestionType(question) === 'open_text' || getQuestionType(question) === 'short_answer';
+										const normalizedUserAnswer = normalizeAnswerIndex(userAnswer);
+										const isOpenText = ['open_text', 'short_answer', 'essay'].includes(getQuestionType(question));
 										const isCorrect = !isOpenText ? isCorrectAnswer(question) : null;
 										const manualScore = getManualReviewScore(question.id);
 										const maxPoints = question.points || 1;
@@ -280,7 +334,7 @@ const ExamResultsPage = () => {
 														</div>
 														<div className="exam-result-answers">
 															{question.answers && question.answers.map((answer, answerIndex) => {
-																const isSelected = userAnswer === answerIndex;
+																const isSelected = answer.is_selected === true || normalizedUserAnswer === answerIndex;
 																const isCorrectAnswer = answer.is_correct || answer.is_correct === true;
 																const answerText = answer.answer_text || answer.text || answer.content || '';
 

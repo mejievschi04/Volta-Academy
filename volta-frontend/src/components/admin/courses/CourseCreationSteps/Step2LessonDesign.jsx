@@ -15,7 +15,7 @@ const Step2LessonDesign = ({ data, onUpdate }) => {
 	const lessonTypes = [
 		{ id: 'theory', label: 'Teorie', icon: '📖' },
 		{ id: 'practice', label: 'Practică', icon: '🛠️' },
-		{ id: 'recap', label: 'Recap', icon: '🔄' },
+		{ id: 'recap', label: 'Recapitulare', icon: '🔄' },
 		{ id: 'assessment', label: 'Evaluare', icon: '✅' },
 	];
 	

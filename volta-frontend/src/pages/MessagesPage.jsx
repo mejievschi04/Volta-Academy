@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { messagesService } from '../services/api';
 import { logger } from '../utils/logger';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const MessagesPage = () => {
 	const { user } = useAuth();
@@ -13,13 +14,26 @@ const MessagesPage = () => {
 	const [messages, setMessages] = useState([]);
 	const [newMessage, setNewMessage] = useState('');
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(null);
 	const [sending, setSending] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+	const [newConversationType, setNewConversationType] = useState('direct');
+	const [newGroupName, setNewGroupName] = useState('');
 	const [newConversationUserId, setNewConversationUserId] = useState('');
+	const [newConversationUserIds, setNewConversationUserIds] = useState([]);
 	const [newConversationSearch, setNewConversationSearch] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [loadingUsers, setLoadingUsers] = useState(false);
+	const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+	const [groupParticipants, setGroupParticipants] = useState([]);
+	const [participantsSearch, setParticipantsSearch] = useState('');
+	const [participantsSearchResults, setParticipantsSearchResults] = useState([]);
+	const [loadingParticipants, setLoadingParticipants] = useState(false);
+	const [updatingParticipants, setUpdatingParticipants] = useState(false);
+	const [groupRenameDraft, setGroupRenameDraft] = useState('');
+	const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
+	const [leavingGroup, setLeavingGroup] = useState(false);
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 	const messagesEndRef = useRef(null);
 	const pollingIntervalRef = useRef(null);
@@ -196,6 +210,7 @@ const MessagesPage = () => {
 	const fetchConversations = async () => {
 		try {
 			setLoading(true);
+			setLoadError(null);
 			const data = await messagesService.getConversations();
 			
 			if (Array.isArray(data)) {
@@ -209,8 +224,9 @@ const MessagesPage = () => {
 				setAllConversations([]);
 			}
 		} catch (err) {
-			console.error('Error fetching conversations:', err);
-			showToast('Eroare la încărcarea conversațiilor', 'error');
+			const msg = err?.response?.data?.message || err?.message || 'Eroare la încărcarea conversațiilor';
+			setLoadError(msg);
+			showToast(msg, 'error');
 			setConversations([]);
 			setAllConversations([]);
 		} finally {
@@ -340,6 +356,38 @@ const MessagesPage = () => {
 			.substring(0, 2);
 	};
 
+	const getConversationTitle = (conversation) => {
+		if (conversation?.is_group) {
+			return conversation?.name || 'Grup fără nume';
+		}
+		return conversation?.participant?.name || 'Utilizator necunoscut';
+	};
+
+	const getConversationAvatarText = (conversation) => {
+		if (conversation?.is_group) return 'GR';
+		return getInitials(conversation?.participant?.name || 'U');
+	};
+
+	const getConversationSubtitle = (conversation) => {
+		if (conversation?.is_group) {
+			const count = Array.isArray(conversation?.participants) ? conversation.participants.length : 0;
+			return `${count} participanți`;
+		}
+		return conversation?.participant?.role === 'admin' ? 'Administrator'
+			: conversation?.participant?.role === 'instructor' ? 'Instructor'
+			: 'Student';
+	};
+
+	const getGroupParticipantsLabel = (conversation) => {
+		if (!conversation?.is_group || !Array.isArray(conversation?.participants)) {
+			return '';
+		}
+		const names = conversation.participants
+			.map((p) => p?.name)
+			.filter(Boolean);
+		return names.join(', ');
+	};
+
 	const handleSearch = async (query) => {
 		setSearchQuery(query);
 		
@@ -373,17 +421,34 @@ const MessagesPage = () => {
 	};
 
 	const handleNewConversation = async () => {
-		if (!newConversationUserId) {
+		if (newConversationType === 'direct' && !newConversationUserId) {
 			showToast('Selectează un utilizator', 'error');
+			return;
+		}
+		if (newConversationType === 'group' && newConversationUserIds.length < 2) {
+			showToast('Selectează cel puțin 2 participanți pentru grup', 'error');
 			return;
 		}
 
 		try {
-			const conversation = await messagesService.createConversation(newConversationUserId);
+			const payload = newConversationType === 'group'
+				? {
+					type: 'group',
+					name: newGroupName?.trim() || 'Grup nou',
+					participant_ids: newConversationUserIds,
+				}
+				: {
+					type: 'direct',
+					participant_id: newConversationUserId,
+				};
+			const conversation = await messagesService.createConversation(payload);
 			setConversations(prev => [conversation, ...prev]);
 			setSelectedConversation(conversation);
 			setShowNewConversationModal(false);
+			setNewConversationType('direct');
+			setNewGroupName('');
 			setNewConversationUserId('');
+			setNewConversationUserIds([]);
 			setNewConversationSearch('');
 			setAvailableUsers([]);
 			showToast('Conversație creată', 'success');
@@ -414,25 +479,226 @@ const MessagesPage = () => {
 	};
 
 	const handleSelectUser = (userId) => {
-		setNewConversationUserId(userId);
+		if (newConversationType === 'group') {
+			setNewConversationUserIds((prev) => (
+				prev.includes(userId)
+					? prev.filter((id) => id !== userId)
+					: [...prev, userId]
+			));
+		} else {
+			setNewConversationUserId(userId);
+		}
 		setNewConversationSearch('');
 		setAvailableUsers([]);
+	};
+
+	const loadGroupParticipants = async (conversationId) => {
+		setLoadingParticipants(true);
+		try {
+			const res = await messagesService.getParticipants(conversationId);
+			setGroupParticipants(Array.isArray(res?.data) ? res.data : []);
+		} catch (err) {
+			logger.error('Error loading group participants:', err);
+			showToast('Nu s-au putut încărca participanții', 'error');
+		} finally {
+			setLoadingParticipants(false);
+		}
+	};
+
+	const openParticipantsModal = async () => {
+		if (!selectedConversation?.is_group) return;
+		setShowParticipantsModal(true);
+		setGroupRenameDraft(selectedConversation.name || '');
+		setParticipantsSearch('');
+		setParticipantsSearchResults([]);
+		await loadGroupParticipants(selectedConversation.id);
+	};
+
+	const groupModalPermissions = useMemo(() => {
+		const me = groupParticipants.find((p) => p.id === user?.id);
+		const iAmOwner = Boolean(me?.is_owner || me?.group_role === 'owner');
+		const iAmGroupAdmin = Boolean(me?.is_group_admin || me?.group_role === 'admin');
+		const siteAdmin = user?.role === 'admin';
+		return {
+			canManageGroup: siteAdmin || iAmOwner || iAmGroupAdmin,
+			canManageRoles: siteAdmin || iAmOwner,
+			iAmOwner,
+		};
+	}, [groupParticipants, user?.id, user?.role]);
+
+	const groupRoleLabel = (p) => {
+		if (p.is_owner || p.group_role === 'owner') return 'Proprietar';
+		if (p.is_group_admin || p.group_role === 'admin') return 'Admin grup';
+		return 'Membru';
+	};
+
+	const handleSaveGroupName = async () => {
+		if (!selectedConversation?.id) return;
+		const name = groupRenameDraft.trim();
+		if (!name) {
+			showToast('Introdu un nume pentru grup.', 'error');
+			return;
+		}
+		setUpdatingParticipants(true);
+		try {
+			const res = await messagesService.updateGroupConversation(selectedConversation.id, name);
+			const newName = res?.data?.name ?? name;
+			setConversations((prev) => prev.map((c) => (c.id === selectedConversation.id ? { ...c, name: newName } : c)));
+			setSelectedConversation((prev) => (prev ? { ...prev, name: newName } : prev));
+			setGroupRenameDraft(newName);
+			showToast('Numele grupului a fost actualizat.', 'success');
+		} catch (err) {
+			logger.error('Error renaming group:', err);
+			showToast(err?.response?.data?.message || 'Nu s-a putut redenumi grupul', 'error');
+		} finally {
+			setUpdatingParticipants(false);
+		}
+	};
+
+	const handleLeaveGroup = async () => {
+		if (!selectedConversation?.id) return;
+		setLeavingGroup(true);
+		try {
+			await messagesService.leaveGroup(selectedConversation.id);
+			const leftId = selectedConversation.id;
+			setShowLeaveGroupConfirm(false);
+			setShowParticipantsModal(false);
+			setConversations((prev) => prev.filter((c) => c.id !== leftId));
+			setAllConversations((prev) => prev.filter((c) => c.id !== leftId));
+			setSelectedConversation((prev) => (prev?.id === leftId ? null : prev));
+			showToast('Ai părăsit grupul.', 'success');
+		} catch (err) {
+			logger.error('Error leaving group:', err);
+			showToast(err?.response?.data?.message || 'Nu ai putut părăsi grupul', 'error');
+		} finally {
+			setLeavingGroup(false);
+		}
+	};
+
+	const handleSetParticipantRole = async (targetUserId, groupRole) => {
+		if (!selectedConversation?.id) return;
+		setUpdatingParticipants(true);
+		try {
+			const res = await messagesService.setParticipantGroupRole(selectedConversation.id, targetUserId, groupRole);
+			const updatedParticipants = Array.isArray(res?.data) ? res.data : [];
+			setGroupParticipants(updatedParticipants);
+			setConversations((prev) => prev.map((conv) => (conv.id === selectedConversation.id ? {
+				...conv,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : conv)));
+			setSelectedConversation((prev) => (prev ? {
+				...prev,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : prev));
+			showToast('Rol actualizat.', 'success');
+		} catch (err) {
+			logger.error('Error updating participant role:', err);
+			showToast(err?.response?.data?.message || 'Nu s-a putut actualiza rolul', 'error');
+		} finally {
+			setUpdatingParticipants(false);
+		}
+	};
+
+	const handleParticipantsSearch = async (query) => {
+		setParticipantsSearch(query);
+		if (!query.trim()) {
+			setParticipantsSearchResults([]);
+			return;
+		}
+		try {
+			const users = await messagesService.getAvailableUsers(query);
+			const existingIds = new Set(groupParticipants.map((p) => p.id));
+			const filtered = (Array.isArray(users) ? users : []).filter((u) => !existingIds.has(u.id));
+			setParticipantsSearchResults(filtered);
+		} catch (err) {
+			logger.error('Error searching users for group:', err);
+			setParticipantsSearchResults([]);
+		}
+	};
+
+	const handleAddParticipantToGroup = async (userId) => {
+		if (!selectedConversation?.id) return;
+		setUpdatingParticipants(true);
+		try {
+			const res = await messagesService.addParticipants(selectedConversation.id, [userId]);
+			const updatedParticipants = Array.isArray(res?.data) ? res.data : [];
+			setGroupParticipants(updatedParticipants);
+			setParticipantsSearchResults((prev) => prev.filter((u) => u.id !== userId));
+			setConversations((prev) => prev.map((conv) => conv.id === selectedConversation.id ? {
+				...conv,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : conv));
+			setSelectedConversation((prev) => prev ? {
+				...prev,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : prev);
+			showToast('Participant adăugat', 'success');
+		} catch (err) {
+			logger.error('Error adding participant:', err);
+			showToast(err?.response?.data?.message || 'Nu s-a putut adăuga participantul', 'error');
+		} finally {
+			setUpdatingParticipants(false);
+		}
+	};
+
+	const handleRemoveParticipantFromGroup = async (targetUserId) => {
+		if (!selectedConversation?.id) return;
+		setUpdatingParticipants(true);
+		try {
+			const res = await messagesService.removeParticipant(selectedConversation.id, targetUserId);
+			const updatedParticipants = Array.isArray(res?.data) ? res.data : [];
+			setGroupParticipants(updatedParticipants);
+			setConversations((prev) => prev.map((conv) => conv.id === selectedConversation.id ? {
+				...conv,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : conv));
+			setSelectedConversation((prev) => prev ? {
+				...prev,
+				participants: updatedParticipants.filter((p) => p.id !== user.id),
+			} : prev);
+			showToast('Participant eliminat', 'success');
+		} catch (err) {
+			logger.error('Error removing participant:', err);
+			showToast(err?.response?.data?.message || 'Nu s-a putut elimina participantul', 'error');
+		} finally {
+			setUpdatingParticipants(false);
+		}
 	};
 
 	// Filter conversations based on search query
 	const filteredConversations = searchQuery.trim()
 		? conversations.filter(conv => 
-			conv.participant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			getConversationTitle(conv).toLowerCase().includes(searchQuery.toLowerCase()) ||
 			conv.lastMessage?.content?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 		: conversations;
 
-	if (loading) {
+	if (loading && !loadError) {
 		return (
 			<div className="messages-page">
 				<div className="lms-dashboard-loading">
 					<div className="lms-spinner"></div>
 					<p>Se încarcă mesageria...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (loadError) {
+		return (
+			<div className="messages-page">
+				<div className="messages-page-error">
+					<div className="messages-page-error-icon" aria-hidden>⚠️</div>
+					<h2 className="messages-page-error-title">Nu s-au putut încărca conversațiile</h2>
+					<p className="messages-page-error-message">{loadError}</p>
+					<button
+						type="button"
+						className="lms-btn-primary"
+						onClick={() => fetchConversations()}
+						aria-label="Încearcă din nou"
+					>
+						Încearcă din nou
+					</button>
 				</div>
 			</div>
 		);
@@ -490,16 +756,16 @@ const MessagesPage = () => {
 								}}
 							>
 								<div className="messages-conversation-avatar">
-									{conversation.participant?.avatar ? (
-										<img src={conversation.participant.avatar} alt={conversation.participant?.name || 'Utilizator'} loading="lazy" decoding="async" />
+									{!conversation.is_group && conversation.participant?.avatar ? (
+										<img src={conversation.participant.avatar} alt={getConversationTitle(conversation)} loading="lazy" decoding="async" />
 									) : (
-										<span>{getInitials(conversation.participant?.name || 'U')}</span>
+										<span>{getConversationAvatarText(conversation)}</span>
 									)}
 								</div>
 								<div className="messages-conversation-content">
 									<div className="messages-conversation-header">
 										<span className="messages-conversation-name">
-											{conversation.participant?.name || 'Utilizator necunoscut'}
+											{getConversationTitle(conversation)}
 										</span>
 										<span className="messages-conversation-time">
 											{conversation.lastMessage?.created_at 
@@ -545,22 +811,33 @@ const MessagesPage = () => {
 								)}
 								<div className="messages-chat-header-info">
 									<div className="messages-chat-avatar">
-										{selectedConversation.participant?.avatar ? (
-											<img src={selectedConversation.participant.avatar} alt={selectedConversation.participant?.name || 'Utilizator'} loading="lazy" decoding="async" />
+										{!selectedConversation.is_group && selectedConversation.participant?.avatar ? (
+											<img src={selectedConversation.participant.avatar} alt={getConversationTitle(selectedConversation)} loading="lazy" decoding="async" />
 										) : (
-											<span>{getInitials(selectedConversation.participant?.name || 'U')}</span>
+											<span>{getConversationAvatarText(selectedConversation)}</span>
 										)}
 									</div>
 									<div>
-										<h3 className="messages-chat-name">{selectedConversation.participant?.name || 'Utilizator necunoscut'}</h3>
+										<h3 className="messages-chat-name">{getConversationTitle(selectedConversation)}</h3>
 										<p className="messages-chat-role">
-											{selectedConversation.participant?.role === 'admin' ? 'Administrator' :
-											 selectedConversation.participant?.role === 'instructor' ? 'Instructor' :
-											 'Student'}
+											{getConversationSubtitle(selectedConversation)}
 										</p>
+										{selectedConversation?.is_group && (
+											<p className="messages-chat-role" style={{ marginTop: '4px' }}>
+												Participanți: {getGroupParticipantsLabel(selectedConversation) || 'N/A'}
+											</p>
+										)}
 									</div>
 								</div>
-								<button className="messages-chat-actions-btn" title="Opțiuni">
+								<button
+									className="messages-chat-actions-btn"
+									title={selectedConversation?.is_group ? 'Gestionează participanți' : 'Opțiuni'}
+									onClick={() => {
+										if (selectedConversation?.is_group) {
+											openParticipantsModal();
+										}
+									}}
+								>
 									<span>⋯</span>
 								</button>
 							</div>
@@ -629,7 +906,10 @@ const MessagesPage = () => {
 			{showNewConversationModal && (
 				<div className="messages-modal-overlay" onClick={() => {
 					setShowNewConversationModal(false);
+					setNewConversationType('direct');
+					setNewGroupName('');
 					setNewConversationUserId('');
+					setNewConversationUserIds([]);
 					setNewConversationSearch('');
 					setAvailableUsers([]);
 				}}>
@@ -640,7 +920,10 @@ const MessagesPage = () => {
 								className="messages-modal-close"
 								onClick={() => {
 									setShowNewConversationModal(false);
+									setNewConversationType('direct');
+									setNewGroupName('');
 									setNewConversationUserId('');
+									setNewConversationUserIds([]);
 									setNewConversationSearch('');
 									setAvailableUsers([]);
 								}}
@@ -649,10 +932,45 @@ const MessagesPage = () => {
 							</button>
 						</div>
 						<div className="messages-modal-body">
+							<div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+								<button
+									type="button"
+									className={`lms-btn-secondary ${newConversationType === 'direct' ? 'active' : ''}`}
+									onClick={() => {
+										setNewConversationType('direct');
+										setNewConversationUserIds([]);
+										setNewGroupName('');
+									}}
+								>
+									Direct
+								</button>
+								<button
+									type="button"
+									className={`lms-btn-secondary ${newConversationType === 'group' ? 'active' : ''}`}
+									onClick={() => {
+										setNewConversationType('group');
+										setNewConversationUserId('');
+									}}
+								>
+									Grup
+								</button>
+							</div>
+							{newConversationType === 'group' && (
+								<input
+									type="text"
+									placeholder="Nume grup"
+									className="messages-modal-input"
+									value={newGroupName}
+									onChange={(e) => setNewGroupName(e.target.value)}
+									style={{ marginBottom: 'var(--space-3)' }}
+								/>
+							)}
 							<div style={{ position: 'relative' }}>
 								<input
 									type="text"
-									placeholder="Caută utilizator după nume sau email..."
+									placeholder={newConversationType === 'group'
+										? 'Caută participanți pentru grup...'
+										: 'Caută utilizator după nume sau email...'}
 									className="messages-modal-input"
 									value={newConversationSearch}
 									onChange={(e) => handleSearchUsers(e.target.value)}
@@ -676,7 +994,11 @@ const MessagesPage = () => {
 									{availableUsers.map((user) => (
 										<div
 											key={user.id}
-											className={`messages-user-item ${newConversationUserId == user.id ? 'selected' : ''}`}
+											className={`messages-user-item ${
+												newConversationType === 'group'
+													? (newConversationUserIds.includes(user.id) ? 'selected' : '')
+													: (newConversationUserId == user.id ? 'selected' : '')
+											}`}
 											onClick={() => handleSelectUser(user.id)}
 										>
 											<div className="messages-user-avatar">
@@ -696,7 +1018,8 @@ const MessagesPage = () => {
 													</div>
 												)}
 											</div>
-											{newConversationUserId == user.id && (
+											{((newConversationType === 'group' && newConversationUserIds.includes(user.id)) ||
+												(newConversationType === 'direct' && newConversationUserId == user.id)) && (
 												<div className="messages-user-check">✓</div>
 											)}
 										</div>
@@ -715,7 +1038,7 @@ const MessagesPage = () => {
 								</p>
 							)}
 							
-							{newConversationUserId && (
+							{newConversationType === 'direct' && newConversationUserId && (
 								<div style={{ 
 									marginTop: 'var(--space-3)',
 									padding: 'var(--space-2)',
@@ -727,13 +1050,28 @@ const MessagesPage = () => {
 									Utilizator selectat: {availableUsers.find(u => u.id == newConversationUserId)?.name || 'ID: ' + newConversationUserId}
 								</div>
 							)}
+							{newConversationType === 'group' && newConversationUserIds.length > 0 && (
+								<div style={{ 
+									marginTop: 'var(--space-3)',
+									padding: 'var(--space-2)',
+									background: 'var(--bg-tertiary)',
+									borderRadius: 'var(--radius-md)',
+									fontSize: 'var(--font-size-sm)',
+									color: 'var(--text-secondary)'
+								}}>
+									Participanți selectați: {newConversationUserIds.length}
+								</div>
+							)}
 						</div>
 						<div className="messages-modal-footer">
 							<button 
 								className="lms-btn-secondary"
 								onClick={() => {
 									setShowNewConversationModal(false);
+									setNewConversationType('direct');
+									setNewGroupName('');
 									setNewConversationUserId('');
+									setNewConversationUserIds([]);
 									setNewConversationSearch('');
 									setAvailableUsers([]);
 								}}
@@ -743,7 +1081,9 @@ const MessagesPage = () => {
 							<button 
 								className="lms-btn-primary"
 								onClick={handleNewConversation}
-								disabled={!newConversationUserId}
+								disabled={newConversationType === 'group'
+									? newConversationUserIds.length < 2
+									: !newConversationUserId}
 							>
 								Creează
 							</button>
@@ -751,6 +1091,178 @@ const MessagesPage = () => {
 					</div>
 				</div>
 			)}
+
+			{showParticipantsModal && selectedConversation?.is_group && (
+				<div className="messages-modal-overlay" onClick={() => setShowParticipantsModal(false)}>
+					<div className="messages-modal" onClick={(e) => e.stopPropagation()}>
+						<div className="messages-modal-header">
+							<h3>Participanți grup</h3>
+							<button
+								className="messages-modal-close"
+								onClick={() => setShowParticipantsModal(false)}
+							>
+								×
+							</button>
+						</div>
+						<div className="messages-modal-body">
+							{groupModalPermissions.canManageGroup && (
+								<div className="messages-group-rename-block">
+									<div className="messages-group-participants-title">Numele grupului</div>
+									<div className="messages-group-rename-row">
+										<input
+											type="text"
+											className="messages-modal-input"
+											value={groupRenameDraft}
+											onChange={(e) => setGroupRenameDraft(e.target.value)}
+											maxLength={120}
+											aria-label="Numele grupului"
+										/>
+										<button
+											type="button"
+											className="lms-btn-primary"
+											disabled={updatingParticipants}
+											onClick={handleSaveGroupName}
+										>
+											Salvează
+										</button>
+									</div>
+								</div>
+							)}
+
+							{!groupModalPermissions.iAmOwner && (
+								<div className="messages-group-leave-row">
+									<button
+										type="button"
+										className="lms-btn-secondary messages-group-leave-btn"
+										disabled={updatingParticipants || leavingGroup}
+										onClick={() => setShowLeaveGroupConfirm(true)}
+									>
+										Părăsește grupul
+									</button>
+								</div>
+							)}
+
+							{groupModalPermissions.canManageGroup && (
+								<input
+									type="text"
+									placeholder="Caută utilizatori pentru adăugare..."
+									className="messages-modal-input"
+									value={participantsSearch}
+									onChange={(e) => handleParticipantsSearch(e.target.value)}
+								/>
+							)}
+
+							<div className="messages-group-participants-section">
+								<div className="messages-group-participants-title">Participanți actuali</div>
+								{loadingParticipants ? (
+									<div className="messages-group-participants-empty">Se încarcă...</div>
+								) : groupParticipants.length === 0 ? (
+									<div className="messages-group-participants-empty">Nu există participanți.</div>
+								) : (
+									<div className="messages-users-list">
+										{groupParticipants.map((p) => {
+											const isOwnerRow = Boolean(p.is_owner || p.group_role === 'owner');
+											const showRemove = groupModalPermissions.canManageGroup && !isOwnerRow;
+											const showRoleActions = groupModalPermissions.canManageRoles && !isOwnerRow && p.id !== user?.id;
+											const isAdminRow = Boolean(p.is_group_admin || p.group_role === 'admin');
+											const grKey = p.group_role || (p.is_owner ? 'owner' : (isAdminRow ? 'admin' : 'member'));
+
+											return (
+												<div key={p.id} className="messages-user-item messages-user-item--with-actions">
+													<div className="messages-user-avatar">
+														{p.avatar ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
+													</div>
+													<div className="messages-user-info">
+														<div className="messages-user-name-row">
+															<span className="messages-user-name">{p.name}</span>
+															<span className={`messages-group-role-badge messages-group-role-badge--${grKey}`}>
+																{groupRoleLabel(p)}
+															</span>
+														</div>
+														<div className="messages-user-email">{p.email}</div>
+													</div>
+													<div className="messages-user-item-actions">
+														{showRoleActions && (
+															isAdminRow ? (
+																<button
+																	type="button"
+																	className="lms-btn-secondary"
+																	disabled={updatingParticipants}
+																	onClick={() => handleSetParticipantRole(p.id, 'member')}
+																>
+																	Fă membru
+																</button>
+															) : (
+																<button
+																	type="button"
+																	className="lms-btn-secondary"
+																	disabled={updatingParticipants}
+																	onClick={() => handleSetParticipantRole(p.id, 'admin')}
+																>
+																	Fă admin
+																</button>
+															)
+														)}
+														{showRemove && (
+															<button
+																type="button"
+																className="lms-btn-secondary"
+																disabled={updatingParticipants}
+																onClick={() => handleRemoveParticipantFromGroup(p.id)}
+															>
+																Elimină
+															</button>
+														)}
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
+							</div>
+
+							{groupModalPermissions.canManageGroup && participantsSearchResults.length > 0 && (
+								<div className="messages-group-participants-section">
+									<div className="messages-group-participants-title">Adaugă participanți</div>
+									<div className="messages-users-list">
+										{participantsSearchResults.map((p) => (
+											<div key={p.id} className="messages-user-item">
+												<div className="messages-user-avatar">
+													{p.avatar ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
+												</div>
+												<div className="messages-user-info">
+													<div className="messages-user-name">{p.name}</div>
+													<div className="messages-user-email">{p.email}</div>
+												</div>
+												<button
+													type="button"
+													className="lms-btn-primary"
+													disabled={updatingParticipants}
+													onClick={() => handleAddParticipantToGroup(p.id)}
+												>
+													Adaugă
+												</button>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+
+			<ConfirmModal
+				open={showLeaveGroupConfirm}
+				onClose={() => !leavingGroup && setShowLeaveGroupConfirm(false)}
+				onConfirm={handleLeaveGroup}
+				title="Părăsești grupul?"
+				message="Nu vei mai primi mesaje din această conversație. Poți fi adăugat din nou de un administrator al grupului."
+				confirmLabel="Părăsește"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={leavingGroup}
+			/>
 		</div>
 	);
 };

@@ -121,6 +121,80 @@ const ContentBlockEditor = ({ courseId, block, onChange }) => {
 					onChange={(val) => onChange({ source: val })}
 				/>
 			);
+		case 'pdf':
+			return (
+				<div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+					{block.source ? (
+						<div className="admin-card">
+							<div className="admin-card-body" style={{ display: 'grid', gap: 'var(--space-2)' }}>
+								<div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+									Previzualizare PDF
+								</div>
+								<div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-primary)', height: 320 }}>
+									<iframe
+										src={block.source}
+										title="Preview PDF"
+										style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+									/>
+								</div>
+								<button
+									type="button"
+									className="admin-btn admin-btn-secondary"
+									onClick={() => window.open(block.source, '_blank', 'noopener,noreferrer')}
+									style={{ justifySelf: 'start' }}
+								>
+									Deschide PDF
+								</button>
+							</div>
+						</div>
+					) : null}
+					<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+						<div className="admin-settings-hint" style={{ margin: 0 }}>
+							Încarcă un PDF sau folosește biblioteca. PDF-ul va fi afișat în lecție, nu ca fișier de descărcat.
+						</div>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={() => {
+								setLibraryType('document');
+								setLibraryOpen(true);
+							}}
+						>
+							Bibliotecă
+						</button>
+					</div>
+					<MediaUploader
+						courseId={courseId}
+						accept=".pdf,application/pdf"
+						suggestedType="document"
+						onUploaded={(res) =>
+							onChange({
+								source: res?.url || '',
+								metadata: { ...(block.metadata || {}), upload: res || null },
+							})
+						}
+					/>
+					<UrlBlockEditor
+						label="URL PDF"
+						value={block.source || ''}
+						placeholder="https://.../document.pdf"
+						onChange={(val) => onChange({ source: val })}
+					/>
+					<MediaLibraryModal
+						open={libraryOpen && libraryType === 'document'}
+						onClose={() => setLibraryOpen(false)}
+						courseId={courseId}
+						type="document"
+						onSelect={(url, asset) => {
+							onChange({
+								source: url || '',
+								metadata: { ...(block.metadata || {}), media_asset: asset || null },
+							});
+							setLibraryOpen(false);
+						}}
+					/>
+				</div>
+			);
 		case 'file':
 			return (
 				<div style={{ display: 'grid', gap: 'var(--space-4)' }}>

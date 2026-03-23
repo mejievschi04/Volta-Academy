@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { adminService, coursesService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
+import ConfirmModal from '../../../../components/common/ConfirmModal';
+import Modal from '../../../../components/common/Modal';
 
 const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const { showToast } = useToast();
 	const [editingQuestion, setEditingQuestion] = useState(null);
+	const [questionFormErrors, setQuestionFormErrors] = useState({ content: '', answers: '', correct: '' });
 	const [questionForm, setQuestionForm] = useState({
 		type: 'multiple_choice',
 		content: '',
@@ -17,6 +20,11 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		},
 	});
 
+	const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [previewQuestion, setPreviewQuestion] = useState(null);
+	const [previewShowCorrect, setPreviewShowCorrect] = useState(false);
+	const [duplicateLoading, setDuplicateLoading] = useState(false);
 	// AI Generation state
 	const [showAIModal, setShowAIModal] = useState(false);
 	const [aiContent, setAiContent] = useState('');
@@ -45,6 +53,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	};
 
 	const addAnswer = () => {
+		setQuestionFormErrors((prev) => ({ ...prev, answers: '', correct: '' }));
 		setQuestionForm(prev => ({
 			...prev,
 			answers: [...prev.answers, { text: '', is_correct: false }],
@@ -52,6 +61,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	};
 
 	const updateAnswer = (index, field, value) => {
+		if (field === 'is_correct' && value) setQuestionFormErrors((prev) => ({ ...prev, correct: '' }));
 		setQuestionForm(prev => ({
 			...prev,
 			answers: prev.answers.map((ans, i) => 
@@ -67,19 +77,25 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		}));
 	};
 
+	const clearQuestionFormError = (field) => {
+		setQuestionFormErrors((prev) => ({ ...prev, [field]: '' }));
+	};
+
 	const saveQuestion = async () => {
+		setQuestionFormErrors({ content: '', answers: '', correct: '' });
+
 		if (!questionForm.content?.trim()) {
-			showToast('Conținutul întrebării este obligatoriu', 'error');
+			setQuestionFormErrors((prev) => ({ ...prev, content: 'Conținutul întrebării este obligatoriu' }));
 			return;
 		}
 
 		if (questionForm.type !== 'short_answer' && questionForm.answers.length < 2) {
-			showToast('Adaugă cel puțin 2 răspunsuri', 'error');
+			setQuestionFormErrors((prev) => ({ ...prev, answers: 'Adaugă cel puțin 2 răspunsuri' }));
 			return;
 		}
 
 		if (questionForm.type === 'multiple_choice' && !questionForm.answers.some(a => a.is_correct)) {
-			showToast('Selectează cel puțin un răspuns corect', 'error');
+			setQuestionFormErrors((prev) => ({ ...prev, correct: 'Selectează cel puțin un răspuns corect' }));
 			return;
 		}
 
@@ -136,6 +152,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					tags: [],
 				},
 			});
+			setQuestionFormErrors({ content: '', answers: '', correct: '' });
 			showToast(editingQuestion !== null ? 'Întrebarea a fost actualizată' : 'Întrebarea a fost adăugată', 'success');
 		} catch (err) {
 			console.error('Error saving question:', err);
@@ -198,9 +215,68 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		}
 	};
 
-	const deleteQuestion = async (index) => {
-		if (!confirm('Sigur dorești să ștergi această întrebare?')) return;
+	const duplicateQuestion = async (index) => {
+		const question = data.questions?.[index];
+		if (!question || duplicateLoading) return;
 
+		const answers = Array.isArray(question.answers)
+			? question.answers.map((a) => ({ text: a.text || '', is_correct: !!a.is_correct }))
+			: [];
+		const meta = question.metadata || {};
+		const tags = Array.isArray(meta.tags)
+			? [...meta.tags]
+			: typeof meta.tags === 'string'
+				? meta.tags.split(',').map((t) => t.trim()).filter(Boolean)
+				: [];
+
+		const questionData = {
+			type: question.type || 'multiple_choice',
+			content: (question.content || question.text || '').trim(),
+			answers,
+			points: question.points || 1,
+			explanation: question.explanation || '',
+			metadata: {
+				difficulty: meta.difficulty || null,
+				tags,
+			},
+		};
+
+		setDuplicateLoading(true);
+		try {
+			if (bankId && !bankId.toString().startsWith('temp-')) {
+				await adminService.addQuestionToBank(bankId, questionData);
+				const updated = await adminService.getQuestionBankQuestions(bankId);
+				onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
+			} else {
+				const questions = [...(data.questions || [])];
+				questions.push({
+					...questionData,
+					id: `temp-${Date.now()}`,
+					order: questions.length,
+				});
+				onUpdate({ questions });
+			}
+			showToast('Întrebare duplicată', 'success');
+		} catch (err) {
+			console.error('Error duplicating question:', err);
+			showToast('Eroare la duplicare: ' + (err.response?.data?.message || err.message), 'error');
+		} finally {
+			setDuplicateLoading(false);
+		}
+	};
+
+	const openStudentPreview = (index) => {
+		const q = data.questions?.[index];
+		if (!q) return;
+		setPreviewShowCorrect(false);
+		setPreviewQuestion(q);
+	};
+
+	const deleteQuestionClick = (index) => {
+		setDeleteConfirmIndex(index);
+	};
+
+	const deleteQuestion = async (index) => {
 		try {
 			const question = data.questions?.[index];
 			if (bankId && !bankId.toString().startsWith('temp-') && question?.id && !question.id.toString().startsWith('temp-')) {
@@ -215,6 +291,17 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		} catch (err) {
 			console.error('Error deleting question:', err);
 			showToast('Eroare la ștergerea întrebării: ' + (err.response?.data?.message || err.message), 'error');
+		}
+	};
+
+	const handleConfirmDeleteQuestion = async () => {
+		if (deleteConfirmIndex == null) return;
+		setDeleteLoading(true);
+		try {
+			await deleteQuestion(deleteConfirmIndex);
+			setDeleteConfirmIndex(null);
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -353,17 +440,35 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<option value="true_false">Adevărat/Fals</option>
 							<option value="short_answer">Răspuns scurt</option>
 						</select>
+						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Adevărat/Fals = două opțiuni; Răspuns scurt = răspuns în text liber.</p>
 					</div>
 
 					<div className="admin-form-group">
 						<label className="admin-form-label">Conținut Întrebare <span className="admin-form-required">*</span></label>
 						<textarea
-							className="admin-form-textarea"
+							className={`admin-form-textarea ${questionFormErrors.content ? 'admin-input-error' : ''}`}
 							value={questionForm.content}
-							onChange={(e) => setQuestionForm({ ...questionForm, content: e.target.value })}
+							onChange={(e) => {
+								setQuestionForm({ ...questionForm, content: e.target.value });
+								clearQuestionFormError('content');
+							}}
+							onBlur={() => {
+								if (!questionForm.content?.trim()) {
+									setQuestionFormErrors((prev) => ({ ...prev, content: 'Conținutul întrebării este obligatoriu' }));
+								} else {
+									clearQuestionFormError('content');
+								}
+							}}
 							placeholder="Scrie întrebarea aici..."
 							rows={3}
+							aria-invalid={!!questionFormErrors.content}
+							aria-describedby={questionFormErrors.content ? 'qb-question-content-error' : undefined}
 						/>
+						{questionFormErrors.content && (
+							<p id="qb-question-content-error" className="admin-form-error-inline" role="alert">
+								{questionFormErrors.content}
+							</p>
+						)}
 					</div>
 
 					{questionForm.type !== 'short_answer' && (
@@ -410,6 +515,11 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							>
 								+ Adaugă Răspuns
 							</button>
+							{(questionFormErrors.answers || questionFormErrors.correct) && (
+								<p className="admin-form-error-inline" role="alert">
+									{questionFormErrors.answers || questionFormErrors.correct}
+								</p>
+							)}
 						</div>
 					)}
 
@@ -425,7 +535,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					</div>
 
 					<div className="admin-form-group">
-						<label className="admin-form-label">Difficulty (pentru bank rules)</label>
+						<label className="admin-form-label">Dificultate</label>
 						<select
 							className="admin-form-select"
 							value={questionForm.metadata?.difficulty || ''}
@@ -444,12 +554,11 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<option value="medium">Mediu</option>
 							<option value="hard">Dificil</option>
 						</select>
-						<p className="admin-form-hint">Se folosește la regulile băncii în Editorul de Teste.</p>
+						<p className="admin-form-hint">Folosit la regulile băncii în editorul de teste (ex. „10 întrebări ușoare”).</p>
 					</div>
 
-
 					<div className="admin-form-group">
-						<label className="admin-form-label">Tags (pentru bank rules)</label>
+						<label className="admin-form-label">Tag-uri</label>
 						<input
 							type="text"
 							className="admin-form-input"
@@ -466,12 +575,12 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									},
 								})
 							}
-							placeholder="ex: tablouri, bucle, oop"
+							placeholder="Etichete separate prin virgulă"
 						/>
 					</div>
 
 					<div className="admin-form-group">
-						<label className="admin-form-label">Explicație (opțional)</label>
+						<label className="admin-form-label">Explicație (feedback)</label>
 						<textarea
 							className="admin-form-textarea"
 							value={questionForm.explanation}
@@ -479,6 +588,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							placeholder="Explicație pentru răspunsul corect..."
 							rows={2}
 						/>
+						<p className="admin-form-hint">Afișat elevului după răspuns; îmbunătățește învățarea.</p>
 					</div>
 
 					<div className="step2-form-actions">
@@ -536,7 +646,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 												#{index + 1}: {question.content || question.text || 'Fără conținut'}
 											</div>
 											<div className="admin-question-item-meta">
-												{question.points || 1} puncte • {question.type || 'multiple_choice'}
+												{question.points || 1} puncte • {question.type === 'true_false' ? 'Adevărat/Fals' : question.type === 'short_answer' ? 'Răspuns scurt' : 'Răspuns multiplu'}
 											</div>
 											{question.answers && question.answers.length > 0 && (
 												<div className="admin-question-item-answers">
@@ -573,6 +683,23 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 											<button
 												type="button"
 												className="lms-btn-secondary lms-btn-sm"
+												onClick={() => openStudentPreview(index)}
+												title="Previzualizare ca student"
+											>
+												👁 Previzualizare
+											</button>
+											<button
+												type="button"
+												className="lms-btn-secondary lms-btn-sm"
+												onClick={() => duplicateQuestion(index)}
+												disabled={duplicateLoading}
+												title="Duplică întrebarea"
+											>
+												Duplică
+											</button>
+											<button
+												type="button"
+												className="lms-btn-secondary lms-btn-sm"
 												onClick={() => editQuestion(index)}
 											>
 												✏️ Editează
@@ -580,7 +707,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 											<button
 												type="button"
 												className="lms-btn-secondary lms-btn-sm va-btn-danger"
-												onClick={() => deleteQuestion(index)}
+												onClick={() => deleteQuestionClick(index)}
 											>
 												🗑️ Șterge
 											</button>
@@ -638,7 +765,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 										className="admin-form-input"
 										value={aiContent}
 										onChange={(e) => setAiContent(e.target.value)}
-										placeholder="Introdu conținutul pentru care vrei să generezi întrebări...&#10;&#10;Exemplu:&#10;PHP este un limbaj de programare server-side folosit pentru dezvoltarea aplicațiilor web. Suportă programare orientată pe obiecte și poate fi integrat cu baze de date MySQL."
+										placeholder="Lipește sau scrie aici conținutul sursă pe baza căruia se generează întrebările."
 										rows={8}
 										disabled={aiGenerating}
 										required
@@ -723,6 +850,104 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					</div>
 				</div>
 			)}
+
+			<Modal
+				isOpen={!!previewQuestion}
+				onClose={() => {
+					setPreviewQuestion(null);
+					setPreviewShowCorrect(false);
+				}}
+				ariaLabelledby="qb-preview-title"
+				className="qb-student-preview-overlay"
+			>
+				<div className="qb-student-preview-dialog">
+					<div className="qb-student-preview-header">
+						<h2 id="qb-preview-title" className="qb-student-preview-title">
+							Previzualizare student
+						</h2>
+						<button
+							type="button"
+							className="qb-student-preview-close"
+							onClick={() => {
+								setPreviewQuestion(null);
+								setPreviewShowCorrect(false);
+							}}
+							aria-label="Închide"
+						>
+							×
+						</button>
+					</div>
+					<label className="qb-student-preview-toggle">
+						<input
+							type="checkbox"
+							checked={previewShowCorrect}
+							onChange={(e) => setPreviewShowCorrect(e.target.checked)}
+						/>
+						<span>Arată răspunsurile corecte (doar pentru instructor)</span>
+					</label>
+					{previewQuestion && (
+						<div className="qb-student-preview-body">
+							<p className="qb-student-preview-stem">
+								{previewQuestion.content || previewQuestion.text || '—'}
+							</p>
+							{previewQuestion.type === 'short_answer' ? (
+								<div className="qb-student-preview-short">
+									<span className="qb-student-preview-short-label">Răspuns scurt (elevul scrie aici)</span>
+									<div className="qb-student-preview-short-placeholder" />
+								</div>
+							) : (
+								<ul className="qb-student-preview-options" role="list">
+									{(previewQuestion.answers || []).map((ans, i) => (
+										<li
+											key={i}
+											className={
+												previewShowCorrect && ans.is_correct
+													? 'qb-student-preview-option is-correct'
+													: 'qb-student-preview-option'
+											}
+										>
+											<span className="qb-student-preview-bullet" aria-hidden />
+											<span>{ans.text || '—'}</span>
+											{previewShowCorrect && ans.is_correct && (
+												<span className="qb-student-preview-correct-badge">Corect</span>
+											)}
+										</li>
+									))}
+								</ul>
+							)}
+							{(previewQuestion.points || 1) > 0 && (
+								<p className="qb-student-preview-meta">
+									{previewQuestion.points || 1} punct(e)
+								</p>
+							)}
+						</div>
+					)}
+					<div className="qb-student-preview-footer">
+						<button
+							type="button"
+							className="lms-btn-primary"
+							onClick={() => {
+								setPreviewQuestion(null);
+								setPreviewShowCorrect(false);
+							}}
+						>
+							Închide
+						</button>
+					</div>
+				</div>
+			</Modal>
+
+			<ConfirmModal
+				open={deleteConfirmIndex != null}
+				onClose={() => setDeleteConfirmIndex(null)}
+				onConfirm={handleConfirmDeleteQuestion}
+				title="Șterge întrebare"
+				message="Sigur dorești să ștergi această întrebare?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

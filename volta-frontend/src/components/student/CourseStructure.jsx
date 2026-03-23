@@ -135,7 +135,7 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 															<div className="student-course-structure-lesson-title">
 																{lesson.title}
 																{lesson.is_preview && (
-																	<span className="student-course-structure-lesson-preview">Preview</span>
+																	<span className="student-course-structure-lesson-preview">Previzualizare</span>
 																)}
 															</div>
 															{lesson.duration_minutes && (

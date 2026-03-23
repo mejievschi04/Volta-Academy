@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Conversation extends Model
 {
@@ -14,10 +15,14 @@ class Conversation extends Model
     protected $fillable = [
         'user1_id',
         'user2_id',
+        'is_group',
+        'name',
+        'created_by',
         'last_message_at',
     ];
 
     protected $casts = [
+        'is_group' => 'boolean',
         'last_message_at' => 'datetime',
     ];
 
@@ -45,15 +50,51 @@ class Conversation extends Model
         return $this->hasMany(Message::class)->orderBy('created_at', 'asc');
     }
 
+    public function participants(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'conversation_participants')
+            ->withPivot('group_role')
+            ->withTimestamps();
+    }
+
+    public function groupRoleForUser(int $userId): ?string
+    {
+        if (!$this->is_group) {
+            return null;
+        }
+        $row = $this->participants->firstWhere('id', $userId);
+        $gr = $row?->pivot?->group_role;
+        if (is_string($gr) && $gr !== '') {
+            return $gr;
+        }
+        if ((int) $userId === (int) $this->created_by) {
+            return 'owner';
+        }
+
+        return 'member';
+    }
+
     /**
      * Get the other participant (not the current user)
      */
     public function getOtherParticipant($userId)
     {
+        if ($this->is_group) {
+            return null;
+        }
         if ($this->user1_id == $userId) {
             return $this->user2;
         }
         return $this->user1;
+    }
+
+    public function hasParticipant(int $userId): bool
+    {
+        if ($this->is_group) {
+            return $this->participants()->where('users.id', $userId)->exists();
+        }
+
+        return (int) $this->user1_id === $userId || (int) $this->user2_id === $userId;
     }
 
     /**
@@ -88,6 +129,7 @@ class Conversation extends Model
             [
                 'user1_id' => $user1Id,
                 'user2_id' => $user2Id,
+                'is_group' => false,
             ],
             [
                 'last_message_at' => now(),

@@ -417,38 +417,10 @@ class CourseProgressService
 
     /**
      * Get next incomplete test for a user in a course
+     * Order follows course flow: lesson tests (after each completed lesson), module tests, then course-level tests.
      */
     public function getNextIncompleteTest(User $user, Course $course): ?Test
     {
-        // Check course-level tests first
-        $courseTests = CourseTest::where('course_id', $course->id)
-            ->where('scope', 'course')
-            ->where('required', true)
-            ->orderBy('order')
-            ->get();
-
-        foreach ($courseTests as $courseTest) {
-            $test = $courseTest->test;
-            if (!$test || $test->status !== 'published') {
-                continue;
-            }
-
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
-
-            if (!$hasPassed) {
-                // Check if test is unlocked
-                if ($this->isTestUnlocked($user, $test, $course)) {
-                    return $test;
-                }
-            }
-        }
-
-        // Check module-level tests
         $modules = $course->modules()
             ->whereIn('status', ['published', 'draft'])
             ->orderBy('order')
@@ -457,6 +429,52 @@ class CourseProgressService
         foreach ($modules as $module) {
             if (!$this->isModuleUnlocked($user, $module, $course)) {
                 continue;
+            }
+
+            $lessons = $module->lessons()
+                ->whereIn('status', ['published', 'draft'])
+                ->orderBy('order')
+                ->get();
+
+            foreach ($lessons as $lesson) {
+                if (!$this->isLessonUnlocked($user, $lesson, $module, $course)) {
+                    continue;
+                }
+
+                $lessonCompleted = DB::table('lesson_progress')
+                    ->where('user_id', $user->id)
+                    ->where('lesson_id', $lesson->id)
+                    ->where('completed', true)
+                    ->exists();
+
+                if (!$lessonCompleted) {
+                    continue;
+                }
+
+                $lessonTests = CourseTest::where('course_id', $course->id)
+                    ->where('scope', 'lesson')
+                    ->where('scope_id', $lesson->id)
+                    ->where('required', true)
+                    ->orderBy('order')
+                    ->get();
+
+                foreach ($lessonTests as $courseTest) {
+                    $test = $courseTest->test;
+                    if (!$test || $test->status !== 'published') {
+                        continue;
+                    }
+
+                    $hasPassed = DB::table('test_results')
+                        ->where('user_id', $user->id)
+                        ->where('test_id', $test->id)
+                        ->where('percentage', '>=', $courseTest->passing_score)
+                        ->where('passed', true)
+                        ->exists();
+
+                    if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
+                        return $test;
+                    }
+                }
             }
 
             $moduleTests = CourseTest::where('course_id', $course->id)
@@ -479,11 +497,33 @@ class CourseProgressService
                     ->where('passed', true)
                     ->exists();
 
-                if (!$hasPassed) {
-                    if ($this->isTestUnlocked($user, $test, $course)) {
-                        return $test;
-                    }
+                if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
+                    return $test;
                 }
+            }
+        }
+
+        $courseTests = CourseTest::where('course_id', $course->id)
+            ->where('scope', 'course')
+            ->where('required', true)
+            ->orderBy('order')
+            ->get();
+
+        foreach ($courseTests as $courseTest) {
+            $test = $courseTest->test;
+            if (!$test || $test->status !== 'published') {
+                continue;
+            }
+
+            $hasPassed = DB::table('test_results')
+                ->where('user_id', $user->id)
+                ->where('test_id', $test->id)
+                ->where('percentage', '>=', $courseTest->passing_score)
+                ->where('passed', true)
+                ->exists();
+
+            if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
+                return $test;
             }
         }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const formatBytes = (bytes) => {
 	if (!bytes || bytes <= 0) return '0 B';
@@ -18,10 +19,14 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 	const [perPage] = useState(24);
 	const [data, setData] = useState([]);
 	const [meta, setMeta] = useState(null);
+	const [loadError, setLoadError] = useState(null);
+	const [deleteConfirmAssetId, setDeleteConfirmAssetId] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	const effectiveType = type || '';
 
 	const load = async () => {
+		setLoadError(null);
 		try {
 			setLoading(true);
 			const res = await adminService.listMediaAssets({
@@ -35,11 +40,28 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 			setMeta(res?.meta || null);
 		} catch (e) {
 			console.error('Load media failed:', e);
-			showToast('Nu s-a putut încărca biblioteca media', 'error');
+			setLoadError(e?.response?.data?.message || e?.message || 'Nu s-a putut încărca biblioteca media.');
 			setData([]);
 			setMeta(null);
+			showToast('Nu s-a putut încărca biblioteca media', 'error');
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleConfirmDeleteAsset = async () => {
+		if (!deleteConfirmAssetId) return;
+		setDeleteLoading(true);
+		try {
+			await adminService.deleteMediaAsset(deleteConfirmAssetId);
+			setDeleteConfirmAssetId(null);
+			showToast('Șters', 'success');
+			load();
+		} catch (e) {
+			console.error('Delete media failed:', e);
+			showToast('Ștergerea a eșuat', 'error');
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -69,12 +91,20 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 							Alege un fișier deja încărcat (reutilizare) sau caută după nume.
 						</p>
 					</div>
-					<button type="button" className="admin-team-modal-close" onClick={onClose}>
+					<button type="button" className="admin-team-modal-close" onClick={onClose} aria-label="Închide">
 						×
 					</button>
 				</div>
 
 				<div className="admin-team-modal-body">
+					{loadError && (
+						<div className="admin-form-error-inline" role="alert" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+							<span>{loadError}</span>
+							<button type="button" className="admin-btn admin-btn-secondary" onClick={() => load()}>
+								Reîncearcă
+							</button>
+						</div>
+					)}
 					<div className="admin-card" style={{ marginBottom: 'var(--space-4)' }}>
 						<div className="admin-card-body" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
 							<input
@@ -153,17 +183,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 											<button
 												type="button"
 												className="admin-btn admin-btn-secondary"
-												onClick={async () => {
-													if (!window.confirm('Ștergi acest fișier din biblioteca media?')) return;
-													try {
-														await adminService.deleteMediaAsset(a.id);
-														showToast('Șters', 'success');
-														load();
-													} catch (e) {
-														console.error('Delete media failed:', e);
-														showToast('Ștergerea a eșuat', 'error');
-													}
-												}}
+												onClick={() => setDeleteConfirmAssetId(a.id)}
 											>
 												Șterge
 											</button>
@@ -189,6 +209,18 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 					</div>
 				</div>
 			</div>
+
+			<ConfirmModal
+				open={!!deleteConfirmAssetId}
+				onClose={() => setDeleteConfirmAssetId(null)}
+				onConfirm={handleConfirmDeleteAsset}
+				title="Șterge fișier"
+				message="Ștergi acest fișier din biblioteca media?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

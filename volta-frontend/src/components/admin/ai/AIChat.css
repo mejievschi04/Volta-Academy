@@ -225,42 +225,6 @@
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark theme support */
-[data-theme="dark"] .ai-chat-container {
-	background: var(--bg-elevated, #1f2937);
-}
-
-[data-theme="dark"] .ai-chat-header {
-	background: var(--bg-secondary, #111827);
-	border-bottom-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .ai-chat-message-assistant .ai-chat-message-content {
-	background: var(--bg-tertiary, #374151);
-	color: var(--text-primary, #f9fafb);
-}
-
-[data-theme="dark"] .ai-chat-preview {
-	background: var(--bg-secondary, #111827);
-	border-top-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .ai-chat-preview-content {
-	background: var(--bg-elevated, #1f2937);
-	border-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .ai-chat-input {
-	background: var(--bg-elevated, #1f2937);
-	border-color: var(--border-primary, #374151);
-	color: var(--text-primary, #f9fafb);
-}
-
-[data-theme="dark"] .ai-chat-input-form {
-	background: var(--bg-elevated, #1f2937);
-	border-top-color: var(--border-primary, #374151);
-}
-
 /* Modal Overlay */
 .ai-chat-modal-overlay {
 	position: fixed;

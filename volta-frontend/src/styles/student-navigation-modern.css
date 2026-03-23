@@ -13,7 +13,7 @@
 	left: 0; /* No sidebar for students */
 	right: 0;
 	height: 64px;
-	background: var(--bg-primary);
+	background-color: var(--border-primary);
 	border-bottom: 1px solid var(--border-primary);
 	padding: 0 var(--space-6);
 	display: flex;
@@ -21,14 +21,14 @@
 	justify-content: space-between;
 	gap: var(--space-6);
 	z-index: var(--z-fixed);
-	box-shadow: var(--shadow-md), 0 1px 0 var(--border-primary) inset;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 	backdrop-filter: blur(20px) saturate(180%);
 	-webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 [data-theme="light"] .va-shell-topnav .modern-topnav,
 [data-theme="light"] .va-shell-topnav .va-topnav {
-	background: var(--bg-elevated);
+	background-color: var(--border-primary);
 }
 
 .va-shell-topnav .modern-topnav-left,
@@ -39,7 +39,9 @@
 	flex-shrink: 0;
 }
 
-.va-shell-topnav .va-logo-text {
+/* Doar logo din topnav, nu cel din sidebar (evită conflict cu rotația / transition) */
+.va-shell-topnav .modern-topnav-left .va-logo-text,
+.va-shell-topnav .va-topnav-brand .va-logo-text {
 	display: flex;
 	align-items: center;
 	padding: var(--space-2);
@@ -47,18 +49,21 @@
 	transition: all var(--transition-base);
 }
 
-.va-shell-topnav .va-logo-text:hover {
+.va-shell-topnav .modern-topnav-left .va-logo-text:hover,
+.va-shell-topnav .va-topnav-brand .va-logo-text:hover {
 	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 	transform: scale(1.05);
 }
 
-.va-shell-topnav .va-logo-icon-img {
+.va-shell-topnav .modern-topnav-left .va-logo-icon-img,
+.va-shell-topnav .va-topnav-brand .va-logo-icon-img {
 	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 	transition: all var(--transition-base);
 }
 
-.va-shell-topnav .va-logo-text:hover .va-logo-icon-img {
+.va-shell-topnav .modern-topnav-left .va-logo-text:hover .va-logo-icon-img,
+.va-shell-topnav .va-topnav-brand .va-logo-text:hover .va-logo-icon-img {
 	filter: drop-shadow(0 4px 8px rgba(255, 238, 0, 0.3));
 }
 
@@ -455,6 +460,39 @@
 	margin: 0;
 }
 
+.va-shell-topnav .va-topnav-notifications-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+
+.va-shell-topnav .va-topnav-notifications-clear-btn {
+	flex-shrink: 0;
+	padding: var(--space-1) var(--space-3);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-secondary);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: background var(--transition-base), color var(--transition-base);
+}
+
+.va-shell-topnav .va-topnav-notifications-clear-btn:hover {
+	color: var(--text-primary);
+	background: var(--bg-tertiary);
+}
+
+.va-shell-topnav .va-topnav-notification-item-plain {
+	width: 100%;
+	text-align: left;
+	font: inherit;
+	background: none;
+	border: none;
+}
+
 .va-shell-topnav .admin-topnav-notifications-list {
 	max-height: 400px;
 	overflow-y: auto;
@@ -674,13 +712,15 @@
 		visibility: visible !important;
 	}
 
-	.va-shell-topnav .va-logo-text {
+	.va-shell-topnav .modern-topnav-left .va-logo-text,
+	.va-shell-topnav .va-topnav-brand .va-logo-text {
 		display: flex !important;
 		visibility: visible !important;
 		opacity: 1 !important;
 	}
 
-	.va-shell-topnav .va-logo-icon-img {
+	.va-shell-topnav .modern-topnav-left .va-logo-icon-img,
+	.va-shell-topnav .va-topnav-brand .va-logo-icon-img {
 		display: block !important;
 		visibility: visible !important;
 		opacity: 1 !important;

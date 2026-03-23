@@ -56,8 +56,57 @@
 	justify-content: flex-start;
 }
 
-.modern-sidebar-brand:hover {
-	background-color: rgba(31, 41, 55, 0.08);
+/* Doar zona logo (imagine) deschide/închide meniul */
+.modern-sidebar-logo-toggle,
+.va-sidebar-logo-toggle {
+	--logo-toggle-ease: cubic-bezier(0.22, 1, 0.36, 1);
+	--logo-toggle-duration: 0.45s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	padding: 0;
+	min-width: 40px;
+	min-height: 40px;
+	border: none;
+	border-radius: var(--radius-md);
+	background: transparent;
+	cursor: pointer;
+	font: inherit;
+	-webkit-appearance: none;
+	appearance: none;
+	flex-shrink: 0;
+	transition:
+		background-color 0.28s var(--logo-toggle-ease),
+		box-shadow 0.28s var(--logo-toggle-ease),
+		transform 0.2s var(--logo-toggle-ease);
+}
+
+.modern-sidebar-logo-toggle:hover,
+.va-sidebar-logo-toggle:hover {
+	background-color: rgba(0, 0, 0, 0.38);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.06),
+		0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.modern-sidebar-logo-toggle:active,
+.va-sidebar-logo-toggle:active {
+	transform: scale(0.94);
+}
+
+.modern-sidebar-logo-toggle:focus-visible,
+.va-sidebar-logo-toggle:focus-visible {
+	outline: 2px solid var(--color-primary, #6366f1);
+	outline-offset: 2px;
+}
+
+[data-theme="light"] .modern-sidebar-logo-toggle:hover,
+[data-theme="light"] .va-sidebar-logo-toggle:hover {
+	background-color: rgba(0, 0, 0, 0.14);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.5),
+		0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .modern-sidebar-logo,
@@ -68,6 +117,48 @@
 	width: 40px;
 	height: 40px;
 	flex-shrink: 0;
+}
+
+/* Rotație pe <img> — evită conflicte cu .va-logo-text; durată explicită (nu inherit din * global) */
+.modern-sidebar .modern-sidebar-logo-toggle .va-logo-icon-img,
+.modern-sidebar .va-sidebar-logo-toggle .va-logo-icon-img {
+	transform: rotate(0deg) scale(1);
+	transform-origin: center center;
+	transition: transform var(--logo-toggle-duration) var(--logo-toggle-ease);
+}
+
+.modern-sidebar.expanded .modern-sidebar-logo-toggle:hover .va-logo-icon-img,
+.modern-sidebar.expanded .va-sidebar-logo-toggle:hover .va-logo-icon-img {
+	transform: rotate(-90deg) scale(1.04);
+}
+
+.modern-sidebar:not(.expanded) .modern-sidebar-logo-toggle:hover .va-logo-icon-img,
+.modern-sidebar:not(.expanded) .va-sidebar-logo-toggle:hover .va-logo-icon-img {
+	transform: rotate(90deg) scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.modern-sidebar-logo-toggle,
+	.va-sidebar-logo-toggle {
+		transition: none;
+	}
+
+	.modern-sidebar-logo-toggle:active,
+	.va-sidebar-logo-toggle:active {
+		transform: none;
+	}
+
+	.modern-sidebar .modern-sidebar-logo-toggle .va-logo-icon-img,
+	.modern-sidebar .va-sidebar-logo-toggle .va-logo-icon-img {
+		transition: none;
+	}
+
+	.modern-sidebar.expanded .modern-sidebar-logo-toggle:hover .va-logo-icon-img,
+	.modern-sidebar.expanded .va-sidebar-logo-toggle:hover .va-logo-icon-img,
+	.modern-sidebar:not(.expanded) .modern-sidebar-logo-toggle:hover .va-logo-icon-img,
+	.modern-sidebar:not(.expanded) .va-sidebar-logo-toggle:hover .va-logo-icon-img {
+		transform: none;
+	}
 }
 
 .va-logo-icon-img {
@@ -535,7 +626,7 @@
 	left: 72px;
 	right: 0;
 	height: 64px;
-	background: var(--bg-primary);
+	background-color: var(--border-primary);
 	border-bottom: 1px solid var(--border-primary);
 	padding: 0 var(--space-6);
 	display: flex;
@@ -552,7 +643,7 @@
 [data-theme="light"] .modern-topnav,
 [data-theme="light"] .admin-topnav,
 [data-theme="light"] .va-topnav {
-	background: var(--bg-elevated);
+	background-color: var(--border-primary);
 }
 
 .modern-sidebar.expanded ~ .modern-topnav,
@@ -1288,13 +1379,17 @@
    ============================================ */
 
 @media (min-width: 769px) {
-	/* Hide logo from topnav on desktop - logo should only be in sidebar */
-	.modern-topnav .va-logo-text,
-	.modern-topnav .va-logo-icon-img,
-	.admin-topnav .va-logo-text,
-	.admin-topnav .va-logo-icon-img,
-	.va-topnav .va-logo-text,
-	.va-topnav .va-logo-icon-img {
+	/*
+	 * Logo doar în sidebar pentru layout admin (fără va-shell-topnav).
+	 * Layout student folosește aceleași clase (.va-topnav) — fără acest scoping,
+	 * după ce se încarcă CSS admin, logo-ul din topnav student dispare pe desktop.
+	 */
+	.va-shell:not(.va-shell-topnav) .modern-topnav .va-logo-text,
+	.va-shell:not(.va-shell-topnav) .modern-topnav .va-logo-icon-img,
+	.va-shell:not(.va-shell-topnav) .admin-topnav .va-logo-text,
+	.va-shell:not(.va-shell-topnav) .admin-topnav .va-logo-icon-img,
+	.va-shell:not(.va-shell-topnav) .va-topnav .va-logo-text,
+	.va-shell:not(.va-shell-topnav) .va-topnav .va-logo-icon-img {
 		display: none !important;
 		visibility: hidden !important;
 		opacity: 0 !important;
@@ -1303,10 +1398,10 @@
 		overflow: hidden !important;
 	}
 
-	/* Hide Volta Academy text from topnav on desktop */
-	.modern-topnav .va-topnav-page-title,
-	.admin-topnav .va-topnav-page-title,
-	.va-topnav .va-topnav-page-title {
+	/* Titlu brand în topnav doar în shell admin */
+	.va-shell:not(.va-shell-topnav) .modern-topnav .va-topnav-page-title,
+	.va-shell:not(.va-shell-topnav) .admin-topnav .va-topnav-page-title,
+	.va-shell:not(.va-shell-topnav) .va-topnav .va-topnav-page-title {
 		display: none !important;
 		visibility: hidden !important;
 		opacity: 0 !important;
@@ -1314,37 +1409,6 @@
 	/* Hide mobile hamburger button on desktop */
 	.mobile-sidebar-toggle {
 		display: none !important;
-	}
-
-	/* Desktop sidebar expand - visual continuation of sidebar (tab on right edge), no shadow */
-	.sidebar-expand-toggle.desktop-sidebar-toggle {
-		display: flex !important;
-		align-items: center;
-		justify-content: center;
-		position: fixed;
-		top: 0;
-		left: 72px;
-		width: 28px;
-		height: 72px;
-		padding: 0;
-		background: var(--bg-sidebar-toggle, #0D0D0D) !important;
-		background-color: var(--bg-sidebar-toggle, #0D0D0D) !important;
-		border: 1px solid var(--border-primary);
-		border-left: none;
-		border-radius: 0 var(--radius-md) var(--radius-md) 0;
-		box-shadow: none;
-		color: var(--text-secondary);
-		cursor: pointer;
-		z-index: calc(var(--z-fixed) + 1);
-		transition: left var(--transition-smooth), background var(--transition-base), color var(--transition-base);
-	}
-	.sidebar-expand-toggle.desktop-sidebar-toggle.sidebar-expanded {
-		left: 280px;
-	}
-	.sidebar-expand-toggle.desktop-sidebar-toggle:hover {
-		background: var(--bg-sidebar-toggle-hover, var(--bg-secondary)) !important;
-		background-color: var(--bg-sidebar-toggle-hover, var(--bg-secondary)) !important;
-		color: var(--text-secondary);
 	}
 
 	/* Hide backdrop on desktop */

@@ -205,3 +205,22 @@
 [data-theme="light"] .va-loading-overlay-content {
 	color: #111827;
 }
+
+/* Full-screen hold until lazy admin CSS applies (avoids FOUC on sidebar/topnav) */
+.va-admin-chrome-loading-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 2147483000;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+	background: var(--bg-primary);
+	color: var(--text-secondary);
+}
+
+.va-admin-chrome-loading-text {
+	margin: 0;
+	font-size: var(--font-size-sm);
+}

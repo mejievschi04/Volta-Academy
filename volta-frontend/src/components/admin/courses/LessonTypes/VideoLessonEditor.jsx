@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { adminService } from '../../../../services/api';
+import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * Video Lesson Editor - Conform defacut.md secțiunea 5.1
@@ -11,6 +12,7 @@ import { adminService } from '../../../../services/api';
  * - Quiz base generation
  */
 const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
+	const { showToast } = useToast();
 	const [uploading, setUploading] = useState(false);
 	const [aiProcessing, setAiProcessing] = useState(false);
 	const [aiResults, setAiResults] = useState({
@@ -41,7 +43,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 			}
 		} catch (error) {
 			console.error('Error uploading video:', error);
-			alert('Eroare la încărcarea video-ului');
+			showToast('Eroare la încărcarea video-ului', 'error');
 		} finally {
 			setUploading(false);
 		}
@@ -50,7 +52,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 	// Process video with AI (transcription, chapters, highlights, summary)
 	const handleProcessVideoAI = async (videoFile) => {
 		if (!videoFile && !lesson.video_url) {
-			alert('Te rugăm să încarci mai întâi un video');
+			showToast('Te rugăm să încarci mai întâi un video', 'info');
 			return;
 		}
 
@@ -121,11 +123,11 @@ Răspunde în format JSON:
 				});
 			} catch (e) {
 				console.error('Error parsing AI response:', e);
-				alert('Eroare la procesarea răspunsului AI. Vezi consola pentru detalii.');
+				showToast('Eroare la procesarea răspunsului AI. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error processing video with AI:', error);
-			alert('Eroare la procesarea video-ului cu AI: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la procesarea video-ului cu AI: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiProcessing(false);
 		}
@@ -301,8 +303,7 @@ Răspunde în format JSON:
 								type="button"
 								className="admin-btn admin-btn-secondary"
 								onClick={() => {
-									// Navigate to quiz creation with these questions
-									alert('Funcționalitatea de creare quiz va fi implementată');
+									showToast('Funcționalitatea de creare quiz va fi implementată în curând', 'info');
 								}}
 							>
 								Crează Quiz din Întrebări

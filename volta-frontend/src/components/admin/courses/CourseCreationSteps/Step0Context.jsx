@@ -46,7 +46,7 @@ const Step0Context = ({ data, onUpdate }) => {
 					<div className="step0-form-group">
 						<input
 							type="text"
-							placeholder="ex: Produse Electrotehnice - Baze"
+							placeholder="Titlul cursului"
 							value={data.title || ''}
 							onChange={(e) => onUpdate({ title: e.target.value })}
 							className="step0-input"
@@ -75,7 +75,7 @@ const Step0Context = ({ data, onUpdate }) => {
 						<div className="step0-form-group">
 							<input
 								type="text"
-								placeholder="ex: Electrotehnică"
+								placeholder="Domeniu / arie tematică"
 								value={data.category || ''}
 								onChange={(e) => onUpdate({ category: e.target.value })}
 								className="step0-input"
@@ -105,7 +105,7 @@ const Step0Context = ({ data, onUpdate }) => {
 						<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
 							<input
 								type="text"
-								placeholder="ex: siguranță, montaj"
+								placeholder="Cuvinte-cheie, separate prin virgulă"
 								value={tagInput}
 								onChange={(e) => setTagInput(e.target.value)}
 								onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
@@ -135,7 +135,7 @@ const Step0Context = ({ data, onUpdate }) => {
 							<input
 								type="number"
 								min={1}
-								placeholder="ex: 8"
+								placeholder="Durată în ore"
 								value={data.estimated_duration_hours ?? ''}
 								onChange={(e) => onUpdate({ estimated_duration_hours: e.target.value ? parseInt(e.target.value, 10) : null })}
 								className="step0-input"

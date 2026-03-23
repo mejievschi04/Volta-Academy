@@ -1,521 +1,281 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import AdminTestReviewsPage from './AdminTestReviewsPage';
-import VoltInstructor from '../../components/admin/VoltInstructor';
+import './AdminTestsPage.css';
 
-const AdminTestsPage = ({ embedded, reviewsTab = false, onSubTabChange }) => {
+const STATUS_LABELS = { published: 'Publicat', draft: 'Ciornă', archived: 'Arhivat' };
+const TYPE_LABELS = { practice: 'Exersare', graded: 'Notat', final: 'Final' };
+
+const AdminTestsPage = ({ embedded = false, reviewsTab = false, onSubTabChange }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const isReviewsTab = embedded ? reviewsTab : location.pathname === '/admin/tests/reviews';
 	const { showToast } = useToast();
+
 	const [tests, setTests] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	
-	// Filters and search
-	const [searchQuery, setSearchQuery] = useState('');
-	const [filters, setFilters] = useState({
-		status: 'all',
-		type: 'all',
-		activeCount: 0
-	});
+	const [search, setSearch] = useState('');
+	const [statusFilter, setStatusFilter] = useState('all');
+	const [typeFilter, setTypeFilter] = useState('all');
 	const [sortBy, setSortBy] = useState('recent');
-	const [viewMode, setViewMode] = useState('grid');
-	
-	// Selection
-	const [selectedTests, setSelectedTests] = useState(new Set());
+	const [deleteId, setDeleteId] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [duplicateId, setDuplicateId] = useState(null);
+	const [duplicateLoading, setDuplicateLoading] = useState(false);
 
-	// Fetch tests
 	const fetchTests = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
-			
 			const params = {
-				search: searchQuery || undefined,
-				status: filters.status !== 'all' ? filters.status : undefined,
-				type: filters.type !== 'all' ? filters.type : undefined,
-				sort: sortBy
+				search: search || undefined,
+				status: statusFilter !== 'all' ? statusFilter : undefined,
+				type: typeFilter !== 'all' ? typeFilter : undefined,
 			};
-			
 			const data = await adminService.getTests(params);
 			setTests(Array.isArray(data) ? data : []);
 		} catch (err) {
-			console.error('Error fetching tests:', err);
-			setError('Nu s-au putut încărca testele');
+			console.error(err);
+			setError('Nu s-au putut încărca testele.');
 			showToast('Eroare la încărcarea testelor', 'error');
 		} finally {
 			setLoading(false);
 		}
-	}, [searchQuery, filters, sortBy, showToast]);
+	}, [search, statusFilter, typeFilter, showToast]);
 
-	useEffect(() => {
-		fetchTests();
-	}, [fetchTests]);
+	useEffect(() => { fetchTests(); }, [fetchTests]);
 
-	// Calculate active filters count
-	useEffect(() => {
-		let count = 0;
-		if (filters.status !== 'all') count++;
-		if (filters.type !== 'all') count++;
-		setFilters(prev => ({ ...prev, activeCount: count }));
-	}, [filters.status, filters.type]);
-
-	// Handle filter change
-	const handleFilterChange = (key, value) => {
-		setFilters(prev => ({ ...prev, [key]: value }));
-	};
-
-	// Handle test selection
-	const handleSelectTest = (testId, selected) => {
-		setSelectedTests(prev => {
-			const newSet = new Set(prev);
-			if (selected) {
-				newSet.add(testId);
-			} else {
-				newSet.delete(testId);
-			}
-			return newSet;
-		});
-	};
-
-	// Handle quick actions
-	const handleQuickAction = async (testId, action) => {
-		try {
-			switch (action) {
-				case 'publish':
-					await adminService.publishTest(testId);
-					showToast('Testul a fost publicat cu succes', 'success');
-					break;
-				case 'delete':
-					if (window.confirm('Ești sigur că vrei să ștergi acest test?')) {
-						await adminService.deleteTest(testId);
-						showToast('Testul a fost șters cu succes', 'success');
-					}
-					break;
-				case 'archive':
-					await adminService.updateTest(testId, { status: 'archived' });
-					showToast('Testul a fost arhivat', 'success');
-					break;
-				default:
-					console.warn('Unknown action:', action);
-			}
-			fetchTests();
-		} catch (err) {
-			console.error('Error performing action:', err);
-			showToast('Eroare la executarea acțiunii', 'error');
-		}
-	};
-
-	// Handle create test
-	const handleCreateTest = () => {
-		navigate('/admin/tests/new');
-	};
-
-	// Get status badge
-	const getStatusBadge = (status) => {
-		const badges = {
-			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
-			archived: { label: 'Arhivat', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
-		};
-		return badges[status] || badges.draft;
-	};
-
-	// Get type badge
-	const getTypeBadge = (type) => {
-		const badges = {
-			practice: { label: 'Exersare', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
-			graded: { label: 'Notat', color: '#FFEE00', bg: 'rgba(255, 238, 0, 0.1)' },
-			final: { label: 'Final', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },
-		};
-		return badges[type] || badges.graded;
-	};
-
-	// Filtered and sorted tests
-	const filteredAndSortedTests = useMemo(() => {
-		let filtered = [...tests];
-
-		// Apply sorting
-		if (sortBy === 'recent') {
-			filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-		} else if (sortBy === 'alphabetical') {
-			filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-		} else if (sortBy === 'questions') {
-			filtered.sort((a, b) => (b.questions_count || 0) - (a.questions_count || 0));
-		}
-
-		return filtered;
+	const filteredTests = useMemo(() => {
+		let list = [...tests];
+		if (sortBy === 'recent') list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+		else if (sortBy === 'alpha') list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+		else if (sortBy === 'questions') list.sort((a, b) => (b.questions_count || 0) - (a.questions_count || 0));
+		return list;
 	}, [tests, sortBy]);
 
-	if (error) {
-		return (
-			<div className="admin-container">
-				<div className="lms-empty-state">
-					<p style={{ color: 'var(--color-error)' }}>{error}</p>
-					<button className="lms-btn-primary" onClick={fetchTests}>
-						Încearcă din nou
-					</button>
-				</div>
-			</div>
-		);
-	}
+	const handlePublish = async (id) => {
+		try {
+			await adminService.publishTest(id);
+			showToast('Test publicat cu succes', 'success');
+			fetchTests();
+		} catch (err) {
+			const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message;
+			const friendly = msg && (
+				msg.includes('without questions') ? 'Testul trebuie să aibă cel puțin o întrebare.' :
+				msg.includes('without question bank') ? 'Selectează o bancă de întrebări.' :
+				msg.includes('empty question bank') ? 'Banca de întrebări selectată este goală.' :
+				null
+			);
+			showToast(friendly || msg || 'Eroare la publicare', 'error');
+		}
+	};
+
+	const handleArchive = async (id) => {
+		try {
+			await adminService.updateTest(id, { status: 'archived' });
+			showToast('Test arhivat', 'success');
+			fetchTests();
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Eroare', 'error');
+		}
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!deleteId) return;
+		setDeleteLoading(true);
+		try {
+			await adminService.deleteTest(deleteId);
+			showToast('Test șters', 'success');
+			setDeleteId(null);
+			fetchTests();
+		} catch (err) {
+			const d = err?.response?.data;
+			showToast(d?.error || d?.message || 'Eroare la ștergere', 'error');
+		} finally {
+			setDeleteLoading(false);
+		}
+	};
+
+	const handleCreate = () => navigate('/admin/tests/new');
+
+	const handleDuplicate = async (id) => {
+		setDuplicateId(id);
+		setDuplicateLoading(true);
+		try {
+			const test = await adminService.getTest(id);
+			const payload = {
+				title: `Copia – ${test.title || 'Test'}`,
+				description: test.description || null,
+				type: test.type || 'graded',
+				status: 'draft',
+				time_limit_minutes: test.time_limit_minutes ?? null,
+				max_attempts: test.max_attempts ?? null,
+				randomize_questions: !!test.randomize_questions,
+				randomize_answers: !!test.randomize_answers,
+				show_results_immediately: test.show_results_immediately !== false,
+				show_correct_answers: !!test.show_correct_answers,
+				allow_review: test.allow_review !== false,
+				requires_manual_verification: !!test.requires_manual_verification,
+				question_source: test.question_source || 'direct',
+				question_set_id: test.question_set_id || null,
+				question_selection: test.question_selection || null,
+			};
+			if (payload.question_source === 'direct') {
+				const questions = await adminService.getQuestions(id);
+				payload.questions = (Array.isArray(questions) ? questions : []).map((q) => ({
+					type: q.type || 'multiple_choice',
+					content: q.content || '',
+					answers: q.answers || [],
+					points: q.points ?? 1,
+					order: q.order ?? 0,
+					explanation: q.explanation || null,
+				}));
+			}
+			const res = await adminService.createTest(payload);
+			const newId = res?.test?.id ?? res?.id;
+			if (newId) {
+				showToast('Test duplicat. Poți edita copia.', 'success');
+				navigate(`/admin/tests/${newId}`);
+			} else {
+				showToast('Eroare la duplicare', 'error');
+			}
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Eroare la duplicare', 'error');
+		} finally {
+			setDuplicateId(null);
+			setDuplicateLoading(false);
+		}
+	};
+
+	const tabClass = (active) => `tests-nav-tab ${active ? 'active' : ''}`;
 
 	return (
-		<div className="admin-container">
-			{/* Header */}
-			<div className="admin-courses-page-header">
-				<div className="admin-courses-header-content">
-					<div className="admin-courses-header-text">
-						<h1 className="admin-courses-title">Teste</h1>
-						<p className="admin-courses-subtitle">
-							{isReviewsTab
-								? 'Rezultate cu întrebări deschise (răspuns scurt, eseu) care necesită notare manuală'
-								: 'Gestionează și creează teste pentru cursuri'}
-						</p>
-					</div>
-					<div className="admin-courses-header-actions" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-						<nav className="admin-tests-tabs" style={{ display: 'flex', gap: 'var(--space-1)', marginRight: 'var(--space-4)' }}>
-							{embedded && onSubTabChange ? (
-								<>
-									<button
-										type="button"
-										className={`admin-tests-tab ${!isReviewsTab ? 'active' : ''}`}
-										style={{
-											padding: 'var(--space-2) var(--space-4)',
-											borderRadius: 'var(--radius-md)',
-											fontSize: 'var(--font-size-sm)',
-											fontWeight: 500,
-											textDecoration: 'none',
-											color: !isReviewsTab ? 'var(--color-primary)' : 'var(--text-secondary)',
-											background: !isReviewsTab ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-											border: `1px solid ${!isReviewsTab ? 'var(--color-primary)' : 'transparent'}`,
-											cursor: 'pointer',
-										}}
-										onClick={() => onSubTabChange('')}
-									>
-										Lista teste
-									</button>
-									<button
-										type="button"
-										className={`admin-tests-tab ${isReviewsTab ? 'active' : ''}`}
-										style={{
-											padding: 'var(--space-2) var(--space-4)',
-											borderRadius: 'var(--radius-md)',
-											fontSize: 'var(--font-size-sm)',
-											fontWeight: 500,
-											textDecoration: 'none',
-											color: isReviewsTab ? 'var(--color-primary)' : 'var(--text-secondary)',
-											background: isReviewsTab ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-											border: `1px solid ${isReviewsTab ? 'var(--color-primary)' : 'transparent'}`,
-											cursor: 'pointer',
-										}}
-										onClick={() => onSubTabChange('reviews')}
-									>
-										Verificări manuale
-									</button>
-								</>
-							) : (
-								<>
-									<NavLink
-										to="/admin/tests"
-										end
-										className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
-										style={({ isActive }) => ({
-											padding: 'var(--space-2) var(--space-4)',
-											borderRadius: 'var(--radius-md)',
-											fontSize: 'var(--font-size-sm)',
-											fontWeight: 500,
-											textDecoration: 'none',
-											color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
-											background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-											border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
-										})}
-									>
-										Lista teste
-									</NavLink>
-									<NavLink
-										to="/admin/tests/reviews"
-										className={({ isActive }) => `admin-tests-tab ${isActive ? 'active' : ''}`}
-										style={({ isActive }) => ({
-											padding: 'var(--space-2) var(--space-4)',
-											borderRadius: 'var(--radius-md)',
-											fontSize: 'var(--font-size-sm)',
-											fontWeight: 500,
-											textDecoration: 'none',
-											color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
-											background: isActive ? 'rgba(255, 238, 0, 0.1)' : 'transparent',
-											border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
-										})}
-									>
-										Verificări manuale
-									</NavLink>
-								</>
-							)}
-						</nav>
-						{!isReviewsTab && (
-							<button className="admin-btn-create-course" onClick={handleCreateTest}>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
-								</svg>
-								Creează Test
-							</button>
-						)}
-					</div>
+		<div className="admin-tests-page">
+			<header className="tests-page-header">
+				<div className="tests-page-header-top">
+					<h1 className="tests-page-title">Teste</h1>
+					<p className="tests-page-subtitle">
+						{isReviewsTab ? 'Rezultate care necesită notare manuală' : 'Gestionează și creează teste'}
+					</p>
 				</div>
+				<nav className="tests-nav">
+					{embedded && onSubTabChange ? (
+						<>
+							<button type="button" className={tabClass(!isReviewsTab)} onClick={() => onSubTabChange('')}>Lista teste</button>
+							<button type="button" className={tabClass(isReviewsTab)} onClick={() => onSubTabChange('reviews')}>Verificări manuale</button>
+						</>
+					) : (
+						<>
+							<NavLink to="/admin/tests" end className={({ isActive }) => tabClass(isActive)}>Lista teste</NavLink>
+							<NavLink to="/admin/tests/reviews" className={({ isActive }) => tabClass(isActive)}>Verificări manuale</NavLink>
+						</>
+					)}
+					{!isReviewsTab && (
+						<button type="button" className="tests-btn-create" onClick={handleCreate}>
+							<span className="tests-btn-create-icon">+</span> Test nou
+						</button>
+					)}
+				</nav>
+			</header>
 
-				{/* Search and Filters - only on list tab */}
-				{!isReviewsTab && (
-				<div className="admin-courses-toolbar">
-					<div className="admin-courses-search-wrapper">
-						<div className="admin-courses-search">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<circle cx="11" cy="11" r="8"/>
-								<path d="m21 21-4.35-4.35"/>
-							</svg>
-							<input
-								type="text"
-								placeholder="Caută teste..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="admin-courses-search-input"
-							/>
-						</div>
-					</div>
-
-					<div className="admin-courses-toolbar-actions">
-						<div className="admin-courses-filters">
-						{/* Status Filter */}
-						<select
-							value={filters.status}
-							onChange={(e) => handleFilterChange('status', e.target.value)}
-							className="admin-courses-filter-select"
-						>
-							<option value="all">Toate statusurile</option>
-							<option value="published">Publicat</option>
-							<option value="draft">Ciornă</option>
-							<option value="archived">Arhivat</option>
-						</select>
-
-						{/* Type Filter */}
-						<select
-							value={filters.type}
-							onChange={(e) => handleFilterChange('type', e.target.value)}
-							className="admin-courses-filter-select"
-						>
-							<option value="all">Toate tipurile</option>
-							<option value="practice">Practice</option>
-							<option value="graded">Graded</option>
-							<option value="final">Final</option>
-						</select>
-
-						{/* Sort */}
-						<select
-							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value)}
-							className="admin-courses-filter-select"
-						>
-							<option value="recent">Cele mai recente</option>
-							<option value="alphabetical">Alfabetic</option>
-							<option value="questions">Nr. întrebări</option>
-						</select>
-						</div>
-					</div>
-				</div>
-				)}
-			</div>
-
-			{/* Content: Reviews or Tests List/Grid */}
 			{isReviewsTab ? (
 				<AdminTestReviewsPage embedded />
 			) : (
-			<>
-			{/* Tests List/Grid */}
-			{loading && tests.length === 0 ? (
-				<div className="admin-courses-loading">
-					<div className="va-spinner va-spinner-lg"></div>
-					<p>Se încarcă testele...</p>
-				</div>
-			) : filteredAndSortedTests.length === 0 ? (
-				<div className="lms-empty-state">
-					<p>Nu există teste disponibile.</p>
-					<button className="lms-btn-primary" onClick={handleCreateTest}>
-						+ Creează primul test
-					</button>
-				</div>
-			) : (
-				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
-					{viewMode === 'grid' ? (
-						<div className="admin-courses-grid-container">
-							{filteredAndSortedTests.map(test => {
-								const statusBadge = getStatusBadge(test.status);
-								return (
-									<div
-										key={test.id}
-										className={`admin-course-card admin-course-card-simple ${selectedTests.has(test.id) ? 'selected' : ''}`}
-										onClick={() => navigate(`/admin/tests/${test.id}`)}
-									>
-										<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
-											<input
-												type="checkbox"
-												checked={selectedTests.has(test.id)}
-												onChange={(e) => {
-													e.stopPropagation();
-													handleSelectTest(test.id, e.target.checked);
-												}}
-												className="admin-checkbox-input"
-											/>
-										</div>
-										<div className="admin-course-card-thumbnail">
-											<div className="admin-course-card-thumbnail-placeholder admin-course-card-thumbnail-placeholder-icon-only">📝</div>
-											<div
-												className="admin-course-card-status-badge admin-course-card-status-overlay"
-												style={{
-													backgroundColor: statusBadge.bg,
-													color: statusBadge.color,
-													borderColor: statusBadge.color,
-												}}
-											>
-												{statusBadge.label}
-											</div>
-										</div>
-										<h3
-											className="admin-course-card-title"
-											onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${test.id}`); }}
-										>
-											{test.title}
-										</h3>
-										<div
-											className="admin-course-card-corner-action"
-											onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${test.id}`); }}
-											title="Deschide test"
-											aria-label="Deschide test"
-										>
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-										</div>
-									</div>
-								);
-							})}
+				<>
+					<div className="tests-toolbar">
+						<div className="tests-search">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+							<input type="search" placeholder="Caută teste..." value={search} onChange={(e) => setSearch(e.target.value)} className="tests-search-input" aria-label="Caută teste" />
 						</div>
-					) : (
-						<div className="admin-courses-table-container">
-							<div className="admin-courses-table-header">
-								<div className="admin-course-table-checkbox"></div>
-								<div className="admin-course-table-info-header">Test</div>
-								<div className="admin-course-table-metrics-header">Metrici</div>
-								<div className="admin-course-table-actions-header">Acțiuni</div>
-							</div>
-							{filteredAndSortedTests.map(test => {
-								const statusBadge = getStatusBadge(test.status);
-								const typeBadge = getTypeBadge(test.type);
-								
-								return (
-									<div key={test.id} className="admin-course-table-row">
-										<div className="admin-course-table-checkbox">
-											<input
-												type="checkbox"
-												checked={selectedTests.has(test.id)}
-												onChange={(e) => handleSelectTest(test.id, e.target.checked)}
-												onClick={(e) => e.stopPropagation()}
-											/>
-										</div>
-										<div className="admin-course-table-info">
-											<div className="admin-course-table-badges">
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: statusBadge.bg,
-														color: statusBadge.color,
-														borderColor: statusBadge.color,
-													}}
-												>
-													{statusBadge.label}
-												</div>
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: typeBadge.bg,
-														color: typeBadge.color,
-														borderColor: typeBadge.color,
-													}}
-												>
-													{typeBadge.label}
-												</div>
-											</div>
-											<h3 className="admin-course-table-title">{test.title}</h3>
-											{test.description && (
-												<p className="admin-course-table-description">
-													{test.description.length > 150 
-														? test.description.substring(0, 150) + '...' 
-														: test.description}
-												</p>
-											)}
-										</div>
-										<div className="admin-course-table-metrics">
-											<div className="admin-course-table-metric">
-												<span className="admin-course-table-metric-label">Întrebări:</span>
-												<span className="admin-course-table-metric-value">{test.questions_count || 0}</span>
-											</div>
-											{test.time_limit_minutes && (
-												<div className="admin-course-table-metric">
-													<span className="admin-course-table-metric-label">Durată:</span>
-													<span className="admin-course-table-metric-value">{test.time_limit_minutes} min</span>
-												</div>
-											)}
-											{test.attempts_count > 0 && (
-												<div className="admin-course-table-metric">
-													<span className="admin-course-table-metric-label">Încercări:</span>
-													<span className="admin-course-table-metric-value">{test.attempts_count}</span>
-												</div>
-											)}
-										</div>
-										<div className="admin-course-table-actions">
-											<button
-												className="admin-course-table-action-btn"
-												onClick={() => navigate(`/admin/tests/${test.id}`)}
-											>
-												✏️ Editează
-											</button>
-											{test.status !== 'published' && (
-												<button
-													className="admin-course-table-action-btn"
-													onClick={() => handleQuickAction(test.id, 'publish')}
-												>
-													✅ Publică
-												</button>
-											)}
-											<button
-												className="admin-course-table-action-btn va-btn-danger"
-												onClick={() => handleQuickAction(test.id, 'delete')}
-											>
-												🗑️ Șterge
-											</button>
-										</div>
-									</div>
-								);
-							})}
+						<div className="tests-filters">
+							<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="tests-select" aria-label="Filtru status">
+								<option value="all">Toate statusurile</option>
+								<option value="published">Publicat</option>
+								<option value="draft">Ciornă</option>
+								<option value="archived">Arhivat</option>
+							</select>
+							<select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="tests-select" aria-label="Filtru tip">
+								<option value="all">Toate tipurile</option>
+								<option value="practice">Exersare</option>
+								<option value="graded">Notat</option>
+								<option value="final">Final</option>
+							</select>
+							<select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="tests-select" aria-label="Sortare">
+								<option value="recent">Cele mai recente</option>
+								<option value="alpha">Alfabetic</option>
+								<option value="questions">Nr. întrebări</option>
+							</select>
+						</div>
+					</div>
+
+					{error && (
+						<div className="tests-error">
+							<p>{error}</p>
+							<button type="button" className="tests-btn-secondary" onClick={fetchTests}>Încearcă din nou</button>
 						</div>
 					)}
-				</div>
-			)}
-			</>
+
+					{!error && loading && tests.length === 0 && (
+						<div className="tests-loading">
+							<div className="va-spinner va-spinner-lg" aria-hidden />
+							<p>Se încarcă testele...</p>
+						</div>
+					)}
+
+					{!error && !loading && filteredTests.length === 0 && (
+						<div className="tests-empty">
+							<p>Nu există teste.</p>
+							<button type="button" className="tests-btn-primary" onClick={handleCreate}>Creează primul test</button>
+						</div>
+					)}
+
+					{!error && !loading && filteredTests.length > 0 && (
+						<div className="tests-grid">
+							{filteredTests.map((test) => (
+								<article key={test.id} className="tests-card" onClick={() => navigate(`/admin/tests/${test.id}`)}>
+									<div className="tests-card-badges">
+										<span className="tests-badge tests-badge-status" data-status={test.status}>{STATUS_LABELS[test.status] || test.status}</span>
+										<span className="tests-badge tests-badge-type" data-type={test.type}>{TYPE_LABELS[test.type] || test.type}</span>
+									</div>
+									<h3 className="tests-card-title">{test.title || 'Fără titlu'}</h3>
+									{test.description && <p className="tests-card-desc">{test.description.slice(0, 120)}{test.description.length > 120 ? '…' : ''}</p>}
+									<div className="tests-card-meta">
+										<span>{test.questions_count ?? 0} întrebări</span>
+										{test.time_limit_minutes && <span>{test.time_limit_minutes} min</span>}
+									</div>
+									<div className="tests-card-actions" onClick={(e) => e.stopPropagation()}>
+										<button type="button" className="tests-card-btn" onClick={() => navigate(`/admin/tests/${test.id}`)} title="Deschide">Deschide</button>
+										<button type="button" className="tests-card-btn" onClick={() => handleDuplicate(test.id)} disabled={duplicateLoading && duplicateId === test.id} title="Duplică test">{duplicateLoading && duplicateId === test.id ? '...' : 'Duplică'}</button>
+										{test.status !== 'published' && (
+											<button type="button" className="tests-card-btn tests-card-btn-success" onClick={() => handlePublish(test.id)}>Publică</button>
+										)}
+										{test.status === 'published' && (
+											<button type="button" className="tests-card-btn" onClick={() => handleArchive(test.id)}>Arhivează</button>
+										)}
+										<button type="button" className="tests-card-btn tests-card-btn-danger" onClick={() => setDeleteId(test.id)}>Șterge</button>
+									</div>
+								</article>
+							))}
+						</div>
+					)}
+				</>
 			)}
 
-			{!isReviewsTab && (
-				<VoltInstructor
-					questions={[
-						'Ce titlu vrei pentru test?',
-						'Câte întrebări aproximativ?',
-						'Despre ce teme vor fi întrebările?',
-					]}
-					actions={[
-						{ label: '+ Test', onClick: handleCreateTest, primary: true },
-						{ label: 'Bănci', onClick: () => navigate('/admin/question-banks') },
-					]}
-				/>
-			)}
+			<ConfirmModal
+				open={!!deleteId}
+				onClose={() => setDeleteId(null)}
+				onConfirm={handleConfirmDelete}
+				title="Șterge test"
+				message="Ești sigur? Acest test va fi șters definitiv."
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

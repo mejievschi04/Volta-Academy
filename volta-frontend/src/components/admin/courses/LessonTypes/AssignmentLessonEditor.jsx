@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
+import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * Assignment / Practice Lesson Editor - Conform defacut.md secțiunea 5.3
@@ -9,13 +10,14 @@ import { openaiService } from '../../../../services/openaiService';
  * - AI: Generates exercises, auto-feedback, scoring
  */
 const AssignmentLessonEditor = ({ lesson, onUpdate }) => {
+	const { showToast } = useToast();
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [generatedExercises, setGeneratedExercises] = useState([]);
 
 	// Generate exercises with AI
 	const handleGenerateExercises = async () => {
 		if (!lesson.objective || !lesson.objective.trim()) {
-			alert('Te rugăm să definiți mai întâi obiectivul exercițiului');
+			showToast('Te rugăm să definiți mai întâi obiectivul exercițiului', 'info');
 			return;
 		}
 
@@ -79,11 +81,11 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing exercises response:', e);
-				alert('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.');
+				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating exercises:', error);
-			alert('Eroare la generarea exercițiilor: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la generarea exercițiilor: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiGenerating(false);
 		}

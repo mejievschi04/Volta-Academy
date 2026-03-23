@@ -132,7 +132,7 @@
 }
 
 .lessons-page-sidebar-module.active {
-	border-color: var(--color-brand-primary);
+	border-color: var(--border-primary);
 	background: rgba(255, 238, 0, 0.05);
 }
 

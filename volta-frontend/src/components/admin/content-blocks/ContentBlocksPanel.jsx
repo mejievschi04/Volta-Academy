@@ -1,12 +1,36 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import ContentBlockList from './ContentBlockList';
 import ContentBlockEditor from './ContentBlockEditor';
-import LessonBlocksPreview from './LessonBlocksPreview';
 
 const debounceMs = 900;
+
+const BLOCK_TYPES = [
+	{ id: 'text', label: 'Text' },
+	{ id: 'video', label: 'Video' },
+	{ id: 'image', label: 'Imagine' },
+	{ id: 'gallery', label: 'Galerie' },
+	{ id: 'pdf', label: 'PDF (conținut)' },
+	{ id: 'file', label: 'Fișier' },
+	{ id: 'link', label: 'Legătură' },
+	{ id: 'embed', label: 'Încorporare' },
+];
+
+const TEMPLATE_OPTIONS = [
+	{ id: 'lesson_skeleton', label: 'Schelet lecție (Intro + Video + Checklist + Resurse)' },
+	{ id: 'onboarding_skeleton', label: 'Schelet onboarding' },
+	{ id: 'compliance_skeleton', label: 'Schelet conformitate' },
+	{ id: 'section_intro', label: 'Introducere' },
+	{ id: 'key_takeaways', label: 'Puncte cheie' },
+	{ id: 'checklist', label: 'Checklist' },
+	{ id: 'resources', label: 'Resurse' },
+	{ id: 'video_embed', label: 'Video (YouTube)' },
+	{ id: 'pdf_embed', label: 'PDF (afișat în lecție)' },
+	{ id: 'download_file', label: 'Fișier (descărcare)' },
+];
 
 const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	const { showToast } = useToast();
@@ -19,15 +43,27 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	const [selectedBlockId, setSelectedBlockId] = useState(blocks[0]?.id || null);
 	const [draft, setDraft] = useState(null);
 	const [saveStatus, setSaveStatus] = useState(null);
-	const [rightTab, setRightTab] = useState('edit'); // edit | preview
+	const [deleteConfirmBlockId, setDeleteConfirmBlockId] = useState(null);
+	const [deleteBlockLoading, setDeleteBlockLoading] = useState(false);
+	const [addDropdownOpen, setAddDropdownOpen] = useState(false);
 
 	const pendingPatchRef = useRef(null);
 	const debounceRef = useRef(null);
+	const addDropdownRef = useRef(null);
+
+	useEffect(() => {
+		const onOutside = (e) => {
+			if (addDropdownRef.current && !addDropdownRef.current.contains(e.target)) setAddDropdownOpen(false);
+		};
+		if (addDropdownOpen) {
+			document.addEventListener('click', onOutside);
+			return () => document.removeEventListener('click', onOutside);
+		}
+	}, [addDropdownOpen]);
 
 	useEffect(() => {
 		// Reset selection when lesson changes
 		setSelectedBlockId(blocks[0]?.id || null);
-		setRightTab('edit');
 	}, [lesson?.id]);
 
 	useEffect(() => {
@@ -46,26 +82,25 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 		const onKeyDown = (e) => {
 			if (isTypingTarget(e.target)) return;
 
-			const meta = e.metaKey || e.ctrlKey;
-
-			// Toggle preview
-			if (meta && e.key === 'Enter') {
-				e.preventDefault();
-				setRightTab((t) => (t === 'preview' ? 'edit' : 'preview'));
+			// Escape: închide meniul Adaugă bloc dacă e deschis
+			if (e.key === 'Escape') {
+				if (addDropdownOpen) {
+					e.preventDefault();
+					setAddDropdownOpen(false);
+				}
 				return;
 			}
 
-			// Duplicate selected block
-			if (meta && (e.key === 'd' || e.key === 'D')) {
-				if (!selectedBlockId || rightTab === 'preview') return;
+			// Ctrl+Shift+A: deschide/închide meniul Adaugă bloc
+			if (e.ctrlKey && e.shiftKey && e.key === 'A') {
 				e.preventDefault();
-				handleDuplicateBlock(selectedBlockId);
+				setAddDropdownOpen((o) => !o);
 				return;
 			}
 
-			// Reorder selected block
+			// Alt+↑/↓: reordonează blocul selectat
 			if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-				if (!selectedBlockId || rightTab === 'preview') return;
+				if (!selectedBlockId) return;
 				e.preventDefault();
 				const ids = blocks.map((b) => b.id);
 				const from = ids.findIndex((id) => id === selectedBlockId);
@@ -82,7 +117,7 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 		window.addEventListener('keydown', onKeyDown);
 		return () => window.removeEventListener('keydown', onKeyDown);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [blocks, rightTab, selectedBlockId]);
+	}, [blocks, selectedBlockId, addDropdownOpen]);
 
 	const scheduleSave = (patch) => {
 		if (!draft) return;
@@ -170,6 +205,10 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 				type: 'video',
 				source: 'https://www.youtube.com/watch?v=',
 			},
+			pdf_embed: {
+				type: 'pdf',
+				source: 'https://.../document.pdf',
+			},
 			download_file: {
 				type: 'file',
 				source: 'https://.../fisier.pdf',
@@ -195,7 +234,6 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 				}
 				await onRefresh?.();
 				if (lastId) setSelectedBlockId(lastId);
-				setRightTab('edit');
 				setSaveStatus('saved');
 				return;
 			}
@@ -226,8 +264,11 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 		}
 	};
 
+	const handleDeleteBlockClick = (blockId) => {
+		setDeleteConfirmBlockId(blockId);
+	};
+
 	const handleDeleteBlock = async (blockId) => {
-		if (!window.confirm('Ștergi acest content block?')) return;
 		try {
 			setSaveStatus('saving');
 			const nextSelection = (() => {
@@ -248,177 +289,87 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 		}
 	};
 
-	const handleDuplicateBlock = async (blockId) => {
-		const original = blocks.find((b) => b.id === blockId);
-		if (!original) return;
-
+	const handleConfirmDeleteBlock = async () => {
+		if (!deleteConfirmBlockId) return;
+		setDeleteBlockLoading(true);
 		try {
-			setSaveStatus('saving');
-			const res = await adminService.builderCreateContentBlock(courseId, lesson.id, {
-				type: original.type,
-				source: original.source || '',
-				metadata: original.metadata || {},
-				language: original.language || null,
-				visible: original.visible !== undefined ? !!original.visible : true,
-			});
-
-			const newId = res?.content_block?.id;
-			if (newId) {
-				const ids = blocks.map((b) => b.id);
-				const at = ids.findIndex((id) => id === blockId);
-				if (at !== -1) {
-					const nextIds = [...ids];
-					nextIds.splice(at + 1, 0, newId);
-					await adminService.builderReorderContentBlocks(courseId, lesson.id, nextIds);
-				}
-				setSelectedBlockId(newId);
-			}
-
-			await onRefresh?.();
-			setSaveStatus('saved');
-		} catch (e) {
-			console.error('Duplicate content block failed:', e);
-			setSaveStatus('error');
+			await handleDeleteBlock(deleteConfirmBlockId);
+			setDeleteConfirmBlockId(null);
+		} finally {
+			setDeleteBlockLoading(false);
 		}
 	};
 
-	const handleDuplicateAs = async (blockId, targetType) => {
-		const original = blocks.find((b) => b.id === blockId);
-		if (!original) return;
-
-		const normalizeSource = () => {
-			const src = original.source || '';
-			if (targetType === 'text') {
-				if (!src) return '';
-				if (original.type === 'text') return src;
-				// wrap link-ish sources into a text paragraph
-				return `<p><a href="${src}" target="_blank" rel="noreferrer">${src}</a></p>`;
-			}
-
-			// URL-based blocks
-			if (['video', 'embed', 'file', 'audio', 'link'].includes(targetType)) {
-				// keep URL if it looks like one
-				if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))) return src;
-				return '';
-			}
-
-			// image: use source URL or first gallery image
-			if (targetType === 'image') {
-				if (original.type === 'gallery') {
-					const imgs = Array.isArray(original.metadata?.images) ? original.metadata.images : [];
-					return imgs[0]?.url || '';
-				}
-				return src;
-			}
-
-			// gallery: source empty, metadata.images preserved by original.metadata
-			if (targetType === 'gallery') return '';
-
-			return src;
-		};
-
-		try {
-			setSaveStatus('saving');
-			const meta = original.metadata || {};
-			// For gallery, ensure we have images (from image block: wrap single image)
-			const metadata =
-				targetType === 'gallery' && original.type === 'image' && original.source
-					? { images: [{ url: original.source, alt: '', caption: '' }] }
-					: meta;
-
-			const res = await adminService.builderCreateContentBlock(courseId, lesson.id, {
-				type: targetType,
-				source: normalizeSource(),
-				metadata,
-				language: original.language || null,
-				visible: original.visible !== undefined ? !!original.visible : true,
-			});
-
-			const newId = res?.content_block?.id;
-			if (newId) {
-				const ids = blocks.map((b) => b.id);
-				const at = ids.findIndex((id) => id === blockId);
-				if (at !== -1) {
-					const nextIds = [...ids];
-					nextIds.splice(at + 1, 0, newId);
-					await adminService.builderReorderContentBlocks(courseId, lesson.id, nextIds);
-				}
-				setSelectedBlockId(newId);
-			}
-
-			await onRefresh?.();
-			setSaveStatus('saved');
-		} catch (e) {
-			console.error('Duplicate-as content block failed:', e);
-			setSaveStatus('error');
-		}
-	};
+	const blockTypeLabel = useCallback((type) => BLOCK_TYPES.find((t) => t.id === type)?.label || type || 'Bloc', []);
 
 	return (
 		<div className="admin-course-builder-content-blocks">
-			<div className="admin-course-builder-content-blocks-header">
-				<div>
-					<h3 className="admin-course-builder-content-blocks-title">Blocuri de conținut</h3>
-					<p className="admin-course-builder-content-blocks-hint">Conținutul lecției este compus din blocuri reordonabile (text, video, file, embed...).</p>
+			<header className="admin-course-builder-content-blocks-header">
+				<div className="admin-course-builder-content-blocks-head">
+					<h3 className="admin-course-builder-content-blocks-title">Conținut lecție</h3>
+					<p className="admin-course-builder-content-blocks-hint">
+						Adaugă blocuri → selectează un bloc → editează. Poți reordona prin drag.
+					</p>
+					<p className="admin-course-builder-content-blocks-shortcuts" title="Scurtături tastatură">
+						<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> adaugă bloc · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> reordonează · <kbd>Esc</kbd> închide meniul
+					</p>
 				</div>
 				<div className="admin-course-builder-content-blocks-toolbar">
-					<AutoSaveIndicator status={saveStatus} />
-					<div className="admin-course-builder-add-buttons">
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('text')}>+ Text</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('video')}>+ Video</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('embed')}>+ Încorporare</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('image')}>+ Imagine</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('gallery')}>+ Galerie</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('file')}>+ Fișier</button>
-						<button className="admin-course-builder-add-btn" onClick={() => handleAddBlock('link')}>+ Legătură</button>
-						<select
-							className="admin-course-builder-select"
-							value=""
-							onChange={(e) => {
-								const v = e.target.value;
-								if (v) handleAddTemplate(v);
-							}}
-						>
-							<option value="">+ Șablon…</option>
-							<option value="lesson_skeleton">Lot: Schelet lecție (Intro + Video + Checklist + Resurse)</option>
-							<option value="onboarding_skeleton">Lot: Onboarding (Bun venit + ce trebuie să știi + video + pași următori)</option>
-							<option value="compliance_skeleton">Lot: Conformitate (Fișier politică + checklist + link)</option>
-							<option value="section_intro">Secțiune: Introducere</option>
-							<option value="key_takeaways">Secțiune: Puncte cheie</option>
-							<option value="checklist">Secțiune: Checklist</option>
-							<option value="resources">Secțiune: Resurse</option>
-							<option value="video_embed">Bloc: Video (YouTube)</option>
-							<option value="download_file">Bloc: Fișier (descărcare)</option>
-						</select>
-						<select
-							className="admin-course-builder-select admin-course-builder-select-sm"
-							value=""
-							disabled={!draft || rightTab === 'preview'}
-							onChange={(e) => {
-								const v = e.target.value;
-								if (v && draft?.id) handleDuplicateAs(draft.id, v);
-							}}
-							title={!draft ? 'Selectează un block pentru duplicare' : 'Duplică block-ul selectat și convertește tipul'}
-						>
-							<option value="">⧉ Duplică ca…</option>
-							<option value="text">Text</option>
-							<option value="video">Video</option>
-							<option value="embed">Încorporare</option>
-							<option value="image">Imagine</option>
-							<option value="gallery">Galerie</option>
-							<option value="file">Fișier</option>
-							<option value="link">Legătură</option>
-							<option value="audio">Audio</option>
-						</select>
+					<div className="admin-course-builder-add-dropdown-wrap" ref={addDropdownRef}>
 						<button
-							className="admin-course-builder-preview-toggle"
-							onClick={() => setRightTab((t) => (t === 'preview' ? 'edit' : 'preview'))}
+							type="button"
+							className="admin-course-builder-add-block-btn"
+							onClick={() => setAddDropdownOpen((o) => !o)}
+							aria-expanded={addDropdownOpen}
+							aria-haspopup="true"
+							title="Adaugă bloc de conținut (Ctrl+Shift+A)"
 						>
-							{rightTab === 'preview' ? '✏️ Editare' : '👁️ Preview lecție'}
+							+ Adaugă bloc
 						</button>
+						{addDropdownOpen && (
+							<div className="admin-course-builder-add-dropdown">
+								<div className="admin-course-builder-add-dropdown-section">
+									<span className="admin-course-builder-add-dropdown-section-title">Tip bloc</span>
+									{BLOCK_TYPES.map((t) => (
+										<button
+											key={t.id}
+											type="button"
+											className="admin-course-builder-add-dropdown-item"
+											onClick={() => {
+												handleAddBlock(t.id);
+												setAddDropdownOpen(false);
+											}}
+											title={`Adaugă bloc ${t.label}`}
+										>
+											{t.label}
+										</button>
+									))}
+								</div>
+								<div className="admin-course-builder-add-dropdown-section">
+									<span className="admin-course-builder-add-dropdown-section-title">Șabloane</span>
+									{TEMPLATE_OPTIONS.map((t) => (
+										<button
+											key={t.id}
+											type="button"
+											className="admin-course-builder-add-dropdown-item"
+											onClick={() => {
+												handleAddTemplate(t.id);
+												setAddDropdownOpen(false);
+											}}
+											title={`Șablon: ${t.label}`}
+										>
+											{t.label}
+										</button>
+									))}
+								</div>
+							</div>
+						)}
 					</div>
+					<span title="Salvare automată la câteva secunde după editare">
+						<AutoSaveIndicator status={saveStatus} />
+					</span>
 				</div>
-			</div>
+			</header>
 
 			<div className="admin-course-builder-content-grid">
 				<div className="admin-course-builder-blocks-list-wrap">
@@ -427,20 +378,48 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 						selectedBlockId={selectedBlockId}
 						onSelectBlock={setSelectedBlockId}
 						onReorderBlocks={handleReorder}
-						onDeleteBlock={handleDeleteBlock}
-						disabled={rightTab === 'preview'}
+						onDeleteBlock={handleDeleteBlockClick}
+						onAddBlock={handleAddBlock}
 					/>
 				</div>
 				<div className="admin-course-builder-editor-wrap">
-					{rightTab === 'preview' ? (
-						<LessonBlocksPreview
-							blocks={blocks.map((b) => (draft && b.id === draft.id ? { ...b, ...draft } : b))}
-						/>
+					{draft ? (
+						<>
+							<div className="admin-course-builder-editor-toolbar">
+								<span className="admin-course-builder-editor-toolbar-badge">
+									Bloc: {blockTypeLabel(draft.type)}
+								</span>
+								<button
+									type="button"
+									className="admin-course-builder-editor-delete-btn"
+									onClick={() => handleDeleteBlockClick(draft.id)}
+									title="Șterge acest bloc din lecție"
+								>
+									Șterge bloc
+								</button>
+							</div>
+							<ContentBlockEditor courseId={courseId} block={draft} onChange={scheduleSave} />
+						</>
 					) : (
-						<ContentBlockEditor courseId={courseId} block={draft} onChange={scheduleSave} />
+						<div className="admin-course-builder-editor-empty">
+							<p className="admin-course-builder-editor-empty-text">Selectează un bloc din listă sau adaugă unul nou.</p>
+							<p className="admin-course-builder-editor-empty-hint">Blocul selectat se editează aici; modificările se salvează automat.</p>
+						</div>
 					)}
 				</div>
 			</div>
+
+			<ConfirmModal
+				open={!!deleteConfirmBlockId}
+				onClose={() => setDeleteConfirmBlockId(null)}
+				onConfirm={handleConfirmDeleteBlock}
+				title="Șterge content block"
+				message="Ștergi acest content block?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteBlockLoading}
+			/>
 		</div>
 	);
 };

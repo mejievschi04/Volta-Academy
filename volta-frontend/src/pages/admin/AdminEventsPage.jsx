@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import AdminEventListCard from '../../components/admin/events/AdminEventListCard';
 
 const AdminEventsPage = () => {
 	const { success: showSuccess, error: showError } = useToast();
@@ -29,6 +31,7 @@ const AdminEventsPage = () => {
 	// Bulk actions
 	const [selectedEvents, setSelectedEvents] = useState(new Set());
 	const [actionLoading, setActionLoading] = useState(null);
+	const [bulkConfirm, setBulkConfirm] = useState(null); // { action, count }
 	
 	// Insights
 	const [insights, setInsights] = useState(null);
@@ -148,19 +151,22 @@ const AdminEventsPage = () => {
 	};
 
 	// Bulk actions
-	const handleBulkAction = async (action) => {
+	const handleBulkActionClick = (action) => {
 		if (selectedEvents.size === 0) return;
-		
-		if (!confirm(`Sigur dorești să ${action} ${selectedEvents.size} eveniment(e)?`)) {
-			return;
-		}
+		setBulkConfirm({ action, count: selectedEvents.size });
+	};
 
+	const handleConfirmBulkAction = async () => {
+		if (!bulkConfirm) return;
+		const { action } = bulkConfirm;
 		setActionLoading('bulk');
 		try {
 			await adminService.eventBulkAction(action, Array.from(selectedEvents));
+			setBulkConfirm(null);
 			setSelectedEvents(new Set());
 			await fetchEvents();
 			await fetchInsights();
+			showSuccess(`${action} efectuat cu succes`);
 		} catch (err) {
 			logger.error(`Error bulk ${action}:`, err);
 			showError(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
@@ -661,34 +667,39 @@ const AdminEventsPage = () => {
 					</div>
 					<div className="admin-bulk-actions-buttons">
 						<button
+							type="button"
 							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkAction('publish')}
+							onClick={() => handleBulkActionClick('publish')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Publică
 						</button>
 						<button
+							type="button"
 							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkAction('unpublish')}
+							onClick={() => handleBulkActionClick('unpublish')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Retrage
 						</button>
 						<button
+							type="button"
 							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkAction('cancel')}
+							onClick={() => handleBulkActionClick('cancel')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Anulează
 						</button>
 						<button
+							type="button"
 							className="lms-btn-secondary lms-btn-sm va-btn-danger"
-							onClick={() => handleBulkAction('delete')}
+							onClick={() => handleBulkActionClick('delete')}
 							disabled={actionLoading === 'bulk'}
 						>
 							Șterge
 						</button>
 						<button
+							type="button"
 							className="lms-btn-secondary lms-btn-sm"
 							onClick={() => setSelectedEvents(new Set())}
 						>
@@ -777,206 +788,21 @@ const AdminEventsPage = () => {
 			{viewMode === 'list' && (
 				<div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 					{events.length > 0 ? (
-						<div className="admin-grid">
-							{events.map((event) => {
-								const getStatusColor = (status) => {
-									const colors = {
-									draft: 'var(--color-dark)',
-									published: 'var(--color-dark)',
-									upcoming: 'var(--color-dark)',
-									live: 'var(--color-dark)',
-									completed: 'var(--color-dark)',
-									cancelled: 'var(--color-dark)',
-								};
-								return colors[status] || 'var(--color-dark)';
-								};
-
-								const getStatusLabel = (status) => {
-									const labels = {
-										draft: 'Ciornă',
-										published: 'Publicat',
-										upcoming: 'Viitor',
-										live: 'Live',
-										completed: 'Finalizat',
-										cancelled: 'Anulat',
-									};
-									return labels[status] || status;
-								};
-
-								const getTypeLabel = (type) => {
-									const labels = {
-										live_online: 'Live Online',
-										physical: 'Fizic',
-										webinar: 'Webinar',
-										workshop: 'Workshop',
-									};
-									return labels[type] || type;
-								};
-
-								const getAccessTypeLabel = (accessType) => {
-									const labels = {
-										free: 'Gratuit',
-										course_included: 'Inclus în curs',
-									};
-									return labels[accessType] || accessType;
-								};
-
-								const getStatusBadge = (status) => {
-									const badges = {
-										draft: { label: 'Ciornă', color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.15)' },
-										published: { label: 'Publicat', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.15)' },
-										upcoming: { label: 'Viitor', color: '#FFEE00', bgColor: 'rgba(255, 238, 0, 0.15)' },
-										live: { label: 'Live', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
-										completed: { label: 'Finalizat', color: '#FFEE00', bgColor: 'rgba(255, 238, 0, 0.15)' },
-										cancelled: { label: 'Anulat', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' },
-									};
-									const badge = badges[status] || badges.draft;
-									return (
-										<span className="admin-card-badge" style={{
-											background: badge.bgColor,
-											color: badge.color,
-											border: `1px solid ${badge.color}40`,
-										}}>
-											{badge.label}
-										</span>
-									);
-								};
-
-								return (
-									<div
-										key={event.id}
-										className="admin-card"
-									>
-										{/* Checkbox for bulk selection */}
-										<input
-											type="checkbox"
-											className="admin-event-card-checkbox"
-											checked={selectedEvents.has(event.id)}
-											onChange={(e) => handleSelectEvent(event.id, e.target.checked)}
-										/>
-										<div className="admin-card-body">
-											<div className="admin-event-card-header">
-												<h3 className="admin-card-title">{event.title}</h3>
-												{event.status && getStatusBadge(event.status)}
-											</div>
-											{event.short_description && (
-												<p className="admin-card-description">
-													{event.short_description}
-												</p>
-											)}
-											{event.description && (
-												<p className="admin-card-description">
-													{event.description.substring(0, 120)}{event.description.length > 120 ? '...' : ''}
-												</p>
-											)}
-											<div className="admin-card-info">
-												<div>
-													<div className="admin-event-card-tags">
-														<span>🏷️ <strong>{getTypeLabel(event.type)}</strong></span>
-														{event.access_type && (
-															<span>💰 <strong>{getAccessTypeLabel(event.access_type)}</strong>
-															</span>
-														)}
-													</div>
-													{event.instructor && (
-														<div>👤 <strong>{event.instructor.name}</strong></div>
-													)}
-													<div>📍 <strong>{event.location || event.live_link || 'N/A'}</strong></div>
-													<div>
-														🕐 <strong>{formatDate(event.start_date)}</strong>
-														{event.end_date && (
-															<span>⏱️ {calculateDuration(event.start_date, event.end_date)}</span>
-														)}
-													</div>
-													{/* KPI Metrics */}
-													<section className="admin-event-kpis" aria-label="Metrici eveniment">
-														<div>
-															<div className="admin-kpi-label">Înscrieri</div>
-															<div className="admin-kpi-value">
-																{event.registrations_count || 0}
-																{event.max_capacity && ` / ${event.max_capacity}`}
-															</div>
-														</div>
-														<div>
-															<div className="admin-kpi-label">Prezență</div>
-															<div className="admin-kpi-value">
-																{event.attendance_count || 0}
-															</div>
-														</div>
-														{event.replay_views_count > 0 && (
-															<div>
-																<div className="admin-kpi-label">Replay</div>
-																<div className="admin-kpi-value">
-																	{event.replay_views_count}
-																</div>
-															</div>
-														)}
-													</section>
-												</div>
-											</div>
-											<div className="admin-card-actions">
-												{event.status === 'draft' && (
-													<button
-														className="admin-btn admin-btn-sm admin-btn-primary"
-														onClick={() => handleQuickAction(event.id, 'publish')}
-														disabled={actionLoading === event.id}
-													>
-														<span className="admin-btn-icon">📤</span>
-														<span>Publică</span>
-													</button>
-												)}
-												{(event.status === 'published' || event.status === 'upcoming') && (
-													<button
-														className="admin-btn admin-btn-sm admin-btn-secondary"
-														onClick={() => handleQuickAction(event.id, 'unpublish')}
-														disabled={actionLoading === event.id}
-													>
-														<span className="admin-btn-icon">↩️</span>
-														<span>Retrage</span>
-													</button>
-												)}
-												{!['completed', 'cancelled'].includes(event.status) && (
-													<button
-														className="admin-btn admin-btn-sm admin-btn-secondary"
-														onClick={() => handleQuickAction(event.id, 'cancel')}
-														disabled={actionLoading === event.id}
-													>
-														<span className="admin-btn-icon">🚫</span>
-														<span>Anulează</span>
-													</button>
-												)}
-												{['published', 'upcoming', 'live'].includes(event.status) && (
-													<button
-														className="admin-btn admin-btn-sm admin-btn-primary"
-														onClick={() => handleQuickAction(event.id, 'complete')}
-														disabled={actionLoading === event.id}
-													>
-														<span className="admin-btn-icon">✓</span>
-														<span>Finalizează</span>
-													</button>
-												)}
-												<button
-													className="admin-btn admin-btn-sm admin-btn-secondary"
-													onClick={() => handleEdit(event)}
-												>
-													<span className="admin-btn-icon">✏️</span>
-													<span>Editează</span>
-												</button>
-												<button
-													className="admin-btn admin-btn-sm admin-btn-danger"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDelete(event.id);
-													}}
-												>
-													<span className="admin-btn-icon">🗑️</span>
-													<span>Șterge</span>
-												</button>
-											</div>
-										</div>
-									</div>
-								);
-							})}
+						<div className="aev-list-grid">
+							{events.map((event) => (
+								<AdminEventListCard
+									key={event.id}
+									event={event}
+									selected={selectedEvents.has(event.id)}
+									onSelectChange={(checked) => handleSelectEvent(event.id, checked)}
+									busy={actionLoading === event.id}
+									formatDate={formatDate}
+									calculateDuration={calculateDuration}
+									onQuickAction={handleQuickAction}
+									onEdit={handleEdit}
+									onDelete={handleDelete}
+								/>
+							))}
 						</div>
 					) : (
 						<div className="lms-empty-state">
@@ -1055,195 +881,199 @@ const AdminEventsPage = () => {
 						</div>
 						<div className="admin-event-modal-body">
 							<form onSubmit={handleSubmit} className="admin-event-form">
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										<span>📝</span>
-										<span>Titlu</span>
-									</label>
-									<input
-										type="text"
-										className="admin-form-input admin-event-input"
-										value={formData.title}
-										onChange={(e) => {
-											setFormData({ ...formData, title: e.target.value });
-											if (touched.title) validate();
-										}}
-										onBlur={() => {
-											setTouched({ ...touched, title: true });
-											validate();
-										}}
-										placeholder="Ex: Workshop React Advanced"
-										required
-									/>
-									{errors.title && touched.title && (
-										<div className="admin-event-error">{errors.title}</div>
-									)}
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										<span>📄</span>
-										<span>Descriere</span>
-									</label>
-									<textarea
-										className="admin-form-input admin-event-input"
-										value={formData.description}
-										onChange={(e) => {
-											setFormData({ ...formData, description: e.target.value });
-											if (touched.description) validate();
-										}}
-										onBlur={() => {
-											setTouched({ ...touched, description: true });
-											validate();
-										}}
-										placeholder="Descrie evenimentul în detaliu..."
-										required
-										rows={4}
-									/>
-									{errors.description && touched.description && (
-										<div className="admin-event-error">{errors.description}</div>
-									)}
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										<span>🏷️</span>
-										<span>Tip</span>
-									</label>
-									<select
-										className="admin-form-input admin-event-input"
-										value={formData.type}
-										onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-										required
-									>
-										<option value="live_online">💻 Live Online</option>
-										<option value="physical">🏢 Fizic</option>
-										<option value="webinar">📹 Webinar</option>
-										<option value="workshop">🔧 Workshop</option>
-									</select>
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										<span>📍</span>
-										<span>Locație</span>
-									</label>
-									<input
-										type="text"
-										className="admin-form-input admin-event-input"
-										value={formData.location}
-										onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-										placeholder="Adresă sau Online"
-									/>
-								</div>
-
-								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-									<div className="va-form-group">
-										<label className="va-form-label">
-											<span>🕐</span>
-											<span>Data Început</span>
+								<section className="admin-form-section">
+									<h3 className="admin-form-section-title">Detalii eveniment</h3>
+									<div className="admin-form-group">
+										<label className="admin-form-label">
+											<span>📝</span>
+											<span>Titlu</span>
 										</label>
 										<input
-											type="datetime-local"
+											type="text"
 											className="admin-form-input admin-event-input"
-											value={formData.start_date}
+											value={formData.title}
 											onChange={(e) => {
-												setFormData({ ...formData, start_date: e.target.value });
-												if (touched.start_date) validate();
+												setFormData({ ...formData, title: e.target.value });
+												if (touched.title) validate();
 											}}
 											onBlur={() => {
-												setTouched({ ...touched, start_date: true });
+												setTouched({ ...touched, title: true });
 												validate();
 											}}
+											placeholder="Titlul evenimentului"
 											required
 										/>
-										{errors.start_date && touched.start_date && (
-											<div className="admin-event-error">{errors.start_date}</div>
+										{errors.title && touched.title && (
+											<div className="admin-event-error">{errors.title}</div>
 										)}
 									</div>
-
-									<div className="va-form-group">
-										<label className="va-form-label">
-											<span>🕐</span>
-											<span>Data Sfârșit</span>
+									<div className="admin-form-group">
+										<label className="admin-form-label">
+											<span>📄</span>
+											<span>Descriere</span>
 										</label>
-										<input
-											type="datetime-local"
+										<textarea
 											className="admin-form-input admin-event-input"
-											value={formData.end_date}
+											value={formData.description}
 											onChange={(e) => {
-												setFormData({ ...formData, end_date: e.target.value });
-												if (touched.end_date) validate();
+												setFormData({ ...formData, description: e.target.value });
+												if (touched.description) validate();
 											}}
 											onBlur={() => {
-												setTouched({ ...touched, end_date: true });
+												setTouched({ ...touched, description: true });
 												validate();
 											}}
+											placeholder="Descrie evenimentul în detaliu..."
 											required
+											rows={4}
 										/>
-										{errors.end_date && touched.end_date && (
-											<div className="admin-event-error">{errors.end_date}</div>
+										{errors.description && touched.description && (
+											<div className="admin-event-error">{errors.description}</div>
 										)}
 									</div>
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										<span>💰</span>
-										<span>Tip Acces</span>
-									</label>
-									<select
-										className="admin-form-input admin-event-input"
-										value={formData.access_type}
-										onChange={(e) => {
-											setFormData({ 
-												...formData, 
-												access_type: e.target.value,
-												course_id: e.target.value !== 'course_included' ? null : formData.course_id,
-											});
-											if (touched.access_type) validate();
-										}}
-										onBlur={() => {
-											setTouched({ ...touched, access_type: true });
-											validate();
-										}}
-									>
-										<option value="free">Gratuit</option>
-										<option value="course_included">Inclus în curs</option>
-									</select>
-								</div>
-
-								{formData.access_type === 'course_included' && (
-									<div className="va-form-group">
-										<label className="va-form-label">
-											<span>📚</span>
-											<span>Curs Asociat</span>
+									<div className="admin-form-group">
+										<label className="admin-form-label">
+											<span>🏷️</span>
+											<span>Tip</span>
 										</label>
 										<select
 											className="admin-form-input admin-event-input"
-											value={formData.course_id || ''}
+											value={formData.type}
+											onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+											required
+										>
+											<option value="live_online">💻 Live Online</option>
+											<option value="physical">🏢 Fizic</option>
+											<option value="webinar">📹 Webinar</option>
+											<option value="workshop">🔧 Workshop</option>
+										</select>
+									</div>
+								</section>
+
+								<section className="admin-form-section">
+									<h3 className="admin-form-section-title">Program</h3>
+									<div className="admin-event-datetime-grid">
+										<div className="va-form-group">
+											<label className="va-form-label">
+												<span>🕐</span>
+												<span>Data și ora început</span>
+											</label>
+											<input
+												type="datetime-local"
+												className="admin-form-input admin-event-input"
+												value={formData.start_date}
+												onChange={(e) => {
+													setFormData({ ...formData, start_date: e.target.value });
+													if (touched.start_date) validate();
+												}}
+												onBlur={() => {
+													setTouched({ ...touched, start_date: true });
+													validate();
+												}}
+												required
+											/>
+											{errors.start_date && touched.start_date && (
+												<div className="admin-event-error">{errors.start_date}</div>
+											)}
+										</div>
+										<div className="va-form-group">
+											<label className="va-form-label">
+												<span>🕐</span>
+												<span>Data și ora sfârșit</span>
+											</label>
+											<input
+												type="datetime-local"
+												className="admin-form-input admin-event-input"
+												value={formData.end_date}
+												onChange={(e) => {
+													setFormData({ ...formData, end_date: e.target.value });
+													if (touched.end_date) validate();
+												}}
+												onBlur={() => {
+													setTouched({ ...touched, end_date: true });
+													validate();
+												}}
+												required
+											/>
+											{errors.end_date && touched.end_date && (
+												<div className="admin-event-error">{errors.end_date}</div>
+											)}
+										</div>
+									</div>
+								</section>
+
+								<section className="admin-form-section">
+									<h3 className="admin-form-section-title">Locație & acces</h3>
+									<div className="admin-form-group">
+										<label className="admin-form-label">
+											<span>📍</span>
+											<span>Locație</span>
+										</label>
+										<input
+											type="text"
+											className="admin-form-input admin-event-input"
+											value={formData.location}
+											onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+											placeholder="Adresă sau Online"
+										/>
+									</div>
+									<div className="admin-form-group">
+										<label className="admin-form-label">
+											<span>💰</span>
+											<span>Tip acces</span>
+										</label>
+										<select
+											className="admin-form-input admin-event-input"
+											value={formData.access_type}
 											onChange={(e) => {
-												setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : null });
-												if (touched.course_id) validate();
+												setFormData({ 
+													...formData, 
+													access_type: e.target.value,
+													course_id: e.target.value !== 'course_included' ? null : formData.course_id,
+												});
+												if (touched.access_type) validate();
 											}}
 											onBlur={() => {
-												setTouched({ ...touched, course_id: true });
+												setTouched({ ...touched, access_type: true });
 												validate();
 											}}
-											required={formData.access_type === 'course_included'}
 										>
-											<option value="">Selectează curs</option>
-											{courses.map(course => (
-												<option key={course.id} value={course.id}>
-													{course.title}
-												</option>
-											))}
+											<option value="free">Gratuit</option>
+											<option value="course_included">Inclus în curs</option>
 										</select>
-										{errors.course_id && (
-											<div className="admin-event-error">{errors.course_id}</div>
-										)}
 									</div>
-								)}
+									{formData.access_type === 'course_included' && (
+										<div className="va-form-group">
+											<label className="va-form-label">
+												<span>📚</span>
+												<span>Curs asociat</span>
+											</label>
+											<select
+												className="admin-form-input admin-event-input"
+												value={formData.course_id || ''}
+												onChange={(e) => {
+													setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : null });
+													if (touched.course_id) validate();
+												}}
+												onBlur={() => {
+													setTouched({ ...touched, course_id: true });
+													validate();
+												}}
+												required={formData.access_type === 'course_included'}
+											>
+												<option value="">Selectează curs</option>
+												{courses.map(course => (
+													<option key={course.id} value={course.id}>
+														{course.title}
+													</option>
+												))}
+											</select>
+											{errors.course_id && (
+												<div className="admin-event-error">{errors.course_id}</div>
+											)}
+										</div>
+									)}
+								</section>
 
 								<div className="admin-event-form-actions">
 									<button
@@ -1330,6 +1160,18 @@ const AdminEventsPage = () => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={!!bulkConfirm}
+				onClose={() => setBulkConfirm(null)}
+				onConfirm={handleConfirmBulkAction}
+				title="Acțiune în masă"
+				message={bulkConfirm ? `Sigur dorești să ${bulkConfirm.action} ${bulkConfirm.count} eveniment(e)?` : ''}
+				confirmLabel={bulkConfirm?.action === 'delete' ? 'Șterge' : 'Confirmă'}
+				cancelLabel="Anulare"
+				variant={bulkConfirm?.action === 'delete' ? 'danger' : 'primary'}
+				loading={actionLoading === 'bulk'}
+			/>
 		</div>
 	);
 };

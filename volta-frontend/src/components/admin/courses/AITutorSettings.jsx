@@ -106,7 +106,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 					<input
 						type="text"
 						className="admin-form-input"
-						placeholder="Adaugă temă permisă (ex: React Hooks, JavaScript Basics)"
+						placeholder="Adaugă temă permisă"
 						onKeyPress={(e) => {
 							if (e.key === 'Enter') {
 								e.preventDefault();
@@ -155,7 +155,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 					<input
 						type="text"
 						className="admin-form-input"
-						placeholder="Adaugă temă restricționată (ex: Politics, Religion)"
+						placeholder="Adaugă temă restricționată"
 						onKeyPress={(e) => {
 							if (e.key === 'Enter') {
 								e.preventDefault();

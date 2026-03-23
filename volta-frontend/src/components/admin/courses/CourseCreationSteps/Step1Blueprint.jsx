@@ -27,7 +27,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onDelete,
 	return (
 		<div ref={setNodeRef} style={style} className={`step1-module-card ${isDragging ? 'step1-dragging' : ''}`}>
 			<div className="step1-module-header">
-				<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reorder module">⋮⋮</button>
+				<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare modul">⋮⋮</button>
 				<button type="button" className="step1-module-toggle" onClick={() => onToggle(module.id)}>
 					<svg className={`step1-module-arrow ${expanded ? 'expanded' : ''}`} width="16" height="16" viewBox="0 0 16 16">
 						<path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" fill="none" />
@@ -41,7 +41,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onDelete,
 					placeholder="Titlu modul"
 					className="step1-module-title-input"
 				/>
-				<button type="button" className="step1-btn-remove" onClick={() => onDelete(module.id)}>🗑️</button>
+				<button type="button" className="step1-btn-remove" onClick={() => onDelete(module.id)} aria-label="Șterge modul">🗑️</button>
 			</div>
 			{expanded && (
 				<div className="step1-module-content">
@@ -83,7 +83,7 @@ function SortableLessonItem({ lesson, index, moduleId, onUpdateLesson, onDeleteL
 	const style = { transform: CSS.Transform.toString(transform), transition };
 	return (
 		<div ref={setNodeRef} style={style} className={`step1-lesson-item ${isDragging ? 'step1-dragging' : ''}`}>
-			<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reorder lesson">⋮⋮</button>
+			<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare lecție">⋮⋮</button>
 			<div className="step1-lesson-number">{index + 1}</div>
 			<div className="step1-lesson-content">
 				<input
@@ -94,7 +94,7 @@ function SortableLessonItem({ lesson, index, moduleId, onUpdateLesson, onDeleteL
 					className="step1-lesson-title-input"
 				/>
 			</div>
-			<button type="button" className="step1-btn-remove" onClick={() => onDeleteLesson(moduleId, lesson.id)}>🗑️</button>
+			<button type="button" className="step1-btn-remove" onClick={() => onDeleteLesson(moduleId, lesson.id)} aria-label="Șterge lecție">🗑️</button>
 		</div>
 	);
 }

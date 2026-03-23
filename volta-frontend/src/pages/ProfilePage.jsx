@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { profileService, adminService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const ProfilePage = () => {
 	const { userId } = useParams(); // Optional user ID from URL
@@ -14,6 +15,7 @@ const ProfilePage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [uploadingAvatar, setUploadingAvatar] = useState(false);
+	const [showRemoveAvatarConfirm, setShowRemoveAvatarConfirm] = useState(false);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -79,11 +81,15 @@ const ProfilePage = () => {
 		}
 	};
 
-	const handleRemoveAvatar = async () => {
-		if (!window.confirm('Ștergi poza de profil?')) return;
+	const handleRemoveAvatarClick = () => {
+		setShowRemoveAvatarConfirm(true);
+	};
+
+	const handleConfirmRemoveAvatar = async () => {
 		try {
 			setUploadingAvatar(true);
 			await profileService.removeAvatar();
+			setShowRemoveAvatarConfirm(false);
 			setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, avatar: null } } : prev);
 			await checkAuth();
 			showToast('Poza de profil a fost ștearsă', 'success');
@@ -168,7 +174,7 @@ const ProfilePage = () => {
 									<button
 										type="button"
 										className="va-profile-avatar-btn va-profile-avatar-btn-remove"
-										onClick={handleRemoveAvatar}
+										onClick={handleRemoveAvatarClick}
 										disabled={uploadingAvatar}
 									>
 										Șterge poza
@@ -320,6 +326,18 @@ const ProfilePage = () => {
 				</div>
 
 			</div>
+
+			<ConfirmModal
+				open={showRemoveAvatarConfirm}
+				onClose={() => setShowRemoveAvatarConfirm(false)}
+				onConfirm={handleConfirmRemoveAvatar}
+				title="Șterge poza de profil"
+				message="Ștergi poza de profil?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={uploadingAvatar}
+			/>
 		</div>
 	);
 };

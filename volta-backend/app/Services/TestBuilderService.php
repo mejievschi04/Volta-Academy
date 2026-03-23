@@ -120,6 +120,8 @@ class TestBuilderService
             throw new \Exception('Cannot add direct questions to a test that uses a question bank');
         }
 
+        $questions = $this->applyDefaultPointsIfNeeded($questions);
+
         foreach ($questions as $index => $questionData) {
             Question::create([
                 'test_id' => $test->id,
@@ -127,7 +129,7 @@ class TestBuilderService
                 'type' => $questionData['type'] ?? 'multiple_choice',
                 'content' => $questionData['content'],
                 'answers' => $questionData['answers'] ?? [],
-                'points' => $questionData['points'] ?? 1,
+                'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
                 'order' => $questionData['order'] ?? $index,
                 'explanation' => $questionData['explanation'] ?? null,
                 'metadata' => $questionData['metadata'] ?? null,
@@ -215,20 +217,20 @@ class TestBuilderService
     }
 
     /**
-     * Delete a test (soft delete)
+     * Delete a test (soft delete).
+     * Elimină mai întâi legăturile din course_test; altfel testul rămâne referit de cursuri
+     * iar soft delete nu declanșează CASCADE la nivel de FK.
      */
     public function deleteTest(Test $test): bool
     {
-        // Check if test is used in any courses
-        $usageCount = DB::table('course_test')
-            ->where('test_id', $test->id)
-            ->count();
+        return DB::transaction(function () use ($test) {
+            if (Schema::hasTable('course_test')) {
+                DB::table('course_test')->where('unlock_after_test_id', $test->id)->update(['unlock_after_test_id' => null]);
+                DB::table('course_test')->where('test_id', $test->id)->delete();
+            }
 
-        if ($usageCount > 0) {
-            throw new \Exception('Cannot delete test that is linked to courses. Unlink it first.');
-        }
-
-        return $test->delete();
+            return $test->delete();
+        });
     }
 
     /**
@@ -309,6 +311,55 @@ class TestBuilderService
         $lastIndex = count($parts) - 1;
         $parts[$lastIndex] = (int)$parts[$lastIndex] + 1;
         return implode('.', $parts);
+    }
+
+    /**
+     * Implicit test total: 100 puncte, distribuite egal pe întrebări
+     * când niciuna nu are punctaj introdus manual.
+     */
+    protected function applyDefaultPointsIfNeeded(array $questions): array
+    {
+        $count = count($questions);
+        if ($count === 0) {
+            return $questions;
+        }
+
+        $hasManualPoints = false;
+        foreach ($questions as $q) {
+            if (!is_array($q)) {
+                continue;
+            }
+            if (array_key_exists('points', $q) && $q['points'] !== null && $q['points'] !== '') {
+                $hasManualPoints = true;
+                break;
+            }
+        }
+
+        if ($hasManualPoints) {
+            return $questions;
+        }
+
+        if ($count > 100) {
+            // Fallback: păstrăm minim 1 punct/întrebare (nu putem împărți 100 în int >=1 la >100 întrebări)
+            foreach ($questions as $i => $q) {
+                if (!is_array($q)) {
+                    continue;
+                }
+                $questions[$i]['points'] = 1;
+            }
+            return $questions;
+        }
+
+        $base = intdiv(100, $count);
+        $remainder = 100 - ($base * $count);
+        foreach ($questions as $i => $q) {
+            if (!is_array($q)) {
+                continue;
+            }
+            $questions[$i]['points'] = $base + ($i < $remainder ? 1 : 0);
+        }
+
+        return $questions;
     }
 }
 

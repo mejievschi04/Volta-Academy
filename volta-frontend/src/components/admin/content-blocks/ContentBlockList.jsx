@@ -36,6 +36,8 @@ const typeLabel = (type) => {
 			return 'Video';
 		case 'embed':
 			return 'Încorporare';
+		case 'pdf':
+			return 'PDF (conținut)';
 		case 'file':
 			return 'Fișier';
 		case 'audio':
@@ -59,6 +61,8 @@ const typeIcon = (type) => {
 			return '🎬';
 		case 'embed':
 			return '🧩';
+		case 'pdf':
+			return '📄';
 		case 'file':
 			return '📎';
 		case 'audio':
@@ -89,6 +93,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 			onClick={() => onSelect(block.id)}
 			role="button"
 			tabIndex={0}
+			title={isSelected ? 'Selectat – editează în panoul din dreapta' : 'Click pentru a selecta și edita'}
 			onKeyDown={(e) => {
 				if (e.key === 'Enter' || e.key === ' ') onSelect(block.id);
 			}}
@@ -99,7 +104,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 					{...attributes}
 					{...listeners}
 					style={{ cursor: 'grab', userSelect: 'none' }}
-					title="Trage pentru reordonare"
+					title="Trage pentru reordonare (sau Alt+↑/↓ când e selectat)"
 				>
 					⋮⋮
 				</div>
@@ -131,7 +136,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 					<button
 						type="button"
 						className="lms-btn-icon va-btn-danger admin-block-delete-btn"
-						title="Șterge"
+						title="Șterge acest bloc din lecție"
 						onClick={(e) => {
 							e.stopPropagation();
 							onDelete(block.id);
@@ -145,7 +150,15 @@ const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 	);
 };
 
-const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlocks, onDeleteBlock, disabled }) => {
+const QUICK_ADD_TYPES = [
+	{ id: 'text', label: 'Text' },
+	{ id: 'video', label: 'Video' },
+	{ id: 'image', label: 'Imagine' },
+	{ id: 'pdf', label: 'PDF (conținut)' },
+	{ id: 'file', label: 'Fișier' },
+];
+
+const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlocks, onDeleteBlock, onAddBlock, disabled }) => {
 	const [activeId, setActiveId] = useState(null);
 
 	const sensors = useSensors(
@@ -173,9 +186,32 @@ const ContentBlockList = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlo
 	if (!blocks || blocks.length === 0) {
 		return (
 			<div className="admin-course-builder-blocks-empty">
-				<div className="admin-course-builder-blocks-empty-icon">🧱</div>
-				<div className="admin-course-builder-blocks-empty-title">Nu există blocuri de conținut</div>
-				<div className="admin-course-builder-blocks-empty-desc">Adaugă primul block pentru a începe.</div>
+				<div className="admin-course-builder-blocks-empty-icon" aria-hidden="true">📝</div>
+				<div className="admin-course-builder-blocks-empty-title">Adaugă primul bloc de conținut</div>
+				<div className="admin-course-builder-blocks-empty-desc">
+					Text, video, imagine sau șabloane. Poți adăuga mai multe și le reordonezi după.
+				</div>
+				{onAddBlock && (
+					<div className="admin-course-builder-blocks-empty-actions">
+						<button
+							type="button"
+							className="admin-course-builder-blocks-empty-add-btn admin-course-builder-blocks-empty-add-btn-primary"
+							onClick={() => onAddBlock('text')}
+						>
+							+ Text (recomandat pentru început)
+						</button>
+						{QUICK_ADD_TYPES.filter((t) => t.id !== 'text').map((t) => (
+							<button
+								key={t.id}
+								type="button"
+								className="admin-course-builder-blocks-empty-add-btn"
+								onClick={() => onAddBlock(t.id)}
+							>
+								+ {t.label}
+							</button>
+						))}
+					</div>
+				)}
 			</div>
 		);
 	}

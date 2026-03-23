@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 import './CourseTestsManager.css';
+
+const TYPE_LABELS = { practice: 'Exersare', graded: 'Notat', final: 'Final' };
 
 const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 	const { showToast } = useToast();
@@ -11,12 +14,14 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 	const [showLinkModal, setShowLinkModal] = useState(false);
 	const [selectedTest, setSelectedTest] = useState(null);
 	const [linkOptions, setLinkOptions] = useState({
-		scope: 'course', // course, module, lesson
+		scope: 'course',
 		scope_id: null,
 		required: false,
 		passing_score: 70,
 		order: 0,
 	});
+	const [unlinkConfirm, setUnlinkConfirm] = useState(null);
+	const [unlinkLoading, setUnlinkLoading] = useState(false);
 
 	useEffect(() => {
 		if (courseId) {
@@ -60,18 +65,23 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 		}
 	};
 
-	const handleUnlinkTest = async (testId, scope, scopeId) => {
-		if (!confirm('Sigur dorești să deconectezi acest test?')) {
-			return;
-		}
+	const handleUnlinkTestClick = (testId, scope, scopeId) => {
+		setUnlinkConfirm({ testId, scope, scopeId });
+	};
 
+	const handleConfirmUnlinkTest = async () => {
+		if (!unlinkConfirm) return;
+		setUnlinkLoading(true);
 		try {
-			await adminService.unlinkTestFromCourse(testId, courseId, scope, scopeId);
+			await adminService.unlinkTestFromCourse(unlinkConfirm.testId, courseId, unlinkConfirm.scope, unlinkConfirm.scopeId);
+			setUnlinkConfirm(null);
 			showToast('Test deconectat cu succes', 'success');
 			fetchData();
 		} catch (err) {
 			console.error('Error unlinking test:', err);
 			showToast(err.response?.data?.error || 'Eroare la deconectarea testului', 'error');
+		} finally {
+			setUnlinkLoading(false);
 		}
 	};
 
@@ -94,7 +104,7 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 
 	const getTestTypeBadge = (type) => {
 		const types = {
-			practice: { label: 'Practică', color: '#FFEE00' },
+			practice: { label: 'Exersare', color: '#FFEE00' },
 			graded: { label: 'Notat', color: '#FFEE00' },
 			final: { label: 'Final', color: '#EF4444' },
 		};
@@ -106,6 +116,14 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 		);
 	};
 
+	const canAttach = selectedTest && (linkOptions.scope === 'course' || (linkOptions.scope_id != null && linkOptions.scope_id !== ''));
+
+	const openLinkModal = () => {
+		setLinkOptions({ scope: 'course', scope_id: null, required: false, passing_score: 70, order: 0 });
+		setSelectedTest(null);
+		setShowLinkModal(true);
+	};
+
 	return (
 		<div className="course-tests-manager">
 			<div className="course-tests-header">
@@ -115,9 +133,10 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 				</div>
 				<button
 					className="admin-btn admin-btn-primary"
-					onClick={() => setShowLinkModal(true)}
+					onClick={openLinkModal}
+					type="button"
 				>
-					➕ Atașează Test
+					➕ Atașează test
 				</button>
 			</div>
 
@@ -130,9 +149,10 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 						<p>Adaugă teste pentru a evalua progresul studenților</p>
 						<button
 							className="admin-btn admin-btn-primary"
-							onClick={() => setShowLinkModal(true)}
+							onClick={openLinkModal}
+							type="button"
 						>
-							➕ Atașează Primul Test
+							➕ Atașează primul test
 						</button>
 					</div>
 				) : (
@@ -158,10 +178,11 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 											Scor minim: {pivot.passing_score}%
 										</span>
 										<button
+											type="button"
 											className="admin-btn admin-btn-danger admin-btn-sm"
-											onClick={() => handleUnlinkTest(test.id, pivot.scope, pivot.scope_id)}
+											onClick={() => handleUnlinkTestClick(test.id, pivot.scope, pivot.scope_id)}
 										>
-											🗑️ Deconectează
+											Detașează
 										</button>
 									</div>
 								</div>
@@ -184,48 +205,53 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 				<div className="course-tests-modal-overlay" onClick={() => setShowLinkModal(false)}>
 					<div className="course-tests-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="course-tests-modal-header">
-							<h3>Atașează Test la Curs</h3>
+							<h3>Atașează test la curs</h3>
 							<button
+								type="button"
 								className="course-tests-modal-close"
 								onClick={() => setShowLinkModal(false)}
+								aria-label="Închide"
 							>
 								✕
 							</button>
 						</div>
 
 						<div className="course-tests-modal-content">
-							{/* Test Selection */}
 							<div className="course-tests-form-group">
-								<label>Selectează Test</label>
+								<label htmlFor="ctm-select-test">Test</label>
 								<select
+									id="ctm-select-test"
 									className="admin-form-input"
 									value={selectedTest?.id || ''}
 									onChange={(e) => {
-										const test = availableTests.find(t => t.id === parseInt(e.target.value));
-										setSelectedTest(test);
+										const test = availableTests.find(t => t.id === parseInt(e.target.value, 10));
+										setSelectedTest(test || null);
 									}}
 								>
-									<option value="">-- Selectează un test --</option>
+									<option value="">— Alege un test —</option>
 									{availableTests.map(test => (
 										<option key={test.id} value={test.id}>
-											{test.title} ({test.type})
+											{test.title} — {TYPE_LABELS[test.type] || test.type} · {(test.questions_count ?? 0)} întrebări
 										</option>
 									))}
 								</select>
+								{availableTests.length === 0 && !loading && (
+									<p className="course-tests-modal-hint">Nu există teste publicate. Publică un test din secțiunea Teste.</p>
+								)}
 							</div>
 
-							{/* Scope Selection */}
 							<div className="course-tests-form-group">
-								<label>Domeniu de aplicare</label>
+								<label htmlFor="ctm-scope">Domeniu</label>
 								<select
+									id="ctm-scope"
 									className="admin-form-input"
 									value={linkOptions.scope}
 									onChange={(e) => {
-										setLinkOptions({
-											...linkOptions,
+										setLinkOptions(prev => ({
+											...prev,
 											scope: e.target.value,
 											scope_id: null,
-										});
+										}));
 									}}
 								>
 									<option value="course">Curs complet</option>
@@ -234,25 +260,21 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 								</select>
 							</div>
 
-							{/* Module/Lesson Selection */}
 							{linkOptions.scope === 'module' && (
 								<div className="course-tests-form-group">
-									<label>Selectează Modul</label>
+									<label htmlFor="ctm-module">Modul</label>
 									<select
+										id="ctm-module"
 										className="admin-form-input"
-										value={linkOptions.scope_id || ''}
+										value={linkOptions.scope_id ?? ''}
 										onChange={(e) => {
-											setLinkOptions({
-												...linkOptions,
-												scope_id: parseInt(e.target.value),
-											});
+											const v = e.target.value;
+											setLinkOptions(prev => ({ ...prev, scope_id: v ? parseInt(v, 10) : null }));
 										}}
 									>
-										<option value="">-- Selectează modul --</option>
-										{courseData?.modules?.map(module => (
-											<option key={module.id} value={module.id}>
-												{module.title}
-											</option>
+										<option value="">— Alege modulul —</option>
+										{(courseData?.modules || []).map(m => (
+											<option key={m.id} value={m.id}>{m.title}</option>
 										))}
 									</select>
 								</div>
@@ -260,82 +282,79 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 
 							{linkOptions.scope === 'lesson' && (
 								<div className="course-tests-form-group">
-									<label>Selectează Lecție</label>
+									<label htmlFor="ctm-lesson">Lecție</label>
 									<select
+										id="ctm-lesson"
 										className="admin-form-input"
-										value={linkOptions.scope_id || ''}
+										value={linkOptions.scope_id ?? ''}
 										onChange={(e) => {
-											setLinkOptions({
-												...linkOptions,
-												scope_id: parseInt(e.target.value),
-											});
+											const v = e.target.value;
+											setLinkOptions(prev => ({ ...prev, scope_id: v ? parseInt(v, 10) : null }));
 										}}
 									>
-										<option value="">-- Selectează lecție --</option>
-										{courseData?.modules?.flatMap(module =>
-											module.lessons?.map(lesson => (
-												<option key={lesson.id} value={lesson.id}>
-													{module.title} - {lesson.title}
-												</option>
-											)) || []
+										<option value="">— Alege lecția —</option>
+										{(courseData?.modules || []).flatMap(m =>
+											(m.lessons || []).map(l => (
+												<option key={l.id} value={l.id}>{m.title} → {l.title}</option>
+											))
 										)}
 									</select>
 								</div>
 							)}
 
-							{/* Options */}
 							<div className="course-tests-form-group">
-								<label>
+								<label className="course-tests-check-label">
 									<input
 										type="checkbox"
-										checked={linkOptions.required}
-										onChange={(e) => {
-											setLinkOptions({
-												...linkOptions,
-												required: e.target.checked,
-											});
-										}}
+										checked={!!linkOptions.required}
+										onChange={(e) => setLinkOptions(prev => ({ ...prev, required: e.target.checked }))}
 									/>
-									Test obligatoriu
+									<span>Test obligatoriu</span>
 								</label>
 							</div>
 
 							<div className="course-tests-form-group">
-								<label>Scor minim pentru trecere (%)</label>
+								<label htmlFor="ctm-passing">Scor minim trecere (%)</label>
 								<input
+									id="ctm-passing"
 									type="number"
 									className="admin-form-input"
-									min="0"
-									max="100"
+									min={0}
+									max={100}
 									value={linkOptions.passing_score}
-									onChange={(e) => {
-										setLinkOptions({
-											...linkOptions,
-											passing_score: parseInt(e.target.value) || 70,
-										});
-									}}
+									onChange={(e) => setLinkOptions(prev => ({ ...prev, passing_score: parseInt(e.target.value, 10) || 70 }))}
 								/>
 							</div>
 						</div>
 
 						<div className="course-tests-modal-footer">
-							<button
-								className="admin-btn admin-btn-secondary"
-								onClick={() => setShowLinkModal(false)}
-							>
-								Anulează
+							<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowLinkModal(false)}>
+								Anulare
 							</button>
 							<button
+								type="button"
 								className="admin-btn admin-btn-primary"
 								onClick={handleLinkTest}
-								disabled={!selectedTest}
+								disabled={!canAttach}
 							>
-								Atașează Test
+								Atașează
 							</button>
 						</div>
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={!!unlinkConfirm}
+				onClose={() => setUnlinkConfirm(null)}
+				onConfirm={handleConfirmUnlinkTest}
+				title="Detașează test"
+				message="Sigur vrei să detașezi acest test de la curs?"
+				confirmLabel="Detașează"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={unlinkLoading}
+			/>
 		</div>
 	);
 };

@@ -31,7 +31,7 @@ const TextBlockEditor = ({ value, onChange }) => {
 			<div className="text-block-editor-fullscreen-overlay">
 				<div className="text-block-editor-fullscreen-modal">
 					<div className="text-block-editor-fullscreen-header">
-						<h3 className="text-block-editor-fullscreen-title">Editare conținut</h3>
+						<h3 className="text-block-editor-fullscreen-title">Editare conținut – așa va apărea în lecție</h3>
 						<button
 							type="button"
 							className="text-block-editor-fullscreen-close"
@@ -63,18 +63,19 @@ const TextBlockEditor = ({ value, onChange }) => {
 				.slice(0, 120)
 		: '';
 	return (
-		<div>
-			<label className="admin-settings-label">Conținut</label>
+		<div className="text-block-editor-inline">
+			<label className="admin-settings-label">Conținut text</label>
 			<button
 				ref={openBtnRef}
 				type="button"
 				className="text-block-editor-trigger"
 				onClick={handleOpenFullscreen}
+				title="Deschide editor – conținutul va arăta ca în lecție"
 			>
 				{preview ? (
 					<span className="text-block-editor-trigger-preview">{preview}{preview.length >= 120 ? '…' : ''}</span>
 				) : (
-					<span className="text-block-editor-trigger-placeholder">Click pentru a edita conținutul...</span>
+					<span className="text-block-editor-trigger-placeholder">Click pentru a scrie – așa va apărea în lecție</span>
 				)}
 			</button>
 		</div>

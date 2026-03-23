@@ -26,6 +26,19 @@
 	gap: 2px;
 }
 
+.rte-toolbar-group-labeled {
+	gap: var(--space-2);
+}
+
+.rte-toolbar-label {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-tertiary);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+}
+
 .rte-toolbar-separator {
 	width: 1px;
 	height: 24px;
@@ -73,7 +86,8 @@
 .rte-toolbar-select {
 	padding: 6px 28px 6px 10px;
 	height: 32px;
-	min-width: 120px;
+	min-width: 180px;
+	max-width: 220px;
 	background: var(--bg-primary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-md);
@@ -202,4 +216,119 @@
 	margin-bottom: var(--space-2);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
+}
+
+/* ============================================
+   RTE Modals (Color Picker, Link, PDF)
+   ============================================ */
+
+.rte-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10001;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-4);
+}
+
+.rte-modal {
+	background: var(--bg-elevated, #1f2937);
+	border: 1px solid var(--border-primary, rgba(255,255,255,0.1));
+	border-radius: var(--radius-xl);
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+	max-width: 90vw;
+	max-height: 90vh;
+	overflow: auto;
+}
+
+.rte-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-4) var(--space-5);
+	border-bottom: 1px solid var(--border-primary, rgba(255,255,255,0.1));
+}
+
+.rte-modal-close {
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.5rem;
+	line-height: 1;
+	color: var(--text-secondary);
+	background: transparent;
+	border: none;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: background 0.2s, color 0.2s;
+}
+
+.rte-modal-close:hover {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.rte-modal-body {
+	padding: var(--space-5);
+}
+
+.rte-modal-title {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--text-primary, #fff);
+}
+
+/* Paletă culori - grid stabil, butoane cu dimensiuni fixe */
+.rte-color-palette-label {
+	display: block;
+	margin-bottom: var(--space-2);
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
+.rte-color-palette-grid {
+	display: grid;
+	grid-template-columns: repeat(8, 1fr);
+	gap: var(--space-2);
+	width: 100%;
+	min-width: 240px;
+}
+
+.rte-color-swatch {
+	width: 100%;
+	min-width: 28px;
+	min-height: 28px;
+	aspect-ratio: 1;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: transform 0.15s, box-shadow 0.15s;
+	border: 2px solid rgba(255,255,255,0.25);
+	padding: 0;
+	display: block;
+	overflow: hidden;
+	/* background setat din <style> generat în ColorPickerModal per .rte-swatch-idx-N */
+}
+
+.rte-color-swatch:hover {
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.rte-color-swatch.is-selected {
+	border-color: var(--color-primary, #ffee00);
+	box-shadow: 0 0 12px rgba(255, 238, 0, 0.5);
+}
+
+.rte-color-swatch:focus {
+	outline: none;
+}
+
+.rte-color-swatch:focus-visible {
+	box-shadow: 0 0 0 2px var(--color-primary, #ffee00);
 }

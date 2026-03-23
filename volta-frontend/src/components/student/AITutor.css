@@ -112,7 +112,7 @@
 	flex-shrink: 0;
 }
 
-/* Override dark-theme white text - yellow bg needs black text */
+/* Yellow bg - black text */
 .ai-tutor-container .ai-tutor-header,
 .ai-tutor-container .ai-tutor-header *,
 .ai-tutor-container .ai-tutor-header-left,
@@ -357,11 +357,7 @@
 	cursor: not-allowed;
 }
 
-/* Theme overrides */
-[data-theme="dark"] .ai-tutor-message-assistant .ai-tutor-message-content {
-	background: var(--bg-elevated);
-}
-
+/* Tema light */
 [data-theme="light"] .ai-tutor-message-assistant .ai-tutor-message-content {
 	background: var(--bg-secondary);
 }

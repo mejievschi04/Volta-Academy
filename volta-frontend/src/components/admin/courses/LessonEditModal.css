@@ -14,10 +14,6 @@
 	animation: fadeIn 0.2s ease-out;
 }
 
-[data-theme="dark"] .lesson-edit-modal-overlay {
-	background: rgba(0, 0, 0, 0.75);
-}
-
 @keyframes fadeIn {
 	from {
 		opacity: 0;
@@ -111,24 +107,6 @@
 	border-top: 1.5px solid var(--border-default);
 	background: var(--bg-surface);
 	flex-shrink: 0;
-}
-
-/* Dark Mode */
-[data-theme="dark"] .lesson-edit-modal {
-	background: var(--bg-elevated);
-	border-color: var(--border-primary);
-}
-
-[data-theme="dark"] .lesson-edit-modal-header,
-[data-theme="dark"] .lesson-edit-modal-content,
-[data-theme="dark"] .lesson-edit-modal-footer {
-	background: var(--bg-elevated);
-	border-color: var(--border-primary);
-}
-
-[data-theme="dark"] .lesson-edit-modal-header h2,
-[data-theme="dark"] .lesson-edit-modal-close {
-	color: var(--text-primary) !important;
 }
 
 /* Responsive */

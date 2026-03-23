@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './BuildCourseModal.css';
 
 /**
- * Modal pentru creare curs - titlu, imagine, descriere
- * După submit → redirect la Builder
+ * Modal creare/editare curs: titlu, descriere, imagine, PDF.
+ * După submit → redirect la Builder (la creare).
  */
-const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initialDescription = '', initialPdfFile = null }) => {
+const BuildCourseModal = ({
+	onClose,
+	onSubmit,
+	loading,
+	initialTitle = '',
+	initialDescription = '',
+	initialPdfFile = null,
+	mode = 'create', // 'create' | 'edit'
+}) => {
 	const [title, setTitle] = useState(initialTitle);
 	const [description, setDescription] = useState(initialDescription);
 	const [image, setImage] = useState(null);
@@ -28,14 +36,39 @@ const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initi
 		onSubmit({ title: title.trim(), description: description.trim() || '', image, pdfFile });
 	};
 
+	const handleBackdropKeyDown = useCallback(
+		(e) => {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				onClose();
+			}
+		},
+		[onClose]
+	);
+
+	const isEdit = mode === 'edit';
+
 	return (
-		<div className="build-course-modal-backdrop" onClick={onClose}>
+		<div
+			className="build-course-modal-backdrop"
+			onClick={onClose}
+			onKeyDown={handleBackdropKeyDown}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="build-course-modal-title"
+		>
 			<div className="build-course-modal" onClick={(e) => e.stopPropagation()}>
-				<div className="build-course-modal-header">
-					<h2>Creează curs nou</h2>
-					<p className="build-course-modal-subtitle">
-						Completează informațiile de bază, apoi continuă în Builder
-					</p>
+				<header className="build-course-modal-header">
+					<div className="build-course-modal-header-inner">
+						<h2 id="build-course-modal-title" className="build-course-modal-title">
+							{isEdit ? 'Editează curs' : 'Creează curs nou'}
+						</h2>
+						<p className="build-course-modal-subtitle">
+							{isEdit
+								? 'Modifică informațiile de bază ale cursului.'
+								: 'Completează informațiile de bază, apoi continuă în Builder.'}
+						</p>
+					</div>
 					<button
 						type="button"
 						className="build-course-modal-close"
@@ -44,100 +77,109 @@ const BuildCourseModal = ({ onClose, onSubmit, loading, initialTitle = '', initi
 					>
 						×
 					</button>
-				</div>
+				</header>
 
 				<form onSubmit={handleSubmit} className="build-course-modal-form">
-					<div className="build-course-modal-field">
-						<label className="build-course-modal-label">
-							Titlu <span className="build-course-modal-required">*</span>
-						</label>
-						<input
-							type="text"
-							placeholder="ex: Produse Electrotehnice - Baze"
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-							className="build-course-modal-input"
-							autoFocus
-						/>
-					</div>
-
-					<div className="build-course-modal-field">
-						<label className="build-course-modal-label">Descriere</label>
-						<textarea
-							placeholder="Descrie conținutul și scopul cursului..."
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							className="build-course-modal-textarea"
-							rows={4}
-						/>
-					</div>
-
-					<div className="build-course-modal-field">
-						<label className="build-course-modal-label">Imagine curs</label>
-						<p className="build-course-modal-hint">Imagine reprezentativă (opțional)</p>
-						<div className="build-course-modal-file-wrap">
-							<input
-								type="file"
-								id="build-course-modal-image"
-								accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-								onChange={(e) => {
-									const file = e.target.files?.[0];
-									setImage(file || null);
-								}}
-								className="build-course-modal-file"
-							/>
-							<label htmlFor="build-course-modal-image" className="build-course-modal-file-trigger">
-								{image ? image.name : 'Alege imagine'}
+					<section className="build-course-modal-section" aria-labelledby="build-course-section-basic">
+						<h3 id="build-course-section-basic" className="build-course-modal-section-title">
+							Informații de bază
+						</h3>
+						<div className="build-course-modal-field">
+							<label htmlFor="build-course-modal-title-input" className="build-course-modal-label">
+								Titlu <span className="build-course-modal-required" aria-hidden="true">*</span>
 							</label>
+							<input
+								id="build-course-modal-title-input"
+								type="text"
+								placeholder="Titlul cursului"
+								value={title}
+								onChange={(e) => setTitle(e.target.value)}
+								className="build-course-modal-input"
+								autoFocus
+								aria-required="true"
+								aria-invalid={!!error}
+							/>
 						</div>
-						{image && (
-							<div className="build-course-modal-preview">
-								<img
-									src={URL.createObjectURL(image)}
-									alt="Previzualizare"
-									loading="lazy"
-								/>
+						<div className="build-course-modal-field">
+							<label htmlFor="build-course-modal-desc" className="build-course-modal-label">
+								Descriere
+							</label>
+							<textarea
+								id="build-course-modal-desc"
+								placeholder="Descrie conținutul și scopul cursului..."
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+								className="build-course-modal-textarea"
+								rows={3}
+								aria-describedby="build-course-desc-hint"
+							/>
+							<span id="build-course-desc-hint" className="build-course-modal-hint">
+								Opțional. Poți completa mai târziu în Builder.
+							</span>
+						</div>
+					</section>
+
+					<section className="build-course-modal-section" aria-labelledby="build-course-section-files">
+						<h3 id="build-course-section-files" className="build-course-modal-section-title">
+							Fișiere opționale
+						</h3>
+						<div className="build-course-modal-files-row">
+							<div className="build-course-modal-file-group">
+								<label className="build-course-modal-label">Imagine reprezentativă</label>
+								<div className="build-course-modal-file-wrap">
+									<input
+										type="file"
+										id="build-course-modal-image"
+										accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+										onChange={(e) => setImage(e.target.files?.[0] || null)}
+										className="build-course-modal-file"
+									/>
+									<label htmlFor="build-course-modal-image" className="build-course-modal-file-trigger">
+										{image ? image.name : 'Alege imagine'}
+									</label>
+								</div>
+								{image && (
+									<div className="build-course-modal-preview">
+										<img src={URL.createObjectURL(image)} alt="Previzualizare" loading="lazy" />
+									</div>
+								)}
 							</div>
-						)}
-					</div>
-
-					<div className="build-course-modal-field">
-						<label className="build-course-modal-label">Fișier PDF cu informația brută</label>
-						<p className="build-course-modal-hint">Opțional – conținut pentru generare curs</p>
-						<div className="build-course-modal-file-wrap">
-							<input
-								type="file"
-								id="build-course-modal-pdf"
-								accept=".pdf,application/pdf"
-								onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-								className="build-course-modal-file"
-							/>
-							<label htmlFor="build-course-modal-pdf" className="build-course-modal-file-trigger">
-								{pdfFile ? `📄 ${pdfFile.name}` : 'Alege fișier PDF'}
-							</label>
+							<div className="build-course-modal-file-group">
+								<label className="build-course-modal-label">PDF (informație brută)</label>
+								<div className="build-course-modal-file-wrap">
+									<input
+										type="file"
+										id="build-course-modal-pdf"
+										accept=".pdf,application/pdf"
+										onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+										className="build-course-modal-file"
+									/>
+									<label htmlFor="build-course-modal-pdf" className="build-course-modal-file-trigger">
+										{pdfFile ? pdfFile.name : 'Alege PDF'}
+									</label>
+								</div>
+							</div>
 						</div>
-					</div>
+					</section>
 
 					{error && (
-						<div className="build-course-modal-error">{error}</div>
+						<div className="build-course-modal-error" role="alert">
+							{error}
+						</div>
 					)}
 
-					<div className="build-course-modal-actions">
-						<button
-							type="button"
-							className="lms-btn-secondary build-course-modal-btn"
-							onClick={onClose}
-						>
+					<footer className="build-course-modal-actions">
+						<button type="button" className="build-course-modal-btn build-course-modal-btn-cancel" onClick={onClose}>
 							Anulează
 						</button>
 						<button
 							type="submit"
-							className="lms-btn-primary build-course-modal-btn"
+							className="build-course-modal-btn build-course-modal-btn-submit"
 							disabled={loading}
 						>
-							{loading ? 'Se creează...' : 'Continuă la Builder'}
+							{loading ? 'Se salvează...' : isEdit ? 'Salvează' : 'Creează și deschide în Builder'}
 						</button>
-					</div>
+					</footer>
 				</form>
 			</div>
 		</div>

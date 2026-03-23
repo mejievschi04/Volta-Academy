@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 import RichTextEditor from '../../components/RichTextEditor';
 
 // Template blocks for lessons
@@ -40,18 +41,18 @@ Text explicativ detaliat...`,
 	},
 	{
 		id: 'example',
-		name: 'Exemplu',
+		name: 'Scenariu',
 		icon: '💡',
-		template: `# Exemplu Practic
+		template: `# Scenariu practic
 
-## Exemplu: [Nume Exemplu]
+## Context
+Descrierea situației...
 
-\`\`\`
-// Cod sau exemplu aici
-\`\`\`
+## Aplicare
+Cum se aplică conținutul în practică...
 
-### Explicație
-Explicația exemplului...`,
+### Note
+Observații relevante...`,
 	},
 	{
 		id: 'exercise',
@@ -90,9 +91,8 @@ Concluzia lecției...`,
 		icon: '🔗',
 		template: `# Resurse Suplimentare
 
-## Link-uri Utile
-- [Resursa 1](https://example.com)
-- [Resursa 2](https://example.com)
+## Link-uri utile
+- [Titlu resursă](URL)
 
 ## Documentație
 Link către documentație...
@@ -107,6 +107,7 @@ const LessonCreatorPage = () => {
 	const { id } = useParams(); // lesson ID if editing
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
+	const { showToast } = useToast();
 	const courseId = searchParams.get('course_id');
 	const moduleId = searchParams.get('module_id');
 
@@ -126,7 +127,7 @@ const LessonCreatorPage = () => {
 	useEffect(() => {
 		// Require course_id to create/edit lessons
 		if (!courseId && !id) {
-			alert('Trebuie să selectezi un curs pentru a crea o lecție!');
+			showToast('Selectează un curs pentru a crea o lecție', 'error');
 			navigate('/admin/courses');
 			return;
 		}
@@ -171,7 +172,7 @@ const LessonCreatorPage = () => {
 			});
 		} catch (err) {
 			console.error('Error fetching lesson:', err);
-			alert('Eroare la încărcarea lecției');
+			showToast('Eroare la încărcarea lecției', 'error');
 		} finally {
 			setLoading(false);
 		}
@@ -248,7 +249,7 @@ const LessonCreatorPage = () => {
 		
 		// Validate before submit
 		if (!validate()) {
-			alert('Te rugăm să completezi toate câmpurile obligatorii corect!');
+			showToast('Completează toate câmpurile obligatorii', 'error');
 			return;
 		}
 		
@@ -256,10 +257,10 @@ const LessonCreatorPage = () => {
 			setLoading(true);
 			if (id && id !== 'new') {
 				await adminService.updateLesson(id, formData);
-				alert('Lecție actualizată cu succes!');
+				showToast('Lecție actualizată cu succes', 'success');
 			} else {
 				await adminService.createLesson(formData);
-				alert('Lecție creată cu succes!');
+				showToast('Lecție creată cu succes', 'success');
 			}
 			
 			// Always navigate back to course detail page
@@ -270,7 +271,7 @@ const LessonCreatorPage = () => {
 			}
 		} catch (err) {
 			console.error('Error saving lesson:', err);
-			alert('Eroare la salvarea lecției: ' + (err.response?.data?.message || err.message || 'Eroare necunoscută'));
+			showToast(err?.response?.data?.message || err?.message || 'Eroare la salvarea lecției', 'error');
 		} finally {
 			setLoading(false);
 		}
@@ -391,7 +392,7 @@ const LessonCreatorPage = () => {
 									setTouched({ ...touched, title: true });
 									validate();
 								}}
-								placeholder="Ex: Introducere în React"
+								placeholder="Titlul lecției"
 								required
 							/>
 							{errors.title && touched.title && (

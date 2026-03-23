@@ -4,6 +4,8 @@ import { coursesService, courseProgressService, lessonsService } from '../servic
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
+import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
+import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import './LessonsPage.css';
 
 const LessonsPage = () => {
@@ -25,6 +27,8 @@ const LessonsPage = () => {
 	const [isCompleting, setIsCompleting] = useState(false);
 	const [expandedModules, setExpandedModules] = useState(new Set());
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
+	const [finalizingCourse, setFinalizingCourse] = useState(false);
 
 	// Get lessonId from URL or auto-select first lesson
 	const lessonIdFromUrl = searchParams.get('lesson');
@@ -257,7 +261,6 @@ const LessonsPage = () => {
 	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, handleAutoComplete]);
 
 	const handleNextLesson = () => {
-		// Find next lesson
 		let foundCurrent = false;
 		for (const module of modules) {
 			const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -266,13 +269,59 @@ const LessonsPage = () => {
 					handleLessonClick(lesson.id);
 					return;
 				}
-				if (lesson.id === selectedLessonId) {
+				if (Number(lesson.id) === Number(selectedLessonId)) {
 					foundCurrent = true;
 				}
 			}
 		}
-		// No next lesson, go back to course
 		navigate(`/courses/${courseId}`);
+	};
+
+	const handleFinalizeCourse = async () => {
+		if (finalizingCourse) return;
+		setFinalizingCourse(true);
+		try {
+			if (!user?.id) {
+				navigate(`/courses/${courseId}`);
+				return;
+			}
+			if (selectedLessonId && !isCompleted) {
+				await lessonsService.complete(selectedLessonId);
+				setIsCompleted(true);
+			}
+			const p = await courseProgressService.getCourseProgress(courseId);
+			setProgress(p);
+			if (p?.next_exam?.id) {
+				navigate(`/courses/${courseId}/exams/${p.next_exam.id}`);
+				return;
+			}
+			if (p?.course_complete) {
+				setShowCourseCongrats(true);
+				return;
+			}
+			try {
+				await coursesService.finishCourse(courseId);
+			} catch (err) {
+				const status = err?.response?.status;
+				const nextId = err?.response?.data?.next_test_id;
+				if (status === 409 && nextId) {
+					navigate(`/courses/${courseId}/exams/${nextId}`);
+					return;
+				}
+				throw err;
+			}
+			setShowCourseCongrats(true);
+		} catch (err) {
+			console.error('Finalize course:', err);
+			showToast('Nu s-a putut finaliza cursul. Încearcă din nou.', 'error');
+		} finally {
+			setFinalizingCourse(false);
+		}
+	};
+
+	const handleCongratsClose = () => {
+		setShowCourseCongrats(false);
+		navigate('/courses');
 	};
 
 	if (loading) {
@@ -305,9 +354,16 @@ const LessonsPage = () => {
 	}
 
 	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+	const nextLessonTarget = selectedLessonId ? getNextLessonIdAfter(modules, selectedLessonId) : undefined;
+	const isLastLessonInCourse = nextLessonTarget === null;
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
+			<CourseCongratulationsModal
+				open={showCourseCongrats}
+				courseTitle={course?.title}
+				onClose={handleCongratsClose}
+			/>
 			{/* Mobile overlay when sidebar open */}
 			{sidebarOpen && (
 				<div 
@@ -543,13 +599,30 @@ const LessonsPage = () => {
 						<div className="lessons-page-lesson-actions">
 							<button
 								className="lessons-page-btn lessons-page-btn-secondary"
-								onClick={handleNextLesson}
+								type="button"
+								disabled={finalizingCourse}
+								onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNextLesson}
 								style={{ background: '#FFEE00', color: '#000', borderColor: '#FFEE00' }}
 							>
-								<span>Următoarea lecție</span>
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<path d="M5 12h14M12 5l7 7-7 7"/>
-								</svg>
+								{isLastLessonInCourse ? (
+									finalizingCourse ? (
+										<span>Se procesează…</span>
+									) : (
+										<>
+											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+												<path d="M20 6L9 17l-5-5"/>
+											</svg>
+											<span>Finalizează</span>
+										</>
+									)
+								) : (
+									<>
+										<span>Următoarea lecție</span>
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+											<path d="M5 12h14M12 5l7 7-7 7"/>
+										</svg>
+									</>
+								)}
 							</button>
 						</div>
 					</div>

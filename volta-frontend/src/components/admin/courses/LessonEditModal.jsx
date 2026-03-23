@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
+import { useToast } from '../../../contexts/ToastContext';
 import RichTextEditor from '../../RichTextEditor';
 import VideoLessonEditor from './LessonTypes/VideoLessonEditor';
 import TextLessonEditor from './LessonTypes/TextLessonEditor';
@@ -11,8 +12,10 @@ import './LessonEditModal.css';
  * Modal pentru editarea lecțiilor
  */
 const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate }) => {
+	const { showToast } = useToast();
 	const [editingLesson, setEditingLesson] = useState(null);
 	const [saving, setSaving] = useState(false);
+	const [titleError, setTitleError] = useState('');
 
 	useEffect(() => {
 		if (lesson) {
@@ -43,8 +46,10 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 	};
 
 	const handleSave = async () => {
+		setTitleError('');
 		if (!editingLesson || !editingLesson.title?.trim()) {
-			alert('Titlul lecției este obligatoriu');
+			setTitleError('Titlul lecției este obligatoriu');
+			showToast('Titlul lecției este obligatoriu', 'error');
 			return;
 		}
 
@@ -68,7 +73,8 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 			onClose();
 		} catch (err) {
 			console.error('Error saving lesson:', err);
-			alert('Eroare la salvarea lecției: ' + (err.response?.data?.message || err.message));
+			const msg = err?.response?.data?.message || err?.message || 'Eroare la salvare';
+			showToast(msg, 'error');
 		} finally {
 			setSaving(false);
 		}
@@ -83,22 +89,33 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 			<div className="lesson-edit-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="lesson-edit-modal-header">
 					<h2>✏️ Editează Lecție</h2>
-					<button className="lesson-edit-modal-close" onClick={onClose}>×</button>
+					<button type="button" className="lesson-edit-modal-close" onClick={onClose} aria-label="Închide">×</button>
 				</div>
 
 				<div className="lesson-edit-modal-content">
 					{/* Title */}
 					<div className="admin-form-group">
-						<label className="admin-form-label">
+						<label className="admin-form-label" htmlFor="lesson-edit-title">
 							Titlu Lecție <span className="admin-form-required">*</span>
 						</label>
 						<input
+							id="lesson-edit-title"
 							type="text"
-							className="admin-form-input"
+							className={`admin-form-input ${titleError ? 'admin-input-error' : ''}`}
 							value={editingLesson.title || ''}
-							onChange={(e) => setEditingLesson({ ...editingLesson, title: e.target.value })}
-							placeholder="Ex: Introducere în React Hooks"
+							onChange={(e) => {
+								setEditingLesson({ ...editingLesson, title: e.target.value });
+								setTitleError('');
+							}}
+							placeholder="Titlul lecției"
+							aria-invalid={!!titleError}
+							aria-describedby={titleError ? 'lesson-edit-title-error' : undefined}
 						/>
+						{titleError && (
+							<p id="lesson-edit-title-error" className="admin-form-error-inline" role="alert">
+								{titleError}
+							</p>
+						)}
 					</div>
 
 					{/* Description */}
@@ -125,7 +142,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 								<option value="text">Text</option>
 								<option value="video">Video</option>
 								<option value="assignment">Assignment / Practice</option>
-								<option value="live">Live Session</option>
+								<option value="live">Sesiune live</option>
 								<option value="pdf">PDF</option>
 								<option value="quiz">Quiz</option>
 							</select>
@@ -210,7 +227,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 								className="admin-form-input"
 								value={editingLesson.pdf_url || ''}
 								onChange={(e) => setEditingLesson({ ...editingLesson, pdf_url: e.target.value })}
-								placeholder="https://example.com/document.pdf"
+								placeholder="https://… (link către document)"
 								style={{ marginBottom: '0.5rem' }}
 							/>
 							<div className="admin-input-hint" style={{ marginBottom: '1rem' }}>
@@ -237,8 +254,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 									type="button"
 									className="admin-btn admin-btn-sm admin-btn-secondary"
 									onClick={() => {
-										// TODO: Implement AI quiz generation
-										alert('Funcția de generare AI quiz va fi disponibilă în curând');
+										showToast('Funcția de generare AI quiz va fi disponibilă în curând', 'info');
 									}}
 									title="Generează întrebări quiz cu AI"
 								>

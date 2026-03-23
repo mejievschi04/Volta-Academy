@@ -4,6 +4,7 @@ import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const AdminTeamMembersPage = () => {
 	const navigate = useNavigate();
@@ -22,6 +23,7 @@ const AdminTeamMembersPage = () => {
 	const [showCoursesModal, setShowCoursesModal] = useState(false);
 	const [showSuspendModal, setShowSuspendModal] = useState(false);
 	const [actionLoading, setActionLoading] = useState(null);
+	const [removeMemberId, setRemoveMemberId] = useState(null);
 
 	useEffect(() => {
 		fetchTeamMembers();
@@ -121,6 +123,12 @@ const AdminTeamMembersPage = () => {
 		} finally {
 			setActionLoading(null);
 		}
+	};
+
+	const handleConfirmRemoveMember = async () => {
+		if (!removeMemberId) return;
+		await handleQuickAction(removeMemberId, 'removeFromTeam');
+		setRemoveMemberId(null);
 	};
 
 	const handleUpdateRole = async (memberId, role, permissions) => {
@@ -356,11 +364,7 @@ const AdminTeamMembersPage = () => {
 											</button>
 											<button
 												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-delete"
-												onClick={() => {
-													if (confirm('Sigur dorești să elimini acest membru din echipă?')) {
-														handleQuickAction(member.id, 'removeFromTeam');
-													}
-												}}
+												onClick={() => setRemoveMemberId(member.id)}
 												disabled={actionLoading === member.id}
 											>
 												🗑️ Elimină
@@ -421,6 +425,18 @@ const AdminTeamMembersPage = () => {
 					loading={actionLoading === selectedMember.id}
 				/>
 			)}
+
+			<ConfirmModal
+				open={!!removeMemberId}
+				onClose={() => setRemoveMemberId(null)}
+				onConfirm={handleConfirmRemoveMember}
+				title="Elimină membru din echipă"
+				message="Sigur dorești să elimini acest membru din echipă?"
+				confirmLabel="Elimină"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={actionLoading === removeMemberId}
+			/>
 		</div>
 	);
 };
@@ -615,7 +631,7 @@ const SuspendModal = ({ member, onClose, onSave, loading }) => {
 								value={reason}
 								onChange={(e) => setReason(e.target.value)}
 								rows={3}
-								placeholder="Ex: Încălcare reguli platformă..."
+								placeholder="Motiv scurt"
 							/>
 						</div>
 						<div className="admin-form-group">

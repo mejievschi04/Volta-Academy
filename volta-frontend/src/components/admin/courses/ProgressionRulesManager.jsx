@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 
 const ProgressionRulesManager = ({ courseId }) => {
 	const { showToast } = useToast();
@@ -19,6 +20,8 @@ const ProgressionRulesManager = ({ courseId }) => {
 		priority: 100,
 		active: true,
 	});
+	const [deleteConfirmRuleId, setDeleteConfirmRuleId] = useState(null);
+	const [deleteRuleLoading, setDeleteRuleLoading] = useState(false);
 
 	useEffect(() => {
 		if (courseId) {
@@ -68,18 +71,23 @@ const ProgressionRulesManager = ({ courseId }) => {
 		}
 	};
 
-	const handleDeleteRule = async (ruleId) => {
-		if (!confirm('Sigur dorești să ștergi această regulă?')) {
-			return;
-		}
+	const handleDeleteRuleClick = (ruleId) => {
+		setDeleteConfirmRuleId(ruleId);
+	};
 
+	const handleConfirmDeleteRule = async () => {
+		if (!deleteConfirmRuleId) return;
+		setDeleteRuleLoading(true);
 		try {
-			await adminService.deleteProgressionRule(courseId, ruleId);
+			await adminService.deleteProgressionRule(courseId, deleteConfirmRuleId);
+			setDeleteConfirmRuleId(null);
 			showToast('Regulă ștearsă cu succes', 'success');
 			fetchRules();
 		} catch (err) {
 			console.error('Error deleting rule:', err);
 			showToast('Eroare la ștergerea regulii', 'error');
+		} finally {
+			setDeleteRuleLoading(false);
 		}
 	};
 
@@ -221,7 +229,7 @@ const ProgressionRulesManager = ({ courseId }) => {
 									</button>
 									<button
 										className="va-btn va-btn-sm va-btn-danger"
-										onClick={() => handleDeleteRule(rule.id)}
+										onClick={() => handleDeleteRuleClick(rule.id)}
 									>
 										🗑️
 									</button>
@@ -359,6 +367,18 @@ const ProgressionRulesManager = ({ courseId }) => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={!!deleteConfirmRuleId}
+				onClose={() => setDeleteConfirmRuleId(null)}
+				onConfirm={handleConfirmDeleteRule}
+				title="Șterge regulă"
+				message="Sigur dorești să ștergi această regulă?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteRuleLoading}
+			/>
 		</div>
 	);
 };

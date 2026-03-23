@@ -24,7 +24,7 @@ const RegisterPage = () => {
 			if (result?.pending_approval) {
 				navigate('/login', { state: { message: result?.message || 'Cererea ta a fost trimisă. Un administrator va verifica contul în curând.' } });
 			} else {
-				navigate('/home');
+				navigate('/courses');
 			}
 		} catch (err) {
 			setError(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Eroare la înregistrare');
@@ -106,7 +106,7 @@ const RegisterPage = () => {
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									required
-									placeholder="email@example.com"
+									placeholder="Adresa de email"
 									autoComplete="email"
 								/>
 							</div>

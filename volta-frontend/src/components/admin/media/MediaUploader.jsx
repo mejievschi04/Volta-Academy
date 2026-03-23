@@ -34,7 +34,7 @@ const MediaUploader = ({ courseId, accept, suggestedType, onUploaded, disabled }
 			setFile(null);
 		} catch (e) {
 			console.error('Upload failed:', e);
-			showToast('Upload eșuat', 'error');
+			showToast('Încărcare eșuată', 'error');
 		} finally {
 			setUploading(false);
 		}
@@ -61,7 +61,7 @@ const MediaUploader = ({ courseId, accept, suggestedType, onUploaded, disabled }
 					{label}
 				</div>
 			</div>
-			<div className="admin-settings-hint">Upload pe server (recomandat). După upload, URL-ul se salvează automat în block.</div>
+			<div className="admin-settings-hint">Încărcare pe server (recomandat). După încărcare, URL-ul se salvează automat în bloc.</div>
 		</div>
 	);
 };

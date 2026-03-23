@@ -3,11 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { toImageUrl } from '../../utils/imageUrl';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
 import CourseStructureBuilder from '../../components/admin/courses/CourseStructureBuilder';
 import ContentBlocksPanel from '../../components/admin/content-blocks/ContentBlocksPanel';
 import ValidationChecklist from '../../components/admin/courses/ValidationChecklist';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import AddLessonModal from '../../components/admin/courses/AddLessonModal';
+import AddModuleModal from '../../components/admin/courses/AddModuleModal';
 import VoltInstructor from '../../components/admin/VoltInstructor';
 
 const debounceMs = 900;
@@ -43,6 +46,13 @@ const AdminCourseBuilderPage = () => {
 	const [activeTab, setActiveTab] = useState('structure'); // structure | lesson | workflow
 	const [editingLessonTitle, setEditingLessonTitle] = useState(null); // lessonId when editing
 	const [publishModalOpen, setPublishModalOpen] = useState(false);
+	const [confirmAction, setConfirmAction] = useState(null); // { type, ...payload }
+	const [confirmLoading, setConfirmLoading] = useState(false);
+	const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+	const [addLessonModuleId, setAddLessonModuleId] = useState(null);
+	const [addLessonLoading, setAddLessonLoading] = useState(false);
+	const [addModuleModalOpen, setAddModuleModalOpen] = useState(false);
+	const [addModuleLoading, setAddModuleLoading] = useState(false);
 
 	const pendingOpsRef = useRef([]);
 	const debounceRef = useRef(null);
@@ -196,44 +206,83 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	/** Adaugă modul: din VoltInstructor (AI) cu voltData, sau din builder deschide modal. */
 	const handleAddModule = async (voltData) => {
-		const title = voltData?.answers?.[0]?.trim() || 'Modul nou';
-		const [desc, lec, det, fis] = voltData?.answers?.slice(1) || [];
-		const parts = [desc].filter(Boolean);
-		if (lec) parts.push(`Lecții: ${lec}`);
-		if (det) parts.push(`Nivel detaliu: ${det}`);
-		if (fis) parts.push(`Fișier brut: ${fis}`);
-		const description = parts.join('\n\n');
+		const fromAI = Array.isArray(voltData?.answers) && voltData.answers.length > 0;
+		if (fromAI) {
+			const title = voltData.answers[0]?.trim() || 'Modul nou';
+			const [desc, lec, det, fis] = voltData.answers.slice(1) || [];
+			const parts = [desc].filter(Boolean);
+			if (lec) parts.push(`Lecții: ${lec}`);
+			if (det) parts.push(`Nivel detaliu: ${det}`);
+			if (fis) parts.push(`Fișier brut: ${fis}`);
+			const description = parts.join('\n\n');
+			try {
+				const response = await adminService.builderCreateModule(courseId, {
+					title,
+					description: description || undefined,
+					status: 'draft',
+				});
+				showToast('Modul creat', 'success');
+				await fetchStructure(true);
+				return response;
+			} catch (e) {
+				console.error('Create module failed:', e);
+				showToast('Eroare la crearea modulului', 'error');
+			}
+			return;
+		}
+		setAddModuleModalOpen(true);
+	};
+
+	const handleAddModuleSubmit = async ({ title, description }) => {
+		setAddModuleLoading(true);
 		try {
-			const response = await adminService.builderCreateModule(courseId, {
+			await adminService.builderCreateModule(courseId, {
 				title,
 				description: description || undefined,
 				status: 'draft',
 			});
 			showToast('Modul creat', 'success');
 			await fetchStructure(true);
-			return response;
+			setAddModuleModalOpen(false);
 		} catch (e) {
 			console.error('Create module failed:', e);
-			showToast('Eroare la crearea modulului', 'error');
+			showToast(e?.response?.data?.message || 'Eroare la crearea modulului', 'error');
+		} finally {
+			setAddModuleLoading(false);
 		}
 	};
 
-	const handleAddLesson = async (moduleId) => {
+	/** Deschide modalul Adaugă lecție (flux modern: titlu + tip înainte de creare) */
+	const handleAddLessonClick = (moduleId) => {
+		setAddLessonModuleId(moduleId);
+	};
+
+	const handleAddLessonSubmit = async (moduleId, { title, type }) => {
+		setAddLessonLoading(true);
 		try {
-			await adminService.builderCreateLesson(courseId, {
+			const res = await adminService.builderCreateLesson(courseId, {
 				module_id: moduleId,
-				title: 'Lecție nouă',
-				type: 'text',
+				title,
+				type: type || 'text',
 				status: 'draft',
 				is_preview: false,
 				content: '',
 			});
 			showToast('Lecție creată', 'success');
 			await fetchStructure(true);
+			setAddLessonModuleId(null);
+			const newLessonId = res?.lesson?.id;
+			if (newLessonId) {
+				setSelectedLessonId(newLessonId);
+				setActiveTab('lesson');
+			}
 		} catch (e) {
 			console.error('Create lesson failed:', e);
-			showToast('Eroare la crearea lecției', 'error');
+			showToast(e?.response?.data?.message || 'Eroare la crearea lecției', 'error');
+		} finally {
+			setAddLessonLoading(false);
 		}
 	};
 
@@ -266,8 +315,11 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const handleDeleteModuleClick = (moduleId) => {
+		setConfirmAction({ type: 'deleteModule', moduleId });
+	};
+
 	const handleDeleteModule = async (moduleId) => {
-		if (!window.confirm('Ștergi acest modul și toate lecțiile din el?')) return;
 		try {
 			await adminService.deleteModule(moduleId);
 			showToast('Modul șters', 'success');
@@ -279,8 +331,11 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const handleDeleteLessonClick = (lessonId) => {
+		setConfirmAction({ type: 'deleteLesson', lessonId });
+	};
+
 	const handleDeleteLesson = async (lessonId) => {
-		if (!window.confirm('Ștergi această lecție?')) return;
 		try {
 			await adminService.deleteLesson(lessonId);
 			showToast('Lecție ștearsă', 'success');
@@ -310,7 +365,11 @@ const AdminCourseBuilderPage = () => {
 			return report;
 		} catch (e) {
 			console.error('Validate failed:', e);
-			showToast('Eroare la validare', 'error');
+			const report = e?.response?.data;
+			if (report && (report.errors || report.warnings)) {
+				setValidationReport(report);
+			}
+			showToast(report?.errors?.[0]?.message || 'Eroare la validare', 'error');
 		}
 	};
 
@@ -327,7 +386,8 @@ const AdminCourseBuilderPage = () => {
 			if (report?.errors || report?.warnings) {
 				setValidationReport(report);
 			}
-			showToast('Trimiterea la review a eșuat (verifică validarea)', 'error');
+			const firstError = Array.isArray(report?.errors) && report.errors[0] ? (report.errors[0].message || report.errors[0]) : null;
+			showToast(firstError ? `Trimitere la review eșuată: ${firstError}` : 'Trimiterea la review a eșuat (verifică validarea)', 'error');
 		}
 	};
 
@@ -398,13 +458,20 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const detachTest = async (testId, scope, scopeId) => {
-		if (!window.confirm('Detașezi testul de la curs?')) return;
+	const detachTestClick = (courseTestId, testId, scope, scopeId) => {
+		setConfirmAction({ type: 'detachTest', courseTestId, testId, scope, scopeId });
+	};
+
+	const detachTest = async (courseTestId, testId, scope, scopeId) => {
 		try {
-			await adminService.builderDetachTest(courseId, testId, {
+			const response = await adminService.builderDetachTest(courseId, testId, {
+				course_test_id: courseTestId ?? null,
 				scope,
 				scope_id: scopeId ?? null,
 			});
+			if (!response?.deleted) {
+				throw new Error('Detach returned deleted=false');
+			}
 			showToast('Test detașat', 'success');
 			const res = await adminService.builderGetTests(courseId);
 			setAttachedTests(Array.isArray(res?.attached) ? res.attached : []);
@@ -430,8 +497,11 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const restoreVersionClick = (versionId) => {
+		setConfirmAction({ type: 'restoreVersion', versionId });
+	};
+
 	const restoreVersion = async (versionId) => {
-		if (!window.confirm('Restaurarea va crea un curs NOU (ciornă) din această versiune. Continui?')) return;
 		try {
 			const res = await adminService.builderRestoreVersion(courseId, versionId, true);
 			const newCourseId = res?.course?.id;
@@ -445,6 +515,48 @@ const AdminCourseBuilderPage = () => {
 		} catch (e) {
 			console.error('Restore version failed:', e);
 			showToast('Restaurarea a eșuat', 'error');
+		}
+	};
+
+	const handleConfirmAction = async () => {
+		if (!confirmAction) return;
+		setConfirmLoading(true);
+		try {
+			switch (confirmAction.type) {
+				case 'deleteModule':
+					await handleDeleteModule(confirmAction.moduleId);
+					break;
+				case 'deleteLesson':
+					await handleDeleteLesson(confirmAction.lessonId);
+					break;
+				case 'detachTest':
+					await detachTest(confirmAction.courseTestId, confirmAction.testId, confirmAction.scope, confirmAction.scopeId);
+					break;
+				case 'restoreVersion':
+					await restoreVersion(confirmAction.versionId);
+					break;
+				default:
+					break;
+			}
+			setConfirmAction(null);
+		} finally {
+			setConfirmLoading(false);
+		}
+	};
+
+	const getConfirmConfig = () => {
+		if (!confirmAction) return { title: '', message: '', confirmLabel: 'Confirmă', variant: 'primary' };
+		switch (confirmAction.type) {
+			case 'deleteModule':
+				return { title: 'Șterge modul', message: 'Ștergi acest modul și toate lecțiile din el?', confirmLabel: 'Șterge', variant: 'danger' };
+			case 'deleteLesson':
+				return { title: 'Șterge lecție', message: 'Ștergi această lecție?', confirmLabel: 'Șterge', variant: 'danger' };
+			case 'detachTest':
+				return { title: 'Detașează test', message: 'Detașezi testul de la curs?', confirmLabel: 'Detașează', variant: 'danger' };
+			case 'restoreVersion':
+				return { title: 'Restaurare versiune', message: 'Restaurarea va crea un curs NOU (ciornă) din această versiune. Continui?', confirmLabel: 'Restaurare', variant: 'primary' };
+			default:
+				return { title: '', message: '', confirmLabel: 'Confirmă', variant: 'primary' };
 		}
 	};
 
@@ -479,7 +591,7 @@ const AdminCourseBuilderPage = () => {
 
 	return (
 		<div className="admin-container admin-course-builder-page">
-			{/* Header */}
+			{/* Header - simplificat: acțiuni principale vizibile, rest în "Mai multe" */}
 			<header className="admin-course-builder-header">
 				<div className="admin-course-builder-header-left">
 					<button
@@ -487,6 +599,7 @@ const AdminCourseBuilderPage = () => {
 						className="admin-course-builder-back"
 						onClick={() => navigate('/admin/courses')}
 						aria-label="Înapoi la cursuri"
+						title="Înapoi la lista de cursuri"
 					>
 						← Cursuri
 					</button>
@@ -495,78 +608,160 @@ const AdminCourseBuilderPage = () => {
 							{course?.title || 'Constructor curs'}
 						</h1>
 						<p className="admin-course-builder-title-meta">
-							{course?.status === 'published' ? '🟢 Publicat' : '⚪ Ciornă'}
-							{course?.workflow_status ? ` • ${course.workflow_status}` : ''}
+							<span className="admin-course-builder-status-dot" data-status={course?.status || 'draft'} />
+							{course?.status === 'published' ? 'Publicat' : 'Ciornă'}
+							{course?.workflow_status ? ` · ${course.workflow_status}` : ''}
 						</p>
 					</div>
 				</div>
 				<div className="admin-course-builder-actions">
-					<div className="admin-course-builder-actions-group">
-						<AutoSaveIndicator status={saveStatus} />
-					</div>
-					<div className="admin-course-builder-actions-group">
-						<button className="admin-btn admin-btn-secondary" onClick={() => navigate(`/admin/courses/${courseId}`)}>
-							Detalii
+					<AutoSaveIndicator status={saveStatus} />
+					<button
+						type="button"
+						className="admin-btn admin-btn-secondary admin-course-builder-btn-preview"
+						onClick={handlePreviewAsStudent}
+						title="Vezi cursul cum îl văd cursanții"
+					>
+						Previzualizare
+					</button>
+					<button
+						type="button"
+						className="admin-btn admin-btn-primary"
+						onClick={handlePublish}
+						title="Publică cursul pentru cursanți"
+					>
+						Publică
+					</button>
+					<div className="admin-course-builder-more-wrap">
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary admin-course-builder-more-btn"
+							onClick={() => setMoreMenuOpen((v) => !v)}
+							aria-expanded={moreMenuOpen}
+							aria-haspopup="true"
+							title="Detalii curs, teste, istoric, validare"
+						>
+							Mai multe
 						</button>
-						<button className="admin-btn admin-btn-secondary" onClick={() => openTests()}>
-							🧪 Teste
-						</button>
-						<button className="admin-btn admin-btn-secondary" onClick={openVersions}>
-							📜 Istoric
-						</button>
-					</div>
-					<div className="admin-course-builder-actions-group">
-						<button className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
-							👁️ Previzualizare
-						</button>
-						<button className="admin-btn admin-btn-secondary" onClick={handleValidate}>
-							Verifică
-						</button>
-						<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview}>
-							Revizuire
-						</button>
-						<button className="admin-btn admin-btn-primary" onClick={handlePublish}>
-							Publică
-						</button>
-						<PublishCourseModal
-							open={publishModalOpen}
-							onClose={() => setPublishModalOpen(false)}
-							courseId={courseId}
-							onPublished={handlePublished}
-						/>
+						{moreMenuOpen && (
+							<>
+								<div className="admin-course-builder-more-backdrop" onClick={() => setMoreMenuOpen(false)} aria-hidden="true" />
+								<div className="admin-course-builder-more-menu" role="menu">
+									<button type="button" role="menuitem" title="Informații și setări curs" onClick={() => { navigate(`/admin/courses/${courseId}`); setMoreMenuOpen(false); }}>Detalii curs</button>
+									<button type="button" role="menuitem" title="Gestionează testele atașate cursului sau lecțiilor" onClick={() => { openTests(); setMoreMenuOpen(false); }}>Teste atașate</button>
+									<button type="button" role="menuitem" title="Snapshot-uri și versiuni anterioare" onClick={() => { openVersions(); setMoreMenuOpen(false); }}>Istoric versiuni</button>
+									<button type="button" role="menuitem" title="Verifică dacă cursul respectă regulile" onClick={() => { handleValidate(); setMoreMenuOpen(false); }}>Verifică validare</button>
+									<button type="button" role="menuitem" title="Trimite cursul spre revizuire" onClick={() => { handleSubmitForReview(); setMoreMenuOpen(false); }}>Trimite la revizuire</button>
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 			</header>
+			<PublishCourseModal
+				open={publishModalOpen}
+				onClose={() => setPublishModalOpen(false)}
+				courseId={courseId}
+				onPublished={handlePublished}
+				validationReport={validationReport}
+				onValidate={handleValidate}
+			/>
+			{addLessonModuleId != null && (
+				<AddLessonModal
+					moduleTitle={modules.find((m) => m.id === addLessonModuleId)?.title}
+					onClose={() => setAddLessonModuleId(null)}
+					onSubmit={(payload) => handleAddLessonSubmit(addLessonModuleId, payload)}
+					loading={addLessonLoading}
+				/>
+			)}
+			{addModuleModalOpen && (
+				<AddModuleModal
+					onClose={() => setAddModuleModalOpen(false)}
+					onSubmit={handleAddModuleSubmit}
+					loading={addModuleLoading}
+				/>
+			)}
 
-			<div className="admin-creator-split">
-				<div className="admin-creator-form-panel">
-					{/* Tabs */}
-					<div className="admin-course-builder-tabs">
+			<div className="admin-course-builder-layout">
+				{/* Sidebar stânga: Curriculum (outline) + acțiuni */}
+				<aside className="admin-course-builder-sidebar">
+					<div className="admin-course-builder-sidebar-header">
+						<h2 className="admin-course-builder-sidebar-title">Curriculum</h2>
 						<button
 							type="button"
-							className={`admin-course-builder-tab ${activeTab === 'structure' ? 'active' : ''}`}
-							onClick={() => setActiveTab('structure')}
+							className={`admin-course-builder-sidebar-link ${activeTab === 'structure' ? 'is-active' : ''}`}
+							onClick={() => { setActiveTab('structure'); setSelectedLessonId(null); }}
+							title="Vizualizare carduri module și lecții"
 						>
-							📐 Structură
+							Structură
 						</button>
-						<button
-							type="button"
-							className={`admin-course-builder-tab ${activeTab === 'lesson' ? 'active' : ''}`}
-							onClick={() => setActiveTab('lesson')}
-							disabled={!selectedLessonId}
-							title={!selectedLessonId ? 'Selectează o lecție pentru a edita conținutul' : undefined}
-						>
-							📝 Lecție & Conținut
-						</button>
-						<button
-							type="button"
-							className={`admin-course-builder-tab ${activeTab === 'workflow' ? 'active' : ''}`}
-							onClick={() => setActiveTab('workflow')}
-						>
-							✅ Flux
+						<button type="button" className="admin-course-builder-sidebar-add-module" onClick={() => handleAddModule()} title="Adaugă un modul nou în curriculum">
+							+ Modul
 						</button>
 					</div>
+					<nav className="admin-course-builder-sidebar-nav" aria-label="Structura cursului">
+						{modules.length === 0 ? (
+							<div className="admin-course-builder-sidebar-empty-state">
+								<p className="admin-course-builder-sidebar-empty">Adaugă primul modul pentru a structura cursul.</p>
+								<button type="button" className="admin-course-builder-sidebar-empty-btn" onClick={() => handleAddModule()}>
+									+ Adaugă modul
+								</button>
+							</div>
+						) : (
+							<ul className="admin-course-builder-sidebar-list">
+								{modules.map((m, mIdx) => (
+									<li key={m.id} className="admin-course-builder-sidebar-module">
+										<div className="admin-course-builder-sidebar-module-head">
+											<span className="admin-course-builder-sidebar-module-num">{mIdx + 1}</span>
+											<span className="admin-course-builder-sidebar-module-title">{m.title || 'Modul'}</span>
+										</div>
+										<button
+											type="button"
+											className="admin-course-builder-sidebar-add-lesson"
+											onClick={() => handleAddLessonClick(m.id)}
+											title={`Adaugă lecție în "${m.title || 'Modul'}"`}
+										>
+											+ Lecție
+										</button>
+										{Array.isArray(m.lessons) && m.lessons.length > 0 && (
+											<ul className="admin-course-builder-sidebar-lessons">
+												{m.lessons.map((l, lIdx) => (
+													<li key={l.id}>
+														<button
+															type="button"
+															className={`admin-course-builder-sidebar-lesson ${selectedLessonId === l.id ? 'is-selected' : ''}`}
+															onClick={() => {
+																setSelectedLessonId(l.id);
+																setActiveTab('lesson');
+															}}
+															title={selectedLessonId === l.id ? `Editezi: ${l.title || 'Lecție'}` : `Deschide pentru editare: ${l.title || 'Lecție'}`}
+														>
+															<span className="admin-course-builder-sidebar-lesson-num">{mIdx + 1}.{lIdx + 1}</span>
+															<span className="admin-course-builder-sidebar-lesson-title">{l.title || 'Lecție'}</span>
+														</button>
+													</li>
+												))}
+											</ul>
+										)}
+									</li>
+								))}
+							</ul>
+						)}
+					</nav>
+					<div className="admin-course-builder-sidebar-footer">
+						<button
+							type="button"
+							className={`admin-course-builder-sidebar-link ${activeTab === 'workflow' ? 'is-active' : ''}`}
+							onClick={() => setActiveTab('workflow')}
+							title="Validare, revizuire și publicare"
+						>
+							Pregătire publicare
+						</button>
+					</div>
+				</aside>
 
+				{/* Zona principală: structură (carduri) sau conținut lecție sau workflow */}
+				<div className="admin-course-builder-main">
 					{activeTab === 'structure' && (
 					<CourseStructureBuilder
 						course={course}
@@ -576,9 +771,9 @@ const AdminCourseBuilderPage = () => {
 						onReorderLessons={handleReorderLessons}
 						onMoveLesson={handleMoveLesson}
 						onEditModule={(moduleId) => navigate(`/admin/modules/${moduleId}`)}
-						onDeleteModule={handleDeleteModule}
+						onDeleteModule={handleDeleteModuleClick}
 						onToggleModuleLock={() => showToast('Blocarea modulelor va fi activată în builder', 'info')}
-						onDeleteLesson={handleDeleteLesson}
+						onDeleteLesson={handleDeleteLessonClick}
 						onToggleModuleStatus={handleToggleModuleStatus}
 						onToggleLessonStatus={handleToggleLessonStatus}
 						onToggleLessonPreview={handleToggleLessonPreview}
@@ -587,7 +782,7 @@ const AdminCourseBuilderPage = () => {
 							setActiveTab('lesson');
 						}}
 						onAddModule={handleAddModule}
-						onAddLesson={handleAddLesson}
+						onAddLesson={handleAddLessonClick}
 						onAddTest={(prefill) => openTests(prefill || { scope: 'module' })}
 						loading={loading}
 					/>
@@ -597,24 +792,9 @@ const AdminCourseBuilderPage = () => {
 						<>
 							<div className="admin-course-builder-lesson-settings">
 								<div className="admin-course-builder-lesson-settings-header">
-									<h3 className="admin-course-builder-lesson-settings-title">Setări lecție</h3>
-									<button
-										type="button"
-										className="admin-course-builder-done-editing-btn"
-										onClick={() => {
-											setSelectedLessonId(null);
-											setActiveTab('structure');
-										}}
-										title="Revino la structură pentru a adăuga module sau lecții noi"
-									>
-										✓ Finalizat editarea
-									</button>
-								</div>
-								<div className="admin-course-builder-form-group">
-									<label className="admin-course-builder-label">Titlu lecție</label>
 									<input
 										type="text"
-										className="admin-course-builder-input"
+										className="admin-course-builder-lesson-title-inline"
 										value={editingLessonTitle !== null ? editingLessonTitle : selectedLesson.title}
 										onChange={(e) => setEditingLessonTitle(e.target.value)}
 										onBlur={(e) => {
@@ -623,37 +803,47 @@ const AdminCourseBuilderPage = () => {
 											if (v && v !== selectedLesson.title) handleUpdateLessonTitle(selectedLesson.id, v);
 										}}
 										onFocus={() => setEditingLessonTitle(selectedLesson.title)}
-										placeholder="Titlul lecției"
+										placeholder="Titlu lecție"
+										aria-label="Titlu lecție"
 									/>
-									<div style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-1)' }}>
-										Modul: {selectedLesson.__moduleTitle || '—'}
-									</div>
+									<span className="admin-course-builder-lesson-module-badge">{selectedLesson.__moduleTitle || 'Modul'}</span>
+									<button
+										type="button"
+										className="admin-course-builder-done-editing-btn"
+										onClick={() => { setSelectedLessonId(null); setActiveTab('structure'); }}
+										title="Înapoi la structură"
+									>
+										Înapoi la structură
+									</button>
 								</div>
-
+								<div className="admin-course-builder-lesson-steps" aria-hidden="true">
+									<span className="admin-course-builder-lesson-step">1. Titlu lecție</span>
+									<span className="admin-course-builder-lesson-step-sep">→</span>
+									<span className="admin-course-builder-lesson-step">2. Conținut (blocuri)</span>
+								</div>
 							</div>
-
 							<ContentBlocksPanel courseId={courseId} lesson={selectedLesson} onRefresh={() => fetchStructure(true)} />
 						</>
 					)}
 
 					{activeTab === 'workflow' && (
 						<div className="admin-course-builder-workflow">
-							<h3 className="admin-course-builder-workflow-title">Workflow & Validare</h3>
+							<h3 className="admin-course-builder-workflow-title">Flux și validare</h3>
 							<p className="admin-course-builder-workflow-hint">
 								Verifică înainte de publish. La review/publish se creează automat snapshot-uri (Istoric).
 							</p>
 
 							<div className="admin-course-builder-workflow-actions">
-								<button className="admin-btn admin-btn-secondary" onClick={handleValidate}>
+								<button className="admin-btn admin-btn-secondary" onClick={handleValidate} title="Verifică dacă cursul respectă toate regulile">
 									Verifică
 								</button>
-								<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview}>
+								<button className="admin-btn admin-btn-secondary" onClick={handleSubmitForReview} title="Trimite cursul spre revizuire">
 									Trimite la review
 								</button>
-								<button className="admin-btn admin-btn-primary" onClick={handlePublish}>
+								<button className="admin-btn admin-btn-primary" onClick={handlePublish} title="Publică cursul pentru cursanți">
 									Publică
 								</button>
-								<button className="admin-btn admin-btn-secondary" onClick={openVersions}>
+								<button className="admin-btn admin-btn-secondary" onClick={openVersions} title="Snapshot-uri și versiuni anterioare">
 									Vezi Istoric
 								</button>
 							</div>
@@ -679,8 +869,8 @@ const AdminCourseBuilderPage = () => {
 
 				<aside className="admin-creator-preview-panel admin-course-builder-preview-panel">
 					<div className="admin-creator-preview-header">
-						<h3>Previzualizare structură</h3>
-						<p>Rezumat rapid (cum va arăta pentru cursant)</p>
+						<h3>Rezumat curs</h3>
+						<p>Status și statistici</p>
 					</div>
 					<div className="admin-creator-preview-content">
 						<div className="admin-course-builder-preview-card">
@@ -726,55 +916,6 @@ const AdminCourseBuilderPage = () => {
 									</div>
 								</div>
 							</div>
-						</div>
-						<div className="admin-creator-outline">
-							<div className="admin-creator-outline-header">Outline curs</div>
-							{modules.length === 0 ? (
-								<div className="admin-creator-outline-empty">Nu există module încă.</div>
-							) : (
-								<div className="admin-creator-outline-list">
-									{modules.map((m, mIndex) => (
-										<div key={m.id} className="admin-creator-outline-module">
-											<div className="admin-creator-outline-module-row">
-												<span className="admin-creator-outline-module-index">{mIndex + 1}.</span>
-												<span className="admin-creator-outline-module-title">{m.title || 'Modul'}</span>
-												<span className="admin-creator-outline-module-meta">
-													{m.status === 'published' ? '🟢' : '⚪'} {(m.lessons || []).length} lecții
-												</span>
-											</div>
-											{Array.isArray(m.lessons) && m.lessons.length > 0 ? (
-												<div className="admin-creator-outline-lessons">
-													{m.lessons.map((l, lIndex) => (
-														<button
-															key={l.id}
-															type="button"
-															className={`admin-creator-outline-lesson ${
-																selectedLessonId === l.id ? 'is-selected' : ''
-															}`}
-															onClick={() => {
-																setSelectedLessonId(l.id);
-																setActiveTab('lesson');
-															}}
-															title="Deschide lecția"
-														>
-															<span className="admin-creator-outline-lesson-index">
-																{mIndex + 1}.{lIndex + 1}
-															</span>
-															<span className="admin-creator-outline-lesson-title">{l.title}</span>
-															<span className="admin-creator-outline-lesson-meta">
-																{l.status === 'published' ? '🟢' : '⚪'}
-																{l.is_preview ? ' • Previzualizare' : ''}
-															</span>
-														</button>
-													))}
-												</div>
-											) : (
-												<div className="admin-creator-outline-empty">Fără lecții în acest modul.</div>
-											)}
-										</div>
-									))}
-								</div>
-							)}
 						</div>
 
 						{validationReport && (
@@ -837,7 +978,7 @@ const AdminCourseBuilderPage = () => {
 												</div>
 
 												<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
-													<button className="admin-btn admin-btn-secondary" onClick={() => restoreVersion(v.id)}>
+													<button className="admin-btn admin-btn-secondary" onClick={() => restoreVersionClick(v.id)}>
 														Restaurare
 													</button>
 												</div>
@@ -1003,7 +1144,7 @@ const AdminCourseBuilderPage = () => {
 															</div>
 														</div>
 														<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
-															<button className="admin-btn admin-btn-secondary" onClick={() => detachTest(ct.test_id, ct.scope, ct.scope_id)}>
+															<button className="admin-btn admin-btn-secondary" onClick={() => detachTestClick(ct.id, ct.test_id, ct.scope, ct.scope_id)}>
 																Detașează
 															</button>
 														</div>
@@ -1046,6 +1187,18 @@ const AdminCourseBuilderPage = () => {
 						pdfUploadQuestionIndex: 6,
 					},
 				]}
+			/>
+
+			<ConfirmModal
+				open={!!confirmAction}
+				onClose={() => setConfirmAction(null)}
+				onConfirm={handleConfirmAction}
+				title={getConfirmConfig().title}
+				message={getConfirmConfig().message}
+				confirmLabel={getConfirmConfig().confirmLabel}
+				cancelLabel="Anulare"
+				variant={getConfirmConfig().variant}
+				loading={confirmLoading}
 			/>
 		</div>
 	);

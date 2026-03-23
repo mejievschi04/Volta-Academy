@@ -9,7 +9,7 @@ const AICourseChat = ({ onCourseGenerated, onClose }) => {
 	const [messages, setMessages] = useState([
 		{
 			role: 'assistant',
-			content: 'Bună! Sunt asistentul tău AI pentru crearea cursurilor. Spune-mi ce fel de curs vrei să creezi. De exemplu: "Creează un curs despre React pentru începători" sau "Vreau un curs de Laravel avansat".',
+			content: 'Bună! Sunt asistentul tău AI pentru crearea cursurilor. Descrie cursul pe care vrei să îl construiești și te ghidez pas cu pas.',
 		},
 	]);
 	const [input, setInput] = useState('');

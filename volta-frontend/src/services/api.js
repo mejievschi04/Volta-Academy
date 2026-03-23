@@ -24,6 +24,30 @@ export const coursesService = {
     const response = await api.post(`/courses/${id}/complete`);
     return response.data;
   },
+
+  /** Marchează cursul finalizat (după ultima lecție, fără test obligatoriu rămas). Necesită autentificare. */
+  finishCourse: async (id) => {
+    const response = await api.post(`/courses/${id}/finish`);
+    return response.data;
+  },
+};
+
+/** Mape de curs pentru studenți (foldere care grupează cursuri). */
+export const courseMapsService = {
+  getMaps: async () => {
+    try {
+      const response = await api.get('/course-maps');
+      const data = response.data?.data ?? response.data;
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      logger.warn('courseMapsService.getMaps', e);
+      return [];
+    }
+  },
+  getMap: async (id) => {
+    const response = await api.get(`/course-maps/${id}`);
+    return response.data;
+  },
 };
 
 export const lessonsService = {
@@ -1163,10 +1187,11 @@ export const messagesService = {
   },
 
   // Create a new conversation
-  createConversation: async (participantId) => {
-    const response = await api.post('/messages/conversations', {
-      participant_id: participantId,
-    });
+  createConversation: async (payloadOrParticipantId) => {
+    const payload = typeof payloadOrParticipantId === 'object'
+      ? payloadOrParticipantId
+      : { participant_id: payloadOrParticipantId };
+    const response = await api.post('/messages/conversations', payload);
     return response.data?.data || response.data;
   },
 
@@ -1212,5 +1237,40 @@ export const messagesService = {
       }
       throw error;
     }
+  },
+
+  getParticipants: async (conversationId) => {
+    const response = await api.get(`/messages/conversations/${conversationId}/participants`);
+    return response.data;
+  },
+
+  addParticipants: async (conversationId, userIds) => {
+    const response = await api.post(`/messages/conversations/${conversationId}/participants`, {
+      user_ids: userIds,
+    });
+    return response.data;
+  },
+
+  removeParticipant: async (conversationId, userId) => {
+    const response = await api.delete(`/messages/conversations/${conversationId}/participants/${userId}`);
+    return response.data;
+  },
+
+  updateGroupConversation: async (conversationId, name) => {
+    const response = await api.patch(`/messages/conversations/${conversationId}`, { name });
+    return response.data;
+  },
+
+  leaveGroup: async (conversationId) => {
+    const response = await api.post(`/messages/conversations/${conversationId}/leave`);
+    return response.data;
+  },
+
+  setParticipantGroupRole: async (conversationId, userId, groupRole) => {
+    const response = await api.patch(
+      `/messages/conversations/${conversationId}/participants/${userId}`,
+      { group_role: groupRole },
+    );
+    return response.data;
   },
 };

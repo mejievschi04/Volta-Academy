@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
+import { useToast } from '../../../../contexts/ToastContext';
 
 /**
  * Live Session Editor - Conform defacut.md secțiunea 5.4
@@ -10,13 +11,14 @@ import { openaiService } from '../../../../services/openaiService';
  * - Post-session summary (auto-generated)
  */
 const LiveSessionEditor = ({ lesson, onUpdate }) => {
+	const { showToast } = useToast();
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [generatedAgenda, setGeneratedAgenda] = useState(null);
 
 	// Generate agenda with AI
 	const handleGenerateAgenda = async () => {
 		if (!lesson.title || !lesson.title.trim()) {
-			alert('Te rugăm să introduci mai întâi titlul sesiunii');
+			showToast('Te rugăm să introduci mai întâi titlul sesiunii', 'info');
 			return;
 		}
 
@@ -84,11 +86,11 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing agenda response:', e);
-				alert('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.');
+				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating agenda:', error);
-			alert('Eroare la generarea agendei: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la generarea agendei: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiGenerating(false);
 		}

@@ -17,7 +17,7 @@ const LoginPage = () => {
 
 	// Prefetch likely post-login routes for instant navigation
 	useEffect(() => {
-		prefetchRoute('/home');
+		prefetchRoute('/courses');
 		prefetchRoute('/admin');
 	}, []);
 
@@ -28,11 +28,15 @@ const LoginPage = () => {
 
 		try {
 			const data = await login(email, password);
-			// Check user role after login to redirect appropriately
+			// Admin: respect last Vizionare (student vs admin); others → cursuri
 			if (data?.user?.role === 'admin') {
-				navigate('/admin');
+				const mode =
+					typeof sessionStorage !== 'undefined'
+						? sessionStorage.getItem('voltaAdminViewMode')
+						: null;
+				navigate(mode === 'student' ? '/courses' : '/admin');
 			} else {
-				navigate('/home');
+				navigate('/courses');
 			}
 		} catch (err) {
 			const data = err.response?.data;
@@ -103,7 +107,7 @@ const LoginPage = () => {
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									required
-									placeholder="email@example.com"
+									placeholder="Adresa de email"
 									autoComplete="email"
 								/>
 							</div>

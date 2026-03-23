@@ -1,0 +1,238 @@
+/* Pagina mapă cursuri – header verde, grid carduri cu imagine, meta, progres, Începe */
+
+.course-map-page {
+	min-height: 100vh;
+	background: var(--bg-primary);
+}
+
+.course-map-page-loading,
+.course-map-page-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 50vh;
+	gap: 1rem;
+	text-align: center;
+	padding: 2rem;
+}
+
+.course-map-page-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--border-primary);
+	border-top-color: #2e7d32;
+	border-radius: 50%;
+	animation: courseMapSpin 0.7s linear infinite;
+}
+
+@keyframes courseMapSpin {
+	to { transform: rotate(360deg); }
+}
+
+.course-map-page-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: #2e7d32;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.course-map-page-btn:hover {
+	background: #1b5e20;
+}
+
+/* Header verde */
+.course-map-page-header {
+	color: var(--text-primary);
+	padding: 1.25rem 1.5rem 1.5rem;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	background: transparent;
+}
+
+.course-map-page-header-inner {
+	max-width: 1200px;
+	margin: 0 auto;
+	position: relative;
+}
+
+.course-map-page-back {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: 50%;
+	color: var(--text-primary);
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.course-map-page-back:hover {
+	background: var(--bg-tertiary);
+}
+
+.course-map-page-back svg {
+	flex-shrink: 0;
+	display: block;
+}
+
+.course-map-page-title {
+	margin: 0 0 0.25rem 0;
+	padding-left: 48px;
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.course-map-page-description {
+	margin: 0;
+	padding-left: 48px;
+	font-size: 0.95rem;
+	color: var(--text-secondary);
+}
+
+/* Content */
+.course-map-page-content {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1.5rem 1rem 2rem;
+}
+
+.course-map-page-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 1.25rem;
+}
+
+/* Card curs */
+.course-map-course-card {
+	background: #fff;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+	border: 1px solid var(--border-primary);
+	cursor: pointer;
+	transition: box-shadow 0.2s, transform 0.15s;
+	display: flex;
+	flex-direction: column;
+}
+
+.course-map-course-card:hover {
+	box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+	transform: translateY(-2px);
+}
+
+.course-map-course-card-image {
+	aspect-ratio: 16/10;
+	background: var(--bg-secondary);
+	overflow: hidden;
+}
+
+.course-map-course-card-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.course-map-course-card-placeholder {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-tertiary);
+}
+
+.course-map-course-card-meta {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.5rem 1rem 0;
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+}
+
+.course-map-course-card-views,
+.course-map-course-card-duration {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.course-map-course-card-title {
+	margin: 0.5rem 1rem 0;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--text-primary);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.course-map-course-card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	padding: 0.75rem 1rem;
+	border-top: 1px solid var(--border-primary);
+}
+
+.course-map-course-card-progress {
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+}
+
+.course-map-course-card-start {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	background: transparent;
+	border: none;
+	color: #1976d2;
+	font-size: 0.95rem;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 0.25rem 0;
+}
+
+.course-map-course-card-start:hover {
+	text-decoration: underline;
+}
+
+.course-map-page-empty {
+	text-align: center;
+	padding: 3rem 1rem;
+	color: var(--text-secondary);
+}
+
+.course-map-page-empty .course-map-page-btn {
+	margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+	.course-map-page-title,
+	.course-map-page-description {
+		padding-left: 0;
+	}
+	.course-map-page-back {
+		position: static;
+		margin-bottom: 0.5rem;
+	}
+	.course-map-page-grid {
+		grid-template-columns: 1fr;
+	}
+}

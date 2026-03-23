@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { examService, courseProgressService } from '../services/api';
+import { examService, courseProgressService, coursesService } from '../services/api';
+import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
@@ -22,37 +23,50 @@ const ExamPage = () => {
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 	const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
 	const [showFeedback, setShowFeedback] = useState(false); // 'instant' | 'final' | false
+	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
+	const [congratsCourseTitle, setCongratsCourseTitle] = useState('');
 	const timerIntervalRef = useRef(null);
 
-	useEffect(() => {
-		const fetchExam = async () => {
-			try {
-				setLoading(true);
-				const data = await examService.getExam(examId, courseId);
-				setExam(data);
+	const fetchExamData = useCallback(async ({ forceFreshAttempt = false } = {}) => {
+		try {
+			setLoading(true);
+			const data = await examService.getExam(examId, courseId);
+			setExam(data);
 
-				if (data.latest_result) {
-					setResult(data.latest_result);
-					setAnswers(data.latest_result.answers || {});
-					setSubmitted(true);
-				}
-
-				if (data.time_limit_minutes && !data.latest_result) {
-					setTimeRemaining(data.time_limit_minutes * 60);
-					setStartTime(Date.now());
-				}
-
-				// Determine feedback mode (instant if exam allows, otherwise final)
-				setShowFeedback(data.show_feedback_instant ?? false);
-			} catch (err) {
-				const errorMessage = handleApiError(err, 'fetchExam');
-				setError(errorMessage || 'Testul nu a fost găsit');
-			} finally {
-				setLoading(false);
+			if (data.latest_result && !forceFreshAttempt) {
+				setResult(data.latest_result);
+				setAnswers(data.latest_result.answers || {});
+				setSubmitted(true);
+			} else {
+				setResult(null);
+				setSubmitted(false);
+				setAnswers({});
 			}
-		};
-		fetchExam();
+
+			if (data.time_limit_minutes && (!data.latest_result || forceFreshAttempt)) {
+				setTimeRemaining(data.time_limit_minutes * 60);
+				setStartTime(Date.now());
+			} else if (!data.time_limit_minutes) {
+				setTimeRemaining(null);
+				setStartTime(null);
+			}
+
+			// Determine feedback mode (instant if exam allows, otherwise final)
+			setShowFeedback(data.show_feedback_instant ?? false);
+			setCurrentQuestionIndex(0);
+			setFlaggedQuestions(new Set());
+			setError(null);
+		} catch (err) {
+			const errorMessage = handleApiError(err, 'fetchExam');
+			setError(errorMessage || 'Testul nu a fost găsit');
+		} finally {
+			setLoading(false);
+		}
 	}, [examId, courseId]);
+
+	useEffect(() => {
+		fetchExamData();
+	}, [fetchExamData]);
 
 	// Timer countdown
 	useEffect(() => {
@@ -78,15 +92,6 @@ const ExamPage = () => {
 		};
 	}, [exam?.time_limit_minutes, submitted, startTime]);
 
-	// Redirect to course detail after completing a final test
-	useEffect(() => {
-		if (!submitted || !result || exam?.type !== 'final' || !courseId) return;
-		const timer = setTimeout(() => {
-			navigate(`/courses/${courseId}/detail`, { replace: true });
-		}, 2000);
-		return () => clearTimeout(timer);
-	}, [submitted, result, exam?.type, courseId, navigate]);
-
 	// Handle submit
 	const handleSubmit = useCallback(async () => {
 		try {
@@ -95,11 +100,36 @@ const ExamPage = () => {
 			}
 
 			const resultData = await examService.submitExam(examId, answers, courseId);
-			setResult(resultData.result);
+			const submittedResult = resultData.result;
+			setResult(submittedResult);
 			setSubmitted(true);
 
+			// Felicitare + navigare la meniul cursului (ca la finalizarea din lecții), când testul încheie cursul
+			if (courseId && submittedResult?.passed) {
+				let showCongrats = exam?.type === 'final';
+				if (!showCongrats) {
+					try {
+						const p = await courseProgressService.getCourseProgress(courseId);
+						if (p?.course_complete) showCongrats = true;
+					} catch {
+						/* progres opțional */
+					}
+				}
+				if (showCongrats) {
+					setShowCourseCongrats(true);
+					setCongratsCourseTitle('');
+					try {
+						const c = await coursesService.getById(courseId);
+						const title = c?.title ?? c?.name;
+						if (title) setCongratsCourseTitle(title);
+					} catch {
+						/* titlu opțional */
+					}
+				}
+			}
+
 			// If exam is required and not passed, show blocking message
-			if (exam?.is_required && !resultData.result.passed) {
+			if (exam?.is_required && !submittedResult.passed) {
 				// Progress will be blocked by backend
 			}
 		} catch (err) {
@@ -108,25 +138,24 @@ const ExamPage = () => {
 		}
 	}, [examId, answers, exam, courseId]);
 
+	const handleCongratsClose = useCallback(() => {
+		setShowCourseCongrats(false);
+		if (courseId) {
+			navigate(`/courses/${courseId}`, { replace: true });
+		} else {
+			navigate('/courses', { replace: true });
+		}
+	}, [courseId, navigate]);
+
 	// Handle retry
-	const handleRetry = useCallback(() => {
+	const handleRetry = useCallback(async () => {
 		if (!exam?.can_retake) {
 			showWarning('Ai atins numărul maxim de încercări pentru acest test.');
 			return;
 		}
-
-		setAnswers({});
-		setSubmitted(false);
-		setResult(null);
-		setCurrentQuestionIndex(0);
-		setFlaggedQuestions(new Set());
-		setError(null);
-
-		if (exam.time_limit_minutes) {
-			setTimeRemaining(exam.time_limit_minutes * 60);
-			setStartTime(Date.now());
-		}
-	}, [exam]);
+		setShowCourseCongrats(false);
+		await fetchExamData({ forceFreshAttempt: true });
+	}, [exam, fetchExamData, showWarning]);
 
 	// Format time
 	const formatTime = useCallback((seconds) => {
@@ -134,6 +163,12 @@ const ExamPage = () => {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+	}, []);
+
+	const normalizeAnswerIndex = useCallback((value) => {
+		if (value === null || value === undefined || value === '') return null;
+		const parsed = Number(value);
+		return Number.isNaN(parsed) ? null : parsed;
 	}, []);
 
 	// Handle answer change
@@ -173,8 +208,10 @@ const ExamPage = () => {
 
 		const totalQuestions = exam.questions.length;
 		const correctAnswers = exam.questions.filter(q => {
-			if (q.type === 'open_text') return false;
-			return answers[q.id] === q.answerIndex;
+			if (['open_text', 'short_answer', 'essay'].includes(q.type || '')) return false;
+			const userAnswer = normalizeAnswerIndex(answers[q.id]);
+			const correctIndex = normalizeAnswerIndex(q.answerIndex);
+			return userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
 		}).length;
 		const incorrectAnswers = totalQuestions - correctAnswers;
 
@@ -185,14 +222,16 @@ const ExamPage = () => {
 			percentage: result.percentage || 0,
 			passed: result.passed || false,
 		};
-	}, [result, exam, answers]);
+	}, [result, exam, answers, normalizeAnswerIndex]);
 
 	// Get question status
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
 			const question = exam.questions.find(q => q.id === questionId);
-			if (question.type === 'open_text') return 'pending';
-			const isCorrect = answers[questionId] === question.answerIndex;
+			if (['open_text', 'short_answer', 'essay'].includes(question.type || '')) return 'pending';
+			const userAnswer = normalizeAnswerIndex(answers[questionId]);
+			const correctIndex = normalizeAnswerIndex(question.answerIndex);
+			const isCorrect = userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
 			return isCorrect ? 'completed' : 'incorrect';
 		}
 		const isAnswered = answers[questionId] !== undefined;
@@ -200,7 +239,7 @@ const ExamPage = () => {
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, submitted, result, exam]);
+	}, [answers, currentQuestionIndex, submitted, result, exam, normalizeAnswerIndex]);
 
 	if (loading) {
 		return (
@@ -320,12 +359,36 @@ const ExamPage = () => {
 				)}
 			</div>
 
-			{/* Questions */}
+			{/* Navigator + Questions */}
 			{!submitted && (
-				<div className="student-exam-questions">
+				<div className="student-exam-layout">
+					<aside className="student-exam-nav" aria-label="Navigare întrebări">
+						<div className="student-exam-nav-title">Întrebări</div>
+						<div className="student-exam-nav-list">
+							{exam.questions.map((q, idx) => {
+								const status = getQuestionStatus(q.id, idx);
+								const isFlagged = flaggedQuestions.has(q.id);
+								return (
+									<button
+										key={q.id}
+										type="button"
+										onClick={() => scrollToQuestion(idx)}
+										className={`student-exam-nav-item ${status === 'current' ? 'current' : ''} ${status === 'answered' ? 'answered' : ''} ${isFlagged ? 'flagged' : ''}`}
+										title={`Întrebarea ${idx + 1}`}
+										aria-current={status === 'current' ? 'true' : undefined}
+									>
+										{idx + 1}
+									</button>
+								);
+							})}
+						</div>
+					</aside>
+					<div className="student-exam-questions">
 					{exam.questions.map((q, idx) => {
-						const isOpenText = q.type === 'open_text';
-						const isCorrect = !isOpenText && answers[q.id] === q.answerIndex;
+						const isOpenText = ['open_text', 'short_answer', 'essay'].includes(q.type || '');
+						const userAnswer = normalizeAnswerIndex(answers[q.id]);
+						const correctIndex = normalizeAnswerIndex(q.answerIndex);
+						const isCorrect = !isOpenText && userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
 						const showResult = showFeedback === 'instant' && answers[q.id] !== undefined;
 						const isFlagged = flaggedQuestions.has(q.id);
 
@@ -416,6 +479,7 @@ const ExamPage = () => {
 							</div>
 						);
 					})}
+					</div>
 				</div>
 			)}
 
@@ -468,8 +532,13 @@ const ExamPage = () => {
 					{showFeedback === 'final' && (
 						<div className="student-exam-final-feedback">
 							{exam.questions.map((q, idx) => {
-								const isCorrect = q.type !== 'open_text' && answers[q.id] === q.answerIndex;
 								const userAnswer = answers[q.id];
+								const userAnswerIndex = normalizeAnswerIndex(userAnswer);
+								const correctIndex = normalizeAnswerIndex(q.answerIndex);
+								const isCorrect = q.type !== 'open_text'
+									&& userAnswerIndex !== null
+									&& correctIndex !== null
+									&& userAnswerIndex === correctIndex;
 
 								return (
 									<div key={q.id} className={`student-exam-feedback-item ${isCorrect ? 'correct' : 'incorrect'}`}>
@@ -480,16 +549,21 @@ const ExamPage = () => {
 											</span>
 										</div>
 										<div className="student-exam-feedback-item-question">{q.text}</div>
-										{q.type !== 'open_text' && (
+										{!['open_text', 'short_answer', 'essay'].includes(q.type || '') && (
 											<div className="student-exam-feedback-item-answers">
 												<div className="student-exam-feedback-item-correct">
-													<strong>Răspuns corect:</strong> {q.options[q.answerIndex]}
+													<strong>Răspuns corect:</strong> {q.options?.[q.answerIndex]}
 												</div>
-												{userAnswer !== undefined && userAnswer !== q.answerIndex && (
+												{userAnswerIndex !== null && correctIndex !== null && userAnswerIndex !== correctIndex && (
 													<div className="student-exam-feedback-item-user">
-														<strong>Răspunsul tău:</strong> {q.options[userAnswer]}
+														<strong>Răspunsul tău:</strong> {q.options?.[userAnswerIndex]}
 													</div>
 												)}
+											</div>
+										)}
+										{['open_text', 'short_answer', 'essay'].includes(q.type || '') && userAnswer != null && String(userAnswer).trim() !== '' && (
+											<div className="student-exam-feedback-item-user">
+												<strong>Răspunsul tău:</strong> {userAnswer}
 											</div>
 										)}
 										{q.explanation && (
@@ -549,6 +623,13 @@ const ExamPage = () => {
 					</Link>
 				)}
 			</div>
+
+			<CourseCongratulationsModal
+				open={showCourseCongrats}
+				onClose={handleCongratsClose}
+				courseTitle={congratsCourseTitle}
+				closeButtonLabel="Înapoi la curs"
+			/>
 		</div>
 	);
 };

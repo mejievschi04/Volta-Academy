@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth, AuthContext } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -9,7 +9,6 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import LoadingOverlay from './components/LoadingOverlay';
 import SplashScreen from './components/SplashScreen';
 import GlobalSearch from './components/GlobalSearch';
-import ThemeToggle from './components/common/ThemeToggle';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
 import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
 import AdminStylesLoader from './components/AdminStylesLoader';
@@ -19,7 +18,6 @@ import { prefetchRoute } from './utils/prefetch';
 /* Modern Design System - Unified & Standardized */
 import './styles/design-system.css';
 import './styles/light-theme-wcag.css';
-import './styles/dark-theme-wcag.css';
 import './styles/unified-cards.css';
 import './styles/components.css';
 import './styles/button-modern.css';
@@ -51,6 +49,7 @@ import logoShort from './assets/Volta Logo 2@300x 1.png';
 // Lazy load pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
+const CourseMapPage = lazy(() => import('./pages/CourseMapPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const ExamPage = lazy(() => import('./pages/ExamPage'));
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
@@ -82,7 +81,6 @@ const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
 // const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const AdminTestsPage = lazy(() => import('./pages/admin/AdminTestsPage'));
 const AdminTestEditorPage = lazy(() => import('./pages/admin/AdminTestEditorPage'));
-const AdminTestCreationPage = lazy(() => import('./pages/admin/AdminTestCreationPage'));
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
@@ -118,6 +116,11 @@ function ProtectedRoute({ children }) {
 	return children;
 }
 
+function RedirectDetailToCourse() {
+	const { courseId } = useParams();
+	return <Navigate to={`/courses/${courseId}`} replace />;
+}
+
 function Layout({ children }) {
 	const authContext = useContext(AuthContext);
 	
@@ -129,9 +132,10 @@ function Layout({ children }) {
 			</div>
 		);
 	}
-	const { user, logout } = authContext;
+	const { user, logout, setAdminViewMode } = authContext;
 	const navigate = useNavigate();
 	const location = useLocation();
+	const isAdminAccount = user?.actualRole === 'admin';
 	const isAdmin = user?.role === 'admin';
 	
 	// Check if we're on a user page (not admin pages)
@@ -160,7 +164,28 @@ function Layout({ children }) {
 	//   - If on /messages and came from admin: use admin layout
 	//   - If on other user pages: use user layout (student interface)
 	const isStudent = !isAdmin || (user?.role === 'student' || !user?.role || user?.role === '');
-	const showUserLayout = isStudent ? true : (!isAdminPage && !(isMessagesPage && cameFromAdmin));
+	// Cont admin + mod student: shell admin cât timp URL e /admin* (evită topnav peste conținut admin înainte de redirect).
+	const showUserLayout = !isAdminAccount
+		? isStudent
+			? true
+			: !isAdminPage && !(isMessagesPage && cameFromAdmin)
+		: user?.role === 'student'
+			? !isAdminPage
+			: !isAdminPage && !(isMessagesPage && cameFromAdmin);
+
+	// Overlay doar în mod admin efectiv (nu resetăm „ready” la trecere student pe același frame).
+	const requiresAdminChromePaintHold =
+		isAdminAccount && user?.role === 'admin' && !showUserLayout;
+	const [adminChromePaintReady, setAdminChromePaintReady] = React.useState(
+		!requiresAdminChromePaintHold
+	);
+	// Doar dezactivăm overlay-ul când nu mai e nevoie de hold. NU setăm false aici când hold e true —
+	// același tick, efectul poate rula după AdminStylesLoader.onReady și anulează true → spinner infinit.
+	React.useEffect(() => {
+		if (!requiresAdminChromePaintHold) {
+			setAdminChromePaintReady(true);
+		}
+	}, [requiresAdminChromePaintHold]);
 	
 	// State for admin view toggle (active when on admin page or messages from admin)
 	const [isAdminView, setIsAdminView] = React.useState((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
@@ -170,6 +195,16 @@ function Layout({ children }) {
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
+
+	const prevShowUserLayoutRef = React.useRef(null);
+	React.useEffect(() => {
+		const prev = prevShowUserLayoutRef.current;
+		if (prev !== null && showUserLayout && !prev) {
+			setIsSidebarExpanded(false);
+			document.body.classList.remove('sidebar-expanded');
+		}
+		prevShowUserLayoutRef.current = showUserLayout;
+	}, [showUserLayout]);
 
 	// Submeniul "Cursuri, Teste & Bănci" se deschide doar la click pe parent
 	const [contentSubmenuOpen, setContentSubmenuOpen] = React.useState(false);
@@ -187,7 +222,7 @@ function Layout({ children }) {
 	
 	// Track navigation context for messages page
 	React.useEffect(() => {
-		if (isAdmin) {
+		if (isAdminAccount) {
 			if (isAdminPage) {
 				// We're on an admin page - mark that we're in admin context, clear student preview
 				sessionStorage.setItem('messagesFromAdmin', 'true');
@@ -203,18 +238,18 @@ function Layout({ children }) {
 				setCameFromAdmin(false);
 			}
 		}
-	}, [location.pathname, isAdmin, isAdminPage, isMessagesPage]);
+	}, [location.pathname, isAdminAccount, isAdminPage, isMessagesPage]);
 
 	// Student preview mode: admin viewing as student - no admin UI, 100% student experience
-	const isStudentPreviewMode = isAdmin && showUserLayout && sessionStorage.getItem('studentPreviewFromAdmin') === 'true';
+	const isStudentPreviewMode = isAdminAccount && showUserLayout && sessionStorage.getItem('studentPreviewFromAdmin') === 'true';
 	
 	// Update toggle state when location changes
 	React.useEffect(() => {
-		if (isAdmin) {
+		if (isAdminAccount) {
 			// Admin view is active when on admin pages or messages from admin context
 			setIsAdminView((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
 		}
-	}, [location.pathname, isAdmin, isUserPage, isMessagesPage, cameFromAdmin]);
+	}, [location.pathname, isAdminAccount, isUserPage, isMessagesPage, cameFromAdmin, isAdmin]);
 	
 	// Save sidebar state to localStorage and update body class
 	React.useEffect(() => {
@@ -232,12 +267,12 @@ function Layout({ children }) {
 
 	// Admin-only layout styling hooks (avoid impacting student UI)
 	React.useEffect(() => {
-		const isAdminLayoutActive = !showUserLayout && isAdmin;
+		const isAdminLayoutActive = !showUserLayout && isAdminAccount;
 		document.body.classList.toggle('admin-view', isAdminLayoutActive);
 		return () => {
 			document.body.classList.remove('admin-view');
 		};
-	}, [showUserLayout, isAdmin]);
+	}, [showUserLayout, isAdminAccount]);
 	
 	// Check must_change_password - handle boolean, number, or string values
 	const mustChangePassword = user?.must_change_password === true || 
@@ -248,19 +283,15 @@ function Layout({ children }) {
 	
 	// Determine courses path based on user role and current view
 	// All users use /courses (which redirects appropriately based on role)
-	// Use useMemo to recalculate when location or user changes
-	const coursesPath = React.useMemo(() => {
-		// All users use /courses (will redirect appropriately)
-		return '/courses';
-	}, [user, isAdmin, isUserPage]);
+	const coursesPath = '/courses';
 
 	const navItems = [
 		{ 
-			path: '/home', 
-			label: 'Acasă', 
+			path: '/courses', 
+			label: 'Cursuri', 
 			icon: (
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H20V18M20 18V21M9 7H15M9 11H15M9 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
 			)
 		},
@@ -270,15 +301,6 @@ function Layout({ children }) {
 			icon: (
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-				</svg>
-			)
-		},
-		{ 
-			path: coursesPath, 
-			label: 'Cursuri', 
-			icon: (
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H20V18M20 18V21M9 7H15M9 11H15M9 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
 			)
 		},
@@ -317,7 +339,7 @@ function Layout({ children }) {
 	const adminNavItems = [
 		{
 			path: '/admin',
-			label: 'Dashboard',
+			label: 'Panou',
 			icon: (
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M3 9L12 2L21 9V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -400,12 +422,29 @@ function Layout({ children }) {
 
 	return (
 		<div className={`${showUserLayout ? "va-shell va-shell-topnav" : "va-shell"} ${isStudentPreviewMode ? "student-preview-mode" : ""}`}>
-			<AdminStylesLoader loadOnAdminPagesOnly={true} />
+			<AdminStylesLoader
+				loadOnAdminPagesOnly={true}
+				waitForStylesBeforePaint={requiresAdminChromePaintHold}
+				onArmHold={() => setAdminChromePaintReady(false)}
+				onReady={() => setAdminChromePaintReady(true)}
+			/>
+			{requiresAdminChromePaintHold && !adminChromePaintReady && (
+				<div
+					className="va-admin-chrome-loading-overlay"
+					role="status"
+					aria-live="polite"
+					aria-busy="true"
+					aria-label="Se încarcă interfața"
+				>
+					<div className="va-spinner va-spinner-lg" aria-hidden />
+					<p className="va-admin-chrome-loading-text">Se încarcă interfața…</p>
+				</div>
+			)}
 			{mustChangePassword && (
 				<ChangePasswordModal />
 			)}
 			
-			{!showUserLayout && isAdmin ? (
+			{!showUserLayout && isAdminAccount ? (
 				// Admin keeps sidebar layout with top navigation
 				<>
 					{/* Backdrop overlay for mobile */}
@@ -419,14 +458,24 @@ function Layout({ children }) {
 					
 					<aside className={`modern-sidebar va-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
 						<div className="modern-sidebar-brand va-sidebar-brand">
-							<span className="modern-sidebar-logo va-logo-text">
-								<img 
-									src={logoShort} 
-									alt="Volta Academy" 
-									className="va-logo-icon-img"
-									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-								/>
-							</span>
+							<button
+								type="button"
+								className="modern-sidebar-logo-toggle va-sidebar-logo-toggle"
+								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+								title={isSidebarExpanded ? 'Restrânge meniul' : 'Extinde meniul'}
+								aria-expanded={isSidebarExpanded}
+								aria-label={isSidebarExpanded ? 'Restrânge meniul' : 'Extinde meniul'}
+							>
+								<span className="modern-sidebar-logo va-logo-text">
+									<img 
+										src={logoShort} 
+										alt="" 
+										aria-hidden="true"
+										className="va-logo-icon-img"
+										style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+									/>
+								</span>
+							</button>
 							{isSidebarExpanded && (
 								<span className="modern-sidebar-brand-text">Volta Academy</span>
 							)}
@@ -521,7 +570,7 @@ function Layout({ children }) {
 								{isSidebarExpanded && (
 									<div className="sidebar-mobile-control-content">
 										<span className="sidebar-mobile-control-label">Temă</span>
-										<ThemeToggle />
+										<span className="sidebar-mobile-control-value">Deschis</span>
 									</div>
 								)}
 							</div>
@@ -546,9 +595,11 @@ function Layout({ children }) {
 										<button
 											onClick={() => {
 												if (isUserPage) {
+													setAdminViewMode('admin');
 													navigate('/admin', { replace: true });
 												} else {
-													navigate('/home', { replace: true });
+													setAdminViewMode('student');
+													navigate('/courses', { replace: true });
 												}
 											}}
 											className="admin-view-switcher"
@@ -596,18 +647,6 @@ function Layout({ children }) {
 						)}
 					</aside>
 
-					{/* Desktop: expand/collapse button - outside sidebar, bottom right */}
-					<button
-						className={`sidebar-expand-toggle desktop-sidebar-toggle ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}
-						onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-						title={isSidebarExpanded ? "Restrânge meniul" : "Extinde meniul"}
-						aria-label={isSidebarExpanded ? "Restrânge meniul" : "Extinde meniul"}
-					>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isSidebarExpanded ? 'none' : 'rotate(180deg)' }}>
-							<polyline points="15 18 9 12 15 6"/>
-						</svg>
-					</button>
-
 					{/* Top Navigation Bar for Admin */}
 					<header className={`modern-topnav admin-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
 						<div className="modern-topnav-left">
@@ -642,12 +681,6 @@ function Layout({ children }) {
 							{/* Search and Notifications */}
 							<AdminTopNavControls />
 
-							{/* Theme Toggle - Desktop only */}
-							<div className="admin-topnav-control desktop-only">
-								<span className="admin-topnav-control-label">Temă</span>
-								<ThemeToggle />
-							</div>
-
 							{/* View Switcher - Desktop only */}
 							<div className="admin-topnav-control desktop-only">
 								<span className="admin-topnav-control-label">Vizionare</span>
@@ -655,10 +688,12 @@ function Layout({ children }) {
 									type="button"
 									onClick={() => {
 										if (isUserPage) {
+											setAdminViewMode('admin');
 											navigate('/admin', { replace: true });
 										} else {
+											setAdminViewMode('student');
 											// Redirect to student home page when switching to student view
-											navigate('/home', { replace: true });
+											navigate('/courses', { replace: true });
 										}
 									}}
 									className="admin-view-switcher"
@@ -741,14 +776,24 @@ function Layout({ children }) {
 					{/* Student Sidebar - Mobile (same structure as admin) */}
 					<aside className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
 						<div className="modern-sidebar-brand va-sidebar-brand">
-							<span className="modern-sidebar-logo va-logo-text">
-								<img 
-									src={logoShort} 
-									alt="Volta Academy" 
-									className="va-logo-icon-img"
-									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-								/>
-							</span>
+							<button
+								type="button"
+								className="modern-sidebar-logo-toggle va-sidebar-logo-toggle"
+								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+								title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+								aria-expanded={isSidebarExpanded}
+								aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+							>
+								<span className="modern-sidebar-logo va-logo-text">
+									<img 
+										src={logoShort} 
+										alt="" 
+										aria-hidden="true"
+										className="va-logo-icon-img"
+										style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+									/>
+								</span>
+							</button>
 							{isSidebarExpanded && (
 								<span className="modern-sidebar-brand-text">Volta Academy</span>
 							)}
@@ -761,7 +806,7 @@ function Layout({ children }) {
 									to={item.path}
 									data-tooltip={!isSidebarExpanded ? item.label : undefined}
 									className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
-									end={item.path === '/home'}
+									end={item.path === '/courses'}
 									onMouseEnter={() => prefetchRoute(item.path)}
 									onClick={() => {
 										// Close sidebar on mobile when clicking a link
@@ -790,13 +835,13 @@ function Layout({ children }) {
 								{isSidebarExpanded && (
 									<div className="sidebar-mobile-control-content">
 										<span className="sidebar-mobile-control-label">Temă</span>
-										<ThemeToggle />
+										<span className="sidebar-mobile-control-value">Deschis</span>
 									</div>
 								)}
 							</div>
 
 							{/* View Switcher (only for admins, hidden in student preview mode) */}
-							{isAdmin && !isStudentPreviewMode && (
+							{isAdminAccount && !isStudentPreviewMode && (
 								<div className="sidebar-mobile-control-item">
 									<span className="sidebar-mobile-control-icon">
 										{isUserPage ? (
@@ -816,9 +861,11 @@ function Layout({ children }) {
 											<button
 												onClick={() => {
 													if (isUserPage) {
+														setAdminViewMode('admin');
 														navigate('/admin', { replace: true });
 													} else {
-														navigate('/home', { replace: true });
+														setAdminViewMode('student');
+														navigate('/courses', { replace: true });
 													}
 												}}
 												className="admin-view-switcher"
@@ -902,7 +949,7 @@ function Layout({ children }) {
 									key={item.path}
 									to={item.path}
 									className={({ isActive }) => ['modern-topnav-item', 'va-topnav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
-									end={item.path === '/home'}
+									end={item.path === '/courses'}
 									onMouseEnter={() => prefetchRoute(item.path)}
 								>
 									<span className="modern-topnav-item-icon va-topnav-icon">{item.icon}</span>
@@ -917,24 +964,20 @@ function Layout({ children }) {
 									{/* Notifications - studenți */}
 									<StudentTopNavNotifications />
 
-									{/* Theme Toggle - Desktop only */}
-									<div className="admin-topnav-control desktop-only">
-										<span className="admin-topnav-control-label">Temă</span>
-										<ThemeToggle />
-									</div>
-
 									{/* View Switcher (only for admins, hidden in student preview mode) - Desktop only */}
-									{isAdmin && !isStudentPreviewMode && (
+									{isAdminAccount && !isStudentPreviewMode && (
 										<div className="admin-topnav-control desktop-only">
 											<span className="admin-topnav-control-label">Vizionare</span>
 											<button
 												type="button"
 												onClick={() => {
 													if (isUserPage) {
+														setAdminViewMode('admin');
 														navigate('/admin', { replace: true });
 													} else {
+														setAdminViewMode('student');
 														// Redirect to student home page when switching to student view
-														navigate('/home', { replace: true });
+														navigate('/courses', { replace: true });
 													}
 												}}
 												className="admin-view-switcher"
@@ -1012,6 +1055,7 @@ function Layout({ children }) {
 							className="student-preview-back-to-admin"
 							onClick={() => {
 								sessionStorage.removeItem('studentPreviewFromAdmin');
+								setAdminViewMode('admin');
 								navigate('/admin/courses', { replace: true });
 							}}
 							title="Înapoi la Admin"
@@ -1039,7 +1083,7 @@ function App() {
 		<ThemeProvider>
 			<ToastProvider>
 				<AuthProvider>
-					<Router>
+					<Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 						<GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 				<Routes>
 					{/* Splash first page - if authenticated, redirect to app */}
@@ -1061,13 +1105,7 @@ function App() {
 								<Routes>
 									<Route
 										path="/home"
-										element={
-											<UserRoute>
-												<Suspense fallback={<PageLoader />}>
-													<DashboardPage />
-												</Suspense>
-											</UserRoute>
-										}
+										element={<Navigate to="/courses" replace />}
 									/>
 									<Route
 										path="/courses"
@@ -1075,6 +1113,16 @@ function App() {
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
 													<CoursesPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/courses/map/:mapId"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<CourseMapPage />
 												</Suspense>
 											</UserRoute>
 										}
@@ -1123,14 +1171,12 @@ function App() {
 											</UserRoute>
 										}
 									/>
-						{/* Course Detail Page */}
+						{/* Redirect /courses/:id/detail → /courses/:id (începe direct cursul) */}
 									<Route
 										path="/courses/:courseId/detail"
 										element={
 											<UserRoute>
-												<Suspense fallback={<PageLoader />}>
-													<CourseDetailPage />
-												</Suspense>
+												<RedirectDetailToCourse />
 											</UserRoute>
 										}
 									/>
@@ -1379,7 +1425,7 @@ function App() {
 										element={
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
-													<AdminTestCreationPage />
+													<AdminTestEditorPage />
 												</Suspense>
 											</AdminRoute>
 										}
@@ -1581,7 +1627,15 @@ function SplashEntry() {
 
 	useEffect(() => {
 		if (!loading && user) {
-			navigate('/home', { replace: true });
+			if (user.actualRole === 'admin') {
+				const mode =
+					typeof sessionStorage !== 'undefined'
+						? sessionStorage.getItem('voltaAdminViewMode')
+						: null;
+				navigate(mode === 'student' ? '/courses' : '/admin', { replace: true });
+			} else {
+				navigate('/courses', { replace: true });
+			}
 		}
 	}, [user, loading, navigate]);
 

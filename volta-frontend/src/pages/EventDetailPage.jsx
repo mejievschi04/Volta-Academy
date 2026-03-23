@@ -4,6 +4,7 @@ import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const EventDetailPage = () => {
 	const { id } = useParams();
@@ -13,6 +14,7 @@ const EventDetailPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [actionLoading, setActionLoading] = useState(false);
+	const [showCancelRegConfirm, setShowCancelRegConfirm] = useState(false);
 	useEffect(() => {
 		fetchEvent();
 	}, [id]);
@@ -56,14 +58,6 @@ const EventDetailPage = () => {
 		return labels[type] || type;
 	};
 
-	const getAccessTypeLabel = (accessType) => {
-		const labels = {
-			free: 'Gratuit',
-			course_included: 'Inclus în curs',
-		};
-		return labels[accessType] || accessType;
-	};
-
 	const getStatusBadge = (status) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#10b981' },
@@ -89,13 +83,15 @@ const EventDetailPage = () => {
 		}
 	};
 
-	const handleCancelRegistration = async () => {
-		if (!confirm('Sigur dorești să anulezi înscrierea la acest eveniment?')) {
-			return;
-		}
+	const handleCancelRegistrationClick = () => {
+		setShowCancelRegConfirm(true);
+	};
+
+	const handleConfirmCancelRegistration = async () => {
 		setActionLoading(true);
 		try {
 			await eventsService.cancelRegistration(id);
+			setShowCancelRegConfirm(false);
 			await fetchEvent();
 			showSuccess('Înscriere anulată cu succes');
 		} catch (err) {
@@ -170,10 +166,10 @@ const EventDetailPage = () => {
 
 	return (
 		<div className="va-main event-detail-page fade-in">
-			<button 
-				className="lms-btn-secondary event-detail-back" 
+			<button
+				type="button"
+				className="event-detail-back"
 				onClick={() => navigate('/events')}
-				style={{ marginBottom: '1.5rem' }}
 			>
 				← Înapoi la Evenimente
 			</button>
@@ -194,20 +190,15 @@ const EventDetailPage = () => {
 				)}
 				<div className="va-card-body event-detail-body">
 					<div className="event-detail-header">
-						<h1 className="va-page-title" style={{ flex: 1 }}>
+						<h1 className="va-page-title">
 							{event.title}
 						</h1>
 						{statusBadge && (
-							<span 
+							<span
 								className="event-detail-status-badge"
 								style={{
-									padding: '0.5rem 1rem',
-									borderRadius: '12px',
-									fontSize: '0.9rem',
-									fontWeight: 'bold',
 									background: statusBadge.color,
 									color: '#fff',
-									flexShrink: 0,
 								}}
 							>
 								{statusBadge.label}
@@ -223,41 +214,33 @@ const EventDetailPage = () => {
 
 					<div className="event-detail-meta-grid">
 						<div>
-							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>🏷️ Tip</div>
-							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</div>
-						</div>
-						<div>
-							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>💰 Acces</div>
-							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>
-								{getAccessTypeLabel(event.access_type)}
-							</div>
+							<div className="event-detail-meta-label">🏷️ Tip</div>
+							<div className="event-detail-meta-value">{getEventTypeLabel(event.type)}</div>
 						</div>
 						{event.instructor && (
 							<div>
-								<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>👤 Instructor</div>
-								<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>{event.instructor.name}</div>
+								<div className="event-detail-meta-label">👤 Instructor</div>
+								<div className="event-detail-meta-value">{event.instructor.name}</div>
 							</div>
 						)}
 						<div>
-							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>🕐 Data Început</div>
-							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>{formatDate(event.start_date)}</div>
+							<div className="event-detail-meta-label">🕐 Data început</div>
+							<div className="event-detail-meta-value">{formatDate(event.start_date)}</div>
 						</div>
 						<div>
-							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>🕐 Data Sfârșit</div>
-							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>{formatDate(event.end_date)}</div>
+							<div className="event-detail-meta-label">🕐 Data sfârșit</div>
+							<div className="event-detail-meta-value">{formatDate(event.end_date)}</div>
 						</div>
 						<div>
-							<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>📍 Locație</div>
-							<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>
-								{event.location || event.live_link || 'N/A'}
-							</div>
+							<div className="event-detail-meta-label">📍 Locație</div>
+							<div className="event-detail-meta-value">{event.location || event.live_link || 'N/A'}</div>
 						</div>
 						{event.max_capacity && (
 							<div>
-								<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>👥 Capacitate</div>
-								<div style={{ fontWeight: 'bold', color: 'var(--va-text)' }}>
+								<div className="event-detail-meta-label">👥 Capacitate</div>
+								<div className="event-detail-meta-value">
 									{event.registrations_count || 0} / {event.max_capacity} înscriși
-									{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
+									{isFull && <span style={{ color: 'var(--color-error)', marginLeft: '0.5rem' }}>• PLIN</span>}
 								</div>
 							</div>
 						)}
@@ -272,18 +255,14 @@ const EventDetailPage = () => {
 						</div>
 					)}
 
-					{/* Actions */}
 					<div className="event-detail-actions">
 						{canRegister && (
 							<button
+								type="button"
 								className="lms-btn-primary event-detail-action-btn"
 								onClick={handleRegister}
 								disabled={actionLoading}
-								style={{ 
-									flex: 1,
-									minWidth: '200px',
-									background: '#10b981',
-								}}
+								style={{ flex: 1, minWidth: '200px', background: '#10b981', color: '#fff' }}
 							>
 								{actionLoading ? 'Se procesează...' : '✓ Înscrie-te'}
 							</button>
@@ -335,7 +314,7 @@ const EventDetailPage = () => {
 								{event.status !== 'completed' && event.status !== 'cancelled' && (
 									<button
 										className="lms-btn-secondary"
-										onClick={handleCancelRegistration}
+										onClick={handleCancelRegistrationClick}
 										disabled={actionLoading}
 										style={{ background: '#ef4444', color: '#fff' }}
 									>
@@ -355,27 +334,26 @@ const EventDetailPage = () => {
 						)}
 					</div>
 
-					{/* KPI Metrics */}
 					{event.registrations_count > 0 && (
 						<div className="event-detail-stats">
-							<h3 style={{ marginBottom: '1rem', color: 'var(--va-text)' }}>Statistici</h3>
+							<h3>Statistici</h3>
 							<div className="event-detail-stats-grid">
 								<div>
-									<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Înscrieri</div>
-									<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFEE00' }}>
+									<div className="event-detail-meta-label">Înscrieri</div>
+									<div className="event-detail-meta-value" style={{ fontSize: '1.5rem', color: 'var(--color-brand-primary)' }}>
 										{event.registrations_count || 0}
 									</div>
 								</div>
 								<div>
-									<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Prezență</div>
-									<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+									<div className="event-detail-meta-label">Prezență</div>
+									<div className="event-detail-meta-value" style={{ fontSize: '1.5rem', color: '#10b981' }}>
 										{event.attendance_count || 0}
 									</div>
 								</div>
 								{event.replay_views_count > 0 && (
 									<div>
-										<div style={{ fontSize: '0.85rem', color: 'var(--va-muted)', marginBottom: '0.25rem' }}>Replay Views</div>
-										<div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFEE00' }}>
+										<div className="event-detail-meta-label">Replay</div>
+										<div className="event-detail-meta-value" style={{ fontSize: '1.5rem', color: 'var(--color-brand-primary)' }}>
 											{event.replay_views_count}
 										</div>
 									</div>
@@ -385,6 +363,18 @@ const EventDetailPage = () => {
 					)}
 				</div>
 			</div>
+
+			<ConfirmModal
+				open={showCancelRegConfirm}
+				onClose={() => setShowCancelRegConfirm(false)}
+				onConfirm={handleConfirmCancelRegistration}
+				title="Anulare înscriere"
+				message="Sigur dorești să anulezi înscrierea la acest eveniment?"
+				confirmLabel="Anulează înscrierea"
+				cancelLabel="Rămân"
+				variant="danger"
+				loading={actionLoading}
+			/>
 		</div>
 	);
 };

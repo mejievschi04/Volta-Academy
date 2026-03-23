@@ -60,6 +60,10 @@
 	color: var(--text-secondary);
 	font-size: 1rem;
 }
+.course-creation-wizard-step-desc-inline {
+	color: var(--text-tertiary);
+	font-weight: 400;
+}
 
 .course-creation-wizard-close {
 	background: none;
@@ -406,4 +410,31 @@
 .test-wizard-step-settings .admin-settings-checkbox-label input,
 .test-wizard-step-details .admin-settings-checkbox-label input {
 	width: auto;
+}
+
+.test-wizard-step-details .admin-form-section,
+.test-wizard-step-questions .admin-form-section,
+.test-wizard-step-settings .admin-form-section {
+	margin-top: var(--space-6);
+}
+.test-wizard-step-details .admin-form-section:first-child,
+.test-wizard-step-questions .admin-form-section:first-child,
+.test-wizard-step-settings .admin-form-section:first-child {
+	margin-top: 0;
+}
+.test-wizard-subsection {
+	margin-top: var(--space-4);
+	margin-bottom: var(--space-2);
+	font-size: var(--font-size-sm);
+}
+
+.test-wizard-step-details .admin-input-error,
+.test-wizard-step-questions .admin-input-error {
+	border-color: var(--color-error, #dc2626);
+	box-shadow: 0 0 0 1px var(--color-error, #dc2626);
+}
+.admin-form-error-inline {
+	font-size: var(--font-size-sm);
+	color: var(--color-error, #dc2626);
+	margin: var(--space-1) 0 0 0;
 }

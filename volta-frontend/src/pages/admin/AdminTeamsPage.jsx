@@ -3,6 +3,7 @@ import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const AdminTeamsPage = () => {
 	const { success: showSuccess, error: showError } = useToast();
@@ -16,6 +17,8 @@ const AdminTeamsPage = () => {
 	const [showCoursesModal, setShowCoursesModal] = useState(false);
 	const [editingTeam, setEditingTeam] = useState(null);
 	const [selectedTeam, setSelectedTeam] = useState(null);
+	const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formData, setFormData] = useState({
 		name: '',
 		description: '',
@@ -89,16 +92,23 @@ const AdminTeamsPage = () => {
 		setShowModal(true);
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm('Sigur dorești să ștergi această echipă?')) return;
+	const handleDeleteClick = (id) => {
+		setDeleteConfirmTeamId(id);
+	};
 
+	const handleConfirmDeleteTeam = async () => {
+		if (!deleteConfirmTeamId) return;
+		setDeleteLoading(true);
 		try {
-			await adminService.deleteTeam(id);
+			await adminService.deleteTeam(deleteConfirmTeamId);
+			setDeleteConfirmTeamId(null);
 			fetchTeams();
 			showSuccess('Echipă ștearsă cu succes!');
 		} catch (err) {
 			logger.error('Error deleting team:', err);
 			showError('Eroare la ștergerea echipei: ' + (err.response?.data?.message || err.message));
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -203,7 +213,7 @@ const AdminTeamsPage = () => {
 										</button>
 										<button
 											className="admin-btn admin-btn-sm admin-btn-danger"
-											onClick={() => handleDelete(team.id)}
+											onClick={() => handleDeleteClick(team.id)}
 											title="Șterge echipă"
 											style={{ minWidth: 'auto', padding: 'var(--space-2)', fontSize: '18px' }}
 										>
@@ -432,6 +442,18 @@ const AdminTeamsPage = () => {
 					onSave={handleAttachCourses}
 				/>
 			)}
+
+			<ConfirmModal
+				open={!!deleteConfirmTeamId}
+				onClose={() => setDeleteConfirmTeamId(null)}
+				onConfirm={handleConfirmDeleteTeam}
+				title="Șterge echipă"
+				message="Sigur dorești să ștergi această echipă?"
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

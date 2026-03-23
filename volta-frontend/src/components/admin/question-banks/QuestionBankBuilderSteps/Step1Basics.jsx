@@ -1,7 +1,5 @@
 import React from 'react';
 
-const SUGGESTED_CATEGORIES = ['PHP', 'JavaScript', 'React', 'Python', 'SQL', 'Laravel', 'Vue.js', 'TypeScript', 'HTML/CSS', 'Algoritmi'];
-
 const QuestionBankBuilderStep1 = ({ data, onUpdate, errors }) => {
 	const title = data?.title || '';
 	const category = data?.category || '';
@@ -23,7 +21,7 @@ const QuestionBankBuilderStep1 = ({ data, onUpdate, errors }) => {
 						className={`admin-form-input ${errors.title ? 'error' : ''}`}
 						value={title}
 						onChange={(e) => onUpdate({ title: e.target.value })}
-						placeholder="ex: Întrebări PHP Avansat"
+						placeholder="Titlul băncii de întrebări"
 						data-field="title"
 						maxLength={200}
 						autoFocus
@@ -42,7 +40,7 @@ const QuestionBankBuilderStep1 = ({ data, onUpdate, errors }) => {
 						className="admin-form-textarea"
 						value={data?.description || ''}
 						onChange={(e) => onUpdate({ description: e.target.value })}
-						placeholder="Descrie scopul băncii de întrebări, subiectele acoperite, nivelul de dificultate..."
+						placeholder="Descriere opțională: scop, subiecte, nivel de dificultate…"
 						rows={4}
 					/>
 					<p className="admin-form-hint">
@@ -52,35 +50,15 @@ const QuestionBankBuilderStep1 = ({ data, onUpdate, errors }) => {
 
 				<div className="admin-form-group">
 					<label className="admin-form-label">Categorie</label>
-					<div className="qb-category-input-wrapper">
-						<input
-							type="text"
-							className="admin-form-input"
-							value={category}
-							onChange={(e) => onUpdate({ category: e.target.value })}
-							placeholder="ex: PHP, JavaScript, React"
-							list="qb-category-suggestions"
-						/>
-						<datalist id="qb-category-suggestions">
-							{SUGGESTED_CATEGORIES.map((cat) => (
-								<option key={cat} value={cat} />
-							))}
-						</datalist>
-						<div className="qb-category-chips">
-							{SUGGESTED_CATEGORIES.slice(0, 6).map((cat) => (
-								<button
-									key={cat}
-									type="button"
-									className={`qb-category-chip ${category === cat ? 'active' : ''}`}
-									onClick={() => onUpdate({ category: category === cat ? '' : cat })}
-								>
-									{cat}
-								</button>
-							))}
-						</div>
-					</div>
+					<input
+						type="text"
+						className="admin-form-input"
+						value={category}
+						onChange={(e) => onUpdate({ category: e.target.value })}
+						placeholder="Categorie (opțional)"
+					/>
 					<p className="admin-form-hint">
-						Categoria ajută la organizare și filtrare. Poți alege din sugestii sau introduce una personalizată.
+						Categoria ajută la organizare și filtrare.
 					</p>
 				</div>
 

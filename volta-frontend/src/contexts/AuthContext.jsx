@@ -1,7 +1,36 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { authService } from '../services/api';
 
 export const AuthContext = createContext(null);
+
+const STORAGE_VIEW_KEY = 'voltaAdminViewMode';
+
+function readStoredAdminView() {
+	try {
+		return sessionStorage.getItem(STORAGE_VIEW_KEY) === 'student' ? 'student' : 'admin';
+	} catch {
+		return 'admin';
+	}
+}
+
+function writeStoredAdminView(mode) {
+	try {
+		sessionStorage.setItem(STORAGE_VIEW_KEY, mode);
+	} catch {
+		/* ignore */
+	}
+}
+
+/** Contul real rămâne admin; `role` devine efectiv (admin | student) când comuți vizualizarea. */
+function buildContextUser(rawUser, adminViewMode) {
+	if (!rawUser) return null;
+	const actualRole = rawUser.role ?? 'student';
+	if (actualRole !== 'admin') {
+		return { ...rawUser, actualRole };
+	}
+	const effectiveRole = adminViewMode === 'student' ? 'student' : 'admin';
+	return { ...rawUser, role: effectiveRole, actualRole: 'admin' };
+}
 
 export const useAuth = () => {
 	const context = useContext(AuthContext);
@@ -12,8 +41,20 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-	const [user, setUser] = useState(null);
+	const [rawUser, setRawUser] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [adminViewMode, setAdminViewModeState] = useState(readStoredAdminView);
+
+	const setAdminViewMode = useCallback((mode) => {
+		if (mode !== 'admin' && mode !== 'student') return;
+		setAdminViewModeState(mode);
+		writeStoredAdminView(mode);
+	}, []);
+
+	const user = useMemo(
+		() => buildContextUser(rawUser, adminViewMode),
+		[rawUser, adminViewMode]
+	);
 
 	useEffect(() => {
 		checkAuth();
@@ -22,10 +63,9 @@ export const AuthProvider = ({ children }) => {
 	const checkAuth = async () => {
 		try {
 			const data = await authService.me();
-			setUser(data?.user || null);
+			setRawUser(data?.user || null);
 		} catch (error) {
-			// Silently handle auth check failures (401 is expected when not logged in)
-			setUser(null);
+			setRawUser(null);
 		} finally {
 			setLoading(false);
 		}
@@ -33,34 +73,45 @@ export const AuthProvider = ({ children }) => {
 
 	const login = async (email, password) => {
 		const data = await authService.login(email, password);
-		setUser(data.user);
+		setRawUser(data.user);
 		return data;
 	};
 
 	const changePassword = async (currentPassword, newPassword, newPasswordConfirmation) => {
 		const data = await authService.changePassword(currentPassword, newPassword, newPasswordConfirmation);
-		setUser(data.user);
+		setRawUser(data.user);
 		return data;
 	};
 
 	const register = async (name, email, password) => {
 		const data = await authService.register(name, email, password);
-		// Nu setăm user dacă e pending approval - utilizatorul așteaptă aprobarea admin
 		if (!data.pending_approval && data.user) {
-			setUser(data.user);
+			setRawUser(data.user);
 		}
 		return data;
 	};
 
 	const logout = async () => {
 		await authService.logout();
-		setUser(null);
+		setRawUser(null);
 	};
 
 	return (
-		<AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, changePassword }}>
+		<AuthContext.Provider
+			value={{
+				user,
+				rawUser,
+				loading,
+				login,
+				register,
+				logout,
+				checkAuth,
+				changePassword,
+				adminViewMode,
+				setAdminViewMode,
+			}}
+		>
 			{children}
 		</AuthContext.Provider>
 	);
 };
-

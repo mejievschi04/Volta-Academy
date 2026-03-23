@@ -25,6 +25,15 @@ const normalizeVimeoEmbed = (url) => {
 	}
 };
 
+const isPdfSource = (block) => {
+	const url = block?.source;
+	if (!url || typeof url !== 'string') return false;
+	const u = url.trim().toLowerCase();
+	if (u.endsWith('.pdf') || u.includes('.pdf?') || u.includes('.pdf#')) return true;
+	const mime = (block?.metadata?.upload?.mime_type || block?.metadata?.mime_type || '').toLowerCase();
+	return mime === 'application/pdf';
+};
+
 const BlockCard = ({ title, children, showLabel = true }) => {
 	return (
 		<div className={showLabel ? 'admin-card' : 'lesson-block-card'} style={{ marginBottom: showLabel ? 'var(--space-3)' : 'var(--space-6)' }}>
@@ -116,6 +125,42 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 					);
 				}
 
+				if (b.type === 'pdf') {
+					const pdfUrl = (b.source || '').trim();
+					return (
+						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
+							{pdfUrl ? (
+								<>
+									<div
+										className="lesson-block-pdf-embed"
+										style={{
+											borderRadius: 12,
+											overflow: 'hidden',
+											border: '1px solid var(--border-primary)',
+											height: 640,
+											background: 'var(--bg-secondary)',
+										}}
+									>
+										<iframe
+											src={pdfUrl}
+											title={showLabels ? `PDF ${idx + 1}` : 'Document PDF'}
+											style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+											loading="lazy"
+										/>
+									</div>
+									<div style={{ marginTop: 'var(--space-2)' }}>
+										<a href={pdfUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+											Deschide PDF într-un tab nou
+										</a>
+									</div>
+								</>
+							) : (
+								<div style={{ color: 'var(--text-tertiary)' }}>Nu este setat niciun PDF.</div>
+							)}
+						</BlockCard>
+					);
+				}
+
 				if (b.type === 'image') {
 					const imgUrl = toImageUrl(b.source);
 					return (
@@ -183,11 +228,57 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 					);
 				}
 
-				if (b.type === 'file' || b.type === 'link') {
+				if (b.type === 'file') {
+					const fileUrl = (b.source || '').trim();
+					if (fileUrl && isPdfSource(b)) {
+						return (
+							<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
+								<>
+									<div
+										className="lesson-block-pdf-embed"
+										style={{
+											borderRadius: 12,
+											overflow: 'hidden',
+											border: '1px solid var(--border-primary)',
+											height: 640,
+											background: 'var(--bg-secondary)',
+										}}
+									>
+										<iframe
+											src={fileUrl}
+											title={showLabels ? `PDF ${idx + 1}` : 'Document PDF'}
+											style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+											loading="lazy"
+										/>
+									</div>
+									<div style={{ marginTop: 'var(--space-2)' }}>
+										<a href={fileUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+											Deschide PDF într-un tab nou
+										</a>
+									</div>
+								</>
+							</BlockCard>
+						);
+					}
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
 							<a href={b.source || '#'} target="_blank" rel="noreferrer" className="lms-btn-secondary">
-								{b.type === 'file' ? 'Deschide fișier' : 'Deschide link'}
+								Deschide fișier
+							</a>
+							{b.source ? (
+								<div style={{ marginTop: 'var(--space-2)', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+									{b.source}
+								</div>
+							) : null}
+						</BlockCard>
+					);
+				}
+
+				if (b.type === 'link') {
+					return (
+						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
+							<a href={b.source || '#'} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+								Deschide link
 							</a>
 							{b.source ? (
 								<div style={{ marginTop: 'var(--space-2)', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)', overflow: 'hidden', textOverflow: 'ellipsis' }}>

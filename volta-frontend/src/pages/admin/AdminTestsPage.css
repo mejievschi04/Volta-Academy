@@ -1,0 +1,299 @@
+/* Admin Tests Page - modern list */
+.admin-tests-page {
+	--tests-bg: var(--bg-primary, #fff);
+	--tests-border: var(--border-primary, #e5e7eb);
+	--tests-radius: var(--radius-lg, 12px);
+	--tests-shadow: 0 1px 3px rgba(0,0,0,0.06);
+	--tests-card-hover: 0 8px 24px rgba(0,0,0,0.08);
+	--tests-primary: var(--color-primary, #FFEE00);
+	--tests-success: #10b981;
+	--tests-danger: #ef4444;
+	--tests-muted: var(--text-secondary, #6b7280);
+}
+
+.tests-page-header {
+	margin-bottom: 1.5rem;
+}
+
+.tests-page-header-top {
+	margin-bottom: 1rem;
+}
+
+.tests-page-title {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--text-primary, #111);
+	margin: 0 0 0.25rem 0;
+}
+
+.tests-page-subtitle {
+	font-size: 0.9375rem;
+	color: var(--tests-muted);
+	margin: 0;
+}
+
+.tests-nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 1rem;
+}
+
+.tests-nav-tab {
+	padding: 0.5rem 1rem;
+	border-radius: var(--radius-md, 8px);
+	font-size: 0.875rem;
+	font-weight: 500;
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--tests-muted);
+	cursor: pointer;
+	text-decoration: none;
+	transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.tests-nav-tab:hover {
+	color: var(--text-primary);
+}
+
+.tests-nav-tab.active {
+	background: rgba(255, 238, 0, 0.15);
+	border-color: var(--tests-primary);
+	color: var(--text-primary);
+}
+
+.tests-btn-create {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	border-radius: var(--radius-md);
+	font-size: 0.875rem;
+	font-weight: 600;
+	background: var(--tests-primary);
+	color: #111;
+	border: none;
+	cursor: pointer;
+	margin-left: auto;
+	transition: opacity 0.2s, transform 0.15s;
+}
+
+.tests-btn-create:hover {
+	opacity: 0.95;
+	transform: translateY(-1px);
+}
+
+.tests-btn-create-icon {
+	font-size: 1.125rem;
+	line-height: 1;
+}
+
+.tests-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1rem;
+	margin-bottom: 1.25rem;
+	align-items: center;
+}
+
+.tests-search {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: var(--tests-bg);
+	border: 1px solid var(--tests-border);
+	border-radius: var(--radius-md);
+	padding: 0.5rem 0.75rem;
+	min-width: 200px;
+}
+
+.tests-search svg {
+	flex-shrink: 0;
+	color: var(--tests-muted);
+}
+
+.tests-search-input {
+	flex: 1;
+	border: none;
+	background: transparent;
+	font-size: 0.9375rem;
+	outline: none;
+	color: var(--text-primary);
+}
+
+.tests-search-input::placeholder {
+	color: var(--tests-muted);
+}
+
+.tests-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.tests-select {
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--radius-md);
+	border: 1px solid var(--tests-border);
+	background: var(--tests-bg);
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	cursor: pointer;
+}
+
+.tests-error,
+.tests-loading,
+.tests-empty {
+	text-align: center;
+	padding: 2rem 1rem;
+	background: var(--tests-bg);
+	border-radius: var(--tests-radius);
+	border: 1px solid var(--tests-border);
+}
+
+.tests-error p,
+.tests-loading p,
+.tests-empty p {
+	margin: 0 0 1rem 0;
+	color: var(--tests-muted);
+}
+
+.tests-loading .va-spinner {
+	margin: 0 auto 0.75rem;
+}
+
+.tests-btn-primary,
+.tests-btn-secondary {
+	padding: 0.5rem 1rem;
+	border-radius: var(--radius-md);
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	border: 1px solid transparent;
+}
+
+.tests-btn-primary {
+	background: var(--tests-primary);
+	color: #111;
+}
+
+.tests-btn-secondary {
+	background: var(--bg-secondary, #f3f4f6);
+	color: var(--text-primary);
+	border-color: var(--tests-border);
+}
+
+.tests-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 1rem;
+}
+
+.tests-card {
+	background: var(--tests-bg);
+	border: 1px solid var(--tests-border);
+	border-radius: var(--tests-radius);
+	padding: 1.25rem;
+	box-shadow: var(--tests-shadow);
+	cursor: pointer;
+	transition: box-shadow 0.2s, border-color 0.2s;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	text-align: left;
+}
+
+.tests-card:hover {
+	box-shadow: var(--tests-card-hover);
+	border-color: var(--tests-primary);
+}
+
+.tests-card-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-bottom: 0.75rem;
+}
+
+.tests-badge {
+	display: inline-block;
+	padding: 0.2rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.75rem;
+	font-weight: 500;
+}
+
+.tests-badge-status[data-status="published"] { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.tests-badge-status[data-status="draft"] { background: rgba(255, 238, 0, 0.2); color: #854d0e; }
+.tests-badge-status[data-status="archived"] { background: rgba(107, 114, 128, 0.15); color: #4b5563; }
+
+.tests-badge-type[data-type="practice"] { background: rgba(255, 238, 0, 0.15); color: #713f12; }
+.tests-badge-type[data-type="graded"] { background: rgba(255, 238, 0, 0.15); color: #713f12; }
+.tests-badge-type[data-type="final"] { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+
+.tests-card-title {
+	font-size: 1rem;
+	font-weight: 600;
+	margin: 0 0 0.35rem 0;
+	color: var(--text-primary);
+	line-height: 1.3;
+}
+
+.tests-card-desc {
+	font-size: 0.8125rem;
+	color: var(--tests-muted);
+	margin: 0 0 0.75rem 0;
+	line-height: 1.4;
+	flex: 1;
+}
+
+.tests-card-meta {
+	display: flex;
+	gap: 1rem;
+	font-size: 0.8125rem;
+	color: var(--tests-muted);
+	margin-bottom: 0.75rem;
+}
+
+.tests-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--tests-border);
+}
+
+.tests-card-btn {
+	padding: 0.35rem 0.6rem;
+	border-radius: 6px;
+	font-size: 0.8125rem;
+	background: var(--bg-secondary, #f3f4f6);
+	border: 1px solid var(--tests-border);
+	color: var(--text-primary);
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+.tests-card-btn:hover {
+	background: var(--tests-border);
+}
+
+.tests-card-btn-success {
+	background: rgba(16, 185, 129, 0.12);
+	border-color: var(--tests-success);
+	color: var(--tests-success);
+}
+
+.tests-card-btn-success:hover {
+	background: rgba(16, 185, 129, 0.2);
+}
+
+.tests-card-btn-danger {
+	background: rgba(239, 68, 68, 0.08);
+	border-color: var(--tests-danger);
+	color: var(--tests-danger);
+}
+
+.tests-card-btn-danger:hover {
+	background: rgba(239, 68, 68, 0.15);
+}

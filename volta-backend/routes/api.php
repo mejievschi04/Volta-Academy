@@ -72,11 +72,16 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
     
     // Course Progress
     Route::get('/courses/{courseId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'getCourseProgress']);
+    Route::post('/courses/{courseId}/finish', [\App\Http\Controllers\Api\CourseProgressController::class, 'finishCourse']);
     Route::post('/lessons/{lessonId}/complete', [\App\Http\Controllers\Api\CourseProgressController::class, 'completeLesson']);
     Route::put('/lessons/{lessonId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'updateLessonProgress']);
     Route::get('/modules/{moduleId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkModuleAccess']);
     Route::get('/lessons/{lessonId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkLessonAccess']);
     Route::get('/exams/{examId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkExamAccess']);
+    
+    // Course maps (student: list and show map with published courses)
+    Route::get('/course-maps', [\App\Http\Controllers\Api\CourseMapController::class, 'index']);
+    Route::get('/course-maps/{id}', [\App\Http\Controllers\Api\CourseMapController::class, 'show']);
     
     // Exam endpoints
     Route::get('/exams/{examId}', [\App\Http\Controllers\Api\ExamController::class, 'show']);
@@ -100,9 +105,15 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
     Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
     Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
     Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
+    Route::patch('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'updateConversation']);
+    Route::post('/messages/conversations/{id}/leave', [\App\Http\Controllers\Api\MessageController::class, 'leaveGroup']);
     Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
     Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
     Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
+    Route::get('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'getParticipants']);
+    Route::post('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'addParticipants']);
+    Route::patch('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'updateParticipantGroupRole']);
+    Route::delete('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'removeParticipant']);
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
 });
 

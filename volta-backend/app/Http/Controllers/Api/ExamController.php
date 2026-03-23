@@ -22,6 +22,95 @@ class ExamController extends Controller
         $this->progressService = $progressService;
     }
 
+    protected function isAnswerCorrectFlag($answer): bool
+    {
+        if (!is_array($answer)) {
+            return false;
+        }
+
+        $value = $answer['is_correct'] ?? $answer['isCorrect'] ?? $answer['correct'] ?? false;
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return (int) $value === 1;
+        }
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+        }
+        return false;
+    }
+
+    protected function answerTextForShuffleKey($answer): string
+    {
+        if (!is_array($answer)) {
+            return (string) $answer;
+        }
+
+        return (string) (
+            $answer['text']
+            ?? $answer['answer_text']
+            ?? $answer['content']
+            ?? $answer['label']
+            ?? ''
+        );
+    }
+
+    /**
+     * Order answers as the student sees them for this attempt (deterministic shuffle when randomize_answers).
+     * Must use the same attempt number as selectQuestionsForTestAttempt / exam payload (existing results count + 1).
+     *
+     * @return array{answers: array, correct_index: int|null}
+     */
+    protected function resolveAnswersOrderForTestAttempt(Test $test, $question, $user, int $attemptNumber): array
+    {
+        $answers = $question->answers ?? [];
+        if (!is_array($answers)) {
+            $answers = [];
+        }
+
+        $correctAnswerIndex = null;
+        $type = $question->type ?? '';
+
+        if ($type === 'multiple_choice' || $type === 'true_false') {
+            foreach ($answers as $idx => $answer) {
+                if ($this->isAnswerCorrectFlag($answer)) {
+                    $correctAnswerIndex = $idx;
+                    break;
+                }
+            }
+        }
+
+        if (($type === 'multiple_choice' || $type === 'true_false')
+            && $test->randomize_answers
+            && count($answers) > 1
+        ) {
+            $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}:q{$question->id}";
+            $indexed = [];
+            foreach ($answers as $idx => $ans) {
+                $text = $this->answerTextForShuffleKey($ans);
+                $key = hash('sha1', $seedBase . ":a{$idx}:" . $text);
+                $indexed[] = ['key' => $key, 'idx' => $idx, 'ans' => $ans];
+            }
+            usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
+            $answers = array_values(array_map(fn ($x) => $x['ans'], $indexed));
+
+            $correctAnswerIndex = null;
+            foreach ($answers as $idx => $answer) {
+                if ($this->isAnswerCorrectFlag($answer)) {
+                    $correctAnswerIndex = $idx;
+                    break;
+                }
+            }
+        }
+
+        return [
+            'answers' => $answers,
+            'correct_index' => $correctAnswerIndex,
+        ];
+    }
+
     /**
      * Get exam/test details with access check
      * Supports both legacy Exam model and new Test model
@@ -92,47 +181,20 @@ class ExamController extends Controller
         
         // Transform questions (optionally randomize answers deterministically)
         $transformedQuestions = $questions->map(function($question) use ($test, $user, $attemptNumberForSeed) {
-            $answers = $question->answers ?? [];
-            $correctAnswerIndex = null;
-            
-            if ($question->type === 'multiple_choice' || $question->type === 'true_false') {
-                foreach ($answers as $idx => $answer) {
-                    if (is_array($answer) && ($answer['is_correct'] ?? false)) {
-                        $correctAnswerIndex = $idx;
-                        break;
-                    }
-                }
-            }
+            $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $attemptNumberForSeed);
+            $answers = $resolved['answers'];
+            $correctAnswerIndex = $resolved['correct_index'];
 
-            // Deterministic shuffle of answers (so show + submit see consistent order if needed)
-            if (($question->type === 'multiple_choice' || $question->type === 'true_false') && $test->randomize_answers && is_array($answers) && count($answers) > 1) {
-                $seedBase = "{$test->id}:{$user->id}:{$attemptNumberForSeed}:q{$question->id}";
-                $indexed = [];
-                foreach ($answers as $idx => $ans) {
-                    $text = is_array($ans) ? ($ans['text'] ?? '') : (string)$ans;
-                    $key = hash('sha1', $seedBase . ":a{$idx}:" . $text);
-                    $indexed[] = ['key' => $key, 'idx' => $idx, 'ans' => $ans];
-                }
-                usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
-                $answers = array_values(array_map(fn ($x) => $x['ans'], $indexed));
-
-                // Recompute correctAnswerIndex after shuffle
-                $correctAnswerIndex = null;
-                foreach ($answers as $idx => $answer) {
-                    if (is_array($answer) && ($answer['is_correct'] ?? false)) {
-                        $correctAnswerIndex = $idx;
-                        break;
-                    }
-                }
-            }
-            
             return [
                 'id' => $question->id,
                 'text' => $question->content,
                 'type' => $question->type ?? 'multiple_choice',
                 'options' => ($question->type === 'multiple_choice' || $question->type === 'true_false')
                     ? array_map(function($ans) {
-                        return is_array($ans) ? ($ans['text'] ?? '') : $ans;
+                        if (!is_array($ans)) {
+                            return $ans;
+                        }
+                        return $ans['text'] ?? $ans['answer_text'] ?? $ans['content'] ?? '';
                     }, $answers)
                     : [],
                 'answerIndex' => $correctAnswerIndex,
@@ -173,7 +235,7 @@ class ExamController extends Controller
             'has_passed' => $hasPassed,
             'latest_result' => $latestResult ? [
                 'score' => $latestResult->score ?? 0,
-                'total_points' => $latestResult->total_points ?? 0,
+                'total_points' => $latestResult->max_score ?? $latestResult->total_points ?? 0,
                 'percentage' => $latestResult->percentage ?? 0,
                 'passed' => $hasPassed,
                 'completed_at' => $latestResult->completed_at,
@@ -446,20 +508,9 @@ class ExamController extends Controller
                 if (in_array($question->type ?? '', ['short_answer', 'essay'], true)) {
                     $needsManualReview = true;
                 } else {
-                    // Multiple choice or true/false
-                    $questionAnswers = $question->answers ?? [];
-                    if (!is_array($questionAnswers)) {
-                        $questionAnswers = [];
-                    }
-
-                    $correctAnswerIndex = null;
-
-                    foreach ($questionAnswers as $idx => $answer) {
-                        if (is_array($answer) && ($answer['is_correct'] ?? false)) {
-                            $correctAnswerIndex = $idx;
-                            break;
-                        }
-                    }
+                    // Multiple choice / true_false: same answer order as exam payload (incl. randomize_answers)
+                    $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $nextAttempt);
+                    $correctAnswerIndex = $resolved['correct_index'];
 
                     if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
                         $score += $points;

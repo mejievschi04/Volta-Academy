@@ -10,23 +10,23 @@ const DashboardHeader = ({
 	const [selectedCourse, setSelectedCourse] = useState('');
 
 	const dateRanges = [
-		{ value: 'today', label: 'Today' },
-		{ value: '7d', label: '7d' },
-		{ value: '30d', label: '30d' },
-		{ value: 'custom', label: 'Custom' },
+		{ value: 'today', label: 'Azi' },
+		{ value: '7d', label: '7 zile' },
+		{ value: '30d', label: '30 zile' },
+		{ value: 'custom', label: 'Personalizat' },
 	];
 
 	// Mock data - in real app, this would come from API
 	const organizations = [
-		{ value: '', label: 'All Organizations' },
-		{ value: 'org1', label: 'Tech Corp' },
-		{ value: 'org2', label: 'Edu Solutions' },
+		{ value: '', label: 'Toate organizațiile' },
+		{ value: 'org1', label: 'Organizație 1' },
+		{ value: 'org2', label: 'Organizație 2' },
 	];
 
 	const courses = [
-		{ value: '', label: 'All Courses' },
-		{ value: 'course1', label: 'React Fundamentals' },
-		{ value: 'course2', label: 'Advanced JavaScript' },
+		{ value: '', label: 'Toate cursurile' },
+		{ value: 'course1', label: 'Curs 1' },
+		{ value: 'course2', label: 'Curs 2' },
 	];
 
 	const handleCreateCourse = () => {
@@ -40,14 +40,14 @@ const DashboardHeader = ({
 	return (
 		<header className="admin-dashboard-header">
 			<div className="admin-dashboard-header-left">
-				<h1 className="admin-dashboard-title">Admin Dashboard</h1>
+				<h1 className="admin-dashboard-title">Panou admin</h1>
 			</div>
 
 			<div className="admin-dashboard-header-center">
 				<div className="admin-dashboard-filters">
 					{/* Date Range Selector */}
 					<div className="admin-filter-group">
-						<label className="admin-filter-label">Date Range</label>
+						<label className="admin-filter-label">Perioadă</label>
 						<select
 							value={period}
 							onChange={(e) => onPeriodChange(e.target.value)}
@@ -75,7 +75,7 @@ const DashboardHeader = ({
 
 					{/* Course Filter */}
 					<div className="admin-filter-group">
-						<label className="admin-filter-label">Course</label>
+						<label className="admin-filter-label">Curs</label>
 						<select
 							value={selectedCourse}
 							onChange={(e) => setSelectedCourse(e.target.value)}
@@ -95,13 +95,13 @@ const DashboardHeader = ({
 						className="admin-action-btn admin-action-btn-secondary"
 						onClick={handleInviteUsers}
 					>
-						Invite users
+						Invită utilizatori
 					</button>
 					<button
 						className="admin-action-btn admin-action-btn-primary"
 						onClick={handleCreateCourse}
 					>
-						Create course
+						Creează curs
 					</button>
 				</div>
 			</div>

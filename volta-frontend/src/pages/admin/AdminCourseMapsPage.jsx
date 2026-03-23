@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
+
+const COURSE_MAP_ACCENT_COLORS = [
+	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
+];
 
 const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 	const navigate = useNavigate();
@@ -16,6 +21,8 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 	const [formName, setFormName] = useState('');
 	const [formDescription, setFormDescription] = useState('');
 	const [addCourseIds, setAddCourseIds] = useState([]);
+	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	const fetchMaps = useCallback(async () => {
 		try {
@@ -88,15 +95,23 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 	};
 
 	const deleteMap = async (map) => {
-		if (!window.confirm(`Ștergi mapa „${map.name}”? Cursurile nu sunt șterse, doar gruparea.`)) return;
+		if (!map) return;
+		setDeleteLoading(true);
 		try {
 			await adminService.deleteCourseMap(map.id);
 			showToast('Mapa a fost ștearsă', 'success');
+			setDeleteConfirmMap(null);
 			if (managingMap?.id === map.id) setManagingMap(null);
 			fetchMaps();
 		} catch (err) {
-			showToast('Eroare la ștergere', 'error');
+			showToast(err?.response?.data?.message || 'Eroare la ștergere', 'error');
+		} finally {
+			setDeleteLoading(false);
 		}
+	};
+
+	const handleConfirmDeleteMap = () => {
+		if (deleteConfirmMap) deleteMap(deleteConfirmMap);
 	};
 
 	const openManage = async (map) => {
@@ -177,6 +192,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								className="admin-courses-search-input"
+								aria-label="Caută mape de curs"
 							/>
 						</div>
 					</div>
@@ -196,150 +212,110 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 					</button>
 				</div>
 			) : (
-				<div className="admin-courses-grid">
-					<div className="admin-courses-grid-container">
-						{maps.map((map) => (
-							<div
-								key={map.id}
-								className="admin-course-card admin-course-card-map"
-								onClick={() => onOpenMap && onOpenMap(map)}
-								role={onOpenMap ? 'button' : undefined}
-								tabIndex={onOpenMap ? 0 : undefined}
-								onKeyDown={onOpenMap ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenMap(map); } } : undefined}
-								style={onOpenMap ? { cursor: 'pointer' } : undefined}
-							>
-								{/* X roșu – dreapta sus, șterge mapa (span ca să nu se aplice stiluri globale pe button) */}
-								<span
-									role="button"
-									tabIndex={0}
-									className="admin-course-map-delete-btn"
-									onClick={(e) => { e.stopPropagation(); deleteMap(map); }}
-									onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); deleteMap(map); } }}
-									aria-label="Șterge mapa"
-									style={{
-										position: 'absolute',
-										top: 12,
-										right: 12,
-										zIndex: 10,
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										width: 36,
-										height: 36,
-										padding: 0,
-										background: '#c62828',
-										border: '2px solid #b71c1c',
-										borderRadius: 6,
-										color: '#fff',
-										boxShadow: 'none',
-										cursor: 'pointer',
-									}}
+				<div className="admin-courses-grid admin-courses-grid-maps">
+					<div className="admin-courses-grid-container admin-courses-grid-container-maps">
+						{maps.map((map, index) => {
+							const accentColor = COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+							const courseCount = map.courses_count ?? map.courses?.length ?? 0;
+							const summary = map.description || `${courseCount} cursuri`;
+							return (
+								<div
+									key={map.id}
+									className="admin-course-card admin-course-card-map"
+									onClick={() => onOpenMap && onOpenMap(map)}
+									role={onOpenMap ? 'button' : undefined}
+									tabIndex={onOpenMap ? 0 : undefined}
+									onKeyDown={onOpenMap ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenMap(map); } } : undefined}
+									style={onOpenMap ? { cursor: 'pointer' } : undefined}
 								>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-								</span>
-								{/* Edit – stânga jos, doar icon, aceeași dimensiune ca ștergere */}
-								<button
-									type="button"
-									className="admin-course-map-edit-btn"
-									onClick={(e) => { e.stopPropagation(); openEdit(map); }}
-									aria-label="Editează mapa"
-								>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-								</button>
-								<div className="admin-course-map-grey">
-									<span className="admin-course-map-icon" aria-hidden>📁</span>
-									<span className="admin-course-status-badge admin-course-map-name" style={{ backgroundColor: 'transparent', color: '#1a1a1a' }}>
-										{map.name || '—'}
+									<span
+										role="button"
+										tabIndex={0}
+										className="admin-course-map-delete-btn"
+onClick={(e) => { e.stopPropagation(); setDeleteConfirmMap(map); }}
+																		onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDeleteConfirmMap(map); } }}
+										aria-label="Șterge mapa"
+									>
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 									</span>
-									{map.description && (
-										<p className="admin-course-card-description">
-											{map.description.length > 120 ? map.description.slice(0, 120) + '...' : map.description}
-										</p>
-									)}
+									<div className="admin-course-map-body">
+										<div className="admin-course-map-icon-wrap" style={{ '--map-accent': accentColor }}>
+											<svg className="admin-course-map-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+												<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+												<line x1="12" y1="11" x2="12" y2="17"/>
+												<line x1="9" y1="14" x2="15" y2="14"/>
+											</svg>
+										</div>
+										<div className="admin-course-map-content">
+											<h3 className="admin-course-map-title">{map.name || '—'}</h3>
+											<p className="admin-course-map-summary">{map.description && map.description.length > 120 ? map.description.slice(0, 120) + '...' : summary}</p>
+											<div className="admin-course-map-footer">
+												<span className="admin-course-map-cta-label">Deschide</span>
+												<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+												<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
+													<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); openEdit(map); }} aria-label="Editează mapa">
+														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+													</button>
+													<button type="button" className="admin-course-map-plus-btn" onClick={(e) => { e.stopPropagation(); navigate(`/admin/courses/new?map_id=${map.id}`); }} aria-label="Creează curs în mapa">
+														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
 								</div>
-								{/* Buton + – creează curs în mapa */}
-								<span
-									role="button"
-									tabIndex={0}
-									className="admin-course-map-plus-btn"
-									onClick={(e) => { e.stopPropagation(); navigate(`/admin/courses/new?map_id=${map.id}`); }}
-									onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/admin/courses/new?map_id=${map.id}`); } }}
-									aria-label="Creează curs în mapa"
-									style={{
-										position: 'absolute',
-										bottom: 16,
-										right: 16,
-										zIndex: 5,
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										width: 36,
-										height: 36,
-										padding: 0,
-										background: '#FFEE00',
-										backgroundColor: '#FFEE00',
-										border: '2px solid rgba(45, 45, 45, 0.4)',
-										borderRadius: 6,
-										color: '#1a1a1a',
-										boxShadow: 'none',
-										cursor: 'pointer',
-									}}
-								>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-								</span>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				</div>
 			)}
 
-			{/* Create/Edit modal */}
+			{/* Create/Edit modal – standard LMS: secțiuni clare, selector cursuri cu checkbox */}
 			{showCreateModal && (
 				<div className="admin-modal-overlay" onClick={() => setShowCreateModal(false)}>
-					<div className={`admin-modal ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
+					<div className={`admin-modal admin-modal-create ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
 						<div className="admin-modal-body">
-							<label className="admin-form-label">Nume</label>
-							<input
-								type="text"
-								className="admin-form-input"
-								value={formName}
-								onChange={(e) => setFormName(e.target.value)}
-								placeholder="ex: Cursuri programare"
-							/>
-							<label className="admin-form-label">Descriere (opțional)</label>
-							<textarea
-								className="admin-form-input"
-								value={formDescription}
-								onChange={(e) => setFormDescription(e.target.value)}
-								placeholder="Descriere scurtă..."
-								rows={3}
-							/>
-							{/* La editare: secțiune cursuri în mapă */}
+							<section className="admin-form-section">
+								<h3 className="admin-form-section-title">Informații de bază</h3>
+								<label className="admin-form-label" htmlFor="course-map-name">Nume</label>
+								<input
+									id="course-map-name"
+									type="text"
+									className="admin-form-input"
+									value={formName}
+									onChange={(e) => setFormName(e.target.value)}
+									placeholder="Titlul hărții de cursuri"
+									aria-required="true"
+								/>
+								<label className="admin-form-label" htmlFor="course-map-desc">Descriere (opțional)</label>
+								<textarea
+									id="course-map-desc"
+									className="admin-form-input"
+									value={formDescription}
+									onChange={(e) => setFormDescription(e.target.value)}
+									placeholder="Descriere scurtă pentru studenți..."
+									rows={3}
+								/>
+								<p className="admin-form-hint">Cursurile din mapă vor apărea grupat pentru studenți.</p>
+							</section>
+
 							{editingMap && (
-								<>
-									<label className="admin-form-label" style={{ marginTop: 'var(--space-4)' }}>Cursuri în mapă</label>
-									<div className="admin-course-map-courses-list" style={{ marginBottom: 'var(--space-2)' }}>
+								<section className="admin-form-section" aria-label="Cursuri în mapă">
+									<h3 className="admin-form-section-title">Cursuri în mapă</h3>
+									<div className="admin-course-map-courses-list">
 										{(editingMap.courses || []).length === 0 ? (
-											<p className="admin-text-muted">Niciun curs în această mapă. Adaugă cursuri mai jos.</p>
+											<p className="admin-text-muted">Niciun curs în această mapă. Selectează cursuri mai jos și apasă Adaugă.</p>
 										) : (
-											<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+											<ul className="admin-course-map-current-list">
 												{(editingMap.courses || []).map((c) => (
-													<li
-														key={c.id}
-														style={{
-															display: 'flex',
-															alignItems: 'center',
-															justifyContent: 'space-between',
-															padding: 'var(--space-2) 0',
-															borderBottom: '1px solid var(--border-color)',
-														}}
-													>
+													<li key={c.id} className="admin-course-map-current-item">
 														<span>{c.title}</span>
 														<button
 															type="button"
-															className="admin-course-card-action-btn va-btn-danger"
+															className="admin-course-map-remove-btn"
 															onClick={() => removeCourseFromMap(c.id, true)}
+															aria-label={`Scoate ${c.title} din mapă`}
 														>
 															Scoate
 														</button>
@@ -349,40 +325,48 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 										)}
 									</div>
 									<label className="admin-form-label">Adaugă cursuri la mapă</label>
-									<select
-										multiple
-										className="admin-form-input"
-										value={addCourseIds.map(String)}
-										onChange={(e) => {
-											const opts = e.target.selectedOptions;
-											setAddCourseIds(Array.from(opts).map((o) => parseInt(o.value, 10)));
-										}}
-										style={{ minHeight: 100 }}
-									>
-										{availableCoursesForEdit.map((c) => (
-											<option key={c.id} value={c.id}>{c.title}</option>
-										))}
-									</select>
-									<p className="admin-text-muted" style={{ marginTop: 4, fontSize: 'var(--font-size-sm)' }}>
-										Ține Ctrl/Cmd pentru selecție multiplă.
-									</p>
+									<div className="admin-course-map-picker" role="group" aria-label="Selectează cursuri de adăugat">
+										{availableCoursesForEdit.length === 0 ? (
+											<p className="admin-text-muted">Toate cursurile sunt deja în mapă sau nu există cursuri disponibile.</p>
+										) : (
+											<ul className="admin-course-map-checkbox-list">
+												{availableCoursesForEdit.map((c) => (
+													<li key={c.id} className="admin-course-map-checkbox-item">
+														<label className="admin-checkbox-label">
+															<input
+																type="checkbox"
+																checked={addCourseIds.includes(c.id)}
+																onChange={(e) => {
+																	if (e.target.checked) {
+																		setAddCourseIds((prev) => [...prev, c.id]);
+																	} else {
+																		setAddCourseIds((prev) => prev.filter((id) => id !== c.id));
+																	}
+																}}
+															/>
+															<span>{c.title}</span>
+														</label>
+													</li>
+												))}
+											</ul>
+										)}
+									</div>
 									<button
 										type="button"
-										className="lms-btn-primary"
-										style={{ marginTop: 'var(--space-2)' }}
+										className="lms-btn-primary lms-btn-sm"
 										onClick={() => addCoursesToMap(true)}
 										disabled={addCourseIds.length === 0}
 									>
-										Adaugă cursurile selectate
+										Adaugă cursurile selectate {addCourseIds.length > 0 && `(${addCourseIds.length})`}
 									</button>
-								</>
+								</section>
 							)}
 						</div>
 						<div className="admin-modal-actions">
 							<button type="button" className="lms-btn-secondary" onClick={() => setShowCreateModal(false)}>
 								Anulare
 							</button>
-							<button type="button" className="lms-btn-primary" onClick={saveMap}>
+							<button type="button" className="lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>
 								{editingMap ? 'Salvează' : 'Creează'}
 							</button>
 						</div>
@@ -393,65 +377,68 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 			{/* Manage courses modal */}
 			{managingMap && (
 				<div className="admin-modal-overlay" onClick={() => setManagingMap(null)}>
-					<div className="admin-modal admin-modal-lg" onClick={(e) => e.stopPropagation()}>
+					<div className="admin-modal admin-modal-create admin-modal-lg" onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">Cursuri în „{managingMap.name}”</h2>
 						<div className="admin-modal-body">
-							<div className="admin-course-map-courses-list" style={{ marginBottom: 'var(--space-4)' }}>
-								{(managingMap.courses || []).length === 0 ? (
-									<p className="admin-text-muted">Niciun curs în această mapă. Adaugă cursuri mai jos.</p>
-								) : (
-									<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-										{(managingMap.courses || []).map((c) => (
-											<li
-												key={c.id}
-												style={{
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'space-between',
-													padding: 'var(--space-2) 0',
-													borderBottom: '1px solid var(--border-color)',
-												}}
-											>
-												<span>{c.title}</span>
-												<button
-													type="button"
-													className="admin-course-card-action-btn va-btn-danger"
-													onClick={() => removeCourseFromMap(c.id)}
-												>
-													Scoate
-												</button>
-											</li>
-										))}
-									</ul>
-								)}
-							</div>
-							<label className="admin-form-label">Adaugă cursuri</label>
-							<select
-								multiple
-								className="admin-form-input"
-								value={addCourseIds.map(String)}
-								onChange={(e) => {
-									const opts = e.target.selectedOptions;
-									setAddCourseIds(Array.from(opts).map((o) => parseInt(o.value, 10)));
-								}}
-								style={{ minHeight: 120 }}
-							>
-								{availableCourses.map((c) => (
-									<option key={c.id} value={c.id}>{c.title}</option>
-								))}
-							</select>
-							<p className="admin-text-muted" style={{ marginTop: 4, fontSize: 'var(--font-size-sm)' }}>
-								Ține Ctrl/Cmd pentru selecție multiplă.
-							</p>
-							<button
-								type="button"
-								className="lms-btn-primary"
-								style={{ marginTop: 'var(--space-2)' }}
-								onClick={addCoursesToMap}
-								disabled={addCourseIds.length === 0}
-							>
-								Adaugă cursurile selectate
-							</button>
+							<section className="admin-form-section" aria-label="Cursuri în mapă">
+								<h3 className="admin-form-section-title">Cursuri curente</h3>
+								<div className="admin-course-map-courses-list">
+									{(managingMap.courses || []).length === 0 ? (
+										<p className="admin-text-muted">Niciun curs în această mapă. Selectează cursuri mai jos și apasă Adaugă.</p>
+									) : (
+										<ul className="admin-course-map-current-list">
+											{(managingMap.courses || []).map((c) => (
+												<li key={c.id} className="admin-course-map-current-item">
+													<span>{c.title}</span>
+													<button
+														type="button"
+														className="admin-course-map-remove-btn"
+														onClick={() => removeCourseFromMap(c.id)}
+														aria-label={`Scoate ${c.title} din mapă`}
+													>
+														Scoate
+													</button>
+												</li>
+											))}
+										</ul>
+									)}
+								</div>
+								<label className="admin-form-label">Adaugă cursuri</label>
+								<div className="admin-course-map-picker" role="group" aria-label="Selectează cursuri de adăugat">
+									{availableCourses.length === 0 ? (
+										<p className="admin-text-muted">Toate cursurile sunt deja în mapă.</p>
+									) : (
+										<ul className="admin-course-map-checkbox-list">
+											{availableCourses.map((c) => (
+												<li key={c.id} className="admin-course-map-checkbox-item">
+													<label className="admin-checkbox-label">
+														<input
+															type="checkbox"
+															checked={addCourseIds.includes(c.id)}
+															onChange={(e) => {
+																if (e.target.checked) {
+																	setAddCourseIds((prev) => [...prev, c.id]);
+																} else {
+																	setAddCourseIds((prev) => prev.filter((id) => id !== c.id));
+																}
+															}}
+														/>
+														<span>{c.title}</span>
+													</label>
+												</li>
+											))}
+										</ul>
+									)}
+								</div>
+								<button
+									type="button"
+									className="lms-btn-primary lms-btn-sm"
+									onClick={addCoursesToMap}
+									disabled={addCourseIds.length === 0}
+								>
+									Adaugă cursurile selectate {addCourseIds.length > 0 && `(${addCourseIds.length})`}
+								</button>
+							</section>
 						</div>
 						<div className="admin-modal-actions">
 							<button type="button" className="lms-btn-primary" onClick={() => setManagingMap(null)}>
@@ -461,6 +448,18 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap }) => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={!!deleteConfirmMap}
+				onClose={() => setDeleteConfirmMap(null)}
+				onConfirm={handleConfirmDeleteMap}
+				title="Șterge mapa"
+				message={deleteConfirmMap ? `Ștergi mapa „${deleteConfirmMap.name}”? Cursurile nu sunt șterse, doar gruparea.` : ''}
+				confirmLabel="Șterge"
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deleteLoading}
+			/>
 		</div>
 	);
 };

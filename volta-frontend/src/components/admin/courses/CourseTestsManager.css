@@ -223,6 +223,22 @@
 	margin-right: var(--space-2);
 }
 
+.course-tests-check-label {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.course-tests-check-label input {
+	accent-color: var(--color-primary);
+}
+
+.course-tests-modal-hint {
+	margin: var(--space-1) 0 0;
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
 .course-tests-modal-footer {
 	display: flex;
 	justify-content: flex-end;

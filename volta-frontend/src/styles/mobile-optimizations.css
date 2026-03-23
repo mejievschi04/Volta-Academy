@@ -305,12 +305,6 @@
 		color: var(--text-primary) !important;
 	}
 
-	/* Hide desktop sidebar expand button on mobile - admin uses hamburger */
-	.sidebar-expand-toggle.desktop-sidebar-toggle,
-	.modern-sidebar .desktop-sidebar-toggle {
-		display: none !important;
-	}
-
 	/* Top navigation - always visible with logo - must be below sidebar */
 	.topnav,
 	.modern-topnav,
@@ -326,7 +320,7 @@
 		left: 0;
 		right: 0;
 		z-index: 998;
-		background: var(--bg-elevated);
+		background-color: var(--border-primary);
 		backdrop-filter: none !important;
 		-webkit-backdrop-filter: none !important;
 	}
@@ -957,12 +951,6 @@
 		display: flex !important;
 		visibility: visible !important;
 		opacity: 1 !important;
-	}
-
-	/* Reset animation durations */
-	* {
-		animation-duration: inherit !important;
-		transition-duration: inherit !important;
 	}
 
 	/* Reset focus indicators */

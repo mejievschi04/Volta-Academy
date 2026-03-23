@@ -5,6 +5,9 @@
 
 /* ============================================
    1. BUTTONS - PRIMARY & SECONDARY
+   Convenție: .admin-btn .admin-btn-primary / .admin-btn-secondary în admin;
+   .lms-btn-primary / .lms-btn-secondary în rest. .btn-primary / .btn-secondary
+   păstrate pentru compatibilitate.
    ============================================ */
 .btn {
 	display: inline-flex;
@@ -349,6 +352,8 @@
 
 /* ============================================
    3. FORM INPUTS
+   Convenție: form-group / form-label / form-input = formulare generice.
+   În zone admin preferați: admin-form-group + va-form-label + va-form-input.
    ============================================ */
 .form-group {
 	display: flex;
@@ -363,9 +368,10 @@
 	color: var(--text-primary);
 }
 
-/* Unified Input System - va-input */
+/* Unified Input System – va-input / form-input; .form-control = alias (legacy) */
 .va-input,
 .form-input,
+.form-control,
 .form-textarea,
 .form-select {
 	width: 100%;
@@ -382,6 +388,7 @@
 
 .va-input:focus,
 .form-input:focus,
+.form-control:focus,
 .form-textarea:focus,
 .form-select:focus {
 	outline: none;
@@ -392,6 +399,7 @@
 
 .va-input::placeholder,
 .form-input::placeholder,
+.form-control::placeholder,
 .form-textarea::placeholder {
 	color: var(--text-tertiary);
 }
@@ -399,6 +407,7 @@
 /* Input States - Error */
 .va-input.error,
 .form-input.error,
+.form-control.error,
 .form-textarea.error,
 .form-select.error {
 	border-color: var(--color-error);

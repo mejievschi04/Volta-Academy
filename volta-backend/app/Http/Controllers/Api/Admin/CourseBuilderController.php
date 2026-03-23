@@ -625,16 +625,30 @@ class CourseBuilderController extends Controller
         $test = Test::findOrFail($testId);
 
         $validated = $request->validate([
+            'course_test_id' => 'nullable|integer|exists:course_test,id',
             'scope' => 'nullable|in:lesson,module,course',
             'scope_id' => 'nullable|integer',
         ]);
 
-        $deleted = $this->courseBuilderService->detachTest(
-            $course,
-            $test,
-            $validated['scope'] ?? null,
-            $validated['scope_id'] ?? null
-        );
+        if (!empty($validated['course_test_id'])) {
+            $deleted = CourseTest::where('id', (int) $validated['course_test_id'])
+                ->where('course_id', $course->id)
+                ->where('test_id', $test->id)
+                ->delete() > 0;
+        } else {
+            $deleted = $this->courseBuilderService->detachTest(
+                $course,
+                $test,
+                $validated['scope'] ?? null,
+                $validated['scope_id'] ?? null
+            );
+        }
+
+        if (!$deleted) {
+            return response()->json([
+                'error' => 'Nu a fost găsită atașarea testului pentru detașare.',
+            ], 404);
+        }
 
         return response()->json([
             'deleted' => (bool)$deleted,

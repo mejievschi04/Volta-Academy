@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { openaiService } from '../../../services/openaiService';
+import { useToast } from '../../../contexts/ToastContext';
 
 /**
  * Course Quality Validation - Conform defacut.md secțiunea 8
@@ -13,6 +14,7 @@ import { openaiService } from '../../../services/openaiService';
  * - Fix suggestions
  */
 const CourseQualityValidation = ({ courseData, onValidationComplete }) => {
+	const { showToast } = useToast();
 	const [validating, setValidating] = useState(false);
 	const [validationResults, setValidationResults] = useState(null);
 	const [readinessScore, setReadinessScore] = useState(null);
@@ -20,7 +22,7 @@ const CourseQualityValidation = ({ courseData, onValidationComplete }) => {
 	// Run validation
 	const handleValidate = async () => {
 		if (!courseData || !courseData.modules || courseData.modules.length === 0) {
-			alert('Cursul trebuie să aibă cel puțin un modul pentru validare');
+			showToast('Cursul trebuie să aibă cel puțin un modul pentru validare', 'info');
 			return;
 		}
 
@@ -144,11 +146,11 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing validation response:', e);
-				alert('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.');
+				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error validating course:', error);
-			alert('Eroare la validarea cursului: ' + (error.message || 'Eroare necunoscută'));
+			showToast('Eroare la validarea cursului: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setValidating(false);
 		}
@@ -192,7 +194,7 @@ Răspunde în format JSON:
 			{readinessScore !== null && (
 				<div className="readiness-score-panel">
 					<div className="readiness-score-header">
-						<h4>Readiness Score</h4>
+						<h4>Grad de pregătire</h4>
 						<div className={`readiness-score-value ${readinessScore >= 80 ? 'excellent' : readinessScore >= 60 ? 'good' : 'needs-work'}`}>
 							{readinessScore}/100
 						</div>

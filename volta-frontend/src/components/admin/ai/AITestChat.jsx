@@ -9,7 +9,7 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 	const [messages, setMessages] = useState([
 		{
 			role: 'assistant',
-			content: 'Bună! Sunt asistentul tău AI pentru crearea testelor. Spune-mi ce fel de test vrei să creezi. De exemplu: "Creează un test cu 10 întrebări despre React" sau "Vreau un test de evaluare pentru Laravel".',
+			content: 'Bună! Sunt asistentul tău AI pentru crearea testelor. Spune-mi tipul de test, numărul de întrebări și subiectul pe care îl acoperă.',
 		},
 	]);
 	const [input, setInput] = useState('');
