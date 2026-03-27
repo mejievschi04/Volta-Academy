@@ -53,12 +53,12 @@ if (config('app.debug')) {
 // Auth routes with rate limiting (prevent brute force attacks)
 Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:15,1'); // 15 attempts per minute
 Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:15,1'); // 15 attempts per minute
-Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth');
-Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth');
-Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth', 'throttle:3,1']); // 3 attempts per minute for password change
+Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth:sanctum');
+Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'throttle:3,1']); // 3 attempts per minute for password change
 
 // Protected routes (require authentication) with rate limiting
-Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/profile', [ProfileController::class, 'index']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
@@ -118,7 +118,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () { // 60 requests
 });
 
 // Admin routes (require admin role) with rate limiting
-Route::middleware(['auth', \App\Http\Middleware\AdminOrInstructorMiddleware::class, 'throttle:120,1'])->prefix('admin')->group(function () { // admin + instructor (instructor: doar cursuri și teste)
+Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddleware::class, 'throttle:120,1'])->prefix('admin')->group(function () { // admin + instructor (instructor: doar cursuri și teste)
     // Admin Dashboard
     Route::get('/dashboard', [DashboardAdminController::class, 'index']);
     

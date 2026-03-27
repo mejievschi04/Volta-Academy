@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Volta Academy",
+    "slug": "volta-student-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/volta-logo.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/volta-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121212"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "resize",
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#121212",
+        "foregroundImage": "./assets/volta-logo.png"
+      },
+      "package": "com.mjsky.voltastudentmobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9cdf9674-fcac-491d-bbed-96e2adbcd2ad"
+      }
+    }
+  }
+}

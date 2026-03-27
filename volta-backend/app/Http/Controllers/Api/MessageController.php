@@ -167,11 +167,17 @@ class MessageController extends Controller
             ->with('sender')
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function ($message) {
+            ->map(function ($message) use ($user) {
                 return [
                     'id' => $message->id,
                     'content' => $message->content,
                     'sender_id' => $message->sender_id,
+                    'sender_name' => $message->sender?->name,
+                    'sender' => $message->sender ? [
+                        'id' => $message->sender->id,
+                        'name' => $message->sender->name,
+                    ] : null,
+                    'mine' => (int) $message->sender_id === (int) $user->id,
                     'created_at' => $message->created_at->toISOString(),
                     'read' => $message->read,
                 ];
@@ -222,6 +228,12 @@ class MessageController extends Controller
                 'id' => $message->id,
                 'content' => $message->content,
                 'sender_id' => $message->sender_id,
+                'sender_name' => $user->name,
+                'sender' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ],
+                'mine' => true,
                 'created_at' => $message->created_at->toISOString(),
                 'read' => $message->read,
             ],

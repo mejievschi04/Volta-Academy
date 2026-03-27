@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -105,6 +106,12 @@ class AuthController extends Controller
                     'must_change_password' => (bool)$mustChangePassword,
                 ],
             ];
+
+            // React Native: nu persistă cookie-uri de sesiune ca browserul — token Bearer (Sanctum)
+            $wantsMobileToken = strtolower((string) $request->header('X-Volta-Client', '')) === 'mobile';
+            if ($wantsMobileToken) {
+                $responseData['token'] = $user->createToken('volta-student-mobile', ['*'])->plainTextToken;
+            }
             
             // Only include debug info in development
             if (config('app.debug')) {
@@ -140,9 +147,20 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $bearer = $request->bearerToken();
+        if ($bearer) {
+            $accessToken = PersonalAccessToken::findToken($bearer);
+            if ($accessToken) {
+                $accessToken->delete();
+            }
+        }
+
+        Auth::guard('web')->logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'message' => 'Deconectare reușită',

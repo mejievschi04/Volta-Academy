@@ -12,11 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Sanctum: sesiune cookie pentru SPA + Bearer token pentru mobil
         // Enable sessions for API routes (needed for authentication)
         // Order matters: StartSession must come early, after CORS
         $middleware->api(prepend: [
             \App\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SecurityHeaders::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Session\Middleware\StartSession::class,
         ]);
         // AuthenticateSession can cause issues with API routes, so we'll handle auth differently
