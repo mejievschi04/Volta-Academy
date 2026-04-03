@@ -13,17 +13,13 @@ use Carbon\Carbon;
 
 class EventAdminController extends Controller
 {
-    public function __construct()
-    {
-        if (auth()->check() && auth()->user()->isInstructor()) {
-            abort(403, 'Doar administratorii pot gestiona evenimentele.');
-        }
-    }
-
     public function index(Request $request)
     {
         $query = Event::with(['instructor:id,name,email', 'course:id,title']);
-        
+        if (auth()->user()->isInstructor()) {
+            $query->where('instructor_id', auth()->id());
+        }
+
         // Search
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -104,6 +100,7 @@ class EventAdminController extends Controller
     {
         $event = Event::with(['instructor', 'course', 'registeredUsers', 'attendedUsers'])
             ->findOrFail($id);
+        $this->ensureCanManageEvent($event);
 
         // Return raw datetime values without timezone conversion
         $event->start_date = $event->getRawOriginal('start_date') ?? $event->start_date;
@@ -125,6 +122,8 @@ class EventAdminController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeOptionalUrls($request);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -172,6 +171,10 @@ class EventAdminController extends Controller
             $validated['price'] = 0;
         }
 
+        if (auth()->user()->isInstructor()) {
+            $validated['instructor_id'] = auth()->id();
+        }
+
         $event = Event::create($validated);
         $event->refresh();
         $event->load(['instructor', 'course']);
@@ -189,6 +192,9 @@ class EventAdminController extends Controller
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
+        $this->ensureCanManageEvent($event);
+
+        $this->normalizeOptionalUrls($request);
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -227,7 +233,11 @@ class EventAdminController extends Controller
         if ($validated['access_type'] === 'free') {
             $validated['price'] = 0;
         }
-        
+
+        if (auth()->user()->isInstructor()) {
+            unset($validated['instructor_id']);
+        }
+
         $event->update($validated);
         $event->refresh();
         $event->load(['instructor', 'course']);
@@ -248,6 +258,7 @@ class EventAdminController extends Controller
     public function destroy($id)
     {
         $event = Event::findOrFail($id);
+        $this->ensureCanManageEvent($event);
         $event->delete();
 
         return response()->json([
@@ -261,6 +272,7 @@ class EventAdminController extends Controller
     public function quickAction(Request $request, $id, $action)
     {
         $event = Event::findOrFail($id);
+        $this->ensureCanManageEvent($event);
 
         switch ($action) {
             case 'publish':
@@ -331,6 +343,7 @@ class EventAdminController extends Controller
         foreach ($eventIds as $eventId) {
             try {
                 $event = Event::findOrFail($eventId);
+                $this->ensureCanManageEvent($event);
 
                 switch ($action) {
                     case 'publish':
@@ -385,29 +398,46 @@ class EventAdminController extends Controller
      */
     public function insights()
     {
-        $totalEvents = Event::count();
-        $publishedEvents = Event::where('status', 'published')->count();
-        $upcomingEvents = Event::where('status', 'upcoming')->orWhere(function($q) {
-            $q->where('status', 'published')
-              ->where('start_date', '>', now());
+        $scoped = Event::query();
+        if (auth()->user()->isInstructor()) {
+            $scoped->where('instructor_id', auth()->id());
+        }
+
+        $totalEvents = (clone $scoped)->count();
+        $publishedEvents = (clone $scoped)->where('status', 'published')->count();
+        $upcomingEvents = (clone $scoped)->where(function ($q) {
+            $q->where('status', 'upcoming')
+                ->orWhere(function ($q2) {
+                    $q2->where('status', 'published')
+                        ->where('start_date', '>', now());
+                });
         })->count();
-        $completedEvents = Event::where('status', 'completed')->count();
-        $cancelledEvents = Event::where('status', 'cancelled')->count();
+        $completedEvents = (clone $scoped)->where('status', 'completed')->count();
+        $cancelledEvents = (clone $scoped)->where('status', 'cancelled')->count();
+
+        $myEventIds = (clone $scoped)->pluck('id');
+        $instructorScoped = auth()->user()->isInstructor();
 
         // Total registrations
         $totalRegistrations = 0;
         if (Schema::hasTable('event_user')) {
-            $totalRegistrations = DB::table('event_user')
-                ->where('registered', true)
-                ->count();
+            $rq = DB::table('event_user')->where('registered', true);
+            if ($instructorScoped) {
+                $totalRegistrations = $myEventIds->isEmpty() ? 0 : $rq->whereIn('event_id', $myEventIds)->count();
+            } else {
+                $totalRegistrations = $rq->count();
+            }
         }
 
         // Total attendance
         $totalAttendance = 0;
         if (Schema::hasTable('event_user')) {
-            $totalAttendance = DB::table('event_user')
-                ->where('attended', true)
-                ->count();
+            $aq = DB::table('event_user')->where('attended', true);
+            if ($instructorScoped) {
+                $totalAttendance = $myEventIds->isEmpty() ? 0 : $aq->whereIn('event_id', $myEventIds)->count();
+            } else {
+                $totalAttendance = $aq->count();
+            }
         }
 
         // Average attendance rate
@@ -417,7 +447,7 @@ class EventAdminController extends Controller
         }
 
         // Events with low registration
-        $lowRegistrationEvents = Event::where('max_capacity', '>', 0)
+        $lowRegistrationEvents = (clone $scoped)->where('max_capacity', '>', 0)
             ->get()
             ->filter(function($event) {
                 if ($event->max_capacity > 0) {
@@ -456,6 +486,16 @@ class EventAdminController extends Controller
      */
     public function getInstructors()
     {
+        if (auth()->user()->isInstructor()) {
+            $u = auth()->user();
+
+            return response()->json([[
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+            ]]);
+        }
+
         $instructors = User::whereHas('courses')
             ->orWhereHas('events', function($q) {
                 $q->whereNotNull('instructor_id');
@@ -507,5 +547,33 @@ class EventAdminController extends Controller
             return str_replace('T', ' ', $dateTimeString) . ':00';
         }
         return $dateTimeString;
+    }
+
+    private function normalizeOptionalUrls(Request $request): void
+    {
+        $clean = [];
+        foreach (['live_link', 'replay_url', 'thumbnail'] as $key) {
+            if ($request->has($key) && $request->input($key) === '') {
+                $clean[$key] = null;
+            }
+        }
+        if ($clean !== []) {
+            $request->merge($clean);
+        }
+    }
+
+    private function ensureCanManageEvent(Event $event): void
+    {
+        $user = auth()->user();
+        if (! $user) {
+            abort(401);
+        }
+        if ($user->isAdmin() || $user->isAnalyst()) {
+            return;
+        }
+        if ($user->isInstructor() && (int) $event->instructor_id === (int) $user->id) {
+            return;
+        }
+        abort(403, 'Nu poți gestiona acest eveniment.');
     }
 }

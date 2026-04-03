@@ -112,25 +112,31 @@ class CourseBuilderController extends Controller
             'size' => $file->getSize() ?? 0,
         ]);
 
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.upload_content_file',
-            'model_type' => Course::class,
-            'model_id' => $courseId,
-            'description' => 'Upload content file',
-            'old_values' => null,
-            'new_values' => [
-                'media_asset_id' => $asset->id,
-                'path' => $path,
-                'url' => $url,
-                'original_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-                'type' => $type,
-            ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id' => $request->user()?->id,
+                'action' => 'builder.upload_content_file',
+                'model_type' => Course::class,
+                'model_id' => $courseId,
+                'description' => 'Upload content file',
+                'old_values' => null,
+                'new_values' => [
+                    'media_asset_id' => $asset->id,
+                    'path' => $path,
+                    'url' => $url,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'type' => $type,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('CourseBuilderController::uploadContentFile activity log failed', [
+                'message' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'url' => $url,

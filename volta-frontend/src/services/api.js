@@ -230,9 +230,7 @@ export const profileService = {
   uploadAvatar: async (file) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    const response = await api.post('/profile/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/profile/avatar', formData);
     return response.data;
   },
 
@@ -549,9 +547,7 @@ export const adminService = {
   },
 
   uploadExamCover: async (id, formData) => {
-    const response = await api.post(`/admin/exams/${id}/cover`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post(`/admin/exams/${id}/cover`, formData);
     return response.data;
   },
   
@@ -1149,9 +1145,7 @@ export const adminService = {
   },
 
   builderUploadContentFile: async (courseId, formData) => {
-    const response = await api.post(`/admin/courses/${courseId}/builder/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post(`/admin/courses/${courseId}/builder/upload`, formData);
     return response.data;
   },
 
@@ -1266,11 +1260,7 @@ export const adminService = {
   importBackup: async (file) => {
     const formData = new FormData();
     formData.append('backup_file', file);
-    const response = await api.post('/admin/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/admin/import', formData);
     return response.data;
   },
 };

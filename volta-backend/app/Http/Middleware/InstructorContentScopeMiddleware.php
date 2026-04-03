@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Instructor: doar creare/editare conținut LMS (cursuri, builder, module, lecții,
  * examene, teste, întrebări, bănci, media, reguli progres, AI conținut).
- * Fără utilizatori, echipe, evenimente admin, setări, statistici, mape cursuri, export etc.
+ * Fără utilizatori, echipe, setări, statistici, mape cursuri, export etc. Evenimentele: acces cu domeniu instructor în controller.
  */
 class InstructorContentScopeMiddleware
 {
@@ -17,7 +17,6 @@ class InstructorContentScopeMiddleware
         'api/admin/users',
         'api/admin/team-members',
         'api/admin/teams',
-        'api/admin/events',
         'api/admin/settings',
         'api/admin/activity-logs',
         'api/admin/statistics',

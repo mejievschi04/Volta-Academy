@@ -54,7 +54,24 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    const url = config?.url || '';
+    if (
+      error.response?.status === 419 &&
+      config &&
+      !config._csrfRetry &&
+      url !== '/csrf-cookie'
+    ) {
+      config._csrfRetry = true;
+      try {
+        await api.get('/csrf-cookie');
+        return api.request(config);
+      } catch (retryErr) {
+        return Promise.reject(retryErr);
+      }
+    }
+
     const isAuthMe401 = error.response?.status === 401 && error.config?.url === '/auth/me';
     const status = error.response?.status;
     const is5xx = status >= 500 && status < 600;
