@@ -24,7 +24,7 @@
 
 @media (max-width: 768px) {
 	/* Buttons - PAGES ONLY (nu meniul). Touch target 44px. */
-	.va-shell-main button:not(.admin-settings-toggle-switch),
+	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch),
 	.va-shell-main .btn,
 	.va-shell-main .admin-btn,
 	.va-shell-main .va-btn,
@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn),
+	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -62,9 +62,9 @@
 	}
 
 	/* Icon buttons - pages only */
-	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch),
+	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch),
 	.va-shell-main .icon-btn,
-	.admin-container button[aria-label]:not(.admin-settings-toggle-switch),
+	.admin-container button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch),
 	.admin-container .icon-btn {
 		min-width: var(--btn-mobile-min-width);
 		min-height: var(--btn-mobile-min-height);
@@ -424,7 +424,7 @@
 		flex-shrink: 0 !important;
 	}
 
-	/* Nav - zona scrollabilă, ocupă spațiul rămas, flexibilă la înălțime */
+	/* Nav: container flex; scroll pe .va-sidebar-nav-scroll */
 	.sidebar .modern-nav,
 	.sidebar .va-sidebar-nav,
 	.modern-sidebar .modern-nav,
@@ -433,6 +433,15 @@
 	.va-sidebar .va-sidebar-nav,
 	.student-sidebar .modern-nav,
 	.student-sidebar .va-sidebar-nav {
+		flex: 1 1 0 !important;
+		min-height: 0 !important;
+		overflow: hidden !important;
+	}
+
+	.sidebar .va-sidebar-nav-scroll,
+	.modern-sidebar .va-sidebar-nav-scroll,
+	.va-sidebar .va-sidebar-nav-scroll,
+	.student-sidebar .va-sidebar-nav-scroll {
 		flex: 1 1 0 !important;
 		min-height: 0 !important;
 		overflow-y: auto !important;
@@ -478,9 +487,8 @@
 		transform: translateX(0) !important;
 	}
 
-	/* Student sidebar nav - padding redus ca să încapă tot meniul */
-	.student-sidebar .modern-nav,
-	.student-sidebar .va-sidebar-nav {
+	/* Student sidebar nav - padding pe zona scroll */
+	.student-sidebar .va-sidebar-nav-scroll {
 		padding: var(--space-3) var(--space-4) var(--space-4) !important;
 		gap: var(--space-2) !important;
 		margin-top: 0 !important;
@@ -759,7 +767,7 @@
 		top: -40px;
 		left: 0;
 		background: var(--color-primary);
-		color: #000;
+		color: var(--text-inverse);
 		padding: var(--space-2) var(--space-4);
 		text-decoration: none;
 		z-index: 1000;
@@ -2465,7 +2473,7 @@
 		min-width: 48px;
 		min-height: 48px;
 		flex-shrink: 0;
-		color: #000000 !important;
+		color: var(--text-inverse) !important;
 	}
 
 	.messages-conversation-item .messages-conversation-avatar img {
@@ -2477,7 +2485,7 @@
 
 	.messages-conversation-item .messages-conversation-avatar span,
 	.messages-conversation-item .messages-conversation-avatar * {
-		color: #000000 !important;
+		color: var(--text-inverse) !important;
 	}
 
 	.messages-conversation-item .messages-conversation-content {
@@ -2533,12 +2541,12 @@
 		height: 40px;
 		min-width: 40px;
 		min-height: 40px;
-		color: #000000 !important; /* Black text on yellow background */
+		color: var(--text-inverse) !important; /* Black text on yellow background */
 	}
 
 	.messages-chat-avatar span,
 	.messages-chat-avatar * {
-		color: #000000 !important; /* Ensure all text inside avatar is black */
+		color: var(--text-inverse) !important; /* Ensure all text inside avatar is black */
 	}
 
 	.messages-chat-name {
@@ -2632,7 +2640,7 @@
 		height: 72px !important;
 		font-size: var(--font-size-2xl) !important;
 		font-weight: var(--font-weight-bold) !important;
-		color: #000000 !important;
+		color: var(--text-inverse) !important;
 		border: 4px solid var(--bg-primary) !important;
 		box-shadow: var(--shadow-md) !important;
 	}
@@ -3998,18 +4006,18 @@
 	}
 
 	.lessons-page-lesson-actions .lessons-page-btn-secondary {
-		background: #FFEE00 !important;
-		color: #000 !important;
-		border-color: #FFEE00 !important;
+		background: var(--color-primary) !important;
+		color: var(--text-inverse) !important;
+		border-color: var(--color-primary) !important;
 		padding: var(--space-2) var(--space-4) !important;
 		font-size: var(--font-size-xs) !important;
 		min-height: 40px !important;
 	}
 
 	.lessons-page-lesson-actions .lessons-page-btn-secondary:hover {
-		background: #E6D600 !important;
-		color: #000 !important;
-		border-color: #E6D600 !important;
+		background: var(--color-primary-hover) !important;
+		color: var(--text-inverse) !important;
+		border-color: var(--color-primary-hover) !important;
 	}
 
 	.lesson-page-header {
@@ -4955,8 +4963,8 @@
 		min-height: 44px;
 	}
 
-	/* Va Stack - generic student page wrapper */
-	.va-stack {
+	/* Calendar-like / list pages (calendar, notificări) */
+	.va-calendar-like {
 		padding: var(--space-4);
 	}
 }
@@ -5823,9 +5831,9 @@
 	.modern-auth-form button[type="submit"].modern-auth-submit {
 		width: 100% !important;
 		padding: var(--space-4) var(--space-6) !important;
-		background-color: #FFEE00 !important;
-		color: #000000 !important;
-		border: 1px solid #FFEE00 !important;
+		background-color: var(--color-primary) !important;
+		color: var(--text-inverse) !important;
+		border: 1px solid var(--color-primary) !important;
 		border-radius: var(--radius-lg) !important;
 		font-size: var(--font-size-base) !important;
 		font-weight: var(--font-weight-semibold) !important;
@@ -5859,7 +5867,7 @@
 	button.modern-auth-submit:hover:not(:disabled),
 	.modern-auth-form button.modern-auth-submit:hover:not(:disabled),
 	button[type="submit"].modern-auth-submit:hover:not(:disabled) {
-		background-color: #E6D600 !important;
+		background-color: var(--color-primary-hover) !important;
 		box-shadow: var(--shadow-lg) !important;
 		transform: translateY(-1px) !important;
 	}
@@ -6037,7 +6045,7 @@
 /* Forțează text typewriter alb pe splash, indiferent de temă (loads last) */
 .splash-page .splash-typewriter .splash-typewriter-text,
 .splash-page .splash-typewriter .splash-typewriter-cursor {
-	color: #ffffff !important;
+	color: var(--color-white) !important;
 }
 
 @media (max-width: 768px) {
@@ -6049,7 +6057,7 @@
 		flex-direction: column !important;
 		align-items: center !important;
 		justify-content: center !important;
-		background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%) !important;
+		background: linear-gradient(135deg, var(--bg-sidebar-toggle) 0%, var(--bg-sidebar-toggle-hover) 50%, var(--bg-sidebar-toggle) 100%) !important;
 		z-index: 10000 !important;
 		overflow: hidden !important;
 	}

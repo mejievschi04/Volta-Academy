@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter } from '../utils/lessonOrder';
+import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import './LessonPage.css';
 
 const LessonPage = () => {
@@ -24,6 +25,12 @@ const LessonPage = () => {
 	const [isCompleting, setIsCompleting] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
+
+	useLessonTimeTracking(lessonId, {
+		userId: user?.id,
+		isCompleted,
+		enabled: Boolean(user?.id && lessonId),
+	});
 
 	// Handle auto-complete function
 	const handleAutoComplete = useCallback(async () => {

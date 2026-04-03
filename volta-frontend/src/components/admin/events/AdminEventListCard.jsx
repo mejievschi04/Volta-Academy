@@ -60,11 +60,13 @@ export default function AdminEventListCard({
 	onQuickAction,
 	onEdit,
 	onDelete,
+	readOnly = false,
 }) {
 	const desc = previewDescription(event);
 	const place = locationLine(event);
 	const typeLabel = TYPE_LABELS[event.type] || event.type;
-	const accessLabel = event.access_type ? ACCESS_LABELS[event.access_type] || event.access_type : null;
+	const accessLabel =
+		event.access_type === 'course_included' ? ACCESS_LABELS.course_included || event.access_type : null;
 	const statusKey = event.status || 'draft';
 	const statusClass = STATUS_MOD[statusKey] || STATUS_MOD.draft;
 	const statusText = STATUS_LABELS[statusKey] || statusKey;
@@ -73,16 +75,18 @@ export default function AdminEventListCard({
 		<article className="aev-card" aria-labelledby={`aev-title-${event.id}`}>
 			<div className="aev-card__shell">
 				<header className="aev-card__head">
-					<div className="aev-card__pick">
-						<input
-							id={`aev-sel-${event.id}`}
-							type="checkbox"
-							className="aev-card__checkbox"
-							checked={selected}
-							onChange={(e) => onSelectChange(e.target.checked)}
-							aria-label={`Selectează evenimentul: ${event.title}`}
-						/>
-					</div>
+					{!readOnly && (
+						<div className="aev-card__pick">
+							<input
+								id={`aev-sel-${event.id}`}
+								type="checkbox"
+								className="aev-card__checkbox"
+								checked={selected}
+								onChange={(e) => onSelectChange(e.target.checked)}
+								aria-label={`Selectează evenimentul: ${event.title}`}
+							/>
+						</div>
+					)}
 					<div className="aev-card__head-main">
 						<div className="aev-card__title-row">
 							<h2 id={`aev-title-${event.id}`} className="aev-card__title">
@@ -141,6 +145,7 @@ export default function AdminEventListCard({
 					) : null}
 				</div>
 
+				{readOnly ? null : (
 				<details className="aev-actions">
 					<summary className="aev-actions__toggle">Acțiuni</summary>
 					<div
@@ -219,6 +224,7 @@ export default function AdminEventListCard({
 						</button>
 					</div>
 				</details>
+				)}
 			</div>
 		</article>
 	);

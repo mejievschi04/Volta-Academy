@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Exam;
+use App\Models\Test;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use Illuminate\Http\Request;
@@ -188,17 +189,13 @@ class CourseProgressController extends Controller
 
             $this->progressService->calculateCourseProgress($user, $course);
 
-            if ($this->progressService->getNextIncompleteLesson($user, $course)) {
-                return response()->json([
-                    'message' => 'Finalizează toate lecțiile înainte de a încheia cursul.',
-                ], 422);
-            }
+            // Aceeași regulă ca isCourseComplete: toate lecțiile + toate testele publicate din course_test
+            if (!$this->progressService->isCourseComplete($user, $course)) {
+                $nextTest = $this->progressService->getNextIncompleteTest($user, $course);
 
-            $nextTest = $this->progressService->getNextIncompleteTest($user, $course);
-            if ($nextTest) {
                 return response()->json([
-                    'message' => 'Trebuie să finalizezi testul înainte de a încheia cursul.',
-                    'next_test_id' => $nextTest->id,
+                    'message' => 'Trebuie să finalizezi toate lecțiile și să promovezi testele cursului înainte de finalizare.',
+                    'next_test_id' => $nextTest?->id,
                 ], 409);
             }
 
@@ -397,11 +394,42 @@ class CourseProgressController extends Controller
     }
 
     /**
-     * Check access to an exam
+     * Check access to an exam or a course test (Test id).
+     * For tests linked to multiple courses, pass ?course_id=...
      */
-    public function checkExamAccess($examId)
+    public function checkExamAccess(Request $request, $examId)
     {
         $user = Auth::user();
+
+        $test = Test::find($examId);
+        if ($test) {
+            $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+            if (!$courseId) {
+                $rows = \App\Models\CourseTest::where('test_id', $test->id)->get();
+                if ($rows->count() === 1) {
+                    $courseId = (int) $rows->first()->course_id;
+                }
+            }
+            if (!$courseId) {
+                return response()->json([
+                    'message' => 'Pentru acest test specifică cursul: ?course_id=...',
+                    'unlocked' => false,
+                    'is_required' => false,
+                ], 422);
+            }
+
+            $course = Course::findOrFail($courseId);
+            $isUnlocked = $this->progressService->isTestUnlocked($user, $test, $course);
+            $courseTest = \App\Models\CourseTest::where('test_id', $test->id)
+                ->where('course_id', $courseId)
+                ->first();
+
+            return response()->json([
+                'unlocked' => $isUnlocked,
+                'is_required' => (bool) ($courseTest && ($courseTest->required ?? false)),
+            ]);
+        }
+
         $exam = Exam::with(['module', 'lesson'])->findOrFail($examId);
 
         $module = $exam->module;
@@ -426,12 +454,9 @@ class CourseProgressController extends Controller
         $validated = $request->validate([
             'progress_percentage' => 'nullable|numeric|min:0|max:100',
             'time_spent_seconds' => 'nullable|integer|min:0',
+            'add_time_spent_seconds' => 'nullable|integer|min:0|max:7200',
         ]);
 
-        $progressPercentage = $validated['progress_percentage'] ?? 0;
-        $shouldAutoComplete = $progressPercentage >= 100;
-
-        // Check if lesson is already completed
         $existingProgress = \DB::table('lesson_progress')
             ->where('user_id', $user->id)
             ->where('lesson_id', $lessonId)
@@ -439,20 +464,42 @@ class CourseProgressController extends Controller
 
         $isAlreadyCompleted = $existingProgress && $existingProgress->completed;
 
-        // Update or create lesson progress
+        $progressPercentage = array_key_exists('progress_percentage', $validated) && $validated['progress_percentage'] !== null
+            ? (float) $validated['progress_percentage']
+            : (float) ($existingProgress->progress_percentage ?? 0);
+        $shouldAutoComplete = $progressPercentage >= 100;
+
+        $existingTime = (int) ($existingProgress->time_spent_seconds ?? 0);
+        if (!empty($validated['add_time_spent_seconds'])) {
+            $timeSpent = $existingTime + min(7200, max(0, (int) $validated['add_time_spent_seconds']));
+        } elseif (array_key_exists('time_spent_seconds', $validated) && $validated['time_spent_seconds'] !== null) {
+            $timeSpent = max((int) $validated['time_spent_seconds'], $existingTime);
+        } else {
+            $timeSpent = $existingTime;
+        }
+
+        // Update or create lesson progress (created_at obligatoriu la insert pe unele DB)
+        $now = now();
+        $payload = [
+            'progress_percentage' => $progressPercentage,
+            'time_spent_seconds' => $timeSpent,
+            'completed' => $shouldAutoComplete ? true : ($isAlreadyCompleted ? true : false),
+            'completed_at' => ($shouldAutoComplete && !$isAlreadyCompleted)
+                ? $now
+                : ($existingProgress ? ($existingProgress->completed_at ?? null) : null),
+            'started_at' => ($existingProgress && !empty($existingProgress->started_at))
+                ? $existingProgress->started_at
+                : $now,
+            'updated_at' => $now,
+            'created_at' => $existingProgress ? ($existingProgress->created_at ?? $now) : $now,
+        ];
+
         \DB::table('lesson_progress')->updateOrInsert(
             [
                 'user_id' => $user->id,
                 'lesson_id' => $lessonId,
             ],
-            [
-                'progress_percentage' => $progressPercentage,
-                'time_spent_seconds' => $validated['time_spent_seconds'] ?? ($existingProgress->time_spent_seconds ?? 0),
-                'completed' => $shouldAutoComplete ? true : ($isAlreadyCompleted ? true : false),
-                'completed_at' => ($shouldAutoComplete && !$isAlreadyCompleted) ? now() : ($existingProgress->completed_at ?? null),
-                'started_at' => $existingProgress->started_at ?? now(),
-                'updated_at' => now(),
-            ]
+            $payload
         );
 
         // If progress reached 100% and lesson wasn't already completed, trigger completion logic

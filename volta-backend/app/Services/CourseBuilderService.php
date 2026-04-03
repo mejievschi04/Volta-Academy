@@ -659,6 +659,9 @@ class CourseBuilderService
         if (Schema::hasColumn($table, 'marketing_tags')) {
             $createData['marketing_tags'] = is_array($data['marketing_tags'] ?? null) ? $data['marketing_tags'] : [];
         }
+        if (Schema::hasColumn($table, 'card_color') && array_key_exists('card_color', $data)) {
+            $createData['card_color'] = $data['card_color'];
+        }
 
         $course = Course::create($createData);
 
@@ -678,21 +681,55 @@ class CourseBuilderService
     }
 
     /**
+     * Când cursul devine publicat: testele atașate cursului (course_test) rămase în draft
+     * trec în published ca să apară în structura cursului pentru elevi.
+     *
+     * Examenele legacy (model Exam) sunt gestionate separat — nu le publicăm aici;
+     * au propriul flux în admin (Publică / Draft / Arhivă), independent de curs.
+     */
+    public function publishDraftLinkedAssessmentsForCourse(int $courseId): void
+    {
+        $linkedTestIds = CourseTest::query()
+            ->where('course_id', $courseId)
+            ->pluck('test_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if (count($linkedTestIds) > 0) {
+            Test::query()
+                ->whereIn('id', $linkedTestIds)
+                ->where('status', '!=', 'published')
+                ->where('status', '!=', 'archived')
+                ->update(['status' => 'published']);
+        }
+    }
+
+    /**
      * Update a course
      */
     public function updateCourse(Course $course, array $data): Course
     {
-        $settings = $this->buildSettings($data, $course->settings);
-        
         $updateData = [
             'title' => $data['title'] ?? $course->title,
             'description' => $data['description'] ?? $course->description,
+            'short_description' => $data['short_description'] ?? $course->short_description,
             'category' => $data['category'] ?? $course->category,
+            'card_color' => $data['card_color'] ?? $course->card_color,
             'level' => $data['level'] ?? $course->level,
             'status' => $data['status'] ?? $course->status,
             'reward_points' => $data['reward_points'] ?? $course->reward_points,
-            'settings' => $settings,
         ];
+        if (array_key_exists('marketing_tags', $data)) {
+            $updateData['marketing_tags'] = is_array($data['marketing_tags'])
+                ? $data['marketing_tags']
+                : (array) ($data['marketing_tags'] ?? []);
+        }
+        if (Schema::hasColumn('courses', 'settings')) {
+            $settings = $this->buildSettings($data, $course->settings);
+            $updateData['settings'] = $settings;
+        }
         if (array_key_exists('access_type', $data)) {
             $updateData['access_type'] = $data['access_type'];
         }
@@ -766,11 +803,6 @@ class CourseBuilderService
      */
     public function attachTest(Course $course, Test $test, array $options = []): CourseTest
     {
-        // Validate test is published
-        if ($test->status !== 'published') {
-            throw new \Exception('Cannot attach unpublished test to course');
-        }
-
         $courseTest = CourseTest::updateOrCreate(
             [
                 'course_id' => $course->id,

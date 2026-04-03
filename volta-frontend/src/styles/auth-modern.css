@@ -13,10 +13,10 @@ button[type="submit"].modern-auth-submit,
 .modern-auth-container button.modern-auth-submit {
 	width: 100% !important;
 	padding: var(--space-4) var(--space-6) !important;
-	background-color: #FFEE00 !important;
-	background: #FFEE00 !important;
-	color: #000000 !important;
-	border: 1px solid #FFEE00 !important;
+	background-color: var(--color-primary) !important;
+	background: var(--color-primary) !important;
+	color: var(--text-inverse) !important;
+	border: 1px solid var(--color-primary) !important;
 	border-radius: var(--radius-lg) !important;
 	font-size: var(--font-size-base) !important;
 	font-weight: var(--font-weight-semibold) !important;
@@ -48,8 +48,8 @@ button.modern-auth-submit:hover:not(:disabled),
 .modern-auth-form button.modern-auth-submit:hover:not(:disabled),
 button[type="submit"].modern-auth-submit:hover:not(:disabled),
 .modern-auth-container .modern-auth-submit:hover:not(:disabled) {
-	background-color: #E6D600 !important;
-	background: #E6D600 !important;
+	background-color: var(--color-primary-hover) !important;
+	background: var(--color-primary-hover) !important;
 	box-shadow: var(--shadow-lg) !important;
 	transform: translateY(-2px) !important;
 }
@@ -305,8 +305,8 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-4);
-	background-color: rgba(239, 68, 68, 0.1);
-	border: 1px solid rgba(239, 68, 68, 0.3);
+	background-color: rgba(var(--color-error-rgb, 239, 68, 68), 0.1);
+	border: 1px solid rgba(var(--color-error-rgb, 239, 68, 68), 0.3);
 	border-radius: var(--radius-lg);
 	font-size: var(--font-size-sm);
 	color: var(--color-error);
@@ -322,16 +322,16 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-4);
-	background-color: rgba(34, 197, 94, 0.1);
-	border: 1px solid rgba(34, 197, 94, 0.3);
+	background-color: rgba(var(--color-success-rgb, 34, 197, 94), 0.1);
+	border: 1px solid rgba(var(--color-success-rgb, 34, 197, 94), 0.3);
 	border-radius: var(--radius-lg);
 	font-size: var(--font-size-sm);
-	color: rgb(22, 163, 74);
+	color: var(--color-success);
 }
 
 .modern-auth-success svg {
 	flex-shrink: 0;
-	color: rgb(22, 163, 74);
+	color: var(--color-success);
 }
 
 @keyframes shake {
@@ -418,3 +418,56 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
    8. RESPONSIVE
    Mobile styles are handled in mobile-optimizations.css
    ============================================ */
+
+/* Dark theme: text și iconiță submit — galben brand (#ffee00), vizibil pe fundal primary */
+[data-theme="dark"] .modern-auth-submit,
+[data-theme="dark"] button.modern-auth-submit,
+[data-theme="dark"] .modern-auth-form button.modern-auth-submit,
+[data-theme="dark"] .modern-auth-form .modern-auth-submit,
+[data-theme="dark"] button[type="submit"].modern-auth-submit,
+[data-theme="dark"] .modern-auth-form button[type="submit"].modern-auth-submit,
+[data-theme="dark"] .modern-auth-container .modern-auth-submit,
+[data-theme="dark"] .modern-auth-container button.modern-auth-submit {
+	color: #ffee00 !important;
+}
+
+[data-theme="dark"] .modern-auth-submit span,
+[data-theme="dark"] button.modern-auth-submit span,
+[data-theme="dark"] .modern-auth-form button.modern-auth-submit span,
+[data-theme="dark"] .modern-auth-form .modern-auth-submit span,
+[data-theme="dark"] button[type="submit"].modern-auth-submit span,
+[data-theme="dark"] .modern-auth-form button[type="submit"].modern-auth-submit span,
+[data-theme="dark"] .modern-auth-container .modern-auth-submit span,
+[data-theme="dark"] .modern-auth-container button.modern-auth-submit span {
+	color: #ffee00 !important;
+}
+
+[data-theme="dark"] .modern-auth-submit:hover:not(:disabled) span,
+[data-theme="dark"] button.modern-auth-submit:hover:not(:disabled) span,
+[data-theme="dark"] .modern-auth-form button.modern-auth-submit:hover:not(:disabled) span,
+[data-theme="dark"] button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
+[data-theme="dark"] .modern-auth-container .modern-auth-submit:hover:not(:disabled) span,
+[data-theme="dark"] .modern-auth-container button.modern-auth-submit:hover:not(:disabled) span {
+	color: #ffee00 !important;
+}
+
+[data-theme="dark"] .modern-auth-submit svg,
+[data-theme="dark"] button.modern-auth-submit svg,
+[data-theme="dark"] .modern-auth-form button.modern-auth-submit svg,
+[data-theme="dark"] .modern-auth-form .modern-auth-submit svg,
+[data-theme="dark"] button[type="submit"].modern-auth-submit svg,
+[data-theme="dark"] .modern-auth-form button[type="submit"].modern-auth-submit svg,
+[data-theme="dark"] .modern-auth-container .modern-auth-submit svg,
+[data-theme="dark"] .modern-auth-container button.modern-auth-submit svg {
+	color: #ffee00 !important;
+	stroke: #ffee00 !important;
+}
+
+[data-theme="dark"] .modern-auth-submit:hover:not(:disabled) svg,
+[data-theme="dark"] .modern-auth-form button.modern-auth-submit:hover:not(:disabled) svg,
+[data-theme="dark"] button[type="submit"].modern-auth-submit:hover:not(:disabled) svg,
+[data-theme="dark"] .modern-auth-container .modern-auth-submit:hover:not(:disabled) svg,
+[data-theme="dark"] .modern-auth-container button.modern-auth-submit:hover:not(:disabled) svg {
+	color: #ffee00 !important;
+	stroke: #ffee00 !important;
+}

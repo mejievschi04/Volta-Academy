@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ModuleCreatorPage = () => {
 	const { id } = useParams(); // module ID if editing
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
+	const { canMutateInAdminArea } = useAuth();
 	const courseId = searchParams.get('course_id');
 
 	const [loading, setLoading] = useState(false);
@@ -24,6 +26,13 @@ const ModuleCreatorPage = () => {
 	});
 
 	useEffect(() => {
+		if (!canMutateInAdminArea) {
+			navigate(courseId ? `/admin/courses/${courseId}` : '/admin/content?tab=courses', { replace: true });
+		}
+	}, [canMutateInAdminArea, courseId, navigate]);
+
+	useEffect(() => {
+		if (!canMutateInAdminArea) return;
 		// Require course_id to create/edit modules
 		if (!courseId && !id) {
 			showToast('Selectează un curs pentru a crea un modul', 'error');
@@ -38,7 +47,7 @@ const ModuleCreatorPage = () => {
 			// Set course_id if provided via URL
 			setFormData(prev => ({ ...prev, course_id: courseId }));
 		}
-	}, [id, courseId]);
+	}, [id, courseId, canMutateInAdminArea]);
 
 	const fetchModule = async () => {
 		try {

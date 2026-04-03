@@ -24,7 +24,7 @@ class CourseController extends Controller
 
             // For non-admin users (students), only show published courses
             $user = $request->user();
-            $isAdmin = $user && in_array($user->role ?? '', ['admin', 'instructor', 'teacher']);
+            $isAdmin = $user && in_array($user->role ?? '', ['admin', 'instructor']);
             if (!$isAdmin && \Illuminate\Support\Facades\Schema::hasColumn('courses', 'status')) {
                 $query->where('status', 'published');
             }
@@ -114,12 +114,53 @@ class CourseController extends Controller
                     $q->select('id', 'name');
                 }
             ])->findOrFail($id);
-            
-            // Transform courseTests to exams format for frontend compatibility
-            // Add exams array to each module
+
+            $user = $request->user();
+            $showDraftLinkedTests = $user && in_array($user->role ?? '', ['admin', 'instructor'], true);
+
+            // Teste la nivel de lecție (course_test scope=lesson) — structura studentului
+            $lessonScopeRows = CourseTest::where('course_id', $course->id)
+                ->where('scope', 'lesson')
+                ->with(['test' => function ($q) {
+                    $q->select('id', 'title', 'description', 'type', 'status');
+                }])
+                ->orderBy('order')
+                ->get()
+                ->groupBy('scope_id');
+
             foreach ($course->modules as $module) {
-                $module->exams = $module->courseTests->map(function($courseTest) {
-                    if ($courseTest->test) {
+                foreach ($module->lessons as $lesson) {
+                    $rows = $lessonScopeRows->get($lesson->id, collect());
+                    $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                        if (!$courseTest->test) {
+                            return null;
+                        }
+                        if (!$showDraftLinkedTests && $courseTest->test->status !== 'published') {
+                            return null;
+                        }
+
+                        return [
+                            'id' => $courseTest->id,
+                            'test_id' => $courseTest->test_id,
+                            'required' => (bool) ($courseTest->required ?? false),
+                            'passing_score' => $courseTest->passing_score ?? 70,
+                            'order' => $courseTest->order ?? 0,
+                            'test' => [
+                                'id' => $courseTest->test->id,
+                                'title' => $courseTest->test->title,
+                                'description' => $courseTest->test->description,
+                                'type' => $courseTest->test->type,
+                                'status' => $courseTest->test->status,
+                            ],
+                        ];
+                    })->filter()->values()->all());
+                }
+            }
+            
+            // Transform courseTests to exams format for frontend compatibility (doar Test / course_test)
+            foreach ($course->modules as $module) {
+                $moduleExams = $module->courseTests->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                    if ($courseTest->test && ($showDraftLinkedTests || $courseTest->test->status === 'published')) {
                         return [
                             'id' => $courseTest->test->id,
                             'title' => $courseTest->test->title,
@@ -133,8 +174,11 @@ class CourseController extends Controller
                             'order' => $courseTest->order ?? 0,
                         ];
                     }
+
                     return null;
                 })->filter()->values()->toArray();
+
+                $module->exams = $moduleExams;
             }
             
             // Collect all exams from all modules for course.exams
@@ -153,7 +197,7 @@ class CourseController extends Controller
                     ->get();
                 
                 foreach ($courseLevelTests as $courseTest) {
-                    if ($courseTest->test) {
+                    if ($courseTest->test && ($showDraftLinkedTests || $courseTest->test->status === 'published')) {
                         $allExams[] = [
                             'id' => $courseTest->test->id,
                             'title' => $courseTest->test->title,
@@ -177,24 +221,8 @@ class CourseController extends Controller
             
             // Set course.exams array
             $course->exams = $allExams;
-            
-            // Get exam for this course (legacy support - single exam at course level)
-            try {
-                $exam = \App\Models\Exam::where('course_id', $course->id)
-                    ->whereNull('module_id')
-                    ->first();
-                if ($exam) {
-                    $course->exam = $exam;
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Error loading exam for course', [
-                    'course_id' => $course->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-            
+
             // Add user progress if user is authenticated
-            $user = $request->user();
             if ($user) {
                 try {
                     $courseUser = DB::table('course_user')

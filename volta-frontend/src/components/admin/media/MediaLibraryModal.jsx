@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
 import ConfirmModal from '../../../components/common/ConfirmModal';
+import { toImageUrl } from '../../../utils/imageUrl';
 
 const formatBytes = (bytes) => {
 	if (!bytes || bytes <= 0) return '0 B';
@@ -148,7 +149,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 										<div style={{ minWidth: 0, display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
 											{a.type === 'image' && a.url ? (
 												<img
-													src={a.url}
+													src={toImageUrl(a.url) || a.url}
 													alt=""
 													loading="lazy"
 													style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-primary)' }}

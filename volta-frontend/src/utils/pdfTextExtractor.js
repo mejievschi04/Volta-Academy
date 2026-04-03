@@ -185,3 +185,43 @@ export async function extractPdfTextAsHtml(file) {
 	const html = blocks.join('\n');
 	return html || '<p>Nu s-a putut extrage text din acest PDF.</p>';
 }
+
+/**
+ * Estimează o înălțime de preview pentru PDF astfel încât să evităm
+ * spațiul gol excesiv în editor când documentul are puțin text.
+ *
+ * @param {File} file
+ * @returns {Promise<number>} înălțime recomandată în pixeli
+ */
+export async function estimatePdfContentPreviewHeight(file) {
+	if (!file || file.type !== 'application/pdf') {
+		return 620;
+	}
+
+	try {
+		const arrayBuffer = await file.arrayBuffer();
+		const pdf = await getDocument({ data: arrayBuffer }).promise;
+		const pageCount = Number(pdf?.numPages || 1);
+		const firstPage = await pdf.getPage(1);
+		const viewport = firstPage.getViewport({ scale: 1 });
+		const textContent = await firstPage.getTextContent();
+		const items = (textContent.items || []).filter((it) => typeof it?.str === 'string' && it.str.trim());
+
+		// Heuristică simplă: cu cât avem mai mult text pe prima pagină,
+		// cu atât creștem preview-ul. Pentru puțin text, îl păstrăm compact.
+		const wordCount = items.reduce((total, it) => total + String(it.str).trim().split(/\s+/).filter(Boolean).length, 0);
+
+		let baseHeight = Math.round((viewport?.height || 840) * 0.9);
+		if (wordCount > 30) baseHeight += 60;
+		if (wordCount > 90) baseHeight += 120;
+		if (wordCount > 180) baseHeight += 180;
+		if (wordCount > 300) baseHeight += 240;
+
+		// Pentru PDF-uri cu mai multe pagini, mărim înălțimea preview-ului
+		// ca să evităm tăierea conținutului în blocul embed.
+		const pagesBoost = Math.max(0, pageCount - 1) * Math.round((viewport?.height || 840) * 0.75);
+		return Math.min(2200, baseHeight + pagesBoost);
+	} catch {
+		return 900;
+	}
+}

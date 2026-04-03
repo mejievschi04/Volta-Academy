@@ -23,12 +23,15 @@ function getStorageOrigin() {
 	if (typeof window === 'undefined') {
 		return 'http://localhost:8000';
 	}
-	// 4. localhost pe port 80/443 → backend e pe 8000
+	// 4. Local dev fallback: dacă frontend rulează pe localhost (ex: 5173), storage-ul e pe backend:8000
 	const origin = window.location.origin;
 	try {
 		const u = new URL(origin);
-		if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && (!u.port || u.port === '80' || u.port === '443')) {
-			return 'http://localhost:8000';
+		if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+			const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+			if (port !== '8000') {
+				return `${u.protocol}//${u.hostname}:8000`;
+			}
 		}
 	} catch {}
 	return origin;
@@ -43,6 +46,10 @@ export function toImageUrl(url) {
 	if (!url || typeof url !== 'string') return null;
 	const trimmed = url.trim();
 	if (!trimmed) return null;
+
+	if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+		return trimmed;
+	}
 
 	const origin = getStorageOrigin();
 	if (!origin) return trimmed;
@@ -71,6 +78,24 @@ export function toImageUrl(url) {
 	if (!path.includes('/')) {
 		return `${origin}/storage/content-blocks/image/${path}`;
 	}
-	// Path cu / – ex: content-blocks/image/xxx.jpg
+	// Path cu / – ex: content-blocks/image/xxx.jpg sau courses/xxx.jpg
 	return `${origin}/storage/${path}`;
+}
+
+/**
+ * URL copertă curs din obiectul API (image_url sau câmpul brut image).
+ */
+export function courseCoverSrc(course) {
+	if (!course || typeof course !== 'object') return null;
+	const direct = course.image_url ?? course.imageUrl;
+	if (direct != null && String(direct).trim() !== '') {
+		return toImageUrl(String(direct).trim());
+	}
+	const raw = course.image;
+	if (raw == null || typeof raw !== 'string' || !raw.trim()) return null;
+	const im = raw.trim();
+	if (im.startsWith('http://') || im.startsWith('https://')) return toImageUrl(im);
+	if (im.startsWith('/storage/')) return toImageUrl(im);
+	if (im.startsWith('storage/')) return toImageUrl(`/${im}`);
+	return toImageUrl(im);
 }

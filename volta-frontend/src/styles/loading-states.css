@@ -99,7 +99,7 @@
 }
 
 .va-spinner-white {
-	border-top-color: #FFFFFF;
+	border-top-color: var(--color-white);
 }
 
 .va-spinner-success {
@@ -186,24 +186,24 @@
 [data-theme="light"] .va-skeleton {
 	background: linear-gradient(
 		90deg,
-		#f3f4f6 0%,
-		#e5e7eb 50%,
-		#f3f4f6 100%
+		var(--bg-secondary) 0%,
+		var(--border-primary) 50%,
+		var(--bg-secondary) 100%
 	);
 	background-size: 200% 100%;
 }
 
 [data-theme="light"] .va-spinner {
-	border-color: #e5e7eb;
+	border-color: var(--border-primary);
 	border-top-color: var(--color-primary);
 }
 
 [data-theme="light"] .va-loading-overlay {
-	background-color: rgba(249, 250, 251, 0.95);
+	background-color: rgba(15, 23, 42, 0.45);
 }
 
 [data-theme="light"] .va-loading-overlay-content {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 /* Full-screen hold until lazy admin CSS applies (avoids FOUC on sidebar/topnav) */

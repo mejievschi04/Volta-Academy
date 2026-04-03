@@ -97,7 +97,7 @@
 
 .modern-sidebar-logo-toggle:focus-visible,
 .va-sidebar-logo-toggle:focus-visible {
-	outline: 2px solid var(--color-primary, #6366f1);
+	outline: 2px solid var(--color-primary);
 	outline-offset: 2px;
 }
 
@@ -190,19 +190,44 @@
 .va-sidebar-nav {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-1);
-	padding: var(--space-4);
 	flex: 1;
-	overflow-y: auto;
-	overflow-x: hidden;
+	min-height: 0;
+	padding: 0;
+	overflow: hidden;
 	background-color: var(--bg-primary);
 }
 
-/* When collapsed, adjust spacing and ensure items are centered */
-.modern-sidebar:not(.expanded) .modern-nav,
-.modern-sidebar:not(.expanded) .va-sidebar-nav {
+/* Zona principală scroll; Setări rămâne lipită de fundalul sidebar-ului */
+.va-sidebar-nav-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-4);
+}
+
+.modern-sidebar:not(.expanded) .va-sidebar-nav-scroll {
 	padding: var(--space-3);
 	align-items: center;
+}
+
+.va-sidebar-nav-bottom {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-3) var(--space-4) var(--space-4);
+	border-top: 1px solid var(--border-primary);
+	background-color: var(--bg-primary);
+}
+
+.modern-sidebar:not(.expanded) .va-sidebar-nav-bottom {
+	padding: var(--space-3);
+	align-items: center;
+	border-top-color: var(--border-primary);
 }
 
 .modern-nav-item,
@@ -292,7 +317,7 @@
 .va-nav-btn.active,
 .va-nav-btn.is-active {
 	background-color: var(--color-primary);
-	color: #1f2937;
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -312,7 +337,7 @@
 [data-theme="light"] .va-nav-btn.active,
 [data-theme="light"] .va-nav-btn.is-active {
 	background-color: var(--color-primary);
-	color: #1f2937;
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -331,7 +356,7 @@
 .va-nav-btn.is-active::before {
 	height: 70%;
 	width: 4px;
-	background-color: #1f2937;
+	background-color: var(--text-primary);
 	box-shadow: 0 0 8px rgba(31, 41, 55, 0.4);
 }
 
@@ -340,7 +365,7 @@
 [data-theme="light"] .modern-nav-item.is-active::before,
 [data-theme="light"] .va-nav-btn.active::before,
 [data-theme="light"] .va-nav-btn.is-active::before {
-	background-color: #1f2937;
+	background-color: var(--text-primary);
 	box-shadow: 0 0 8px rgba(31, 41, 55, 0.4);
 }
 
@@ -361,13 +386,13 @@
 	justify-content: center;
 	opacity: 0.7;
 	transition: all var(--transition-base);
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 /* Light theme - dark icons for better contrast */
 [data-theme="light"] .modern-nav-item-icon,
 [data-theme="light"] .va-nav-icon {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 /* When collapsed, make icons centered and visible */
@@ -387,7 +412,7 @@
 .va-nav-btn.active .va-nav-icon,
 .va-nav-btn.is-active .va-nav-icon {
 	opacity: 1;
-	color: #1f2937;
+	color: var(--text-primary);
 }
 
 /* Light theme - dark gray icons for active items */
@@ -396,7 +421,7 @@
 [data-theme="light"] .va-nav-btn.active .va-nav-icon,
 [data-theme="light"] .va-nav-btn.is-active .va-nav-icon {
 	/* Active icon should be black in light theme */
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 	opacity: 1;
 }
 
@@ -406,7 +431,7 @@
 .modern-sidebar:not(.expanded) .va-nav-btn.active .va-nav-icon,
 .modern-sidebar:not(.expanded) .va-nav-btn.is-active .va-nav-icon {
 	opacity: 1;
-	color: #1f2937;
+	color: var(--text-primary);
 }
 
 /* Light theme - dark gray icons for collapsed active items */
@@ -415,7 +440,7 @@
 [data-theme="light"] .modern-sidebar:not(.expanded) .va-nav-btn.active .va-nav-icon,
 [data-theme="light"] .modern-sidebar:not(.expanded) .va-nav-btn.is-active .va-nav-icon {
 	/* Active icon should be black in light theme */
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 	opacity: 1;
 }
 
@@ -432,7 +457,7 @@
 [data-theme="light"] .modern-nav-item.is-active svg,
 [data-theme="light"] .va-nav-btn.active svg,
 [data-theme="light"] .va-nav-btn.is-active svg {
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 	stroke: currentColor !important;
 	fill: none !important;
 }
@@ -448,12 +473,12 @@
 
 .modern-nav-item:hover .modern-nav-item-icon,
 .va-nav-btn:hover .va-nav-icon {
-	color: #1f2937;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .modern-nav-item:hover .modern-nav-item-icon,
 [data-theme="light"] .va-nav-btn:hover .va-nav-icon {
-	color: #1f2937;
+	color: var(--text-primary);
 }
 
 .modern-nav-item-label,
@@ -496,7 +521,7 @@
 [data-theme="light"] .modern-nav-item.is-active .modern-nav-item-label,
 [data-theme="light"] .va-nav-btn.active .va-nav-label,
 [data-theme="light"] .va-nav-btn.is-active .va-nav-label {
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 	font-weight: var(--font-weight-semibold);
 }
 
@@ -603,7 +628,7 @@
 .modern-nav-subitem.active,
 .modern-nav-subitem.is-active {
 	background-color: var(--color-primary) !important;
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
 	font-weight: var(--font-weight-semibold);
 }
 .modern-nav-subitem .modern-nav-item-label {
@@ -612,7 +637,42 @@
 .modern-nav-subitem.active .modern-nav-item-label,
 .modern-nav-subitem.is-active .modern-nav-item-label {
 	font-weight: var(--font-weight-semibold);
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
+}
+
+/* Submeniu Content (sidebar restrâns): portal în document.body — evită tăierea de overflow-y:auto pe nav */
+.admin-content-submenu-portal {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 200px;
+	padding: var(--space-2);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+	pointer-events: auto;
+}
+
+.admin-content-submenu-portal__link {
+	width: 100%;
+	justify-content: flex-start;
+	text-align: left;
+}
+
+/* Portal e în document.body, nu în .modern-sidebar — label-urile nu trebuie să rămână opacity:0 */
+.admin-content-submenu-portal .modern-nav-item-label,
+.admin-content-submenu-portal .va-nav-label {
+	opacity: 1;
+	transform: none;
+	display: block;
+	width: auto;
+	overflow: visible;
+	position: static;
+}
+
+[data-theme="light"] .admin-content-submenu-portal {
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 /* ============================================
@@ -626,7 +686,7 @@
 	left: 72px;
 	right: 0;
 	height: 64px;
-	background-color: var(--border-primary);
+	background-color: var(--bg-elevated);
 	border-bottom: 1px solid var(--border-primary);
 	padding: 0 var(--space-6);
 	display: flex;
@@ -636,14 +696,14 @@
 	z-index: calc(var(--z-fixed) - 1);
 	box-shadow: var(--shadow-md), 0 1px 0 var(--border-primary) inset;
 	transition: left var(--transition-smooth);
-	backdrop-filter: blur(20px) saturate(180%);
-	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
 }
 
 [data-theme="light"] .modern-topnav,
 [data-theme="light"] .admin-topnav,
 [data-theme="light"] .va-topnav {
-	background-color: var(--border-primary);
+	background-color: var(--bg-elevated);
 }
 
 .modern-sidebar.expanded ~ .modern-topnav,
@@ -743,7 +803,7 @@
 [data-theme="light"] .va-topnav-btn.active,
 [data-theme="light"] .va-topnav-btn.is-active {
 	background: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -775,20 +835,20 @@
 /* Light theme - dark icons for better contrast */
 [data-theme="light"] .modern-topnav-item-icon,
 [data-theme="light"] .va-topnav-icon {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .modern-topnav-item.active .modern-topnav-item-icon,
 [data-theme="light"] .modern-topnav-item.is-active .modern-topnav-item-icon,
 [data-theme="light"] .va-topnav-btn.active .va-topnav-icon,
 [data-theme="light"] .va-topnav-btn.is-active .va-topnav-icon {
-	color: #000000;
+	color: var(--text-inverse);
 	opacity: 1;
 }
 
 [data-theme="light"] .modern-topnav-item:hover .modern-topnav-item-icon,
 [data-theme="light"] .va-topnav-btn:hover .va-topnav-icon {
-	color: #1f2937;
+	color: var(--text-primary);
 }
 
 .modern-topnav-item-label,
@@ -850,6 +910,37 @@
 	opacity: 0.5;
 }
 
+/* Calendar + clopoțel grupate la dreapta (după căutare) */
+.admin-topnav-trailing-icons {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-shrink: 0;
+}
+
+.admin-topnav-calendar-btn {
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	color: var(--text-secondary);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-topnav-calendar-btn:hover {
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.15);
+	transform: translateY(-1px);
+}
+
 .admin-topnav-notifications {
 	position: relative;
 }
@@ -885,7 +976,7 @@
 	min-width: 18px;
 	height: 18px;
 	padding: 0 4px;
-	background: linear-gradient(135deg, var(--color-error) 0%, #dc2626 100%);
+	background: var(--color-error);
 	color: white;
 	border-radius: var(--radius-full);
 	font-size: var(--font-size-xs);
@@ -924,6 +1015,26 @@
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
 	margin: 0;
+}
+
+.admin-topnav-notifications-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+
+.admin-topnav-notifications-see-all {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--color-primary);
+	text-decoration: none;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.admin-topnav-notifications-see-all:hover {
+	text-decoration: underline;
 }
 
 .admin-topnav-notifications-list {
@@ -1036,8 +1147,8 @@
 }
 
 .admin-view-switcher-slider svg {
-	color: #000000;
-	stroke: #000000;
+	color: var(--text-inverse);
+	stroke: var(--text-inverse);
 	width: 16px;
 	height: 16px;
 	flex-shrink: 0;
@@ -1045,8 +1156,8 @@
 }
 
 [data-theme="light"] .admin-view-switcher-slider svg {
-	color: #000000;
-	stroke: #000000;
+	color: var(--text-inverse);
+	stroke: var(--text-inverse);
 }
 
 .admin-view-switcher-slider {
@@ -1098,7 +1209,7 @@
 	height: 36px;
 	border-radius: var(--radius-full);
 	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-	color: #000000; /* Negru pe fundal galben (brand rule) */
+	color: var(--text-inverse); /* Negru pe fundal galben (brand rule) */
 	display: flex;
 	align-items: center;
 	justify-content: center;

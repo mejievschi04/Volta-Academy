@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { isStaffAdminRole } from '../constants/staffRoles';
 import { useLocation } from 'react-router-dom';
 
 /** Loads admin CSS only when user is admin - reduces initial load for students.
@@ -25,11 +26,11 @@ export default function AdminStylesLoader({
 			onReadyRef.current?.();
 		};
 
-		const isAdminUser = user?.actualRole === 'admin';
+		const isStaffAdminUser = isStaffAdminRole(user?.actualRole);
 		const isAdminPage = location.pathname.startsWith('/admin');
 		const isMessagesPage = location.pathname === '/messages';
 		const needBundle =
-			isAdminUser && (!loadOnAdminPagesOnly || isAdminPage || isMessagesPage);
+			isStaffAdminUser && (!loadOnAdminPagesOnly || isAdminPage || isMessagesPage);
 
 		if (!waitForStylesBeforePaint) {
 			done();

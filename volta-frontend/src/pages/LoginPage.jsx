@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { isStaffAdminRole } from '../constants/staffRoles';
 import { prefetchRoute } from '../utils/prefetch';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
 
@@ -28,13 +29,16 @@ const LoginPage = () => {
 
 		try {
 			const data = await login(email, password);
-			// Admin: respect last Vizionare (student vs admin); others → cursuri
-			if (data?.user?.role === 'admin') {
+			// Admin: respectă ultima „Vizionare”; analist / instructor → panou admin; restul → cursuri
+			const r = data?.user?.role;
+			if (r === 'admin') {
 				const mode =
 					typeof sessionStorage !== 'undefined'
 						? sessionStorage.getItem('voltaAdminViewMode')
 						: null;
 				navigate(mode === 'student' ? '/courses' : '/admin');
+			} else if (isStaffAdminRole(r)) {
+				navigate('/admin');
 			} else {
 				navigate('/courses');
 			}

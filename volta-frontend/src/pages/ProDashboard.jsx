@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import StatCard from '../components/ui/StatCard';
 import ProgressChart from '../components/ui/ProgressChart';
 import CourseCard from '../components/ui/CourseCard';
@@ -27,10 +28,13 @@ const ProDashboard = () => {
 			<aside className="pro-sidebar" aria-label="Navigare principală">
 				<div className="pro-brand">Volta Pro</div>
 				<nav className="pro-nav">
-					<a href="/courses" className="pro-nav-item">Cursuri</a>
-					<a href="/pro-courses" className="pro-nav-item active">Cursuri</a>
-					<a href="/events" className="pro-nav-item">Evenimente</a>
-					<a href="/profile" className="pro-nav-item">Profil</a>
+					<NavLink to="/pro-dashboard" end className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Panou Pro</NavLink>
+					<NavLink to="/courses" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Cursuri</NavLink>
+					<NavLink to="/events" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Evenimente</NavLink>
+					<NavLink to="/messages" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Mesagerie</NavLink>
+					<NavLink to="/exam-results" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Rezultate teste</NavLink>
+					<NavLink to="/profile" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Profil</NavLink>
+					<NavLink to="/pro-courses" className={({ isActive }) => `pro-nav-item${isActive ? ' active' : ''}`}>Demo catalog</NavLink>
 				</nav>
 			</aside>
 

@@ -125,6 +125,28 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 					);
 				}
 
+				if (b.type === 'quiz_embed') {
+					const quizTitle = b?.metadata?.test_title || (b?.metadata?.test_id ? `Test #${b.metadata.test_id}` : 'Quiz');
+					const quizUrl = (b.source || '').trim();
+					return (
+						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
+							<div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+								<div style={{ fontWeight: 600 }}>{quizTitle}</div>
+								<div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+									Bloc quiz încorporat în lecție.
+								</div>
+								{quizUrl ? (
+									<a href={quizUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+										Deschide quiz
+									</a>
+								) : (
+									<div style={{ color: 'var(--text-tertiary)' }}>Nu este selectat niciun quiz.</div>
+								)}
+							</div>
+						</BlockCard>
+					);
+				}
+
 				if (b.type === 'pdf') {
 					const pdfUrl = (b.source || '').trim();
 					return (

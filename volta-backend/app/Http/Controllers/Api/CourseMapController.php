@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CourseMap;
+use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -39,7 +40,22 @@ class CourseMapController extends Controller
                 'description' => $map->description,
                 'courses_count' => $map->courses_count ?? 0,
             ];
-        });
+        })->values();
+
+        $publishedWithoutMapCount = Course::query()
+            ->where('status', 'published')
+            ->whereDoesntHave('courseMaps')
+            ->count();
+
+        if ($publishedWithoutMapCount > 0) {
+            $maps->push([
+                'id' => 'unassigned',
+                'name' => 'Fără mapă',
+                'description' => 'Cursuri publicate care nu sunt asociate unei mape.',
+                'courses_count' => $publishedWithoutMapCount,
+                'is_virtual' => true,
+            ]);
+        }
 
         return response()->json(['data' => $maps]);
     }
@@ -51,6 +67,10 @@ class CourseMapController extends Controller
     {
         if (!Schema::hasTable('course_maps') || !Schema::hasTable('course_map_course')) {
             return response()->json(['error' => 'Mapă negăsită'], 404);
+        }
+
+        if ((string) $id === 'unassigned') {
+            return $this->showUnassignedMap($request);
         }
 
         $map = CourseMap::with([
@@ -99,6 +119,58 @@ class CourseMapController extends Controller
             'id' => $map->id,
             'name' => $map->name,
             'description' => $map->description,
+            'courses' => $courses,
+        ]);
+    }
+
+    private function showUnassignedMap(Request $request)
+    {
+        $user = $request->user();
+
+        $coursesQuery = Course::query()
+            ->where('status', 'published')
+            ->whereDoesntHave('courseMaps')
+            ->with(['teacher:id,name', 'modules:id,course_id,estimated_duration_minutes'])
+            ->orderBy('title');
+
+        $coursesRaw = $coursesQuery->get();
+        $courseIds = $coursesRaw->pluck('id')->toArray();
+
+        $progress = [];
+        if ($user && !empty($courseIds)) {
+            $rows = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->whereIn('course_id', $courseIds)
+                ->select('course_id', 'progress_percentage', 'completed_at')
+                ->get();
+            foreach ($rows as $row) {
+                $progress[$row->course_id] = [
+                    'progress_percentage' => (int) $row->progress_percentage,
+                    'completed_at' => $row->completed_at,
+                ];
+            }
+        }
+
+        $courses = $coursesRaw->map(function ($course) use ($progress) {
+            $p = $progress[$course->id] ?? ['progress_percentage' => 0, 'completed_at' => null];
+            $durationMinutes = $this->courseDurationMinutes($course);
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'short_description' => $course->short_description,
+                'image_url' => $course->image_url ?? $course->image,
+                'estimated_duration_minutes' => $durationMinutes,
+                'views_count' => 0,
+                'progress_percentage' => $p['progress_percentage'],
+                'completed_at' => $p['completed_at'],
+                'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
+            ];
+        })->values();
+
+        return response()->json([
+            'id' => 'unassigned',
+            'name' => 'Fără mapă',
+            'description' => 'Cursuri publicate care nu sunt asociate unei mape.',
             'courses' => $courses,
         ]);
     }

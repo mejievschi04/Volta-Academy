@@ -50,7 +50,7 @@
 .error-boundary-card {
 	padding: var(--space-8);
 	text-align: center;
-	background: var(--bg-primary, #fff);
+	background: var(--bg-primary, var(--color-white));
 	border-radius: var(--radius-lg, 8px);
 	margin: 0 auto;
 	max-width: 600px;
@@ -60,11 +60,11 @@
 .error-boundary-details {
 	margin-top: var(--space-4);
 	padding: var(--space-4);
-	background: var(--bg-elevated, #f5f5f5);
+	background: var(--bg-elevated, var(--bg-secondary));
 	border-radius: var(--radius-md, 4px);
 	text-align: left;
 	font-size: var(--font-size-sm, 0.875rem);
-	color: var(--text-tertiary, #999);
+	color: var(--text-tertiary, var(--text-secondary));
 }
 
 .error-boundary-details-summary {
@@ -88,8 +88,8 @@
 }
 
 .error-boundary-btn-primary {
-	background: var(--accent-primary, #007bff);
-	color: #fff;
+	background: var(--accent-primary, var(--color-primary));
+	color: var(--text-inverse);
 	margin-right: var(--space-4);
 }
 
@@ -98,9 +98,9 @@
 }
 
 .error-boundary-btn-secondary {
-	background: var(--bg-secondary, #f0f0f0);
-	color: var(--text-primary, #333);
-	border: 1px solid var(--border-primary, #ddd);
+	background: var(--bg-secondary, var(--bg-tertiary));
+	color: var(--text-primary, var(--text-secondary));
+	border: 1px solid var(--border-primary, var(--border-secondary));
 }
 
 .error-boundary-btn-secondary:hover {
@@ -393,50 +393,50 @@
    ============================================ */
 
 [data-theme="light"] .error-boundary-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .error-boundary-message {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .error-boundary-icon {
 	opacity: 0.7;
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .admin-auto-save-indicator {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
-	color: #6B7280; /* WCAG AA: 4.8:1 contrast */
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
+	color: var(--text-secondary); /* WCAG AA: 4.8:1 contrast */
 }
 
 [data-theme="light"] .admin-auto-save-indicator.saving {
-	color: #f59e0b;
-	border-color: #f59e0b;
+	color: var(--color-warning);
+	border-color: var(--color-warning);
 }
 
 [data-theme="light"] .admin-auto-save-indicator.saved {
-	color: #10b981;
-	border-color: #10b981;
+	color: var(--color-success);
+	border-color: var(--color-success);
 }
 
 [data-theme="light"] .admin-auto-save-indicator.error {
-	color: #dc2626;
-	border-color: #dc2626;
+	color: var(--color-error);
+	border-color: var(--color-error);
 }
 
 [data-theme="light"] .no-dead-end-fallback-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .no-dead-end-fallback-message {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .no-dead-end-fallback-icon {
 	opacity: 0.7;
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .loading-overlay {
@@ -444,30 +444,30 @@
 }
 
 [data-theme="light"] .loading-overlay-content {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .inline-ai-suggestion {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .inline-ai-suggestion-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .inline-ai-suggestion-text {
-	color: #374151;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .inline-ai-suggestion-btn {
-	color: #1f2937;
-	border-color: #1f2937;
+	color: var(--text-primary);
+	border-color: var(--text-primary);
 }
 
 [data-theme="light"] .inline-ai-suggestion-btn:hover {
 	background-color: rgba(31, 41, 55, 0.1);
-	border-color: #111827;
-	color: #111827;
+	border-color: var(--text-primary);
+	color: var(--text-primary);
 }

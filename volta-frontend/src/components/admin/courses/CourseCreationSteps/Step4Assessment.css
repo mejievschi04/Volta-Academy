@@ -271,7 +271,7 @@
 	font-weight: 600;
 }
 .step4-question-type-badge { font-size: 0.8rem; color: var(--text-secondary); }
-.step4-manual-badge { font-size: 0.75rem; background: var(--warning, #f59e0b); color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; }
+.step4-manual-badge { font-size: 0.75rem; background: var(--warning, var(--color-warning)); color: var(--color-white); padding: 0.2rem 0.5rem; border-radius: 4px; }
 .step4-question-card-body { display: flex; flex-direction: column; gap: 0.75rem; }
 .step4-points-row { grid-template-columns: 1fr; max-width: 100px; }
 .step4-textarea {

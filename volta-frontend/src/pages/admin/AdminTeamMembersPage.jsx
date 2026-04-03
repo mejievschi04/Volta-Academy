@@ -5,9 +5,12 @@ import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { toImageUrl } from '../../utils/imageUrl';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminTeamMembersPage = () => {
 	const navigate = useNavigate();
+	const { canMutateInAdminArea } = useAuth();
 	const { success: showSuccess, error: showError } = useToast();
 	const [members, setMembers] = useState([]);
 	const [courses, setCourses] = useState([]);
@@ -72,9 +75,8 @@ const AdminTeamMembersPage = () => {
 	const getRoleLabel = (role) => {
 		const labels = {
 			admin: 'Administrator',
-			manager: 'Manager',
 			instructor: 'Instructor',
-			teacher: 'Instructor',
+			analyst: 'Analist',
 		};
 		return labels[role] || role;
 	};
@@ -82,9 +84,8 @@ const AdminTeamMembersPage = () => {
 	const getRoleColor = (role) => {
 		const colors = {
 			admin: '#ef4444',
-			manager: '#FFEE00',
 			instructor: '#10b981',
-			teacher: '#10b981',
+			analyst: '#6366f1',
 		};
 		return colors[role] || '#6b7280';
 	};
@@ -179,15 +180,17 @@ const AdminTeamMembersPage = () => {
 				<div className="admin-page-header-content">
 					<h1 className="admin-page-title">Membri Echipă</h1>
 					<p className="admin-page-subtitle">
-						Gestionează membrii echipei interne: admini, manageri și instructori
+						Gestionează membrii echipei interne: administratori, instructori și analiști
 					</p>
 				</div>
+				{canMutateInAdminArea && (
 				<button
 					className="lms-btn-primary"
 					onClick={() => navigate('/admin/users')}
 				>
 					+ Adaugă Membru
 				</button>
+				)}
 			</div>
 
 			{error && (
@@ -212,9 +215,8 @@ const AdminTeamMembersPage = () => {
 				>
 					<option value="all">Toate rolurile</option>
 					<option value="admin">Admin</option>
-					<option value="manager">Manager</option>
 					<option value="instructor">Instructor</option>
-					<option value="teacher">Instructor (Teacher)</option>
+					<option value="analyst">Analist</option>
 				</select>
 				<select
 					className="admin-team-members-filter-select"
@@ -249,7 +251,7 @@ const AdminTeamMembersPage = () => {
 										>
 											{member.avatar ? (
 												<img 
-													src={member.avatar} 
+													src={toImageUrl(member.avatar) || member.avatar} 
 													alt={member.name}
 													loading="lazy"
 													decoding="async"
@@ -311,6 +313,7 @@ const AdminTeamMembersPage = () => {
 										</div>
 
 										{/* Quick Actions */}
+										{canMutateInAdminArea && (
 										<div 
 											className="admin-team-member-actions"
 											onClick={(e) => e.stopPropagation()}
@@ -370,6 +373,7 @@ const AdminTeamMembersPage = () => {
 												🗑️ Elimină
 											</button>
 										</div>
+										)}
 									</div>
 								</div>
 							</div>
@@ -389,6 +393,7 @@ const AdminTeamMembersPage = () => {
 			{/* Role & Permissions Modal */}
 			{showRoleModal && selectedMember && (
 				<RolePermissionsModal
+					key={selectedMember.id}
 					member={selectedMember}
 					onClose={() => {
 						setShowRoleModal(false);
@@ -442,8 +447,15 @@ const AdminTeamMembersPage = () => {
 };
 
 // Role & Permissions Modal Component
+const normalizeTeamRole = (r) => {
+	if (r === 'teacher') return 'instructor';
+	if (r === 'manager') return 'admin';
+	if (['admin', 'instructor', 'analyst'].includes(r)) return r;
+	return 'instructor';
+};
+
 const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
-	const [role, setRole] = useState(member.role || 'instructor');
+	const [role, setRole] = useState(() => normalizeTeamRole(member.role));
 	const [permissions, setPermissions] = useState(member.permissions || {});
 
 	const defaultPermissions = {
@@ -491,9 +503,8 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 								required
 							>
 								<option value="admin">Admin</option>
-								<option value="manager">Manager</option>
 								<option value="instructor">Instructor</option>
-								<option value="teacher">Teacher</option>
+								<option value="analyst">Analist</option>
 							</select>
 						</div>
 

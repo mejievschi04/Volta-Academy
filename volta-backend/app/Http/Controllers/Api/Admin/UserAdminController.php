@@ -42,7 +42,7 @@ class UserAdminController extends Controller
             });
         }
         
-        // Role filter (for team members: admin, manager, instructor)
+        // Role filter (staff roles)
         if ($request->has('role') && $request->role !== 'all') {
             $query->where('role', $request->role);
         }
@@ -56,7 +56,7 @@ class UserAdminController extends Controller
         
         // Team members only filter (exclude students)
         if ($request->has('team_members_only') && $request->team_members_only) {
-            $query->whereIn('role', ['admin', 'manager', 'instructor', 'teacher']);
+            $query->whereIn('role', ['admin', 'instructor', 'analyst']);
         }
         
         // Sort
@@ -291,7 +291,7 @@ class UserAdminController extends Controller
                 'regex:/[A-Z]/', // At least one uppercase letter
                 'regex:/[0-9]/', // At least one number
             ],
-            'role' => 'required|string|in:student,teacher,admin,manager,instructor',
+            'role' => 'required|string|in:student,admin,instructor,analyst',
             'bio' => 'nullable|string|max:1000', // Limit bio length
 			'team_id' => 'nullable|exists:teams,id',
         ], [
@@ -337,7 +337,7 @@ class UserAdminController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
             'password' => 'nullable|string|min:6',
-            'role' => 'sometimes|required|string|in:student,teacher,admin,manager,instructor',
+            'role' => 'sometimes|required|string|in:student,admin,instructor,analyst',
             'bio' => 'nullable|string|max:1000',
         ]);
 
@@ -523,7 +523,7 @@ class UserAdminController extends Controller
     }
 
     /**
-     * Get team members (admin, manager, instructor)
+     * Get team members (admin, instructor, analyst)
      */
     public function getTeamMembers(Request $request)
     {
@@ -531,7 +531,7 @@ class UserAdminController extends Controller
         
         // Build query for team members only
         $query = User::with(['teams', 'courses', 'assignedCourses'])
-            ->whereIn('role', ['admin', 'manager', 'instructor', 'teacher']);
+            ->whereIn('role', ['admin', 'instructor', 'analyst']);
         
         // Search filter
         if ($request->has('search') && $request->search) {
@@ -597,7 +597,7 @@ class UserAdminController extends Controller
         }
         
         $validated = $request->validate([
-            'role' => 'sometimes|required|string|in:admin,manager,instructor,teacher,student',
+            'role' => 'sometimes|required|string|in:admin,instructor,analyst,student',
             'permissions' => 'nullable|array',
         ]);
         

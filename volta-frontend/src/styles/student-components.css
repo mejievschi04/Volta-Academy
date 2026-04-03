@@ -100,14 +100,14 @@
 }
 
 .student-widget-badge-required {
-	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-hover) 100%);
+	color: var(--color-white);
 	box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 
 .student-widget-count-urgent {
-	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-hover) 100%);
+	color: var(--color-white);
 	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
@@ -200,17 +200,17 @@
 }
 
 .student-course-mandatory {
-	border-left: 4px solid #EF4444;
+	border-left: 4px solid var(--color-error);
 	background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-elevated) 50%, var(--bg-secondary) 100%);
 }
 
 .student-course-mandatory::before {
-	background: linear-gradient(90deg, #EF4444 0%, #DC2626 100%);
+	background: linear-gradient(90deg, var(--color-error) 0%, var(--color-error-hover) 100%);
 	opacity: 0.8;
 }
 
 .student-course-mandatory:hover {
-	border-color: #EF4444;
+	border-color: var(--color-error);
 	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 
@@ -257,8 +257,8 @@
 	display: inline-flex;
 	align-items: center;
 	padding: var(--space-1) var(--space-2);
-	background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-	color: #FFFFFF;
+	background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-hover) 100%);
+	color: var(--color-white);
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-bold);
 	border-radius: var(--radius-md);
@@ -462,12 +462,12 @@
 
 /* Light theme - dark text for better contrast */
 [data-theme="light"] .student-btn-link {
-	color: #1f2937;
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
 }
 
 [data-theme="light"] .student-btn-link:hover {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 /* ============================================
@@ -663,7 +663,7 @@
 /* Light theme - yellow background with black text */
 [data-theme="light"] .student-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border: 1px solid var(--color-primary);
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
@@ -826,12 +826,12 @@
 
 /* Light theme - dark text for better contrast */
 [data-theme="light"] .va-auth-link {
-	color: #1f2937;
+	color: var(--text-primary);
 	font-weight: var(--font-weight-semibold);
 }
 
 [data-theme="light"] .va-auth-link:hover {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 /* ============================================

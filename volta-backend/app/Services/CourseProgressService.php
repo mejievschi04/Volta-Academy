@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\Exam;
 use App\Models\Module;
 use App\Models\Lesson;
 use App\Models\Test;
@@ -156,6 +157,47 @@ class CourseProgressService
     public function isTestUnlocked(User $user, Test $test, Course $course): bool
     {
         return $this->progressionEngine->isTestUnlocked($user, $test, $course);
+    }
+
+    /**
+     * Legacy exams table: access mirrors lesson/module progression (same idea as tests).
+     */
+    public function isExamUnlocked(User $user, Exam $exam, ?Module $module = null, ?Lesson $lesson = null): bool
+    {
+        // Examene fără curs (catalog pe pagina Mape): published + vizibilitate elev
+        if (empty($exam->course_id)) {
+            if (($exam->status ?? 'draft') !== 'published') {
+                return false;
+            }
+
+            return $exam->isVisibleToLearner($user);
+        }
+
+        $course = $exam->relationLoaded('course') && $exam->course
+            ? $exam->course
+            : Course::find($exam->course_id);
+
+        if (!$course) {
+            return false;
+        }
+
+        if ($lesson) {
+            $lessonModule = $lesson->relationLoaded('module') && $lesson->module
+                ? $lesson->module
+                : ($module ?? ($lesson->module_id ? Module::find($lesson->module_id) : null));
+
+            if (!$lessonModule) {
+                return false;
+            }
+
+            return $this->isLessonUnlocked($user, $lesson, $lessonModule, $course);
+        }
+
+        if ($module) {
+            return $this->isModuleUnlocked($user, $module, $course);
+        }
+
+        return true;
     }
 
     /**
@@ -454,7 +496,6 @@ class CourseProgressService
                 $lessonTests = CourseTest::where('course_id', $course->id)
                     ->where('scope', 'lesson')
                     ->where('scope_id', $lesson->id)
-                    ->where('required', true)
                     ->orderBy('order')
                     ->get();
 
@@ -480,7 +521,6 @@ class CourseProgressService
             $moduleTests = CourseTest::where('course_id', $course->id)
                 ->where('scope', 'module')
                 ->where('scope_id', $module->id)
-                ->where('required', true)
                 ->orderBy('order')
                 ->get();
 
@@ -505,7 +545,6 @@ class CourseProgressService
 
         $courseTests = CourseTest::where('course_id', $course->id)
             ->where('scope', 'course')
-            ->where('required', true)
             ->orderBy('order')
             ->get();
 
@@ -535,12 +574,8 @@ class CourseProgressService
      */
     public function canUserProgress(User $user, Course $course): bool
     {
-        // Get all required tests for the course
-        $requiredTests = CourseTest::where('course_id', $course->id)
-            ->where('required', true)
-            ->get();
-
-        foreach ($requiredTests as $courseTest) {
+        // Aliniat cu isCourseComplete: orice test publicat legat de curs trebuie promovat
+        foreach (CourseTest::where('course_id', $course->id)->with('test')->get() as $courseTest) {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 continue;
@@ -588,7 +623,44 @@ class CourseProgressService
         $accessStatus = [
             'course_progress' => $this->calculateCourseProgress($user, $course),
             'modules' => [],
+            'course_level_tests' => [],
         ];
+
+        $allCourseTests = CourseTest::where('course_id', $course->id)
+            ->with(['test' => function ($q) {
+                $q->select('id', 'title', 'status', 'type');
+            }])
+            ->orderBy('order')
+            ->get();
+
+        $ctByKey = $allCourseTests->groupBy(function ($row) {
+            $sid = $row->scope_id;
+
+            return $row->scope . ':' . ($sid === null ? 'null' : (string) $sid);
+        });
+
+        $progressForCourseTest = function (CourseTest $courseTest) use ($user, $course): ?array {
+            $test = $courseTest->test;
+            if (!$test || $test->status !== 'published') {
+                return null;
+            }
+
+            $hasPassed = DB::table('test_results')
+                ->where('user_id', $user->id)
+                ->where('test_id', $test->id)
+                ->where('percentage', '>=', $courseTest->passing_score)
+                ->where('passed', true)
+                ->exists();
+
+            return [
+                'test_id' => $test->id,
+                'passed' => $hasPassed,
+                'unlocked' => $this->isTestUnlocked($user, $test, $course),
+                'required' => (bool) $courseTest->required,
+                'passing_score' => $courseTest->passing_score,
+                'title' => $test->title,
+            ];
+        };
 
         foreach ($modules as $module) {
             $moduleProgress = $this->calculateModuleProgress($user, $module);
@@ -599,7 +671,14 @@ class CourseProgressService
                 'unlocked' => $isUnlocked,
                 'progress' => $moduleProgress,
                 'lessons' => [],
+                'tests' => [],
             ];
+
+            $moduleData['tests'] = $ctByKey->get('module:' . $module->id, collect())
+                ->map($progressForCourseTest)
+                ->filter()
+                ->values()
+                ->all();
 
             $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->orderBy('order')->get();
             foreach ($lessons as $lesson) {
@@ -620,17 +699,30 @@ class CourseProgressService
                     $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
                 }
 
+                $lessonTestsProgress = $ctByKey->get('lesson:' . $lesson->id, collect())
+                    ->map($progressForCourseTest)
+                    ->filter()
+                    ->values()
+                    ->all();
+
                 $moduleData['lessons'][] = [
                     'id' => $lesson->id,
                     'unlocked' => $isLessonUnlocked,
                     'completed' => $isCompleted,
                     'progress_percentage' => $progressPercentage,
                     'is_preview' => $lesson->is_preview,
+                    'tests' => $lessonTestsProgress,
                 ];
             }
 
             $accessStatus['modules'][] = $moduleData;
         }
+
+        $accessStatus['course_level_tests'] = $ctByKey->get('course:null', collect())
+            ->map($progressForCourseTest)
+            ->filter()
+            ->values()
+            ->all();
 
         return $accessStatus;
     }

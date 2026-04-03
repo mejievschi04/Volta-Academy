@@ -38,6 +38,17 @@ class QuestionBank extends Model
         return $this->hasMany(Question::class, 'question_bank_id')->orderBy('order');
     }
 
+    public function starredQuestions()
+    {
+        return $this->hasMany(Question::class, 'question_bank_id')->where('is_starred', true);
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'question_bank_tag')
+            ->withTimestamps();
+    }
+
     /**
      * Get tests using this question bank
      */

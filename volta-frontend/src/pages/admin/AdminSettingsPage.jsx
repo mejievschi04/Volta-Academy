@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import ThemePreferenceControl from '../../components/ThemePreferenceControl';
 
 const AdminSettingsPage = () => {
+	const { canMutateInAdminArea } = useAuth();
+	const readOnly = !canMutateInAdminArea;
 	const { success, error: showError } = useToast();
 	const [settings, setSettings] = useState({
 		maintenance_mode: false,
@@ -57,6 +61,7 @@ const AdminSettingsPage = () => {
 
 
 	const handleInputChange = (key, value) => {
+		if (readOnly) return;
 		setSettings(prev => ({
 			...prev,
 			[key]: value,
@@ -64,6 +69,7 @@ const AdminSettingsPage = () => {
 	};
 
 	const handleToggle = (key) => {
+		if (readOnly) return;
 		setSettings(prev => ({
 			...prev,
 			[key]: !prev[key],
@@ -154,6 +160,11 @@ const AdminSettingsPage = () => {
 					<p className="admin-page-subtitle">
 						Gestionează configurațiile aplicației
 					</p>
+					{readOnly && (
+						<p className="admin-page-subtitle" style={{ marginTop: 'var(--space-2)', color: 'var(--text-secondary)' }}>
+							Vizualizare doar în citire (rol analist).
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -194,6 +205,8 @@ const AdminSettingsPage = () => {
 						</div>
 
 						<div className="admin-settings-form">
+							<ThemePreferenceControl className="admin-settings-theme-preference" />
+
 							<div className="admin-settings-toggle-group">
 								<div className="admin-settings-toggle">
 									<div className="admin-settings-toggle-info">
@@ -208,6 +221,8 @@ const AdminSettingsPage = () => {
 										type="button"
 										className={`admin-settings-toggle-switch ${settings.registration_enabled ? 'active' : ''}`}
 										onClick={() => handleToggle('registration_enabled')}
+										disabled={readOnly}
+										aria-disabled={readOnly}
 									>
 										<div className="admin-settings-toggle-slider" />
 									</button>
@@ -226,6 +241,8 @@ const AdminSettingsPage = () => {
 										type="button"
 										className={`admin-settings-toggle-switch ${settings.email_notifications ? 'active' : ''}`}
 										onClick={() => handleToggle('email_notifications')}
+										disabled={readOnly}
+										aria-disabled={readOnly}
 									>
 										<div className="admin-settings-toggle-slider" />
 									</button>
@@ -263,11 +280,14 @@ const AdminSettingsPage = () => {
 									type="button"
 									className={`admin-settings-toggle-switch ${settings.maintenance_mode ? 'active' : ''}`}
 									onClick={() => handleToggle('maintenance_mode')}
+									disabled={readOnly}
+									aria-disabled={readOnly}
 								>
 									<div className="admin-settings-toggle-slider" />
 								</button>
 							</div>
 
+							{!readOnly && (
 							<div className="admin-settings-actions-grid">
 								<button
 									className="admin-settings-action-btn"
@@ -282,6 +302,7 @@ const AdminSettingsPage = () => {
 									</div>
 								</button>
 							</div>
+							)}
 						</div>
 					</div>
 				)}
@@ -313,6 +334,8 @@ const AdminSettingsPage = () => {
 									type="button"
 									className={`admin-settings-toggle-switch ${settings.backup_enabled ? 'active' : ''}`}
 									onClick={() => handleToggle('backup_enabled')}
+									disabled={readOnly}
+									aria-disabled={readOnly}
 								>
 									<div className="admin-settings-toggle-slider" />
 								</button>
@@ -325,6 +348,7 @@ const AdminSettingsPage = () => {
 										className="admin-settings-select"
 										value={settings.backup_frequency}
 										onChange={(e) => handleInputChange('backup_frequency', e.target.value)}
+										disabled={readOnly}
 									>
 										<option value="daily">Zilnic</option>
 										<option value="weekly">Săptămânal</option>
@@ -333,6 +357,7 @@ const AdminSettingsPage = () => {
 								</div>
 							)}
 
+							{!readOnly && (
 							<div className="admin-settings-actions-grid">
 								<button
 									className="admin-settings-action-btn"
@@ -364,11 +389,13 @@ const AdminSettingsPage = () => {
 									</div>
 								</label>
 							</div>
+							)}
 						</div>
 					</div>
 				)}
 
 				{/* Save Button */}
+				{!readOnly && (
 				<div className="admin-settings-actions">
 					<button
 						className="lms-btn-primary"
@@ -395,6 +422,7 @@ const AdminSettingsPage = () => {
 						)}
 					</button>
 				</div>
+				)}
 			</div>
 
 			<ConfirmModal

@@ -107,7 +107,7 @@
 
 .test-required-badge {
 	background: rgba(239, 68, 68, 0.15);
-	color: #EF4444;
+	color: var(--color-error);
 }
 
 .course-test-card-actions {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { adminService, coursesService } from '../../../../services/api';
+import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
 import ConfirmModal from '../../../../components/common/ConfirmModal';
 import Modal from '../../../../components/common/Modal';
+import QuestionItemCard from './QuestionItemCard';
+import AIGenerateQuestionsModal from './AIGenerateQuestionsModal';
 
 const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const { showToast } = useToast();
@@ -636,84 +638,20 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					{data?.questions && data.questions.length > 0 ? (
 						<div className="admin-question-list">
 							{data.questions.map((question, index) => (
-								<div
+								<QuestionItemCard
 									key={question.id || index}
-									className={`admin-question-item ${editingQuestion === index ? 'editing' : ''}`}
-								>
-									<div className="admin-question-item-content">
-										<div className="admin-question-item-header">
-											<div className="admin-question-item-title">
-												#{index + 1}: {question.content || question.text || 'Fără conținut'}
-											</div>
-											<div className="admin-question-item-meta">
-												{question.points || 1} puncte • {question.type === 'true_false' ? 'Adevărat/Fals' : question.type === 'short_answer' ? 'Răspuns scurt' : 'Răspuns multiplu'}
-											</div>
-											{question.answers && question.answers.length > 0 && (
-												<div className="admin-question-item-answers">
-													{question.answers.map((ans, ansIdx) => (
-														<div 
-															key={ansIdx} 
-															className={`admin-question-answer ${ans.is_correct ? 'correct' : ''}`}
-														>
-															{ans.is_correct ? '✓' : '○'} {ans.text}
-														</div>
-													))}
-												</div>
-											)}
-										</div>
-										<div className="admin-question-item-actions">
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm"
-												onClick={() => moveQuestion(index, 'up')}
-												disabled={index === 0}
-												title="Mută sus"
-											>
-												↑
-											</button>
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm"
-												onClick={() => moveQuestion(index, 'down')}
-												disabled={index === (data.questions.length - 1)}
-												title="Mută jos"
-											>
-												↓
-											</button>
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm"
-												onClick={() => openStudentPreview(index)}
-												title="Previzualizare ca student"
-											>
-												👁 Previzualizare
-											</button>
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm"
-												onClick={() => duplicateQuestion(index)}
-												disabled={duplicateLoading}
-												title="Duplică întrebarea"
-											>
-												Duplică
-											</button>
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm"
-												onClick={() => editQuestion(index)}
-											>
-												✏️ Editează
-											</button>
-											<button
-												type="button"
-												className="lms-btn-secondary lms-btn-sm va-btn-danger"
-												onClick={() => deleteQuestionClick(index)}
-											>
-												🗑️ Șterge
-											</button>
-										</div>
-									</div>
-								</div>
+									question={question}
+									index={index}
+									total={data.questions.length}
+									isEditing={editingQuestion === index}
+									duplicateLoading={duplicateLoading}
+									onMoveUp={() => moveQuestion(index, 'up')}
+									onMoveDown={() => moveQuestion(index, 'down')}
+									onPreview={() => openStudentPreview(index)}
+									onDuplicate={() => duplicateQuestion(index)}
+									onEdit={() => editQuestion(index)}
+									onDelete={() => deleteQuestionClick(index)}
+								/>
 							))}
 						</div>
 					) : (
@@ -729,127 +667,17 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			</div>
 			</div>
 
-			{/* AI Generation Modal */}
-			{showAIModal && (
-				<div
-					className="admin-team-modal-overlay"
-					onClick={() => !aiGenerating && setShowAIModal(false)}
-					style={{ zIndex: 10000 }}
-				>
-					<div
-						className="admin-team-modal"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="admin-team-modal-header">
-							<div>
-								<h2 className="admin-team-modal-title">🤖 Generează Întrebări cu AI</h2>
-								<p className="admin-page-subtitle" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-									Introdu conținutul pentru care vrei să generezi întrebări
-								</p>
-							</div>
-							{!aiGenerating && (
-								<button
-									type="button"
-									className="admin-team-modal-close"
-									onClick={() => setShowAIModal(false)}
-								>
-									×
-								</button>
-							)}
-						</div>
-						<div className="admin-team-modal-body">
-							<div className="admin-team-modal-form">
-								<div className="admin-form-group">
-									<label className="admin-form-label">Conținut pentru Generare *</label>
-									<textarea
-										className="admin-form-input"
-										value={aiContent}
-										onChange={(e) => setAiContent(e.target.value)}
-										placeholder="Lipește sau scrie aici conținutul sursă pe baza căruia se generează întrebările."
-										rows={8}
-										disabled={aiGenerating}
-										required
-									/>
-									<p className="admin-form-hint">
-										AI-ul va analiza conținutul introdus și va genera întrebări relevante
-									</p>
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">Număr de Întrebări</label>
-									<input
-										type="number"
-										className="admin-form-input"
-										value={aiOptions.numberOfQuestions}
-										onChange={(e) => setAiOptions({
-											...aiOptions,
-											numberOfQuestions: parseInt(e.target.value) || 10
-										})}
-										min="1"
-										max="50"
-										disabled={aiGenerating}
-									/>
-								</div>
-
-								<div className="admin-form-group">
-									<label className="admin-form-label">Dificultate</label>
-									<select
-										className="admin-form-input"
-										value={aiOptions.difficulty}
-										onChange={(e) => setAiOptions({
-											...aiOptions,
-											difficulty: e.target.value
-										})}
-										disabled={aiGenerating}
-									>
-										<option value="easy">Ușor</option>
-										<option value="medium">Mediu</option>
-										<option value="hard">Dificil</option>
-									</select>
-								</div>
-
-								{aiGenerating && (
-									<div className="admin-ai-generating">
-										<div className="lms-spinner" style={{ margin: '0 auto 1rem' }}></div>
-										<p style={{ color: 'var(--color-primary)', fontWeight: 600, textAlign: 'center' }}>
-											AI-ul generează întrebări din conținutul introdus...
-										</p>
-										<p className="admin-form-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-											Aceasta poate dura câteva momente
-										</p>
-									</div>
-								)}
-
-								{aiError && (
-									<div className="lms-error-message">
-										<strong>Eroare AI:</strong>
-										<p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>{aiError}</p>
-									</div>
-								)}
-
-								<div className="admin-team-modal-footer">
-									<button
-										type="button"
-										className="lms-btn-secondary"
-										onClick={() => setShowAIModal(false)}
-										disabled={aiGenerating}
-									>
-										Anulează
-									</button>
-									<button
-										type="button"
-										className="lms-btn-primary"
-										onClick={handleGenerateQuestions}
-										disabled={aiGenerating || !aiContent?.trim()}
-									>
-										🤖 {aiGenerating ? 'Se generează...' : 'Generează Întrebări'}
-									</button>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
+			<AIGenerateQuestionsModal
+				open={showAIModal}
+				aiGenerating={aiGenerating}
+				aiContent={aiContent}
+				setAiContent={setAiContent}
+				aiOptions={aiOptions}
+				setAiOptions={setAiOptions}
+				aiError={aiError}
+				onClose={() => setShowAIModal(false)}
+				onGenerate={handleGenerateQuestions}
+			/>
 
 			<Modal
 				isOpen={!!previewQuestion}

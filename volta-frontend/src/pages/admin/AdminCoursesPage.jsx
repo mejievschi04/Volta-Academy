@@ -1,165 +1,60 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import CoursesHeader from '../../components/admin/courses/CoursesHeader';
-import CourseListItem from '../../components/admin/courses/CourseListItem';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
-import VoltInstructor from '../../components/admin/VoltInstructor';
-import AdminCourseMapsPage from './AdminCourseMapsPage';
+import { courseCoverSrc } from '../../utils/imageUrl';
+import { useAuth } from '../../contexts/AuthContext';
+import './AdminCoursesPage.css';
 
-const AdminCoursesPage = ({ embedded }) => {
+const AdminCoursesPage = () => {
+	const { canMutateInAdminArea } = useAuth();
 	const navigate = useNavigate();
-	const { showToast } = useToast();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const courseMapId = searchParams.get('course_map_id');
 	const [courses, setCourses] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [creatingCourse, setCreatingCourse] = useState(false);
+	const [creating, setCreating] = useState(false);
 	const [error, setError] = useState(null);
+	const [search, setSearch] = useState('');
+	const [showCreateMenu, setShowCreateMenu] = useState(false);
+	const [showBuildModal, setShowBuildModal] = useState(false);
+	const createMenuRef = useRef(null);
 
-	// Sub-view: mape (listă mape) | courses (listă cursuri). Curs = alcătuit din mape; în mape sunt cursurile.
-	const [coursesView, setCoursesView] = useState(() => {
-		const view = searchParams.get('view');
-		if (view === 'courses') return 'courses';
-		return 'maps'; // implicit: mape (curs = mape, în mape sunt cursurile)
-	});
-	const [selectedMap, setSelectedMap] = useState(() => {
-		const mapId = searchParams.get('map');
-		if (mapId) return { id: parseInt(mapId, 10), name: '' };
-		return null;
-	});
-	
-	// Filters and search
-	const [searchQuery, setSearchQuery] = useState('');
-	const [filters, setFilters] = useState({
-		status: 'all',
-		activeCount: 0
-	});
-	const [sortBy, setSortBy] = useState('recent');
-	const [viewMode, setViewMode] = useState('grid');
-	
-	// Selection
-	const [selectedCourses, setSelectedCourses] = useState(new Set());
-
-	// Sync URL with view (when embedded)
-	useEffect(() => {
-		if (!embedded) return;
-		const next = new URLSearchParams(searchParams);
-		if (coursesView === 'maps') {
-			next.set('view', 'maps');
-			next.delete('map');
-		} else {
-			next.set('view', 'courses');
-			if (selectedMap?.id) next.set('map', String(selectedMap.id));
-			else next.delete('map');
-		}
-		setSearchParams(next, { replace: true });
-	}, [embedded, coursesView, selectedMap?.id]);
-
-	// Fetch courses (optional filter by course_map_id)
-	const fetchCourses = useCallback(async () => {
+	const fetchCourses = async () => {
 		try {
 			setLoading(true);
 			setError(null);
-			
-			const params = {
-				search: searchQuery || undefined,
-				status: filters.status !== 'all' ? filters.status : undefined,
-				sort: sortBy
-			};
-			if (selectedMap?.id) params.course_map_id = selectedMap.id;
-			
-			const data = await adminService.getCourses(params);
+			const data = await adminService.getCourses({
+				search: search || undefined,
+				sort: 'recent',
+				course_map_id: courseMapId || undefined,
+			});
 			setCourses(Array.isArray(data) ? data : []);
 		} catch (err) {
-			console.error('Error fetching courses:', err);
+			console.error('Eroare încărcare cursuri:', err);
 			setError('Nu s-au putut încărca cursurile');
 		} finally {
 			setLoading(false);
 		}
-	}, [searchQuery, filters, sortBy, selectedMap?.id]);
+	};
 
 	useEffect(() => {
 		fetchCourses();
-	}, [fetchCourses]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [courseMapId]);
 
-	// Calculate active filters count
 	useEffect(() => {
-		let count = 0;
-		if (filters.status !== 'all') count++;
-		setFilters(prev => ({ ...prev, activeCount: count }));
-	}, [filters.status]);
-
-	// Handle filter change
-	const handleFilterChange = (key, value) => {
-		setFilters(prev => ({ ...prev, [key]: value }));
-	};
-
-	// Handle course selection
-	const handleSelectCourse = (courseId, selected) => {
-		setSelectedCourses(prev => {
-			const newSet = new Set(prev);
-			if (selected) {
-				newSet.add(courseId);
-			} else {
-				newSet.delete(courseId);
+		const handleOutsideClick = (event) => {
+			if (createMenuRef.current && !createMenuRef.current.contains(event.target)) {
+				setShowCreateMenu(false);
 			}
-			return newSet;
-		});
-	};
-
-	// Handle bulk actions
-	const handleBulkAction = async (action) => {
-		if (selectedCourses.size === 0) return;
-		
-		try {
-			await adminService.courseBulkAction(Array.from(selectedCourses), action);
-			setSelectedCourses(new Set());
-			fetchCourses();
-		} catch (err) {
-			console.error('Error performing bulk action:', err);
-			showToast(err?.response?.data?.message || 'Eroare la executarea acțiunii', 'error');
-		}
-	};
-
-	// Handle quick actions
-	const handleQuickAction = async (courseId, action) => {
-		try {
-			await adminService.courseQuickAction(courseId, action);
-			fetchCourses();
-		} catch (err) {
-			console.error('Error performing quick action:', err);
-			showToast(err?.response?.data?.message || 'Eroare la executarea acțiunii', 'error');
-		}
-	};
-
-	// Deschide modalul Creează curs
-	const [showBuildModal, setShowBuildModal] = useState(false);
-	const [voltTitle, setVoltTitle] = useState('');
-	const [voltDescription, setVoltDescription] = useState('');
-	const [voltPdfFile, setVoltPdfFile] = useState(null);
-
-	const handleCreateCourse = (voltData) => {
-		if (voltData?.answers) {
-			setVoltTitle(voltData.answers[0] || '');
-			const [desc, mod, lec, det, fis] = voltData.answers.slice(1);
-			const parts = [desc].filter(Boolean);
-			if (mod) parts.push(`Module: ${mod}`);
-			if (lec) parts.push(`Lecții/modul: ${lec}`);
-			if (det) parts.push(`Nivel detaliu: ${det}`);
-			if (fis) parts.push(`Fișier brut: ${fis}`);
-			setVoltDescription(parts.join('\n\n'));
-			setVoltPdfFile(voltData.pdfFile || null);
-		} else {
-			setVoltTitle('');
-			setVoltDescription(voltData?.chatData || '');
-			setVoltPdfFile(null);
-		}
-		setShowBuildModal(true);
-	};
+		};
+		document.addEventListener('mousedown', handleOutsideClick);
+		return () => document.removeEventListener('mousedown', handleOutsideClick);
+	}, []);
 
 	const handleBuildSubmit = async ({ title, description, image, pdfFile }) => {
-		setCreatingCourse(true);
+		setCreating(true);
 		try {
 			let payload;
 			if (image || pdfFile) {
@@ -182,24 +77,15 @@ const AdminCoursesPage = ({ embedded }) => {
 		} catch (err) {
 			console.error('Error creating course:', err);
 		} finally {
-			setCreatingCourse(false);
+			setCreating(false);
 		}
 	};
 
-	// Filtered courses
 	const filteredCourses = useMemo(() => {
-		return courses;
-	}, [courses]);
-
-	const openMapCourses = (map) => {
-		setSelectedMap({ id: map.id, name: map.name });
-		setCoursesView('courses');
-	};
-
-	const goToMaps = () => {
-		setSelectedMap(null);
-		setCoursesView('maps');
-	};
+		const query = search.trim().toLowerCase();
+		if (!query) return courses;
+		return courses.filter((course) => (course.title || '').toLowerCase().includes(query));
+	}, [courses, search]);
 
 	if (error) {
 		return (
@@ -214,131 +100,111 @@ const AdminCoursesPage = ({ embedded }) => {
 		);
 	}
 
-	// View Mape: listă mape; în mape sunt cursuri; click pe mapă → view Cursuri filtrat
-	if (coursesView === 'maps') {
-		return (
-			<div className="admin-container">
-				<AdminCourseMapsPage
-					embedded
-					onOpenMap={openMapCourses}
+	return (
+		<div className="admin-container admin-courses-clean-page">
+			{showBuildModal && canMutateInAdminArea && (
+				<BuildCourseModal
+					onClose={() => { setShowBuildModal(false); }}
+					onSubmit={handleBuildSubmit}
+					loading={creating}
+				/>
+			)}
+			<header className="admin-courses-clean-header">
+				<div>
+					<h1>Cursuri</h1>
+					<p>Creează și administrează conținutul academiei într-un mod simplu.</p>
+				</div>
+				<div className="admin-courses-clean-right">
+					{canMutateInAdminArea && (
+					<div className="admin-courses-create-wrap" ref={createMenuRef}>
+						<button className="admin-courses-create-btn" onClick={() => setShowCreateMenu((prev) => !prev)}>
+							+ Creează curs
+						</button>
+						{showCreateMenu && (
+							<div className="admin-courses-create-menu">
+								<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
+									Curs nou
+								</button>
+								<button onClick={() => { setShowCreateMenu(false); setShowBuildModal(true); }}>
+									Curs asistat AI
+								</button>
+								<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new?template=1'); }}>
+									Curs din șablon
+								</button>
+								<button disabled title="În curând">
+									Import SCORM (în curând)
+								</button>
+							</div>
+						)}
+					</div>
+					)}
+					<div className="admin-courses-top-links">
+						{courseMapId && (
+							<button onClick={() => setSearchParams({ tab: 'courses', view: 'maps' })}>
+								← Înapoi la mape
+							</button>
+						)}
+						{canMutateInAdminArea && (
+						<button onClick={() => navigate('/admin/content?tab=courses&view=maps&new=1')}>
+							Creează mapă
+						</button>
+						)}
+					</div>
+				</div>
+			</header>
+
+			<div className="admin-courses-clean-search">
+				<input
+					type="text"
+					placeholder="Caută curs..."
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
 				/>
 			</div>
-		);
-	}
 
-	return (
-		<div className="admin-container">
-			{showBuildModal && (
-				<BuildCourseModal
-					onClose={() => { setShowBuildModal(false); setVoltTitle(''); setVoltDescription(''); setVoltPdfFile(null); }}
-					onSubmit={handleBuildSubmit}
-					loading={creatingCourse}
-					initialTitle={voltTitle}
-					initialDescription={voltDescription}
-					initialPdfFile={voltPdfFile}
-				/>
-			)}
-			<CoursesHeader
-				searchQuery={searchQuery}
-				onSearchChange={setSearchQuery}
-				filters={filters}
-				onFilterChange={handleFilterChange}
-				sortBy={sortBy}
-				onSortChange={setSortBy}
-				onCreateCourse={handleCreateCourse}
-				selectedCount={selectedCourses.size}
-				onBulkAction={handleBulkAction}
-				loading={loading || creatingCourse}
-				viewMode={viewMode}
-				onViewModeChange={setViewMode}
-			/>
-
-			{loading && courses.length === 0 ? (
-				<div className="admin-courses-loading">
-					<div className="lms-spinner"></div>
-					<p>Se încarcă cursurile...</p>
-				</div>
+			{loading ? (
+				<div className="admin-courses-clean-loading"><div className="lms-spinner"></div><p>Se încarcă cursurile...</p></div>
 			) : filteredCourses.length === 0 ? (
-				<div className="lms-empty-state">
-					<p>
-						{selectedMap
-							? 'Nu există cursuri în această mapă. Adaugă cursuri din „Gestionează cursuri” pe mapa respectivă.'
-							: 'Nu există cursuri disponibile.'}
-					</p>
-					{!selectedMap && (
-						<button className="lms-btn-primary" onClick={handleCreateCourse}>
-							+ Creează primul curs
-						</button>
-					)}
-					{selectedMap && (
-						<button type="button" className="lms-btn-secondary" onClick={goToMaps}>
-							Înapoi la mape
-						</button>
-					)}
+				<div className="admin-courses-clean-empty">
+					<p>Nu există cursuri. Creează primul curs.</p>
 				</div>
 			) : (
-				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
-					{viewMode === 'grid' ? (
-						<div className="admin-courses-grid-container">
-							{filteredCourses.map(course => (
-								<CourseListItem
-									key={course.id}
-									course={course}
-									selected={selectedCourses.has(course.id)}
-									onSelect={handleSelectCourse}
-									onQuickAction={handleQuickAction}
-									loading={loading}
-									viewMode={viewMode}
-									onPreview={() => {
-										sessionStorage.setItem('studentPreviewFromAdmin', 'true');
-										navigate(`/courses/${course.id}/detail`);
-									}}
-								/>
-							))}
-						</div>
-					) : (
-						<div className="admin-courses-table-container">
-							<div className="admin-courses-table-header">
-								<div className="admin-course-table-checkbox"></div>
-								<div className="admin-course-table-thumbnail-header">Imagine</div>
-								<div className="admin-course-table-info-header">Curs</div>
-								<div className="admin-course-table-metrics-header">Metrici</div>
-								<div className="admin-course-table-actions-header">Acțiuni</div>
+				<div className="admin-courses-clean-grid">
+					{filteredCourses.map((course) => {
+						const coverSrc = courseCoverSrc(course);
+						return (
+						<article
+							key={course.id}
+							className="admin-courses-clean-card"
+							style={{ '--course-card-accent': course.card_color || 'var(--color-primary)' }}
+						>
+							<div className="admin-courses-clean-card-media">
+								{coverSrc ? (
+									<img src={coverSrc} alt={course.title} />
+								) : (
+									<div className="admin-courses-clean-placeholder">
+										Curs
+									</div>
+								)}
+								<div className="admin-courses-clean-overlay">
+									<span className={`status ${course.status || 'draft'}`}>{course.status || 'draft'}</span>
+								</div>
 							</div>
-							{filteredCourses.map(course => (
-								<CourseListItem
-									key={course.id}
-									course={course}
-									selected={selectedCourses.has(course.id)}
-									onSelect={handleSelectCourse}
-									onQuickAction={handleQuickAction}
-									loading={loading}
-									viewMode={viewMode}
-									onPreview={() => {
-										sessionStorage.setItem('studentPreviewFromAdmin', 'true');
-										navigate(`/courses/${course.id}/detail`);
-									}}
-								/>
-							))}
-						</div>
-					)}
+							<div className="admin-courses-clean-card-body">
+								<h3>{course.title || 'Curs fără titlu'}</h3>
+								<p>{course.modules_count || 0} module • {course.enrollments_count || 0} elevi</p>
+								<div className="admin-courses-clean-card-actions">
+									<button onClick={() => navigate(`/admin/courses/${course.id}`)}>Deschide</button>
+									{canMutateInAdminArea && (
+									<button onClick={() => navigate(`/admin/courses/${course.id}/builder`)}>Editează</button>
+									)}
+								</div>
+							</div>
+						</article>
+						);
+					})}
 				</div>
 			)}
-
-			<VoltInstructor
-				questions={[
-					'Ce titlu vrei pentru curs?',
-					'Descrie pe scurt conținutul și scopul cursului.',
-					'Câte module vrei să aibă cursul?',
-					'Câte lecții aproximativ per modul?',
-					'Cât de desfășurată să fie informația? (pe scurt / mediu / detaliat)',
-					'Încarcă un fișier PDF cu informația brută (opțional)',
-				]}
-				pdfUploadQuestionIndex={5}
-				actions={[
-					{ label: '+ Curs nou', onClick: handleCreateCourse, primary: true },
-				]}
-			/>
 		</div>
 	);
 };

@@ -17,6 +17,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 const blockPreviewText = (block) => {
+	if (block.type === 'quiz_embed') {
+		return block.metadata?.test_title || (block.metadata?.test_id ? `Test #${block.metadata.test_id}` : 'Niciun test selectat');
+	}
 	if (block.type === 'gallery') {
 		const imgs = Array.isArray(block.metadata?.images) ? block.metadata.images : [];
 		return imgs.length > 0 ? `${imgs.length} imagini` : 'Fără imagini';
@@ -34,6 +37,8 @@ const typeLabel = (type) => {
 			return 'Galerie';
 		case 'video':
 			return 'Video';
+		case 'quiz_embed':
+			return 'Quiz embed';
 		case 'embed':
 			return 'Încorporare';
 		case 'pdf':
@@ -59,6 +64,8 @@ const typeIcon = (type) => {
 			return '🖼️📷';
 		case 'video':
 			return '🎬';
+		case 'quiz_embed':
+			return '🧪';
 		case 'embed':
 			return '🧩';
 		case 'pdf':
@@ -154,6 +161,7 @@ const QUICK_ADD_TYPES = [
 	{ id: 'text', label: 'Text' },
 	{ id: 'video', label: 'Video' },
 	{ id: 'image', label: 'Imagine' },
+	{ id: 'quiz_embed', label: 'Quiz embed' },
 	{ id: 'pdf', label: 'PDF (conținut)' },
 	{ id: 'file', label: 'Fișier' },
 ];

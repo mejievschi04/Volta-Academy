@@ -8,17 +8,55 @@ use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ExamAnswer;
 use App\Models\ExamResult;
+use App\Services\ExamBankQuestionSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class ExamAdminController extends Controller
 {
+    public function __construct(
+        protected ExamBankQuestionSyncService $examBankQuestionSyncService
+    ) {
+    }
+
+    /**
+     * Instructor: cursuri proprii sau examene independente create de el.
+     */
+    protected function assertExamAccessibleByInstructor(Exam $exam): void
+    {
+        $user = auth()->user();
+        if (! $user->isInstructor()) {
+            return;
+        }
+        if ($exam->course_id) {
+            $course = $exam->relationLoaded('course') ? $exam->course : $exam->course()->first();
+            if ($course && (int) $course->teacher_id === (int) $user->id) {
+                return;
+            }
+            abort(403, 'Acces interzis.');
+        }
+        if (Schema::hasColumn('exams', 'created_by') && (int) ($exam->created_by ?? 0) === (int) $user->id) {
+            return;
+        }
+        abort(403, 'Acces interzis.');
+    }
+
     public function index(Request $request)
     {
-        $query = Exam::with(['course']);
+        $query = Exam::with(['course'])->withCount('questions');
         if (auth()->user()->isInstructor()) {
-            $query->whereHas('course', fn($q) => $q->where('teacher_id', auth()->id()));
+            $uid = (int) auth()->id();
+            $query->where(function ($q) use ($uid) {
+                $q->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
+                if (Schema::hasColumn('exams', 'created_by')) {
+                    $q->orWhere(function ($q2) use ($uid) {
+                        $q2->whereNull('course_id')->where('created_by', $uid);
+                    });
+                }
+            });
         }
         if ($request->has('course_id')) {
             $query->where('course_id', $request->course_id);
@@ -35,11 +73,15 @@ class ExamAdminController extends Controller
                 'id' => $exam->id,
                 'course_id' => $exam->course_id,
                 'title' => $exam->title,
+                'description' => $exam->description,
+                'status' => $exam->status,
                 'max_score' => $exam->max_score,
                 'max_attempts' => $exam->max_attempts,
                 'time_limit_minutes' => $exam->time_limit_minutes,
                 'passing_score' => $exam->passing_score,
+                'settings' => $exam->settings,
                 'course_title' => $exam->course ? $exam->course->title : null,
+                'questions_count' => (int) ($exam->questions_count ?? 0),
                 'created_at' => $exam->created_at,
                 'updated_at' => $exam->updated_at,
             ];
@@ -51,10 +93,53 @@ class ExamAdminController extends Controller
     public function show($id)
     {
         $exam = Exam::with(['course', 'questions.answers'])->findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $exam->course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
+        $this->assertExamAccessibleByInstructor($exam);
+
         return response()->json($exam);
+    }
+
+    public function preview($id)
+    {
+        $exam = Exam::with(['course:id,title,teacher_id', 'questions.answers'])->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $questions = $exam->questions->sortBy('order')->values()->map(function ($question) {
+            $answers = $question->answers->sortBy('order')->values();
+            $correctAnswerIndex = null;
+            foreach ($answers as $idx => $answer) {
+                if ($answer->is_correct) {
+                    $correctAnswerIndex = $idx;
+                    break;
+                }
+            }
+
+            return [
+                'id' => $question->id,
+                'text' => $question->question_text,
+                'type' => $question->question_type ?? 'multiple_choice',
+                'options' => in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)
+                    ? $answers->pluck('answer_text')->toArray()
+                    : [],
+                'answerIndex' => $correctAnswerIndex,
+                'points' => $question->points ?? 1,
+                'explanation' => $question->explanation ?? null,
+            ];
+        });
+
+        return response()->json([
+            'id' => $exam->id,
+            'title' => $exam->title,
+            'description' => $exam->description,
+            'instructions' => $settings['instructions'] ?? null,
+            'show_feedback_instant' => (bool) ($settings['show_feedback_instant'] ?? false),
+            'show_correct_answers' => (bool) ($settings['show_correct_answers'] ?? false),
+            'passing_score' => $exam->passing_score ?? 70,
+            'time_limit_minutes' => $exam->time_limit_minutes,
+            'max_attempts' => $exam->max_attempts,
+            'is_required' => (bool) $exam->is_required,
+            'questions' => $questions,
+        ]);
     }
 
     public function store(Request $request)
@@ -68,6 +153,9 @@ class ExamAdminController extends Controller
             'time_limit_minutes' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'is_required' => 'nullable|boolean',
+            'status' => 'nullable|string|in:draft,published,archived',
+            'description' => 'nullable|string',
+            'settings' => 'nullable|array',
             'questions' => 'nullable|array',
             'questions.*.question_text' => 'required|string',
             'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,short_answer,essay,matching,ordering,open_text',
@@ -104,22 +192,14 @@ class ExamAdminController extends Controller
         }
 
         if (auth()->user()->isInstructor()) {
-            $course = Course::findOrFail($courseId);
-            if ((int) $course->teacher_id !== (int) auth()->id()) {
-                abort(403, 'Acces interzis. Poți crea examene doar pentru cursurile tale.');
+            if ($courseId) {
+                $course = Course::findOrFail($courseId);
+                if ((int) $course->teacher_id !== (int) auth()->id()) {
+                    abort(403, 'Acces interzis. Poți crea examene doar pentru cursurile tale.');
+                }
+            } elseif (! Schema::hasColumn('exams', 'created_by')) {
+                abort(403, 'Acces interzis. Instructorii trebuie să aleagă un curs.');
             }
-        }
-
-        // Ensure course_id is available
-        if (!$courseId) {
-            \Log::error('No course_id available for exam', [
-                'validated' => $validated,
-                'has_course_id' => isset($validated['course_id']),
-                'has_module_id' => isset($validated['module_id']),
-            ]);
-            return response()->json([
-                'error' => 'Trebuie să specifici un curs sau un modul'
-            ], 422);
         }
         
         \Log::info('Creating exam with associations', [
@@ -129,13 +209,16 @@ class ExamAdminController extends Controller
 
         $validated['max_score'] = $validated['max_score'] ?? 100;
 
-        // Ensure course_id is properly set
         $examData = [
-            'course_id' => $courseId,
             'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'] ?? 'draft',
             'max_score' => $validated['max_score'],
             'max_attempts' => $validated['max_attempts'] ?? null,
         ];
+        if ($courseId) {
+            $examData['course_id'] = $courseId;
+        }
         
         // If module_id is provided, also set it (for linking exams to modules)
         if (isset($validated['module_id']) && $validated['module_id']) {
@@ -151,6 +234,12 @@ class ExamAdminController extends Controller
         }
         if (isset($validated['is_required'])) {
             $examData['is_required'] = (bool)$validated['is_required'];
+        }
+        if (array_key_exists('settings', $validated)) {
+            $examData['settings'] = $validated['settings'];
+        }
+        if (Schema::hasColumn('exams', 'created_by')) {
+            $examData['created_by'] = (int) auth()->id();
         }
 
         \Log::info('Creating exam with examData', [
@@ -197,12 +286,19 @@ class ExamAdminController extends Controller
                     }
                 }
             }
+        } elseif ($this->examBankQuestionSyncService->shouldSync(is_array($exam->settings) ? $exam->settings : [])) {
+            $this->examBankQuestionSyncService->syncFromSettings(
+                $exam,
+                is_array($exam->settings) ? $exam->settings : [],
+                auth()->user()
+            );
         }
 
         // Reload exam with relationships to ensure we have the latest data
         $exam->refresh();
         $exam->load(['course', 'module', 'questions.answers']);
-        
+        $exam->loadCount('questions');
+
         \Log::info('Returning exam response', [
             'exam_id' => $exam->id,
             'course_id' => $exam->course_id,
@@ -210,7 +306,7 @@ class ExamAdminController extends Controller
             'has_course' => $exam->course !== null,
             'has_module' => $exam->module !== null,
         ]);
-        
+
         return response()->json([
             'message' => 'Test creat cu succes',
             'exam' => $exam,
@@ -220,9 +316,7 @@ class ExamAdminController extends Controller
     public function update(Request $request, $id)
     {
         $exam = Exam::with('course')->findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $exam->course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
+        $this->assertExamAccessibleByInstructor($exam);
 
         $validated = $request->validate([
             'course_id' => 'nullable|integer|exists:courses,id',
@@ -233,6 +327,9 @@ class ExamAdminController extends Controller
             'time_limit_minutes' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'is_required' => 'nullable|boolean',
+            'status' => 'nullable|string|in:draft,published,archived',
+            'description' => 'nullable|string',
+            'settings' => 'nullable|array',
             'questions' => 'nullable|array',
             'questions.*.id' => 'nullable|exists:exam_questions,id',
             'questions.*.question_text' => 'required|string',
@@ -262,20 +359,19 @@ class ExamAdminController extends Controller
             $newCourseId = $exam->course_id;
         }
         
-        // Check if course_id is valid
-        if (!$newCourseId || $newCourseId === 0) {
-            return response()->json([
-                'error' => 'Trebuie să specifici un curs sau un modul'
-            ], 422);
-        }
-
         // Update exam basic info
         $updateData = [
-            'course_id' => $newCourseId,
             'title' => $validated['title'] ?? $exam->title,
+            'description' => array_key_exists('description', $validated) ? $validated['description'] : $exam->description,
+            'status' => $validated['status'] ?? $exam->status,
             'max_score' => $validated['max_score'] ?? $exam->max_score,
             'max_attempts' => $validated['max_attempts'] ?? $exam->max_attempts,
         ];
+        if ($newCourseId) {
+            $updateData['course_id'] = $newCourseId;
+        } elseif (array_key_exists('course_id', $validated) && $validated['course_id'] === null) {
+            $updateData['course_id'] = null;
+        }
         
         // If module_id is provided, also update it
         if (isset($validated['module_id']) && $validated['module_id']) {
@@ -291,6 +387,9 @@ class ExamAdminController extends Controller
         }
         if (isset($validated['is_required'])) {
             $updateData['is_required'] = (bool)$validated['is_required'];
+        }
+        if (array_key_exists('settings', $validated)) {
+            $updateData['settings'] = $validated['settings'];
         }
         
         $exam->update($updateData);
@@ -365,34 +464,306 @@ class ExamAdminController extends Controller
             ExamQuestion::where('exam_id', $exam->id)
                 ->whereNotIn('id', $existingQuestionIds)
                 ->delete();
+        } elseif (array_key_exists('settings', $validated)
+            && $this->examBankQuestionSyncService->shouldSync(is_array($exam->settings) ? $exam->settings : [])) {
+            $this->examBankQuestionSyncService->syncFromSettings(
+                $exam,
+                is_array($exam->settings) ? $exam->settings : [],
+                auth()->user()
+            );
         }
+
+        $exam->refresh();
+        $exam->load(['course', 'questions.answers']);
+        $exam->loadCount('questions');
 
         return response()->json([
             'message' => 'Test actualizat cu succes',
-            'exam' => $exam->load(['course', 'questions.answers']),
+            'exam' => $exam,
         ]);
     }
 
     public function destroy($id)
     {
-        $examModel = Exam::with('course')->find($id);
-        if (!$examModel) {
-            return response()->json(['error' => 'Test negăsit'], 404);
-        }
-        if (auth()->user()->isInstructor() && (int) $examModel->course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
-        $exam = DB::table('exams')->where('id', $id)->first();
-
+        $exam = Exam::with('course')->find($id);
         if (!$exam) {
-            return response()->json(['error' => 'Test negăsit'], 404);
+            return response()->json(['error' => 'Examen negăsit'], 404);
         }
+        $this->assertExamAccessibleByInstructor($exam);
 
-        DB::table('exams')->where('id', $id)->delete();
+        DB::transaction(function () use ($exam) {
+            $exam->delete();
+        });
 
         return response()->json([
-            'message' => 'Test șters cu succes',
+            'message' => 'Examen șters cu succes',
         ]);
+    }
+
+    public function duplicate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+        ]);
+
+        $source = Exam::with(['course', 'questions.answers'])->findOrFail($id);
+
+        if (auth()->user()->isInstructor()) {
+            $this->assertExamAccessibleByInstructor($source);
+        }
+
+        $copySettings = is_array($source->settings)
+            ? json_decode(json_encode($source->settings), true)
+            : [];
+
+        $baseTitle = isset($validated['title']) && trim((string) $validated['title']) !== ''
+            ? trim($validated['title'])
+            : ($source->title . ' (copie)');
+        if (mb_strlen($baseTitle) > 255) {
+            $baseTitle = mb_substr($baseTitle, 0, 252) . '...';
+        }
+
+        $questionTypes = $source->question_types;
+        if (is_array($questionTypes)) {
+            $questionTypes = json_decode(json_encode($questionTypes), true);
+        }
+
+        $newExam = DB::transaction(function () use ($source, $copySettings, $baseTitle, $questionTypes) {
+            $create = [
+                'course_id' => $source->course_id,
+                'module_id' => $source->module_id,
+                'lesson_id' => $source->lesson_id,
+                'title' => $baseTitle,
+                'description' => $source->description,
+                'status' => 'draft',
+                'max_score' => $source->max_score ?? 100,
+                'passing_score' => $source->passing_score,
+                'time_limit_minutes' => $source->time_limit_minutes,
+                'max_attempts' => $source->max_attempts,
+                'is_required' => false,
+                'unlock_after_completion' => (bool) $source->unlock_after_completion,
+                'unlock_target_id' => $source->unlock_target_id,
+                'unlock_target_type' => $source->unlock_target_type,
+                'question_types' => $questionTypes,
+                'settings' => $copySettings,
+                'attempts_count' => 0,
+                'passes_count' => 0,
+                'average_score' => null,
+            ];
+            if (Schema::hasColumn('exams', 'created_by')) {
+                $create['created_by'] = (int) auth()->id();
+            }
+            $new = Exam::create($create);
+
+            foreach ($source->questions->sortBy('order') as $q) {
+                $payload = $q->payload;
+                if (is_array($payload)) {
+                    $payload = json_decode(json_encode($payload), true);
+                }
+                $nq = ExamQuestion::create([
+                    'exam_id' => $new->id,
+                    'question_text' => $q->question_text,
+                    'question_type' => $q->question_type,
+                    'order' => $q->order,
+                    'points' => $q->points,
+                    'payload' => $payload,
+                ]);
+                foreach ($q->answers->sortBy('order') as $a) {
+                    ExamAnswer::create([
+                        'exam_question_id' => $nq->id,
+                        'answer_text' => $a->answer_text,
+                        'is_correct' => (bool) $a->is_correct,
+                        'order' => $a->order,
+                    ]);
+                }
+            }
+
+            return $new;
+        });
+
+        $newExam->load(['course']);
+        $newExam->loadCount('questions');
+
+        return response()->json([
+            'message' => 'Examen duplicat.',
+            'exam' => [
+                'id' => $newExam->id,
+                'course_id' => $newExam->course_id,
+                'title' => $newExam->title,
+                'description' => $newExam->description,
+                'status' => $newExam->status,
+                'max_score' => $newExam->max_score,
+                'max_attempts' => $newExam->max_attempts,
+                'time_limit_minutes' => $newExam->time_limit_minutes,
+                'passing_score' => $newExam->passing_score,
+                'settings' => $newExam->settings,
+                'course_title' => $newExam->course ? $newExam->course->title : null,
+                'questions_count' => $newExam->questions_count,
+                'created_at' => $newExam->created_at,
+                'updated_at' => $newExam->updated_at,
+            ],
+        ], 201);
+    }
+
+    public function uploadCover(Request $request, $id)
+    {
+        $exam = Exam::with('course')->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        $validated = $request->validate([
+            'file' => 'required|image|max:5120',
+        ]);
+
+        $file = $validated['file'];
+        $path = $file->store('exam-covers', 'public');
+        $url = '/storage/' . ltrim($path, '/');
+
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $settings['cover_url'] = $url;
+        $settings['cover_name'] = $file->getClientOriginalName();
+        $exam->update(['settings' => $settings]);
+
+        return response()->json([
+            'url' => $url,
+            'filename' => $file->getClientOriginalName(),
+        ], 201);
+    }
+
+    public function results(Request $request, $id)
+    {
+        $exam = Exam::with('course')->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        if (!Schema::hasTable('exam_results')) {
+            return response()->json([]);
+        }
+
+        $rows = ExamResult::with(['user:id,name,email'])
+            ->where('exam_id', $exam->id)
+            ->orderByDesc('completed_at')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'id' => $row->id,
+                    'attempt_number' => $row->attempt_number,
+                    'score' => $row->score,
+                    'total_points' => $row->total_points,
+                    'percentage' => $row->percentage,
+                    'passed' => $row->passed,
+                    'completed_at' => $row->completed_at,
+                    'needs_manual_review' => $row->needs_manual_review,
+                    'reviewed_at' => $row->reviewed_at,
+                    'status' => $row->reviewed_at ? 'approved' : ($row->needs_manual_review ? 'pending' : 'completed'),
+                    'user' => [
+                        'id' => $row->user?->id,
+                        'name' => $row->user?->name,
+                        'email' => $row->user?->email,
+                    ],
+                ];
+            });
+
+        return response()->json($rows->values());
+    }
+
+    public function questionAnalytics(Request $request, $id)
+    {
+        $exam = Exam::with(['course', 'questions.answers'])->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        if (!Schema::hasTable('exam_results')) {
+            return response()->json([]);
+        }
+
+        $results = ExamResult::where('exam_id', $exam->id)
+            ->orderByDesc('completed_at')
+            ->get(['answers', 'manual_review_scores']);
+
+        $attemptsCount = $results->count();
+        $rows = $exam->questions
+            ->sortBy('order')
+            ->values()
+            ->map(function ($question) use ($results, $attemptsCount) {
+                $questionIdKey = (string) $question->id;
+                $questionType = (string) ($question->question_type ?? 'multiple_choice');
+                $isChoiceType = in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true);
+
+                $answers = $question->answers->sortBy('order')->values();
+                $correctIndex = null;
+                $optionStats = [];
+                foreach ($answers as $idx => $answer) {
+                    if ($answer->is_correct && $correctIndex === null) {
+                        $correctIndex = $idx;
+                    }
+                    $optionStats[$idx] = [
+                        'index' => $idx,
+                        'text' => (string) $answer->answer_text,
+                        'count' => 0,
+                        'percentage' => 0,
+                        'is_correct' => (bool) $answer->is_correct,
+                    ];
+                }
+
+                $answeredCount = 0;
+                $skippedCount = 0;
+                $correctCount = 0;
+                $manualScores = [];
+
+                foreach ($results as $result) {
+                    $resultAnswers = is_array($result->answers) ? $result->answers : [];
+                    $rawValue = $resultAnswers[$questionIdKey] ?? $resultAnswers[(int) $question->id] ?? null;
+
+                    $hasAnswer = !($rawValue === null || $rawValue === '');
+                    if (!$hasAnswer) {
+                        $skippedCount++;
+                    } else {
+                        $answeredCount++;
+                    }
+
+                    if ($isChoiceType && $hasAnswer) {
+                        $selectedIndex = is_numeric($rawValue) ? (int) $rawValue : null;
+                        if ($selectedIndex !== null && array_key_exists($selectedIndex, $optionStats)) {
+                            $optionStats[$selectedIndex]['count']++;
+                        }
+                        if ($selectedIndex !== null && $correctIndex !== null && $selectedIndex === (int) $correctIndex) {
+                            $correctCount++;
+                        }
+                    }
+
+                    if (!$isChoiceType) {
+                        $manualMap = is_array($result->manual_review_scores) ? $result->manual_review_scores : [];
+                        $manualScore = $manualMap[$questionIdKey] ?? $manualMap[(int) $question->id] ?? null;
+                        if ($manualScore !== null && is_numeric($manualScore)) {
+                            $manualScores[] = (float) $manualScore;
+                        }
+                    }
+                }
+
+                $attemptBase = max(1, $attemptsCount);
+                foreach ($optionStats as &$stat) {
+                    $stat['percentage'] = round(($stat['count'] / $attemptBase) * 100, 2);
+                }
+                unset($stat);
+
+                return [
+                    'question_id' => $question->id,
+                    'question_text' => $question->question_text,
+                    'question_type' => $questionType,
+                    'points' => (int) ($question->points ?? 1),
+                    'attempts' => $attemptsCount,
+                    'answered_count' => $answeredCount,
+                    'skipped_count' => $skippedCount,
+                    'correct_count' => $isChoiceType ? $correctCount : null,
+                    'correct_rate' => $isChoiceType
+                        ? round(($correctCount / $attemptBase) * 100, 2)
+                        : null,
+                    'correct_option_index' => $correctIndex,
+                    'option_stats' => array_values($optionStats),
+                    'manual_avg_score' => count($manualScores) > 0 ? round(array_sum($manualScores) / count($manualScores), 2) : null,
+                    'manual_reviews_count' => count($manualScores),
+                ];
+            });
+
+        return response()->json($rows->values());
     }
 
     /**
@@ -426,11 +797,26 @@ class ExamAdminController extends Controller
 
     public function getPendingReviews(Request $request)
     {
-        $query = ExamResult::with(['exam.course', 'exam.questions', 'user:id,name,email'])
+        $query = ExamResult::with([
+                'exam.course',
+                'exam.questions' => fn ($q) => $q->orderBy('order'),
+                'exam.questions.answers' => fn ($q) => $q->orderBy('order'),
+                'user:id,name,email',
+            ])
             ->where('needs_manual_review', true)
             ->whereNull('reviewed_at');
         if (auth()->user()->isInstructor()) {
-            $query->whereHas('exam', fn($q) => $q->whereHas('course', fn($q2) => $q2->where('teacher_id', auth()->id())));
+            $uid = (int) auth()->id();
+            $query->whereHas('exam', function ($q) use ($uid) {
+                $q->where(function ($q2) use ($uid) {
+                    $q2->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
+                    if (Schema::hasColumn('exams', 'created_by')) {
+                        $q2->orWhere(function ($q3) use ($uid) {
+                            $q3->whereNull('course_id')->where('created_by', $uid);
+                        });
+                    }
+                });
+            });
         }
         $results = $query->orderBy('completed_at', 'desc')->get();
 
@@ -446,9 +832,7 @@ class ExamAdminController extends Controller
         ]);
 
         $result = ExamResult::with('exam.course', 'exam.questions')->findOrFail($resultId);
-        if (auth()->user()->isInstructor() && (int) $result->exam->course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
+        $this->assertExamAccessibleByInstructor($result->exam);
 
         // Calculate new total score
         $autoScore = $result->score; // Score from multiple choice questions
@@ -457,7 +841,7 @@ class ExamAdminController extends Controller
 
         foreach ($validated['manual_review_scores'] as $reviewScore) {
             $question = $result->exam->questions->find($reviewScore['question_id']);
-            if ($question && $question->question_type === 'open_text') {
+            if ($question && $question->requiresManualGrading()) {
                 $maxPoints = $question->points ?? 1;
                 $givenScore = min($reviewScore['score'], $maxPoints); // Don't exceed max points
                 $manualScore += $givenScore;
@@ -467,7 +851,8 @@ class ExamAdminController extends Controller
 
         $newTotalScore = $autoScore + $manualScore;
         $newPercentage = $result->total_points > 0 ? round(($newTotalScore / $result->total_points) * 100) : 0;
-        $newPassed = $newPercentage >= 50;
+        $passingScore = (int) ($result->exam->passing_score ?? 70);
+        $newPassed = $newPercentage >= $passingScore;
 
         $result->update([
             'score' => $newTotalScore,

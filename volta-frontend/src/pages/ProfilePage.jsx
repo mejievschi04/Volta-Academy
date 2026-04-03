@@ -4,6 +4,7 @@ import { profileService, adminService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { toImageUrl } from '../utils/imageUrl';
 
 const ProfilePage = () => {
 	const { userId } = useParams(); // Optional user ID from URL
@@ -138,7 +139,7 @@ const ProfilePage = () => {
 						<div className="va-profile-avatar">
 							{profileData.user.avatar ? (
 								<img
-									src={profileData.user.avatar}
+									src={toImageUrl(profileData.user.avatar) || profileData.user.avatar}
 									alt={profileData.user.name}
 									className="va-profile-avatar-img"
 								/>

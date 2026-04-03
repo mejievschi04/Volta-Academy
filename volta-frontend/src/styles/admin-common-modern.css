@@ -203,7 +203,7 @@ body.admin-view .va-main {
 
 .admin-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border-color: var(--color-primary);
 	box-shadow: var(--shadow-sm);
 }
@@ -218,7 +218,7 @@ body.admin-view .va-main {
 /* Light theme - yellow background with black text */
 [data-theme="light"] .admin-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border-color: var(--color-primary);
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
@@ -253,7 +253,7 @@ body.admin-view .va-main {
 
 /* Light theme - yellow background with black text */
 [data-theme="light"] .admin-btn-secondary {
-	color: #000000;
+	color: var(--text-inverse);
 	border-color: var(--color-primary);
 	background-color: var(--color-primary);
 }
@@ -261,7 +261,7 @@ body.admin-view .va-main {
 [data-theme="light"] .admin-btn-secondary:hover:not(:disabled) {
 	background-color: var(--color-primary-hover);
 	border-color: var(--color-primary-hover);
-	color: #000000;
+	color: var(--text-inverse);
 }
 
 .admin-btn-secondary:active:not(:disabled) {
@@ -485,7 +485,7 @@ body.admin-view .va-main {
 }
 
 .admin-settings-tab.active {
-	color: #000000;
+	color: var(--text-inverse);
 	border-bottom-color: var(--color-primary);
 	background-color: var(--color-primary);
 	font-weight: var(--font-weight-semibold);
@@ -958,6 +958,143 @@ body.admin-view .va-main {
 	box-shadow: var(--shadow-md);
 	border-color: var(--border-secondary);
 	transform: translateY(-2px);
+}
+
+/* Lista echipe — card compact (aceleași elemente, spațiere redusă) */
+.admin-team-card-compact.admin-card {
+	padding: var(--space-4);
+	border-radius: var(--radius-lg);
+}
+
+.admin-team-card-compact .admin-card-body {
+	gap: var(--space-3);
+}
+
+.admin-team-card-compact__header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	margin-bottom: var(--space-3);
+	gap: var(--space-2);
+}
+
+.admin-team-card-compact__header-main {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-team-card-compact__avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: var(--radius-lg);
+	background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.35rem;
+	flex-shrink: 0;
+	box-shadow: var(--shadow-sm);
+}
+
+.admin-team-card-compact__title-wrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-team-card-compact__title {
+	margin: 0;
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+}
+
+.admin-team-card-compact__header-actions {
+	display: flex;
+	gap: var(--space-1);
+	flex-shrink: 0;
+}
+
+.admin-team-card-compact__icon-btn {
+	min-width: auto;
+	padding: var(--space-1) var(--space-2);
+	font-size: 1rem;
+	line-height: 1;
+}
+
+.admin-team-card-compact__description {
+	margin-bottom: 0;
+	min-height: 2.5em;
+	-webkit-line-clamp: 2;
+}
+
+.admin-team-card-compact__owner {
+	font-size: var(--font-size-xs);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0;
+	white-space: nowrap;
+	line-height: 1.45;
+	gap: var(--space-2);
+	flex-direction: row;
+}
+
+.admin-team-card-compact__owner-name {
+	white-space: nowrap;
+	font-weight: var(--font-weight-medium);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.admin-team-card-compact__stats {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-primary);
+	margin-bottom: 0;
+}
+
+.admin-team-card-compact__stat-cell {
+	text-align: center;
+}
+
+.admin-team-card-compact__stat-value {
+	font-size: 1.5rem;
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+	line-height: 1;
+	margin-bottom: var(--space-1);
+}
+
+.admin-team-card-compact__stat-label {
+	font-size: 0.65rem;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-weight: var(--font-weight-semibold);
+}
+
+.admin-team-card-compact .admin-card-actions {
+	padding-top: var(--space-3);
+	margin-top: 0;
+}
+
+.admin-team-card-compact .admin-card-actions .admin-btn {
+	min-width: 0;
+	padding-top: var(--space-2);
+	padding-bottom: var(--space-2);
+	font-size: var(--font-size-xs);
+}
+
+.admin-teams-page-grid.admin-grid {
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: var(--space-4);
 }
 
 /* ============================================
@@ -1555,7 +1692,7 @@ body.admin-view .va-main {
 /* Light theme - dark background for yellow buttons */
 [data-theme="light"] .admin-event-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border: 1px solid var(--color-primary);
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
@@ -1588,7 +1725,7 @@ body.admin-view .va-main {
 
 .admin-event-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border-color: var(--color-primary);
 	box-shadow: var(--shadow-sm);
 }
@@ -1675,6 +1812,73 @@ body.admin-view .va-main {
 	grid-template-columns: 1fr 1fr;
 	gap: var(--space-4);
 }
+
+.admin-event-form-grid-2 {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-4);
+	align-items: start;
+}
+
+@media (max-width: 640px) {
+	.admin-event-form-grid-2 {
+		grid-template-columns: 1fr;
+	}
+}
+
+.admin-event-form-hint {
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	margin: var(--space-1) 0 0 0;
+	line-height: var(--line-height-normal);
+}
+
+.admin-event-form-intro {
+	margin: 0 0 var(--space-3) 0;
+}
+
+.admin-event-format-fieldset {
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	padding: var(--space-4);
+	margin: 0;
+	background: var(--bg-secondary);
+}
+
+.admin-event-format-legend {
+	padding: 0 var(--space-2);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-secondary);
+}
+
+.admin-event-format-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-4);
+}
+
+.admin-event-format-option {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	cursor: pointer;
+	font-size: var(--font-size-base);
+	color: var(--text-primary);
+}
+
+.admin-event-format-option input {
+	width: auto;
+	margin: 0;
+	accent-color: var(--color-primary, #4f46e5);
+}
+
+.admin-event-optional {
+	font-weight: var(--font-weight-normal);
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+}
+
 @media (max-width: 520px) {
 	.admin-event-datetime-grid {
 		grid-template-columns: 1fr;
@@ -1893,7 +2097,7 @@ body.admin-view .va-main {
 
 .admin-course-builder-step.completed .admin-course-builder-step-number {
 	background-color: var(--color-success);
-	color: #fff;
+	color: var(--color-white);
 }
 
 .admin-course-builder-step-content {
@@ -1979,7 +2183,7 @@ body.admin-view .va-main {
 
 .admin-course-builder-footer .admin-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border: 1px solid var(--color-primary);
 	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.2);
 }
@@ -2685,25 +2889,25 @@ body.admin-view .admin-lesson-creator-page {
 
 [data-theme="light"] .admin-card-badge[style*="rgba(255, 238, 0"] {
 	background: rgba(31, 41, 55, 0.1) !important;
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
 	border: 1px solid rgba(31, 41, 55, 0.2) !important;
 }
 
 [data-theme="light"] .admin-card-badge[style*="rgb(255, 238, 0)"] {
 	background: rgba(31, 41, 55, 0.1) !important;
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
 	border: 1px solid rgba(31, 41, 55, 0.2) !important;
 }
 
 /* Generic badge styles for light theme */
 [data-theme="light"] span[class*="badge"][style*="rgba(255, 238, 0"] {
 	background: rgba(31, 41, 55, 0.1) !important;
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
 	border: 1px solid rgba(31, 41, 55, 0.2) !important;
 }
 
 [data-theme="light"] span[class*="badge"][style*="rgb(255, 238, 0)"] {
 	background: rgba(31, 41, 55, 0.1) !important;
-	color: #1f2937 !important;
+	color: var(--text-primary) !important;
 	border: 1px solid rgba(31, 41, 55, 0.2) !important;
 }

@@ -35,7 +35,7 @@
 
 .admin-question-bank-builder-page .admin-course-builder-sidebar-lesson.is-selected .admin-course-builder-sidebar-lesson-num {
 	background: var(--color-primary);
-	color: #000;
+	color: var(--text-inverse);
 }
 
 /* ----- Main: bară pas + conținut ----- */
@@ -198,7 +198,7 @@
 }
 
 .admin-question-bank-builder-page .admin-question-answer.correct {
-	color: var(--color-success, #22c55e);
+	color: var(--color-success);
 	font-weight: 600;
 }
 
@@ -321,12 +321,12 @@
 /* Errors */
 .admin-question-bank-builder-page .admin-input-error,
 .admin-question-bank-builder-page .admin-course-builder-form .admin-input-error {
-	border-color: var(--color-error, #dc2626);
+	border-color: var(--color-error);
 }
 
 .admin-question-bank-builder-page .admin-form-error-inline {
 	font-size: var(--font-size-sm);
-	color: var(--color-error, #dc2626);
+	color: var(--color-error);
 	margin-top: var(--space-1);
 }
 
@@ -468,8 +468,8 @@
 }
 
 .admin-question-bank-builder-page .qb-student-preview-option.is-correct {
-	border-color: var(--color-success, #16a34a);
-	background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-primary));
+	border-color: var(--color-success);
+	background: color-mix(in srgb, var(--color-success) 12%, var(--bg-primary));
 }
 
 .admin-question-bank-builder-page .qb-student-preview-bullet {
@@ -486,7 +486,7 @@
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
-	color: var(--color-success, #16a34a);
+	color: var(--color-success);
 }
 
 .admin-question-bank-builder-page .qb-student-preview-short-label {
@@ -529,9 +529,9 @@
 }
 
 .admin-question-bank-builder-page .qb-meta-save-status[data-state='saved'] {
-	color: var(--color-success, #16a34a);
+	color: var(--color-success);
 }
 
 .admin-question-bank-builder-page .qb-meta-save-status[data-state='error'] {
-	color: var(--color-error, #dc2626);
+	color: var(--color-error);
 }

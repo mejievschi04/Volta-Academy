@@ -6,27 +6,27 @@
 /* Global Light Theme Overrides - Replace all white backgrounds */
 [data-theme="light"] {
 	/* Background Colors - More Gray, Less White - WCAG Compliant */
-	--bg-primary: rgba(229, 229, 229, 1); /* Medium gray instead of light gray */
-	--bg-sidebar-toggle: #B8B8B8; /* Mai închis pentru butonul expand sidebar */
-	--bg-sidebar-toggle-hover: #A8A8A8; /* Hover pe butonul expand */
-	--bg-secondary: #D5D5D5; /* Darker gray for subtle elevation */
-	--bg-tertiary: #C8C8C8; /* Even darker gray for more elevation */
-	--bg-elevated: #E8E8E8; /* Elevated surfaces - medium gray */
-	--bg-overlay: rgba(232, 232, 232, 0.95);
+	--bg-primary: rgb(248, 250, 252);
+	--bg-sidebar-toggle: rgb(17, 24, 39);
+	--bg-sidebar-toggle-hover: rgb(15, 23, 42);
+	--bg-secondary: rgb(241, 245, 249);
+	--bg-tertiary: rgb(226, 232, 240);
+	--bg-elevated: rgb(255, 255, 255);
+	--bg-overlay: rgba(15, 23, 42, 0.45);
 
 	/* Text Colors - WCAG 2.1 AA Compliant Contrast Ratios */
-	/* #111827 on #E8E8E8 = ~12:1 (Excellent - AAA) */
-	--text-primary: #111827;
-	/* #374151 on #E8E8E8 = ~6.5:1 (Excellent - AAA) */
-	--text-secondary: #374151;
-	/* #6B7280 on #E8E8E8 = ~4.2:1 (AA Compliant) */
-	--text-tertiary: #6B7280;
-	/* #9CA3AF on #E8E8E8 = ~2.8:1 (AA Large Text) */
-	--text-disabled: #9CA3AF;
+	/* text-primary on bg-elevated = ~12:1 (Excellent - AAA) */
+	--text-primary: rgb(17, 24, 39);
+	/* text-secondary on bg-elevated = ~6.5:1 (Excellent - AAA) */
+	--text-secondary: rgb(71, 85, 105);
+	/* text-tertiary on bg-elevated = ~4.2:1 (AA Compliant) */
+	--text-tertiary: rgb(100, 116, 139);
+	/* text-disabled on bg-elevated = ~2.8:1 (AA Large Text) */
+	--text-disabled: rgb(156, 163, 175);
 
 	/* Border Colors - Defined for better separation */
-	--border-primary: rgba(200, 200, 200, 1);
-	--border-secondary: #B8B8B8;
+	--border-primary: rgb(226, 232, 240);
+	--border-secondary: rgb(148, 163, 184);
 }
 
 /* Universal white background replacement for light theme */
@@ -42,14 +42,14 @@
 [data-theme="light"] input[type="search"],
 [data-theme="light"] textarea,
 [data-theme="light"] select {
-	background-color: #E8E8E8 !important;
-	color: #111827 !important; /* WCAG AAA: ~12:1 */
-	border-color: #C8C8C8 !important;
+	background-color: var(--bg-elevated) !important;
+	color: var(--text-primary) !important; /* WCAG AAA: ~12:1 */
+	border-color: var(--border-primary) !important;
 }
 
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder {
-	color: #9CA3AF !important; /* WCAG AA Large Text: 3.2:1 */
+	color: var(--text-disabled) !important; /* WCAG AA Large Text: 3.2:1 */
 	opacity: 1 !important;
 }
 
@@ -57,14 +57,14 @@
 [data-theme="light"] .card,
 [data-theme="light"] [class*="card"],
 [data-theme="light"] [class*="Card"] {
-	background-color: #E8E8E8 !important;
+	background-color: var(--bg-elevated) !important;
 }
 
 /* Modals and overlays */
 [data-theme="light"] .modal,
 [data-theme="light"] [class*="modal"],
 [data-theme="light"] [class*="Modal"] {
-	background-color: #E8E8E8 !important;
+	background-color: var(--bg-elevated) !important;
 }
 
 /* Tables */
@@ -72,7 +72,7 @@
 [data-theme="light"] thead,
 [data-theme="light"] tbody,
 [data-theme="light"] tr {
-	background-color: #E8E8E8 !important;
+	background-color: var(--bg-elevated) !important;
 }
 
 /* Ensure text contrast on light backgrounds */
@@ -82,21 +82,21 @@
 [data-theme="light"] h4,
 [data-theme="light"] h5,
 [data-theme="light"] h6 {
-	color: #111827 !important; /* WCAG AAA: 15.8:1 */
+	color: var(--text-primary) !important; /* WCAG AAA: 15.8:1 */
 }
 
 [data-theme="light"] p,
 [data-theme="light"] span,
 [data-theme="light"] div,
 [data-theme="light"] label {
-	color: #111827 !important; /* WCAG AAA: 15.8:1 */
+	color: var(--text-primary) !important; /* WCAG AAA: 15.8:1 */
 }
 
 /* Secondary text */
 [data-theme="light"] .text-secondary,
 [data-theme="light"] [class*="secondary"],
 [data-theme="light"] small {
-	color: #374151 !important; /* WCAG AAA: 8.2:1 */
+	color: var(--text-secondary) !important; /* WCAG AAA: 8.2:1 */
 }
 
 /* Tertiary text */
@@ -104,22 +104,22 @@
 [data-theme="light"] [class*="tertiary"],
 [data-theme="light"] .hint,
 [data-theme="light"] .helper-text {
-	color: #6B7280 !important; /* WCAG AA: 4.8:1 */
+	color: var(--text-tertiary) !important; /* WCAG AA: 4.8:1 */
 }
 
 /* Links - ensure good contrast */
 [data-theme="light"] a {
-	color: #1F2937 !important; /* WCAG AAA: 12.6:1 */
+	color: var(--text-primary) !important; /* WCAG AAA: 12.6:1 */
 }
 
 [data-theme="light"] a:hover {
-	color: #111827 !important; /* WCAG AAA: 15.8:1 */
+	color: var(--text-primary) !important; /* WCAG AAA: 15.8:1 */
 }
 
 /* Avatar topnav - fundal galben, text negru (brand rule) */
 [data-theme="light"] .admin-topnav-user-avatar,
 [data-theme="light"] .admin-topnav-user-avatar * {
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 }
 
 /* Butoane galbene - text NEGRU (brand rule) */
@@ -152,32 +152,32 @@
 [data-theme="light"] .view-toggle-btn.active *,
 [data-theme="light"] .filter-chip.active,
 [data-theme="light"] .filter-chip.active * {
-	color: #000000 !important;
+	color: var(--text-inverse) !important;
 }
 
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn) {
-	color: #111827 !important; /* WCAG AAA: ~12:1 */
-	background-color: #E8E8E8 !important;
-	border-color: #C8C8C8 !important;
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip) {
+	color: var(--text-primary) !important; /* WCAG AAA: ~12:1 */
+	background-color: var(--bg-elevated) !important;
+	border-color: var(--border-primary) !important;
 }
 
 /* Mobile sidebar toggle - same as topnav */
 [data-theme="light"] .mobile-sidebar-toggle {
-	background-color: #E8E8E8 !important;
-	color: #111827 !important;
+	background-color: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
 }
 [data-theme="light"] .mobile-sidebar-toggle:hover {
-	background-color: #D5D5D5 !important;
-	color: #111827 !important;
+	background-color: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
 }
 
 /* Form elements focus states */
 [data-theme="light"] input:focus,
 [data-theme="light"] textarea:focus,
 [data-theme="light"] select:focus {
-	background-color: #E8E8E8 !important;
+	background-color: var(--bg-elevated) !important;
 	border-color: var(--color-primary) !important;
-	outline: 2px solid rgba(255, 238, 0, 0.3) !important;
+	outline: 2px solid rgba(var(--color-primary-rgb), 0.3) !important;
 	outline-offset: 2px !important;
 }

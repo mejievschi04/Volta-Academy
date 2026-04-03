@@ -1,4 +1,5 @@
 import React from 'react';
+import { toImageUrl } from '../../utils/imageUrl';
 import { useNavigate } from 'react-router-dom';
 import ProgressIndicator from './ProgressIndicator';
 
@@ -20,7 +21,7 @@ const CourseProgressWidget = React.memo(({ course, isMandatory = false }) => {
 			<div className="student-course-progress-header">
 				{course.thumbnail && (
 					<img 
-						src={course.thumbnail}
+						src={toImageUrl(course.thumbnail) || course.thumbnail}
 						loading="lazy"
 						decoding="async" 
 						alt={course.title}

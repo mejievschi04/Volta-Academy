@@ -6,6 +6,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\TelemetryController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\Admin\CourseAdminController;
 use App\Http\Controllers\Api\Admin\CourseBuilderController;
@@ -30,6 +31,7 @@ Route::middleware('throttle:120,1')->group(function () {
     Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
     Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
     Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
+    Route::get('/builder-media/{courseId}/{mediaId}', [CourseBuilderController::class, 'serveMediaFilePublic']);
 });
 
 // CSRF cookie endpoint (needed for session-based auth with CORS)
@@ -55,12 +57,13 @@ Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 
 Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:15,1'); // 15 attempts per minute
 Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth:sanctum');
-Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'throttle:3,1']); // 3 attempts per minute for password change
+Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'throttle:60,1']);
 
 // Protected routes (require authentication) with rate limiting
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/profile', [ProfileController::class, 'index']);
+    Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
     // Lesson completion removed - we use modules now, course completion is through quiz passing
@@ -83,13 +86,15 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     Route::get('/course-maps', [\App\Http\Controllers\Api\CourseMapController::class, 'index']);
     Route::get('/course-maps/{id}', [\App\Http\Controllers\Api\CourseMapController::class, 'show']);
     
-    // Exam endpoints
+    // Exam endpoints (lista fără curs înainte de {examId})
+    Route::get('/exams', [\App\Http\Controllers\Api\ExamController::class, 'learnerStandaloneExams']);
     Route::get('/exams/{examId}', [\App\Http\Controllers\Api\ExamController::class, 'show']);
     Route::post('/exams/{examId}/submit', [\App\Http\Controllers\Api\ExamController::class, 'submit']);
     
     // Exam Results
     Route::get('/exam-results', [\App\Http\Controllers\Api\ExamResultController::class, 'index']);
     Route::get('/exam-results/{id}', [\App\Http\Controllers\Api\ExamResultController::class, 'show']);
+    Route::post('/telemetry/events', [TelemetryController::class, 'store']);
     
     // Achievements
     Route::get('/achievements', [\App\Http\Controllers\Api\AchievementController::class, 'index']);
@@ -118,7 +123,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
 });
 
 // Admin routes (require admin role) with rate limiting
-Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddleware::class, 'throttle:120,1'])->prefix('admin')->group(function () { // admin + instructor (instructor: doar cursuri și teste)
+Route::middleware([
+    'auth:sanctum',
+    \App\Http\Middleware\StaffAreaAccessMiddleware::class,
+    \App\Http\Middleware\AnalystReadOnlyMiddleware::class,
+    \App\Http\Middleware\InstructorContentScopeMiddleware::class,
+    'throttle:120,1',
+])->prefix('admin')->group(function () { // admin | analyst (citire) | instructor (doar conținut)
     // Admin Dashboard
     Route::get('/dashboard', [DashboardAdminController::class, 'index']);
     
@@ -131,7 +142,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
     // Parameterized routes
     Route::get('/courses/{id}', [CourseAdminController::class, 'show']);
     Route::post('/courses', [CourseAdminController::class, 'store']);
-    Route::put('/courses/{id}', [CourseAdminController::class, 'update']);
+    // POST + FormData pentru imagine: PHP/Laravel parsează fișierele corect; PUT multipart e adesea gol
+    Route::match(['put', 'post'], '/courses/{id}', [CourseAdminController::class, 'update']);
     Route::delete('/courses/{id}', [CourseAdminController::class, 'destroy']);
     Route::post('/courses/{id}/teams', [CourseAdminController::class, 'attachTeams']);
     Route::post('/courses/{id}/actions/{action}', [CourseAdminController::class, 'quickAction']);
@@ -166,10 +178,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
         Route::put('/content-blocks/{blockId}', [CourseBuilderController::class, 'updateContentBlock']);
         Route::delete('/content-blocks/{blockId}', [CourseBuilderController::class, 'deleteContentBlock']);
         Route::post('/upload', [CourseBuilderController::class, 'uploadContentFile']);
+        Route::get('/media/{mediaId}/file', [CourseBuilderController::class, 'serveMediaFile']);
 
         Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
         Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
         Route::post('/publish', [CourseBuilderController::class, 'publish']);
+        Route::post('/archive', [CourseBuilderController::class, 'archive']);
         Route::post('/clone', [CourseBuilderController::class, 'clone']);
 
         Route::get('/versions', [CourseBuilderController::class, 'versions']);
@@ -196,11 +210,17 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
     Route::delete('/lessons/{id}', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'destroy']);
     Route::post('/modules/{moduleId}/lessons/reorder', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'reorder']);
     
-    // Exams Management
+    // Exams Management (rute fixe înainte de {id})
     Route::get('/exams', [ExamAdminController::class, 'index']);
+    Route::get('/exams/pending-reviews', [ExamAdminController::class, 'getPendingReviews']);
     Route::get('/exams/{id}', [ExamAdminController::class, 'show']);
+    Route::get('/exams/{id}/preview', [ExamAdminController::class, 'preview']);
+    Route::get('/exams/{id}/results', [ExamAdminController::class, 'results']);
+    Route::get('/exams/{id}/question-analytics', [ExamAdminController::class, 'questionAnalytics']);
     Route::post('/exams', [ExamAdminController::class, 'store']);
     Route::put('/exams/{id}', [ExamAdminController::class, 'update']);
+    Route::post('/exams/{id}/cover', [ExamAdminController::class, 'uploadCover']);
+    Route::post('/exams/{id}/duplicate', [ExamAdminController::class, 'duplicate']);
     Route::delete('/exams/{id}', [ExamAdminController::class, 'destroy']);
     
     // Tests Management (Standalone Test Builder)
@@ -215,8 +235,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
     Route::get('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getQuestions']);
     Route::post('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'addQuestion']);
     Route::post('/tests/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'reorderQuestions']);
+    Route::get('/questions', [QuestionAdminController::class, 'index']);
+    Route::get('/questions/tag-suggestions', [QuestionAdminController::class, 'tagSuggestions']);
+    Route::post('/questions/bulk-move', [QuestionAdminController::class, 'bulkMove']);
+    Route::post('/questions/{id}/toggle-star', [QuestionAdminController::class, 'toggleStar']);
     Route::put('/questions/{id}', [QuestionAdminController::class, 'update']);
     Route::delete('/questions/{id}', [QuestionAdminController::class, 'destroy']);
+    Route::post('/questions/{id}/improve', [QuestionAdminController::class, 'improveWithAi']);
+    Route::post('/questions/{id}/auto-tag', [QuestionAdminController::class, 'autoTagWithAi']);
     Route::post('/tests/{id}/link-to-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'linkToCourse']);
     Route::post('/tests/{id}/unlink-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'unlinkFromCourse']);
     
@@ -228,9 +254,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
     Route::delete('/question-banks/{id}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'destroy']);
     Route::get('/question-banks/{id}/questions', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'getQuestions']);
     Route::post('/question-banks/{id}/questions', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'addQuestion']);
+    Route::post('/question-banks/{id}/questions/bulk', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'addQuestions']);
     Route::put('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'updateQuestion']);
     Route::delete('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'removeQuestion']);
     Route::post('/question-banks/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'reorderQuestions']);
+    Route::post('/question-banks/{id}/ai/preview', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'previewAiQuestions']);
     Route::post('/question-banks/{id}/generate-from-course', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromCourse']);
     Route::post('/question-banks/{id}/generate-from-text', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromText']);
     
@@ -291,7 +319,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminOrInstructorMiddlew
     Route::get('/activity-logs/{id}', [ActivityLogAdminController::class, 'show']);
     
     // Exam Manual Review (legacy Exam model)
-    Route::get('/exams/pending-reviews', [ExamAdminController::class, 'getPendingReviews']);
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
 
     // Test Manual Review (Test model - standalone tests)

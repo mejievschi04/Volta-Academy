@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import './Step3Content.css';
+import { toImageUrl } from '../../../../utils/imageUrl';
 
 /**
  * Step 3 — Lesson Builder (instructiuni.md)
@@ -373,7 +374,7 @@ function LessonPreview({ blocks }) {
 						{block.type === 'image_gallery' && (
 							<div className="step3-preview-gallery">
 								{(block.payload?.images || []).slice(0, 6).map((url, i) => (
-									<img key={i} src={url} alt="" className="step3-preview-gallery-img" />
+									<img key={i} src={toImageUrl(url) || url} alt="" className="step3-preview-gallery-img" />
 								))}
 							</div>
 						)}

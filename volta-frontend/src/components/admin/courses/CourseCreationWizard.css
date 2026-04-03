@@ -430,11 +430,11 @@
 
 .test-wizard-step-details .admin-input-error,
 .test-wizard-step-questions .admin-input-error {
-	border-color: var(--color-error, #dc2626);
-	box-shadow: 0 0 0 1px var(--color-error, #dc2626);
+	border-color: var(--color-error);
+	box-shadow: 0 0 0 1px var(--color-error);
 }
 .admin-form-error-inline {
 	font-size: var(--font-size-sm);
-	color: var(--color-error, #dc2626);
+	color: var(--color-error);
 	margin: var(--space-1) 0 0 0;
 }

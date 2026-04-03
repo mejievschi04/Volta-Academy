@@ -5,6 +5,8 @@ import { useToast } from '../../../contexts/ToastContext';
 import QuestionBankBuilderStep1 from './QuestionBankBuilderSteps/Step1Basics';
 import QuestionBankBuilderStep2 from './QuestionBankBuilderSteps/Step2Questions';
 import QuestionBankBuilderStep3 from './QuestionBankBuilderSteps/Step3Review';
+import BuilderWizardShell, { BuilderWizardFooter } from '../builders/BuilderWizardShell';
+import useUnsavedChangesPrompt from '../builders/useUnsavedChangesPrompt';
 import '../../../styles/admin-course-builder.css';
 import './QuestionBankBuilder.css';
 
@@ -13,9 +15,10 @@ import './QuestionBankBuilder.css';
  * Stil aliniat cu constructorul de cursuri și editorul de teste: sidebar pași, zonă centrală, panou rezumat.
  */
 const STEPS = [
-	{ id: 0, label: 'Informații de bază', short: 'Detalii' },
-	{ id: 1, label: 'Întrebări', short: 'Întrebări' },
-	{ id: 2, label: 'Revizuire', short: 'Revizuire' },
+	{ id: 0, label: 'Setup', short: 'Setup' },
+	{ id: 1, label: 'Content', short: 'Conținut' },
+	{ id: 2, label: 'Rules', short: 'Reguli' },
+	{ id: 3, label: 'Review & Publish', short: 'Review' },
 ];
 
 const META_AUTOSAVE_MS = 1000;
@@ -48,9 +51,15 @@ const QuestionBankBuilder = () => {
 	const [errors, setErrors] = useState({});
 	const [metaSaveStatus, setMetaSaveStatus] = useState('idle');
 	const [metaLastSavedAt, setMetaLastSavedAt] = useState(null);
+	const [qualityRules, setQualityRules] = useState({
+		requireDifficultyTag: false,
+		minimumQuestions: 10,
+	});
 	const lastSavedMetaRef = useRef(null);
 	const metaSaveTimerRef = useRef(null);
 	const metaSavedClearTimerRef = useRef(null);
+
+	useUnsavedChangesPrompt(metaSaveStatus === 'saving' || saving);
 
 	useEffect(() => {
 		if (isEditMode && id) {
@@ -178,6 +187,9 @@ const QuestionBankBuilder = () => {
 		if (step === 1 && (!bankData.questions || bankData.questions.length === 0)) {
 			newErrors.questions = 'Adaugă cel puțin o întrebare';
 		}
+		if (step === 2 && Number(qualityRules.minimumQuestions || 0) > 0 && (bankData.questions?.length || 0) < Number(qualityRules.minimumQuestions)) {
+			newErrors.rules = `Setul are sub minimul recomandat (${qualityRules.minimumQuestions}).`;
+		}
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
@@ -212,7 +224,7 @@ const QuestionBankBuilder = () => {
 				setSaving(false);
 			}
 		}
-		if (validateStep(currentStep) && currentStep < 2) {
+		if (validateStep(currentStep) && currentStep < 3) {
 			setCurrentStep(currentStep + 1);
 		}
 	};
@@ -323,6 +335,14 @@ const QuestionBankBuilder = () => {
 
 	return (
 		<div className="admin-container admin-course-builder-page admin-question-bank-builder-page">
+			<BuilderWizardShell
+				title={isEditMode ? (bankData.title || 'Editează bancă') : (bankData.title || 'Bancă de întrebări nouă')}
+				subtitle="Setup → Content → Rules → Review & Publish"
+				steps={STEPS}
+				currentStep={currentStep}
+				onStepChange={setCurrentStep}
+				saveStatus={metaSaveStatus === 'idle' ? null : metaSaveStatus}
+			>
 			<header className="admin-course-builder-header">
 				<div className="admin-course-builder-header-left">
 					<button
@@ -382,7 +402,7 @@ const QuestionBankBuilder = () => {
 					>
 						{currentStep === 0 ? 'Anulează' : 'Înapoi'}
 					</button>
-					{currentStep < 2 ? (
+					{currentStep < 3 ? (
 						<button
 							type="button"
 							className="admin-btn admin-btn-primary"
@@ -448,7 +468,8 @@ const QuestionBankBuilder = () => {
 						<p className="admin-course-builder-workflow-hint" style={{ margin: 'var(--space-1) 0 0 0' }}>
 							{currentStep === 0 && 'Titlu, descriere și categorie. După pasul 1 banca este creată automat.'}
 							{currentStep === 1 && 'Adaugă și editează întrebări. Poți reordona prin drag.'}
-							{currentStep === 2 && 'Verifică rezumatul și publică banca.'}
+							{currentStep === 2 && 'Definește reguli de calitate pentru bancă.'}
+							{currentStep === 3 && 'Verifică rezumatul și publică banca.'}
 						</p>
 					</div>
 					<div className="admin-course-builder-content-blocks qb-step-content">
@@ -468,6 +489,35 @@ const QuestionBankBuilder = () => {
 							/>
 						)}
 						{currentStep === 2 && (
+							<div className="admin-card">
+								<div className="admin-card-body" style={{ display: 'grid', gap: '0.8rem' }}>
+									<h3 style={{ margin: 0 }}>Quality rules</h3>
+									<label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+										<input
+											type="checkbox"
+											checked={!!qualityRules.requireDifficultyTag}
+											onChange={(e) => setQualityRules((prev) => ({ ...prev, requireDifficultyTag: e.target.checked }))}
+										/>
+										Cere dificultate setată pentru toate întrebările
+									</label>
+									<div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+										<label htmlFor="qb-min-q">Minim întrebări recomandate</label>
+										<input
+											id="qb-min-q"
+											type="number"
+											min="1"
+											max="200"
+											className="form-input"
+											style={{ width: 120 }}
+											value={qualityRules.minimumQuestions}
+											onChange={(e) => setQualityRules((prev) => ({ ...prev, minimumQuestions: Number(e.target.value || 0) }))}
+										/>
+									</div>
+									{errors?.rules ? <p style={{ margin: 0, color: 'var(--color-error)' }}>{errors.rules}</p> : null}
+								</div>
+							</div>
+						)}
+						{currentStep === 3 && (
 							<QuestionBankBuilderStep3
 								data={bankData}
 								onUpdate={updateBankData}
@@ -514,6 +564,24 @@ const QuestionBankBuilder = () => {
 					</div>
 				</aside>
 			</div>
+			<BuilderWizardFooter
+				onBack={handleBack}
+				onNext={currentStep < 3 ? handleNext : null}
+				disableBack={saving}
+				disableNext={saving || currentStep >= 3}
+				nextLabel={saving ? 'Se salvează…' : 'Urmatorul pas'}
+				primaryActions={currentStep === 3 ? (
+					<>
+						<button type="button" className="admin-btn admin-btn-secondary" onClick={handleSave} disabled={saving}>
+							{saving ? 'Se salvează…' : 'Salvează ciornă'}
+						</button>
+						<button type="button" className="admin-btn admin-btn-primary" onClick={handlePublish} disabled={saving}>
+							{saving ? 'Se publică…' : 'Publică'}
+						</button>
+					</>
+				) : null}
+			/>
+			</BuilderWizardShell>
 		</div>
 	);
 };

@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
+use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\CourseBuilderService;
 use Illuminate\Http\Request;
@@ -372,6 +373,7 @@ class CourseAdminController extends Controller
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'card_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'status' => 'nullable|in:draft,published,archived',
             'access_type' => 'nullable|in:free',
             'enrollment_type' => 'nullable|string|in:open,by_invite,paid',
@@ -411,6 +413,7 @@ class CourseAdminController extends Controller
             'description' => $validated['description'] ?? null,
             'short_description' => $validated['short_description'] ?? null,
             'category' => $validated['category'] ?? null,
+            'card_color' => $validated['card_color'] ?? null,
             'teacher_id' => $validated['teacher_id'] ?? null,
             'reward_points' => $validated['reward_points'] ?? 50,
             'status' => $validated['status'] ?? 'draft',
@@ -452,6 +455,21 @@ class CourseAdminController extends Controller
 
         $course = $this->courseBuilderService->createCourse($data, $teacher);
 
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'telemetry.admin_course_created',
+            'model_type' => Course::class,
+            'model_id' => $course->id,
+            'description' => 'Telemetry event: admin_course_created',
+            'new_values' => [
+                'status' => $course->status ?? 'draft',
+                'teacher_id' => $course->teacher_id,
+                'created_at' => now()->toISOString(),
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         return response()->json([
             'message' => 'Curs creat cu succes',
             'course' => $this->addCourseMetrics($course->load(['modules', 'teacher', 'teams'])),
@@ -470,6 +488,7 @@ class CourseAdminController extends Controller
             'description' => 'nullable|string',
             'short_description' => 'nullable|string|max:200',
             'category' => 'nullable|string|max:100',
+            'card_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
             'status' => 'nullable|in:draft,published,archived,disabled',
@@ -502,13 +521,9 @@ class CourseAdminController extends Controller
             'permissions' => 'nullable|array',
         ];
 
+        // For updates, image is optional. Validate only when a new file is uploaded.
         if ($request->hasFile('image')) {
             $rules['image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
-        } else {
-            // If no image is provided, require it (unless course already has an image)
-            if (!$course->image) {
-                $rules['image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
-            }
         }
 
         $validated = $request->validate($rules);
@@ -519,7 +534,7 @@ class CourseAdminController extends Controller
 
         $data = [];
         $fields = [
-            'title', 'description', 'short_description', 'teacher_id', 'reward_points',
+            'title', 'description', 'short_description', 'card_color', 'teacher_id', 'reward_points',
             'status', 'access_type', 'enrollment_type', 'price', 'currency', 'level',
             'objectives', 'requirements', 'estimated_duration_hours',
             'sequential_unlock', 'min_completion_percentage',
@@ -556,7 +571,12 @@ class CourseAdminController extends Controller
             $data['image'] = $request->file('image');
         }
 
+        $previousStatus = $course->status;
         $course = $this->courseBuilderService->updateCourse($course, $data);
+
+        if ($course->status === 'published' && $previousStatus !== 'published') {
+            $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+        }
 
         return response()->json([
             'message' => 'Curs actualizat cu succes',
@@ -587,9 +607,8 @@ class CourseAdminController extends Controller
                 $teachers = User::where('id', auth()->id())->get(['id', 'name', 'email']);
                 return response()->json($teachers);
             }
-            $teachers = User::where('role', 'teacher')
-                ->orWhere('role', 'admin')
-                ->orWhere('role', 'instructor')
+            $teachers = User::whereIn('role', ['admin', 'instructor'])
+                ->orderBy('name')
                 ->get(['id', 'name', 'email']);
 
             return response()->json($teachers);

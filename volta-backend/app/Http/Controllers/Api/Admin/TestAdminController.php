@@ -7,7 +7,9 @@ use App\Models\Test;
 use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\TestResult;
+use App\Models\ActivityLog;
 use App\Services\TestBuilderService;
+use App\Services\TestQuestionSelectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +23,12 @@ use Illuminate\Support\Facades\Auth;
 class TestAdminController extends Controller
 {
     protected TestBuilderService $testBuilderService;
+    protected TestQuestionSelectionService $questionSelectionService;
 
-    public function __construct(TestBuilderService $testBuilderService)
+    public function __construct(TestBuilderService $testBuilderService, TestQuestionSelectionService $questionSelectionService)
     {
         $this->testBuilderService = $testBuilderService;
+        $this->questionSelectionService = $questionSelectionService;
     }
 
     /**
@@ -100,6 +104,7 @@ class TestAdminController extends Controller
             'status' => 'nullable|in:draft,published,archived',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
+            'passing_score' => 'nullable|integer|min:0|max:100',
             'randomize_questions' => 'nullable|boolean',
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
@@ -132,6 +137,21 @@ class TestAdminController extends Controller
 
         $test = $this->testBuilderService->createTest($validated, $creator);
 
+        ActivityLog::create([
+            'user_id' => $creator->id,
+            'action' => 'telemetry.admin_test_created',
+            'model_type' => Test::class,
+            'model_id' => $test->id,
+            'description' => 'Telemetry event: admin_test_created',
+            'new_values' => [
+                'question_source' => $test->question_source,
+                'has_question_selection' => !empty($test->question_selection),
+                'created_at' => now()->toISOString(),
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         return response()->json([
             'message' => 'Test created successfully',
             'test' => $test->load(['questions', 'creator']),
@@ -155,6 +175,7 @@ class TestAdminController extends Controller
             'status' => 'nullable|in:draft,published,archived',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
+            'passing_score' => 'nullable|integer|min:0|max:100',
             'randomize_questions' => 'nullable|boolean',
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
@@ -222,6 +243,19 @@ class TestAdminController extends Controller
 
         try {
             $test = $this->testBuilderService->publishTest($test);
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'telemetry.admin_test_published',
+                'model_type' => Test::class,
+                'model_id' => $test->id,
+                'description' => 'Telemetry event: admin_test_published',
+                'new_values' => [
+                    'question_source' => $test->question_source,
+                    'published_at' => now()->toISOString(),
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
             return response()->json([
                 'message' => 'Test published successfully',
                 'test' => $test,
@@ -335,7 +369,7 @@ class TestAdminController extends Controller
         $validated = $request->validate([
             'type' => 'required|string',
             'content' => 'nullable|string',
-            'answers' => 'required|array',
+            'answers' => 'nullable|array',
             'points' => 'nullable|integer|min:0',
             'order' => 'nullable|integer|min:0',
             'explanation' => 'nullable|string',
@@ -349,8 +383,8 @@ class TestAdminController extends Controller
             'question_bank_id' => null,
             'type' => $validated['type'],
             'content' => $validated['content'] ?? '',
-            'answers' => $validated['answers'],
-            'points' => $validated['points'] ?? null,
+            'answers' => $validated['answers'] ?? [],
+            'points' => $validated['points'] ?? 1,
             'order' => $validated['order'] ?? ($maxOrder + 1),
             'explanation' => $validated['explanation'] ?? null,
             'metadata' => $validated['metadata'] ?? null,
@@ -416,7 +450,7 @@ class TestAdminController extends Controller
             abort(403, 'Acces interzis.');
         }
 
-        if ($test->question_source !== 'bank' || !$test->questionBank) {
+        if ($test->question_source !== 'bank' || (!$test->questionBank && empty($test->question_selection['folder_ids'] ?? []))) {
             $qs = $test->questions()->orderBy('order')->get();
             return response()->json([
                 'mode' => 'direct',
@@ -429,60 +463,19 @@ class TestAdminController extends Controller
         }
 
         $selection = is_array($test->question_selection) ? $test->question_selection : [];
-        $mode = (string)($selection['mode'] ?? 'random'); // random|ordered
-        $count = (int)($selection['count'] ?? 0);
-        $difficulty = $selection['difficulty'] ?? null;
-        $tags = $selection['tags'] ?? null;
-
-        $difficultyList = [];
-        if (is_string($difficulty) && $difficulty !== '') $difficultyList = [$difficulty];
-        if (is_array($difficulty)) $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
-
-        $tagList = [];
-        if (is_string($tags) && $tags !== '') $tagList = [$tags];
-        if (is_array($tags)) $tagList = array_values(array_filter(array_map('strval', $tags)));
-        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
-
-        $all = $test->questionBank->questions()->orderBy('order')->get();
-        $matched = $all->filter(function ($q) use ($difficultyList, $tagList) {
-            $meta = is_array($q->metadata) ? $q->metadata : [];
-            $qDifficulty = isset($meta['difficulty']) ? (string)$meta['difficulty'] : '';
-            $qTags = $meta['tags'] ?? [];
-            if (is_string($qTags)) $qTags = array_map('trim', explode(',', $qTags));
-            if (!is_array($qTags)) $qTags = [];
-            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string)$t)), $qTags)));
-
-            if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
-                return false;
-            }
-
-            if (!empty($tagList)) {
-                $hasAny = false;
-                foreach ($tagList as $t) {
-                    if (in_array($t, $qTags, true)) {
-                        $hasAny = true;
-                        break;
-                    }
-                }
-                if (!$hasAny) return false;
-            }
-
-            return true;
-        })->values();
-
-        // Stable preview seed. Real attempts are seeded by user+attempt.
-        if ($mode === 'random') {
-            $seedBase = "admin-preview:{$test->id}";
-            $matched = $matched->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-        }
-
-        $selected = $matched;
-        if ($count > 0) {
-            $selected = $matched->take($count)->values();
-        }
+        $mode = (string) ($selection['mode'] ?? 'random');
+        $preview = $this->questionSelectionService->preview($test, $request->input('variant'));
+        $selected = $preview['selected'];
+        $matched = $preview['matched'];
+        $all = $preview['all'];
 
         return response()->json([
             'mode' => $mode,
+            'variant' => $preview['variant'],
+            'variant_pool_size' => $preview['variant_pool_size'],
+            'seed' => $preview['seed'],
+            'include_starred' => $preview['include_starred'],
+            'starred_selected' => $selected->filter(fn ($q) => (bool) $q->is_starred)->count(),
             'bank_total' => $all->count(),
             'matched_total' => $matched->count(),
             'selected_total' => $selected->count(),
@@ -558,6 +551,10 @@ class TestAdminController extends Controller
             'manual_review_scores' => 'required|array',
             'manual_review_scores.*.question_id' => 'required|integer',
             'manual_review_scores.*.score' => 'required|numeric|min:0',
+            'manual_review_scores.*.feedback' => 'nullable|string|max:2000',
+            'manual_review_scores.*.rubric_criteria' => 'nullable|array',
+            'manual_review_scores.*.rubric_criteria.*' => 'nullable|string|max:255',
+            'overall_feedback' => 'nullable|string|max:4000',
         ]);
 
         $result = TestResult::with(['test.questions', 'test.questionBank.questions'])->findOrFail($resultId);
@@ -588,7 +585,7 @@ class TestAdminController extends Controller
             $question = $questions->firstWhere('id', $qid);
             if (!$question) continue;
 
-            $manualTypes = ['short_answer', 'essay'];
+            $manualTypes = ['short_answer', 'essay', 'open_text'];
             if (!in_array($question->type ?? '', $manualTypes, true)) {
                 continue;
             }
@@ -596,7 +593,17 @@ class TestAdminController extends Controller
             $maxPoints = (int) ($question->points ?? 1);
             $givenScore = min((float) $reviewScore['score'], $maxPoints);
             $manualScore += $givenScore;
-            $manualScores[$qid] = $givenScore;
+            $manualScores[$qid] = [
+                'score' => $givenScore,
+                'feedback' => $reviewScore['feedback'] ?? null,
+                'rubric_criteria' => array_values(array_filter($reviewScore['rubric_criteria'] ?? [])),
+            ];
+        }
+
+        if (!empty($validated['overall_feedback'])) {
+            $manualScores['_meta'] = [
+                'overall_feedback' => $validated['overall_feedback'],
+            ];
         }
 
         $totalPoints = (int) ($result->max_score ?? 0) ?: 1;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { coursesService, courseProgressService, lessonsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter } from '../utils/lessonOrder';
+import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import './LessonsPage.css';
 
 const LessonsPage = () => {
@@ -77,6 +78,21 @@ const LessonsPage = () => {
 			loadLesson(selectedLessonId);
 		}
 	}, [selectedLessonId, courseId]);
+
+	const lessonReadyForTracking =
+		Boolean(
+			user?.id &&
+				selectedLessonId &&
+				!currentLessonLoading &&
+				currentLesson &&
+				Number(currentLesson.id) === Number(selectedLessonId)
+		);
+
+	useLessonTimeTracking(selectedLessonId, {
+		userId: user?.id,
+		isCompleted,
+		enabled: lessonReadyForTracking,
+	});
 
 	const fetchCourseData = async () => {
 		try {
@@ -167,6 +183,22 @@ const LessonsPage = () => {
 		
 		return { completed, total, percentage };
 	};
+
+	const getModuleCourseTests = (m) => m?.course_tests || m?.courseTests || [];
+	const getLessonCourseTests = (l) => l?.course_tests || l?.courseTests || [];
+	const getProgressModule = (moduleId) =>
+		progress?.modules?.find((x) => Number(x.id) === Number(moduleId));
+	const getLessonTestProgress = (moduleId, lessonId, testId) => {
+		const mod = getProgressModule(moduleId);
+		const les = mod?.lessons?.find((x) => Number(x.id) === Number(lessonId));
+		return les?.tests?.find((t) => Number(t.test_id) === Number(testId));
+	};
+	const getModuleTestProgress = (moduleId, testId) => {
+		const mod = getProgressModule(moduleId);
+		return mod?.tests?.find((t) => Number(t.test_id) === Number(testId));
+	};
+	const getCourseLevelTestProgress = (testId) =>
+		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
 
 	// Auto-complete on scroll
 	const handleAutoComplete = useCallback(async () => {
@@ -449,40 +481,67 @@ const LessonsPage = () => {
 												{sortedLessons.map((lesson, lessonIndex) => {
 													const isCompleted = isLessonCompleted(lesson.id);
 													const isActive = selectedLessonId === lesson.id;
-													
+													const lessonTests = getLessonCourseTests(lesson);
+
 													return (
-														<button
-															key={lesson.id}
-															type="button"
-															className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-															onClick={() => handleLessonClick(lesson.id)}
-														>
-															<div className="lessons-page-sidebar-lesson-icon">
-																{isCompleted ? (
-																	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-																		<path d="M20 6L9 17l-5-5"/>
-																	</svg>
-																) : (
-																	<span>{lessonIndex + 1}</span>
-																)}
-															</div>
-															<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
-														</button>
+														<Fragment key={lesson.id}>
+															<button
+																type="button"
+																className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+																onClick={() => handleLessonClick(lesson.id)}
+															>
+																<div className="lessons-page-sidebar-lesson-icon">
+																	{isCompleted ? (
+																		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+																			<path d="M20 6L9 17l-5-5"/>
+																		</svg>
+																	) : (
+																		<span>{lessonIndex + 1}</span>
+																	)}
+																</div>
+																<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
+															</button>
+															{lessonTests.map((ct) => {
+																const testId = ct.test_id ?? ct.test?.id;
+																if (!testId) return null;
+																const tp = getLessonTestProgress(module.id, lesson.id, testId);
+																const passed = Boolean(tp?.passed);
+																return (
+																	<button
+																		key={`lesson-${lesson.id}-test-${testId}`}
+																		type="button"
+																		className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}`}
+																		onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+																	>
+																		<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+																		<span className="lessons-page-sidebar-lesson-title">
+																			{ct.test?.title || 'Test'}
+																			{ct.required ? ' *' : ''}
+																		</span>
+																	</button>
+																);
+															})}
+														</Fragment>
 													);
 												})}
-												{/* Module-level tests */}
-												{(module.courseTests || []).map((ct) => {
+												{/* Module-level tests (API: course_tests snake_case) */}
+												{getModuleCourseTests(module).map((ct) => {
 													const testId = ct.test_id ?? ct.test?.id;
 													if (!testId) return null;
+													const tp = getModuleTestProgress(module.id, testId);
+													const passed = Boolean(tp?.passed);
 													return (
 														<button
-															key={`test-${testId}`}
+															key={`mod-test-${testId}`}
 															type="button"
-															className="lessons-page-sidebar-lesson lessons-page-sidebar-test"
+															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
 															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
 														>
-															<div className="lessons-page-sidebar-lesson-icon">📝</div>
-															<span className="lessons-page-sidebar-lesson-title">{ct.test?.title || 'Test'}</span>
+															<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+															<span className="lessons-page-sidebar-lesson-title">
+																{ct.test?.title || 'Test'}
+																{ct.required ? ' *' : ''}
+															</span>
 														</button>
 													);
 												})}
@@ -500,18 +559,26 @@ const LessonsPage = () => {
 					{/* Course-level tests */}
 					{Array.isArray(course?.exams) && course.exams.filter((e) => !e.module_id).length > 0 && (
 						<div className="lessons-page-sidebar-tests-section">
-							<div className="lessons-page-sidebar-tests-header">Teste</div>
-							{course.exams.filter((e) => !e.module_id).map((exam) => (
-								<button
-									key={exam.id}
-									type="button"
-									className="lessons-page-sidebar-lesson lessons-page-sidebar-test"
-									onClick={() => navigate(`/courses/${courseId}/exams/${exam.id}`)}
-								>
-									<div className="lessons-page-sidebar-lesson-icon">📝</div>
-									<span className="lessons-page-sidebar-lesson-title">{exam.title || 'Test'}</span>
-								</button>
-							))}
+							<div className="lessons-page-sidebar-tests-header">Teste la nivel de curs</div>
+							<p className="lessons-page-sidebar-tests-hint">Legate de acest curs (nu examene independente)</p>
+							{course.exams.filter((e) => !e.module_id).map((exam) => {
+								const tp = getCourseLevelTestProgress(exam.id);
+								const passed = Boolean(tp?.passed);
+								return (
+									<button
+										key={exam.id}
+										type="button"
+										className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
+										onClick={() => navigate(`/courses/${courseId}/exams/${exam.id}`)}
+									>
+										<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+										<span className="lessons-page-sidebar-lesson-title">
+											{exam.title || 'Test'}
+											{exam.required ? ' *' : ''}
+										</span>
+									</button>
+								);
+							})}
 						</div>
 					)}
 				</div>

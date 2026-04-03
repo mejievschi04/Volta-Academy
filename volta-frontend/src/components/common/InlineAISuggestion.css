@@ -1,7 +1,7 @@
 /* Inline AI Suggestion Styles */
 .inline-ai-suggestion {
-	background: #eff6ff;
-	border: 1px solid #FFEE00;
+	background: rgba(var(--color-info-rgb), 0.08);
+	border: 1px solid var(--color-primary);
 	border-radius: 8px;
 	padding: 12px;
 	margin: 8px 0;
@@ -33,12 +33,12 @@
 .inline-ai-suggestion-label {
 	font-size: 12px;
 	font-weight: 600;
-	color: #1e40af;
+	color: var(--text-primary);
 }
 
 .inline-ai-suggestion-content {
 	font-size: 14px;
-	color: #1e3a8a;
+	color: var(--text-secondary);
 	line-height: 1.5;
 	margin-bottom: 8px;
 }
@@ -60,39 +60,39 @@
 }
 
 .inline-ai-suggestion-accept {
-	background: #FFEE00;
-	color: white;
+	background: var(--color-primary);
+	color: var(--text-inverse);
 }
 
 .inline-ai-suggestion-accept:hover {
-	background: #E6D600;
+	background: var(--color-primary-hover);
 }
 
 .inline-ai-suggestion-dismiss {
 	background: transparent;
-	color: #6b7280;
-	border: 1px solid #d1d5db;
+	color: var(--text-secondary);
+	border: 1px solid var(--border-secondary);
 }
 
 .inline-ai-suggestion-dismiss:hover {
-	background: #f3f4f6;
+	background: var(--bg-tertiary);
 }
 
 .inline-ai-suggestion-trigger {
 	padding: 6px 12px;
 	background: transparent;
-	border: 1px dashed #9ca3af;
+	border: 1px dashed var(--border-secondary);
 	border-radius: 6px;
 	font-size: 12px;
-	color: #6b7280;
+	color: var(--text-secondary);
 	cursor: pointer;
 	transition: all 0.2s;
 }
 
 .inline-ai-suggestion-trigger:hover {
-	border-color: #FFEE00;
-	color: #FFEE00;
-	background: #eff6ff;
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+	background: rgba(var(--color-info-rgb), 0.08);
 }
 
 .inline-ai-suggestion-loading {
@@ -105,7 +105,7 @@
 .inline-ai-suggestion-loading-dot {
 	width: 6px;
 	height: 6px;
-	background: #FFEE00;
+	background: var(--color-primary);
 	border-radius: 50%;
 	animation: loadingDot 1.4s infinite;
 }

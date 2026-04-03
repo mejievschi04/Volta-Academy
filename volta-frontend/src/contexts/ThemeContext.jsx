@@ -1,6 +1,18 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
+
+export const THEME_STORAGE_KEY = 'volta-ui-theme';
 
 const ThemeContext = createContext(null);
+
+function readStoredTheme() {
+	try {
+		const v = localStorage.getItem(THEME_STORAGE_KEY);
+		if (v === 'dark' || v === 'light') return v;
+	} catch {
+		/* ignore */
+	}
+	return 'light';
+}
 
 export const useTheme = () => {
 	const context = useContext(ThemeContext);
@@ -10,15 +22,24 @@ export const useTheme = () => {
 	return context;
 };
 
-/** Tema este întotdeauna light; tema dark a fost eliminată. */
 export const ThemeProvider = ({ children }) => {
-	useEffect(() => {
-		document.documentElement.setAttribute('data-theme', 'light');
+	const [theme, setThemeState] = useState(readStoredTheme);
+
+	useLayoutEffect(() => {
+		document.documentElement.setAttribute('data-theme', theme);
+	}, [theme]);
+
+	const setTheme = useCallback((next) => {
+		const t = next === 'dark' ? 'dark' : 'light';
+		setThemeState(t);
+		try {
+			localStorage.setItem(THEME_STORAGE_KEY, t);
+		} catch {
+			/* ignore */
+		}
 	}, []);
 
-	return (
-		<ThemeContext.Provider value={{ theme: 'light' }}>
-			{children}
-		</ThemeContext.Provider>
-	);
+	const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+
+	return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

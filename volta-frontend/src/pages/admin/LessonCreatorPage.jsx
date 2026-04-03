@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import RichTextEditor from '../../components/RichTextEditor';
 
 // Template blocks for lessons
@@ -108,6 +109,7 @@ const LessonCreatorPage = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
+	const { canMutateInAdminArea } = useAuth();
 	const courseId = searchParams.get('course_id');
 	const moduleId = searchParams.get('module_id');
 
@@ -125,6 +127,13 @@ const LessonCreatorPage = () => {
 	});
 
 	useEffect(() => {
+		if (!canMutateInAdminArea) {
+			navigate(courseId ? `/admin/courses/${courseId}` : '/admin/content?tab=courses', { replace: true });
+		}
+	}, [canMutateInAdminArea, courseId, navigate]);
+
+	useEffect(() => {
+		if (!canMutateInAdminArea) return;
 		// Require course_id to create/edit lessons
 		if (!courseId && !id) {
 			showToast('Selectează un curs pentru a crea o lecție', 'error');
@@ -144,7 +153,7 @@ const LessonCreatorPage = () => {
 				module_id: moduleId || prev.module_id,
 			}));
 		}
-	}, [id, courseId, moduleId]);
+	}, [id, courseId, moduleId, canMutateInAdminArea]);
 
 	const fetchCourses = async () => {
 		try {

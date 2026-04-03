@@ -4,8 +4,10 @@ import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminTeamsPage = () => {
+	const { canMutateInAdminArea } = useAuth();
 	const { success: showSuccess, error: showError } = useToast();
 	const [teams, setTeams] = useState([]);
 	const [users, setUsers] = useState([]);
@@ -155,6 +157,7 @@ const AdminTeamsPage = () => {
 					<h1 className="admin-page-title">Gestionare Echipe</h1>
 					<p className="admin-page-subtitle">Gestionează echipele și atribuie-le cursuri</p>
 				</div>
+				{canMutateInAdminArea && (
 				<button
 					className="lms-btn-primary"
 					onClick={() => {
@@ -165,6 +168,7 @@ const AdminTeamsPage = () => {
 				>
 					+ Adaugă Echipă
 				</button>
+				)}
 			</div>
 
 			{error && (
@@ -174,129 +178,80 @@ const AdminTeamsPage = () => {
 			)}
 
 			{teams.length > 0 ? (
-				<div className="admin-grid">
+				<div className="admin-grid admin-teams-page-grid">
 					{teams.map((team) => (
-						<div key={team.id} className="admin-card">
+						<div key={team.id} className="admin-card admin-team-card-compact">
 							<div className="admin-card-body">
 								{/* Header with icon and actions */}
-								<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
-									<div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flex: 1, minWidth: 0 }}>
-										<div style={{ 
-											width: '56px', 
-											height: '56px', 
-											borderRadius: 'var(--radius-xl)', 
-											background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', 
-											display: 'flex', 
-											alignItems: 'center', 
-											justifyContent: 'center',
-											fontSize: '28px',
-											flexShrink: 0,
-											boxShadow: 'var(--shadow-md)'
-										}}>
+								<div className="admin-team-card-compact__header">
+									<div className="admin-team-card-compact__header-main">
+										<div className="admin-team-card-compact__avatar" aria-hidden>
 											👥
 										</div>
-										<div style={{ flex: 1, minWidth: 0 }}>
-											<h3 className="admin-card-title" style={{ marginBottom: 'var(--space-2)' }}>
+										<div className="admin-team-card-compact__title-wrap">
+											<h3 className="admin-card-title admin-team-card-compact__title">
 												{team.name}
 											</h3>
 										</div>
 									</div>
 									{/* Action icons */}
-									<div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+									{canMutateInAdminArea && (
+									<div className="admin-team-card-compact__header-actions">
 										<button
-											className="admin-btn admin-btn-sm admin-btn-ghost"
+											className="admin-btn admin-btn-sm admin-btn-ghost admin-team-card-compact__icon-btn"
 											onClick={() => handleEdit(team)}
 											title="Editează echipă"
-											style={{ minWidth: 'auto', padding: 'var(--space-2)', fontSize: '18px' }}
+											type="button"
 										>
 											✏️
 										</button>
 										<button
-											className="admin-btn admin-btn-sm admin-btn-danger"
+											className="admin-btn admin-btn-sm admin-btn-danger admin-team-card-compact__icon-btn"
 											onClick={() => handleDeleteClick(team.id)}
 											title="Șterge echipă"
-											style={{ minWidth: 'auto', padding: 'var(--space-2)', fontSize: '18px' }}
+											type="button"
 										>
 											🗑️
 										</button>
 									</div>
+									)}
 								</div>
 								
 								{team.description && (
-									<p className="admin-card-description" style={{ marginBottom: 'var(--space-4)' }}>
+									<p className="admin-card-description admin-team-card-compact__description">
 										{team.description}
 									</p>
 								)}
 
 								{team.owner && (
-									<div className="admin-card-info" style={{ 
-										fontSize: 'var(--font-size-xs)', 
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										marginBottom: 'var(--space-5)',
-										whiteSpace: 'nowrap',
-										lineHeight: 1.5
-									}}>
+									<div className="admin-card-info admin-team-card-compact__owner">
 										<span>Responsabil:</span>
-										<strong style={{ whiteSpace: 'nowrap', fontWeight: 'var(--font-weight-medium)' }}>{team.owner.name}</strong>
+										<strong className="admin-team-card-compact__owner-name">{team.owner.name}</strong>
 									</div>
 								)}
 
-								{/* Stats - Large and prominent */}
-								<div style={{ 
-									display: 'grid', 
-									gridTemplateColumns: '1fr 1fr',
-									gap: 'var(--space-4)', 
-									padding: 'var(--space-6)', 
-									background: 'var(--bg-tertiary)', 
-									borderRadius: 'var(--radius-lg)',
-									border: '1px solid var(--border-primary)',
-									marginBottom: 'var(--space-5)'
-								}}>
-									<div style={{ textAlign: 'center' }}>
-										<div style={{ 
-											fontSize: '36px', 
-											fontWeight: 'var(--font-weight-bold)', 
-											color: 'var(--text-primary)',
-											lineHeight: 1,
-											marginBottom: 'var(--space-2)'
-										}}>
+								{/* Stats */}
+								<div className="admin-team-card-compact__stats">
+									<div className="admin-team-card-compact__stat-cell">
+										<div className="admin-team-card-compact__stat-value">
 											{team.users?.length || 0}
 										</div>
-										<div style={{ 
-											fontSize: 'var(--font-size-xs)', 
-											color: 'var(--text-secondary)',
-											textTransform: 'uppercase',
-											letterSpacing: '0.1em',
-											fontWeight: 'var(--font-weight-semibold)'
-										}}>
+										<div className="admin-team-card-compact__stat-label">
 											Membri
 										</div>
 									</div>
-									<div style={{ textAlign: 'center' }}>
-										<div style={{ 
-											fontSize: '36px', 
-											fontWeight: 'var(--font-weight-bold)', 
-											color: 'var(--text-primary)',
-											lineHeight: 1,
-											marginBottom: 'var(--space-2)'
-										}}>
+									<div className="admin-team-card-compact__stat-cell">
+										<div className="admin-team-card-compact__stat-value">
 											{team.courses?.length || 0}
 										</div>
-										<div style={{ 
-											fontSize: 'var(--font-size-xs)', 
-											color: 'var(--text-secondary)',
-											textTransform: 'uppercase',
-											letterSpacing: '0.1em',
-											fontWeight: 'var(--font-weight-semibold)'
-										}}>
+										<div className="admin-team-card-compact__stat-label">
 											Cursuri
 										</div>
 									</div>
 								</div>
 
 								{/* Actions */}
+								{canMutateInAdminArea && (
 								<div className="admin-card-actions">
 									<button
 										className="admin-btn admin-btn-sm admin-btn-secondary"
@@ -319,6 +274,7 @@ const AdminTeamsPage = () => {
 										<span>Cursuri</span>
 									</button>
 								</div>
+								)}
 							</div>
 						</div>
 					))}
@@ -330,6 +286,7 @@ const AdminTeamsPage = () => {
 					<p className="lms-empty-description">
 						Începe prin a crea prima echipă
 					</p>
+					{canMutateInAdminArea && (
 					<button
 						className="lms-btn-primary"
 						onClick={() => {
@@ -340,11 +297,12 @@ const AdminTeamsPage = () => {
 					>
 						+ Adaugă Echipă
 					</button>
+					)}
 				</div>
 			)}
 
 			{/* Team Form Modal */}
-			{showModal && (
+			{showModal && canMutateInAdminArea && (
 				<div className="admin-team-modal-overlay" onClick={(e) => {
 					if (e.target === e.currentTarget) {
 						setShowModal(false);

@@ -1,465 +1,639 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Modal from '../../components/common/Modal';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
-import ConfirmModal from '../../components/common/ConfirmModal';
-import VoltInstructor from '../../components/admin/VoltInstructor';
+import FolderCard from '../../components/admin/question-banks/FolderCard';
+import { useAuth } from '../../contexts/AuthContext';
+import './AdminQuestionBanksPage.css';
 
-const AdminQuestionBanksPage = () => {
-	const navigate = useNavigate();
-	const { showToast } = useToast();
-	const [banks, setBanks] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	
-	// Filters and search
-	const [searchQuery, setSearchQuery] = useState('');
-	const [filters, setFilters] = useState({
-		status: 'all',
-		activeCount: 0
-	});
-	const [sortBy, setSortBy] = useState('recent');
-	const [viewMode, setViewMode] = useState('grid');
-	
-	// Selection
-	const [selectedBanks, setSelectedBanks] = useState(new Set());
-	const [deleteConfirmBankId, setDeleteConfirmBankId] = useState(null);
-	const [deleteLoading, setDeleteLoading] = useState(false);
+function stripHtmlPreview(raw, maxLen = 140) {
+  if (raw == null || raw === '') return '';
+  const plain = String(raw)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (plain.length <= maxLen) return plain;
+  return `${plain.slice(0, maxLen)}…`;
+}
 
-	// Fetch question banks
-	const fetchBanks = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
-			
-			const params = {
-				search: searchQuery || undefined,
-				status: filters.status !== 'all' ? filters.status : undefined,
-			};
-			
-			const data = await adminService.getQuestionBanks(params);
-			setBanks(Array.isArray(data) ? data : []);
-		} catch (err) {
-			console.error('Error fetching question banks:', err);
-			setError('Nu s-au putut încărca băncile de întrebări');
-			showToast('Eroare la încărcarea băncilor de întrebări', 'error');
-		} finally {
-			setLoading(false);
-		}
-	}, [searchQuery, filters, showToast]);
+const QUESTION_TYPE_LABELS = {
+  multiple_choice: 'Grilă',
+  single_choice: 'Alegere unică',
+  true_false: 'A/F',
+  short_answer: 'Răspuns scurt',
+  essay: 'Eseu',
+  open_text: 'Deschis',
+  matching: 'Asocieri',
+  ordering: 'Ordonare',
+};
 
-	useEffect(() => {
-		fetchBanks();
-	}, [fetchBanks]);
+function typeLabel(type) {
+  const t = String(type || '').trim();
+  return QUESTION_TYPE_LABELS[t] || t || '—';
+}
 
-	// Calculate active filters count
-	useEffect(() => {
-		let count = 0;
-		if (filters.status !== 'all') count++;
-		setFilters(prev => ({ ...prev, activeCount: count }));
-	}, [filters.status]);
+/** Întrebări puse direct pe test, încă fără folder — pot fi mutate într-o bancă nouă. */
+function isOrphanTestQuestion(row) {
+  if (!row || row.question_bank_id != null) return false;
+  return row.test_id != null;
+}
 
-	// Handle filter change
-	const handleFilterChange = (key, value) => {
-		setFilters(prev => ({ ...prev, [key]: value }));
-	};
+const AdminQuestionBanksPage = ({ embedded = false }) => {
+  const { canMutateInAdminArea } = useAuth();
+  const { success, error } = useToast();
+  const [hubTab, setHubTab] = useState('folders');
+  const [loading, setLoading] = useState(false);
+  const [folders, setFolders] = useState([]);
+  const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ title: '', description: '', tagsText: '' });
+  const [createLoading, setCreateLoading] = useState(false);
 
-	// Handle bank selection
-	const handleSelectBank = (bankId, selected) => {
-		setSelectedBanks(prev => {
-			const newSet = new Set(prev);
-			if (selected) {
-				newSet.add(bankId);
-			} else {
-				newSet.delete(bankId);
-			}
-			return newSet;
-		});
-	};
+  const [catalogSearchInput, setCatalogSearchInput] = useState('');
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPerPage, setCatalogPerPage] = useState(20);
+  const [catalogScope, setCatalogScope] = useState('all');
+  const [catalogTick, setCatalogTick] = useState(0);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogResponse, setCatalogResponse] = useState(null);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [createFromSelectionOpen, setCreateFromSelectionOpen] = useState(false);
+  const [createFromSelectionForm, setCreateFromSelectionForm] = useState({ title: '', description: '', tagsText: '' });
+  const [createFromSelectionLoading, setCreateFromSelectionLoading] = useState(false);
+  const catalogSelectAllRef = useRef(null);
 
-	// Handle quick actions
-	const handleQuickAction = async (bankId, action) => {
-		try {
-			switch (action) {
-				case 'delete':
-					setDeleteConfirmBankId(bankId);
-					return;
-				case 'archive':
-					await adminService.updateQuestionBank(bankId, { status: 'archived' });
-					showToast('Banca de întrebări a fost arhivată', 'success');
-					break;
-				default:
-					console.warn('Unknown action:', action);
-			}
-			if (action !== 'delete') fetchBanks();
-		} catch (err) {
-			console.error('Error performing action:', err);
-			showToast('Eroare la executarea acțiunii', 'error');
-		}
-	};
+  const loadFolders = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getQuestionBanks(search.trim() ? { search: search.trim() } : {});
+      setFolders(Array.isArray(data) ? data : []);
+    } catch {
+      error('Nu am putut încărca folderele.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-	const handleConfirmDeleteBank = async () => {
-		if (!deleteConfirmBankId) return;
-		setDeleteLoading(true);
-		try {
-			await adminService.deleteQuestionBank(deleteConfirmBankId);
-			showToast('Banca de întrebări a fost ștearsă cu succes', 'success');
-			setDeleteConfirmBankId(null);
-			fetchBanks();
-		} catch (err) {
-			showToast(err?.response?.data?.message || 'Eroare la ștergere', 'error');
-		} finally {
-			setDeleteLoading(false);
-		}
-	};
+  useEffect(() => {
+    loadFolders();
+  }, []);
 
-	// Handle create bank
-	const handleCreateBank = () => {
-		navigate('/admin/question-banks/new/builder');
-	};
+  useEffect(() => {
+    const id = setTimeout(loadFolders, 250);
+    return () => clearTimeout(id);
+  }, [search]);
 
-	// Handle create bank with Volt (questions + generate)
-	const handleCreateBankWithVolt = async (voltData) => {
-		if (!voltData?.answers?.length) {
-			handleCreateBank();
-			return;
-		}
-		try {
-			const title = voltData.answers[0]?.trim() || 'Bancă nouă';
-			const [desc, teme, nr, tip, pdf] = voltData.answers.slice(1);
-			const parts = [desc].filter(Boolean);
-			if (teme) parts.push(`Teme: ${teme}`);
-			if (nr) parts.push(`Nr. întrebări: ${nr}`);
-			if (tip) parts.push(`Tipuri: ${tip}`);
-			if (pdf) parts.push(`Fișier brut: ${pdf}`);
-			const description = parts.join('\n\n');
-			const saved = await adminService.createQuestionBank({
-				title,
-				description: description || null,
-				status: 'draft',
-			});
-			const bankId = saved?.bank?.id ?? saved?.id ?? saved?.data?.id;
-			if (bankId) {
-				showToast('Banca creată. Adaugă întrebări în builder.', 'success');
-				navigate(`/admin/question-banks/${bankId}/builder`);
-			} else {
-				handleCreateBank();
-			}
-		} catch (err) {
-			console.error('Error creating bank:', err);
-			showToast('Eroare la crearea băncii', 'error');
-			handleCreateBank();
-		}
-	};
+  useEffect(() => {
+    const id = setTimeout(() => setCatalogSearch(catalogSearchInput), 300);
+    return () => clearTimeout(id);
+  }, [catalogSearchInput]);
 
-	// Get status badge
-	const getStatusBadge = (status) => {
-		const badges = {
-			active: { label: 'Activă', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
-			archived: { label: 'Arhivată', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
-		};
-		return badges[status] || badges.draft;
-	};
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [catalogSearch, catalogScope]);
 
-	// Filtered and sorted banks
-	const filteredAndSortedBanks = useMemo(() => {
-		let filtered = [...banks];
+  useEffect(() => {
+    if (hubTab !== 'catalog') return undefined;
+    let cancelled = false;
+    const run = async () => {
+      setCatalogLoading(true);
+      try {
+        const res = await adminService.listQuestions({
+          search: catalogSearch.trim() || undefined,
+          page: catalogPage,
+          per_page: catalogPerPage,
+          ...(catalogScope === 'test_no_folder' ? { test_attached_no_folder: 1 } : {}),
+        });
+        if (!cancelled) setCatalogResponse(res);
+      } catch {
+        if (!cancelled) {
+          error('Nu am putut încărca catalogul de întrebări.');
+          setCatalogResponse(null);
+        }
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [hubTab, catalogSearch, catalogPage, catalogPerPage, catalogScope, catalogTick]);
 
-		// Apply search filter
-		if (searchQuery) {
-			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(bank => 
-				(bank.title || '').toLowerCase().includes(query) ||
-				(bank.description || '').toLowerCase().includes(query)
-			);
-		}
+  useEffect(() => {
+    setSelectedQuestionIds([]);
+  }, [catalogScope, catalogSearch]);
 
-		// Apply status filter
-		if (filters.status !== 'all') {
-			filtered = filtered.filter(bank => bank.status === filters.status);
-		}
+  useEffect(() => {
+    if (hubTab !== 'catalog') setSelectedQuestionIds([]);
+  }, [hubTab]);
 
-		// Apply sorting
-		if (sortBy === 'recent') {
-			filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-		} else if (sortBy === 'alphabetical') {
-			filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-		} else if (sortBy === 'questions') {
-			filtered.sort((a, b) => (b.questions_count || 0) - (a.questions_count || 0));
-		}
+  const catalogRows = Array.isArray(catalogResponse?.data) ? catalogResponse.data : [];
+  const catalogLastPage = Math.max(1, Number(catalogResponse?.last_page) || 1);
+  const catalogTotalRaw = catalogResponse?.total;
+  const catalogTotal =
+    catalogTotalRaw != null && Number.isFinite(Number(catalogTotalRaw)) ? Number(catalogTotalRaw) : 0;
 
-		return filtered;
-	}, [banks, searchQuery, filters.status, sortBy]);
+  const normalizedTags = useMemo(
+    () =>
+      createForm.tagsText
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    [createForm.tagsText]
+  );
 
-	if (error) {
-		return (
-			<div className="admin-container">
-				<div className="lms-empty-state">
-					<p style={{ color: 'var(--color-error)' }}>{error}</p>
-					<button className="lms-btn-primary" onClick={fetchBanks}>
-						Încearcă din nou
-					</button>
-				</div>
-			</div>
-		);
-	}
+  const normalizedSelectionTags = useMemo(
+    () =>
+      createFromSelectionForm.tagsText
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    [createFromSelectionForm.tagsText]
+  );
 
-	return (
-		<div className="admin-container">
-			{/* Header */}
-			<div className="admin-courses-page-header">
-				<div className="admin-courses-header-content">
-					<div className="admin-courses-header-text">
-						<h1 className="admin-courses-title">Bănci de Întrebări</h1>
-						<p className="admin-courses-subtitle">
-							Gestionează și creează bănci de întrebări reutilizabile pentru teste
-						</p>
-					</div>
-					<div className="admin-courses-header-actions">
-						<button className="admin-btn-create-course" onClick={handleCreateBank}>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
-							</svg>
-							Creează Bancă
-						</button>
-					</div>
-				</div>
+  const selectableRowsOnPage = useMemo(
+    () => catalogRows.filter((r) => isOrphanTestQuestion(r)),
+    [catalogRows]
+  );
 
-				{/* Search and Filters */}
-				<div className="admin-courses-toolbar">
-					<div className="admin-courses-search-wrapper">
-						<div className="admin-courses-search">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<circle cx="11" cy="11" r="8"/>
-								<path d="m21 21-4.35-4.35"/>
-							</svg>
-							<input
-								type="text"
-								placeholder="Caută bănci de întrebări..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="admin-courses-search-input"
-							/>
-						</div>
-					</div>
+  useEffect(() => {
+    const el = catalogSelectAllRef.current;
+    if (!el || hubTab !== 'catalog') return;
+    const selectIds = new Set(selectableRowsOnPage.map((r) => r.id));
+    const selectedOnPage = selectedQuestionIds.filter((id) => selectIds.has(id));
+    el.indeterminate = selectedOnPage.length > 0 && selectedOnPage.length < selectIds.size;
+  }, [hubTab, selectedQuestionIds, selectableRowsOnPage]);
 
-					<div className="admin-courses-toolbar-actions">
-						<div className="admin-courses-filters">
-						{/* Status Filter */}
-						<select
-							value={filters.status}
-							onChange={(e) => handleFilterChange('status', e.target.value)}
-							className="admin-courses-filter-select"
-						>
-							<option value="all">Toate statusurile</option>
-							<option value="active">Active</option>
-							<option value="draft">Ciornă</option>
-							<option value="archived">Arhivate</option>
-						</select>
+  const toggleQuestionSelected = (id) => {
+    setSelectedQuestionIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
-						{/* Sort */}
-						<select
-							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value)}
-							className="admin-courses-filter-select"
-						>
-							<option value="recent">Cele mai recente</option>
-							<option value="alphabetical">Alfabetic</option>
-							<option value="questions">Nr. întrebări</option>
-						</select>
-						</div>
-					</div>
-				</div>
-			</div>
+  const toggleSelectAllOnPage = () => {
+    const ids = selectableRowsOnPage.map((r) => r.id);
+    if (ids.length === 0) return;
+    const allSelected = ids.every((id) => selectedQuestionIds.includes(id));
+    if (allSelected) {
+      setSelectedQuestionIds((prev) => prev.filter((id) => !ids.includes(id)));
+    } else {
+      setSelectedQuestionIds((prev) => Array.from(new Set([...prev, ...ids])));
+    }
+  };
 
-			{/* Banks List/Grid */}
-			{loading && banks.length === 0 ? (
-				<div className="admin-courses-loading">
-					<div className="va-spinner va-spinner-lg"></div>
-					<p>Se încarcă băncile de întrebări...</p>
-				</div>
-			) : filteredAndSortedBanks.length === 0 ? (
-				<div className="lms-empty-state">
-					<p>Nu există bănci de întrebări disponibile.</p>
-					<button className="lms-btn-primary" onClick={handleCreateBank}>
-						+ Creează prima bancă
-					</button>
-				</div>
-			) : (
-				<div className={viewMode === 'grid' ? 'admin-courses-grid' : 'admin-courses-table'}>
-					{viewMode === 'grid' ? (
-						<div className="admin-courses-grid-container">
-							{filteredAndSortedBanks.map(bank => {
-								const statusBadge = getStatusBadge(bank.status);
-								return (
-									<div
-										key={bank.id}
-										className={`admin-course-card admin-course-card-simple ${selectedBanks.has(bank.id) ? 'selected' : ''}`}
-										onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
-									>
-										<div className="admin-course-card-checkbox" onClick={(e) => e.stopPropagation()}>
-											<input
-												type="checkbox"
-												checked={selectedBanks.has(bank.id)}
-												onChange={(e) => {
-													e.stopPropagation();
-													handleSelectBank(bank.id, e.target.checked);
-												}}
-												className="admin-checkbox-input"
-											/>
-										</div>
-										<div className="admin-course-card-thumbnail">
-											<div className="admin-course-card-thumbnail-placeholder admin-course-card-thumbnail-placeholder-icon-only">📋</div>
-											<div
-												className="admin-course-card-status-badge admin-course-card-status-overlay"
-												style={{
-													backgroundColor: statusBadge.bg,
-													color: statusBadge.color,
-													borderColor: statusBadge.color,
-												}}
-											>
-												{statusBadge.label}
-											</div>
-										</div>
-										<h3
-											className="admin-course-card-title"
-											onClick={(e) => { e.stopPropagation(); navigate(`/admin/question-banks/${bank.id}/builder`); }}
-										>
-											{bank.title}
-										</h3>
-										<div
-											className="admin-course-card-corner-action"
-											onClick={(e) => { e.stopPropagation(); navigate(`/admin/question-banks/${bank.id}/builder`); }}
-											title="Deschide bancă"
-											aria-label="Deschide bancă"
-										>
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					) : (
-						<div className="admin-courses-table-container">
-							<div className="admin-courses-table-header">
-								<div className="admin-course-table-checkbox"></div>
-								<div className="admin-course-table-info-header">Bancă de Întrebări</div>
-								<div className="admin-course-table-metrics-header">Metrici</div>
-								<div className="admin-course-table-actions-header">Acțiuni</div>
-							</div>
-							{filteredAndSortedBanks.map(bank => {
-								const statusBadge = getStatusBadge(bank.status);
-								
-								return (
-									<div key={bank.id} className="admin-course-table-row">
-										<div className="admin-course-table-checkbox">
-											<input
-												type="checkbox"
-												checked={selectedBanks.has(bank.id)}
-												onChange={(e) => handleSelectBank(bank.id, e.target.checked)}
-												onClick={(e) => e.stopPropagation()}
-											/>
-										</div>
-										<div className="admin-course-table-info">
-											<div className="admin-course-table-badges">
-												<div
-													className="admin-course-status-badge"
-													style={{
-														backgroundColor: statusBadge.bg,
-														color: statusBadge.color,
-														borderColor: statusBadge.color,
-													}}
-												>
-													{statusBadge.label}
-												</div>
-											</div>
-											<h3 className="admin-course-table-title">{bank.title}</h3>
-											{bank.description && (
-												<p className="admin-course-table-description">
-													{bank.description.length > 150 
-														? bank.description.substring(0, 150) + '...' 
-														: bank.description}
-												</p>
-											)}
-										</div>
-										<div className="admin-course-table-metrics">
-											<div className="admin-course-table-metric">
-												<span className="admin-course-table-metric-label">Întrebări:</span>
-												<span className="admin-course-table-metric-value">{bank.questions_count || 0}</span>
-											</div>
-											{bank.tests_count > 0 && (
-												<div className="admin-course-table-metric">
-													<span className="admin-course-table-metric-label">Teste:</span>
-													<span className="admin-course-table-metric-value">{bank.tests_count}</span>
-												</div>
-											)}
-											{bank.creator && (
-												<div className="admin-course-table-metric">
-													<span className="admin-course-table-metric-label">Creator:</span>
-													<span className="admin-course-table-metric-value">{bank.creator.name || 'Necunoscut'}</span>
-												</div>
-											)}
-										</div>
-										<div className="admin-course-table-actions">
-											<button
-												className="admin-course-table-action-btn"
-												onClick={() => navigate(`/admin/question-banks/${bank.id}/builder`)}
-											>
-												✏️ Editează
-											</button>
-											<button
-												className="admin-course-table-action-btn"
-												onClick={() => navigate(`/admin/question-banks/${bank.id}/questions`)}
-											>
-												📋 Întrebări
-											</button>
-											<button
-												className="admin-course-table-action-btn va-btn-danger"
-												onClick={() => handleQuickAction(bank.id, 'delete')}
-											>
-												🗑️ Șterge
-											</button>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					)}
-				</div>
-			)}
+  const openCreateFromSelectionModal = () => {
+    if (selectedQuestionIds.length < 1) {
+      error('Selectează cel puțin o întrebare din catalog.');
+      return;
+    }
+    setCreateFromSelectionForm((prev) => ({
+      ...prev,
+      title:
+        prev.title.trim() ||
+        `Întrebări din teste · ${new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+    }));
+    setCreateFromSelectionOpen(true);
+  };
 
-			<VoltInstructor
-				actions={[
-					{
-						label: 'Creează bancă',
-						onClick: handleCreateBankWithVolt,
-						primary: true,
-						questions: [
-							'Ce nume vrei pentru banca de întrebări?',
-							'Despre ce teme vor fi întrebările? Descrie în detaliu.',
-							'Câte întrebări aproximativ vrei să generezi?',
-							'Ce tipuri de întrebări? (multiplu răspuns, răspuns scurt, eseu, adevărat/fals, mixt)',
-							'Ai material sursă în PDF? Încarcă sau scrie „nu".',
-						],
-						pdfUploadQuestionIndex: 4,
-					},
-				]}
-			/>
+  const createFolderFromSelection = async () => {
+    if (!createFromSelectionForm.title.trim()) {
+      error('Numele folderului este obligatoriu.');
+      return;
+    }
+    if (selectedQuestionIds.length < 1) {
+      error('Selectează cel puțin o întrebare.');
+      return;
+    }
+    setCreateFromSelectionLoading(true);
+    try {
+      const created = await adminService.createQuestionBank({
+        title: createFromSelectionForm.title.trim(),
+        description: createFromSelectionForm.description.trim() || null,
+        tags: normalizedSelectionTags,
+      });
+      const bankId = created?.bank?.id;
+      if (!bankId) {
+        error('Răspuns neașteptat de la server.');
+        return;
+      }
+      await adminService.moveQuestionsToFolderBulk(selectedQuestionIds, bankId);
+      success(`Folder creat: ${selectedQuestionIds.length} întrebări mutate în bancă.`);
+      setCreateFromSelectionOpen(false);
+      setCreateFromSelectionForm({ title: '', description: '', tagsText: '' });
+      setSelectedQuestionIds([]);
+      await loadFolders();
+      setCatalogTick((t) => t + 1);
+    } catch (e) {
+      error(e?.response?.data?.error || e?.response?.data?.message || 'Operațiunea a eșuat.');
+    } finally {
+      setCreateFromSelectionLoading(false);
+    }
+  };
 
-			<ConfirmModal
-				open={!!deleteConfirmBankId}
-				onClose={() => setDeleteConfirmBankId(null)}
-				onConfirm={handleConfirmDeleteBank}
-				title="Șterge bancă de întrebări"
-				message="Ești sigur că vrei să ștergi această bancă de întrebări?"
-				confirmLabel="Șterge"
-				cancelLabel="Anulare"
-				variant="danger"
-				loading={deleteLoading}
-			/>
-		</div>
-	);
+  const createFolder = async () => {
+    if (!createForm.title.trim()) {
+      error('Numele folderului este obligatoriu.');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await adminService.createQuestionBank({
+        title: createForm.title.trim(),
+        description: createForm.description.trim() || null,
+        tags: normalizedTags,
+      });
+      success('Folder creat.');
+      setCreateOpen(false);
+      setCreateForm({ title: '', description: '', tagsText: '' });
+      await loadFolders();
+    } catch (e) {
+      error(e?.response?.data?.error || 'Nu am putut crea folderul.');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  return (
+    <div className={`qb-page qb-page-v2 ${embedded ? 'qb-page-embedded' : ''}`}>
+      <div className="qb-shell">
+        <header className="qb-page-hero">
+          <div className="qb-page-hero-text">
+            <p className="qb-page-eyebrow">Conținut reutilizabil</p>
+            <h1>Întrebări</h1>
+            <p className="qb-page-lead">
+              Foldere (bănci) pentru material reutilizabil și catalog complet — inclusiv întrebări puse direct pe{' '}
+              <strong>teste</strong>. Poți crea un folder nou și muta acolo întrebările din teste care nu sunt încă într-o
+              mapă.
+            </p>
+          </div>
+          {canMutateInAdminArea && hubTab === 'folders' ? (
+            <button type="button" className="lms-btn-primary qb-hero-cta" onClick={() => setCreateOpen(true)}>
+              + Folder nou
+            </button>
+          ) : null}
+        </header>
+
+        <div className="qb-kpis" role="group" aria-label="Rezumat">
+          <div className="qb-kpi">
+            <span className="qb-kpi-value">{loading && hubTab === 'folders' ? '…' : folders.length}</span>
+            <span className="qb-kpi-label">Foldere</span>
+          </div>
+          <div className="qb-kpi">
+            <span className="qb-kpi-value">{hubTab === 'catalog' ? (catalogLoading ? '…' : catalogTotal) : '—'}</span>
+            <span className="qb-kpi-label">
+              În catalog
+              {hubTab === 'catalog' && catalogScope === 'test_no_folder' ? ' · doar din teste, fără folder' : ''}
+            </span>
+          </div>
+          {hubTab === 'catalog' && canMutateInAdminArea ? (
+            <div className={`qb-kpi ${selectedQuestionIds.length ? 'qb-kpi--accent' : ''}`}>
+              <span className="qb-kpi-value">{selectedQuestionIds.length}</span>
+              <span className="qb-kpi-label">Selectate pentru folder nou</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="qb-hub-tabs qb-hub-tabs--v2" role="tablist" aria-label="Vizualizare întrebări">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={hubTab === 'folders'}
+            className={`qb-hub-tab ${hubTab === 'folders' ? 'is-active' : ''}`}
+            onClick={() => setHubTab('folders')}
+          >
+            Foldere
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={hubTab === 'catalog'}
+            className={`qb-hub-tab ${hubTab === 'catalog' ? 'is-active' : ''}`}
+            onClick={() => setHubTab('catalog')}
+          >
+            Catalog întrebări
+          </button>
+        </div>
+
+        {hubTab === 'folders' ? (
+          <>
+            <div className="qb-search-card">
+              <label className="qb-sr-only" htmlFor="qb-folder-search">
+                Caută foldere
+              </label>
+              <input
+                id="qb-folder-search"
+                className="admin-form-input qb-search-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Caută foldere după nume..."
+              />
+            </div>
+
+            <section className="qb-folder-list" aria-label="Lista folderelor">
+              {loading ? (
+                <div className="qb-catalog-loading qb-catalog-loading--inline">
+                  <span className="qb-spinner" aria-hidden />
+                  Se încarcă folderele...
+                </div>
+              ) : folders.length ? (
+                folders.map((folder) => <FolderCard key={folder.id} folder={folder} />)
+              ) : (
+                <div className="qb-empty">
+                  <div className="qb-empty-icon" aria-hidden>
+                    📂
+                  </div>
+                  <p className="qb-empty-title">Niciun folder nu se potrivește</p>
+                  <p className="qb-empty-hint">Creează un folder gol sau adună întrebări din catalog (din teste, fără folder).</p>
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <>
+            <div className="qb-catalog-intro">
+              <p className="qb-catalog-lead">
+                Vezi întrebările din <strong>foldere</strong> și pe cele lipite direct de un <strong>test</strong>. Pentru
+                editare în contextul cursului, deschide builder-ul și testul din bara laterală.
+              </p>
+              <div className="qb-catalog-scope" role="group" aria-label="Filtru catalog">
+                <button
+                  type="button"
+                  className={`qb-scope-chip ${catalogScope === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setCatalogScope('all')}
+                >
+                  Toate
+                </button>
+                <button
+                  type="button"
+                  className={`qb-scope-chip ${catalogScope === 'test_no_folder' ? 'is-active' : ''}`}
+                  onClick={() => setCatalogScope('test_no_folder')}
+                >
+                  Din teste, fără folder
+                </button>
+              </div>
+            </div>
+
+            <div className="qb-search-card">
+              <label className="qb-sr-only" htmlFor="qb-catalog-search">
+                Caută în catalog
+              </label>
+              <input
+                id="qb-catalog-search"
+                className="admin-form-input qb-search-input"
+                value={catalogSearchInput}
+                onChange={(e) => setCatalogSearchInput(e.target.value)}
+                placeholder="Caută în textul întrebării..."
+              />
+            </div>
+
+            {canMutateInAdminArea ? (
+              <div className="qb-catalog-toolbar">
+                <p className="qb-catalog-toolbar-hint">
+                  Bifează întrebările din teste fără folder, apoi creează un folder care le conține pe toate. Selecția se
+                  păstrează la schimbarea paginii.
+                </p>
+                <div className="qb-catalog-toolbar-actions">
+                  <button
+                    type="button"
+                    className="lms-btn-secondary"
+                    disabled={selectedQuestionIds.length === 0}
+                    onClick={() => setSelectedQuestionIds([])}
+                  >
+                    Golește selecția
+                  </button>
+                  <button
+                    type="button"
+                    className="lms-btn-primary"
+                    disabled={selectedQuestionIds.length === 0}
+                    onClick={openCreateFromSelectionModal}
+                  >
+                    Folder nou din selecție ({selectedQuestionIds.length})
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {catalogLoading ? (
+              <div className="qb-catalog-loading">
+                <span className="qb-spinner" aria-hidden />
+                Se încarcă catalogul...
+              </div>
+            ) : catalogRows.length === 0 ? (
+              <div className="qb-empty qb-empty--soft">
+                <div className="qb-empty-icon" aria-hidden>
+                  📋
+                </div>
+                <p className="qb-empty-title">Nicio întrebare</p>
+                <p className="qb-empty-hint">Încearcă alt filtru sau alt termen de căutare.</p>
+              </div>
+            ) : (
+              <>
+                <div className="qb-catalog-table-wrap">
+                  <table className="qb-catalog-table">
+                    <thead>
+                      <tr>
+                        {canMutateInAdminArea ? (
+                          <th className="qb-col-check" scope="col">
+                            <input
+                              ref={catalogSelectAllRef}
+                              type="checkbox"
+                              checked={
+                                selectableRowsOnPage.length > 0 &&
+                                selectableRowsOnPage.every((r) => selectedQuestionIds.includes(r.id))
+                              }
+                              onChange={toggleSelectAllOnPage}
+                              disabled={selectableRowsOnPage.length === 0}
+                              aria-label="Selectează pe pagină întrebările din teste fără folder"
+                            />
+                          </th>
+                        ) : null}
+                        <th scope="col">Întrebare</th>
+                        <th scope="col">Tip</th>
+                        <th scope="col">Puncte</th>
+                        <th scope="col">Proveniență</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {catalogRows.map((row) => {
+                        const usage = row.usage || {};
+                        const src = usage.source;
+                        const bank = row.question_bank || row.questionBank;
+                        const testMeta = Array.isArray(usage.tests) && usage.tests[0] ? usage.tests[0] : null;
+                        const orphan = isOrphanTestQuestion(row);
+                        return (
+                          <tr key={row.id} className={orphan && selectedQuestionIds.includes(row.id) ? 'is-selected' : ''}>
+                            {canMutateInAdminArea ? (
+                              <td className="qb-col-check">
+                                {orphan ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedQuestionIds.includes(row.id)}
+                                    onChange={() => toggleQuestionSelected(row.id)}
+                                    aria-label={`Selectează întrebarea #${row.id}`}
+                                  />
+                                ) : (
+                                  <span className="qb-check-placeholder" title="Doar întrebările din teste fără folder">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+                            ) : null}
+                            <td className="qb-catalog-cell-preview">{stripHtmlPreview(row.content)}</td>
+                            <td>
+                              <span className="qb-type-pill">{typeLabel(row.type)}</span>
+                            </td>
+                            <td className="qb-catalog-points">{row.points ?? '—'}</td>
+                            <td className="qb-catalog-cell-origin">
+                              {src === 'bank' && bank?.id ? (
+                                <Link to={`/admin/question-banks/${bank.id}`} className="qb-catalog-link">
+                                  Folder: {bank.title || `Banca #${bank.id}`}
+                                </Link>
+                              ) : src === 'direct' && testMeta ? (
+                                <span className="qb-catalog-origin-test">
+                                  Test: <strong>{testMeta.title || `Test #${testMeta.id}`}</strong>
+                                  <Link to="/admin/content?tab=tests" className="qb-catalog-link qb-catalog-link-inline">
+                                    → Teste
+                                  </Link>
+                                </span>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="qb-catalog-pagination">
+                  <span className="qb-catalog-page-meta">
+                    Pagină {catalogPage} / {catalogLastPage}
+                    {catalogTotal > 0 ? ` · ${catalogTotal} întrebări` : ''}
+                  </span>
+                  <div className="qb-catalog-pagination-actions">
+                    <label className="qb-catalog-per-page">
+                      Pe pagină
+                      <select
+                        className="admin-form-input"
+                        value={catalogPerPage}
+                        onChange={(e) => {
+                          setCatalogPerPage(Number(e.target.value));
+                          setCatalogPage(1);
+                        }}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="lms-btn-secondary"
+                      disabled={catalogPage <= 1}
+                      onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      type="button"
+                      className="lms-btn-secondary"
+                      disabled={catalogPage >= catalogLastPage}
+                      onClick={() => setCatalogPage((p) => p + 1)}
+                    >
+                      Următor
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        <Modal isOpen={createOpen && canMutateInAdminArea} onClose={() => !createLoading && setCreateOpen(false)}>
+          <div className="qb-modal">
+            <h3>Folder nou</h3>
+            <label>Nume</label>
+            <input
+              className="admin-form-input"
+              value={createForm.title}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
+            />
+            <label>Descriere</label>
+            <textarea
+              className="admin-form-input"
+              rows={3}
+              value={createForm.description}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+            <label>Tag-uri (separate prin virgulă)</label>
+            <input
+              className="admin-form-input"
+              value={createForm.tagsText}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, tagsText: e.target.value }))}
+            />
+            <div className="qb-modal-actions">
+              <button type="button" className="lms-btn-secondary" onClick={() => setCreateOpen(false)} disabled={createLoading}>
+                Anulează
+              </button>
+              <button type="button" className="lms-btn-primary" onClick={createFolder} disabled={createLoading}>
+                {createLoading ? 'Se salvează...' : 'Creează'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          isOpen={createFromSelectionOpen && canMutateInAdminArea}
+          onClose={() => !createFromSelectionLoading && setCreateFromSelectionOpen(false)}
+        >
+          <div className="qb-modal qb-modal-from-selection">
+            <h3>Folder nou din selecție</h3>
+            <p className="qb-modal-warning">
+              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în noul folder. Ele nu vor mai fi
+              atașate direct testului — dacă testul trebuie să le folosească în continuare, treci-l pe sursă „din bancă” și
+              alege acest folder.
+            </p>
+            <label htmlFor="qb-from-sel-title">Nume folder</label>
+            <input
+              id="qb-from-sel-title"
+              className="admin-form-input"
+              value={createFromSelectionForm.title}
+              onChange={(e) => setCreateFromSelectionForm((prev) => ({ ...prev, title: e.target.value }))}
+            />
+            <label htmlFor="qb-from-sel-desc">Descriere</label>
+            <textarea
+              id="qb-from-sel-desc"
+              className="admin-form-input"
+              rows={3}
+              value={createFromSelectionForm.description}
+              onChange={(e) => setCreateFromSelectionForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+            <label htmlFor="qb-from-sel-tags">Tag-uri (separate prin virgulă)</label>
+            <input
+              id="qb-from-sel-tags"
+              className="admin-form-input"
+              value={createFromSelectionForm.tagsText}
+              onChange={(e) => setCreateFromSelectionForm((prev) => ({ ...prev, tagsText: e.target.value }))}
+            />
+            <div className="qb-modal-actions">
+              <button
+                type="button"
+                className="lms-btn-secondary"
+                onClick={() => setCreateFromSelectionOpen(false)}
+                disabled={createFromSelectionLoading}
+              >
+                Anulează
+              </button>
+              <button type="button" className="lms-btn-primary" onClick={createFolderFromSelection} disabled={createFromSelectionLoading}>
+                {createFromSelectionLoading ? 'Se creează...' : 'Creează folder și mută'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    </div>
+  );
 };
 
 export default AdminQuestionBanksPage;

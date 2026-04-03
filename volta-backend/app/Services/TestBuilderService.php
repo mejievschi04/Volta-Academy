@@ -30,6 +30,7 @@ class TestBuilderService
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => $data['max_attempts'] ?? null,
+            'passing_score' => isset($data['passing_score']) ? (int) $data['passing_score'] : 70,
             'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
             'show_results_immediately' => (bool)($data['show_results_immediately'] ?? true),
@@ -43,7 +44,9 @@ class TestBuilderService
         ];
 
         if (Schema::hasColumn('tests', 'question_selection')) {
-            $insert['question_selection'] = $data['question_selection'] ?? null;
+            $insert['question_selection'] = isset($data['question_selection'])
+                ? $this->normalizeQuestionSelection($data['question_selection'])
+                : null;
         }
 
         $test = Test::create($insert);
@@ -81,6 +84,9 @@ class TestBuilderService
         $updateData = [];
         foreach ($data as $key => $value) {
             if (Schema::hasColumn($table, $key)) {
+                if ($key === 'question_selection') {
+                    $value = $this->normalizeQuestionSelection($value);
+                }
                 $updateData[$key] = $value;
             }
         }
@@ -360,6 +366,30 @@ class TestBuilderService
         }
 
         return $questions;
+    }
+
+    protected function normalizeQuestionSelection($selection): ?array
+    {
+        if (!is_array($selection)) {
+            return null;
+        }
+
+        $normalized = $selection;
+        if (!array_key_exists('include_starred', $normalized)) {
+            $normalized['include_starred'] = true;
+        } else {
+            $normalized['include_starred'] = (bool) $normalized['include_starred'];
+        }
+
+        if (isset($normalized['count'])) {
+            $normalized['count'] = max(0, (int) $normalized['count']);
+        }
+
+        if (isset($normalized['folder_ids']) && is_array($normalized['folder_ids'])) {
+            $normalized['folder_ids'] = array_values(array_unique(array_filter(array_map('intval', $normalized['folder_ids']))));
+        }
+
+        return $normalized;
     }
 }
 

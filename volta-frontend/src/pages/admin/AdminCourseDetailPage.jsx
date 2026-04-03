@@ -4,12 +4,15 @@ import { adminService, coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
+import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/admin-course-detail-modern.css';
 
 const AdminCourseDetailPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
+	const { canMutateInAdminArea } = useAuth();
+	const readOnly = !canMutateInAdminArea;
 	
 	const [course, setCourse] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -157,6 +160,7 @@ const AdminCourseDetailPage = () => {
 				>
 					← Înapoi
 				</button>
+				{canMutateInAdminArea && (
 				<button
 					className="lms-btn-secondary"
 					onClick={() => navigate(`/admin/courses/${id}/builder`)}
@@ -164,13 +168,14 @@ const AdminCourseDetailPage = () => {
 				>
 					🛠 Builder
 				</button>
+				)}
 				<h1 className="admin-course-detail-title">
 					{course.title}
 				</h1>
 			</div>
 
 			{/* Course Overview */}
-			<CourseOverview course={course} onQuickAction={handleQuickAction} />
+			<CourseOverview course={course} onQuickAction={handleQuickAction} readOnly={readOnly} />
 
 			<ConfirmModal
 				open={showDeleteConfirm}

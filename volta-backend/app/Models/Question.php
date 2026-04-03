@@ -24,11 +24,13 @@ class Question extends Model
         'order',
         'explanation',
         'metadata',
+        'is_starred',
     ];
 
     protected $casts = [
         'answers' => 'array',
         'metadata' => 'array',
+        'is_starred' => 'boolean',
     ];
 
     /**
@@ -73,7 +75,7 @@ class Question extends Model
         }
 
         // For multiple choice, check if user answer matches any correct answer
-        if ($this->type === 'multiple_choice' || $this->type === 'true_false') {
+        if (in_array($this->type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
             foreach ($correctAnswers as $correct) {
                 if (is_array($correct) && ($correct['text'] ?? $correct) === $userAnswer) {
                     return true;

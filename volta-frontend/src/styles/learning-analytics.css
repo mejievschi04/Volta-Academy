@@ -248,7 +248,7 @@
 }
 
 .engagement-chart-bar.dau {
-	background-color: #FFEE00;
+	background-color: var(--color-primary);
 	opacity: 1;
 }
 
@@ -295,7 +295,7 @@
 .dropoff-heatmap-module {
 	padding: var(--space-3);
 	border-radius: var(--radius-lg);
-	color: white;
+	color: var(--color-white);
 	cursor: pointer;
 	transition: all var(--transition-base);
 	box-shadow: var(--shadow-sm);

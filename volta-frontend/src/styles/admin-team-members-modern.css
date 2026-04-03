@@ -121,7 +121,7 @@
 	justify-content: center;
 	font-size: var(--font-size-xl);
 	font-weight: var(--font-weight-bold);
-	color: #fff;
+	color: var(--color-white);
 	flex-shrink: 0;
 	overflow: hidden;
 }
@@ -175,7 +175,7 @@
 	border-radius: var(--radius-full);
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-bold);
-	color: #fff;
+	color: var(--color-white);
 	white-space: nowrap;
 }
 
@@ -212,46 +212,46 @@
 
 .admin-team-member-action-btn-role {
 	background-color: var(--color-primary) !important;
-	color: #000000 !important;
-	border-color: #FFEE00 !important;
+	color: var(--text-inverse) !important;
+	border-color: var(--color-primary) !important;
 }
 
 .admin-team-member-action-btn-role:hover {
-	background-color: #E6D600 !important;
-	border-color: #E6D600 !important;
+	background-color: var(--color-primary-hover) !important;
+	border-color: var(--color-primary-hover) !important;
 }
 
 .admin-team-member-action-btn-courses {
-	background-color: #10b981 !important;
-	color: #fff !important;
-	border-color: #10b981 !important;
+	background-color: var(--color-success) !important;
+	color: var(--color-white) !important;
+	border-color: var(--color-success) !important;
 }
 
 .admin-team-member-action-btn-courses:hover {
-	background-color: #059669 !important;
-	border-color: #059669 !important;
+	background-color: var(--color-success) !important;
+	border-color: var(--color-success) !important;
 }
 
 .admin-team-member-action-btn-activate {
-	background-color: #10b981 !important;
-	color: #fff !important;
-	border-color: #10b981 !important;
+	background-color: var(--color-success) !important;
+	color: var(--color-white) !important;
+	border-color: var(--color-success) !important;
 }
 
 .admin-team-member-action-btn-activate:hover {
-	background-color: #059669 !important;
-	border-color: #059669 !important;
+	background-color: var(--color-success) !important;
+	border-color: var(--color-success) !important;
 }
 
 .admin-team-member-action-btn-suspend {
-	background-color: #f97316 !important;
-	color: #fff !important;
-	border-color: #f97316 !important;
+	background-color: var(--color-warning) !important;
+	color: var(--color-white) !important;
+	border-color: var(--color-warning) !important;
 }
 
 .admin-team-member-action-btn-suspend:hover {
-	background-color: #ea580c !important;
-	border-color: #ea580c !important;
+	background-color: var(--color-warning) !important;
+	border-color: var(--color-warning) !important;
 }
 
 .admin-team-member-action-btn-reset {
@@ -261,19 +261,19 @@
 }
 
 .admin-team-member-action-btn-reset:hover {
-	background-color: #7c3aed !important;
-	border-color: #7c3aed !important;
+	background-color: var(--color-info) !important;
+	border-color: var(--color-info) !important;
 }
 
 .admin-team-member-action-btn-delete {
-	background-color: #ef4444 !important;
-	color: #fff !important;
-	border-color: #ef4444 !important;
+	background-color: var(--color-error) !important;
+	color: var(--color-white) !important;
+	border-color: var(--color-error) !important;
 }
 
 .admin-team-member-action-btn-delete:hover {
-	background-color: #dc2626 !important;
-	border-color: #dc2626 !important;
+	background-color: var(--color-error) !important;
+	border-color: var(--color-error) !important;
 }
 
 /* ============================================
@@ -454,14 +454,14 @@
 }
 
 .admin-team-members-suspend-btn {
-	background-color: #f97316 !important;
-	color: #fff !important;
-	border-color: #f97316 !important;
+	background-color: var(--color-warning) !important;
+	color: var(--color-white) !important;
+	border-color: var(--color-warning) !important;
 }
 
 .admin-team-members-suspend-btn:hover {
-	background-color: #ea580c !important;
-	border-color: #ea580c !important;
+	background-color: var(--color-warning) !important;
+	border-color: var(--color-warning) !important;
 }
 
 /* ============================================

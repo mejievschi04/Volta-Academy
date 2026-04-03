@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import './CourseCreationPage.css';
 
-/**
- * Creare curs simplificată: un singur pas.
- * Titlu + descriere (opțional imagine/PDF) → Creează → redirect la Builder.
- * Structura, conținutul și quiz-urile se adaugă în Builder.
- */
 const CourseCreationPage = () => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
+	const { canMutateInAdminArea } = useAuth();
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
@@ -19,6 +16,13 @@ const CourseCreationPage = () => {
 	const [pdfFile, setPdfFile] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
+	const [step, setStep] = useState(1);
+
+	useEffect(() => {
+		if (!canMutateInAdminArea) {
+			navigate('/admin/content?tab=courses', { replace: true });
+		}
+	}, [canMutateInAdminArea, navigate]);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -31,17 +35,22 @@ const CourseCreationPage = () => {
 
 		setLoading(true);
 		try {
+			const cleanDescription = description.trim();
 			let payload;
 			if (image || pdfFile) {
 				const formData = new FormData();
 				formData.append('title', t);
-				formData.append('description', description.trim() || '');
+				formData.append('description', cleanDescription || '');
 				formData.append('status', 'draft');
 				if (image) formData.append('image', image);
 				if (pdfFile) formData.append('pdf_file', pdfFile);
 				payload = formData;
 			} else {
-				payload = { title: t, description: description.trim() || '', status: 'draft' };
+				payload = {
+					title: t,
+					description: cleanDescription || '',
+					status: 'draft',
+				};
 			}
 			const result = await adminService.createCourse(payload);
 			const courseId = result?.course?.id;
@@ -61,6 +70,20 @@ const CourseCreationPage = () => {
 		}
 	};
 
+	const handleContinue = () => {
+		const t = title?.trim();
+		setError('');
+		if (!t) {
+			setError('Titlul este obligatoriu.');
+			return;
+		}
+		setStep(2);
+	};
+
+	if (!canMutateInAdminArea) {
+		return null;
+	}
+
 	return (
 		<div className="admin-container course-creation-simple-page">
 			<div className="course-creation-simple-card">
@@ -75,67 +98,79 @@ const CourseCreationPage = () => {
 					</button>
 					<h1 className="course-creation-simple-title">Creează curs nou</h1>
 					<p className="course-creation-simple-subtitle">
-						Completează titlul și descrierea. După ce creezi cursul, vei fi dus în Builder unde adaugi module, lecții și conținut.
+						Creare pe pași. Definim minimul acum, iar setările le completezi după creare.
 					</p>
+					<div className="course-creation-steps">
+						<span className={step === 1 ? 'active' : ''}>Pas 1: Titlu</span>
+						<span className={step === 2 ? 'active' : ''}>Pas 2: Detalii opționale</span>
+					</div>
 				</header>
 
 				<form onSubmit={handleSubmit} className="course-creation-simple-form">
-					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">
-							Titlu curs <span className="course-creation-simple-required">*</span>
-						</label>
-						<input
-							type="text"
-							placeholder="Titlul cursului"
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-							className="course-creation-simple-input"
-							autoFocus
-							disabled={loading}
-						/>
-					</div>
+					{step === 1 && (
+						<div className="course-creation-simple-field">
+							<label className="course-creation-simple-label">
+								Titlu curs <span className="course-creation-simple-required">*</span>
+							</label>
+							<input
+								type="text"
+								placeholder="Titlul cursului"
+								value={title}
+								onChange={(e) => setTitle(e.target.value)}
+								className="course-creation-simple-input"
+								autoFocus
+								disabled={loading}
+							/>
+							<p className="course-creation-simple-hint">După creare poți adăuga lecții și teste.</p>
+						</div>
+					)}
 
-					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">Descriere</label>
-						<textarea
-							placeholder="Scopul și conținutul cursului (opțional)"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							className="course-creation-simple-textarea"
-							rows={4}
-							disabled={loading}
-						/>
-					</div>
-
-					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">Imagine curs</label>
-						<p className="course-creation-simple-hint">Opțional – imagine reprezentativă</p>
-						<input
-							type="file"
-							accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-							onChange={(e) => setImage(e.target.files?.[0] || null)}
-							className="course-creation-simple-file"
-							disabled={loading}
-						/>
-						{image && (
-							<div className="course-creation-simple-image-preview">
-								<img src={URL.createObjectURL(image)} alt="Preview" />
+					{step === 2 && (
+						<>
+							<div className="course-creation-simple-field">
+								<label className="course-creation-simple-label">Descriere</label>
+								<textarea
+									placeholder="Scopul și conținutul cursului (opțional)"
+									value={description}
+									onChange={(e) => setDescription(e.target.value)}
+									className="course-creation-simple-textarea"
+									rows={4}
+									disabled={loading}
+								/>
 							</div>
-						)}
-					</div>
 
-					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">Fișier PDF (informație brută)</label>
-						<p className="course-creation-simple-hint">Opțional – pentru generare conținut ulterior</p>
-						<input
-							type="file"
-							accept=".pdf,application/pdf"
-							onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-							className="course-creation-simple-file"
-							disabled={loading}
-						/>
-						{pdfFile && <span className="course-creation-simple-file-name">{pdfFile.name}</span>}
-					</div>
+							<details className="course-creation-simple-advanced" open>
+								<summary>Media opțională</summary>
+								<div className="course-creation-simple-field">
+									<label className="course-creation-simple-label">Imagine curs</label>
+									<input
+										type="file"
+										accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+										onChange={(e) => setImage(e.target.files?.[0] || null)}
+										className="course-creation-simple-file"
+										disabled={loading}
+									/>
+									{image && (
+										<div className="course-creation-simple-image-preview">
+											<img src={URL.createObjectURL(image)} alt="Preview" />
+										</div>
+									)}
+								</div>
+
+								<div className="course-creation-simple-field">
+									<label className="course-creation-simple-label">Fișier PDF (opțional)</label>
+									<input
+										type="file"
+										accept=".pdf,application/pdf"
+										onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+										className="course-creation-simple-file"
+										disabled={loading}
+									/>
+									{pdfFile && <span className="course-creation-simple-file-name">{pdfFile.name}</span>}
+								</div>
+							</details>
+						</>
+					)}
 
 					{error && <div className="course-creation-simple-error" role="alert">{error}</div>}
 
@@ -148,13 +183,43 @@ const CourseCreationPage = () => {
 						>
 							Anulare
 						</button>
-						<button
-							type="submit"
-							className="course-creation-simple-btn-primary"
-							disabled={loading}
-						>
-							{loading ? 'Se creează...' : 'Creează și deschide în Builder'}
-						</button>
+						{step === 1 ? (
+							<>
+								<button
+									type="button"
+									className="course-creation-simple-btn-secondary"
+									onClick={handleContinue}
+									disabled={loading}
+								>
+									Continuă
+								</button>
+								<button
+									type="submit"
+									className="course-creation-simple-btn-primary"
+									disabled={loading}
+								>
+									{loading ? 'Se creează...' : 'Creează acum'}
+								</button>
+							</>
+						) : (
+							<>
+								<button
+									type="button"
+									className="course-creation-simple-btn-secondary"
+									onClick={() => setStep(1)}
+									disabled={loading}
+								>
+									Înapoi
+								</button>
+								<button
+									type="submit"
+									className="course-creation-simple-btn-primary"
+									disabled={loading}
+								>
+									{loading ? 'Se creează...' : 'Creează și deschide în Builder'}
+								</button>
+							</>
+						)}
 					</div>
 				</form>
 			</div>

@@ -1,22 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+import {
+	Area,
+	AreaChart,
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	Line,
+	LineChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from 'recharts';
 import './AdminDashboardPage.css';
 
 const AdminDashboardPage = () => {
-	const { user } = useAuth();
-	const navigate = useNavigate();
 	const [dashboardData, setDashboardData] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [selectedPeriod, setSelectedPeriod] = useState('14d');
+	const PERIOD_OPTIONS = [
+		{ value: '7d', label: 'Ultimele 7 zile' },
+		{ value: '14d', label: 'Ultimele 14 zile' },
+		{ value: '30d', label: 'Ultimele 30 zile' },
+		{ value: '90d', label: 'Ultimele 90 zile' },
+	];
 
 	useEffect(() => {
 		const fetchDashboard = async () => {
 			try {
 				setLoading(true);
-				const data = await adminService.getDashboard({ period: '30d' });
-				console.log('Dashboard data:', data); // Debug log
-				console.log('KPIs:', data?.kpis); // Debug log
+				const data = await adminService.getDashboard({ period: selectedPeriod });
 				setDashboardData(data);
 			} catch (err) {
 				console.error('Eroare la încărcarea dashboard-ului:', err);
@@ -25,39 +40,166 @@ const AdminDashboardPage = () => {
 			}
 		};
 		fetchDashboard();
-	}, []);
+	}, [selectedPeriod]);
 
-	// Extract data from API response
 	const kpis = dashboardData?.kpis || {};
 	const chartData = dashboardData?.chart_data || [];
-	const problematicCourses = dashboardData?.problematic_courses || [];
-	const recentActivities = dashboardData?.recent_activities || [];
 
-	// Calculate stats
 	const totalUsers = kpis.total_users?.value || kpis.total_users || '0';
 	const activeUsers = kpis.active_users?.value || '0';
 	const totalCourses = kpis.total_courses?.value || kpis.total_courses || '0';
 	const completionRate = kpis.completion_rate?.value || '0%';
-	const engagement = kpis.engagement?.value || '0%';
-	
-	console.log('Total Users raw:', totalUsers); // Debug log
-	console.log('KPIs total_users:', kpis.total_users); // Debug log
-	
+	const newUsers = Number(kpis.new_users?.value || kpis.new_users || 0);
+	const learningHoursPeriod = Number(kpis.learning_hours?.value ?? 0) || 0;
+	const learningHoursTotal = Number(kpis.learning_hours_total?.value ?? 0) || 0;
+
 	const totalUsersNum = parseInt(totalUsers.toString().replace(/,/g, '')) || 0;
 	const completionRateNum = parseFloat(completionRate.toString().replace('%', '')) || 0;
-	const engagementNum = parseFloat(engagement.toString().replace('%', '')) || 0;
 	const activeUsersNum = parseInt(activeUsers.toString().replace(/,/g, '')) || 0;
 	const totalCoursesNum = parseInt(totalCourses.toString().replace(/,/g, '')) || 0;
-	
-	console.log('Total Users parsed:', totalUsersNum); // Debug log
 
-	// Engagement Metrics (avg test completion % across students)
-	const avgTestCompletionPct = dashboardData?.engagement_metrics?.avg_test_completion_percentage ?? 0;
-
-	// Statistici cursuri și teste
 	const courseTestStats = dashboardData?.course_test_stats ?? null;
-	const coursesStats = courseTestStats?.courses ?? { total: 0, published: 0, draft: 0 };
-	const testsStats = courseTestStats?.tests ?? { total: 0, published: 0, draft: 0, pending_reviews: 0 };
+	const testsStats = courseTestStats?.tests ?? {
+		total: 0,
+		published: 0,
+		draft: 0,
+		pending_reviews: 0,
+		manual_reviews_total: 0
+	};
+	const publishedTests = Number(testsStats.published ?? 0);
+	const draftTests = Number(testsStats.draft ?? 0);
+	const totalTests = Number(testsStats.total ?? 0);
+
+	const normalizedSeries = useMemo(
+		() => (
+			Array.isArray(chartData) && chartData.length > 0
+				? chartData.slice(-14).map((point, index) => ({
+					label: point.label || point.date || `${index + 1}`,
+					users: Number(point.users || point.total_users || point.value || 0),
+					active: Number(point.active_users || point.active || 0),
+					courses: Number(point.courses || point.total_courses || 0),
+				}))
+				: []
+		),
+		[chartData]
+	);
+
+	const hourlySource = Array.isArray(dashboardData?.hourly_activity) ? dashboardData.hourly_activity : [];
+	const learningFunnel = dashboardData?.learning_funnel ?? {};
+	const hourlyMap = new Map();
+	hourlySource.forEach((item) => {
+		const rawHour = Number(item.hour ?? item.label ?? item.bucket ?? -1);
+		if (!Number.isFinite(rawHour) || rawHour < 0 || rawHour > 23) return;
+		hourlyMap.set(rawHour, {
+			lessons: Math.max(0, Number(item.lessons ?? item.courses ?? 0)),
+			users: Math.max(0, Number(item.users ?? item.active_users ?? 0)),
+		});
+	});
+	const hourlyActivity = Array.from({ length: 24 }, (_, hour) => {
+		const row = hourlyMap.get(hour);
+		return {
+			hour: `${hour}`,
+			lessons: row?.lessons ?? 0,
+			users: row?.users ?? 0,
+		};
+	});
+	const hasChartData = normalizedSeries.length > 0;
+	const hasHourlyData = hourlyActivity.some((h) => h.lessons > 0 || h.users > 0);
+	const firstLabel = normalizedSeries[0]?.label || '—';
+	const lastLabel = normalizedSeries[normalizedSeries.length - 1]?.label || '—';
+	const trendData = useMemo(
+		() => normalizedSeries.map((item) => ({
+			label: item.label,
+			elevi: item.users,
+			activi: item.active,
+			certificati: Math.max(0, Math.round(item.users * (completionRateNum / 100))),
+		})),
+		[normalizedSeries, completionRateNum]
+	);
+	const funnelBarData = useMemo(() => {
+		const n = (k) => Math.max(0, Number(learningFunnel[k] ?? 0));
+		return [
+			{ key: 'enrolled', label: 'Înscrieri active', short: 'Înscrieri', count: n('enrolled'), fill: '#64748b' },
+			{ key: 'started', label: 'Cu început înregistrat', short: 'Început', count: n('started'), fill: '#3b82f6' },
+			{ key: 'p25', label: 'Progres ≥ 25%', short: '≥25%', count: n('progress_25'), fill: '#8b5cf6' },
+			{ key: 'p50', label: 'Progres ≥ 50%', short: '≥50%', count: n('progress_50'), fill: '#ca8a04' },
+			{ key: 'completed', label: 'Finalizat (curs)', short: 'Finalizat', count: n('completed'), fill: '#22c55e' },
+		];
+	}, [learningFunnel]);
+
+	const funnelTotal = useMemo(
+		() => funnelBarData.reduce((s, r) => s + r.count, 0),
+		[funnelBarData]
+	);
+	const hourlyChartData = useMemo(
+		() => hourlyActivity.map((item) => ({
+			ora: item.hour.padStart(2, '0'),
+			lectii: item.lessons,
+			elevi: item.users,
+		})),
+		[hourlyActivity]
+	);
+	const tooltipLabel = (label) => `Perioadă: ${label}`;
+	const tooltipHourLabel = (label) => `Ora: ${label}:00`;
+	const renderTooltip = ({ active, payload, label }) => {
+		if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+		return (
+			<div className="dashboard-chart-tooltip">
+				<p className="dashboard-chart-tooltip-title">{tooltipLabel(label)}</p>
+				{payload.map((entry) => (
+					<p key={entry.name} className="dashboard-chart-tooltip-row">
+						<span>{entry.name}</span>
+						<strong>{Number(entry.value || 0).toLocaleString()}</strong>
+					</p>
+				))}
+			</div>
+		);
+	};
+	const renderHourlyTooltip = ({ active, payload, label }) => {
+		if (!active || !Array.isArray(payload) || payload.length === 0) return null;
+		return (
+			<div className="dashboard-chart-tooltip">
+				<p className="dashboard-chart-tooltip-title">{tooltipHourLabel(label)}</p>
+				{payload.map((entry) => (
+					<p key={entry.name} className="dashboard-chart-tooltip-row">
+						<span>{entry.name}</span>
+						<strong>{Number(entry.value || 0).toLocaleString()}</strong>
+					</p>
+				))}
+			</div>
+		);
+	};
+
+	const renderFunnelTooltip = ({ active, payload }) => {
+		if (!active || !payload?.[0]) return null;
+		const row = payload[0].payload;
+		return (
+			<div className="dashboard-chart-tooltip">
+				<p className="dashboard-chart-tooltip-title">{row.label}</p>
+				<p className="dashboard-chart-tooltip-row">
+					<span>Înscrieri (rânduri course_user)</span>
+					<strong>{Number(row.count || 0).toLocaleString()}</strong>
+				</p>
+				<p className="dashboard-chart-tooltip-hint">
+					Pragurile ≥25% și ≥50% sunt cumulative: aceeași înscriere poate fi numărată la mai multe etape.
+				</p>
+			</div>
+		);
+	};
+	const renderPeriodSelect = () => (
+		<select
+			className="clean-card-period-select"
+			value={selectedPeriod}
+			onChange={(e) => setSelectedPeriod(e.target.value)}
+			aria-label="Perioada raportului"
+		>
+			{PERIOD_OPTIONS.map((option) => (
+				<option key={option.value} value={option.value}>
+					{option.label}
+				</option>
+			))}
+		</select>
+	);
 
 	if (loading) {
 		return (
@@ -71,329 +213,221 @@ const AdminDashboardPage = () => {
 	}
 
 	return (
-		<div className="admin-dashboard-page">
-			{/* Header */}
-			<div className="admin-dashboard-header">
-				<div className="admin-dashboard-header-content">
-					<div>
-						<h1 className="admin-dashboard-title">Panou Admin</h1>
-						<p className="admin-dashboard-subtitle">
-							Vizualizare generală a platformei de învățare
-						</p>
-					</div>
-					<div className="admin-dashboard-header-actions">
-						<button
-							className="admin-dashboard-btn admin-dashboard-btn-primary"
-							onClick={() => navigate('/admin/courses/new')}
-						>
-							<span className="admin-dashboard-btn-icon">+</span>
-							Creează curs
-						</button>
-						<button
-							className="admin-dashboard-btn admin-dashboard-btn-secondary"
-							onClick={() => navigate('/admin/content')}
-						>
-							Cursuri & Teste
-						</button>
-						<button
-							className="admin-dashboard-btn admin-dashboard-btn-secondary"
-							onClick={() => navigate('/admin/analytics')}
-						>
-							Analiză Avansată
-						</button>
-					</div>
+		<div className="admin-dashboard-page admin-dashboard-clean">
+			<header className="admin-dashboard-clean-header">
+				<div>
+					<h1 className="admin-dashboard-clean-title">Panou de control</h1>
+					<p className="admin-dashboard-clean-subtitle">
+						Privire rapidă asupra elevilor, progresului și activității din academie
+					</p>
+					<p className="admin-dashboard-clean-meta">
+						Utilizatori noi: <strong>{newUsers.toLocaleString()}</strong> • Cursuri totale: <strong>{totalCoursesNum.toLocaleString()}</strong>
+					</p>
 				</div>
-			</div>
-
-			{/* KPI Cards */}
-			<div className="admin-dashboard-kpis">
-				<div className="admin-dashboard-kpi-card">
-					<div className="admin-dashboard-kpi-icon">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-							<circle cx="9" cy="7" r="4"/>
-							<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-						</svg>
-					</div>
-					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Utilizatori Totali</div>
-						<div className="admin-dashboard-kpi-value">{totalUsersNum.toLocaleString()}</div>
-						<div className="admin-dashboard-kpi-sublabel">Utilizatori activi: {activeUsersNum.toLocaleString()}</div>
-					</div>
+				<div className="admin-dashboard-clean-actions">
+					{renderPeriodSelect()}
 				</div>
+			</header>
 
-				<div className="admin-dashboard-kpi-card">
-					<div className="admin-dashboard-kpi-icon">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-							<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-						</svg>
-					</div>
-					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Cursuri Active</div>
-						<div className="admin-dashboard-kpi-value">{totalCoursesNum.toLocaleString()}</div>
-						<div className="admin-dashboard-kpi-sublabel">Cursuri publicate</div>
-					</div>
-				</div>
+			<section className="admin-dashboard-clean-hero">
+				<article className="hero-stat">
+					<p className="hero-stat-label">Total elevi</p>
+					<p className="hero-stat-value">{totalUsersNum.toLocaleString()}</p>
+					<p className="hero-stat-meta">Înregistrați în platformă</p>
+				</article>
+				<article className="hero-stat">
+					<p className="hero-stat-label">Elevi activi</p>
+					<p className="hero-stat-value">{activeUsersNum.toLocaleString()}</p>
+					<p className="hero-stat-meta">Activi în perioada selectată</p>
+				</article>
+				<article className="hero-stat">
+					<p className="hero-stat-label">Rată finalizare</p>
+					<p className="hero-stat-value">{completionRate}</p>
+					<p className="hero-stat-meta">Elevi activi: {activeUsersNum.toLocaleString()}</p>
+				</article>
+				<article className="hero-stat">
+					<p className="hero-stat-label">Teste publicate</p>
+					<p className="hero-stat-value">{publishedTests.toLocaleString()}</p>
+					<p className="hero-stat-meta">Total teste: {totalTests.toLocaleString()} • Draft: {draftTests.toLocaleString()}</p>
+				</article>
+				<article className="hero-stat hero-stat-cyan">
+					<p className="hero-stat-label">Ore învățare (perioadă)</p>
+					<p className="hero-stat-value">
+						{learningHoursPeriod.toLocaleString('ro-RO', { maximumFractionDigits: 1 })}
+					</p>
+					<p className="hero-stat-meta">Timp înregistrat pe lecții în interval</p>
+				</article>
+				<article className="hero-stat hero-stat-blue">
+					<p className="hero-stat-label">Ore învățare (total)</p>
+					<p className="hero-stat-value">
+						{learningHoursTotal.toLocaleString('ro-RO', { maximumFractionDigits: 1 })}
+					</p>
+					<p className="hero-stat-meta">Sumă timp pe toate lecțiile</p>
+				</article>
+			</section>
 
-				<div className="admin-dashboard-kpi-card">
-					<div className="admin-dashboard-kpi-icon">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<polyline points="20 6 9 17 4 12"/>
-						</svg>
-					</div>
-					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Rata Completare</div>
-						<div className="admin-dashboard-kpi-value">{completionRate}</div>
-						<div className="admin-dashboard-kpi-sublabel">Medie generală</div>
-					</div>
-				</div>
-
-				<div className="admin-dashboard-kpi-card">
-					<div className="admin-dashboard-kpi-icon">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<line x1="18" y1="20" x2="18" y2="10"/>
-							<line x1="12" y1="20" x2="12" y2="4"/>
-							<line x1="6" y1="20" x2="6" y2="14"/>
-						</svg>
-					</div>
-					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Implicare</div>
-						<div className="admin-dashboard-kpi-value">{engagement}</div>
-						<div className="admin-dashboard-kpi-sublabel">Ultimele 30 zile</div>
-					</div>
-				</div>
-
-				<div className="admin-dashboard-kpi-card">
-					<div className="admin-dashboard-kpi-icon">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-							<polyline points="14 2 14 8 20 8"/>
-							<line x1="16" y1="13" x2="8" y2="13"/>
-							<line x1="16" y1="17" x2="8" y2="17"/>
-							<polyline points="10 9 9 9 8 9"/>
-						</svg>
-					</div>
-					<div className="admin-dashboard-kpi-content">
-						<div className="admin-dashboard-kpi-label">Procent realizare teste</div>
-						<div className="admin-dashboard-kpi-value">{avgTestCompletionPct}%</div>
-						<div className="admin-dashboard-kpi-sublabel">Medie pe studenți</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Statistici cursuri și teste */}
-			{courseTestStats && (
-				<div className="admin-dashboard-section admin-dashboard-stats-block">
-					<div className="admin-dashboard-section-header">
-						<h2 className="admin-dashboard-section-title">Statistici cursuri și teste</h2>
-						<button
-							type="button"
-							className="admin-dashboard-btn admin-dashboard-btn-link"
-							onClick={() => navigate('/admin/content')}
-						>
-							Cursuri, Teste & Bănci →
-						</button>
-					</div>
-					<div className="admin-dashboard-course-test-stats">
-						<div className="admin-dashboard-ct-stat-card">
-							<div className="admin-dashboard-ct-stat-label">Cursuri</div>
-							<div className="admin-dashboard-ct-stat-value">{coursesStats.total}</div>
-							<div className="admin-dashboard-ct-stat-sublabel">
-								{coursesStats.published} publicate · {coursesStats.draft} ciornă
-							</div>
+			<section className="admin-dashboard-clean-grid">
+				<article className="clean-card">
+					<header className="clean-card-header">
+						<h2>Statistică generală pe academie</h2>
+						<span>{PERIOD_OPTIONS.find((p) => p.value === selectedPeriod)?.label || 'Perioadă'}</span>
+					</header>
+					<div className="chart-modern-line">
+						<div className="chart-rechart-wrap">
+							<ResponsiveContainer width="100%" height={228} minWidth={280} minHeight={220}>
+								<AreaChart data={trendData} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+									<defs>
+										<linearGradient id="overviewAreaFill" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.24} />
+											<stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.04} />
+										</linearGradient>
+									</defs>
+									<CartesianGrid stroke="var(--border-primary)" strokeDasharray="3 3" />
+									<XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} />
+									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={44} />
+									<Tooltip content={renderTooltip} />
+									<Area type="monotone" dataKey="elevi" stroke="var(--color-primary)" strokeWidth={2.2} fill="url(#overviewAreaFill)" name="Elevi" />
+								</AreaChart>
+							</ResponsiveContainer>
 						</div>
-						<div className="admin-dashboard-ct-stat-card">
-							<div className="admin-dashboard-ct-stat-label">Teste</div>
-							<div className="admin-dashboard-ct-stat-value">{testsStats.total}</div>
-							<div className="admin-dashboard-ct-stat-sublabel">
-								{testsStats.published} publicate · {testsStats.draft} ciornă
-								{testsStats.pending_reviews > 0 && (
-									<span className="admin-dashboard-ct-stat-pending">
-										· {testsStats.pending_reviews} în așteptare verificare
-									</span>
-								)}
-							</div>
+						<div className="chart-modern-footer">
+							<span>{firstLabel}</span>
+							<span>{lastLabel}</span>
 						</div>
+						{!hasChartData ? <p className="chart-modern-empty">Nu există date pentru perioada selectată.</p> : null}
 					</div>
-				</div>
-			)}
+				</article>
 
-			{/* Main Content Grid */}
-			<div className="admin-dashboard-grid">
-				{/* Left Column - Courses Requiring Attention */}
-				<div className="admin-dashboard-main">
-					<div className="admin-dashboard-section">
-						<div className="admin-dashboard-section-header">
-							<div>
-								<h2 className="admin-dashboard-section-title">Cursuri Care Necesită Atenție</h2>
-								<p className="admin-dashboard-section-subtitle">
-									{problematicCourses.length} cursuri necesită intervenție
-								</p>
-							</div>
-							<button 
-								className="admin-dashboard-btn admin-dashboard-btn-link"
-								onClick={() => navigate('/admin/courses')}
-							>
-								Vezi toate →
-							</button>
+				<article className="clean-card clean-card-funnel">
+					<header className="clean-card-header">
+						<div className="clean-card-header-text">
+							<h2>Progres înscrieri la cursuri</h2>
+							<p className="clean-card-funnel-sub">
+								Date reale din înscrieri (nu estimări din procente). Barele orizontale arată câte înscrieri
+								sunt la fiecare etapă; pragurile de progres sunt cumulative.
+							</p>
 						</div>
-
-						{problematicCourses.length > 0 ? (
-							<div className="admin-dashboard-courses-list">
-								{problematicCourses.slice(0, 5).map((course) => {
-									const completionRate = course.completion_rate || 0;
-									const dropoffRate = course.dropoff_rate || 0;
-									const reason = completionRate < 30 
-										? 'Rata de completare scăzută'
-										: dropoffRate > 50 
-										? 'Rata de abandon ridicată'
-										: 'Implicare scăzută';
-
-									return (
-										<div key={course.id} className="admin-dashboard-course-item">
-											<div className="admin-dashboard-course-info">
-												<h3 className="admin-dashboard-course-title">
-													{course.title || course.name}
-												</h3>
-												<p className="admin-dashboard-course-reason">{reason}</p>
-												<div className="admin-dashboard-course-metrics">
-													<span className="admin-dashboard-course-metric">
-														Completare: {completionRate.toFixed(0)}%
-													</span>
-													<span className="admin-dashboard-course-metric">
-														Abandon: {dropoffRate.toFixed(0)}%
-													</span>
-												</div>
-											</div>
-											<button 
-												className="admin-dashboard-btn admin-dashboard-btn-sm"
-												onClick={() => navigate(`/admin/courses/${course.id}`)}
-											>
-												Vezi detalii
-											</button>
-										</div>
-									);
-								})}
-							</div>
+						<span className="clean-card-header-badge">Live</span>
+					</header>
+					<div className="funnel-chart-block">
+						{funnelTotal === 0 ? (
+							<p className="chart-modern-empty">Nu există încă înscrieri în baza de date.</p>
 						) : (
-							<div className="admin-dashboard-empty">
-								<div className="admin-dashboard-empty-icon">
-									<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M12 2L2 7l10 5 10-5-10-5z"/>
-										<path d="M2 17l10 5 10-5"/>
-										<path d="M2 12l10 5 10-5"/>
-									</svg>
+							<div className="funnel-chart-row">
+								<div className="chart-rechart-wrap funnel-chart-rechart">
+									<ResponsiveContainer width="100%" height={236} minWidth={260} minHeight={220}>
+										<BarChart
+											layout="vertical"
+											data={funnelBarData}
+											margin={{ top: 6, right: 20, left: 4, bottom: 4 }}
+											barCategoryGap={10}
+										>
+											<CartesianGrid stroke="var(--border-primary)" strokeDasharray="3 3" horizontal vertical={false} />
+											<XAxis
+												type="number"
+												tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
+												tickLine={false}
+												axisLine={false}
+												allowDecimals={false}
+											/>
+											<YAxis
+												type="category"
+												dataKey="short"
+												width={72}
+												tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+												tickLine={false}
+												axisLine={false}
+											/>
+											<Tooltip content={renderFunnelTooltip} cursor={{ fill: 'color-mix(in srgb, var(--color-primary) 8%, transparent)' }} />
+											<Bar dataKey="count" name="Înscrieri" radius={[0, 6, 6, 0]} maxBarSize={26}>
+												{funnelBarData.map((entry) => (
+													<Cell key={entry.key} fill={entry.fill} stroke="rgba(0,0,0,0.06)" strokeWidth={1} />
+												))}
+											</Bar>
+										</BarChart>
+									</ResponsiveContainer>
 								</div>
-								<h3 className="admin-dashboard-empty-title">Toate cursurile au performanță bună</h3>
-								<p className="admin-dashboard-empty-description">
-									Nu există cursuri care necesită atenție imediată
-								</p>
+								<ul className="funnel-legend" aria-label="Valori pe etapă">
+									{funnelBarData.map((row) => (
+										<li key={row.key}>
+											<span className="funnel-legend-swatch" style={{ backgroundColor: row.fill }} aria-hidden />
+											<span className="funnel-legend-label">{row.label}</span>
+											<strong className="funnel-legend-value">{row.count.toLocaleString()}</strong>
+										</li>
+									))}
+								</ul>
 							</div>
 						)}
-					</div>
-				</div>
-
-				{/* Right Column - Quick Actions & Recent Activity */}
-				<div className="admin-dashboard-sidebar">
-					{/* Quick Actions */}
-					<div className="admin-dashboard-section">
-						<div className="admin-dashboard-section-header">
-							<h2 className="admin-dashboard-section-title">Acțiuni Rapide</h2>
-						</div>
-						<div className="admin-dashboard-quick-actions">
-							<button 
-								className="admin-dashboard-quick-action"
-								onClick={() => navigate('/admin/courses')}
-							>
-								<span className="admin-dashboard-quick-action-icon">
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-										<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-									</svg>
-								</span>
-								<span className="admin-dashboard-quick-action-label">Gestionează Cursuri</span>
-							</button>
-							<button 
-								className="admin-dashboard-quick-action"
-								onClick={() => navigate('/admin/users')}
-							>
-								<span className="admin-dashboard-quick-action-icon">
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-										<circle cx="9" cy="7" r="4"/>
-										<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-									</svg>
-								</span>
-								<span className="admin-dashboard-quick-action-label">Gestionează Utilizatori</span>
-							</button>
-							<button 
-								className="admin-dashboard-quick-action"
-								onClick={() => navigate('/admin/tests')}
-							>
-								<span className="admin-dashboard-quick-action-icon">
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-										<polyline points="14 2 14 8 20 8"/>
-										<line x1="16" y1="13" x2="8" y2="13"/>
-										<line x1="16" y1="17" x2="8" y2="17"/>
-										<polyline points="10 9 9 9 8 9"/>
-									</svg>
-								</span>
-								<span className="admin-dashboard-quick-action-label">Gestionează Teste</span>
-							</button>
-							<button 
-								className="admin-dashboard-quick-action"
-								onClick={() => navigate('/admin/events')}
-							>
-								<span className="admin-dashboard-quick-action-icon">
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-										<line x1="16" y1="2" x2="16" y2="6"/>
-										<line x1="8" y1="2" x2="8" y2="6"/>
-										<line x1="3" y1="10" x2="21" y2="10"/>
-									</svg>
-								</span>
-								<span className="admin-dashboard-quick-action-label">Gestionează Evenimente</span>
-							</button>
-							<button 
-								className="admin-dashboard-quick-action"
-								onClick={() => navigate('/admin/analytics')}
-							>
-								<span className="admin-dashboard-quick-action-icon">
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<line x1="18" y1="20" x2="18" y2="10"/>
-										<line x1="12" y1="20" x2="12" y2="4"/>
-										<line x1="6" y1="20" x2="6" y2="14"/>
-									</svg>
-								</span>
-								<span className="admin-dashboard-quick-action-label">Analiză Avansată</span>
-							</button>
+						<div className="funnel-kpi-foot">
+							<span>
+								Rată finalizare elevi (KPI): <strong>{completionRate}</strong>
+							</span>
+							<span className="funnel-kpi-foot-sep" aria-hidden>
+								·
+							</span>
+							<span>
+								Total elevi: <strong>{totalUsersNum.toLocaleString()}</strong>
+							</span>
 						</div>
 					</div>
+				</article>
 
-					{/* Recent Activity */}
-					{recentActivities.length > 0 && (
-						<div className="admin-dashboard-section">
-							<div className="admin-dashboard-section-header">
-								<h2 className="admin-dashboard-section-title">Activitate Recentă</h2>
-							</div>
-							<div className="admin-dashboard-activity-list">
-								{recentActivities.slice(0, 5).map((activity, index) => (
-									<div key={index} className="admin-dashboard-activity-item">
-										<div className="admin-dashboard-activity-content">
-											<p className="admin-dashboard-activity-text">{activity.description || activity.message || 'Activitate'}</p>
-											<span className="admin-dashboard-activity-time">
-												{activity.created_at ? new Date(activity.created_at).toLocaleDateString('ro-RO') : 'Acum'}
-											</span>
-										</div>
-									</div>
-								))}
-							</div>
+				<article className="clean-card">
+					<header className="clean-card-header">
+						<h2>Toți elevii</h2>
+						<span>{PERIOD_OPTIONS.find((p) => p.value === selectedPeriod)?.label || 'Perioadă'}</span>
+					</header>
+					<div className="chart-modern-line chart-modern-line-multi">
+						<div className="chart-rechart-wrap">
+							<ResponsiveContainer width="100%" height={228} minWidth={280} minHeight={220}>
+								<LineChart data={trendData} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+									<CartesianGrid stroke="var(--border-primary)" strokeDasharray="3 3" vertical={false} />
+									<XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={28} />
+									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={38} />
+									<Tooltip content={renderTooltip} />
+									<Line type="monotone" dataKey="elevi" name="Elevi" stroke="var(--color-primary)" strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} />
+									<Line type="monotone" dataKey="activi" name="Elevi activi" stroke="var(--text-secondary)" strokeWidth={2.1} dot={false} activeDot={{ r: 3.5 }} />
+								</LineChart>
+							</ResponsiveContainer>
 						</div>
-					)}
-				</div>
-			</div>
+						<div className="chart-modern-footer">
+							<span>{firstLabel}</span>
+							<span>{lastLabel}</span>
+						</div>
+						<div className="chart-modern-legend">
+							<span><i className="legend-dot legend-users" />Elevi</span>
+							<span><i className="legend-dot legend-active" />Elevi activi</span>
+						</div>
+						{!hasChartData ? <p className="chart-modern-empty">Nu există date pentru perioada selectată.</p> : null}
+					</div>
+				</article>
+
+				<article className="clean-card">
+					<header className="clean-card-header">
+						<h2>Popularitate academie pe ore</h2>
+						<span>24 ore</span>
+					</header>
+					<div className="chart-modern-bars">
+						<div className="chart-rechart-wrap">
+							<ResponsiveContainer width="100%" height={228} minWidth={280} minHeight={220}>
+								<BarChart data={hourlyChartData} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+									<CartesianGrid stroke="var(--border-primary)" strokeDasharray="3 3" vertical={false} />
+									<XAxis dataKey="ora" tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} tickLine={false} axisLine={false} interval={3} />
+									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={38} />
+									<Tooltip content={renderHourlyTooltip} />
+									<Bar dataKey="lectii" name="Minute studiu" fill="color-mix(in srgb, var(--color-primary) 45%, var(--text-secondary) 55%)" radius={[4, 4, 0, 0]} maxBarSize={10} />
+									<Bar dataKey="elevi" name="Elevi" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={10} />
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+						<div className="chart-modern-legend">
+							<span><i className="legend-dot legend-lessons" />Minute studiu</span>
+							<span><i className="legend-dot legend-users-2" />Elevi</span>
+						</div>
+						{!hasHourlyData ? <p className="chart-modern-empty">Nu există activitate orară disponibilă.</p> : null}
+					</div>
+				</article>
+			</section>
 		</div>
 	);
 };

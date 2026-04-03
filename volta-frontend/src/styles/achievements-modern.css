@@ -216,7 +216,7 @@
 	gap: var(--space-2);
 	padding: var(--space-3) var(--space-4);
 	background: linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%);
-	color: #000000;
+	color: var(--text-inverse);
 	border: none;
 	border-radius: var(--radius-md);
 	font-size: var(--font-size-sm);
@@ -398,7 +398,7 @@
 
 .certificate-preview-content {
 	width: 100%;
-	background: white;
+	background: var(--bg-elevated);
 	border-radius: var(--radius-lg);
 	padding: var(--space-6);
 	box-shadow: var(--shadow-lg);
@@ -440,7 +440,7 @@
 	gap: var(--space-2);
 	padding: var(--space-3) var(--space-6);
 	background: linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%);
-	color: #000000;
+	color: var(--text-inverse);
 	border-radius: var(--radius-md);
 	text-decoration: none;
 	font-size: var(--font-size-sm);
@@ -456,13 +456,13 @@
 
 /* Light theme - dark background for better contrast */
 [data-theme="light"] .student-achievements-empty-link {
-	background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-	color: #ffffff;
+	background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-primary) 100%);
+	color: var(--color-white);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] .student-achievements-empty-link:hover {
-	background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+	background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-primary) 100%);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -516,104 +516,104 @@
 }
 
 [data-theme="light"] .certificate-preview-modal {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
 	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="light"] .certificate-preview-header {
-	border-bottom-color: #E5E7EB;
-	background-color: #E8E8E8;
+	border-bottom-color: var(--border-primary);
+	background-color: var(--bg-secondary);
 }
 
 [data-theme="light"] .certificate-preview-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .certificate-preview-close {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .certificate-preview-close:hover {
-	background-color: #f3f4f6;
-	color: #111827;
+	background-color: var(--bg-tertiary);
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .certificate-preview-content {
-	background: #E8E8E8;
-	border-color: #E5E7EB;
+	background: var(--bg-secondary);
+	border-color: var(--border-primary);
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .certificate-preview-actions {
-	border-top-color: #E5E7EB;
-	background-color: #E8E8E8;
+	border-top-color: var(--border-primary);
+	background-color: var(--bg-secondary);
 }
 
 [data-theme="light"] .student-achievements-page {
-	background-color: #f9fafb;
+	background-color: var(--bg-tertiary);
 }
 
 [data-theme="light"] .student-achievements-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .student-achievements-subtitle {
-	color: #6b7280;
+	color: var(--text-secondary);
 	opacity: 1;
 }
 
 [data-theme="light"] .student-achievements-stat-card {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .student-achievements-stat-card:hover {
-	border-color: #d1d5db;
+	border-color: var(--border-secondary);
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .student-achievements-stat-value {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .student-achievements-stat-label {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .student-achievements-section-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .student-certificate-card {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-secondary);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .student-certificate-card:hover {
-	border-color: #1f2937;
+	border-color: var(--text-primary);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .student-certificate-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .student-certificate-meta {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .student-certificate-download-btn {
-	background: #1f2937;
-	color: #ffffff;
-	border: 1px solid #1f2937;
+	background: var(--text-primary);
+	color: var(--color-white);
+	border: 1px solid var(--text-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .student-certificate-download-btn:hover {
-	background: #111827;
-	border-color: #111827;
+	background: var(--text-primary);
+	border-color: var(--text-primary);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

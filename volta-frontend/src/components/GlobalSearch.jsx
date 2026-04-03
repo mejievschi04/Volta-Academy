@@ -121,26 +121,6 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 				console.error('Error searching courses:', err);
 			}
 
-			// Admin: Search tests
-			if (isAdmin) {
-				try {
-					const tests = await adminService.getTests({ search: searchQuery });
-					const testMatches = (Array.isArray(tests) ? tests : tests?.data || [])
-						.slice(0, 5)
-						.map((test) => ({
-							id: test.id,
-							title: test.title,
-							description: test.description,
-							type: 'test',
-							url: `/admin/tests/${test.id}/builder`,
-							icon: '📝',
-						}));
-					allResults.push(...testMatches);
-				} catch (err) {
-					console.error('Error searching tests:', err);
-				}
-			}
-
 			// Group results by type
 			const grouped = allResults.reduce((acc, result) => {
 				if (!acc[result.type]) {

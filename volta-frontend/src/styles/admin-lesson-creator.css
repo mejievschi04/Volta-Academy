@@ -404,13 +404,13 @@
 
 /* Light Theme */
 [data-theme="light"] .admin-lesson-creator-page {
-	background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+	background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
 }
 
 [data-theme="light"] .admin-lesson-creator-page .admin-creator-form-panel,
 [data-theme="light"] .admin-lesson-creator-page .admin-creator-preview-panel {
-	background: #ffffff;
-	border-color: #e5e7eb;
+	background: var(--bg-elevated);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 

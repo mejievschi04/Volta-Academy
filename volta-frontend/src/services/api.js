@@ -108,6 +108,22 @@ export const dashboardService = {
   },
 };
 
+/** Evenimente telemetrie (auth) — ore învățare, funnel teste etc. */
+export const telemetryService = {
+  track: async (eventName, payload = {}, modelType = null, modelId = null) => {
+    try {
+      await api.post('/telemetry/events', {
+        event_name: eventName,
+        payload: payload || {},
+        model_type: modelType,
+        model_id: modelId,
+      });
+    } catch (e) {
+      logger.debug('telemetry.track', e?.message || e);
+    }
+  },
+};
+
 export const courseProgressService = {
   getCourseProgress: async (courseId) => {
     const response = await api.get(`/courses/${courseId}/progress`);
@@ -135,22 +151,37 @@ export const courseProgressService = {
     return response.data;
   },
   
-  checkExamAccess: async (examId) => {
-    const response = await api.get(`/exams/${examId}/access`);
+  checkExamAccess: async (examId, courseId = null) => {
+    const params = courseId ? { course_id: courseId } : {};
+    const response = await api.get(`/exams/${examId}/access`, { params });
     return response.data;
   },
+  
 };
 
 export const examService = {
-  getExam: async (examId, courseId = null) => {
+  /** Examene legacy fără curs (published, vizibile pentru utilizatorul curent) */
+  listStandaloneExams: async () => {
+    const response = await api.get('/exams');
+    return response.data?.data ?? response.data ?? [];
+  },
+
+  /** @param {{ newAttempt?: boolean }} [options] — newAttempt: încercare nouă (seed întrebări = următoarea), nu reconstruirea ultimei încercări */
+  getExam: async (examId, courseId = null, options = {}) => {
     const params = courseId ? { course_id: courseId } : {};
+    if (options.newAttempt) {
+      params.new_attempt = 1;
+    }
     const response = await api.get(`/exams/${examId}`, { params });
     return response.data;
   },
 
-  submitExam: async (examId, answers, courseId = null) => {
+  submitExam: async (examId, answers, courseId = null, attemptMeta = null) => {
     const payload = { answers };
     if (courseId) payload.course_id = courseId;
+    if (attemptMeta && typeof attemptMeta === 'object') {
+      Object.assign(payload, attemptMeta);
+    }
     const response = await api.post(`/exams/${examId}/submit`, payload);
     return response.data;
   },
@@ -188,6 +219,11 @@ export const achievementsService = {
 export const profileService = {
   getProfile: async () => {
     const response = await api.get('/profile');
+    return response.data;
+  },
+
+  updateProfile: async (payload) => {
+    const response = await api.put('/profile', payload);
     return response.data;
   },
 
@@ -266,6 +302,7 @@ export const examResultsService = {
     return response.data;
   },
 };
+
 
 export const authService = {
   register: async (name, email, password) => {
@@ -368,11 +405,14 @@ export const adminService = {
   },
   
   updateCourse: async (id, courseData) => {
-    const response = await api.put(`/admin/courses/${id}`, courseData, {
-      headers: {
-        'Content-Type': courseData instanceof FormData ? 'multipart/form-data' : 'application/json',
-      },
-    });
+    const isFormData = courseData instanceof FormData;
+    const config = isFormData
+      ? {}
+      : {
+          headers: { 'Content-Type': 'application/json' },
+        };
+    const method = isFormData ? 'post' : 'put';
+    const response = await api[method](`/admin/courses/${id}`, courseData, config);
     return response.data;
   },
   
@@ -467,6 +507,21 @@ export const adminService = {
     const response = await api.get(`/admin/exams/${id}`);
     return response.data;
   },
+
+  previewExam: async (id) => {
+    const response = await api.get(`/admin/exams/${id}/preview`);
+    return response.data;
+  },
+
+  getExamResults: async (id) => {
+    const response = await api.get(`/admin/exams/${id}/results`);
+    return response.data;
+  },
+
+  getExamQuestionAnalytics: async (id) => {
+    const response = await api.get(`/admin/exams/${id}/question-analytics`);
+    return response.data;
+  },
   
   /**
    * @deprecated Use createTest() instead. Kept for backward compatibility.
@@ -481,6 +536,18 @@ export const adminService = {
    */
   updateExam: async (id, examData) => {
     const response = await api.put(`/admin/exams/${id}`, examData);
+    return response.data;
+  },
+
+  duplicateExam: async (id, payload = {}) => {
+    const response = await api.post(`/admin/exams/${id}/duplicate`, payload);
+    return response.data;
+  },
+
+  uploadExamCover: async (id, formData) => {
+    const response = await api.post(`/admin/exams/${id}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
   
@@ -524,8 +591,8 @@ export const adminService = {
     return response.data;
   },
 
-  previewTestSelection: async (id) => {
-    const response = await api.post(`/admin/tests/${id}/selection-preview`);
+  previewTestSelection: async (id, payload = {}) => {
+    const response = await api.post(`/admin/tests/${id}/selection-preview`, payload);
     return response.data;
   },
 
@@ -564,8 +631,33 @@ export const adminService = {
     return response.data;
   },
 
+  listQuestions: async (params = {}) => {
+    const response = await api.get('/admin/questions', { params });
+    return response.data;
+  },
+
+  moveQuestionsToFolderBulk: async (questionIds = [], targetBankId) => {
+    const response = await api.post('/admin/questions/bulk-move', {
+      question_ids: questionIds,
+      target_bank_id: targetBankId,
+    });
+    return response.data;
+  },
+
+  getQuestionTagSuggestions: async (search = '') => {
+    const response = await api.get('/admin/questions/tag-suggestions', {
+      params: search ? { search } : {},
+    });
+    return Array.isArray(response?.data?.tags) ? response.data.tags : [];
+  },
+
   updateQuestion: async (questionId, questionData) => {
     const response = await api.put(`/admin/questions/${questionId}`, questionData);
+    return response.data;
+  },
+
+  toggleQuestionStar: async (questionId) => {
+    const response = await api.post(`/admin/questions/${questionId}/toggle-star`);
     return response.data;
   },
 
@@ -608,11 +700,6 @@ export const adminService = {
   },
 
   // Course maps (folders to group courses)
-  getStatisticsCourseTestDetail: async (params = {}) => {
-    const response = await api.get('/admin/statistics/course-test-detail', { params });
-    return response.data;
-  },
-
   getCourseMaps: async (params = {}) => {
     const response = await api.get('/admin/course-maps', { params });
     const data = response.data;
@@ -705,6 +792,30 @@ export const adminService = {
 
   removeQuestionFromBank: async (bankId, questionId) => {
     const response = await api.delete(`/admin/question-banks/${bankId}/questions/${questionId}`);
+    return response.data;
+  },
+
+  addQuestionsToBankBulk: async (bankId, questions = []) => {
+    const response = await api.post(`/admin/question-banks/${bankId}/questions/bulk`, {
+      questions,
+    });
+    return response.data;
+  },
+
+  previewQuestionsWithAI: async (bankId, payload = {}) => {
+    const response = await api.post(`/admin/question-banks/${bankId}/ai/preview`, payload);
+    return response.data;
+  },
+
+  improveQuestionWithAI: async (questionId, instruction = '') => {
+    const response = await api.post(`/admin/questions/${questionId}/improve`, {
+      instruction,
+    });
+    return response.data;
+  },
+
+  autoTagQuestionWithAI: async (questionId) => {
+    const response = await api.post(`/admin/questions/${questionId}/auto-tag`);
     return response.data;
   },
 
@@ -923,27 +1034,27 @@ export const adminService = {
     return response.data;
   },
 
-  // Exam Manual Review (legacy Exam model)
-  getPendingExamReviews: async () => {
-    const response = await api.get('/admin/exams/pending-reviews');
-    return response.data;
-  },
-  
-  submitExamManualReview: async (resultId, reviewScores) => {
-    const response = await api.post(`/admin/exam-results/${resultId}/manual-review`, {
-      manual_review_scores: reviewScores,
-    });
-    return response.data;
-  },
-
   // Test Manual Review (Test model - standalone tests)
   getPendingTestReviews: async () => {
     const response = await api.get('/admin/tests/pending-reviews');
     return response.data;
   },
 
-  submitTestManualReview: async (resultId, reviewScores) => {
+  submitTestManualReview: async (resultId, reviewScores, overallFeedback = '') => {
     const response = await api.post(`/admin/test-results/${resultId}/manual-review`, {
+      manual_review_scores: reviewScores,
+      overall_feedback: overallFeedback || undefined,
+    });
+    return response.data;
+  },
+
+  getPendingExamReviews: async () => {
+    const response = await api.get('/admin/exams/pending-reviews');
+    return response.data;
+  },
+
+  submitExamManualReview: async (resultId, reviewScores) => {
+    const response = await api.post(`/admin/exam-results/${resultId}/manual-review`, {
       manual_review_scores: reviewScores,
     });
     return response.data;
@@ -961,6 +1072,11 @@ export const adminService = {
       course_ids: courseIds,
       action: action,
     });
+    return response.data;
+  },
+
+  getStatisticsCourseTestDetail: async (params = {}) => {
+    const response = await api.get('/admin/statistics/course-test-detail', { params });
     return response.data;
   },
 
@@ -1063,6 +1179,11 @@ export const adminService = {
 
   builderPublishCourse: async (courseId, teamIds = []) => {
     const response = await api.post(`/admin/courses/${courseId}/builder/publish`, { team_ids: teamIds });
+    return response.data;
+  },
+
+  builderArchiveCourse: async (courseId) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/archive`);
     return response.data;
   },
 

@@ -75,7 +75,7 @@ const CalendarPage = () => {
 
 	if (error) {
 		return (
-			<div className="va-stack">
+			<div className="va-calendar-like">
 				<p style={{ color: 'red' }}>{error}</p>
 			</div>
 		);
@@ -84,7 +84,7 @@ const CalendarPage = () => {
 	const sortedEvents = [...events].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
 	return (
-		<div className="va-stack">
+		<div className="va-calendar-like">
 			<div className="va-calendar-header">
 				<div>
 					<h1 className="va-page-title">Calendar</h1>

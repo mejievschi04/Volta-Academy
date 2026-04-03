@@ -435,6 +435,14 @@
 	line-height: 1.6;
 }
 
+.course-detail-module-tests-lead {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	margin: var(--space-2) 0 0 0;
+	line-height: 1.55;
+	max-width: 52ch;
+}
+
 .course-detail-module-stats {
 	display: flex;
 	align-items: center;
@@ -468,7 +476,7 @@
 	height: 32px;
 	border-radius: var(--radius-full);
 	background: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	flex-shrink: 0;

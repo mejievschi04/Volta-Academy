@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { coursesService, courseMapsService } from '../services/api';
-import { toImageUrl } from '../utils/imageUrl';
+import { courseMapsService, adminService, examService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import './CoursesPage.css';
 
@@ -14,10 +13,6 @@ const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
 ];
 
-const COURSE_TAB_COLORS = [
-	'#b8e986', '#f5a623', '#7ed321', '#bd9de0', '#f8b4c4', '#7dd3fc', '#d4a574', '#60a5fa', '#fef08a'
-];
-
 const CoursesPage = () => {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
@@ -25,19 +20,15 @@ const CoursesPage = () => {
 	// Check if user is admin/instructor
 	const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
 	
-	const [courses, setCourses] = useState([]);
 	const [courseMaps, setCourseMaps] = useState([]);
+	const [standaloneExams, setStandaloneExams] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const fetchingRef = useRef(false);
 	
-	// View and filter states
-	const [viewMode, setViewMode] = useState('grid');
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('all');
-	const [sortBy, setSortBy] = useState('recent');
 	
-	// Fetch courses
+	// Fetch maps
 	useEffect(() => {
 		if (fetchingRef.current || authLoading) return;
 		
@@ -50,20 +41,24 @@ const CoursesPage = () => {
 				setError(null);
 				
 				if (isAdmin) {
-					const data = await coursesService.getAll();
-					setCourses(Array.isArray(data) ? data : []);
-					setCourseMaps([]);
+					const mapsData = await adminService.getCourseMaps({ per_page: 100, include_virtual: 1 });
+					const list = mapsData?.data ?? (Array.isArray(mapsData) ? mapsData : []);
+					setCourseMaps(Array.isArray(list) ? list : []);
 				} else {
-					const [mapsData, coursesData] = await Promise.all([
-						courseMapsService.getMaps(),
-						coursesService.getAll(),
-					]);
+					const mapsData = await courseMapsService.getMaps();
 					setCourseMaps(Array.isArray(mapsData) ? mapsData : []);
-					setCourses(Array.isArray(coursesData) ? coursesData : []);
+				}
+
+				try {
+					const examRows = await examService.listStandaloneExams();
+					setStandaloneExams(Array.isArray(examRows) ? examRows : []);
+				} catch (examErr) {
+					console.error('Error fetching standalone exams:', examErr);
+					setStandaloneExams([]);
 				}
 			} catch (err) {
 				console.error('Error fetching courses:', err);
-				setError('Nu s-au putut încărca cursurile');
+				setError('Nu s-au putut încărca mapele');
 			} finally {
 				setLoading(false);
 				fetchingRef.current = false;
@@ -71,64 +66,31 @@ const CoursesPage = () => {
 		};
 		
 		fetchCourses();
-	}, [authLoading]);
-	
-	// Filter and sort courses
-	const filteredAndSortedCourses = useMemo(() => {
-		let filtered = [...courses];
-		
-		// For students, only show published courses
-		if (!isAdmin) {
-			filtered = filtered.filter(course => course.status === 'published');
-		}
-		
-		// Search filter
-		if (searchQuery) {
-			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(course => 
-				course.title?.toLowerCase().includes(query) ||
-				course.description?.toLowerCase().includes(query) ||
-				course.short_description?.toLowerCase().includes(query)
+	}, [authLoading, isAdmin]);
+
+	const filteredCourseMaps = useMemo(() => {
+		let rows = Array.isArray(courseMaps) ? [...courseMaps] : [];
+		if (searchQuery.trim()) {
+			const needle = searchQuery.trim().toLowerCase();
+			rows = rows.filter((map) =>
+				String(map?.name || '').toLowerCase().includes(needle) ||
+				String(map?.description || '').toLowerCase().includes(needle)
 			);
 		}
-		
-		// Status filter (only for admins)
-		if (isAdmin && statusFilter !== 'all') {
-			filtered = filtered.filter(course => {
-				const status = course.status || 'draft';
-				if (statusFilter === 'published') return status === 'published';
-				if (statusFilter === 'draft') return status === 'draft';
-				if (statusFilter === 'archived') return status === 'archived';
-				return true;
-			});
+		return rows;
+	}, [courseMaps, searchQuery]);
+
+	const filteredStandaloneExams = useMemo(() => {
+		let rows = Array.isArray(standaloneExams) ? [...standaloneExams] : [];
+		if (searchQuery.trim()) {
+			const needle = searchQuery.trim().toLowerCase();
+			rows = rows.filter((ex) =>
+				String(ex?.title || '').toLowerCase().includes(needle) ||
+				String(ex?.description || '').toLowerCase().includes(needle)
+			);
 		}
-		
-		// Sort
-		filtered.sort((a, b) => {
-			switch (sortBy) {
-				case 'alphabetical':
-					return (a.title || '').localeCompare(b.title || '');
-				case 'update-date':
-					const aDate = new Date(a.updated_at || a.created_at || 0);
-					const bDate = new Date(b.updated_at || b.created_at || 0);
-					return bDate - aDate;
-				case 'recent':
-				default:
-					return (b.id || 0) - (a.id || 0);
-			}
-		});
-		
-		return filtered;
-	}, [courses, searchQuery, statusFilter, sortBy, isAdmin]);
-	
-	const getStatusBadge = (status) => {
-		const badges = {
-			published: { label: 'Publicat', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-			draft: { label: 'Ciornă', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
-			archived: { label: 'Arhivat', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' },
-		};
-		return badges[status] || badges.draft;
-	};
+		return rows;
+	}, [standaloneExams, searchQuery]);
 	
 	if (loading || authLoading) {
 		return (
@@ -166,325 +128,97 @@ const CoursesPage = () => {
 			<div className="courses-page-hero">
 				<div className="courses-page-hero-content">
 					<div className="courses-page-hero-text">
-						<h1 className="courses-page-hero-title">
-							{isAdmin ? 'Cursurile mele' : 'Cursuri'}
-						</h1>
+						<h1 className="courses-page-hero-title">Mape cursuri</h1>
+						{!isAdmin && (
+							<p className="courses-page-student-blurb">
+								<strong>Mapele</strong> sunt parcursurile cu lecții.{' '}
+								<strong>Examenele independente</strong> (dacă apar mai jos) nu sunt legate de un curs — le deschizi direct de aici.{' '}
+								Testele dintr-un curs rămân în pagina acelui curs.
+							</p>
+						)}
 					</div>
-					{!isAdmin && (
-						<div className="courses-page-search-wrapper courses-page-hero-search">
-							<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<circle cx="11" cy="11" r="8"/>
-								<path d="m21 21-4.35-4.35"/>
-							</svg>
-							<input
-								type="text"
-								className="courses-page-search-input"
-								placeholder="Caută cursuri..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-							/>
-							{searchQuery && (
-								<button type="button" className="courses-page-search-clear" onClick={() => setSearchQuery('')} aria-label="Golește căutarea">×</button>
-							)}
-						</div>
-					)}
+					<div className="courses-page-search-wrapper courses-page-hero-search">
+						<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<circle cx="11" cy="11" r="8"/>
+							<path d="m21 21-4.35-4.35"/>
+						</svg>
+						<input
+							type="text"
+							className="courses-page-search-input"
+							placeholder="Caută mape sau examene..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+						{searchQuery && (
+							<button type="button" className="courses-page-search-clear" onClick={() => setSearchQuery('')} aria-label="Golește căutarea">×</button>
+						)}
+					</div>
 					{isAdmin && (
-						<button
-							className="courses-page-create-btn"
-							onClick={() => navigate('/admin/courses/new')}
-						>
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M12 5v14M5 12h14"/>
-							</svg>
-							<span>Creează Curs Nou</span>
-						</button>
+						<div className="courses-page-admin-hero-actions">
+							<button
+								className="courses-page-create-btn courses-page-create-btn-secondary"
+								onClick={() => navigate('/admin/content?tab=course-maps')}
+							>
+								<span>Administrare mape</span>
+							</button>
+							<button
+								className="courses-page-create-btn"
+								onClick={() => navigate('/admin/courses/new')}
+							>
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<path d="M12 5v14M5 12h14"/>
+								</svg>
+								<span>Creează Curs Nou</span>
+							</button>
+						</div>
 					)}
 				</div>
 			</div>
 			
-			{/* Search and Filters Bar - doar pentru admin; student are search în hero */}
-			{isAdmin && (
-			<div className="courses-page-toolbar">
-				<div className="courses-page-search-wrapper">
-					<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<circle cx="11" cy="11" r="8"/>
-						<path d="m21 21-4.35-4.35"/>
-					</svg>
-					<input
-						type="text"
-						className="courses-page-search-input"
-						placeholder="Caută cursuri..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-					{searchQuery && (
-						<button
-							type="button"
-							className="courses-page-search-clear"
-							onClick={() => setSearchQuery('')}
-							aria-label="Golește căutarea"
-						>
-							×
-						</button>
-					)}
-				</div>
-				
-				<div className="courses-page-toolbar-right">
-					{/* Status Filters - Only for admins */}
-					{isAdmin && (
-						<div className="courses-page-filters">
-							<button
-								className={`courses-page-filter-chip ${statusFilter === 'all' ? 'active' : ''}`}
-								onClick={() => setStatusFilter('all')}
-							>
-								Toate
-							</button>
-							<button
-								className={`courses-page-filter-chip ${statusFilter === 'published' ? 'active' : ''}`}
-								onClick={() => setStatusFilter('published')}
-							>
-								Publicate
-							</button>
-							<button
-								className={`courses-page-filter-chip ${statusFilter === 'draft' ? 'active' : ''}`}
-								onClick={() => setStatusFilter('draft')}
-							>
-								Ciornă
-							</button>
-							<button
-								className={`courses-page-filter-chip ${statusFilter === 'archived' ? 'active' : ''}`}
-								onClick={() => setStatusFilter('archived')}
-							>
-								Arhivate
-							</button>
-						</div>
-					)}
-					
-					{/* View Toggle */}
-					<div className="courses-page-view-toggle">
-						<button
-							className={`courses-page-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-							onClick={() => setViewMode('grid')}
-							title="Vizualizare grilă"
-						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<rect x="3" y="3" width="7" height="7"/>
-								<rect x="14" y="3" width="7" height="7"/>
-								<rect x="3" y="14" width="7" height="7"/>
-								<rect x="14" y="14" width="7" height="7"/>
-							</svg>
-						</button>
-						<button
-							className={`courses-page-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-							onClick={() => setViewMode('list')}
-							title="Vizualizare listă"
-						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<line x1="8" y1="6" x2="21" y2="6"/>
-								<line x1="8" y1="12" x2="21" y2="12"/>
-								<line x1="8" y1="18" x2="21" y2="18"/>
-								<line x1="3" y1="6" x2="3.01" y2="6"/>
-								<line x1="3" y1="12" x2="3.01" y2="12"/>
-								<line x1="3" y1="18" x2="3.01" y2="18"/>
-							</svg>
-						</button>
-					</div>
-					
-					{/* Sort */}
-					<select
-						className="courses-page-sort-select"
-						value={sortBy}
-						onChange={(e) => setSortBy(e.target.value)}
-					>
-						<option value="recent">Recente</option>
-						<option value="alphabetical">Alfabetic</option>
-						<option value="update-date">Ultima actualizare</option>
-					</select>
-				</div>
-			</div>
-			)}
-			
-			{/* Courses Grid/List (sau Mape pentru studenți) */}
+			{/* Mape (pentru toate rolurile): cursurile se deschid din mapă */}
 			<div className="courses-page-content">
-				{/* Student: afișăm mape (foldere) dacă există */}
-				{!isAdmin && courseMaps.length > 0 ? (
-					<div className="courses-page-maps-grid">
-						{courseMaps.map((map, index) => {
-							const accentColor = COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
-							const courseCount = map.courses_count ?? 0;
-							const summary = map.description || `${courseCount} cursuri`;
-							return (
-								<article
-									key={map.id}
-									className="course-map-card"
-									onClick={() => navigate(`/courses/map/${map.id}`)}
+				<div className="courses-page-maps-grid">
+					{filteredCourseMaps.map((map, index) => {
+						const accentColor = COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+						const courseCount = map.courses_count ?? 0;
+						const summary = map.description || `${courseCount} cursuri`;
+						const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
+						return (
+							<article
+								key={map.id}
+								className="course-map-card"
+								onClick={() => navigate(`/courses/map/${map.id}`)}
+							>
+								<button
+									type="button"
+									className="course-map-card-menu"
+									aria-label="Opțiuni"
+									onClick={(e) => { e.stopPropagation(); }}
 								>
-									<button
-										type="button"
-										className="course-map-card-menu"
-										aria-label="Opțiuni"
-										onClick={(e) => { e.stopPropagation(); }}
-									>
-										<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
-									</button>
-									<div className="course-map-card-body">
-										<div className="course-map-card-icon-wrap" style={{ '--map-accent': accentColor }}>
-											<svg className="course-map-card-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-												<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-												<line x1="12" y1="11" x2="12" y2="17"/>
-												<line x1="9" y1="14" x2="15" y2="14"/>
-											</svg>
-										</div>
-										<div className="course-map-card-content">
-											<h3 className="course-map-card-title">{map.name}</h3>
-											<p className="course-map-card-summary">{summary}</p>
-											<div className="course-map-card-footer">
-												<span className="course-map-card-cta-label">Deschide</span>
-												<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-											</div>
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+								</button>
+								<div className="course-map-card-body">
+									<div className="course-map-card-icon-wrap" style={{ '--map-accent': accentColor }}>
+										<svg className="course-map-card-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+											<line x1="12" y1="11" x2="12" y2="17"/>
+											<line x1="9" y1="14" x2="15" y2="14"/>
+										</svg>
+									</div>
+									<div className="course-map-card-content">
+										{isVirtualMap && <span className="course-map-card-badge">Mapă virtuală</span>}
+										<h3 className="course-map-card-title">{map.name}</h3>
+										<p className="course-map-card-summary">{summary}</p>
+										<div className="course-map-card-footer">
+											<span className="course-map-card-cta-label">Deschide</span>
+											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
 										</div>
 									</div>
-								</article>
-							);
-						})}
-					</div>
-				) : filteredAndSortedCourses.length > 0 ? (
-					<div className={viewMode === 'grid' ? 'courses-page-grid' : 'courses-page-list'}>
-						{filteredAndSortedCourses.map((course, index) => {
-							const statusBadge = getStatusBadge(course.status || 'draft');
-							const totalModules = course.modules_count || course.modules?.length || 0;
-							const totalLessons = course.lessons_count || 0;
-							const tabColor = COURSE_TAB_COLORS[index % COURSE_TAB_COLORS.length];
-							
-							// Determine navigation path based on user role
-							const coursePath = isAdmin 
-								? `/admin/courses/${course.id}` 
-								: `/courses/${course.id}`;
-							
-							return (
-								<div
-									key={course.id}
-									className={`courses-page-card ${viewMode === 'list' ? 'list-view' : ''} ${!isAdmin ? 'courses-page-card-student' : ''}`}
-									style={!isAdmin ? { '--course-tab-color': tabColor } : undefined}
-									onClick={() => navigate(coursePath)}
-								>
-									{/* Student: tab colorat cu titlul cursului */}
-									{!isAdmin && (
-										<div className="courses-page-card-tab" style={{ backgroundColor: tabColor }}>
-											{course.title}
-										</div>
-									)}
-									{/* Folder tab (visual) - rendered via CSS ::before for admin */}
-									{/* Thumbnail / content area (grey box) */}
-									<div className="courses-page-card-thumbnail">
-										{course.image_url ? (
-											<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
-										) : (
-											<div className="courses-page-card-placeholder">
-												<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-													<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-													<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-												</svg>
-											</div>
-										)}
-										{isAdmin && (
-											<div className="courses-page-card-overlay">
-												<button
-													className="courses-page-card-edit-btn"
-													onClick={(e) => {
-														e.stopPropagation();
-														navigate(`/admin/courses/${course.id}`);
-													}}
-												>
-												<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-													<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-													<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-												</svg>
-											</button>
-										</div>
-										)}
-									</div>
-									
-									{/* Content */}
-									<div className="courses-page-card-content">
-										{/* Status Badge - Only for admins */}
-										{isAdmin && (
-											<div className="courses-page-card-status">
-												<span
-													className="courses-page-status-badge"
-													style={{
-														backgroundColor: statusBadge.bg,
-														color: statusBadge.color,
-														borderColor: statusBadge.color
-													}}
-												>
-													{statusBadge.label}
-												</span>
-											</div>
-										)}
-										
-										{/* Title (admin) sau descriere scurtă (student) */}
-										{isAdmin && <h3 className="courses-page-card-title">{course.title}</h3>}
-										{!isAdmin && (
-											<p className="courses-page-card-description">{course.short_description || course.title}</p>
-										)}
-										
-										{/* Description - doar pentru admin (student are mai sus) */}
-										{isAdmin && course.short_description && (
-											<p className="courses-page-card-description">
-												{course.short_description}
-											</p>
-										)}
-										
-										{/* Meta Info */}
-										<div className="courses-page-card-meta">
-											{totalModules > 0 && (
-												<span className="courses-page-card-meta-item">
-													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-														<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-														<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-													</svg>
-													{totalModules} {totalModules === 1 ? 'modul' : 'module'}
-												</span>
-											)}
-											{totalLessons > 0 && (
-												<span className="courses-page-card-meta-item">
-													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-														<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-													</svg>
-													{totalLessons} {totalLessons === 1 ? 'lecție' : 'lecții'}
-												</span>
-											)}
-											{course.updated_at && (
-												<span className="courses-page-card-meta-item">
-													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-														<circle cx="12" cy="12" r="10"/>
-														<path d="M12 6v6l4 2"/>
-													</svg>
-													{new Date(course.updated_at).toLocaleDateString('ro-RO')}
-												</span>
-											)}
-										</div>
-									</div>
-									{/* Student: buton Deschide (verde); Admin: plus în colț */}
-									{!isAdmin ? (
-										<button
-											className="courses-page-card-open-btn"
-											onClick={(e) => { e.stopPropagation(); navigate(coursePath); }}
-										>
-											Deschide
-										</button>
-									) : (
-									<div className="courses-page-card-corner-action" onClick={(e) => { e.stopPropagation(); navigate(coursePath); }} title={isAdmin ? 'Deschide curs' : 'Vezi curs'} aria-label={isAdmin ? 'Deschide curs' : 'Vezi curs'}>
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-									</div>
-									)}
 								</div>
-							);
-						})}
-					</div>
-				) : (
+							</article>
+						);
+					})}
+					{filteredCourseMaps.length === 0 ? (
 					<div className="courses-page-empty">
 						<div className="courses-page-empty-icon">
 							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -493,40 +227,96 @@ const CoursesPage = () => {
 							</svg>
 						</div>
 						<h3 className="courses-page-empty-title">
-							{searchQuery || statusFilter !== 'all' ? 'Nu s-au găsit cursuri' : 'Nu ai cursuri încă'}
+							{searchQuery ? 'Nu am găsit mape' : 'Nu există mape disponibile'}
 						</h3>
 						<p className="courses-page-empty-text">
-							{searchQuery || statusFilter !== 'all' ? (
-								'Încearcă să modifici filtrele sau termenii de căutare.'
-							) : (
-								'Începe să creezi primul tău curs pentru instruirea personalului.'
-							)}
+							{searchQuery
+								? 'Încearcă un alt termen de căutare.'
+								: 'Cursurile sunt afișate în interiorul mapelor.'}
 						</p>
-						{searchQuery || statusFilter !== 'all' ? (
+						{searchQuery ? (
 							<button
 								className="courses-page-btn courses-page-btn-secondary"
-								onClick={() => {
-									setSearchQuery('');
-									setStatusFilter('all');
-								}}
+								onClick={() => setSearchQuery('')}
 							>
-								Resetează filtrele
+								Golește căutarea
 							</button>
 						) : (
 							isAdmin && (
 								<button
 									className="courses-page-btn courses-page-btn-primary"
-									onClick={() => navigate('/admin/courses/new')}
+									onClick={() => navigate('/admin/content?tab=course-maps')}
 								>
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 										<path d="M12 5v14M5 12h14"/>
 									</svg>
-									<span>Creează primul curs</span>
+									<span>Creează prima mapă</span>
 								</button>
 							)
 						)}
 					</div>
-				)}
+					) : null}
+				</div>
+
+				{!isAdmin && filteredStandaloneExams.length > 0 ? (
+					<section className="courses-page-exams-section" aria-labelledby="courses-page-exams-heading">
+						<div className="courses-page-exams-section-head">
+							<h2 id="courses-page-exams-heading" className="courses-page-exams-heading">
+								Examene independente
+							</h2>
+							<p className="courses-page-exams-intro">
+								Fără legătură cu mapele de mai sus — acces direct la evaluare.
+							</p>
+						</div>
+						<div className="courses-page-exams-grid">
+							{filteredStandaloneExams.map((ex, index) => {
+								const accentColor = COURSE_MAP_ACCENT_COLORS[(index + 3) % COURSE_MAP_ACCENT_COLORS.length];
+								return (
+									<article
+										key={ex.id}
+										className="course-standalone-exam-card"
+										onClick={() => navigate(`/exams/${ex.id}`)}
+										role="button"
+										tabIndex={0}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												navigate(`/exams/${ex.id}`);
+											}
+										}}
+									>
+										<div className="course-standalone-exam-card-body">
+											<div
+												className="course-standalone-exam-card-icon-wrap"
+												style={{ '--map-accent': accentColor }}
+											>
+												<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+													<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+													<polyline points="14 2 14 8 20 8"/>
+													<line x1="9" y1="15" x2="15" y2="15"/>
+												</svg>
+											</div>
+											<div className="course-standalone-exam-card-content">
+												<h3 className="course-standalone-exam-card-title">{ex.title || 'Examen'}</h3>
+												{ex.description ? (
+													<p className="course-standalone-exam-card-summary">{ex.description}</p>
+												) : (
+													<p className="course-standalone-exam-card-summary muted">
+														{ex.passing_score != null ? `Punctaj minim: ${ex.passing_score}%` : 'Examen'}
+													</p>
+												)}
+												<div className="course-standalone-exam-card-footer">
+													<span className="course-standalone-exam-card-cta">Începe examenul</span>
+													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+												</div>
+											</div>
+										</div>
+									</article>
+								);
+							})}
+						</div>
+					</section>
+				) : null}
 			</div>
 
 			</div>

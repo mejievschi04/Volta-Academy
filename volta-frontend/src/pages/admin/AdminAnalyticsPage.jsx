@@ -18,7 +18,7 @@ import {
 import { adminService } from '../../services/api';
 import './AdminAnalyticsPage.css';
 
-const PERIOD_MAP = { '7d': 'week', '30d': 'month', '90d': 'quarter' };
+const PERIOD_MAP = { '7d': '7d', '30d': '30d', '90d': '90d' };
 
 const AdminAnalyticsPage = () => {
 	const navigate = useNavigate();

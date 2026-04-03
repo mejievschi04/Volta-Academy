@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
+import { toImageUrl } from '../../utils/imageUrl';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
+	const { canMutateInAdminArea } = useAuth();
 	const { success: showSuccess, error: showError } = useToast();
 	const [users, setUsers] = useState([]);
 	const [teams, setTeams] = useState([]);
@@ -174,13 +177,19 @@ const AdminUsersPage = () => {
 		}
 	};
 
+	const normalizeFormRole = (r) => {
+		if (r === 'teacher') return 'instructor';
+		if (r === 'manager') return 'student';
+		return r;
+	};
+
 	const handleEdit = (user) => {
 		setEditingUser(user);
 		setFormData({
 			name: user.name,
 			email: user.email,
 			password: '',
-			role: user.role,
+			role: normalizeFormRole(user.role),
 			bio: user.bio || '',
 			team_id: (Array.isArray(user.teams) && user.teams[0]?.id) || '',
 		});
@@ -257,9 +266,8 @@ const AdminUsersPage = () => {
 	const getRoleLabel = (role) => {
 		const roles = {
 			admin: 'Administrator',
-			manager: 'Manager',
 			instructor: 'Instructor',
-			teacher: 'Profesor',
+			analyst: 'Analist',
 			student: 'Utilizator',
 		};
 		return roles[role] || role || 'Utilizator';
@@ -282,7 +290,7 @@ const AdminUsersPage = () => {
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
 					<p className="admin-page-subtitle">Gestionează toți utilizatorii din platformă</p>
 				</div>
-				{usersView === 'active' && (
+				{usersView === 'active' && canMutateInAdminArea && (
 					<button
 						className="lms-btn-primary"
 						onClick={() => {
@@ -311,13 +319,15 @@ const AdminUsersPage = () => {
 				>
 					Utilizatori
 				</button>
-				<button
-					type="button"
-					className={`admin-users-view-tab ${usersView === 'trash' ? 'active' : ''}`}
-					onClick={() => setUsersView('trash')}
-				>
-					Coș
-				</button>
+				{canMutateInAdminArea && (
+					<button
+						type="button"
+						className={`admin-users-view-tab ${usersView === 'trash' ? 'active' : ''}`}
+						onClick={() => setUsersView('trash')}
+					>
+						Coș
+					</button>
+				)}
 			</nav>
 
 			{/* Căutare și filtre */}
@@ -354,9 +364,8 @@ const AdminUsersPage = () => {
 						<option value="all">Toate</option>
 						<option value="student">Utilizatori</option>
 						<option value="admin">Administratori</option>
-						<option value="manager">Manageri</option>
 						<option value="instructor">Instructori</option>
-						<option value="teacher">Profesori</option>
+						<option value="analyst">Analiști</option>
 					</select>
 				</div>
 			</div>
@@ -406,7 +415,7 @@ const AdminUsersPage = () => {
 											<div className="admin-users-table-cell-user">
 												<div className="admin-users-table-avatar">
 													{user.avatar ? (
-														<img src={user.avatar} alt={user.name} loading="lazy" decoding="async" />
+														<img src={toImageUrl(user.avatar) || user.avatar} alt={user.name} loading="lazy" decoding="async" />
 													) : (
 														initials
 													)}
@@ -474,7 +483,9 @@ const AdminUsersPage = () => {
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
-												{usersView === 'trash' ? (
+												{!canMutateInAdminArea ? (
+													<span className="admin-users-table-cell-muted">—</span>
+												) : usersView === 'trash' ? (
 													<button
 														className="lms-btn-primary lms-btn-sm"
 														onClick={(e) => {
@@ -508,22 +519,32 @@ const AdminUsersPage = () => {
 												) : (
 													<>
 														<button
-															className="lms-btn-secondary lms-btn-sm"
+															className="lms-btn-secondary lms-btn-sm admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleEdit(user);
 															}}
 														>
-															Editează
+															<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+																<path d="M12 20h9"/>
+																<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+															</svg>
+															<span>Editare</span>
 														</button>
 														<button
-															className="lms-btn-secondary lms-btn-sm va-btn-danger"
+															className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleDeleteClick(user.id);
 															}}
 														>
-															Mută în coș
+															<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+																<polyline points="3 6 5 6 21 6"/>
+																<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+																<path d="M10 11v6M14 11v6"/>
+																<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+															</svg>
+															<span>În coș</span>
 														</button>
 													</>
 												)}
@@ -628,9 +649,8 @@ const AdminUsersPage = () => {
 									>
 										<option value="student">Utilizator</option>
 										<option value="admin">Administrator</option>
-										<option value="manager">Manager</option>
 										<option value="instructor">Instructor</option>
-										<option value="teacher">Profesor</option>
+										<option value="analyst">Analist</option>
 									</select>
 								</div>
 								{!editingUser && (

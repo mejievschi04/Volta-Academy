@@ -89,7 +89,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $data['name'],
                     'password' => Hash::make('password'),
-                    'role' => 'teacher',
+                    'role' => 'instructor',
                     'avatar' => null,
                     'bio' => $data['bio'],
                     'level' => 5,

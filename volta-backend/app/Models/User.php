@@ -95,9 +95,14 @@ class User extends Authenticatable
         return ($this->role ?? '') === 'instructor';
     }
 
-    /** Admin or instructor (instructor has limited access: only courses and tests). */
+    public function isAnalyst(): bool
+    {
+        return ($this->role ?? '') === 'analyst';
+    }
+
+    /** Admin, instructor sau analist (API + shell admin; drepturi diferite). */
     public function canAccessAdmin(): bool
     {
-        return $this->isAdmin() || $this->isInstructor();
+        return $this->isAdmin() || $this->isInstructor() || $this->isAnalyst();
     }
 }

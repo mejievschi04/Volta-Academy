@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\Test;
 use App\Models\ExamResult;
 use App\Models\TestResult;
 use App\Services\CourseProgressService;
+use App\Services\TestQuestionSelectionService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,10 +21,72 @@ use Illuminate\Support\Facades\Schema;
 class ExamController extends Controller
 {
     protected $progressService;
+    protected TestQuestionSelectionService $questionSelectionService;
 
-    public function __construct(CourseProgressService $progressService)
+    public function __construct(CourseProgressService $progressService, TestQuestionSelectionService $questionSelectionService)
     {
         $this->progressService = $progressService;
+        $this->questionSelectionService = $questionSelectionService;
+    }
+
+    /**
+     * Elevi: doar teste publicate. Admin / instructor pe cursul legat pot previzualiza draft.
+     */
+    protected function gateUnpublishedTest(Test $test, $user, ?int $courseId): ?JsonResponse
+    {
+        if (($test->status ?? '') === 'published') {
+            return null;
+        }
+        if ($user->isAdmin()) {
+            return null;
+        }
+        if ($user->isInstructor()) {
+            $q = CourseTest::query()
+                ->where('test_id', $test->id)
+                ->whereHas('course', function ($c) use ($user) {
+                    $c->where('teacher_id', $user->id);
+                });
+            if ($courseId) {
+                $q->where('course_id', $courseId);
+            }
+            if ($q->exists()) {
+                return null;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Testul nu este disponibil.',
+            'unpublished' => true,
+        ], 403);
+    }
+
+    /**
+     * Elevi: doar examene publicate. Admin / instructor titular curs pot previzualiza draft.
+     */
+    protected function gateUnpublishedExam(Exam $exam, $user): ?JsonResponse
+    {
+        if (($exam->status ?? 'draft') === 'published') {
+            return null;
+        }
+        if ($user->isAdmin()) {
+            return null;
+        }
+        if ($user->isInstructor() && $exam->course_id) {
+            $course = Course::find($exam->course_id);
+            if ($course && (int) $course->teacher_id === (int) $user->id) {
+                return null;
+            }
+        }
+        if ($user->isInstructor() && ! $exam->course_id && \Illuminate\Support\Facades\Schema::hasColumn('exams', 'created_by')) {
+            if ((int) ($exam->created_by ?? 0) === (int) $user->id) {
+                return null;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Examenul nu este încă publicat.',
+            'unpublished' => true,
+        ], 403);
     }
 
     protected function isAnswerCorrectFlag($answer): bool
@@ -57,6 +124,20 @@ class ExamController extends Controller
         );
     }
 
+    protected function buildSelectionSeedBase(Test $test, int $userId, int $attemptNumber): string
+    {
+        $selection = is_array($test->question_selection) ? $test->question_selection : [];
+        $seed = trim((string)($selection['seed'] ?? ''));
+        $variantPoolSize = max(1, min(26, (int)($selection['variant_pool_size'] ?? 1)));
+        $variantLabel = 'A';
+        if ($variantPoolSize > 1) {
+            $variantIndex = abs(crc32("{$test->id}:{$userId}")) % $variantPoolSize;
+            $variantLabel = chr(65 + $variantIndex);
+        }
+
+        return "{$test->id}:{$userId}:{$attemptNumber}:seed:{$seed}:variant:{$variantLabel}";
+    }
+
     /**
      * Order answers as the student sees them for this attempt (deterministic shuffle when randomize_answers).
      * Must use the same attempt number as selectQuestionsForTestAttempt / exam payload (existing results count + 1).
@@ -73,7 +154,7 @@ class ExamController extends Controller
         $correctAnswerIndex = null;
         $type = $question->type ?? '';
 
-        if ($type === 'multiple_choice' || $type === 'true_false') {
+        if ($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false') {
             foreach ($answers as $idx => $answer) {
                 if ($this->isAnswerCorrectFlag($answer)) {
                     $correctAnswerIndex = $idx;
@@ -82,11 +163,11 @@ class ExamController extends Controller
             }
         }
 
-        if (($type === 'multiple_choice' || $type === 'true_false')
+        if (($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false')
             && $test->randomize_answers
             && count($answers) > 1
         ) {
-            $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}:q{$question->id}";
+            $seedBase = $this->buildSelectionSeedBase($test, (int) $user->id, $attemptNumber) . ":q{$question->id}";
             $indexed = [];
             foreach ($answers as $idx => $ans) {
                 $text = $this->answerTextForShuffleKey($ans);
@@ -133,7 +214,7 @@ class ExamController extends Controller
 
         if ($test) {
             // Handle Test model
-            return $this->handleTest($test, $user, $courseId);
+            return $this->handleTest($test, $user, $courseId, $request);
         }
         
         // Fallback to legacy Exam model
@@ -151,13 +232,43 @@ class ExamController extends Controller
         
         return $this->handleExam($exam, $user);
     }
+
+    /**
+     * Catalog examene legacy fără curs (published, vizibile pentru elevul curent).
+     */
+    public function learnerStandaloneExams(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $exams = Exam::query()
+            ->where('status', 'published')
+            ->whereNull('course_id')
+            ->orderBy('title')
+            ->get()
+            ->filter(fn (Exam $e) => $e->isVisibleToLearner($user))
+            ->values();
+
+        return response()->json([
+            'data' => $exams->map(fn (Exam $e) => [
+                'id' => $e->id,
+                'title' => $e->title,
+                'description' => $e->description,
+                'passing_score' => $e->passing_score,
+                'time_limit_minutes' => $e->time_limit_minutes,
+                'max_attempts' => $e->max_attempts,
+            ]),
+        ]);
+    }
     
     /**
      * Handle Test model (new system)
      * @param int|null $courseId When provided, resolves CourseTest for this course (test can be in multiple courses)
      */
-    protected function handleTest(Test $test, $user, ?int $courseId = null)
+    protected function handleTest(Test $test, $user, ?int $courseId = null, ?Request $request = null)
     {
+        if ($blocked = $this->gateUnpublishedTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+
         // Get user's attempts
         $userAttempts = TestResult::where('test_id', $test->id)
             ->where('user_id', $user->id)
@@ -173,8 +284,18 @@ class ExamController extends Controller
             ? ($remainingAttempts > 0)
             : true;
 
-        // Use a deterministic "attempt seed" so the same attempt sees the same sampled questions.
-        $attemptNumberForSeed = $currentAttempt + 1;
+        $req = $request ?? request();
+        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
+
+        /*
+         * Seed-ul determină ordinea/subsetul întrebărilor (randomizare, bancă).
+         * - Rezultat existent + fără new_attempt: folosim același număr de încercare ca la ultimul rezultat,
+         *   ca lista întrebărilor să coincidă cu răspunsurile salvate (altfel „nu merge” la reîncărcare).
+         * - Încercare nouă (new_attempt=1): folosim următorul număr (currentAttempt + 1).
+         */
+        $attemptNumberForSeed = ($latestResult && !$forNewAttempt)
+            ? max(1, (int) $latestResult->attempt_number)
+            : max(1, $currentAttempt + 1);
 
         // Get questions (supports bank + optional rule-based selection)
         $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
@@ -189,7 +310,8 @@ class ExamController extends Controller
                 'id' => $question->id,
                 'text' => $question->content,
                 'type' => $question->type ?? 'multiple_choice',
-                'options' => ($question->type === 'multiple_choice' || $question->type === 'true_false')
+                'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
+                'options' => in_array($question->type ?? '', ['multiple_choice', 'single_choice', 'true_false'], true)
                     ? array_map(function($ans) {
                         if (!is_array($ans)) {
                             return $ans;
@@ -203,9 +325,7 @@ class ExamController extends Controller
             ];
         });
         
-        // Check if user has passed (assuming 70% is passing)
-        $passingScore = 70; // Default, could be from CourseTest pivot
-        $hasPassed = $latestResult && $latestResult->percentage >= $passingScore;
+        $basePassingScore = (int) ($test->passing_score ?? 70);
 
         // Resolve CourseTest: use course_id when provided (test can be attached to multiple courses)
         $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
@@ -215,19 +335,28 @@ class ExamController extends Controller
         $courseTest = $courseTestQuery->first();
         $resolvedCourseId = $courseTest ? $courseTest->course_id : $courseId;
         $moduleId = ($courseTest && $courseTest->scope === 'module') ? $courseTest->scope_id : null;
-        
+        $resolvedPassingScore = $courseTest
+            ? (int) ($courseTest->passing_score ?? $basePassingScore)
+            : $basePassingScore;
+
+        $hasPassed = $latestResult
+            && (float) ($latestResult->percentage ?? 0) >= (float) $resolvedPassingScore;
+
         return response()->json([
             'id' => $test->id,
             'title' => $test->title,
             'description' => $test->description,
+            'instructions' => null,
+            'show_feedback_instant' => (bool) ($test->show_results_immediately ?? false),
+            'show_correct_answers' => (bool) ($test->show_correct_answers ?? false),
             'type' => $test->type ?? 'graded',
             'course_id' => $resolvedCourseId,
             'module_id' => $moduleId,
             'lesson_id' => null,
-            'passing_score' => $courseTest->passing_score ?? $passingScore,
+            'passing_score' => $resolvedPassingScore,
             'time_limit_minutes' => $test->time_limit_minutes,
             'max_attempts' => $test->max_attempts,
-            'is_required' => $courseTest->required ?? false,
+            'is_required' => (bool) ($courseTest && ($courseTest->required ?? false)),
             'questions' => $transformedQuestions,
             'current_attempt' => $currentAttempt,
             'remaining_attempts' => $remainingAttempts,
@@ -240,6 +369,9 @@ class ExamController extends Controller
                 'passed' => $hasPassed,
                 'completed_at' => $latestResult->completed_at,
                 'attempt_number' => $latestResult->attempt_number ?? 1,
+                'answers' => is_array($latestResult->answers) ? $latestResult->answers : [],
+                'needs_manual_review' => (bool) ($latestResult->needs_manual_review ?? false),
+                'status' => $latestResult->status,
             ] : null,
         ]);
     }
@@ -252,92 +384,7 @@ class ExamController extends Controller
      */
     protected function selectQuestionsForTestAttempt(Test $test, $user, int $attemptNumber)
     {
-        $base = collect();
-
-        if ($test->question_source === 'bank' && $test->questionBank) {
-            $base = $test->questionBank->questions()->orderBy('order')->get();
-        } else {
-            $base = $test->questions()->orderBy('order')->get();
-        }
-
-        if ($base->isEmpty()) {
-            return $base;
-        }
-
-        if ($test->question_source !== 'bank') {
-            // For direct questions we can still honor randomize_questions deterministically
-            if ($test->randomize_questions) {
-                $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
-                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-            }
-            return $base;
-        }
-
-        $sel = $test->question_selection;
-        if (!is_array($sel) || empty($sel)) {
-            // If no explicit selection rules, we can still randomize question order deterministically
-            if ($test->randomize_questions) {
-                $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
-                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-            }
-            return $base;
-        }
-
-        $mode = (string)($sel['mode'] ?? '');
-        $count = (int)($sel['count'] ?? 0);
-        $difficulty = $sel['difficulty'] ?? null;
-        $tags = $sel['tags'] ?? null;
-
-        $difficultyList = [];
-        if (is_string($difficulty) && $difficulty !== '') $difficultyList = [$difficulty];
-        if (is_array($difficulty)) $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
-
-        $tagList = [];
-        if (is_string($tags) && $tags !== '') $tagList = [$tags];
-        if (is_array($tags)) $tagList = array_values(array_filter(array_map('strval', $tags)));
-        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
-
-        $filtered = $base->filter(function ($q) use ($difficultyList, $tagList) {
-            $meta = is_array($q->metadata) ? $q->metadata : [];
-            $qDifficulty = isset($meta['difficulty']) ? (string)$meta['difficulty'] : '';
-            $qTags = $meta['tags'] ?? [];
-            if (is_string($qTags)) $qTags = array_map('trim', explode(',', $qTags));
-            if (!is_array($qTags)) $qTags = [];
-            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string)$t)), $qTags)));
-
-            if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
-                return false;
-            }
-
-            if (!empty($tagList)) {
-                $hasAny = false;
-                foreach ($tagList as $t) {
-                    if (in_array($t, $qTags, true)) {
-                        $hasAny = true;
-                        break;
-                    }
-                }
-                if (!$hasAny) return false;
-            }
-
-            return true;
-        })->values();
-
-        if ($filtered->isEmpty()) {
-            $filtered = $base->values(); // fallback to all
-        }
-
-        $useRandom = ($mode === 'random') || $test->randomize_questions;
-        if ($useRandom) {
-            $seedBase = "{$test->id}:{$user->id}:{$attemptNumber}";
-            $filtered = $filtered->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-        }
-
-        if ($count > 0) {
-            $filtered = $filtered->take($count)->values();
-        }
-
-        return $filtered;
+        return $this->questionSelectionService->selectForAttempt($test, (int) $user->id, $attemptNumber);
     }
     
     /**
@@ -345,6 +392,11 @@ class ExamController extends Controller
      */
     protected function handleExam(Exam $exam, $user)
     {
+        if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
+            return $blocked;
+        }
+
+        $settings = is_array($exam->settings) ? $exam->settings : [];
 
         // Check access
         $accessCheck = $this->progressService->isExamUnlocked(
@@ -355,8 +407,12 @@ class ExamController extends Controller
         );
 
         if (!$accessCheck) {
+            $message = empty($exam->course_id)
+                ? 'Nu ai acces la acest examen.'
+                : 'Testul nu este disponibil. Completează lecțiile/modulele anterioare.';
+
             return response()->json([
-                'message' => 'Testul nu este disponibil. Completează lecțiile/modulele anterioare.',
+                'message' => $message,
                 'unlocked' => false,
             ], 403);
         }
@@ -384,7 +440,7 @@ class ExamController extends Controller
             $answers = $question->answers;
             $correctAnswerIndex = null;
 
-            if ($question->question_type === 'multiple_choice') {
+            if (in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
                 foreach ($answers as $idx => $answer) {
                     if ($answer->is_correct) {
                         $correctAnswerIndex = $idx;
@@ -397,8 +453,8 @@ class ExamController extends Controller
                 'id' => $question->id,
                 'text' => $question->question_text,
                 'type' => $question->question_type ?? 'multiple_choice',
-                'options' => $question->question_type === 'multiple_choice' 
-                    ? $answers->pluck('answer_text')->toArray() 
+                'options' => in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)
+                    ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
@@ -410,6 +466,9 @@ class ExamController extends Controller
             'id' => $exam->id,
             'title' => $exam->title,
             'description' => $exam->description,
+            'instructions' => $settings['instructions'] ?? null,
+            'show_feedback_instant' => (bool) ($settings['show_feedback_instant'] ?? false),
+            'show_correct_answers' => (bool) ($settings['show_correct_answers'] ?? false),
             'course_id' => $exam->course_id,
             'module_id' => $exam->module_id,
             'lesson_id' => $exam->lesson_id,
@@ -429,6 +488,7 @@ class ExamController extends Controller
                 'passed' => $latestResult->passed,
                 'completed_at' => $latestResult->completed_at,
                 'attempt_number' => $latestResult->attempt_number,
+                'answers' => is_array($latestResult->answers ?? null) ? $latestResult->answers : [],
             ] : null,
         ]);
     }
@@ -448,8 +508,9 @@ class ExamController extends Controller
         ])->find($examId);
         
         if ($test) {
-            // Handle Test model
-            return $this->submitTest($request, $test, $user);
+            $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+
+            return $this->submitTest($request, $test, $user, $courseId);
         }
         
         // Fallback to legacy Exam model
@@ -465,8 +526,12 @@ class ExamController extends Controller
     /**
      * Submit Test (new system)
      */
-    protected function submitTest(Request $request, Test $test, $user)
+    protected function submitTest(Request $request, Test $test, $user, ?int $courseId = null)
     {
+        if ($blocked = $this->gateUnpublishedTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+
         try {
             // Check attempt limits
             $userAttempts = TestResult::where('test_id', $test->id)
@@ -493,6 +558,15 @@ class ExamController extends Controller
             }
 
             $answers = $request->input('answers', []);
+            $startedAt = null;
+            $startedAtRaw = $request->input('started_at');
+            if (is_string($startedAtRaw) && trim($startedAtRaw) !== '') {
+                try {
+                    $startedAt = Carbon::parse($startedAtRaw);
+                } catch (\Throwable $parseError) {
+                    $startedAt = null;
+                }
+            }
             
             // Calculate score and count correct answers (for statistics: X din Y întrebări)
             $score = 0;
@@ -505,14 +579,15 @@ class ExamController extends Controller
                 $points = $question->points ?? 1;
                 $totalPoints += $points;
 
-                if (in_array($question->type ?? '', ['short_answer', 'essay'], true)) {
+                if (in_array($question->type ?? '', ['open_text', 'short_answer', 'essay'], true)) {
                     $needsManualReview = true;
                 } else {
                     // Multiple choice / true_false: same answer order as exam payload (incl. randomize_answers)
                     $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $nextAttempt);
                     $correctAnswerIndex = $resolved['correct_index'];
 
-                    if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
+                    $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                    if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
                         $score += $points;
                         $correctAnswersCount++;
                     }
@@ -528,7 +603,9 @@ class ExamController extends Controller
                 $courseTestQuery->where('course_id', $courseId);
             }
             $courseTest = $courseTestQuery->first();
-            $passingScore = $courseTest ? ($courseTest->passing_score ?? 70) : 70;
+            $passingScore = $courseTest
+                ? ($courseTest->passing_score ?? (int) ($test->passing_score ?? 70))
+                : (int) ($test->passing_score ?? 70);
             $passed = !$needsManualReview && $percentage >= $passingScore;
             
             // Create test result
@@ -544,6 +621,8 @@ class ExamController extends Controller
                 'percentage' => $percentage,
                 'passed' => $passed,
                 'answers' => $answers,
+                'started_at' => $startedAt,
+                'time_taken_minutes' => $startedAt ? max(0, (int) floor($startedAt->diffInSeconds(now()) / 60)) : null,
                 'completed_at' => now(),
                 'status' => $needsManualReview ? 'pending_review' : 'completed',
                 'needs_manual_review' => $needsManualReview,
@@ -638,6 +717,7 @@ class ExamController extends Controller
                     'needs_manual_review' => $needsManualReview,
                     'status' => $testResult->status,
                     'completed_at' => $testResult->completed_at,
+                    'answers' => is_array($testResult->answers) ? $testResult->answers : (is_array($answers) ? $answers : []),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -660,6 +740,9 @@ class ExamController extends Controller
      */
     protected function submitExam(Request $request, Exam $exam, $user)
     {
+        if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
+            return $blocked;
+        }
 
         // Check access
         $accessCheck = $this->progressService->isExamUnlocked(
@@ -671,7 +754,9 @@ class ExamController extends Controller
 
         if (!$accessCheck) {
             return response()->json([
-                'message' => 'Testul nu este disponibil.',
+                'message' => empty($exam->course_id)
+                    ? 'Nu ai acces la acest examen.'
+                    : 'Testul nu este disponibil.',
             ], 403);
         }
 
@@ -700,7 +785,7 @@ class ExamController extends Controller
         foreach ($exam->questions as $question) {
             $totalPoints += $question->points ?? 1;
 
-            if ($question->question_type === 'open_text') {
+            if (in_array($question->question_type ?? '', ['open_text', 'short_answer', 'essay'], true)) {
                 $needsManualReview = true;
             } else {
                 // Multiple choice
@@ -714,7 +799,8 @@ class ExamController extends Controller
                     }
                 }
 
-                if (isset($answers[$question->id]) && $answers[$question->id] == $correctAnswerIndex) {
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
                     $score += $question->points ?? 1;
                 }
             }
@@ -796,8 +882,25 @@ class ExamController extends Controller
                     : null,
                 'needs_manual_review' => $needsManualReview,
                 'completed_at' => $examResult->completed_at,
+                'status' => $needsManualReview ? 'pending_review' : 'completed',
             ],
         ]);
+    }
+
+    /**
+     * Payload JSON folosește adesea chei string pentru id-uri întrebări.
+     */
+    protected function answerValueForQuestion(array $answers, int $questionId): mixed
+    {
+        if (array_key_exists($questionId, $answers)) {
+            return $answers[$questionId];
+        }
+        $key = (string) $questionId;
+        if (array_key_exists($key, $answers)) {
+            return $answers[$key];
+        }
+
+        return null;
     }
 }
 

@@ -8,33 +8,38 @@
    ============================================ */
 :root {
 	/* Brand Colors */
-	--color-brand-primary: #FFEE00;
-	--color-brand-hover: #E6D600;
-	--color-brand-soft: #FFF699;
+	--color-brand-primary: rgb(255, 238, 0);
+	--color-brand-hover: rgb(230, 216, 0);
+	--color-brand-soft: rgb(255, 240, 102);
+	--color-primary-rgb: 255, 238, 0;
 
 	/* Neutrals */
-	--color-black: #000000;
-	--color-near-black: #111111;
-	--color-gray-dark: #333333;
-	--color-gray-medium: #777777;
-	--color-gray-light: #E6E6E6;
-	--color-gray-extra-light: #E5E5E5;
-	--color-white: #FFFFFF;
+	--color-black: rgb(0, 0, 0);
+	--color-near-black: rgb(17, 17, 17);
+	--color-gray-dark: rgb(51, 51, 51);
+	--color-gray-medium: rgb(119, 119, 119);
+	--color-gray-light: rgb(230, 230, 230);
+	--color-gray-extra-light: rgb(229, 229, 229);
+	--color-white: rgb(255, 255, 255);
 
 	/* Functional Colors */
-	--color-success: #2ECC71;
-	--color-warning: #F39C12;
-	--color-error: #E74C3C;
-	--color-info: var(--color-brand-primary); /* Yellow instead of blue */
+	--color-success: rgb(34, 197, 94);
+	--color-warning: rgb(245, 158, 11);
+	--color-error: rgb(239, 68, 68);
+	--color-info: rgb(59, 130, 246);
+	--color-success-rgb: 34, 197, 94;
+	--color-warning-rgb: 245, 158, 11;
+	--color-error-rgb: 239, 68, 68;
+	--color-info-rgb: 59, 130, 246;
 
-	/* Background Colors - Dark Gray instead of Pure Black - WCAG Compliant */
-	--bg-primary: #121212; /* Dark gray - Material Design dark surface */
-	--bg-sidebar-toggle: #0D0D0D; /* Mai închis pentru butonul expand sidebar */
-	--bg-sidebar-toggle-hover: #151515;
-	--bg-secondary: #1E1E1E; /* Slightly lighter for subtle elevation */
-	--bg-tertiary: #2A2A2A; /* Even lighter for more elevation */
-	--bg-elevated: #2D2D2D; /* Elevated surfaces - medium gray for depth */
-	--bg-overlay: rgba(18, 18, 18, 0.9);
+	/* Background Colors - aligned with palette */
+	--bg-primary: rgb(248, 250, 252);
+	--bg-sidebar-toggle: rgb(17, 24, 39);
+	--bg-sidebar-toggle-hover: rgb(15, 23, 42);
+	--bg-secondary: rgb(241, 245, 249);
+	--bg-tertiary: rgb(226, 232, 240);
+	--bg-elevated: rgb(255, 255, 255);
+	--bg-overlay: rgba(15, 23, 42, 0.45);
 
 	/* Primary Accent - Volta Yellow */
 	--color-primary: var(--color-brand-primary);
@@ -42,19 +47,15 @@
 	--color-primary-light: var(--color-brand-soft);
 	--color-primary-dark: var(--color-brand-hover);
 
-	/* Text Colors - High Contrast - WCAG 2.1 AA/AAA Compliant */
-	/* #FFFFFF on #121212 = ~18:1 contrast ratio - Excellent (AAA) */
-	--text-primary: #FFFFFF;
-	/* #E6E6E6 on #121212 = ~13:1 contrast ratio - Excellent (AAA) */
-	--text-secondary: #E6E6E6;
-	/* #B3B3B3 on #121212 = ~6.5:1 contrast ratio - Excellent (AAA) */
-	--text-tertiary: #B3B3B3;
-	/* #808080 on #121212 = ~4.5:1 contrast ratio - AA Compliant */
-	--text-disabled: #808080;
+	/* Text Colors - aligned with palette */
+	--text-primary: rgb(15, 23, 42);
+	--text-secondary: rgb(71, 85, 105);
+	--text-tertiary: rgb(100, 116, 139);
+	--text-disabled: rgb(156, 163, 175);
 
-	/* Border Colors - Subtle for visibility on dark gray - WCAG Compliant */
-	--border-primary: #2D2D2D; /* Subtle border for separation */
-	--border-secondary: #404040; /* More visible border */
+	/* Border Colors - aligned with palette */
+	--border-primary: rgb(226, 232, 240);
+	--border-secondary: rgb(148, 163, 184);
 	--border-accent: var(--color-brand-primary);
 	--border-focus: var(--color-brand-primary);
 
@@ -89,7 +90,7 @@
 	--accent-neural: var(--color-primary-hover);
 	--accent-ai-rgb: 255, 238, 0;
 	--accent-warning: var(--color-warning);
-	--text-inverse: var(--color-black);
+	--text-inverse: rgb(15, 23, 42);
 	--bg-surface: var(--bg-primary);
 
 	/* Shadows - Subtle Elevation */
@@ -188,22 +189,20 @@
 
 /* Light Theme Override - Modern & Professional */
 [data-theme="light"] {
-	/* Background Colors - More Gray, Less White - WCAG Compliant */
-	--bg-primary: #E5E5E5; /* Medium gray instead of light gray */
-	--bg-secondary: #D5D5D5; /* Darker gray for subtle elevation */
-	--bg-tertiary: #C8C8C8; /* Even darker gray for more elevation */
-	--bg-elevated: #E8E8E8; /* Elevated surfaces - medium gray */
-	--bg-overlay: rgba(232, 232, 232, 0.95);
+	/* Keep light theme aligned to shared palette */
+	--bg-primary: rgb(248, 250, 252);
+	--bg-secondary: rgb(241, 245, 249);
+	--bg-tertiary: rgb(226, 232, 240);
+	--bg-elevated: rgb(255, 255, 255);
+	--bg-overlay: rgba(15, 23, 42, 0.45);
 
-	/* Text Colors - High Contrast, Professional - WCAG 2.1 AA Compliant */
-	--text-primary: #111827; /* #111827 on #E8E8E8 = ~12:1 contrast ratio - Excellent */
-	--text-secondary: #374151; /* #374151 on #E8E8E8 = ~6.5:1 contrast ratio - Excellent */
-	--text-tertiary: #6B7280; /* #6B7280 on #E8E8E8 = ~4.2:1 contrast ratio - AA Compliant */
-	--text-disabled: #9CA3AF; /* #9CA3AF on #E8E8E8 = ~2.8:1 contrast ratio - AA Large Text */
+	--text-primary: rgb(15, 23, 42);
+	--text-secondary: rgb(71, 85, 105);
+	--text-tertiary: rgb(100, 116, 139);
+	--text-disabled: rgb(156, 163, 175);
 
-	/* Border Colors - More Defined for Better Separation - WCAG Compliant */
-	--border-primary: #C8C8C8; /* Medium gray border for subtle separation */
-	--border-secondary: #B8B8B8; /* Darker gray for stronger separation */
+	--border-primary: rgb(226, 232, 240);
+	--border-secondary: rgb(148, 163, 184);
 
 	/* Primary Alpha - slightly stronger on light backgrounds for visibility */
 	--color-primary-alpha-10: rgba(255, 238, 0, 0.12);

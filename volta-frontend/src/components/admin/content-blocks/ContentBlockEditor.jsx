@@ -1,9 +1,97 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TextBlockEditor from './blocks/TextBlockEditor';
 import UrlBlockEditor from './blocks/UrlBlockEditor';
 import GalleryBlockEditor from './blocks/GalleryBlockEditor';
 import MediaUploader from '../media/MediaUploader';
 import MediaLibraryModal from '../media/MediaLibraryModal';
+import { adminService } from '../../../services/api';
+
+const QuizEmbedEditor = ({ block, onChange }) => {
+	const [tests, setTests] = useState([]);
+	const [loadingTests, setLoadingTests] = useState(true);
+
+	useEffect(() => {
+		let isActive = true;
+		const loadTests = async () => {
+			setLoadingTests(true);
+			try {
+				const data = await adminService.getTests({ status: 'published' });
+				if (isActive) {
+					setTests(Array.isArray(data) ? data : []);
+				}
+			} catch {
+				if (isActive) setTests([]);
+			} finally {
+				if (isActive) setLoadingTests(false);
+			}
+		};
+		loadTests();
+		return () => { isActive = false; };
+	}, []);
+
+	const selectedTestId = Number(block?.metadata?.test_id || 0) || null;
+	const selectedTest = useMemo(
+		() => tests.find((test) => test.id === selectedTestId) || null,
+		[tests, selectedTestId]
+	);
+
+	const handleSelectTest = (rawValue) => {
+		const nextId = rawValue ? Number(rawValue) : null;
+		const nextTest = tests.find((test) => test.id === nextId) || null;
+		onChange({
+			source: nextId ? `/tests/${nextId}` : '',
+			metadata: {
+				...(block.metadata || {}),
+				test_id: nextId,
+				test_title: nextTest?.title || '',
+				test_type: nextTest?.type || null,
+			},
+		});
+	};
+
+	return (
+		<div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+			<div className="admin-form-group">
+				<label className="admin-settings-label">Test asociat</label>
+				<select
+					className="form-select"
+					value={selectedTestId || ''}
+					onChange={(e) => handleSelectTest(e.target.value)}
+					disabled={loadingTests}
+				>
+					<option value="">{loadingTests ? 'Se încarcă testele...' : 'Selectează testul'}</option>
+					{tests.map((test) => (
+						<option key={test.id} value={test.id}>
+							{test.title}
+						</option>
+					))}
+				</select>
+			</div>
+			<div className="admin-form-group">
+				<label className="admin-settings-label">Titlu afișat (opțional)</label>
+				<input
+					type="text"
+					className="form-input"
+					value={block?.metadata?.test_title || ''}
+					placeholder="Ex: Quiz recapitulare modul"
+					onChange={(e) =>
+						onChange({
+							metadata: {
+								...(block.metadata || {}),
+								test_title: e.target.value,
+							},
+						})
+					}
+				/>
+			</div>
+			<div className="admin-settings-hint" style={{ margin: 0 }}>
+				{selectedTest
+					? `Se va încorpora: ${selectedTest.title}`
+					: 'Selectează un test publicat pentru încorporare.'}
+			</div>
+		</div>
+	);
+};
 
 const ContentBlockEditor = ({ courseId, block, onChange }) => {
 	const [libraryOpen, setLibraryOpen] = useState(false);
@@ -112,6 +200,8 @@ const ContentBlockEditor = ({ courseId, block, onChange }) => {
 					onChange={(val) => onChange({ source: val })}
 				/>
 			);
+		case 'quiz_embed':
+			return <QuizEmbedEditor block={block} onChange={onChange} />;
 		case 'embed':
 			return (
 				<UrlBlockEditor

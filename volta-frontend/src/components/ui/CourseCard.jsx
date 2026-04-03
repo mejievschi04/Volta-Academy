@@ -1,4 +1,5 @@
 import React from 'react';
+import { toImageUrl } from '../../utils/imageUrl';
 import ProgressChart from './ProgressChart';
 
 const CourseCard = React.memo(({ course = {}, onStart }) => {
@@ -6,7 +7,7 @@ const CourseCard = React.memo(({ course = {}, onStart }) => {
 	return (
 		<article className="pro-course-card" tabIndex={0} aria-labelledby={`course-${course.id}-title`}>
 			<div className="pro-course-card-media">
-				<img src={image} alt={`Copertă pentru ${title}`} loading="lazy" decoding="async" />
+				<img src={toImageUrl(image) || image || ''} alt={`Copertă pentru ${title}`} loading="lazy" decoding="async" />
 				<div className="pro-course-card-overlay">
 					<div className="pro-course-card-meta">
 						<p className="pro-course-category">{category}</p>

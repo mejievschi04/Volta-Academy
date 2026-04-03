@@ -16,10 +16,15 @@ class SecurityHeaders
 	public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+        $isBuilderMediaPreview = $request->is('api/builder-media/*');
 
         // Security headers
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        if (!$isBuilderMediaPreview) {
+            $response->headers->set('X-Frame-Options', 'DENY');
+        } else {
+            $response->headers->remove('X-Frame-Options');
+        }
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');

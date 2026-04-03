@@ -34,6 +34,12 @@ class CourseBuilderController extends Controller
         return $course;
     }
 
+    private function makeMediaPreviewToken(int $courseId, int $mediaId): string
+    {
+        $key = (string) config('app.key');
+        return hash_hmac('sha256', "{$courseId}|{$mediaId}", $key);
+    }
+
     /**
      * Returns the normalized builder structure for a course.
      */
@@ -128,6 +134,7 @@ class CourseBuilderController extends Controller
 
         return response()->json([
             'url' => $url,
+            'serve_url' => "/api/builder-media/{$courseId}/{$asset->id}?token=" . $this->makeMediaPreviewToken($courseId, (int) $asset->id),
             'path' => $path,
             'media_asset_id' => $asset->id,
             'filename' => $file->getClientOriginalName(),
@@ -135,6 +142,57 @@ class CourseBuilderController extends Controller
             'size' => $file->getSize(),
             'type' => $type,
         ], 201);
+    }
+
+    public function serveMediaFile(Request $request, int $courseId, int $mediaId)
+    {
+        $this->ensureCourseAccess($courseId);
+
+        $asset = MediaAsset::query()
+            ->where('id', $mediaId)
+            ->where('course_id', $courseId)
+            ->firstOrFail();
+
+        $disk = $asset->disk ?: 'public';
+        $path = (string)($asset->path ?? '');
+        if ($path === '' || !Storage::disk($disk)->exists($path)) {
+            abort(404, 'Fișierul media nu a fost găsit.');
+        }
+
+        $filename = $asset->filename ?: basename($path);
+        $headers = [
+            'Content-Type' => $asset->mime_type ?: 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        return Storage::disk($disk)->response($path, $filename, $headers, 'inline');
+    }
+
+    public function serveMediaFilePublic(Request $request, int $courseId, int $mediaId)
+    {
+        $token = (string) $request->query('token', '');
+        if ($token === '' || !hash_equals($this->makeMediaPreviewToken($courseId, $mediaId), $token)) {
+            abort(403, 'Token media invalid.');
+        }
+
+        $asset = MediaAsset::query()
+            ->where('id', $mediaId)
+            ->where('course_id', $courseId)
+            ->firstOrFail();
+
+        $disk = $asset->disk ?: 'public';
+        $path = (string)($asset->path ?? '');
+        if ($path === '' || !Storage::disk($disk)->exists($path)) {
+            abort(404, 'Fișierul media nu a fost găsit.');
+        }
+
+        $filename = $asset->filename ?: basename($path);
+        $headers = [
+            'Content-Type' => $asset->mime_type ?: 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        return Storage::disk($disk)->response($path, $filename, $headers, 'inline');
     }
 
     public function createModule(Request $request, int $courseId)
@@ -445,6 +503,8 @@ class CourseBuilderController extends Controller
     {
         $course = $this->ensureCourseAccess($courseId);
         $course->load(['modules.lessons', 'modules.lessons.contentBlocks']);
+        $oldStatus = $course->status;
+        $oldWorkflowStatus = $course->workflow_status;
         $report = $this->courseBuilderValidator->validate($course);
 
         if (!($report['ok'] ?? false)) {
@@ -464,6 +524,7 @@ class CourseBuilderController extends Controller
             if (count($teamIds) > 0 && \Illuminate\Support\Facades\Schema::hasTable('course_team')) {
                 $course->teams()->sync($teamIds);
             }
+            $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
         });
 
         $notifiedCount = 0;
@@ -485,10 +546,79 @@ class CourseBuilderController extends Controller
             ]);
         }
 
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'builder.publish_course',
+            'model_type' => Course::class,
+            'model_id' => $course->id,
+            'description' => 'Publish course',
+            'old_values' => [
+                'status' => $oldStatus,
+                'workflow_status' => $oldWorkflowStatus,
+            ],
+            'new_values' => [
+                'status' => 'published',
+                'workflow_status' => 'published',
+                'team_ids' => $teamIds,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'telemetry.admin_course_version_published',
+            'model_type' => Course::class,
+            'model_id' => $course->id,
+            'description' => 'Telemetry event: admin_course_version_published',
+            'new_values' => [
+                'status' => 'published',
+                'workflow_status' => 'published',
+                'published_at' => now()->toISOString(),
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         return response()->json([
             'ok' => true,
             'course' => $course->fresh(),
             'notified_count' => $notifiedCount,
+        ]);
+    }
+
+    public function archive(Request $request, int $courseId)
+    {
+        $course = $this->ensureCourseAccess($courseId);
+        $oldStatus = $course->status;
+        $oldWorkflowStatus = $course->workflow_status;
+
+        DB::transaction(function () use ($course) {
+            $course->update(['status' => 'archived', 'workflow_status' => 'archived']);
+            Module::where('course_id', $course->id)->where('status', '!=', 'archived')->update(['status' => 'archived']);
+            Lesson::where('course_id', $course->id)->where('status', '!=', 'archived')->update(['status' => 'archived']);
+        });
+
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'builder.archive_course',
+            'model_type' => Course::class,
+            'model_id' => $course->id,
+            'description' => 'Archive course',
+            'old_values' => [
+                'status' => $oldStatus,
+                'workflow_status' => $oldWorkflowStatus,
+            ],
+            'new_values' => [
+                'status' => 'archived',
+                'workflow_status' => 'archived',
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'course' => $course->fresh(),
         ]);
     }
 

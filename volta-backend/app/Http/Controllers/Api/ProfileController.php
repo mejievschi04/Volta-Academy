@@ -8,6 +8,7 @@ use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\CourseTest;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -142,6 +143,7 @@ class ProfileController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'bio' => $user->bio,
                 'avatar' => $avatarUrl,
                 'level' => $user->level,
                 'points' => $user->points,
@@ -169,6 +171,48 @@ class ProfileController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update own profile (name, email, bio). Students and any authenticated user.
+     */
+    public function update(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Neautentificat'], 401);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'bio' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $bio = $validated['bio'] ?? null;
+        $user->bio = is_string($bio) && $bio !== '' ? $bio : null;
+        $user->save();
+
+        Cache::forget("profile_user_{$user->id}");
+
+        $avatarUrl = $user->avatar
+            ? ('/storage/' . ltrim($user->avatar, '/'))
+            : null;
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'bio' => $user->bio,
+                'avatar' => $avatarUrl,
+                'level' => $user->level,
+                'points' => $user->points,
+                'role' => $user->role,
+            ],
+        ]);
     }
 
     /**

@@ -65,7 +65,7 @@
 /* Light theme - yellow background with black text */
 [data-theme="light"] .va-btn-primary {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 	border: 1px solid var(--color-primary);
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
@@ -179,7 +179,7 @@
 
 .admin-courses-view-toggle button.active {
 	background-color: var(--color-primary);
-	color: #000000;
+	color: var(--text-inverse);
 }
 
 .admin-courses-view-toggle button svg {
@@ -189,7 +189,7 @@
 }
 
 .admin-courses-view-toggle button.active svg {
-	stroke: #000000;
+	stroke: var(--text-inverse);
 }
 
 .admin-courses-search {
@@ -489,6 +489,249 @@
 	border-bottom: none;
 }
 
+.admin-activity-logs-filters {
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	margin-bottom: var(--space-6);
+	box-shadow: var(--shadow-sm);
+}
+
+.admin-activity-logs-filters-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: var(--space-4);
+}
+
+.admin-activity-logs-filter-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.admin-activity-logs-filter-label {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
+	color: var(--text-secondary);
+}
+
+.admin-activity-logs-filter-input {
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-primary);
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+}
+
+.admin-activity-logs-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.admin-activity-logs-item {
+	background-color: var(--bg-elevated);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+	transition: border-color var(--transition-base);
+}
+
+.admin-activity-logs-item:hover {
+	border-color: var(--border-secondary);
+}
+
+.admin-activity-logs-item-toggle {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+}
+
+.admin-activity-logs-item-toggle:focus-visible {
+	outline: 2px solid var(--color-info, #3b82f6);
+	outline-offset: 2px;
+}
+
+.admin-activity-logs-item-content {
+	display: flex;
+	gap: var(--space-4);
+	padding: var(--space-4) var(--space-5);
+	align-items: flex-start;
+}
+
+.admin-activity-logs-icon {
+	font-size: 1.5rem;
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+.admin-activity-logs-main {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-activity-logs-card-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2) var(--space-3);
+	margin-bottom: var(--space-2);
+}
+
+.admin-activity-logs-description {
+	font-weight: var(--font-weight-medium);
+	color: var(--text-primary);
+	flex: 1 1 200px;
+	min-width: 0;
+}
+
+.admin-activity-logs-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px var(--space-2);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-medium);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-activity-logs-badge.action {
+	background: rgba(59, 130, 246, 0.15);
+	color: var(--color-info, #60a5fa);
+}
+
+.admin-activity-logs-badge.model {
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+}
+
+.admin-activity-logs-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+}
+
+.admin-activity-logs-meta-item {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.admin-activity-logs-chevron {
+	margin-left: auto;
+	color: var(--text-tertiary, var(--text-secondary));
+}
+
+.admin-activity-logs-detail {
+	padding: 0 var(--space-5) var(--space-5);
+	padding-top: 0;
+	border-top: 1px solid var(--border-primary);
+	margin-top: 0;
+}
+
+.admin-activity-logs-detail-tech {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+	margin: var(--space-3) 0 var(--space-2);
+}
+
+.admin-activity-logs-detail-tech code {
+	font-size: 0.85em;
+	word-break: break-all;
+}
+
+.admin-activity-logs-detail-desc {
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	margin: 0 0 var(--space-2);
+	white-space: pre-wrap;
+}
+
+.admin-activity-logs-detail-ua {
+	margin: 0;
+	opacity: 0.85;
+	word-break: break-all;
+}
+
+.admin-activity-logs-json-block {
+	margin-top: var(--space-3);
+}
+
+.admin-activity-logs-json-block strong {
+	display: block;
+	font-size: var(--font-size-xs);
+	margin-bottom: var(--space-2);
+	color: var(--text-secondary);
+}
+
+.admin-activity-logs-json-block pre {
+	margin: 0;
+	padding: var(--space-3);
+	border-radius: var(--radius-md);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	font-size: 11px;
+	line-height: 1.45;
+	overflow-x: auto;
+	max-height: 280px;
+	overflow-y: auto;
+}
+
+.admin-activity-logs-empty {
+	text-align: center;
+	padding: var(--space-12) var(--space-6);
+	background: var(--bg-elevated);
+	border: 1px dashed var(--border-primary);
+	border-radius: var(--radius-lg);
+}
+
+.admin-activity-logs-empty-icon {
+	font-size: 2.5rem;
+	margin-bottom: var(--space-3);
+}
+
+.admin-activity-logs-empty-title {
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+	margin-bottom: var(--space-2);
+}
+
+.admin-activity-logs-empty-text {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	max-width: 420px;
+	margin: 0 auto;
+}
+
+.admin-activity-logs-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+	margin-top: var(--space-8);
+	flex-wrap: wrap;
+}
+
+.admin-activity-logs-pagination-info {
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
 /* ============================================
    11. ADMIN ALERTS PAGE
    ============================================ */
@@ -714,7 +957,7 @@
 		gap: var(--space-2);
 	}
 
-	.admin-activity-logs-header {
+	.admin-activity-logs-card-header {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-2);
@@ -735,124 +978,124 @@
 }
 
 [data-theme="light"] .va-card {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-elevated);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .va-card:hover {
-	border-color: #d1d5db;
+	border-color: var(--border-secondary);
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .va-card-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .va-btn-secondary {
-	color: #1f2937;
-	border-color: #1f2937;
+	color: var(--text-primary);
+	border-color: var(--text-primary);
 }
 
 [data-theme="light"] .va-btn-secondary:hover {
 	background-color: rgba(31, 41, 55, 0.1);
-	border-color: #111827;
-	color: #111827;
+	border-color: var(--text-primary);
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-courses-page {
-	background-color: #f9fafb;
+	background-color: var(--bg-primary);
 }
 
 [data-theme="light"] .admin-courses-filter-select {
-	background-color: #E8E8E8;
-	border-color: #D1D5DB;
-	color: #111827; /* WCAG AA: 15.8:1 contrast */
+	background-color: var(--bg-elevated);
+	border-color: var(--border-secondary);
+	color: var(--text-primary); /* WCAG AA: 15.8:1 contrast */
 }
 
 [data-theme="light"] .admin-courses-filter-select:hover {
-	background-color: #f9fafb;
-	border-color: #9ca3af;
+	background-color: var(--bg-secondary);
+	border-color: var(--text-tertiary);
 }
 
 [data-theme="light"] .admin-courses-filter-select:focus {
 	border-color: var(--color-primary);
-	background-color: #E8E8E8;
+	background-color: var(--bg-elevated);
 }
 
 [data-theme="light"] .admin-courses-filter-select option {
-	background-color: #E8E8E8;
-	color: #111827; /* WCAG AA: 15.8:1 contrast */
+	background-color: var(--bg-elevated);
+	color: var(--text-primary); /* WCAG AA: 15.8:1 contrast */
 }
 
 [data-theme="light"] .admin-courses-view-toggle {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-elevated);
+	border-color: var(--border-primary);
 }
 
 [data-theme="light"] .admin-courses-view-toggle button {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .admin-courses-view-toggle button:hover {
-	background-color: #f3f4f6;
-	color: #111827;
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-courses-view-toggle button.active {
-	background-color: #1f2937;
-	color: #ffffff;
+	background-color: var(--text-primary);
+	color: var(--color-white);
 }
 
 [data-theme="light"] .admin-course-table-row {
-	background-color: #E8E8E8;
-	border-bottom-color: #E5E7EB;
+	background-color: var(--bg-elevated);
+	border-bottom-color: var(--border-primary);
 }
 
 [data-theme="light"] .admin-course-table-row:hover {
-	background-color: #f9fafb;
+	background-color: var(--bg-secondary);
 }
 
 [data-theme="light"] .admin-course-table-row.selected {
 	background-color: rgba(31, 41, 55, 0.05);
-	border-left-color: #1f2937;
+	border-left-color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-course-table-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-course-table-meta {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .admin-course-table-metric-label {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .admin-course-table-metric-value {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-course-action-btn {
-	border-color: #D1D5DB;
-	color: #4B5563; /* WCAG AA: 6.1:1 contrast */
-	background-color: #E8E8E8;
+	border-color: var(--border-secondary);
+	color: var(--text-secondary); /* WCAG AA: 6.1:1 contrast */
+	background-color: var(--bg-elevated);
 }
 
 [data-theme="light"] .admin-course-action-btn:hover {
-	background-color: #f9fafb;
-	border-color: #9ca3af;
-	color: #111827;
+	background-color: var(--bg-secondary);
+	border-color: var(--text-tertiary);
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .admin-course-action-btn-danger {
 	border-color: rgba(239, 68, 68, 0.5);
-	color: #dc2626;
+	color: var(--color-error);
 }
 
 [data-theme="light"] .admin-course-action-btn-danger:hover {
 	background-color: rgba(239, 68, 68, 0.1);
-	border-color: #dc2626;
-	color: #dc2626;
+	border-color: var(--color-error);
+	color: var(--color-error);
 }

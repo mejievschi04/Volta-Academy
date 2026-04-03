@@ -10,6 +10,7 @@ import Step4Assessment from './CourseCreationSteps/Step4Assessment';
 import Step5CompletionRules from './CourseCreationSteps/Step5CompletionRules';
 import Step6Review from './CourseCreationSteps/Step6Review';
 import './CourseCreationWizard.css';
+import { toImageUrl } from '../../../utils/imageUrl';
 
 /** Pași wizard: titlu scurt pentru indicator, descriere pentru claritate */
 const STEPS = [
@@ -120,6 +121,12 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 				throw new Error('Crearea cursului nu a returnat un ID');
 			}
 
+			const courseIsPublished = courseData.publish_status === 'published';
+			// Testele draft nu apar în API-ul cursului pentru elevi (doar published); aliniem la statusul cursului.
+			const quizTestStatus = courseIsPublished ? 'published' : 'draft';
+
+			const mapLessonKey = (id) => (id == null ? null : String(id));
+
 			// Map client-side lesson id -> real lesson id (from API) for content_blocks and assessments
 			const lessonIdMap = {};
 			const lessonTitleMap = {};
@@ -146,18 +153,25 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							const createdLesson = lessonRes?.lesson ?? lessonRes;
 							const realLessonId = createdLesson?.id;
 							if (realLessonId != null && lessonData.id != null) {
-								lessonIdMap[lessonData.id] = realLessonId;
-								lessonTitleMap[lessonData.id] = lessonData.title || 'Lecție';
+								const k = mapLessonKey(lessonData.id);
+								lessonIdMap[k] = realLessonId;
+								lessonTitleMap[k] = lessonData.title || 'Lecție';
 							}
 						}
 					}
 				}
 			}
 
+			const resolveRealLessonId = (clientLessonId) => {
+				const k = mapLessonKey(clientLessonId);
+				if (k == null) return undefined;
+				return lessonIdMap[k];
+			};
+
 			// Persist content blocks from Step 3 (builder API)
 			const contentBlocks = courseData.content_blocks || {};
 			for (const clientLessonId of Object.keys(contentBlocks)) {
-				const realLessonId = lessonIdMap[clientLessonId];
+				const realLessonId = resolveRealLessonId(clientLessonId);
 				if (!realLessonId) continue;
 				const blocks = contentBlocks[clientLessonId];
 				if (!Array.isArray(blocks) || blocks.length === 0) continue;
@@ -181,8 +195,8 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 			// Create tests from Step 4 (quiz assessments) and attach to course/lesson
 			const assessments = courseData.assessments || {};
 			for (const clientLessonId of Object.keys(assessments)) {
-				const realLessonId = lessonIdMap[clientLessonId];
-				const lessonTitle = lessonTitleMap[clientLessonId] || 'Lecție';
+				const realLessonId = resolveRealLessonId(clientLessonId);
+				const lessonTitle = lessonTitleMap[mapLessonKey(clientLessonId)] || 'Lecție';
 				const list = assessments[clientLessonId];
 				if (!Array.isArray(list)) continue;
 				for (const assessment of list) {
@@ -192,13 +206,13 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							title: `Quiz: ${lessonTitle}`,
 							description: '',
 							type: 'graded',
-							status: 'draft',
+							status: quizTestStatus,
 							time_limit_minutes: assessment.time_limit_minutes ?? null,
 							max_attempts: assessment.max_attempts ?? 3,
 							randomize_questions: !!assessment.randomize,
 							randomize_answers: false,
 							show_results_immediately: true,
-							show_correct_answers: false,
+							show_correct_answers: true,
 							allow_review: true,
 							question_source: 'direct',
 						};
@@ -338,7 +352,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							<div className="course-preview-card">
 								{courseData.image && (
 									<div className="course-preview-thumbnail">
-										<img src={typeof courseData.image === 'string' ? courseData.image : URL.createObjectURL(courseData.image)} alt={courseData.title} loading="lazy" decoding="async" />
+										<img src={typeof courseData.image === 'string' ? (toImageUrl(courseData.image) || courseData.image) : URL.createObjectURL(courseData.image)} alt={courseData.title} loading="lazy" decoding="async" />
 									</div>
 								)}
 								<div className="course-preview-body">

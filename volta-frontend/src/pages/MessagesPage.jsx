@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { messagesService } from '../services/api';
 import { logger } from '../utils/logger';
+import { toImageUrl } from '../utils/imageUrl';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const MessagesPage = () => {
@@ -757,7 +758,7 @@ const MessagesPage = () => {
 							>
 								<div className="messages-conversation-avatar">
 									{!conversation.is_group && conversation.participant?.avatar ? (
-										<img src={conversation.participant.avatar} alt={getConversationTitle(conversation)} loading="lazy" decoding="async" />
+										<img src={toImageUrl(conversation.participant.avatar) || conversation.participant.avatar} alt={getConversationTitle(conversation)} loading="lazy" decoding="async" />
 									) : (
 										<span>{getConversationAvatarText(conversation)}</span>
 									)}
@@ -812,7 +813,7 @@ const MessagesPage = () => {
 								<div className="messages-chat-header-info">
 									<div className="messages-chat-avatar">
 										{!selectedConversation.is_group && selectedConversation.participant?.avatar ? (
-											<img src={selectedConversation.participant.avatar} alt={getConversationTitle(selectedConversation)} loading="lazy" decoding="async" />
+											<img src={toImageUrl(selectedConversation.participant.avatar) || selectedConversation.participant.avatar} alt={getConversationTitle(selectedConversation)} loading="lazy" decoding="async" />
 										) : (
 											<span>{getConversationAvatarText(selectedConversation)}</span>
 										)}
@@ -1003,7 +1004,7 @@ const MessagesPage = () => {
 										>
 											<div className="messages-user-avatar">
 												{user.avatar ? (
-													<img src={user.avatar} alt={user.name} loading="lazy" decoding="async" />
+													<img src={toImageUrl(user.avatar) || user.avatar} alt={user.name} loading="lazy" decoding="async" />
 												) : (
 													<span>{getInitials(user.name)}</span>
 												)}
@@ -1170,7 +1171,7 @@ const MessagesPage = () => {
 											return (
 												<div key={p.id} className="messages-user-item messages-user-item--with-actions">
 													<div className="messages-user-avatar">
-														{p.avatar ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
+														{p.avatar ? <img src={toImageUrl(p.avatar) || p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
 													</div>
 													<div className="messages-user-info">
 														<div className="messages-user-name-row">
@@ -1228,7 +1229,7 @@ const MessagesPage = () => {
 										{participantsSearchResults.map((p) => (
 											<div key={p.id} className="messages-user-item">
 												<div className="messages-user-avatar">
-													{p.avatar ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
+													{p.avatar ? <img src={toImageUrl(p.avatar) || p.avatar} alt={p.name} loading="lazy" decoding="async" /> : <span>{getInitials(p.name)}</span>}
 												</div>
 												<div className="messages-user-info">
 													<div className="messages-user-name">{p.name}</div>

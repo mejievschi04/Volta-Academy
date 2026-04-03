@@ -11,6 +11,7 @@ class Exam extends Model
 
     protected $fillable = [
         'course_id',
+        'created_by',
         'module_id',
         'lesson_id',
         'title',
@@ -25,6 +26,7 @@ class Exam extends Model
         'unlock_target_id',
         'unlock_target_type',
         'question_types',
+        'settings',
         'attempts_count',
         'passes_count',
         'average_score',
@@ -32,6 +34,7 @@ class Exam extends Model
 
     protected $casts = [
         'question_types' => 'array',
+        'settings' => 'array',
         'is_required' => 'boolean',
         'unlock_after_completion' => 'boolean',
         'average_score' => 'decimal:2',
@@ -40,6 +43,11 @@ class Exam extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function module()
@@ -61,5 +69,22 @@ class Exam extends Model
     public function results()
     {
         return $this->hasMany(ExamResult::class);
+    }
+
+    /**
+     * Vizibilitate pentru elevi (catalog / acces fără curs).
+     * Setări din admin: access_mode + selected_students.
+     */
+    public function isVisibleToLearner(User $user): bool
+    {
+        $settings = is_array($this->settings) ? $this->settings : [];
+        $mode = $settings['access_mode'] ?? 'all_students';
+        if ($mode === 'selected_students') {
+            $ids = array_map('intval', (array) ($settings['selected_students'] ?? []));
+
+            return in_array((int) $user->id, $ids, true);
+        }
+
+        return true;
     }
 }

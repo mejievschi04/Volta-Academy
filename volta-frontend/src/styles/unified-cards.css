@@ -180,13 +180,13 @@
    ============================================ */
 
 [data-theme="light"] .va-unified-card {
-	background-color: #E8E8E8;
-	border-color: #E5E7EB;
+	background-color: var(--bg-elevated);
+	border-color: var(--border-primary);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .va-unified-card:hover {
-	border-color: #d1d5db;
+	border-color: var(--border-secondary);
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
@@ -199,21 +199,21 @@
 }
 
 [data-theme="light"] .va-unified-card-header {
-	border-bottom-color: #e5e7eb;
+	border-bottom-color: var(--border-primary);
 }
 
 [data-theme="light"] .va-unified-card-title {
-	color: #111827;
+	color: var(--text-primary);
 }
 
 [data-theme="light"] .va-unified-card-subtitle {
-	color: #6b7280;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .va-unified-card-body {
-	color: #374151;
+	color: var(--text-secondary);
 }
 
 [data-theme="light"] .va-unified-card-footer {
-	border-top-color: #e5e7eb;
+	border-top-color: var(--border-primary);
 }

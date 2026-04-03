@@ -33,17 +33,24 @@ class AchievementController extends Controller
                 ->count();
         }
 
-        // Get learning time (sum of completed lessons duration)
+        // Timp real petrecut (lesson_progress) sau, dacă lipsește, estimare din durata lecțiilor completate
         $learningHours = 0;
-        if (Schema::hasTable('lesson_progress') && Schema::hasTable('lessons')) {
-            $totalMinutes = DB::table('lesson_progress')
-                ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
-                ->where('lesson_progress.user_id', $user->id)
-                ->where('lesson_progress.completed', true)
-                ->whereNotNull('lessons.duration_minutes')
-                ->sum('lessons.duration_minutes');
-            
-            $learningHours = round($totalMinutes / 60, 1);
+        if (Schema::hasTable('lesson_progress')) {
+            $totalSeconds = (int) DB::table('lesson_progress')
+                ->where('user_id', $user->id)
+                ->sum('time_spent_seconds');
+            if ($totalSeconds > 0) {
+                $learningHours = round($totalSeconds / 3600, 1);
+            } elseif (Schema::hasTable('lessons')) {
+                $totalMinutes = DB::table('lesson_progress')
+                    ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
+                    ->where('lesson_progress.user_id', $user->id)
+                    ->where('lesson_progress.completed', true)
+                    ->whereNotNull('lessons.duration_minutes')
+                    ->sum('lessons.duration_minutes');
+
+                $learningHours = round((float) $totalMinutes / 60, 1);
+            }
         }
 
         // Get milestones

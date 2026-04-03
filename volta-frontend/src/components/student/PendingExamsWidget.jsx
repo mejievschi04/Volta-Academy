@@ -33,8 +33,11 @@ const PendingExamsWidget = ({ exams, tests }) => {
 
 	const handleItemClick = (item) => {
 		if (isLegacy) {
-			// Legacy: navigate to exam page
-			navigate(`/courses/${item.course_id}/exams/${item.id}`);
+			if (item.course_id) {
+				navigate(`/courses/${item.course_id}/exams/${item.id}`);
+			} else {
+				navigate(`/exams/${item.id}`);
+			}
 		} else {
 			// New: navigate to test page (via UnifiedCoursePage or test route)
 			if (item.course_id) {

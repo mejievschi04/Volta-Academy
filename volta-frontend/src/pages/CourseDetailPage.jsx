@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toImageUrl } from '../utils/imageUrl';
+import { courseCoverSrc } from '../utils/imageUrl';
 import { coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -89,6 +89,8 @@ const CourseDetailPage = () => {
 		);
 	}
 
+	const getModuleAssessmentRows = (module) => module?.courseTests || module?.course_tests || [];
+
 	if (error || !course) {
 		return (
 			<div className="course-detail-page">
@@ -105,14 +107,15 @@ const CourseDetailPage = () => {
 	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
 	// Include both module-level and course-level tests (course.exams from API)
 	const totalTests = course?.exams?.length ?? modules.reduce((sum, module) => sum + (module.courseTests?.length || 0), 0);
+	const detailCoverSrc = courseCoverSrc(course);
 
 	return (
 		<div className="course-detail-page">
 			{/* Hero Section */}
 			<div className="course-detail-hero">
 				<div className="course-detail-hero-background">
-					{course.image_url && (
-						<img src={toImageUrl(course.image_url)} alt={course.title} className="course-detail-hero-image" loading="lazy" decoding="async" />
+					{detailCoverSrc && (
+						<img src={detailCoverSrc} alt={course.title} className="course-detail-hero-image" loading="lazy" decoding="async" />
 					)}
 					<div className="course-detail-hero-overlay"></div>
 				</div>
@@ -241,8 +244,8 @@ const CourseDetailPage = () => {
 						
 						{/* Thumbnail */}
 						<div className="course-detail-hero-right">
-							{course.image_url ? (
-								<img src={toImageUrl(course.image_url)} alt={course.title} className="course-detail-thumbnail" loading="lazy" decoding="async" />
+							{detailCoverSrc ? (
+								<img src={detailCoverSrc} alt={course.title} className="course-detail-thumbnail" loading="lazy" decoding="async" />
 							) : (
 								<div className="course-detail-thumbnail-placeholder">
 									<span>📚</span>
@@ -273,7 +276,9 @@ const CourseDetailPage = () => {
 						<div className="course-detail-section">
 							<h2 className="course-detail-section-title">Curriculum</h2>
 							<div className="course-detail-curriculum">
-								{modules.map((module, moduleIndex) => (
+								{modules.map((module, moduleIndex) => {
+									const moduleTests = getModuleAssessmentRows(module);
+									return (
 									<div key={module.id} className="course-detail-module">
 										<div className="course-detail-module-header">
 											<div className="course-detail-module-info">
@@ -285,8 +290,11 @@ const CourseDetailPage = () => {
 											</div>
 											<div className="course-detail-module-stats">
 												<span>{module.lessons?.length || 0} {module.lessons?.length === 1 ? 'lecție' : 'lecții'}</span>
-												{module.courseTests?.length > 0 && (
-													<span>• {module.courseTests.length} {module.courseTests.length === 1 ? 'test' : 'teste'}</span>
+												{moduleTests.length > 0 && (
+													<span>
+														• {moduleTests.length}{' '}
+														{moduleTests.length === 1 ? 'test' : 'teste'}
+													</span>
 												)}
 											</div>
 										</div>
@@ -308,10 +316,10 @@ const CourseDetailPage = () => {
 											</div>
 										)}
 										
-										{/* Tests (module-level) */}
-										{module.courseTests && module.courseTests.length > 0 && (
+										{/* Tests (module-level: CourseTest + examene legacy pe modul) */}
+										{moduleTests.length > 0 && (
 											<div className="course-detail-tests">
-												{module.courseTests.map((ct) => (
+												{moduleTests.map((ct) => (
 													<div key={ct.id || ct.test_id} className="course-detail-test">
 														<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 															<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"/>
@@ -322,13 +330,19 @@ const CourseDetailPage = () => {
 											</div>
 										)}
 									</div>
-								))}
+									);
+								})}
 								{/* Course-level tests (scope=course, not in any module) */}
 								{Array.isArray(course?.exams) && course.exams.filter((e) => !e.module_id).length > 0 && (
 									<div className="course-detail-module course-detail-module-tests">
 										<div className="course-detail-module-header">
-											<span className="course-detail-module-number">Teste</span>
-											<h3 className="course-detail-module-title">Teste de evaluare</h3>
+											<div className="course-detail-module-info">
+												<span className="course-detail-module-number">Evaluări</span>
+												<h3 className="course-detail-module-title">Examene și teste</h3>
+												<p className="course-detail-module-tests-lead">
+													Parcurgerea lecțiilor este cursul; acestea sunt verificări separate (nu un „curs în curs”).
+												</p>
+											</div>
 										</div>
 										<div className="course-detail-tests">
 											{course.exams.filter((e) => !e.module_id).map((exam) => (

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamResult;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Services\TestQuestionSelectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,13 @@ use Illuminate\Support\Facades\Schema;
 
 class ExamResultController extends Controller
 {
+    protected TestQuestionSelectionService $questionSelectionService;
+
+    public function __construct(TestQuestionSelectionService $questionSelectionService)
+    {
+        $this->questionSelectionService = $questionSelectionService;
+    }
+
     protected function normalizeAnswerIndex($value): ?int
     {
         if ($value === null || $value === '') {
@@ -63,6 +71,20 @@ class ExamResultController extends Controller
         );
     }
 
+    protected function buildSelectionSeedBase(Test $test, int $userId, int $attemptNumber): string
+    {
+        $selection = is_array($test->question_selection) ? $test->question_selection : [];
+        $seed = trim((string)($selection['seed'] ?? ''));
+        $variantPoolSize = max(1, min(26, (int)($selection['variant_pool_size'] ?? 1)));
+        $variantLabel = 'A';
+        if ($variantPoolSize > 1) {
+            $variantIndex = abs(crc32("{$test->id}:{$userId}")) % $variantPoolSize;
+            $variantLabel = chr(65 + $variantIndex);
+        }
+
+        return "{$test->id}:{$userId}:{$attemptNumber}:seed:{$seed}:variant:{$variantLabel}";
+    }
+
     protected function resolveAnswersOrderForTestAttempt(Test $test, $question, int $userId, int $attemptNumber): array
     {
         $answers = $question->answers ?? [];
@@ -70,12 +92,12 @@ class ExamResultController extends Controller
             $answers = [];
         }
 
-        if (($question->type ?? '') !== 'multiple_choice' && ($question->type ?? '') !== 'true_false') {
+        if (!in_array($question->type ?? '', ['multiple_choice', 'single_choice', 'true_false'], true)) {
             return ['answers' => $answers, 'correct_index' => null];
         }
 
         if ($test->randomize_answers && count($answers) > 1) {
-            $seedBase = "{$test->id}:{$userId}:{$attemptNumber}:q{$question->id}";
+            $seedBase = $this->buildSelectionSeedBase($test, $userId, $attemptNumber) . ":q{$question->id}";
             $indexed = [];
             foreach ($answers as $idx => $ans) {
                 $key = hash('sha1', $seedBase . ":a{$idx}:" . $this->answerText($ans));
@@ -98,92 +120,7 @@ class ExamResultController extends Controller
 
     protected function selectQuestionsForTestAttempt(Test $test, int $userId, int $attemptNumber)
     {
-        $base = collect();
-
-        if ($test->question_source === 'bank' && $test->questionBank) {
-            $base = $test->questionBank->questions()->orderBy('order')->get();
-        } else {
-            $base = $test->questions()->orderBy('order')->get();
-        }
-
-        if ($base->isEmpty()) {
-            return $base;
-        }
-
-        if ($test->question_source !== 'bank') {
-            if ($test->randomize_questions) {
-                $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
-                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-            }
-            return $base;
-        }
-
-        $sel = $test->question_selection;
-        if (!is_array($sel) || empty($sel)) {
-            if ($test->randomize_questions) {
-                $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
-                $base = $base->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-            }
-            return $base;
-        }
-
-        $mode = (string) ($sel['mode'] ?? '');
-        $count = (int) ($sel['count'] ?? 0);
-        $difficulty = $sel['difficulty'] ?? null;
-        $tags = $sel['tags'] ?? null;
-
-        $difficultyList = [];
-        if (is_string($difficulty) && $difficulty !== '') $difficultyList = [$difficulty];
-        if (is_array($difficulty)) $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
-
-        $tagList = [];
-        if (is_string($tags) && $tags !== '') $tagList = [$tags];
-        if (is_array($tags)) $tagList = array_values(array_filter(array_map('strval', $tags)));
-        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
-
-        $filtered = $base->filter(function ($q) use ($difficultyList, $tagList) {
-            $meta = is_array($q->metadata) ? $q->metadata : [];
-            $qDifficulty = isset($meta['difficulty']) ? (string) $meta['difficulty'] : '';
-            $qTags = $meta['tags'] ?? [];
-            if (is_string($qTags)) $qTags = array_map('trim', explode(',', $qTags));
-            if (!is_array($qTags)) $qTags = [];
-            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string) $t)), $qTags)));
-
-            if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
-                return false;
-            }
-
-            if (!empty($tagList)) {
-                $hasAny = false;
-                foreach ($tagList as $t) {
-                    if (in_array($t, $qTags, true)) {
-                        $hasAny = true;
-                        break;
-                    }
-                }
-                if (!$hasAny) {
-                    return false;
-                }
-            }
-
-            return true;
-        })->values();
-
-        if ($filtered->isEmpty()) {
-            $filtered = $base->values();
-        }
-
-        $useRandom = ($mode === 'random') || $test->randomize_questions;
-        if ($useRandom) {
-            $seedBase = "{$test->id}:{$userId}:{$attemptNumber}";
-            $filtered = $filtered->sortBy(fn ($q) => hash('sha1', $seedBase . ":q" . $q->id))->values();
-        }
-
-        if ($count > 0) {
-            $filtered = $filtered->take($count)->values();
-        }
-
-        return $filtered;
+        return $this->questionSelectionService->selectForAttempt($test, $userId, $attemptNumber);
     }
 
     /**
@@ -480,6 +417,7 @@ class ExamResultController extends Controller
                                 'question_type' => $question->type ?? 'multiple_choice', // For compatibility
                                 'content' => $question->content ?? '',
                                 'question_text' => $question->content ?? '', // For compatibility
+                                'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
                                 'points' => $question->points ?? 1,
                                 'order' => $question->order ?? 0,
                                 'explanation' => $question->explanation ?? null,
@@ -580,6 +518,7 @@ class ExamResultController extends Controller
                             'question_type' => $question->question_type ?? $question->type ?? 'multiple_choice',
                             'content' => $question->question_text ?? $question->content ?? '',
                             'question_text' => $question->question_text ?? $question->content ?? '',
+                            'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
                             'points' => $question->points ?? 1,
                             'order' => $question->order ?? 0,
                             'explanation' => $question->explanation ?? null,

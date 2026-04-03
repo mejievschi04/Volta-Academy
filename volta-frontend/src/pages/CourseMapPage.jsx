@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { courseMapsService } from '../services/api';
-import { toImageUrl } from '../utils/imageUrl';
+import { courseMapsService, adminService } from '../services/api';
+import { courseCoverSrc } from '../utils/imageUrl';
+import { useAuth } from '../contexts/AuthContext';
 import './CourseMapPage.css';
 
 /**
@@ -19,6 +20,8 @@ function formatDuration(minutes) {
 const CourseMapPage = () => {
 	const { mapId } = useParams();
 	const navigate = useNavigate();
+	const { user } = useAuth();
+	const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
 	const [map, setMap] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -29,7 +32,9 @@ const CourseMapPage = () => {
 			try {
 				setLoading(true);
 				setError(null);
-				const data = await courseMapsService.getMap(mapId);
+				const data = isAdmin
+					? await adminService.getCourseMap(mapId)
+					: await courseMapsService.getMap(mapId);
 				if (!cancelled) setMap(data);
 			} catch (err) {
 				if (!cancelled) setError(err.response?.status === 404 ? 'Mapa nu a fost găsită.' : 'Nu s-a putut încărca mapa.');
@@ -39,7 +44,7 @@ const CourseMapPage = () => {
 		};
 		fetchMap();
 		return () => { cancelled = true; };
-	}, [mapId]);
+	}, [mapId, isAdmin]);
 
 	if (loading) {
 		return (
@@ -69,6 +74,7 @@ const CourseMapPage = () => {
 	}
 
 	const { name, description, courses } = map;
+	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
 
 	return (
 		<div className="course-map-page">
@@ -85,7 +91,10 @@ const CourseMapPage = () => {
 							<path d="M19 12H5M12 19l-7-7 7-7"/>
 						</svg>
 					</button>
-					<h1 className="course-map-page-title">{name}</h1>
+					<div className="course-map-page-title-row">
+						<h1 className="course-map-page-title">{name}</h1>
+						{isVirtualMap && <span className="course-map-page-virtual-badge">Mapă virtuală</span>}
+					</div>
 					{description && <p className="course-map-page-description">{description}</p>}
 				</div>
 			</header>
@@ -93,15 +102,17 @@ const CourseMapPage = () => {
 			<div className="course-map-page-content">
 				{courses && courses.length > 0 ? (
 					<div className="course-map-page-grid">
-						{courses.map((course) => (
+						{courses.map((course) => {
+							const coverSrc = courseCoverSrc(course);
+							return (
 							<article
 								key={course.id}
 								className="course-map-course-card"
-								onClick={() => navigate(`/courses/${course.id}`)}
+								onClick={() => navigate(isAdmin ? `/admin/courses/${course.id}` : `/courses/${course.id}`)}
 							>
 								<div className="course-map-course-card-image">
-									{course.image_url ? (
-										<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" />
+									{coverSrc ? (
+										<img src={coverSrc} alt={course.title} loading="lazy" />
 									) : (
 										<div className="course-map-course-card-placeholder">
 											<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -135,7 +146,7 @@ const CourseMapPage = () => {
 									<button
 										type="button"
 										className="course-map-course-card-start"
-										onClick={(e) => { e.stopPropagation(); navigate(`/courses/${course.id}`); }}
+									onClick={(e) => { e.stopPropagation(); navigate(isAdmin ? `/admin/courses/${course.id}` : `/courses/${course.id}`); }}
 									>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
 											<polygon points="5 3 19 12 5 21 5 3"/>
@@ -144,7 +155,8 @@ const CourseMapPage = () => {
 									</button>
 								</div>
 							</article>
-						))}
+							);
+						})}
 					</div>
 				) : (
 					<div className="course-map-page-empty">

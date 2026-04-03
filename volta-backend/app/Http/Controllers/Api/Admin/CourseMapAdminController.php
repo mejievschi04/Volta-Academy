@@ -30,6 +30,26 @@ class CourseMapAdminController extends Controller
         }
 
         $maps = $query->orderBy('order')->orderBy('name')->paginate($request->get('per_page', 20));
+
+        if ($request->boolean('include_virtual')) {
+            $unassignedQuery = Course::query()->whereDoesntHave('courseMaps');
+            if (auth()->user()->isInstructor()) {
+                $unassignedQuery->where('teacher_id', auth()->id());
+            }
+            $unassignedCount = (int) $unassignedQuery->count();
+            if ($unassignedCount > 0) {
+                $maps->setCollection(
+                    $maps->getCollection()->push([
+                        'id' => 'unassigned',
+                        'name' => 'Fără mapă',
+                        'description' => 'Cursuri neasociate unei mape.',
+                        'courses_count' => $unassignedCount,
+                        'is_virtual' => true,
+                    ])
+                );
+            }
+        }
+
         return response()->json($maps);
     }
 
@@ -38,6 +58,10 @@ class CourseMapAdminController extends Controller
      */
     public function show($id)
     {
+        if ((string) $id === 'unassigned') {
+            return $this->showUnassignedMap();
+        }
+
         $map = CourseMap::with(['createdBy:id,name,email', 'courses' => fn ($q) => $q->orderBy('course_map_course.order')])
             ->withCount('courses')
             ->findOrFail($id);
@@ -47,6 +71,44 @@ class CourseMapAdminController extends Controller
         }
 
         return response()->json($map);
+    }
+
+    private function showUnassignedMap()
+    {
+        $query = Course::query()
+            ->whereDoesntHave('courseMaps')
+            ->with(['teacher:id,name', 'modules:id,course_id,estimated_duration_minutes'])
+            ->orderBy('title');
+
+        if (auth()->user()->isInstructor()) {
+            $query->where('teacher_id', auth()->id());
+        }
+
+        $courses = $query->get()->map(function ($course) {
+            $durationMinutes = 0;
+            foreach ($course->modules ?? [] as $module) {
+                $durationMinutes += (int) ($module->estimated_duration_minutes ?? 0);
+            }
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'short_description' => $course->short_description,
+                'image_url' => $course->image_url ?? $course->image,
+                'estimated_duration_minutes' => $durationMinutes,
+                'views_count' => 0,
+                'progress_percentage' => 0,
+                'completed_at' => null,
+                'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
+            ];
+        })->values();
+
+        return response()->json([
+            'id' => 'unassigned',
+            'name' => 'Fără mapă',
+            'description' => 'Cursuri neasociate unei mape.',
+            'courses' => $courses,
+        ]);
     }
 
     /**

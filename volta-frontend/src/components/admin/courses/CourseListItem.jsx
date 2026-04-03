@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toImageUrl } from '../../../utils/imageUrl';
+import { courseCoverSrc } from '../../../utils/imageUrl';
 
 const CourseListItem = React.memo(({
 	course,
@@ -24,6 +24,7 @@ const CourseListItem = React.memo(({
 	};
 
 	const statusBadge = getStatusBadge(course.status || 'draft');
+	const coverSrc = courseCoverSrc(course);
 
 	const handleQuickAction = (action, e) => {
 		e.stopPropagation();
@@ -57,8 +58,8 @@ const CourseListItem = React.memo(({
 					/>
 				</div>
 				<div className="admin-course-table-thumbnail" onClick={() => navigate(`/admin/courses/${course.id}`)}>
-					{course.image_url ? (
-						<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
+					{coverSrc ? (
+						<img src={coverSrc} alt={course.title} loading="lazy" decoding="async" />
 					) : (
 						<div className="admin-course-thumbnail-placeholder">📚</div>
 					)}
@@ -119,8 +120,8 @@ const CourseListItem = React.memo(({
 				className="admin-course-card-thumbnail"
 				onClick={() => navigate(`/admin/courses/${course.id}`)}
 			>
-				{course.image_url ? (
-					<img src={toImageUrl(course.image_url)} alt={course.title} loading="lazy" decoding="async" />
+				{coverSrc ? (
+					<img src={coverSrc} alt={course.title} loading="lazy" decoding="async" />
 				) : (
 					<div className="admin-course-card-thumbnail-placeholder">
 						📚

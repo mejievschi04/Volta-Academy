@@ -5,13 +5,37 @@ import ConfirmModal from '../../../components/common/ConfirmModal';
 import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import ContentBlockList from './ContentBlockList';
 import ContentBlockEditor from './ContentBlockEditor';
+import LessonBlocksPreview from './LessonBlocksPreview';
 
 const debounceMs = 900;
+const MAX_CHECKPOINTS = 10;
+
+const checkpointStorageKey = (courseId, lessonId) => `lms:lesson-checkpoints:${courseId}:${lessonId}`;
+
+const safeReadCheckpoints = (courseId, lessonId) => {
+	try {
+		const raw = localStorage.getItem(checkpointStorageKey(courseId, lessonId));
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch {
+		return [];
+	}
+};
+
+const safeWriteCheckpoints = (courseId, lessonId, checkpoints) => {
+	try {
+		localStorage.setItem(checkpointStorageKey(courseId, lessonId), JSON.stringify(checkpoints));
+	} catch {
+		// ignore quota/localStorage restrictions
+	}
+};
 
 const BLOCK_TYPES = [
 	{ id: 'text', label: 'Text' },
 	{ id: 'video', label: 'Video' },
 	{ id: 'image', label: 'Imagine' },
+	{ id: 'quiz_embed', label: 'Quiz embed' },
 	{ id: 'gallery', label: 'Galerie' },
 	{ id: 'pdf', label: 'PDF (conținut)' },
 	{ id: 'file', label: 'Fișier' },
@@ -28,8 +52,26 @@ const TEMPLATE_OPTIONS = [
 	{ id: 'checklist', label: 'Checklist' },
 	{ id: 'resources', label: 'Resurse' },
 	{ id: 'video_embed', label: 'Video (YouTube)' },
+	{ id: 'quiz_embed', label: 'Quiz embed' },
 	{ id: 'pdf_embed', label: 'PDF (afișat în lecție)' },
 	{ id: 'download_file', label: 'Fișier (descărcare)' },
+];
+
+const QUICK_PANEL_BLOCKS = [
+	{ id: 'text', label: 'Text', icon: '📝' },
+	{ id: 'video', label: 'Video', icon: '🎬' },
+	{ id: 'image', label: 'Imagine', icon: '🖼️' },
+	{ id: 'quiz_embed', label: 'Quiz', icon: '🧪' },
+	{ id: 'pdf', label: 'PDF', icon: '📄' },
+	{ id: 'file', label: 'Fișier', icon: '📎' },
+];
+
+const QUICK_PANEL_TEMPLATES = [
+	{ id: 'lesson_skeleton', label: 'Schelet lecție', icon: '🧱' },
+	{ id: 'section_intro', label: 'Introducere', icon: '🚀' },
+	{ id: 'key_takeaways', label: 'Puncte cheie', icon: '💡' },
+	{ id: 'checklist', label: 'Checklist', icon: '✅' },
+	{ id: 'resources', label: 'Resurse', icon: '📚' },
 ];
 
 const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
@@ -46,8 +88,15 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	const [deleteConfirmBlockId, setDeleteConfirmBlockId] = useState(null);
 	const [deleteBlockLoading, setDeleteBlockLoading] = useState(false);
 	const [addDropdownOpen, setAddDropdownOpen] = useState(false);
+	const [reorderLoading, setReorderLoading] = useState(false);
+	const [localOrderIds, setLocalOrderIds] = useState(null);
+	const [editorMode, setEditorMode] = useState('edit'); // edit | preview
+	const [contentStep, setContentStep] = useState('edit'); // edit | preview | confirm
+	const [checkpoints, setCheckpoints] = useState([]);
+	const [selectedCheckpointId, setSelectedCheckpointId] = useState('');
+	const [checkpointLoading, setCheckpointLoading] = useState(false);
 
-	const pendingPatchRef = useRef(null);
+	const pendingPatchRef = useRef(null); // { blockId, patch }
 	const debounceRef = useRef(null);
 	const addDropdownRef = useRef(null);
 
@@ -64,12 +113,58 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	useEffect(() => {
 		// Reset selection when lesson changes
 		setSelectedBlockId(blocks[0]?.id || null);
+		setLocalOrderIds(null);
+		if (courseId && lesson?.id) {
+			const next = safeReadCheckpoints(courseId, lesson.id);
+			setCheckpoints(next);
+			setSelectedCheckpointId(next[0]?.id || '');
+		} else {
+			setCheckpoints([]);
+			setSelectedCheckpointId('');
+		}
 	}, [lesson?.id]);
 
 	useEffect(() => {
 		const selected = blocks.find((b) => b.id === selectedBlockId) || null;
 		setDraft(selected ? { ...selected } : null);
 	}, [blocks, selectedBlockId]);
+
+	const displayedBlocks = useMemo(() => {
+		if (!Array.isArray(localOrderIds) || localOrderIds.length === 0) return blocks;
+		const byId = new Map(blocks.map((blockItem) => [blockItem.id, blockItem]));
+		const ordered = localOrderIds.map((id) => byId.get(id)).filter(Boolean);
+		if (ordered.length !== blocks.length) return blocks;
+		return ordered;
+	}, [blocks, localOrderIds]);
+
+	const flushPendingSave = useCallback(async () => {
+		if (!pendingPatchRef.current) return;
+		const pending = pendingPatchRef.current;
+		pendingPatchRef.current = null;
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
+		}
+		try {
+			await adminService.builderUpdateContentBlock(courseId, pending.blockId, pending.patch);
+			setSaveStatus('saved');
+		} catch (e) {
+			console.error('Content block autosave flush failed:', e);
+			setSaveStatus('error');
+			showToast('Nu am putut salva ultima modificare.', 'error');
+		}
+	}, [courseId, showToast]);
+
+	useEffect(() => () => {
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+			debounceRef.current = null;
+		}
+	}, []);
+
+	useEffect(() => {
+		flushPendingSave();
+	}, [selectedBlockId, lesson?.id, flushPendingSave]);
 
 	useEffect(() => {
 		const isTypingTarget = (target) => {
@@ -120,23 +215,34 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	}, [blocks, selectedBlockId, addDropdownOpen]);
 
 	const scheduleSave = (patch) => {
-		if (!draft) return;
-		const next = { ...draft, ...patch };
+		if (!draft?.id) return;
+		const blockId = draft.id;
+		const next = { ...draft, ...patch, id: blockId };
 		setDraft(next);
 
-		pendingPatchRef.current = { ...(pendingPatchRef.current || {}), ...patch };
+		const currentPending = pendingPatchRef.current;
+		if (currentPending && currentPending.blockId === blockId) {
+			pendingPatchRef.current = {
+				blockId,
+				patch: { ...currentPending.patch, ...patch },
+			};
+		} else {
+			pendingPatchRef.current = { blockId, patch: { ...patch } };
+		}
 		setSaveStatus('saving');
 
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		debounceRef.current = setTimeout(async () => {
 			const pending = pendingPatchRef.current;
 			pendingPatchRef.current = null;
+			if (!pending?.blockId) return;
 			try {
-				await adminService.builderUpdateContentBlock(courseId, next.id, pending);
+				await adminService.builderUpdateContentBlock(courseId, pending.blockId, pending.patch);
 				setSaveStatus('saved');
 			} catch (e) {
 				console.error('Content block autosave failed:', e);
 				setSaveStatus('error');
+				showToast('Autosave eșuat. Încearcă din nou.', 'error');
 			}
 		}, debounceMs);
 	};
@@ -205,6 +311,11 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 				type: 'video',
 				source: 'https://www.youtube.com/watch?v=',
 			},
+			quiz_embed: {
+				type: 'quiz_embed',
+				source: '',
+				metadata: { test_id: null, test_title: '' },
+			},
 			pdf_embed: {
 				type: 'pdf',
 				source: 'https://.../document.pdf',
@@ -253,14 +364,22 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	};
 
 	const handleReorder = async (ids) => {
+		if (!Array.isArray(ids) || ids.length < 2) return;
+		if (reorderLoading) return;
 		try {
+			setReorderLoading(true);
+			setLocalOrderIds(ids);
 			setSaveStatus('saving');
 			await adminService.builderReorderContentBlocks(courseId, lesson.id, ids);
 			setSaveStatus('saved');
 			await onRefresh?.();
 		} catch (e) {
 			console.error('Reorder content blocks failed:', e);
+			setLocalOrderIds(null);
 			setSaveStatus('error');
+			showToast('Nu am putut salva noua ordine a blocurilor.', 'error');
+		} finally {
+			setReorderLoading(false);
 		}
 	};
 
@@ -301,6 +420,98 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 	};
 
 	const blockTypeLabel = useCallback((type) => BLOCK_TYPES.find((t) => t.id === type)?.label || type || 'Bloc', []);
+
+	const saveCheckpoint = () => {
+		if (!courseId || !lesson?.id || !Array.isArray(displayedBlocks)) return;
+		const snapshotBlocks = displayedBlocks.map((blockItem, idx) => ({
+			id: blockItem.id,
+			type: blockItem.type || 'text',
+			source: blockItem.source || '',
+			metadata: blockItem.metadata || {},
+			payload: blockItem.payload || null,
+			visible: blockItem.visible !== false,
+			order: idx,
+		}));
+		const checkpoint = {
+			id: `cp_${Date.now()}`,
+			label: `Checkpoint ${new Date().toLocaleString()}`,
+			created_at: new Date().toISOString(),
+			blocks: snapshotBlocks,
+		};
+		const next = [checkpoint, ...checkpoints].slice(0, MAX_CHECKPOINTS);
+		setCheckpoints(next);
+		setSelectedCheckpointId(checkpoint.id);
+		safeWriteCheckpoints(courseId, lesson.id, next);
+		showToast('Checkpoint salvat.', 'success');
+	};
+
+	const restoreCheckpoint = async () => {
+		if (!courseId || !lesson?.id || !selectedCheckpointId || checkpointLoading) return;
+		const checkpoint = checkpoints.find((item) => item.id === selectedCheckpointId);
+		if (!checkpoint || !Array.isArray(checkpoint.blocks)) {
+			showToast('Checkpoint invalid.', 'error');
+			return;
+		}
+
+		setCheckpointLoading(true);
+		try {
+			setSaveStatus('saving');
+			const currentById = new Map((blocks || []).map((blockItem) => [blockItem.id, blockItem]));
+			const checkpointIds = new Set(
+				checkpoint.blocks
+					.map((blockItem) => blockItem.id)
+					.filter(Boolean)
+			);
+
+			// 1) Delete blocks that do not exist in checkpoint.
+			for (const currentBlock of blocks || []) {
+				if (!checkpointIds.has(currentBlock.id)) {
+					// eslint-disable-next-line no-await-in-loop
+					await adminService.builderDeleteContentBlock(courseId, currentBlock.id);
+				}
+			}
+
+			// 2) Update existing blocks and create missing ones.
+			const finalOrderedIds = [];
+			for (const checkpointBlock of checkpoint.blocks) {
+				const existing = checkpointBlock.id ? currentById.get(checkpointBlock.id) : null;
+				const payload = {
+					type: checkpointBlock.type || 'text',
+					source: checkpointBlock.source || '',
+					metadata: checkpointBlock.metadata || {},
+					payload: checkpointBlock.payload || null,
+					visible: checkpointBlock.visible !== false,
+				};
+
+				if (existing) {
+					// eslint-disable-next-line no-await-in-loop
+					await adminService.builderUpdateContentBlock(courseId, existing.id, payload);
+					finalOrderedIds.push(existing.id);
+				} else {
+					// eslint-disable-next-line no-await-in-loop
+					const created = await adminService.builderCreateContentBlock(courseId, lesson.id, payload);
+					const newId = created?.content_block?.id;
+					if (newId) finalOrderedIds.push(newId);
+				}
+			}
+
+			// 3) Reorder blocks to checkpoint order.
+			if (finalOrderedIds.length > 1) {
+				await adminService.builderReorderContentBlocks(courseId, lesson.id, finalOrderedIds);
+			}
+
+			setSaveStatus('saved');
+			await onRefresh?.();
+			setSelectedBlockId(finalOrderedIds[0] || null);
+			showToast('Checkpoint restaurat.', 'success');
+		} catch (e) {
+			console.error('Restore checkpoint failed:', e);
+			setSaveStatus('error');
+			showToast('Restaurarea checkpoint-ului a eșuat.', 'error');
+		} finally {
+			setCheckpointLoading(false);
+		}
+	};
 
 	return (
 		<div className="admin-course-builder-content-blocks">
@@ -365,6 +576,38 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 							</div>
 						)}
 					</div>
+					<div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={saveCheckpoint}
+							disabled={checkpointLoading || displayedBlocks.length === 0}
+						>
+							Save checkpoint
+						</button>
+						<select
+							className="form-select"
+							value={selectedCheckpointId}
+							onChange={(e) => setSelectedCheckpointId(e.target.value)}
+							disabled={checkpointLoading || checkpoints.length === 0}
+							style={{ minWidth: 220 }}
+						>
+							<option value="">Alege checkpoint</option>
+							{checkpoints.map((checkpoint) => (
+								<option key={checkpoint.id} value={checkpoint.id}>
+									{checkpoint.label}
+								</option>
+							))}
+						</select>
+						<button
+							type="button"
+							className="admin-btn admin-btn-secondary"
+							onClick={restoreCheckpoint}
+							disabled={checkpointLoading || !selectedCheckpointId}
+						>
+							{checkpointLoading ? 'Restore...' : 'Restore checkpoint'}
+						</button>
+					</div>
 					<span title="Salvare automată la câteva secunde după editare">
 						<AutoSaveIndicator status={saveStatus} />
 					</span>
@@ -374,21 +617,61 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 			<div className="admin-course-builder-content-grid">
 				<div className="admin-course-builder-blocks-list-wrap">
 					<ContentBlockList
-						blocks={blocks}
+						blocks={displayedBlocks}
 						selectedBlockId={selectedBlockId}
 						onSelectBlock={setSelectedBlockId}
 						onReorderBlocks={handleReorder}
 						onDeleteBlock={handleDeleteBlockClick}
 						onAddBlock={handleAddBlock}
+						disabled={reorderLoading || deleteBlockLoading}
 					/>
 				</div>
 				<div className="admin-course-builder-editor-wrap">
-					{draft ? (
-						<>
-							<div className="admin-course-builder-editor-toolbar">
-								<span className="admin-course-builder-editor-toolbar-badge">
-									Bloc: {blockTypeLabel(draft.type)}
-								</span>
+					<div className="admin-course-builder-editor-toolbar">
+						{draft ? (
+							<span className="admin-course-builder-editor-toolbar-badge">
+								Bloc: {blockTypeLabel(draft.type)}
+							</span>
+						) : (
+							<span className="admin-course-builder-editor-toolbar-badge">
+								Preview lecție
+							</span>
+						)}
+						<div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginLeft: 'auto' }}>
+							<button
+								type="button"
+								className="admin-btn admin-btn-secondary"
+								onClick={() => {
+									setEditorMode('edit');
+									setContentStep('edit');
+								}}
+								disabled={editorMode === 'edit' && contentStep === 'edit'}
+							>
+								1. Edit blocks
+							</button>
+							<button
+								type="button"
+								className="admin-btn admin-btn-secondary"
+								onClick={() => {
+									setEditorMode('preview');
+									setContentStep('preview');
+								}}
+								disabled={editorMode === 'preview' && contentStep === 'preview'}
+							>
+								2. Preview student
+							</button>
+							<button
+								type="button"
+								className="admin-btn admin-btn-secondary"
+								onClick={() => {
+									setEditorMode('preview');
+									setContentStep('confirm');
+								}}
+								disabled={contentStep === 'confirm'}
+							>
+								3. Confirm
+							</button>
+							{draft && editorMode === 'edit' && (
 								<button
 									type="button"
 									className="admin-course-builder-editor-delete-btn"
@@ -397,9 +680,27 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 								>
 									Șterge bloc
 								</button>
-							</div>
-							<ContentBlockEditor courseId={courseId} block={draft} onChange={scheduleSave} />
-						</>
+							)}
+						</div>
+					</div>
+
+					{editorMode === 'preview' ? (
+						<div style={{ padding: '0.5rem 0' }}>
+							<LessonBlocksPreview blocks={displayedBlocks} variant="student" />
+							{contentStep === 'confirm' && (
+								<div className="admin-card" style={{ marginTop: '0.75rem' }}>
+									<div className="admin-card-body" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+										<strong>{displayedBlocks.length}</strong>
+										<span>blocuri pregătite pentru lecție</span>
+										<button type="button" className="admin-btn admin-btn-secondary" onClick={saveCheckpoint}>
+											Salvează checkpoint final
+										</button>
+									</div>
+								</div>
+							)}
+						</div>
+					) : draft ? (
+						<ContentBlockEditor courseId={courseId} block={draft} onChange={scheduleSave} />
 					) : (
 						<div className="admin-course-builder-editor-empty">
 							<p className="admin-course-builder-editor-empty-text">Selectează un bloc din listă sau adaugă unul nou.</p>
@@ -407,6 +708,95 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 						</div>
 					)}
 				</div>
+				<aside className="admin-course-builder-tools-dock" aria-label="Panou instrumente creare conținut">
+					<div className="admin-course-builder-tools-card">
+						<p className="admin-course-builder-tools-title">Instrumente rapide</p>
+						<div className="admin-course-builder-tools-list">
+							{QUICK_PANEL_BLOCKS.map((item) => (
+								<button
+									key={item.id}
+									type="button"
+									className="admin-course-builder-tool-btn"
+									onClick={() => handleAddBlock(item.id)}
+									title={`Adaugă ${item.label}`}
+									aria-label={`Adaugă ${item.label}`}
+								>
+									<span aria-hidden="true">{item.icon}</span>
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="admin-course-builder-tools-card">
+						<p className="admin-course-builder-tools-title">Șabloane</p>
+						<div className="admin-course-builder-tools-list">
+							{QUICK_PANEL_TEMPLATES.map((item) => (
+								<button
+									key={item.id}
+									type="button"
+									className="admin-course-builder-tool-btn admin-course-builder-tool-btn-secondary"
+									onClick={() => handleAddTemplate(item.id)}
+									title={`Șablon: ${item.label}`}
+									aria-label={`Șablon: ${item.label}`}
+								>
+									<span aria-hidden="true">{item.icon}</span>
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="admin-course-builder-tools-card">
+						<p className="admin-course-builder-tools-title">Workflow</p>
+						<div className="admin-course-builder-tools-list">
+							<button
+								type="button"
+								className="admin-course-builder-tool-btn admin-course-builder-tool-btn-secondary"
+								onClick={() => {
+									setEditorMode('edit');
+									setContentStep('edit');
+								}}
+								title="Editare blocuri"
+								aria-label="Editare blocuri"
+							>
+								<span aria-hidden="true">✍️</span>
+							</button>
+							<button
+								type="button"
+								className="admin-course-builder-tool-btn admin-course-builder-tool-btn-secondary"
+								onClick={() => {
+									setEditorMode('preview');
+									setContentStep('preview');
+								}}
+								title="Preview student"
+								aria-label="Preview student"
+							>
+								<span aria-hidden="true">👁️</span>
+							</button>
+							<button
+								type="button"
+								className="admin-course-builder-tool-btn admin-course-builder-tool-btn-secondary"
+								onClick={() => {
+									setEditorMode('preview');
+									setContentStep('confirm');
+								}}
+								title="Confirmare finală"
+								aria-label="Confirmare finală"
+							>
+								<span aria-hidden="true">✅</span>
+							</button>
+							<button
+								type="button"
+								className="admin-course-builder-tool-btn admin-course-builder-tool-btn-secondary"
+								onClick={saveCheckpoint}
+								disabled={checkpointLoading || displayedBlocks.length === 0}
+								title="Salvează checkpoint"
+								aria-label="Salvează checkpoint"
+							>
+								<span aria-hidden="true">💾</span>
+							</button>
+						</div>
+					</div>
+				</aside>
 			</div>
 
 			<ConfirmModal

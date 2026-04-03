@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\QuestionBank;
 use App\Models\Question;
+use App\Models\Tag;
 use App\Models\Course;
+use App\Models\Test;
 use App\Services\TestService;
-use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * QuestionBankAdminController
@@ -33,7 +35,8 @@ class QuestionBankAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = QuestionBank::with(['creator', 'questions']);
+        $query = QuestionBank::with(['creator', 'questions', 'tags'])
+            ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count']);
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());
         }
@@ -57,6 +60,38 @@ class QuestionBankAdminController extends Controller
             });
         }
 
+        // Filter by question metadata.language (question-level)
+        if ($request->filled('language')) {
+            $language = trim((string) $request->language);
+            $query->whereHas('questions', function ($q) use ($language) {
+                $q->where('metadata->language', $language);
+            });
+        }
+
+        // Filter by question metadata.difficulty (question-level)
+        if ($request->filled('difficulty')) {
+            $difficulty = trim((string) $request->difficulty);
+            $query->whereHas('questions', function ($q) use ($difficulty) {
+                $q->where('metadata->difficulty', $difficulty);
+            });
+        }
+
+        // Filter by tag presence in question metadata.tags[]
+        if ($request->filled('tag')) {
+            $tag = trim((string) $request->tag);
+            $query->whereHas('questions', function ($q) use ($tag) {
+                $q->whereJsonContains('metadata->tags', $tag);
+            });
+        }
+
+        if ($request->filled('folder_tag')) {
+            $folderTag = trim((string) $request->folder_tag);
+            $query->whereHas('tags', function ($q) use ($folderTag) {
+                $q->where('slug', Str::slug($folderTag))
+                    ->orWhere('name', $folderTag);
+            });
+        }
+
         $banks = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json($banks);
@@ -67,7 +102,9 @@ class QuestionBankAdminController extends Controller
      */
     public function show($id)
     {
-        $bank = QuestionBank::with(['creator', 'questions', 'tests'])->findOrFail($id);
+        $bank = QuestionBank::with(['creator', 'questions', 'tests', 'tags'])
+            ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count'])
+            ->findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
             abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
         }
@@ -83,6 +120,8 @@ class QuestionBankAdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:draft,published,archived',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
             'questions' => 'nullable|array',
             'questions.*.type' => 'required|string',
             'questions.*.content' => 'required|string',
@@ -94,10 +133,11 @@ class QuestionBankAdminController extends Controller
 
         $creator = Auth::user();
         $bank = $this->testService->createQuestionBank($validated, $creator);
+        $this->syncFolderTags($bank, $validated['tags'] ?? []);
 
         return response()->json([
             'message' => 'Question bank created successfully',
-            'bank' => $bank->load(['questions', 'creator']),
+            'bank' => $bank->load(['questions', 'creator', 'tags']),
         ], 201);
     }
 
@@ -115,13 +155,20 @@ class QuestionBankAdminController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:draft,published,archived',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
         ]);
 
-        $bank->update($validated);
+        $updateData = $validated;
+        unset($updateData['tags']);
+        $bank->update($updateData);
+        if (array_key_exists('tags', $validated)) {
+            $this->syncFolderTags($bank, $validated['tags'] ?? []);
+        }
 
         return response()->json([
             'message' => 'Question bank updated successfully',
-            'bank' => $bank->load(['questions', 'creator']),
+            'bank' => $bank->load(['questions', 'creator', 'tags']),
         ]);
     }
 
@@ -189,6 +236,26 @@ class QuestionBankAdminController extends Controller
         return response()->json($bank->questions);
     }
 
+    protected function syncFolderTags(QuestionBank $bank, array $tags): void
+    {
+        $normalized = collect($tags)
+            ->map(fn ($t) => trim((string) $t))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $tagIds = $normalized->map(function (string $name) {
+            $slug = Str::slug($name);
+            $tag = Tag::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name]
+            );
+            return $tag->id;
+        })->all();
+
+        $bank->tags()->sync($tagIds);
+    }
+
     /**
      * Add a single question to bank
      */
@@ -249,6 +316,17 @@ class QuestionBankAdminController extends Controller
         $bank = QuestionBank::findOrFail($id);
         $question = Question::where('question_bank_id', $bank->id)
             ->findOrFail($questionId);
+
+        $usageCount = Test::query()
+            ->where('question_source', 'bank')
+            ->where('question_set_id', (int) $bank->id)
+            ->count();
+        if ($usageCount > 0) {
+            return response()->json([
+                'error' => 'Întrebarea nu poate fi ștearsă deoarece această bancă este folosită în teste active.',
+                'usage_count' => $usageCount,
+            ], 422);
+        }
 
         $question->delete();
 
@@ -313,7 +391,8 @@ class QuestionBankAdminController extends Controller
             $questions = $this->generateQuestionsWithAI(
                 $courseContent,
                 $validated['numberOfQuestions'] ?? 10,
-                $validated['difficulty'] ?? 'medium'
+                $validated['difficulty'] ?? 'medium',
+                is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice']
             );
         } catch (\Exception $e) {
             // Surface helpful error messages for devs while keeping the response safe
@@ -362,7 +441,8 @@ class QuestionBankAdminController extends Controller
             $questions = $this->generateQuestionsWithAI(
                 $validated['content'],
                 $validated['numberOfQuestions'] ?? 10,
-                $validated['difficulty'] ?? 'medium'
+                $validated['difficulty'] ?? 'medium',
+                is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice']
             );
         } catch (\Exception $e) {
             Log::error('Error generating questions from text', [
@@ -388,6 +468,55 @@ class QuestionBankAdminController extends Controller
             'message' => 'Questions generated successfully',
             'questions_generated' => count($questions),
             'bank' => $bank->load('questions'),
+        ]);
+    }
+
+    /**
+     * Generate AI questions in preview mode (no DB write).
+     */
+    public function previewAiQuestions(Request $request, $id)
+    {
+        $bank = QuestionBank::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $validated = $request->validate([
+            'topic' => 'nullable|string|min:2|max:300',
+            'content' => 'nullable|string|min:10|max:10000',
+            'numberOfQuestions' => 'nullable|integer|min:1|max:50',
+            'difficulty' => 'nullable|in:easy,medium,hard',
+            'questionTypes' => 'nullable|array',
+        ]);
+
+        $topic = trim((string) ($validated['topic'] ?? ''));
+        $content = trim((string) ($validated['content'] ?? ''));
+        if ($topic === '' && $content === '') {
+            return response()->json([
+                'error' => 'Topic sau content este obligatoriu.',
+            ], 422);
+        }
+
+        $seedContent = $content !== '' ? $content : "Topic: {$topic}";
+        try {
+            $questions = $this->generateQuestionsWithAI(
+                $seedContent,
+                $validated['numberOfQuestions'] ?? 10,
+                $validated['difficulty'] ?? 'medium',
+                is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice']
+            );
+        } catch (\Exception $e) {
+            Log::error('Error generating AI preview questions', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'error' => 'Eroare la generarea draftului AI: ' . ($e->getMessage() ?: 'Problema AI'),
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'Draft generated successfully',
+            'draft' => $questions,
         ]);
     }
 
@@ -427,21 +556,26 @@ class QuestionBankAdminController extends Controller
     /**
      * Generate questions using AI
      */
-    private function generateQuestionsWithAI(string $courseContent, int $numberOfQuestions, string $difficulty): array
+    private function generateQuestionsWithAI(string $courseContent, int $numberOfQuestions, string $difficulty, array $questionTypes = ['multiple_choice']): array
     {
         try {
-            $aiController = app(AIController::class);
-            
+            $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
+            if (empty($typeList)) {
+                $typeList = ['multiple_choice'];
+            }
+            $typeHint = implode(', ', $typeList);
+
             // Build prompt for AI
-            $prompt = "Generează {$numberOfQuestions} întrebări de tip multiple choice pentru un test bazat pe următorul conținut de curs.\n\n";
+            $prompt = "Generează {$numberOfQuestions} întrebări pentru un test bazat pe următorul conținut de curs.\n\n";
             $prompt .= "Dificultate: {$difficulty}\n\n";
+            $prompt .= "Tipuri permise: {$typeHint}\n\n";
             $prompt .= "Conținut curs:\n{$courseContent}\n\n";
             $prompt .= "Răspunde DOAR în format JSON, fără text suplimentar. Format:\n";
             $prompt .= "{\n";
             $prompt .= '  "questions": [\n';
             $prompt .= '    {\n';
             $prompt .= '      "content": "Întrebarea",\n';
-            $prompt .= '      "type": "multiple_choice",\n';
+            $prompt .= '      "type": "multiple_choice|true_false|short_answer",\n';
             $prompt .= '      "answers": [\n';
             $prompt .= '        {"text": "Răspuns 1", "is_correct": true},\n';
             $prompt .= '        {"text": "Răspuns 2", "is_correct": false},\n';
@@ -449,7 +583,9 @@ class QuestionBankAdminController extends Controller
             $prompt .= '        {"text": "Răspuns 4", "is_correct": false}\n';
             $prompt .= '      ],\n';
             $prompt .= '      "points": 1,\n';
-            $prompt .= '      "explanation": "Explicația răspunsului corect"\n';
+            $prompt .= '      "explanation": "Explicația răspunsului corect",\n';
+            $prompt .= '      "difficulty": "easy|medium|hard",\n';
+            $prompt .= '      "tags": ["tag1", "tag2"]\n';
             $prompt .= '    }\n';
             $prompt .= '  ]\n';
             $prompt .= "}\n\n";
@@ -655,6 +791,10 @@ class QuestionBankAdminController extends Controller
         
         foreach ($questions as $index => $question) {
             $answers = [];
+            $qType = (string) ($question['type'] ?? 'multiple_choice');
+            if (!in_array($qType, ['multiple_choice', 'true_false', 'short_answer'], true)) {
+                $qType = 'multiple_choice';
+            }
             
             // Handle different answer formats
             if (isset($question['answers']) && is_array($question['answers'])) {
@@ -687,13 +827,44 @@ class QuestionBankAdminController extends Controller
                 }
             }
 
+            if ($qType === 'true_false' && count($answers) < 2) {
+                $answers = [
+                    ['text' => 'Adevărat', 'is_correct' => true],
+                    ['text' => 'Fals', 'is_correct' => false],
+                ];
+            }
+
+            if ($qType === 'short_answer') {
+                $answerText = trim((string) ($question['expected_answer'] ?? ''));
+                if ($answerText === '' && !empty($answers)) {
+                    $answerText = trim((string) ($answers[0]['text'] ?? ''));
+                }
+                $answers = $answerText !== '' ? [
+                    ['text' => $answerText, 'is_correct' => true],
+                ] : [];
+            }
+
+            $rawTags = is_array($question['tags'] ?? null) ? $question['tags'] : [];
+            $tags = array_values(array_unique(array_filter(array_map(function ($tag) {
+                return trim((string) $tag);
+            }, $rawTags))));
+            $difficulty = (string) ($question['difficulty'] ?? 'medium');
+            if (!in_array($difficulty, ['easy', 'medium', 'hard'], true)) {
+                $difficulty = 'medium';
+            }
+
             $formatted[] = [
-                'type' => $question['type'] ?? 'multiple_choice',
+                'type' => $qType,
                 'content' => $question['content'] ?? $question['question'] ?? 'Întrebare generată',
                 'answers' => $answers,
                 'points' => $question['points'] ?? 1,
                 'order' => $index,
                 'explanation' => $question['explanation'] ?? null,
+                'metadata' => [
+                    'difficulty' => $difficulty,
+                    'tags' => $tags,
+                    'source' => 'ai_draft',
+                ],
             ];
         }
 

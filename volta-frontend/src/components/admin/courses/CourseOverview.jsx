@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const CourseOverview = ({ course, onQuickAction }) => {
+const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 
 	const getStatusBadge = (status) => {
 		const badges = {
@@ -30,7 +30,7 @@ const CourseOverview = ({ course, onQuickAction }) => {
 					</div>
 				</div>
 				<div className="admin-course-overview-actions">
-					{course.status !== 'published' && (
+					{!readOnly && course.status !== 'published' && (
 						<button
 							className="lms-btn-primary"
 							onClick={() => onQuickAction('publish')}
@@ -38,7 +38,7 @@ const CourseOverview = ({ course, onQuickAction }) => {
 							✅ Publish
 						</button>
 					)}
-					{course.status === 'published' && (
+					{!readOnly && course.status === 'published' && (
 						<button
 							className="lms-btn-secondary"
 							onClick={() => onQuickAction('unpublish')}
@@ -52,12 +52,14 @@ const CourseOverview = ({ course, onQuickAction }) => {
 					>
 						👁️ Preview ca Student
 					</button>
-					<button
-						className="lms-btn-secondary va-btn-danger"
-						onClick={() => onQuickAction('delete')}
-					>
-						🗑️ Șterge Curs
-					</button>
+					{!readOnly && (
+						<button
+							className="lms-btn-secondary va-btn-danger"
+							onClick={() => onQuickAction('delete')}
+						>
+							🗑️ Șterge Curs
+						</button>
+					)}
 				</div>
 			</div>
 

@@ -7,21 +7,21 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Allows access for users with role 'admin' or 'instructor'.
- * Instructor is restricted to courses and tests (enforced in controllers).
+ * Permite accesul la prefixul /api/admin pentru admin, instructor și analist.
+ * Restricțiile pe acțiuni: AnalystReadOnlyMiddleware, InstructorContentScopeMiddleware.
  */
-class AdminOrInstructorMiddleware
+class StaffAreaAccessMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['error' => 'Neautentificat'], 401);
         }
 
         $role = auth()->user()->role ?? 'student';
-        if (!in_array($role, ['admin', 'instructor'], true)) {
+        if (! in_array($role, ['admin', 'instructor', 'analyst'], true)) {
             return response()->json([
-                'error' => 'Acces interzis. Doar administratorii și instructorii pot accesa această resursă.',
+                'error' => 'Acces interzis. Nu ai drepturi pentru zona de administrare.',
             ], 403);
         }
 

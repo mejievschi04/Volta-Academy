@@ -24,6 +24,7 @@ const routePrefetchers = [
 	{ prefix: '/courses/map', fn: () => import('../pages/CourseMapPage') },
 	{ prefix: '/messages', fn: () => import('../pages/MessagesPage') },
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
+	{ prefix: '/settings', fn: () => import('../pages/StudentSettingsPage') },
 	{ prefix: '/profile', fn: () => import('../pages/ProfilePage') },
 	{ prefix: '/achievements', fn: () => import('../pages/AchievementsPage') },
 	{ prefix: '/exam-results', fn: () => import('../pages/ExamResultsPage') },
@@ -37,7 +38,8 @@ const routePrefetchers = [
 	{ prefix: '/admin/teams', fn: () => import('../pages/admin/AdminTeamsPage') },
 	{ prefix: '/admin/team-members', fn: () => import('../pages/admin/AdminTeamsPage') },
 	{ prefix: '/admin/users', fn: () => import('../pages/admin/AdminUsersPage') },
-	{ prefix: '/admin/tests', fn: () => import('../pages/admin/AdminTestsPage') },
+	{ prefix: '/admin/activity-logs', fn: () => import('../pages/admin/AdminActivityLogsPage') },
+	{ prefix: '/admin/tests/pending-review', fn: () => import('../pages/admin/AdminTestsPendingReviewsPage') },
 	{ prefix: '/admin/question-banks', fn: () => import('../pages/admin/AdminQuestionBanksPage') },
 	{ prefix: '/admin/settings', fn: () => import('../pages/admin/AdminSettingsPage') },
 ];

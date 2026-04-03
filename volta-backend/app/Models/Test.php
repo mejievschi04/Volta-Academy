@@ -22,6 +22,7 @@ class Test extends Model
         'status',
         'time_limit_minutes',
         'max_attempts',
+        'passing_score',
         'randomize_questions',
         'randomize_answers',
         'show_results_immediately',
@@ -46,6 +47,7 @@ class Test extends Model
         'allow_review' => 'boolean',
         'requires_manual_verification' => 'boolean',
         'question_selection' => 'array',
+        'passing_score' => 'integer',
         'average_score' => 'decimal:2',
     ];
 

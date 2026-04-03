@@ -21,6 +21,7 @@ class Course extends Model
         'workflow_status',
         'teacher_id',
         'image',
+        'card_color',
         'reward_points',
         // Settings stored as JSON for modularity
         'settings',
@@ -82,17 +83,28 @@ class Course extends Model
      * Get the full URL for the course image
      * Returnează URL relativ /storage/... - frontend-ul îl transformă în absolut cu origin-ul curent
      */
-    public function getImageUrlAttribute()
+    public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image) {
+        if ($this->image === null || $this->image === '') {
             return null;
         }
 
-        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
-            return $this->image;
+        $raw = trim((string) $this->image);
+        if ($raw === '') {
+            return null;
         }
 
-        return '/storage/' . ltrim($this->image, '/');
+        if (filter_var($raw, FILTER_VALIDATE_URL)) {
+            return $raw;
+        }
+
+        $path = ltrim($raw, '/');
+        // Evită /storage/storage/... dacă în DB e deja prefixat greșit
+        if (str_starts_with($path, 'storage/')) {
+            return '/' . $path;
+        }
+
+        return '/storage/' . $path;
     }
 
     public function modules() {

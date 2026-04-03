@@ -4,8 +4,10 @@ import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminLessonsPage = () => {
+	const { canMutateInAdminArea } = useAuth();
 	const { success: showSuccess, error: showError } = useToast();
 	const [lessons, setLessons] = useState([]);
 	const [courses, setCourses] = useState([]);
@@ -117,6 +119,7 @@ const AdminLessonsPage = () => {
 					<h1 className="admin-page-title">Gestionare Lecții</h1>
 					<p className="admin-page-subtitle">Gestionează toate lecțiile din platformă</p>
 				</div>
+				{canMutateInAdminArea && (
 				<div className="admin-page-header-actions">
 					<button
 						className="admin-btn admin-btn-primary"
@@ -130,6 +133,7 @@ const AdminLessonsPage = () => {
 						Adaugă Lecție
 					</button>
 				</div>
+				)}
 			</div>
 
 			{error && (
@@ -166,6 +170,7 @@ const AdminLessonsPage = () => {
 									</p>
 								)}
 
+								{canMutateInAdminArea && (
 								<div className="admin-card-actions">
 									<button
 										className="admin-btn admin-btn-sm admin-btn-secondary"
@@ -182,6 +187,7 @@ const AdminLessonsPage = () => {
 										<span>Șterge</span>
 									</button>
 								</div>
+								)}
 							</div>
 						</div>
 					))}
@@ -193,6 +199,7 @@ const AdminLessonsPage = () => {
 					<div className="admin-empty-state-description">
 						Începe prin a crea prima lecție
 					</div>
+					{canMutateInAdminArea && (
 					<button
 						className="admin-btn admin-btn-primary"
 						onClick={() => {
@@ -204,10 +211,11 @@ const AdminLessonsPage = () => {
 						<span className="admin-btn-icon">+</span>
 						Adaugă Lecție
 					</button>
+					)}
 				</div>
 			)}
 
-			{showModal && (
+			{showModal && canMutateInAdminArea && (
 				<div
 					className="admin-team-modal-overlay"
 					onClick={(e) => {

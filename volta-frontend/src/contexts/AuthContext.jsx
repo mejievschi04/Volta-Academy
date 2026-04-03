@@ -56,6 +56,15 @@ export const AuthProvider = ({ children }) => {
 		[rawUser, adminViewMode]
 	);
 
+	const canMutateInAdminArea = useMemo(() => {
+		if (!user) return false;
+		const ar = user.actualRole ?? 'student';
+		if (ar === 'analyst') return false;
+		if (ar === 'admin') return user.role === 'admin';
+		if (ar === 'instructor') return true;
+		return false;
+	}, [user]);
+
 	useEffect(() => {
 		checkAuth();
 	}, []);
@@ -109,6 +118,7 @@ export const AuthProvider = ({ children }) => {
 				changePassword,
 				adminViewMode,
 				setAdminViewMode,
+				canMutateInAdminArea,
 			}}
 		>
 			{children}
