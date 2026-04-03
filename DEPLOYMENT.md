@@ -199,6 +199,12 @@ $COMPOSE exec -T postgres psql -U volta_user -d volta_academy < backup_20250204.
 
 3. **Dockerfile-ul folosește** mirror Alpine alternativ (`alpine.global.ssl.fastly.net`). Fă `git pull` și rebuild.
 
+### `/api/auth/login` sau `/api/auth/me` returnează 500
+1. **Loguri:** `docker compose exec backend tail -n 80 storage/logs/laravel.log` (cauza exactă: tabela `sessions`, `APP_KEY`, SQL, etc.).
+2. **`APP_KEY`** trebuie setat și **stabil**; dacă l-ai schimbat, șterge cookie-urile site-ului în browser sau folosește fereastră privată.
+3. **Sesiuni:** în `.env` poți folosi `SESSION_DRIVER=file` și `CACHE_STORE=file` (implicit în `docker-compose.yml`); driverul `database` cere tabela `sessions` după `migrate`.
+4. **Proxy:** codul folosește `trustProxies(at: '*')` ca HTTPS-ul din `X-Forwarded-Proto` să fie recunoscut în spatele Nginx.
+
 ### Backend nu pornește
 - Verifică `APP_KEY` în .env
 - Verifică conexiunea la PostgreSQL: `docker compose exec backend php artisan db:show`

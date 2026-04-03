@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // În spatele Nginx / Docker, X-Forwarded-Proto și IP corect pentru HTTPS, rate limit, sesiuni.
+        $middleware->trustProxies(at: '*');
+
         // Sanctum: sesiune cookie pentru SPA + Bearer token pentru mobil
         // Enable sessions for API routes (needed for authentication)
         // Order matters: StartSession must come early, after CORS
