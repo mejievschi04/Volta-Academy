@@ -1,14 +1,23 @@
 <?php
 
-use Laravel\Sanctum\Sanctum;
+/**
+ * Evităm `Sanctum::currentApplicationUrlWithPort()` aici: la `migrate` / `config:cache` fișierul de config
+ * se încarcă foarte devreme; dacă autoload-ul sau pachetul lipsește parțial, apare „Class Sanctum not found”.
+ * Logica este aceeași ca în Laravel\Sanctum\Sanctum::currentApplicationUrlWithPort().
+ */
+$defaultStatefulDomains = 'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1';
+$appUrl = env('APP_URL');
+if (is_string($appUrl) && $appUrl !== '') {
+    $host = parse_url($appUrl, PHP_URL_HOST);
+    if (is_string($host) && $host !== '') {
+        $port = parse_url($appUrl, PHP_URL_PORT);
+        $defaultStatefulDomains .= ','.$host.($port ? ':'.$port : '');
+    }
+}
 
 return [
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort()
-    ))),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', $defaultStatefulDomains)),
 
     'guard' => ['web'],
 
