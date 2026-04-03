@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\Api\DashboardController;
@@ -20,6 +21,33 @@ use App\Http\Controllers\Api\Admin\ActivityLogAdminController;
 use App\Http\Controllers\Api\Admin\MediaAdminController;
 use App\Http\Controllers\Api\Admin\CourseMapAdminController;
 use App\Http\Controllers\Api\Admin\StatisticsAdminController;
+
+/*
+| Fără StartSession / Sanctum stateful — util pe VPS dacă sesiunile DB lipsesc și tot API-ul dă 500.
+| GET /api/health → dacă răspunde 200, PHP + rutele merg; dacă 500, verifică DB / .env în container.
+*/
+Route::get('/health', function () {
+    try {
+        DB::connection()->getPdo();
+    } catch (\Throwable $e) {
+        $expose = config('app.debug') || filter_var(env('VOLTA_EXPOSE_API_ERRORS', false), FILTER_VALIDATE_BOOLEAN);
+        return response()->json([
+            'ok' => false,
+            'database' => 'error',
+            'message' => $expose ? $e->getMessage() : 'Database connection failed.',
+        ], 500);
+    }
+
+    return response()->json([
+        'ok' => true,
+        'database' => 'connected',
+        'session_driver' => config('session.driver'),
+        'cache_store' => config('cache.default'),
+    ]);
+})->withoutMiddleware([
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+]);
 
 // Public routes – throttle to prevent abuse (e.g. scraping, DoS)
 Route::middleware('throttle:120,1')->group(function () {

@@ -47,10 +47,10 @@ services:
       DB_USERNAME: ${DB_USERNAME:-volta_user}
       DB_PASSWORD: ${DB_PASSWORD:-volta_password}
       DB_SSLMODE: ${DB_SSLMODE:-prefer}
-      # file = evită 500 dacă migrația `sessions` lipsește sau DB eșuează la scriere (recomandat 1 replica)
-      # database = pentru mai multe instanțe backend; necesită tabela `sessions`
-      SESSION_DRIVER: ${SESSION_DRIVER:-file}
-      CACHE_STORE: ${CACHE_STORE:-file}
+      # Forțat file: dacă folosești ${SESSION_DRIVER} din .env cu `database` fără tabela `sessions` → 500 la toate rutele API.
+      # Pentru sesiuni în DB pe mai multe instanțe, schimbă explicit aici în `database` și rulează migrate.
+      SESSION_DRIVER: file
+      CACHE_STORE: file
       SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}

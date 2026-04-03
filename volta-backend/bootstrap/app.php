@@ -40,4 +40,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 return false; // Don't report this error
             }
         });
+
+        // Pe VPS: pune VOLTA_EXPOSE_API_ERRORS=true temporar în .env ca răspunsul JSON la 500 să conțină mesajul excepției (fără APP_DEBUG complet).
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+            if (! filter_var(env('VOLTA_EXPOSE_API_ERRORS', false), FILTER_VALIDATE_BOOLEAN)) {
+                return null;
+            }
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'exception' => basename(str_replace('\\', '/', $e::class)),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 500);
+        });
     })->create();

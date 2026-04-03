@@ -200,10 +200,13 @@ $COMPOSE exec -T postgres psql -U volta_user -d volta_academy < backup_20250204.
 3. **Dockerfile-ul folosește** mirror Alpine alternativ (`alpine.global.ssl.fastly.net`). Fă `git pull` și rebuild.
 
 ### `/api/auth/login` sau `/api/auth/me` returnează 500
-1. **Loguri:** `docker compose exec backend tail -n 80 storage/logs/laravel.log` (cauza exactă: tabela `sessions`, `APP_KEY`, SQL, etc.).
-2. **`APP_KEY`** trebuie setat și **stabil**; dacă l-ai schimbat, șterge cookie-urile site-ului în browser sau folosește fereastră privată.
-3. **Sesiuni:** în `.env` poți folosi `SESSION_DRIVER=file` și `CACHE_STORE=file` (implicit în `docker-compose.yml`); driverul `database` cere tabela `sessions` după `migrate`.
-4. **Proxy:** codul folosește `trustProxies(at: '*')` ca HTTPS-ul din `X-Forwarded-Proto` să fie recunoscut în spatele Nginx.
+1. **Test fără sesiune:** deschide `https://DITAU-DOMENIU/api/health` — dacă e **200** cu `"database":"connected"`, PHP și DB merg; problema e aproape sigur la **sesiuni** sau la codul de login. Dacă **500**, verifică `DB_*` în container și logurile.
+2. **Loguri:** `docker compose exec backend tail -n 120 storage/logs/laravel.log`
+3. **Mesaj în browser (temporar):** în `.env` pune `VOLTA_EXPOSE_API_ERRORS=true`, `docker compose up -d`, repetă requestul la API — răspunsul JSON va include `message` / `file` / `line`. **Dezactivează** după (`false`).
+4. **`APP_KEY`** stabil; dacă l-ai schimbat, șterge cookie-urile pentru domeniu.
+5. **Docker Compose** setează `SESSION_DRIVER=file` și `CACHE_STORE=file` **fix** pe serviciul backend (nu mai ia `SESSION_DRIVER=database` din `.env` care poate lipsi tabela `sessions`).
+6. **`FRONTEND_URL`** în `.env` la rădăcina proiectului = același origin ca SPA (ex. `https://academy.volta.md`).
+7. **Proxy:** `trustProxies(at: '*')` pentru `X-Forwarded-Proto` în spatele Nginx.
 
 ### Backend nu pornește
 - Verifică `APP_KEY` în .env
