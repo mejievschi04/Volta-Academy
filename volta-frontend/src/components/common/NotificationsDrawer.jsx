@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
 	markNotificationRead,
+	markAllPrimiteAsRead,
 	removeNotificationFromHistoric,
+	clearAllHistoric,
 	getPrimiteFromApi,
 	getIstoricList,
 } from '../../utils/notificationInboxStorage';
@@ -115,6 +117,24 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 		[variant, bump]
 	);
 
+	const handleMarkAllRead = useCallback(() => {
+		markAllPrimiteAsRead(variant, apiItems);
+		bump();
+		setTab('istoric');
+	}, [variant, apiItems, bump]);
+
+	const handleClearHistoric = useCallback(() => {
+		if (
+			!window.confirm(
+				'Sigur vrei să golești istoricul? Toate intrările vor fi eliminate și nu vor mai apărea la Primite.'
+			)
+		) {
+			return;
+		}
+		clearAllHistoric(variant);
+		bump();
+	}, [variant, bump]);
+
 	if (!open) return null;
 
 	const portalTarget = typeof document !== 'undefined' ? document.body : null;
@@ -176,6 +196,12 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 								{isStudent ? 'Nu ai notificări noi în primite.' : 'Nu există notificări noi în primite.'}
 							</p>
 						) : (
+							<>
+							<div className="va-notif-drawer-toolbar">
+								<button type="button" className="va-notif-drawer-toolbar-btn" onClick={handleMarkAllRead}>
+									Marchează toate ca citite
+								</button>
+							</div>
 							<ul className="va-notif-drawer-list">
 								{primite.map((notif) => {
 									if (isStudent) {
@@ -229,12 +255,23 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 									);
 								})}
 							</ul>
+							</>
 						)
 					) : istoric.length === 0 ? (
 						<p className="va-notif-drawer-empty">
-							Istoricul este gol. După ce citești notificările din Primite, apar aici; le poți șterge manual din această listă.
+							Istoricul este gol. După ce citești notificările din Primite, apar aici; le poți șterge manual sau goli tot istoricul.
 						</p>
 					) : (
+						<>
+						<div className="va-notif-drawer-toolbar va-notif-drawer-toolbar--end">
+							<button
+								type="button"
+								className="va-notif-drawer-toolbar-btn va-notif-drawer-toolbar-btn--danger"
+								onClick={handleClearHistoric}
+							>
+								Golește istoricul
+							</button>
+						</div>
 						<ul className="va-notif-drawer-list">
 							{istoric.map((entry) => (
 								<li key={entry.id} className="va-notif-drawer-historic-item">
@@ -265,6 +302,7 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 								</li>
 							))}
 						</ul>
+						</>
 					)}
 				</div>
 			</div>

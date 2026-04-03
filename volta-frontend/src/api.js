@@ -13,12 +13,18 @@ export function setApiErrorNotifier(fn) {
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // dacă folosești cookie-uri / sesiuni
+  withXSRFToken: true, // trimite X-XSRF-TOKEN din cookie (Laravel Sanctum SPA + CSRF)
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || "10000"), // 10 secunde timeout default
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
+
+/** Înainte de POST stateful (login, logout, …): setează cookie-ul XSRF (ruta e în api.php + middleware web). */
+export async function ensureApiCsrfCookie() {
+  await api.get("/csrf-cookie");
+}
 
 // Interceptor pentru request-uri
 api.interceptors.request.use(

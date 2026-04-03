@@ -215,7 +215,7 @@ class StatisticsAdminController extends Controller
                 'lp.user_id',
                 'm.course_id',
                 DB::raw('COALESCE(SUM(lp.time_spent_seconds), 0) as time_spent_seconds'),
-                DB::raw('SUM(CASE WHEN lp.completed = 1 THEN 1 ELSE 0 END) as lessons_completed')
+                DB::raw('SUM(CASE WHEN lp.completed THEN 1 ELSE 0 END) as lessons_completed')
             )
             ->groupBy('lp.user_id', 'm.course_id')
             ->get();

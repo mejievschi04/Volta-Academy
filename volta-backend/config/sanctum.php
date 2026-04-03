@@ -15,9 +15,48 @@ if (is_string($appUrl) && $appUrl !== '') {
     }
 }
 
+$sanctumEnv = env('SANCTUM_STATEFUL_DOMAINS');
+$statefulBase = is_string($sanctumEnv) && $sanctumEnv !== ''
+    ? $sanctumEnv
+    : $defaultStatefulDomains;
+
+$statefulList = array_filter(array_map('trim', explode(',', $statefulBase)));
+
+/** Host (+ opțional port) din APP_URL / FRONTEND_URL — mereu unite la listă, ca să nu lipsească domeniul producției dacă SANCTUM_* e incomplet. */
+$hostsFromEnvUrls = function (?string $raw): array {
+    $out = [];
+    if (! is_string($raw) || $raw === '') {
+        return $out;
+    }
+    foreach (explode(',', $raw) as $segment) {
+        $segment = trim($segment);
+        if ($segment === '') {
+            continue;
+        }
+        $forParse = str_contains($segment, '://') ? $segment : 'https://'.$segment;
+        $host = parse_url($forParse, PHP_URL_HOST);
+        if (! is_string($host) || $host === '') {
+            continue;
+        }
+        $out[] = $host;
+        $port = parse_url($forParse, PHP_URL_PORT);
+        if ($port) {
+            $out[] = $host.':'.$port;
+        }
+    }
+
+    return $out;
+};
+
+$stateful = array_values(array_unique(array_filter(array_merge(
+    $statefulList,
+    $hostsFromEnvUrls(env('APP_URL')),
+    $hostsFromEnvUrls(env('FRONTEND_URL'))
+))));
+
 return [
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', $defaultStatefulDomains)),
+    'stateful' => $stateful,
 
     'guard' => ['web'],
 

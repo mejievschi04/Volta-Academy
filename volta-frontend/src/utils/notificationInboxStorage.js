@@ -93,6 +93,29 @@ export function markNotificationRead(variant, notif) {
 	saveRaw(variant, state);
 }
 
+/** Marchează toate notificările din Primite ca citite (o singură scriere în localStorage). */
+export function markAllPrimiteAsRead(variant, apiList) {
+	if (variant === 'student') migrateLegacyStudentDismissed();
+	const primite = getPrimiteFromApi(apiList, variant);
+	if (primite.length === 0) return;
+	const state = loadRaw(variant);
+	for (const notif of primite) {
+		state.read[String(notif.id)] = snapshotForStorage(notif, variant);
+	}
+	saveRaw(variant, state);
+}
+
+/** Șterge tot istoricul; ID-urile trec în removed ca să nu reapară în Primite. */
+export function clearAllHistoric(variant) {
+	if (variant === 'student') migrateLegacyStudentDismissed();
+	const state = loadRaw(variant);
+	for (const id of Object.keys(state.read)) {
+		state.removedIds.add(String(id));
+	}
+	state.read = {};
+	saveRaw(variant, state);
+}
+
 export function removeNotificationFromHistoric(variant, id) {
 	if (variant === 'student') migrateLegacyStudentDismissed();
 	const state = loadRaw(variant);

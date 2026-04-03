@@ -56,7 +56,8 @@ const AdminStatisticsHubPage = () => {
 				const res = await adminService.getStatisticsCourseTestDetail(params);
 				setStatsData(res || null);
 			} catch (e) {
-				console.error('Failed to load student progress report:', e);
+				const detail = e?.response?.data?.message || e?.message;
+				console.error('Failed to load statistics report:', detail || e);
 				setError('Nu s-a putut încărca raportul de progres.');
 			} finally {
 				setLoading(false);

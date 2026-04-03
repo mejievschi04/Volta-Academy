@@ -1,4 +1,4 @@
-import api from '../api.js';
+import api, { ensureApiCsrfCookie } from '../api.js';
 import { logger } from '../utils/logger';
 
 // Categories are no longer supported
@@ -306,16 +306,19 @@ export const examResultsService = {
 
 export const authService = {
   register: async (name, email, password) => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/auth/register', { name, email, password });
     return response.data;
   },
   
   login: async (email, password) => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/auth/login', { email, password });
     return response.data;
   },
   
   logout: async () => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/auth/logout');
     return response.data;
   },
@@ -335,6 +338,7 @@ export const authService = {
   },
   
   changePassword: async (currentPassword, newPassword, newPasswordConfirmation) => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/auth/change-password', {
       current_password: currentPassword,
       new_password: newPassword,
