@@ -6,7 +6,6 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 		const badges = {
 			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
 			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
-			archived: { label: 'Arhivat', color: '#696E79', bg: 'rgba(105, 110, 121, 0.1)' },
 		};
 		return badges[status] || badges.draft;
 	};
@@ -147,4 +146,3 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 };
 
 export default CourseOverview;
-

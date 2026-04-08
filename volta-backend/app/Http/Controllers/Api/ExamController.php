@@ -84,7 +84,7 @@ class ExamController extends Controller
         }
 
         return response()->json([
-            'message' => 'Examenul nu este încă publicat.',
+            'message' => 'Examenul nu este Г®ncДѓ publicat.',
             'unpublished' => true,
         ], 403);
     }
@@ -234,7 +234,7 @@ class ExamController extends Controller
     }
 
     /**
-     * Catalog examene legacy fără curs (published, vizibile pentru elevul curent).
+     * Catalog examene legacy fДѓrДѓ curs (published, vizibile pentru elevul curent).
      */
     public function learnerStandaloneExams(Request $request): JsonResponse
     {
@@ -288,10 +288,10 @@ class ExamController extends Controller
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
 
         /*
-         * Seed-ul determină ordinea/subsetul întrebărilor (randomizare, bancă).
-         * - Rezultat existent + fără new_attempt: folosim același număr de încercare ca la ultimul rezultat,
-         *   ca lista întrebărilor să coincidă cu răspunsurile salvate (altfel „nu merge” la reîncărcare).
-         * - Încercare nouă (new_attempt=1): folosim următorul număr (currentAttempt + 1).
+         * Seed-ul determinДѓ ordinea/subsetul Г®ntrebДѓrilor (randomizare, bancДѓ).
+         * - Rezultat existent + fДѓrДѓ new_attempt: folosim acelaИ™i numДѓr de Г®ncercare ca la ultimul rezultat,
+         *   ca lista Г®ntrebДѓrilor sДѓ coincidДѓ cu rДѓspunsurile salvate (altfel вЂћnu mergeвЂќ la reГ®ncДѓrcare).
+         * - ГЋncercare nouДѓ (new_attempt=1): folosim urmДѓtorul numДѓr (currentAttempt + 1).
          */
         $attemptNumberForSeed = ($latestResult && !$forNewAttempt)
             ? max(1, (int) $latestResult->attempt_number)
@@ -409,7 +409,7 @@ class ExamController extends Controller
         if (!$accessCheck) {
             $message = empty($exam->course_id)
                 ? 'Nu ai acces la acest examen.'
-                : 'Testul nu este disponibil. Completează lecțiile/modulele anterioare.';
+                : 'Testul nu este disponibil. CompleteazДѓ lecИ›iile/modulele anterioare.';
 
             return response()->json([
                 'message' => $message,
@@ -543,7 +543,7 @@ class ExamController extends Controller
             
             if ($test->max_attempts && $nextAttempt > $test->max_attempts) {
                 return response()->json([
-                    'message' => "Ai atins limita de {$test->max_attempts} încercări pentru acest test.",
+                    'message' => "Ai atins limita de {$test->max_attempts} Г®ncercДѓri pentru acest test.",
                     'max_attempts_reached' => true,
                 ], 403);
             }
@@ -553,7 +553,7 @@ class ExamController extends Controller
 
             if ($questions->isEmpty()) {
                 return response()->json([
-                    'message' => 'Testul nu are întrebări disponibile.',
+                    'message' => 'Testul nu are Г®ntrebДѓri disponibile.',
                 ], 400);
             }
 
@@ -568,7 +568,7 @@ class ExamController extends Controller
                 }
             }
             
-            // Calculate score and count correct answers (for statistics: X din Y întrebări)
+            // Calculate score and count correct answers (for statistics: X din Y Г®ntrebДѓri)
             $score = 0;
             $totalPoints = 0;
             $correctAnswersCount = 0;
@@ -648,7 +648,7 @@ class ExamController extends Controller
                                         $this->progressService->calculateCourseProgress($user, $course);
                                         
                                         // Check if course is now complete
-                                        if ($this->progressService->isCourseComplete($user, $course)) {
+                                        if ($this->progressService->canFinalizeCourse($user, $course)) {
                                             // Mark course as completed
                                             DB::table('course_user')
                                                 ->where('user_id', $user->id)
@@ -673,7 +673,7 @@ class ExamController extends Controller
                                 $this->progressService->calculateCourseProgress($user, $course);
                                 
                                 // Check if course is now complete
-                                if ($this->progressService->isCourseComplete($user, $course)) {
+                                if ($this->progressService->canFinalizeCourse($user, $course)) {
                                     // Mark course as completed
                                     DB::table('course_user')
                                         ->where('user_id', $user->id)
@@ -770,7 +770,7 @@ class ExamController extends Controller
 
         if ($exam->max_attempts && $nextAttempt > $exam->max_attempts) {
             return response()->json([
-                'message' => "Ai atins limita de {$exam->max_attempts} încercări pentru acest test.",
+                'message' => "Ai atins limita de {$exam->max_attempts} Г®ncercДѓri pentru acest test.",
                 'max_attempts_reached' => true,
             ], 403);
         }
@@ -837,7 +837,7 @@ class ExamController extends Controller
                         $this->progressService->calculateCourseProgress($user, $exam->course);
                         
                         // Check if course is now complete
-                        if ($this->progressService->isCourseComplete($user, $exam->course)) {
+                        if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
                             // Mark course as completed
                             \DB::table('course_user')
                                 ->where('user_id', $user->id)
@@ -854,7 +854,7 @@ class ExamController extends Controller
                 $this->progressService->calculateCourseProgress($user, $exam->course);
                 
                 // Check if course is now complete
-                if ($this->progressService->isCourseComplete($user, $exam->course)) {
+                if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
                     // Mark course as completed
                     \DB::table('course_user')
                         ->where('user_id', $user->id)
@@ -888,7 +888,7 @@ class ExamController extends Controller
     }
 
     /**
-     * Payload JSON folosește adesea chei string pentru id-uri întrebări.
+     * Payload JSON foloseИ™te adesea chei string pentru id-uri Г®ntrebДѓri.
      */
     protected function answerValueForQuestion(array $answers, int $questionId): mixed
     {
@@ -903,4 +903,5 @@ class ExamController extends Controller
         return null;
     }
 }
+
 

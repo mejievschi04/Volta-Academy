@@ -3,6 +3,7 @@ import { adminService } from '../../services/api';
 import { toImageUrl } from '../../utils/imageUrl';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { downloadSimpleExcel, statisticsExcelFilename } from '../../utils/statisticsExcelExport';
 import '../../styles/admin-course-builder.css';
 import './AdminExamsPage.css';
 
@@ -384,33 +385,21 @@ const AdminExamsPage = () => {
 		});
 	}, [statisticsRows, statisticsStatusFilter, statisticsDateFrom, statisticsDateTo]);
 
-	const handleExportStatisticsCsv = () => {
+	const handleExportStatisticsExcel = () => {
 		const headers = ['Data sustinerii', 'Nume complet', 'Email', 'Status', 'Scor'];
-		const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-		const lines = [
-			headers.map(escape).join(','),
-			...filteredStatisticsRows.map((row) =>
-				[
-					row.completed_at ? new Date(row.completed_at).toLocaleDateString() : '-',
-					row.user?.name || '-',
-					row.user?.email || '-',
-					row.status || '-',
-					row.percentage != null ? `${row.percentage}%` : '-',
-				]
-					.map(escape)
-					.join(',')
-			),
-		];
-		const csvContent = '\uFEFF' + lines.join('\n');
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.setAttribute('download', `statistica-examen-${activeExamDraft.id || 'export'}.csv`);
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		URL.revokeObjectURL(url);
+		const rows = filteredStatisticsRows.map((row) => [
+			row.completed_at ? new Date(row.completed_at).toLocaleDateString('ro-RO') : '-',
+			row.user?.name || '-',
+			row.user?.email || '-',
+			row.status || '-',
+			row.percentage != null ? `${row.percentage}%` : '-',
+		]);
+		downloadSimpleExcel(
+			statisticsExcelFilename(`examen-${activeExamDraft.id || 'export'}`),
+			'Statistica examen',
+			headers,
+			rows
+		);
 	};
 
 	const handleOpenCreateModal = () => {
@@ -1864,8 +1853,8 @@ const AdminExamsPage = () => {
 							onChange={(e) => setStatisticsDateTo(e.target.value)}
 							aria-label="Data de sfarsit"
 						/>
-						<button type="button" onClick={handleExportStatisticsCsv}>
-							Export CSV
+						<button type="button" onClick={handleExportStatisticsExcel}>
+							Export Excel
 						</button>
 					</div>
 					)}

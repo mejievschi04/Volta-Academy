@@ -19,6 +19,20 @@ const RTE_COLOR_PALETTE = [
 	'#f472b6', '#ec4899', '#db2777', '#be185d',
 ];
 
+const RTE_CALLOUT_TYPES = [
+	{ id: 'soft', label: 'Round' },
+	{ id: 'glow', label: 'Capsule' },
+	{ id: 'outline', label: 'Cut' },
+	{ id: 'stripe', label: 'Ribbon' },
+	{ id: 'glass', label: 'Glass' },
+	{ id: 'lifted', label: 'Panel' },
+	{ id: 'bracket', label: 'Bracket' },
+	{ id: 'note', label: 'Sticky Note' },
+	{ id: 'neon', label: 'Neon 3D' },
+	{ id: 'folded', label: 'Folded Card' },
+	{ id: 'spotlight', label: 'Spotlight' },
+];
+
 const RteIcon = ({ name }) => {
 	switch (name) {
 		case 'expand':
@@ -49,6 +63,8 @@ const RteIcon = ({ name }) => {
 			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 10h10M4 14h16M7 18h10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
 		case 'align-right':
 			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M4 14h16M10 18h10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+		case 'callout':
+			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5v8A1.5 1.5 0 0 1 17.5 16H10l-4 3v-3H6.5A1.5 1.5 0 0 1 5 14.5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M8.5 9.5h7M8.5 12.5h4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
 		case 'link':
 			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14l4-4M8.5 15.5l-2 2a3 3 0 0 1-4.2-4.2l3-3a3 3 0 0 1 4.2 0M15.5 8.5l2-2a3 3 0 0 1 4.2 4.2l-3 3a3 3 0 0 1-4.2 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 		case 'image':
@@ -179,11 +195,15 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const [internalValue, setInternalValue] = useState(value || '');
 	const [showColorPicker, setShowColorPicker] = useState(false);
 	const [showLinkDialog, setShowLinkDialog] = useState(false);
+	const [showCalloutDialog, setShowCalloutDialog] = useState(false);
+	const [calloutPicker, setCalloutPicker] = useState({ open: false, x: 0, y: 0 });
 	const [showPdfUpload, setShowPdfUpload] = useState(false);
 	const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0 });
 	const [colorType, setColorType] = useState('foreground'); // 'foreground' or 'background'
 	const [linkUrl, setLinkUrl] = useState('');
 	const [selectedColor, setSelectedColor] = useState('#ffee00');
+	const [selectedCalloutColor, setSelectedCalloutColor] = useState('#ffee00');
+	const [selectedCalloutType, setSelectedCalloutType] = useState('soft');
 	const [pdfFile, setPdfFile] = useState(null);
 	const [pdfFileName, setPdfFileName] = useState('');
 	const [pdfTotalPages, setPdfTotalPages] = useState(0);
@@ -222,6 +242,22 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 			window.removeEventListener('keydown', handleEscape);
 		};
 	}, [contextMenu.open]);
+
+	useEffect(() => {
+		if (!calloutPicker.open) return undefined;
+		const closePicker = () => setCalloutPicker((prev) => ({ ...prev, open: false }));
+		const handleEscape = (e) => {
+			if (e.key === 'Escape') {
+				closePicker();
+			}
+		};
+		window.addEventListener('click', closePicker);
+		window.addEventListener('keydown', handleEscape);
+		return () => {
+			window.removeEventListener('click', closePicker);
+			window.removeEventListener('keydown', handleEscape);
+		};
+	}, [calloutPicker.open]);
 
 	// Initialize editor content
 	useEffect(() => {
@@ -436,6 +472,128 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 			setShowLinkDialog(false);
 		}
 	};
+
+	const applyCalloutBlock = useCallback((type, color) => {
+		restoreSelection();
+		const editor = editorRef.current;
+		const selection = window.getSelection();
+		if (!editor || !selection) return;
+
+		const activeRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+		const startNode = activeRange?.startContainer || null;
+		const existingCallout = startNode?.nodeType === 1
+			? startNode.closest?.('blockquote[data-callout-box="true"]')
+			: startNode?.parentElement?.closest?.('blockquote[data-callout-box="true"]');
+
+		if (existingCallout) {
+			existingCallout.setAttribute('data-callout-type', type);
+			existingCallout.style.setProperty('--rte-callout-accent', color);
+		} else {
+			const block = document.createElement('blockquote');
+			block.setAttribute('data-callout-box', 'true');
+			block.setAttribute('data-callout-type', type);
+			block.style.setProperty('--rte-callout-accent', color);
+
+			const contentWrap = document.createElement('div');
+			contentWrap.className = 'rte-callout-content';
+
+			if (activeRange && !activeRange.collapsed) {
+				contentWrap.appendChild(activeRange.extractContents());
+			} else {
+				const paragraph = document.createElement('p');
+				paragraph.textContent = 'Scrie aici continutul chenarului...';
+				contentWrap.appendChild(paragraph);
+			}
+
+			block.appendChild(contentWrap);
+
+			if (activeRange) {
+				activeRange.insertNode(block);
+				const newRange = document.createRange();
+				newRange.selectNodeContents(contentWrap);
+				newRange.collapse(false);
+				selection.removeAllRanges();
+				selection.addRange(newRange);
+				savedSelectionRef.current = newRange.cloneRange();
+			} else {
+				editor.appendChild(block);
+			}
+		}
+
+		editor.focus();
+		const event = new Event('input', { bubbles: true });
+		editor.dispatchEvent(event);
+	}, [restoreSelection]);
+
+	const openCalloutPickerAt = useCallback((x, y) => {
+		saveSelection();
+		setCalloutPicker({ open: true, x, y });
+	}, [saveSelection]);
+
+	const handleInlineCalloutTypeChange = useCallback((type) => {
+		setSelectedCalloutType(type);
+		applyCalloutBlock(type, selectedCalloutColor);
+	}, [applyCalloutBlock, selectedCalloutColor]);
+
+	const handleInlineCalloutColorChange = useCallback((color) => {
+		setSelectedCalloutColor(color);
+		applyCalloutBlock(selectedCalloutType, color);
+	}, [applyCalloutBlock, selectedCalloutType]);
+
+	const handleEditorKeyDown = useCallback((e) => {
+		if (e.key !== 'Enter' || e.shiftKey) return;
+		const selection = window.getSelection();
+		if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) return;
+
+		const range = selection.getRangeAt(0);
+		const startNode = range.startContainer;
+		const callout = startNode?.nodeType === 1
+			? startNode.closest?.('blockquote[data-callout-box="true"]')
+			: startNode?.parentElement?.closest?.('blockquote[data-callout-box="true"]');
+		if (!callout) return;
+
+		const blockNode = startNode?.nodeType === 1
+			? startNode.closest?.('p, div, li')
+			: startNode?.parentElement?.closest?.('p, div, li');
+		if (!blockNode || !callout.contains(blockNode)) return;
+
+		const blockText = (blockNode.textContent || '').replace(/\u200B/g, '').trim();
+		if (blockText !== '') return;
+
+		e.preventDefault();
+
+		const editor = editorRef.current;
+		if (!editor) return;
+
+		const nextParagraph = document.createElement('p');
+		nextParagraph.innerHTML = '<br>';
+
+		if (callout.nextSibling) {
+			callout.parentNode.insertBefore(nextParagraph, callout.nextSibling);
+		} else {
+			callout.parentNode.appendChild(nextParagraph);
+		}
+
+		const exitRange = document.createRange();
+		exitRange.setStart(nextParagraph, 0);
+		exitRange.collapse(true);
+		selection.removeAllRanges();
+		selection.addRange(exitRange);
+		savedSelectionRef.current = exitRange.cloneRange();
+
+		editor.focus();
+		const event = new Event('input', { bubbles: true });
+		editor.dispatchEvent(event);
+	}, []);
+
+	useEffect(() => {
+		if (!showCalloutDialog) return;
+		const shellRect = editorRef.current?.getBoundingClientRect?.();
+		const x = shellRect ? Math.min(window.innerWidth - 380, shellRect.left + 24) : 120;
+		const y = shellRect ? Math.min(window.innerHeight - 420, shellRect.top + 24) : 120;
+		openCalloutPickerAt(Math.max(16, x), Math.max(16, y));
+		setShowCalloutDialog(false);
+	}, [openCalloutPickerAt, showCalloutDialog]);
 
 	const handlePdfSelect = async (e) => {
 		const file = e.target.files[0];
@@ -799,6 +957,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					<div className="rte-toolbar-group rte-toolbar-group-labeled">
 						<span className="rte-toolbar-label">Mai mult:</span>
 						<ToolbarButton onClick={() => execCommand('formatBlock', 'blockquote')} icon="❝" title="Citat (bloc evidențiat)" />
+						<ToolbarButton
+							onClick={() => setShowCalloutDialog(true)}
+							icon="▣"
+							title="Chenар stilizat"
+						/>
 						<ToolbarButton onClick={() => setShowLinkDialog(true)} icon="🔗" title="Inserare link (legătură)" />
 						<ToolbarButton
 							onClick={() => {
@@ -858,6 +1021,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 						setContextMenu({ open: true, x: e.clientX, y: e.clientY });
 					}}
 					onMouseUp={saveSelection}
+					onKeyDown={handleEditorKeyDown}
 					onKeyUp={saveSelection}
 					onFocus={() => setIsFocused(true)}
 					onBlur={(e) => {
@@ -949,12 +1113,12 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 						type="button"
 						onMouseDown={handleToolMouseDown}
 						onClick={() => {
-							insertCodeFromPrompt();
+							openCalloutPickerAt(contextMenu.x + 12, contextMenu.y + 8);
 							setContextMenu((prev) => ({ ...prev, open: false }));
 						}}
 					>
-						<span className="rte-context-menu-icon"><RteIcon name="code" /></span>
-						<span>Bloc cod</span>
+						<span className="rte-context-menu-icon"><RteIcon name="callout" /></span>
+						<span>Chenar stilizat</span>
 					</button>
 					<span className="rte-context-menu-separator" aria-hidden="true" />
 					<button
@@ -992,6 +1156,19 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 						setShowLinkDialog(false);
 						setLinkUrl('');
 					}}
+				/>
+			)}
+
+			{calloutPicker.open && (
+				<CalloutInlinePanel
+					palette={RTE_COLOR_PALETTE}
+					types={RTE_CALLOUT_TYPES}
+					selectedType={selectedCalloutType}
+					selectedColor={selectedCalloutColor}
+					position={calloutPicker}
+					onTypeChange={handleInlineCalloutTypeChange}
+					onColorChange={handleInlineCalloutColorChange}
+					onClose={() => setCalloutPicker((prev) => ({ ...prev, open: false }))}
 				/>
 			)}
 
@@ -1217,6 +1394,174 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 		</div>
 	);
 };
+
+const CalloutDialogModal = ({
+	palette = RTE_COLOR_PALETTE,
+	types = RTE_CALLOUT_TYPES,
+	selectedType,
+	selectedColor,
+	onTypeChange,
+	onColorChange,
+	onApply,
+	onClose,
+}) => (
+	<div
+		className="rte-modal-overlay"
+		onClick={onClose}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="rte-callout-title"
+	>
+		<div className="rte-modal" onClick={(e) => e.stopPropagation()}>
+			<div className="rte-modal-header">
+				<h3 id="rte-callout-title" className="rte-modal-title">Chenар stilizat</h3>
+				<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Inchide">
+					X
+				</button>
+			</div>
+			<div className="rte-modal-body">
+				<div className="rte-callout-modal-section">
+					<label className="rte-color-palette-label">Stil chenar</label>
+					<div className="rte-callout-type-grid">
+						{types.map((type) => (
+							<button
+								key={type.id}
+								type="button"
+								className={`rte-callout-type-btn ${selectedType === type.id ? 'is-selected' : ''}`}
+								data-type={type.id}
+								onClick={() => onTypeChange(type.id)}
+							>
+								<span className="rte-callout-type-btn-name">{type.label}</span>
+							</button>
+						))}
+					</div>
+				</div>
+				<div className="rte-callout-modal-section">
+					<label className="rte-color-palette-label">Culoare accent</label>
+					<div className="rte-color-palette-grid">
+						{palette.map((hex, i) => (
+							<div
+								key={`${hex}-${i}`}
+								role="button"
+								tabIndex={0}
+								className={`rte-color-swatch ${selectedColor === hex ? 'is-selected' : ''}`}
+								style={{ background: hex }}
+								onClick={() => onColorChange(hex)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										onColorChange(hex);
+									}
+								}}
+								title={hex}
+								aria-label={`Culoare ${hex}`}
+							/>
+						))}
+					</div>
+				</div>
+				<div className="rte-callout-preview">
+					<blockquote
+						className="rte-callout-preview-box"
+						data-callout-box="true"
+						data-callout-type={selectedType}
+						style={{
+							'--rte-callout-accent': selectedColor,
+						}}
+					>
+						<div className="rte-callout-content">
+							<p>Preview pentru chenарul selectat.</p>
+						</div>
+					</blockquote>
+				</div>
+				<div className="rte-callout-actions">
+					<button type="button" className="rte-callout-action-secondary" onClick={onClose}>Anuleaza</button>
+					<button type="button" className="rte-callout-action-primary" onClick={onApply}>Aplica</button>
+				</div>
+			</div>
+		</div>
+	</div>
+);
+
+const CalloutInlinePanel = ({
+	palette = RTE_COLOR_PALETTE,
+	types = RTE_CALLOUT_TYPES,
+	selectedType,
+	selectedColor,
+	position,
+	onTypeChange,
+	onColorChange,
+	onClose,
+}) => (
+	<div
+		className="rte-callout-inline-panel"
+		style={{ top: position.y, left: position.x }}
+		onClick={(e) => e.stopPropagation()}
+		role="dialog"
+		aria-modal="false"
+		aria-label="Selector chenar"
+	>
+		<div className="rte-callout-inline-header">
+			<div>
+				<div className="rte-callout-inline-title">Chenar</div>
+				<div className="rte-callout-inline-subtitle">Click direct pe stil si culoare</div>
+			</div>
+			<button type="button" onClick={onClose} className="rte-callout-inline-close" aria-label="Inchide">
+				X
+			</button>
+		</div>
+		<div className="rte-callout-inline-section">
+			<div className="rte-callout-inline-label">Forma</div>
+			<div className="rte-callout-type-grid rte-callout-type-grid-inline">
+				{types.map((type) => (
+					<button
+						key={type.id}
+						type="button"
+						className={`rte-callout-type-btn ${selectedType === type.id ? 'is-selected' : ''}`}
+						data-type={type.id}
+						onClick={() => onTypeChange(type.id)}
+					>
+						<span className="rte-callout-type-btn-name">{type.label}</span>
+					</button>
+				))}
+			</div>
+		</div>
+		<div className="rte-callout-inline-section">
+			<div className="rte-callout-inline-label">Culoare</div>
+			<div className="rte-color-palette-grid">
+				{palette.map((hex, i) => (
+					<div
+						key={`${hex}-${i}`}
+						role="button"
+						tabIndex={0}
+						className={`rte-color-swatch ${selectedColor === hex ? 'is-selected' : ''}`}
+						style={{ background: hex }}
+						onClick={() => onColorChange(hex)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								onColorChange(hex);
+							}
+						}}
+						title={hex}
+						aria-label={`Culoare ${hex}`}
+					/>
+				))}
+			</div>
+		</div>
+		<div className="rte-callout-preview rte-callout-preview-inline">
+			<blockquote
+				className="rte-callout-preview-box"
+				data-callout-box="true"
+				data-callout-type={selectedType}
+				style={{ '--rte-callout-accent': selectedColor }}
+			>
+				<div className="rte-callout-content">
+					<p>Preview live pentru chenarul selectat.</p>
+				</div>
+			</blockquote>
+		</div>
+	</div>
+);
 
 // Link Dialog Modal Component
 const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
@@ -1657,4 +2002,3 @@ const PdfUploadModal = ({
 };
 
 export default RichTextEditor;
-

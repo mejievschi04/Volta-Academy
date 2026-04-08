@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
 import {
-	buildStructuredCsv,
-	downloadCsv,
-	statisticsCsvFilename,
-} from '../../utils/statisticsCsvExport';
+	buildStructuredExcelRows,
+	downloadStructuredExcel,
+	statisticsExcelFilename,
+} from '../../utils/statisticsExcelExport';
 import './AdminStatisticsHubPage.css';
 
 const MENU_ITEMS = [
@@ -143,7 +143,7 @@ const AdminStatisticsHubPage = () => {
 	}, [reportRows]);
 
 	const exportStudentProgressCsv = useCallback(() => {
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Progres elevi',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -180,7 +180,7 @@ const AdminStatisticsHubPage = () => {
 				r.registeredAt ? new Date(r.registeredAt).toLocaleString('ro-RO') : '',
 			]),
 		});
-		downloadCsv(statisticsCsvFilename('progres-elevi'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('progres-elevi'), 'Progres elevi', rows);
 	}, [dateFrom, dateTo, kpis, reportRows]);
 
 	const renderStudentProgress = () => (
@@ -199,7 +199,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportStudentProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -340,7 +340,7 @@ const AdminStatisticsHubPage = () => {
 	}, [courseProgressRows]);
 
 	const exportCourseProgressCsv = useCallback(() => {
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Progres cursuri',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -375,7 +375,7 @@ const AdminStatisticsHubPage = () => {
 				r.updatedAt ? new Date(r.updatedAt).toLocaleString('ro-RO') : '',
 			]),
 		});
-		downloadCsv(statisticsCsvFilename('progres-cursuri'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('progres-cursuri'), 'Progres cursuri', rows);
 	}, [courseKpis, courseProgressRows, dateFrom, dateTo]);
 
 	const renderCourseProgress = () => (
@@ -394,7 +394,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportCourseProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -527,7 +527,7 @@ const AdminStatisticsHubPage = () => {
 	}, [testProgressRows]);
 
 	const exportTestProgressCsv = useCallback(() => {
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Progres teste',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -556,7 +556,7 @@ const AdminStatisticsHubPage = () => {
 				r.lastAt ? new Date(r.lastAt).toLocaleString('ro-RO') : '',
 			]),
 		});
-		downloadCsv(statisticsCsvFilename('progres-teste'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('progres-teste'), 'Progres teste', rows);
 	}, [dateFrom, dateTo, testKpis, testProgressRows]);
 
 	const renderTestProgress = () => (
@@ -575,7 +575,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportTestProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -707,7 +707,7 @@ const AdminStatisticsHubPage = () => {
 		const avgTop10 = topPerformers.length
 			? Math.round((topPerformers.reduce((sum, r) => sum + r.avgScore, 0) / topPerformers.length) * 10) / 10
 			: 0;
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Top 10 studenți',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -750,7 +750,7 @@ const AdminStatisticsHubPage = () => {
 						]
 					: [],
 		});
-		downloadCsv(statisticsCsvFilename('top-10-studenti'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('top-10-studenti'), 'Top studenti', rows);
 	}, [dateFrom, dateTo, needsAttention, topPerformers, topStudentsRows.length]);
 
 	const renderTopStudents = () => (
@@ -770,7 +770,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportTopStudentsCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -888,7 +888,7 @@ const AdminStatisticsHubPage = () => {
 	}, [statsData]);
 
 	const exportStudentsOverviewCsv = useCallback(() => {
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Elevi — detaliu',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -918,7 +918,7 @@ const AdminStatisticsHubPage = () => {
 				row.learningTime,
 			]),
 		});
-		downloadCsv(statisticsCsvFilename('elevi-detaliu'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('elevi-detaliu'), 'Elevi', rows);
 	}, [dateFrom, dateTo, studentsRows]);
 
 	const renderStudentsOverview = () => (
@@ -938,7 +938,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportStudentsOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -1036,7 +1036,7 @@ const AdminStatisticsHubPage = () => {
 	}, [statsData]);
 
 	const exportCoursesOverviewCsv = useCallback(() => {
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Cursuri — funnel',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -1071,7 +1071,7 @@ const AdminStatisticsHubPage = () => {
 				row.avgProgress,
 			]),
 		});
-		downloadCsv(statisticsCsvFilename('cursuri-funnel'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('cursuri-funnel'), 'Cursuri', rows);
 	}, [coursesRows, dateFrom, dateTo, statsData?.students?.length]);
 
 	const renderCoursesOverview = () => (
@@ -1092,7 +1092,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportCoursesOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 				</div>
 			</header>
@@ -1242,7 +1242,7 @@ const AdminStatisticsHubPage = () => {
 
 	const exportTestsOverviewCsv = useCallback(() => {
 		const searchNote = testsSearch.trim();
-		const rows = buildStructuredCsv({
+		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Teste — agregat și pe elevi',
 			periodFrom: dateFrom,
 			periodTo: dateTo,
@@ -1286,7 +1286,7 @@ const AdminStatisticsHubPage = () => {
 				},
 			],
 		});
-		downloadCsv(statisticsCsvFilename('teste-elevi'), rows);
+		downloadStructuredExcel(statisticsExcelFilename('teste-elevi'), 'Teste', rows);
 	}, [
 		dateFrom,
 		dateTo,
@@ -1315,7 +1315,7 @@ const AdminStatisticsHubPage = () => {
 						onClick={exportTestsOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
-						Export CSV
+						Export Excel
 					</button>
 					<input
 						type="search"

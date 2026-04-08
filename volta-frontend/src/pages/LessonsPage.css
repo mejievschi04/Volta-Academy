@@ -406,6 +406,7 @@
 }
 
 .lessons-page-lesson-body {
+	position: relative;
 	margin-bottom: var(--space-8);
 }
 
@@ -1334,6 +1335,7 @@
 }
 
 .lessons-page-lesson-body {
+	position: relative;
 	margin-bottom: var(--space-5);
 }
 
@@ -1605,4 +1607,13 @@
 		padding: var(--space-2) var(--space-4);
 		font-size: var(--font-size-xs);
 	}
+}
+
+.lesson-progress-marker {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
 }

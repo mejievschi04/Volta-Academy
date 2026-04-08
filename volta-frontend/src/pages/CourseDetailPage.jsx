@@ -6,6 +6,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import '../styles/course-detail-modern.css';
 
+const normalizeCourseModules = (courseData) => {
+	const sortedModules = [...(courseData?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+	const rootLessons = [...(courseData?.lessons || [])]
+		.filter((lesson) => lesson?.module_id == null)
+		.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+	if (!rootLessons.length) {
+		return sortedModules;
+	}
+
+	return [
+		{
+			id: `root-${courseData?.id || 'course'}`,
+			title: 'Lecții fără modul',
+			order: -1,
+			lessons: rootLessons,
+			courseTests: [],
+			isRootLessonGroup: true,
+		},
+		...sortedModules,
+	];
+};
+
 const CourseDetailPage = () => {
 	const { courseId } = useParams();
 	const navigate = useNavigate();
@@ -33,9 +56,7 @@ const CourseDetailPage = () => {
 			const courseData = await coursesService.getById(courseId);
 			setCourse(courseData);
 			
-			// Sort modules by order
-			const sortedModules = (courseData.modules || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-			setModules(sortedModules);
+			setModules(normalizeCourseModules(courseData));
 			
 			// Check if user is enrolled and fetch progress
 			if (user?.id) {
@@ -105,6 +126,7 @@ const CourseDetailPage = () => {
 	}
 
 	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+	const realModulesCount = Array.isArray(course?.modules) ? course.modules.length : 0;
 	// Include both module-level and course-level tests (course.exams from API)
 	const totalTests = course?.exams?.length ?? modules.reduce((sum, module) => sum + (module.courseTests?.length || 0), 0);
 	const detailCoverSrc = courseCoverSrc(course);
@@ -130,11 +152,10 @@ const CourseDetailPage = () => {
 					
 					<div className="course-detail-hero-main">
 						<div className="course-detail-hero-left">
-							{/* Status Badge - only draft/archived (published courses don't need a badge) */}
+							{/* Status Badge - only draft (published courses don't need a badge) */}
 							{course.status && course.status !== 'published' && (
 								<div className="course-detail-status-badge">
 									{course.status === 'draft' && <span className="course-status-badge draft">Ciornă</span>}
-									{course.status === 'archived' && <span className="course-status-badge archived">Arhivat</span>}
 								</div>
 							)}
 							
@@ -162,7 +183,7 @@ const CourseDetailPage = () => {
 									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 										<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H20V18M20 18V21M9 7H15M9 11H15M9 15H12"/>
 									</svg>
-									<span>{modules.length} {modules.length === 1 ? 'modul' : 'module'}</span>
+									<span>{realModulesCount} {realModulesCount === 1 ? 'modul' : 'module'}</span>
 								</div>
 								
 								<div className="course-detail-meta-item">
@@ -282,7 +303,9 @@ const CourseDetailPage = () => {
 									<div key={module.id} className="course-detail-module">
 										<div className="course-detail-module-header">
 											<div className="course-detail-module-info">
-												<span className="course-detail-module-number">Modul {moduleIndex + 1}</span>
+												<span className="course-detail-module-number">
+													{module.isRootLessonGroup ? 'Lecții' : `Modul ${moduleIndex + 1}`}
+												</span>
 												<h3 className="course-detail-module-title">{module.title}</h3>
 												{module.description && (
 													<p className="course-detail-module-description">{module.description}</p>

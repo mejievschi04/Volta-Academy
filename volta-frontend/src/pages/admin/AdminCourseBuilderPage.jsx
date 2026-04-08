@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Eye, EyeOff, Trash2 } from 'lucide-react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
@@ -163,15 +164,37 @@ const AdminCourseBuilderPage = () => {
 		[course?.modules, structure?.modules]
 	);
 
+	const rootLessons = useMemo(
+		() => {
+			const source = Array.isArray(structure?.root_lessons)
+				? structure.root_lessons
+				: Array.isArray(structure?.lessons)
+					? structure.lessons.filter((lessonItem) => lessonItem?.module_id == null)
+				: Array.isArray(course?.lessons)
+					? course.lessons.filter((lessonItem) => lessonItem?.module_id == null)
+					: [];
+
+			return source.map((lessonItem) => ({
+				...lessonItem,
+				module_id: null,
+				__moduleTitle: 'Fara modul',
+			}));
+		},
+		[course?.lessons, structure?.lessons, structure?.root_lessons]
+	);
+
 	const allLessons = useMemo(
 		() =>
-			modules.flatMap((moduleItem) =>
-				(moduleItem.lessons || []).map((lessonItem) => ({
-					...lessonItem,
-					__moduleTitle: moduleItem.title,
-				}))
-			),
-		[modules]
+			[
+				...rootLessons,
+				...modules.flatMap((moduleItem) =>
+					(moduleItem.lessons || []).map((lessonItem) => ({
+						...lessonItem,
+						__moduleTitle: moduleItem.title,
+					}))
+				),
+			],
+		[modules, rootLessons]
 	);
 
 	const selectedLesson = useMemo(() => {
@@ -415,25 +438,29 @@ const AdminCourseBuilderPage = () => {
 	}, [courseEditImageFile]);
 
 	useEffect(() => {
-		if (!modules.length) {
+		const hasModules = modules.length > 0;
+		const hasRootLessons = rootLessons.length > 0;
+
+		if (!hasModules && !hasRootLessons) {
 			setSelectedModuleId(null);
 			setSelectedLessonId(null);
 			return;
 		}
 
-		if (!selectedModuleId || !modules.some((moduleItem) => moduleItem.id === selectedModuleId)) {
-			setSelectedModuleId(modules[0].id);
+		if (selectedModuleId != null && !modules.some((moduleItem) => moduleItem.id === selectedModuleId)) {
+			setSelectedModuleId(hasModules ? modules[0].id : null);
 		}
 
 		const selectedLessonExists = selectedLessonId
-			? modules.some((moduleItem) => (moduleItem.lessons || []).some((lessonItem) => lessonItem.id === selectedLessonId))
+			? allLessons.some((lessonItem) => lessonItem.id === selectedLessonId)
 			: false;
 
 		if (!selectedLessonExists) {
-			const firstLesson = modules.flatMap((moduleItem) => moduleItem.lessons || [])[0];
+			const firstLesson = rootLessons[0] || modules.flatMap((moduleItem) => moduleItem.lessons || [])[0] || null;
 			setSelectedLessonId(firstLesson?.id || null);
+			setSelectedModuleId(firstLesson?.module_id ?? null);
 		}
-	}, [modules, selectedLessonId, selectedModuleId]);
+	}, [allLessons, modules, rootLessons, selectedLessonId, selectedModuleId]);
 
 	// Doar la schimbarea lecției — nu la fiecare refresh al structurii (ex. moveLesson, fetch).
 	// Altfel `selectedLesson.content` din snapshot poate fi gol/diferit și rescrie ce scrie utilizatorul.
@@ -532,16 +559,10 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const handleQuickCreateLesson = async () => {
-		const targetModuleId = selectedModuleId || modules[0]?.id;
-		if (!targetModuleId) {
-			showToast('Creează mai întâi un modul pentru a adăuga lecții.', 'error');
-			return;
-		}
-
-		const moduleItem = modules.find((m) => Number(m.id) === Number(targetModuleId));
-		const nextLessonOrder = (moduleItem?.lessons || []).length + 1;
-		const fallbackTitle = `Lecție ${nextLessonOrder}`;
+	const handleQuickCreateLesson = async (targetModuleId = selectedModuleId ?? null) => {
+		const moduleItem = targetModuleId != null ? modules.find((m) => Number(m.id) === Number(targetModuleId)) : null;
+		const nextLessonOrder = targetModuleId != null ? (moduleItem?.lessons || []).length + 1 : rootLessons.length + 1;
+		const fallbackTitle = `Lectie ${nextLessonOrder}`;
 
 		try {
 			const result = await adminService.builderCreateLesson(courseId, {
@@ -553,15 +574,15 @@ const AdminCourseBuilderPage = () => {
 			const lesson = result?.lesson ?? result;
 			await fetchStructure(true);
 			await flushAllInlineQuestionSavesRef.current();
-			setSelectedModuleId(targetModuleId);
+			setSelectedModuleId(targetModuleId ?? null);
 			if (lesson?.id) {
 				setSelectedLessonId(lesson.id);
 				setShowTestCreator(false);
 			}
-			showToast('Lecție nouă adăugată.', 'success');
+			showToast('Lectie noua adaugata.', 'success');
 		} catch (err) {
 			console.error('Quick create lesson failed:', err);
-			showToast(err?.response?.data?.message || 'Nu am putut crea lecția.', 'error');
+			showToast(err?.response?.data?.message || 'Nu am putut crea lectia.', 'error');
 		}
 	};
 
@@ -1108,9 +1129,6 @@ const AdminCourseBuilderPage = () => {
 			} else if (action === 'unpublish') {
 				await adminService.updateCourse(course.id, { status: 'draft' });
 				showToast('Cursul a fost retras din publicare', 'success');
-			} else if (action === 'archive') {
-				await adminService.updateCourse(course.id, { status: 'archived' });
-				showToast('Cursul a fost arhivat', 'success');
 			}
 			await fetchStructure(true);
 		} catch (e) {
@@ -1118,6 +1136,76 @@ const AdminCourseBuilderPage = () => {
 			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul cursului.', 'error');
 		} finally {
 			setCourseActionLoading(false);
+		}
+	};
+
+	const handleLessonStatusToggle = async (lessonId, nextStatus) => {
+		try {
+			await adminService.builderUpdateLesson(courseId, lessonId, { status: nextStatus });
+			await fetchStructure(true);
+			showToast(nextStatus === 'published' ? 'Lectia a fost publicata.' : 'Lectia a fost retrasa din publicare.', 'success');
+		} catch (e) {
+			console.error('Lesson status toggle failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul lectiei.', 'error');
+		}
+	};
+
+	const handleDeleteCourse = async () => {
+		if (!course?.id) return;
+		if (!window.confirm(`Stergi definitiv cursul "${course.title || 'fara titlu'}"?`)) return;
+		setCourseActionLoading(true);
+		try {
+			await adminService.deleteCourse(course.id);
+			showToast('Cursul a fost sters.', 'success');
+			navigate('/admin/courses');
+		} catch (e) {
+			console.error('Delete course failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut sterge cursul.', 'error');
+			setCourseActionLoading(false);
+		}
+	};
+
+	const handleDeleteModule = async (moduleItem) => {
+		if (!moduleItem?.id) return;
+		if (!window.confirm(`Stergi modulul "${moduleItem.title || 'fara titlu'}" si toate lecsiile lui?`)) return;
+		try {
+			await adminService.deleteModule(moduleItem.id);
+			await fetchStructure(true);
+			showToast('Modulul a fost sters.', 'success');
+		} catch (e) {
+			console.error('Delete module failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut sterge modulul.', 'error');
+		}
+	};
+
+	const handleDeleteLesson = async (lessonItem) => {
+		if (!lessonItem?.id) return;
+		if (!window.confirm(`Stergi lecsia "${lessonItem.title || 'fara titlu'}"?`)) return;
+		try {
+			await adminService.deleteLesson(lessonItem.id);
+			await fetchStructure(true);
+			showToast('Lectia a fost stearsa.', 'success');
+		} catch (e) {
+			console.error('Delete lesson failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut sterge lectia.', 'error');
+		}
+	};
+
+	const handleDeleteTestFromBuilder = async (testId) => {
+		if (!testId) return;
+		if (!window.confirm('Stergi definitiv acest test din creatorul de curs?')) return;
+		try {
+			await adminService.deleteTest(testId);
+			await fetchAttachedTests();
+			if (Number(inlineTest.id) === Number(testId)) {
+				setShowTestCreator(false);
+				setInlineTest({ ...INLINE_TEST_DEFAULT });
+				setInlineQuestions([]);
+			}
+			showToast('Testul a fost ?ters.', 'success');
+		} catch (e) {
+			console.error('Delete test failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut Sterge testul.', 'error');
 		}
 	};
 
@@ -1266,6 +1354,15 @@ const AdminCourseBuilderPage = () => {
 												type="button"
 												onClick={() => {
 													setQuickAddMenuOpen(false);
+													handleQuickCreateLesson(null);
+												}}
+											>
+												LecИ›ie fДѓrДѓ modul
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													setQuickAddMenuOpen(false);
 													handleOpenCreateTestModal();
 												}}
 											>
@@ -1337,7 +1434,56 @@ const AdminCourseBuilderPage = () => {
 								</ul>
 							</div>
 						)}
-						{modules.length === 0 ? (
+						{rootLessons.length > 0 && (
+							<div className="admin-course-builder-sidebar-course-tests-block">
+								<p className="admin-course-builder-sidebar-course-tests-label">Lectii fara modul</p>
+								<ul className="admin-course-builder-sidebar-lessons">
+									{rootLessons.map((lessonItem, lessonIndex) => (
+										<li key={lessonItem.id} className="admin-course-builder-sidebar-lesson-with-tests">
+											<div className="admin-course-builder-sidebar-lesson-row">
+												<button
+													type="button"
+													className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
+													onClick={async () => {
+														await flushPendingLessonContentSave();
+														await flushAllInlineQuestionSavesRef.current();
+														setSelectedModuleId(null);
+														setSelectedLessonId(lessonItem.id);
+														setShowTestCreator(false);
+													}}
+												>
+													<span className="admin-course-builder-sidebar-lesson-num">{lessonIndex + 1}</span>
+													<span className="admin-course-builder-sidebar-lesson-title">{lessonItem.title || `Lectie ${lessonIndex + 1}`}</span>
+												</button>
+												<button
+													type="button"
+													className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-hide' : 'is-publish'}`}
+													onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
+													title={lessonItem.status === 'published' ? 'Scoate din publicare lectia' : 'Publica lectia'}
+													aria-label={lessonItem.status === 'published' ? 'Scoate din publicare lectia' : 'Publica lectia'}
+												>
+													{lessonItem.status === 'published' ? (
+														<EyeOff aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+													) : (
+														<Eye aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+													)}
+												</button>
+												<button
+													type="button"
+													className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+													onClick={() => handleDeleteLesson(lessonItem)}
+													title="Sterge lectia"
+													aria-label="Sterge lectia"
+												>
+													<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+												</button>
+											</div>
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
+						{modules.length === 0 && rootLessons.length === 0 ? (
 							<div className="admin-course-builder-sidebar-empty-state">
 								<p className="admin-course-builder-sidebar-empty">Începe prin a crea un modul.</p>
 							</div>
@@ -1367,21 +1513,32 @@ const AdminCourseBuilderPage = () => {
 													}}
 												/>
 											) : (
-												<button
-													type="button"
-													className={`admin-course-builder-sidebar-module-title admin-course-builder-sidebar-link ${
-														selectedModuleId === moduleItem.id ? 'is-active' : ''
-													}`}
-													onClick={async () => {
-														await flushAllInlineQuestionSavesRef.current();
-														setSelectedModuleId(moduleItem.id);
-														setShowTestCreator(false);
-													}}
-													onDoubleClick={() => beginModuleRename(moduleItem)}
-													title="Dublu-click pentru a modifica denumirea modulului"
-												>
-													{moduleItem.title || `Modul ${moduleIndex + 1}`}
-												</button>
+												<>
+													<button
+														type="button"
+														className={`admin-course-builder-sidebar-module-title admin-course-builder-sidebar-link ${
+															selectedModuleId === moduleItem.id ? 'is-active' : ''
+														}`}
+														onClick={async () => {
+															await flushAllInlineQuestionSavesRef.current();
+															setSelectedModuleId(moduleItem.id);
+															setShowTestCreator(false);
+														}}
+														onDoubleClick={() => beginModuleRename(moduleItem)}
+														title="Dublu-click pentru a modifica denumirea modulului"
+													>
+														{moduleItem.title || `Modul ${moduleIndex + 1}`}
+													</button>
+													<button
+														type="button"
+														className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+														onClick={() => handleDeleteModule(moduleItem)}
+														title="Sterge modul"
+														aria-label="Sterge modul"
+													>
+														<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+													</button>
+												</>
 											)}
 										</div>
 										<ul className="admin-course-builder-sidebar-lessons">
@@ -1433,6 +1590,28 @@ const AdminCourseBuilderPage = () => {
 														>
 															<span className="admin-course-builder-sidebar-lesson-num">{lessonIndex + 1}</span>
 															<span className="admin-course-builder-sidebar-lesson-title">{lessonItem.title || `Lecție ${lessonIndex + 1}`}</span>
+														</button>
+														<button
+															type="button"
+															className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-hide' : 'is-publish'}`}
+															onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
+															title={lessonItem.status === 'published' ? 'Scoate din publicare lectia' : 'Publica lectia'}
+															aria-label={lessonItem.status === 'published' ? 'Scoate din publicare lectia' : 'Publica lectia'}
+														>
+															{lessonItem.status === 'published' ? (
+																<EyeOff aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+															) : (
+																<Eye aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+															)}
+														</button>
+														<button
+															type="button"
+															className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+															onClick={() => handleDeleteLesson(lessonItem)}
+															title="Sterge lectia"
+															aria-label="Sterge lectia"
+														>
+															<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
 														</button>
 													</div>
 													{getLessonAttachedTests(lessonItem.id).length > 0 && (
@@ -1548,7 +1727,7 @@ const AdminCourseBuilderPage = () => {
 								Editează curs
 							</button>
 							<span className={`admin-course-builder-course-status-badge is-${String(course?.status || 'draft')}`}>
-								{course?.status === 'published' ? 'Publicat' : course?.status === 'archived' ? 'Arhivat' : 'Ciornă'}
+								{course?.status === 'published' ? 'Publicat' : 'Ciornă'}
 							</span>
 							{course?.status !== 'published' && (
 								<button
@@ -1570,17 +1749,17 @@ const AdminCourseBuilderPage = () => {
 									{courseActionLoading ? 'Se procesează...' : 'Retrage'}
 								</button>
 							)}
-							{course?.status !== 'archived' && (
-								<button
-									type="button"
-									className="admin-btn admin-btn-secondary"
-									onClick={() => handleCourseStatusAction('archive')}
-									disabled={courseActionLoading}
-								>
-									Arhivează
-								</button>
-							)}
-							<AutoSaveIndicator status={lessonSaveStatus} />
+							<button
+								type="button"
+								className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+								onClick={handleDeleteCourse}
+								disabled={courseActionLoading}
+								title="Sterge curs"
+								aria-label="Sterge curs"
+							>
+								<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+							</button>
+<AutoSaveIndicator status={lessonSaveStatus} />
 						</div>
 					</div>
 				</aside>
@@ -2034,3 +2213,15 @@ const AdminCourseBuilderPage = () => {
 };
 
 export default AdminCourseBuilderPage;
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,6 +9,32 @@ import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import './LessonsPage.css';
 
+const LESSON_MILESTONES = [25, 50, 75, 100];
+
+const normalizeCourseModules = (courseData) => {
+	const sortedModules = [...(courseData?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+	const rootLessons = [...(courseData?.lessons || [])]
+		.filter((lesson) => lesson?.module_id == null)
+		.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+	if (!rootLessons.length) {
+		return sortedModules;
+	}
+
+	return [
+		{
+			id: `root-${courseData?.id || 'course'}`,
+			title: 'Lecții fără modul',
+			order: -1,
+			lessons: rootLessons,
+			course_tests: [],
+			courseTests: [],
+			isRootLessonGroup: true,
+		},
+		...sortedModules,
+	];
+};
+
 const LessonsPage = () => {
 	const { courseId } = useParams();
 	const [searchParams] = useSearchParams();
@@ -16,6 +42,7 @@ const LessonsPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
+	const sentMilestonesRef = useRef(new Set());
 	
 	const [course, setCourse] = useState(null);
 	const [modules, setModules] = useState([]);
@@ -30,6 +57,7 @@ const LessonsPage = () => {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
+	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
 
 	// Get lessonId from URL or auto-select first lesson
 	const lessonIdFromUrl = searchParams.get('lesson');
@@ -40,6 +68,11 @@ const LessonsPage = () => {
 			fetchCourseData();
 		}
 	}, [courseId]);
+
+	useEffect(() => {
+		setReachedMilestones(new Set());
+		sentMilestonesRef.current = new Set();
+	}, [selectedLessonId]);
 
 	// Auto-open first lesson when course loads (no lesson in URL)
 	useEffect(() => {
@@ -102,9 +135,7 @@ const LessonsPage = () => {
 			const courseData = await coursesService.getById(courseId);
 			setCourse(courseData);
 			
-			// Sort modules by order
-			const sortedModules = (courseData.modules || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-			setModules(sortedModules);
+			setModules(normalizeCourseModules(courseData));
 			
 			// Fetch progress if user is enrolled
 			if (user?.id) {
@@ -200,6 +231,54 @@ const LessonsPage = () => {
 	const getCourseLevelTestProgress = (testId) =>
 		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
 
+	useEffect(() => {
+		const pendingMilestones = LESSON_MILESTONES.filter(
+			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
+		);
+
+		if (!pendingMilestones.length) return;
+
+		pendingMilestones.forEach((milestone) => sentMilestonesRef.current.add(milestone));
+
+		let cancelled = false;
+
+		const syncMilestones = async () => {
+			for (const milestone of pendingMilestones) {
+				try {
+					const response = await courseProgressService.updateLessonProgress(selectedLessonId, {
+						milestone,
+						milestone_reached: milestone,
+						progress_percentage: milestone,
+						completed: milestone >= 100,
+					});
+
+					if (cancelled) return;
+
+					if (response?.completed || response?.auto_completed || milestone >= 100) {
+						setIsCompleted(true);
+						if (user?.id) {
+							try {
+								const progressData = await courseProgressService.getCourseProgress(courseId);
+								if (!cancelled) setProgress(progressData);
+							} catch (progressErr) {
+								console.log('Could not refresh progress');
+							}
+						}
+					}
+				} catch (err) {
+					if (cancelled) return;
+					sentMilestonesRef.current.delete(milestone);
+				}
+			}
+		};
+
+		syncMilestones();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [selectedLessonId, reachedMilestones, courseId, user?.id]);
+
 	// Auto-complete on scroll
 	const handleAutoComplete = useCallback(async () => {
 		if (isCompleting || isCompleted || !selectedLessonId) return;
@@ -232,33 +311,32 @@ const LessonsPage = () => {
 		// Must match: avoid completing the wrong lesson when switching (selectedLessonId updates before currentLesson)
 		if (currentLesson.id !== selectedLessonId) return;
 
-		let shortContentTimer = null;
-
+	
 		const checkCompletion = () => {
 			if (isCompleted || isCompleting) return;
 			if (currentLesson?.id !== selectedLessonId) return;
 
-			const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-			const windowHeight = window.innerHeight;
-			const documentHeight = document.documentElement.scrollHeight;
-			
-			const isNearBottom = scrollTop + windowHeight >= documentHeight - 100;
-			const isContentShort = documentHeight <= windowHeight + 50;
+			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
+			if (!markers.length) return;
 
-			if (isContentShort) {
-				if (!shortContentTimer) {
-					shortContentTimer = setTimeout(() => {
-						if (!isCompleted && !isCompleting) {
-							handleAutoComplete();
-						}
-					}, 2000);
+			const viewportBottom = window.innerHeight;
+			const seen = [];
+
+			markers.forEach((marker) => {
+				const milestone = Number(marker.dataset.lessonMilestone);
+				if (!Number.isFinite(milestone)) return;
+				const rect = marker.getBoundingClientRect();
+				if (rect.top <= viewportBottom) {
+					seen.push(milestone);
 				}
-			} else if (isNearBottom) {
-				if (shortContentTimer) {
-					clearTimeout(shortContentTimer);
-					shortContentTimer = null;
-				}
-				handleAutoComplete();
+			});
+
+			if (seen.length) {
+				setReachedMilestones((prev) => {
+					const next = new Set(prev);
+					seen.forEach((value) => next.add(value));
+					return next.size === prev.size ? prev : next;
+				});
 			}
 		};
 
@@ -286,11 +364,8 @@ const LessonsPage = () => {
 		return () => {
 			window.removeEventListener('scroll', throttledScroll);
 			clearTimeout(checkInitial);
-			if (shortContentTimer) {
-				clearTimeout(shortContentTimer);
-			}
 		};
-	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, handleAutoComplete]);
+	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, reachedMilestones]);
 
 	const handleNextLesson = () => {
 		let foundCurrent = false;
@@ -460,8 +535,12 @@ const LessonsPage = () => {
 											onClick={() => toggleModule(module.id)}
 										>
 											<div className="lessons-page-sidebar-module-info">
-												<span className="lessons-page-sidebar-module-number">{moduleIndex + 1}</span>
-												<span className="lessons-page-sidebar-module-title">{module.title}</span>
+												<span className="lessons-page-sidebar-module-number">
+													{module.isRootLessonGroup ? '•' : moduleIndex + 1}
+												</span>
+												<span className="lessons-page-sidebar-module-title">
+													{module.isRootLessonGroup ? 'Lecții fără modul' : module.title}
+												</span>
 											</div>
 											<svg 
 												className={`lessons-page-sidebar-module-arrow ${isModuleExpanded ? 'expanded' : ''}`}
@@ -627,6 +706,16 @@ const LessonsPage = () => {
 
 						{/* Lesson Content */}
 						<div className="lessons-page-lesson-body" ref={contentRef}>
+						{LESSON_MILESTONES.map((milestone) => (
+							<div
+								key={`lesson-milestone-${milestone}`}
+								className="lesson-progress-marker"
+								data-lesson-milestone={milestone}
+								style={{ top: `${milestone}%` }}
+								aria-hidden="true"
+							/>
+						))}
+
 							{(() => {
 								const blocks = Array.isArray(currentLesson.content_blocks) ? currentLesson.content_blocks : Array.isArray(currentLesson.contentBlocks) ? currentLesson.contentBlocks : [];
 								const hasBlocks = blocks.length > 0;

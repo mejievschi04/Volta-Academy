@@ -34,6 +34,13 @@ class CourseBuilderService
         $course = Course::with([
             'teacher:id,name,email',
             'teams:id,name',
+            'lessons' => function ($q) {
+                $q->whereNull('module_id')
+                    ->orderBy('order')
+                    ->with(['contentBlocks' => function ($cbq) {
+                        $cbq->orderBy('order');
+                    }]);
+            },
             'modules' => function ($q) {
                 $q->orderBy('order')->with([
                     'lessons' => function ($lq) {
@@ -46,17 +53,19 @@ class CourseBuilderService
         ])->findOrFail($courseId);
 
         $modules = $course->modules->values();
-
-        $lessons = $modules->flatMap(fn ($m) => $m->lessons)->values();
+        $rootLessons = $course->lessons->whereNull('module_id')->values();
+        $lessons = $rootLessons->concat($modules->flatMap(fn ($m) => $m->lessons))->values();
         $blocks = $lessons->flatMap(fn ($l) => $l->contentBlocks)->values();
 
         return [
             'course' => $course,
             'modules' => $modules,
+            'root_lessons' => $rootLessons,
             'lessons' => $lessons,
             'content_blocks' => $blocks,
             'meta' => [
                 'module_ids' => $modules->pluck('id')->all(),
+                'root_lesson_ids' => $rootLessons->pluck('id')->all(),
                 'lesson_ids' => $lessons->pluck('id')->all(),
                 'content_block_ids' => $blocks->pluck('id')->all(),
             ],
@@ -882,6 +891,29 @@ class CourseBuilderService
     }
 
     /**
+     * Create a lesson directly under a course, without a module.
+     */
+    public function createCourseLesson(Course $course, array $data): Lesson
+    {
+        $maxOrder = Lesson::where('course_id', $course->id)
+            ->whereNull('module_id')
+            ->max('order') ?? -1;
+
+        return Lesson::create([
+            'module_id' => null,
+            'course_id' => $course->id,
+            'title' => $data['title'],
+            'content' => $data['content'] ?? null,
+            'video_url' => $data['video_url'] ?? null,
+            'type' => $data['type'] ?? 'text',
+            'duration_minutes' => $data['duration_minutes'] ?? null,
+            'order' => $data['order'] ?? ($maxOrder + 1),
+            'status' => $data['status'] ?? 'published',
+            'is_preview' => $data['is_preview'] ?? false,
+        ]);
+    }
+
+    /**
      * Update a module
      */
     public function updateModule(Module $module, array $data): Module
@@ -904,11 +936,44 @@ class CourseBuilderService
      */
     public function deleteModule(Module $module): bool
     {
-        // Delete all lessons in module first
-        $module->lessons()->delete();
-        
-        // Delete module
-        return $module->delete();
+        return DB::transaction(function () use ($module) {
+            $lessons = $module->lessons()->get();
+
+            foreach ($lessons as $lesson) {
+                $this->deleteLesson($lesson);
+            }
+
+            CourseTest::where('course_id', $module->course_id)
+                ->where('scope', 'module')
+                ->where('scope_id', $module->id)
+                ->delete();
+
+            if (Schema::hasTable('progression_rules')) {
+                DB::table('progression_rules')
+                    ->where('course_id', $module->course_id)
+                    ->where(function ($query) use ($module) {
+                        $query->where(function ($q) use ($module) {
+                            $q->where('target_type', 'module')->where('target_id', $module->id);
+                        })->orWhere(function ($q) use ($module) {
+                            $q->where('condition_type', 'module')->where('condition_id', $module->id);
+                        });
+                    })
+                    ->delete();
+            }
+
+            $deleted = $module->delete();
+
+            $remainingIds = Module::where('course_id', $module->course_id)
+                ->orderBy('order')
+                ->pluck('id')
+                ->all();
+
+            if (!empty($remainingIds)) {
+                $this->reorderModules($module->course, $remainingIds);
+            }
+
+            return $deleted;
+        });
     }
 
     /**
@@ -916,7 +981,51 @@ class CourseBuilderService
      */
     public function deleteLesson(Lesson $lesson): bool
     {
-        return $lesson->delete();
+        return DB::transaction(function () use ($lesson) {
+            CourseTest::where('course_id', $lesson->course_id)
+                ->where('scope', 'lesson')
+                ->where('scope_id', $lesson->id)
+                ->delete();
+
+            Lesson::where('course_id', $lesson->course_id)
+                ->where('unlock_after_lesson_id', $lesson->id)
+                ->update(['unlock_after_lesson_id' => null]);
+
+            if (Schema::hasTable('progression_rules')) {
+                DB::table('progression_rules')
+                    ->where('course_id', $lesson->course_id)
+                    ->where(function ($query) use ($lesson) {
+                        $query->where(function ($q) use ($lesson) {
+                            $q->where('target_type', 'lesson')->where('target_id', $lesson->id);
+                        })->orWhere(function ($q) use ($lesson) {
+                            $q->where('condition_type', 'lesson')->where('condition_id', $lesson->id);
+                        });
+                    })
+                    ->delete();
+            }
+
+            $moduleId = $lesson->module_id;
+            $courseId = $lesson->course_id;
+            $deleted = $lesson->delete();
+
+            if ($moduleId) {
+                $module = Module::find($moduleId);
+                if ($module) {
+                    $remainingIds = Lesson::where('module_id', $moduleId)
+                        ->orderBy('order')
+                        ->pluck('id')
+                        ->all();
+
+                    if (!empty($remainingIds)) {
+                        $this->reorderLessons($module, $remainingIds);
+                    }
+                }
+            } else {
+                $this->reindexCourseRootLessons($courseId);
+            }
+
+            return $deleted;
+        });
     }
 
     /**
@@ -970,5 +1079,17 @@ class CourseBuilderService
 
         return true;
     }
-}
 
+    protected function reindexCourseRootLessons(int $courseId): void
+    {
+        $ids = Lesson::where('course_id', $courseId)
+            ->whereNull('module_id')
+            ->orderBy('order')
+            ->pluck('id')
+            ->all();
+
+        foreach ($ids as $index => $lessonId) {
+            Lesson::where('id', $lessonId)->update(['order' => $index]);
+        }
+    }
+}

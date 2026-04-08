@@ -26,6 +26,22 @@ export async function ensureApiCsrfCookie() {
   await api.get("/csrf-cookie");
 }
 
+function clearXsrfHeaderFromConfig(config) {
+  if (!config?.headers) return;
+  const h = config.headers;
+  if (typeof h.delete === "function") {
+    h.delete("X-XSRF-TOKEN");
+    h.delete("x-xsrf-token");
+  } else {
+    delete h["X-XSRF-TOKEN"];
+    delete h["x-xsrf-token"];
+    if (h.common) {
+      delete h.common["X-XSRF-TOKEN"];
+      delete h.common["x-xsrf-token"];
+    }
+  }
+}
+
 // Interceptor pentru request-uri
 api.interceptors.request.use(
   (config) => {
@@ -66,6 +82,8 @@ api.interceptors.response.use(
       config._csrfRetry = true;
       try {
         await api.get('/csrf-cookie');
+        // Fără asta, retry poate păstra X-XSRF-TOKEN vechi; cookie-ul e deja actualizat
+        clearXsrfHeaderFromConfig(config);
         return api.request(config);
       } catch (retryErr) {
         return Promise.reject(retryErr);

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Message;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -113,7 +115,11 @@ class Conversation extends Model
      */
     public function getLastMessage()
     {
-        return $this->messages()->latest()->first();
+        return Message::query()
+            ->where('conversation_id', $this->id)
+            ->latest('created_at')
+            ->latest('id')
+            ->first();
     }
 
     /**

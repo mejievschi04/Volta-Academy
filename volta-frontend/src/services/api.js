@@ -847,26 +847,31 @@ export const adminService = {
   },
   
   createEvent: async (eventData) => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/admin/events', eventData);
     return response.data;
   },
   
   updateEvent: async (id, eventData) => {
+    await ensureApiCsrfCookie();
     const response = await api.put(`/admin/events/${id}`, eventData);
     return response.data;
   },
   
   deleteEvent: async (id) => {
+    await ensureApiCsrfCookie();
     const response = await api.delete(`/admin/events/${id}`);
     return response.data;
   },
   
   eventQuickAction: async (id, action) => {
+    await ensureApiCsrfCookie();
     const response = await api.post(`/admin/events/${id}/actions/${action}`);
     return response.data;
   },
   
   eventBulkAction: async (action, eventIds) => {
+    await ensureApiCsrfCookie();
     const response = await api.post('/admin/events/bulk-actions', {
       action,
       event_ids: eventIds,
@@ -1177,11 +1182,6 @@ export const adminService = {
 
   builderPublishCourse: async (courseId, teamIds = []) => {
     const response = await api.post(`/admin/courses/${courseId}/builder/publish`, { team_ids: teamIds });
-    return response.data;
-  },
-
-  builderArchiveCourse: async (courseId) => {
-    const response = await api.post(`/admin/courses/${courseId}/builder/archive`);
     return response.data;
   },
 

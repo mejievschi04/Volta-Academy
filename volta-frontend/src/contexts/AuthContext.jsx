@@ -72,9 +72,10 @@ export const AuthProvider = ({ children }) => {
 	const checkAuth = async () => {
 		try {
 			const data = await authService.me();
-			setRawUser(data?.user || null);
-		} catch (error) {
-			setRawUser(null);
+			setRawUser(data?.user ?? null);
+		} catch {
+			// Rețea / 5xx pe /auth/me: nu ștergem sesiunea din UI (evită logout fals).
+			// 401 e tratat în authService.me() → { user: null }, fără throw.
 		} finally {
 			setLoading(false);
 		}

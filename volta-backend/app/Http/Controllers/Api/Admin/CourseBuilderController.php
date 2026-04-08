@@ -208,7 +208,7 @@ class CourseBuilderController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:draft,published,archived,disabled',
+            'status' => 'nullable|in:draft,published',
             'order' => 'nullable|integer|min:0',
         ]);
 
@@ -233,25 +233,31 @@ class CourseBuilderController extends Controller
 
     public function createLesson(Request $request, int $courseId)
     {
-        $this->ensureCourseAccess($courseId);
+        $course = $this->ensureCourseAccess($courseId);
         $validated = $request->validate([
-            'module_id' => 'required|exists:modules,id',
+            'module_id' => 'nullable|exists:modules,id',
             'title' => 'required|string|max:255',
             'type' => 'nullable|string|max:50',
-            'status' => 'nullable|in:draft,published,archived,disabled',
+            'status' => 'nullable|in:draft,published',
             'duration_minutes' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'order' => 'nullable|integer|min:0',
         ]);
 
-        $module = Module::where('id', $validated['module_id'])
-            ->where('course_id', $courseId)
-            ->firstOrFail();
-
         // Ensure builder lessons can exist without legacy `content` field (content blocks are canonical)
-        $lesson = $this->courseBuilderService->createLesson($module, array_merge([
+        $lessonPayload = array_merge([
             'content' => $request->input('content', ''), // keep backward compatibility
-        ], $validated));
+        ], $validated);
+
+        if (!empty($validated['module_id'])) {
+            $module = Module::where('id', $validated['module_id'])
+                ->where('course_id', $courseId)
+                ->firstOrFail();
+
+            $lesson = $this->courseBuilderService->createLesson($module, $lessonPayload);
+        } else {
+            $lesson = $this->courseBuilderService->createCourseLesson($course, $lessonPayload);
+        }
 
         ActivityLog::create([
             'user_id' => $request->user()?->id,
@@ -280,7 +286,7 @@ class CourseBuilderController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'type' => 'nullable|string|max:50',
-            'status' => 'nullable|in:draft,published,archived,disabled',
+            'status' => 'nullable|in:draft,published',
             'duration_minutes' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'is_locked' => 'nullable|boolean',
@@ -592,41 +598,6 @@ class CourseBuilderController extends Controller
         ]);
     }
 
-    public function archive(Request $request, int $courseId)
-    {
-        $course = $this->ensureCourseAccess($courseId);
-        $oldStatus = $course->status;
-        $oldWorkflowStatus = $course->workflow_status;
-
-        DB::transaction(function () use ($course) {
-            $course->update(['status' => 'archived', 'workflow_status' => 'archived']);
-            Module::where('course_id', $course->id)->where('status', '!=', 'archived')->update(['status' => 'archived']);
-            Lesson::where('course_id', $course->id)->where('status', '!=', 'archived')->update(['status' => 'archived']);
-        });
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.archive_course',
-            'model_type' => Course::class,
-            'model_id' => $course->id,
-            'description' => 'Archive course',
-            'old_values' => [
-                'status' => $oldStatus,
-                'workflow_status' => $oldWorkflowStatus,
-            ],
-            'new_values' => [
-                'status' => 'archived',
-                'workflow_status' => 'archived',
-            ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'course' => $course->fresh(),
-        ]);
-    }
 
     public function clone(Request $request, int $courseId)
     {
@@ -791,4 +762,3 @@ class CourseBuilderController extends Controller
         ]);
     }
 }
-

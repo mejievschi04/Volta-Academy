@@ -261,6 +261,7 @@ body.admin-course-builder-scroll-lock .va-main {
 	padding: var(--space-3);
 }
 
+
 .admin-course-builder-sidebar-footer {
 	flex-shrink: 0;
 	padding: 10px 12px 12px;
@@ -445,6 +446,12 @@ body.admin-course-builder-scroll-lock .va-main {
 	width: 100%;
 	text-align: left;
 	padding: var(--space-2);
+}
+
+.admin-course-builder-inline-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .admin-course-builder-main {
@@ -3436,6 +3443,7 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 	min-width: 0;
 }
 
+
 .admin-course-builder-sidebar-lesson-drag-handle {
 	flex-shrink: 0;
 	display: inline-flex;
@@ -3464,6 +3472,54 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 .admin-course-builder-sidebar-lesson-row .admin-course-builder-sidebar-lesson {
 	flex: 1;
 	min-width: 0;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn {
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 2px 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	color: #2563eb;
+	font-size: 0.8rem;
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: none;
+	opacity: 0.95;
+	transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn.is-danger {
+	color: #dc2626;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn:hover {
+	background: transparent;
+	color: #1d4ed8;
+	transform: translateY(-1px);
+	opacity: 1;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.admin-course-builder-sidebar-lesson-icon-btn.is-danger:hover {
+	background: transparent;
+	color: #b91c1c;
 }
 
 .admin-course-builder-sidebar-lesson-drop-end {

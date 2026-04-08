@@ -19,6 +19,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import { prefetchRoute } from './utils/prefetch';
 import { toImageUrl } from './utils/imageUrl';
 import { isStaffAdminRole } from './constants/staffRoles';
+import { messagesService } from './services/api';
 /* Modern Design System - Unified & Standardized */
 import './styles/design-system.css';
 import './styles/light-theme-wcag.css';
@@ -230,6 +231,7 @@ function Layout({ children }) {
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
+	const [messagesUnreadCount, setMessagesUnreadCount] = React.useState(0);
 
 	const prevShowUserLayoutRef = React.useRef(null);
 	React.useEffect(() => {
@@ -323,6 +325,70 @@ function Layout({ children }) {
 			setAdminTopnavContext(null);
 		}
 	}, [location.pathname]);
+
+	const loadMessagesUnreadCount = React.useCallback(async () => {
+		if (!user) {
+			setMessagesUnreadCount(0);
+			return;
+		}
+
+		try {
+			const data = await messagesService.getConversations();
+			const list = Array.isArray(data) ? data : [];
+			const total = list.reduce((sum, conversation) => {
+				const value = Number(
+					conversation?.unreadCount ??
+					conversation?.unread_count ??
+					conversation?.unread_messages_count ??
+					conversation?.unreadMessagesCount ??
+					0
+				);
+				return sum + (Number.isFinite(value) ? Math.max(0, value) : 0);
+			}, 0);
+			setMessagesUnreadCount(total);
+		} catch {}
+	}, [user]);
+
+	React.useEffect(() => {
+		if (!user) {
+			setMessagesUnreadCount(0);
+			return;
+		}
+
+		let intervalId = null;
+		const syncUnreadPolling = () => {
+			if (intervalId) {
+				clearInterval(intervalId);
+				intervalId = null;
+			}
+
+			if (!document.hidden) {
+				loadMessagesUnreadCount();
+				intervalId = window.setInterval(loadMessagesUnreadCount, 15000);
+			}
+		};
+
+		syncUnreadPolling();
+		const handleVisibilityChange = () => syncUnreadPolling();
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			if (intervalId) clearInterval(intervalId);
+		};
+	}, [loadMessagesUnreadCount, user]);
+
+	React.useEffect(() => {
+		const handleConversationRead = () => {
+			setMessagesUnreadCount((current) => Math.max(0, current - 1));
+			window.setTimeout(() => {
+				loadMessagesUnreadCount();
+			}, 120);
+		};
+
+		window.addEventListener('volta:conversation-read', handleConversationRead);
+		return () => window.removeEventListener('volta:conversation-read', handleConversationRead);
+	}, [loadMessagesUnreadCount]);
 	
 	// Track navigation context for messages page
 	React.useEffect(() => {
@@ -390,6 +456,9 @@ function Layout({ children }) {
 	// Determine courses path based on user role and current view
 	// All users use /courses (which redirects appropriately based on role)
 	const coursesPath = '/courses';
+	const renderMessagesNavBadge = () => messagesUnreadCount > 0 ? (
+		<span className="messages-menu-badge">{messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}</span>
+	) : null;
 
 	/* Ordine aliniată cu LMS Pro (Volta Pro): Cursuri → Evenimente → … → Profil la final */
 	const navItems = [
@@ -654,7 +723,7 @@ function Layout({ children }) {
 														onMouseEnter={() => prefetchRoute(item.path)}
 													>
 														<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-														<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+														<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 														<span className="modern-nav-submenu-chevron" aria-hidden>
 															<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
 														</span>
@@ -673,7 +742,7 @@ function Layout({ children }) {
 														}}
 													>
 														<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-														<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+														<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 													</button>
 												)}
 												{contentSubmenuOpen && isSidebarExpanded && (
@@ -712,7 +781,7 @@ function Layout({ children }) {
 												}}
 											>
 												<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-												<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+												<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 											</NavLink>
 										)
 									)}
@@ -734,7 +803,7 @@ function Layout({ children }) {
 												}}
 											>
 												<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-												<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+												<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 											</NavLink>
 										))}
 								</div>
@@ -1061,7 +1130,7 @@ function Layout({ children }) {
 										}}
 									>
 										<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-										<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+										<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 									</NavLink>
 								))}
 							</div>
@@ -1200,7 +1269,7 @@ function Layout({ children }) {
 									onMouseEnter={() => prefetchRoute(item.path)}
 								>
 									<span className="modern-topnav-item-icon va-topnav-icon">{item.icon}</span>
-									<span className="modern-topnav-item-label va-topnav-label">{item.label}</span>
+									<span className="modern-topnav-item-label va-topnav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 								</NavLink>
 							))}
 						</nav>

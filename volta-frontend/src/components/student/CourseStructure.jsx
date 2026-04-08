@@ -1,9 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const buildRenderableModules = (course) => {
+	const sortedModules = [...(course?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+	const rootLessons = [...(course?.lessons || [])]
+		.filter((lesson) => lesson?.module_id == null)
+		.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+	if (!rootLessons.length) {
+		return sortedModules;
+	}
+
+	return [
+		{
+			id: `root-${course?.id || 'course'}`,
+			title: 'Lecții fără modul',
+			order: -1,
+			lessons: rootLessons,
+			exams: [],
+			isRootLessonGroup: true,
+		},
+		...sortedModules,
+	];
+};
+
 const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 	const navigate = useNavigate();
 	const [expandedModules, setExpandedModules] = useState({});
+	const renderableModules = buildRenderableModules(course);
 
 	const toggleModule = (moduleId) => {
 		setExpandedModules(prev => ({
@@ -14,12 +38,12 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 
 	// Initialize: expand first module by default
 	React.useEffect(() => {
-		if (course?.modules?.length > 0 && Object.keys(expandedModules).length === 0) {
-			setExpandedModules({ [course.modules[0].id]: true });
+		if (renderableModules.length > 0 && Object.keys(expandedModules).length === 0) {
+			setExpandedModules({ [renderableModules[0].id]: true });
 		}
-	}, [course?.modules]);
+	}, [renderableModules, expandedModules]);
 
-	if (!course || !course.modules) return null;
+	if (!course) return null;
 
 	const getModuleProgress = (moduleId) => {
 		const module = progress?.modules?.find(m => m.id === moduleId);
@@ -59,7 +83,7 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 			<h2 className="student-course-structure-title">Structura cursului</h2>
 			
 			<div className="student-course-structure-modules">
-				{course.modules.map((module, moduleIndex) => {
+				{renderableModules.map((module, moduleIndex) => {
 					const moduleProgress = getModuleProgress(module.id);
 					const isExpanded = expandedModules[module.id];
 					const moduleLessons = module.lessons || [];
@@ -77,7 +101,7 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 									</div>
 									<div className="student-course-structure-module-content">
 										<div className="student-course-structure-module-title">
-											{module.title}
+											{module.isRootLessonGroup ? 'Lecții fără modul' : module.title}
 										</div>
 										<div className="student-course-structure-module-meta">
 											<span className="student-course-structure-module-progress">
@@ -209,4 +233,3 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 };
 
 export default CourseStructure;
-

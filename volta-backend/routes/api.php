@@ -211,7 +211,6 @@ Route::middleware([
         Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
         Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
         Route::post('/publish', [CourseBuilderController::class, 'publish']);
-        Route::post('/archive', [CourseBuilderController::class, 'archive']);
         Route::post('/clone', [CourseBuilderController::class, 'clone']);
 
         Route::get('/versions', [CourseBuilderController::class, 'versions']);

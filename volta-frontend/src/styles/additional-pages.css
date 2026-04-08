@@ -1686,6 +1686,21 @@ body.sidebar-expanded .messages-page {
 	font-weight: var(--font-weight-bold);
 }
 
+.messages-unread-meta {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+.messages-unread-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	flex-shrink: 0;
+}
+
 .messages-unread-badge {
 	min-width: 20px;
 	height: 20px;
@@ -1697,6 +1712,21 @@ body.sidebar-expanded .messages-page {
 	align-items: center;
 	justify-content: center;
 	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+	flex-shrink: 0;
+}
+
+.messages-menu-badge {
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
+	border-radius: var(--radius-full);
+	background-color: var(--color-primary);
+	color: var(--text-inverse) !important;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
 	font-weight: var(--font-weight-bold);
 	flex-shrink: 0;
 }

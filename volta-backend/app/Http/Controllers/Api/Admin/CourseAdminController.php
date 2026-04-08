@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
+use App\Models\CourseMap;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\CourseBuilderService;
@@ -242,6 +243,28 @@ class CourseAdminController extends Controller
         }
     }
 
+    private function attachCourseToDefaultMap(Course $course, int $ownerUserId): void
+    {
+        $map = CourseMap::firstOrCreate(
+            [
+                'name' => 'Cursuri fara mapa',
+                'created_by' => $ownerUserId,
+            ],
+            [
+                'description' => 'Cursuri create recent, neorganizate inca intr-o mapa finala.',
+                'order' => 0,
+            ]
+        );
+
+        $alreadyAttached = $map->courses()->where('courses.id', $course->id)->exists();
+        if ($alreadyAttached) {
+            return;
+        }
+
+        $nextOrder = ((int) $map->courses()->max('course_map_course.order')) + 1;
+        $map->courses()->attach($course->id, ['order' => $nextOrder]);
+    }
+
     public function show($id)
     {
         try {
@@ -374,7 +397,7 @@ class CourseAdminController extends Controller
             'reward_points' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'card_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|in:draft,published',
             'access_type' => 'nullable|in:free',
             'enrollment_type' => 'nullable|string|in:open,by_invite,paid',
             'price' => 'nullable|numeric|min:0',
@@ -454,6 +477,7 @@ class CourseAdminController extends Controller
         }
 
         $course = $this->courseBuilderService->createCourse($data, $teacher);
+        $this->attachCourseToDefaultMap($course, (int) $request->user()->id);
 
         ActivityLog::create([
             'user_id' => $request->user()?->id,
@@ -491,7 +515,7 @@ class CourseAdminController extends Controller
             'card_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'teacher_id' => 'nullable|exists:users,id',
             'reward_points' => 'nullable|integer|min:0',
-            'status' => 'nullable|in:draft,published,archived,disabled',
+            'status' => 'nullable|in:draft,published',
             'access_type' => 'nullable|in:free',
             'enrollment_type' => 'nullable|string|in:open,by_invite,paid',
             'price' => 'nullable|numeric|min:0',
@@ -664,21 +688,6 @@ class CourseAdminController extends Controller
                     $course->update(['status' => 'draft']);
                 }
                 break;
-            case 'archive':
-                if (Schema::hasColumn('courses', 'status')) {
-                    $course->update(['status' => 'archived']);
-                }
-                break;
-            case 'unarchive':
-                if (Schema::hasColumn('courses', 'status')) {
-                    $course->update(['status' => 'draft']);
-                }
-                break;
-            case 'disable':
-                if (Schema::hasColumn('courses', 'status')) {
-                    $course->update(['status' => 'disabled']);
-                }
-                break;
             case 'duplicate':
                 $newCourse = $course->replicate();
                 $newCourse->title = $course->title . ' (Copy)';
@@ -703,7 +712,7 @@ class CourseAdminController extends Controller
             $validated = $request->validate([
                 'course_ids' => 'required|array|min:1',
                 'course_ids.*' => 'exists:courses,id',
-                'action' => 'required|in:publish,archive,disable,delete,unpublish',
+                'action' => 'required|in:publish,delete,unpublish',
             ]);
 
             $query = Course::whereIn('id', $validated['course_ids']);
@@ -734,19 +743,6 @@ class CourseAdminController extends Controller
                         case 'unpublish':
                             if (Schema::hasColumn('courses', 'status')) {
                                 $course->update(['status' => 'draft']);
-                                $updated++;
-                            }
-                            break;
-                        case 'archive':
-                            if (Schema::hasColumn('courses', 'status')) {
-                                $course->update(['status' => 'archived']);
-                                $updated++;
-                            }
-                            break;
-                        case 'disable':
-                            if (Schema::hasColumn('courses', 'status')) {
-                                // Use 'archived' instead of 'disabled' as it's not in the enum
-                                $course->update(['status' => 'archived']);
                                 $updated++;
                             }
                             break;

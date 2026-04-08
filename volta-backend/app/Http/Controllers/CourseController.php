@@ -83,7 +83,7 @@ class CourseController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Nu s-au putut încărca cursurile',
+                'error' => 'Nu s-au putut Г®ncДѓrca cursurile',
                 'message' => $e->getMessage(),
             ], 500);
         }
@@ -95,6 +95,9 @@ class CourseController extends Controller
             // For single course, include full content with modules, lessons, and tests
             // Note: exams relationship doesn't exist on Module, use courseTests instead
             $course = Course::with([
+                'lessons' => function($q) {
+                    $q->whereNull('module_id')->orderBy('order');
+                },
                 'modules' => function($q) {
                     $q->orderBy('order');
                     // Don't filter by status - show all modules for course detail view
@@ -118,7 +121,7 @@ class CourseController extends Controller
             $user = $request->user();
             $showDraftLinkedTests = $user && in_array($user->role ?? '', ['admin', 'instructor'], true);
 
-            // Teste la nivel de lecție (course_test scope=lesson) — structura studentului
+            // Teste la nivel de lecИ›ie (course_test scope=lesson) вЂ” structura studentului
             $lessonScopeRows = CourseTest::where('course_id', $course->id)
                 ->where('scope', 'lesson')
                 ->with(['test' => function ($q) {
@@ -155,6 +158,33 @@ class CourseController extends Controller
                         ];
                     })->filter()->values()->all());
                 }
+            }
+
+            foreach ($course->lessons as $lesson) {
+                $rows = $lessonScopeRows->get($lesson->id, collect());
+                $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                    if (!$courseTest->test) {
+                        return null;
+                    }
+                    if (!$showDraftLinkedTests && $courseTest->test->status !== 'published') {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $courseTest->id,
+                        'test_id' => $courseTest->test_id,
+                        'required' => (bool) ($courseTest->required ?? false),
+                        'passing_score' => $courseTest->passing_score ?? 70,
+                        'order' => $courseTest->order ?? 0,
+                        'test' => [
+                            'id' => $courseTest->test->id,
+                            'title' => $courseTest->test->title,
+                            'description' => $courseTest->test->description,
+                            'type' => $courseTest->test->type,
+                            'status' => $courseTest->test->status,
+                        ],
+                    ];
+                })->filter()->values()->all());
             }
             
             // Transform courseTests to exams format for frontend compatibility (doar Test / course_test)
@@ -257,7 +287,7 @@ class CourseController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Nu s-a putut încărca cursul',
+                'error' => 'Nu s-a putut Г®ncДѓrca cursul',
                 'message' => $e->getMessage(),
             ], 500);
         }
@@ -275,7 +305,7 @@ class CourseController extends Controller
         // Check if test is passed
         $exam = \App\Models\Exam::where('course_id', $course->id)->first();
         if (!$exam) {
-            return response()->json(['error' => 'Nu există test pentru acest curs'], 404);
+            return response()->json(['error' => 'Nu existДѓ test pentru acest curs'], 404);
         }
 
         $latestResult = \App\Models\ExamResult::where('exam_id', $exam->id)
@@ -351,4 +381,5 @@ class CourseController extends Controller
         ]);
     }
 }
+
 

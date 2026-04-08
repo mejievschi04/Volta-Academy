@@ -10,12 +10,15 @@ import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import './LessonPage.css';
 
+const LESSON_MILESTONES = [25, 50, 75, 100];
+
 const LessonPage = () => {
 	const { courseId, lessonId } = useParams();
 	const navigate = useNavigate();
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
+	const sentMilestonesRef = useRef(new Set());
 	
 	const [lesson, setLesson] = useState(null);
 	const [course, setCourse] = useState(null);
@@ -25,6 +28,7 @@ const LessonPage = () => {
 	const [isCompleting, setIsCompleting] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
+	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
 
 	useLessonTimeTracking(lessonId, {
 		userId: user?.id,
@@ -55,43 +59,80 @@ const LessonPage = () => {
 		}
 	}, [lessonId, courseId]);
 
+	useEffect(() => {
+		setReachedMilestones(new Set());
+		sentMilestonesRef.current = new Set();
+	}, [lessonId]);
+
+	useEffect(() => {
+		const pendingMilestones = LESSON_MILESTONES.filter(
+			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
+		);
+
+		if (!pendingMilestones.length) return;
+
+		pendingMilestones.forEach((milestone) => sentMilestonesRef.current.add(milestone));
+
+		let cancelled = false;
+
+		const syncMilestones = async () => {
+			for (const milestone of pendingMilestones) {
+				try {
+					const response = await courseProgressService.updateLessonProgress(lessonId, {
+						milestone,
+						milestone_reached: milestone,
+						progress_percentage: milestone,
+						completed: milestone >= 100,
+					});
+
+					if (cancelled) return;
+
+					if (response?.completed || response?.auto_completed || milestone >= 100) {
+						setIsCompleted(true);
+					}
+				} catch (err) {
+					if (cancelled) return;
+					sentMilestonesRef.current.delete(milestone);
+				}
+			}
+		};
+
+		syncMilestones();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [lessonId, reachedMilestones]);
+
 	// Auto-complete on scroll
 	useEffect(() => {
 		if (!lesson || isCompleted || isCompleting) return;
 
-		let shortContentTimer = null;
-
+	
 		const checkCompletion = () => {
 			if (isCompleted || isCompleting) return;
 
-			// Calculate scroll position
-			const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-			const windowHeight = window.innerHeight;
-			const documentHeight = document.documentElement.scrollHeight;
-			
-			// Check if user is near the bottom (within 100px)
-			const isNearBottom = scrollTop + windowHeight >= documentHeight - 100;
-			const isContentShort = documentHeight <= windowHeight + 50; // Content fits in viewport with small margin
+			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
+			if (!markers.length) return;
 
-			// For short content: auto-complete after 2 seconds (user has time to read)
-			if (isContentShort) {
-				if (!shortContentTimer) {
-					shortContentTimer = setTimeout(() => {
-						if (!isCompleted && !isCompleting) {
-							handleAutoComplete();
-						}
-					}, 2000); // 2 seconds delay for short content
+			const viewportBottom = window.innerHeight;
+			const seen = [];
+
+			markers.forEach((marker) => {
+				const milestone = Number(marker.dataset.lessonMilestone);
+				if (!Number.isFinite(milestone)) return;
+				const rect = marker.getBoundingClientRect();
+				if (rect.top <= viewportBottom) {
+					seen.push(milestone);
 				}
-			} 
-			// For long content: auto-complete when scrolled to bottom
-			else if (isNearBottom) {
-				// Clear short content timer if it exists
-				if (shortContentTimer) {
-					clearTimeout(shortContentTimer);
-					shortContentTimer = null;
-				}
-				// Complete when at bottom
-				handleAutoComplete();
+			});
+
+			if (seen.length) {
+				setReachedMilestones((prev) => {
+					const next = new Set(prev);
+					seen.forEach((value) => next.add(value));
+					return next.size === prev.size ? prev : next;
+				});
 			}
 		};
 
@@ -122,11 +163,8 @@ const LessonPage = () => {
 		return () => {
 			window.removeEventListener('scroll', throttledScroll);
 			clearTimeout(checkInitial);
-			if (shortContentTimer) {
-				clearTimeout(shortContentTimer);
-			}
 		};
-	}, [lesson, isCompleted, isCompleting, handleAutoComplete]);
+	}, [lesson, isCompleted, isCompleting, reachedMilestones]);
 
 	const fetchLessonData = async () => {
 		try {
@@ -306,6 +344,16 @@ const LessonPage = () => {
 
 					{/* Lesson Content */}
 					<div className="lesson-page-body" ref={contentRef}>
+						{LESSON_MILESTONES.map((milestone) => (
+							<div
+								key={`lesson-milestone-${milestone}`}
+								className="lesson-progress-marker"
+								data-lesson-milestone={milestone}
+								style={{ top: `${milestone}%` }}
+								aria-hidden="true"
+							/>
+						))}
+
 						{(() => {
 							const blocks = Array.isArray(lesson.content_blocks) ? lesson.content_blocks : Array.isArray(lesson.contentBlocks) ? lesson.contentBlocks : [];
 							const hasBlocks = blocks.length > 0;

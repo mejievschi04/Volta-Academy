@@ -257,12 +257,7 @@ const MessagesPage = () => {
 			// Mark conversation as read
 			if (conversationId) {
 				await messagesService.markAsRead(conversationId);
-				// Actualizează contorul necitite în lista de conversații
-				setConversations(prev => prev.map(conv => 
-					conv.id === conversationId
-						? { ...conv, unreadCount: 0 }
-						: conv
-				));
+				applyConversationReadLocally(conversationId);
 			}
 		} catch (err) {
 			logger.error('Error fetching messages:', err);
@@ -379,6 +374,97 @@ const MessagesPage = () => {
 			: 'Student';
 	};
 
+	const getConversationMessages = (conversation) => {
+		if (!conversation) return [];
+		return [
+			...(Array.isArray(conversation.messages) ? conversation.messages : []),
+			...(Array.isArray(conversation.conversation_messages) ? conversation.conversation_messages : []),
+			...(Array.isArray(conversation.conversationMessages) ? conversation.conversationMessages : []),
+		];
+	};
+
+	const getMessageTimestamp = (message) => {
+		if (!message) return 0;
+		const candidates = [
+			message.created_at,
+			message.createdAt,
+			message.sent_at,
+			message.sentAt,
+			message.updated_at,
+			message.updatedAt,
+		];
+
+		for (const candidate of candidates) {
+			if (!candidate) continue;
+			const timestamp = new Date(candidate).getTime();
+			if (Number.isFinite(timestamp)) return timestamp;
+		}
+
+		const fallbackId = Number(message.id);
+		return Number.isFinite(fallbackId) ? fallbackId : 0;
+	};
+
+	const getConversationLastMessage = (conversation) => {
+		const directCandidates = [
+			conversation?.lastMessage,
+			conversation?.last_message,
+			conversation?.latest_message,
+			conversation?.latestMessage,
+		].filter(Boolean);
+		const nestedMessages = getConversationMessages(conversation).filter(Boolean);
+		const allCandidates = [...directCandidates, ...nestedMessages];
+		if (!allCandidates.length) return null;
+		return allCandidates.slice().sort((a, b) => getMessageTimestamp(a) - getMessageTimestamp(b)).at(-1) || null;
+	};
+
+	const getConversationPreviewText = (conversation) => {
+		const lastMessage = getConversationLastMessage(conversation);
+		return String(lastMessage?.content ?? lastMessage?.message ?? lastMessage?.text ?? '').trim();
+	};
+
+	const getConversationUnreadCount = (conversation) => {
+		const directValues = [
+			conversation?.unreadCount,
+			conversation?.unread_count,
+			conversation?.unread_messages_count,
+			conversation?.unreadMessagesCount,
+			conversation?.new_messages_count,
+		];
+
+		for (const value of directValues) {
+			const count = Number(value);
+			if (Number.isFinite(count)) return Math.max(0, count);
+		}
+
+		return getConversationMessages(conversation).reduce((total, message) => {
+			const unreadFlag = message?.is_unread ?? message?.isUnread ?? message?.unread ?? false;
+			return total + (unreadFlag ? 1 : 0);
+		}, 0);
+	};
+
+	const getConversationUpdatedAt = (conversation) => {
+		const lastMessage = getConversationLastMessage(conversation);
+		return conversation?.updated_at || conversation?.updatedAt || conversation?.last_message_at || conversation?.lastMessageAt || lastMessage?.created_at || lastMessage?.createdAt || null;
+	};
+
+	const applyConversationReadLocally = (conversationId) => {
+		const id = String(conversationId);
+		const clearUnread = (conversation) => conversation && String(conversation.id) === id
+			? {
+				...conversation,
+				unreadCount: 0,
+				unread_count: 0,
+				unread_messages_count: 0,
+				unreadMessagesCount: 0,
+			}
+			: conversation;
+
+		setConversations((prev) => prev.map(clearUnread));
+		setAllConversations((prev) => prev.map(clearUnread));
+		setSelectedConversation((prev) => (prev ? clearUnread(prev) : prev));
+		window.dispatchEvent(new CustomEvent('volta:conversation-read', { detail: { conversationId: id } }));
+	};
+
 	const getGroupParticipantsLabel = (conversation) => {
 		if (!conversation?.is_group || !Array.isArray(conversation?.participants)) {
 			return '';
@@ -405,17 +491,17 @@ const MessagesPage = () => {
 			} else {
 				// Filter local conversations if API doesn't return results
 				const filtered = allConversations.filter(conv => 
-					conv.participant?.name?.toLowerCase().includes(query.toLowerCase()) ||
-					conv.lastMessage?.content?.toLowerCase().includes(query.toLowerCase())
-				);
+				getConversationTitle(conv).toLowerCase().includes(query.toLowerCase()) ||
+				getConversationPreviewText(conv).toLowerCase().includes(query.toLowerCase())
+			);
 				setConversations(filtered);
 			}
 		} catch (err) {
 			logger.error('Error searching conversations:', err);
 			// Fallback to local filtering
 			const filtered = allConversations.filter(conv => 
-				conv.participant?.name?.toLowerCase().includes(query.toLowerCase()) ||
-				conv.lastMessage?.content?.toLowerCase().includes(query.toLowerCase())
+				getConversationTitle(conv).toLowerCase().includes(query.toLowerCase()) ||
+				getConversationPreviewText(conv).toLowerCase().includes(query.toLowerCase())
 			);
 			setConversations(filtered);
 		}
@@ -668,10 +754,11 @@ const MessagesPage = () => {
 
 	// Filter conversations based on search query
 	const filteredConversations = searchQuery.trim()
-		? conversations.filter(conv => 
-			getConversationTitle(conv).toLowerCase().includes(searchQuery.toLowerCase()) ||
-			conv.lastMessage?.content?.toLowerCase().includes(searchQuery.toLowerCase())
-		)
+		? conversations.filter(conv => {
+			const title = getConversationTitle(conv).toLowerCase();
+			const preview = getConversationPreviewText(conv).toLowerCase();
+			return title.includes(searchQuery.toLowerCase()) || preview.includes(searchQuery.toLowerCase());
+		})
 		: conversations;
 
 	if (loading && !loadError) {
@@ -750,9 +837,13 @@ const MessagesPage = () => {
 								key={conversation.id}
 								className={`messages-conversation-item ${
 									selectedConversation?.id === conversation.id ? 'active' : ''
-								} ${(conversation.unreadCount || 0) > 0 ? 'unread' : ''}`}
+								} ${getConversationUnreadCount(conversation) > 0 ? 'unread' : ''}`}
 								onClick={() => {
-									setSelectedConversation(conversation);
+									applyConversationReadLocally(conversation.id);
+									setSelectedConversation({
+										...conversation,
+										unreadCount: 0,
+									});
 									// On mobile, this will hide the sidebar and show the conversation
 								}}
 							>
@@ -780,9 +871,12 @@ const MessagesPage = () => {
 										<span className="messages-conversation-text">
 											{conversation.lastMessage?.content || 'Fără mesaje'}
 										</span>
-										{conversation.unreadCount > 0 && (
-											<span className="messages-unread-badge">
-												{conversation.unreadCount}
+										{getConversationUnreadCount(conversation) > 0 && (
+											<span className="messages-unread-meta">
+												<span className="messages-unread-dot" aria-hidden="true" />
+												<span className="messages-unread-badge">
+													{getConversationUnreadCount(conversation) > 99 ? '99+' : getConversationUnreadCount(conversation)}
+												</span>
 											</span>
 										)}
 									</div>

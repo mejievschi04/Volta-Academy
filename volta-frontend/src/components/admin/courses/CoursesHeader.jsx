@@ -25,7 +25,7 @@ const CoursesHeader = ({
 					<div className="admin-courses-header-text">
 						<h1 className="admin-courses-title">Gestionare Cursuri</h1>
 						<p className="admin-courses-subtitle">
-							<span className="admin-courses-subtitle-underline">Gestionează</span> și monitorizează cursurile
+							<span className="admin-courses-subtitle-underline">GestioneazДѓ</span> И™i monitorizeazДѓ cursurile
 						</p>
 					</div>
 					<div className="admin-courses-header-actions">
@@ -42,7 +42,7 @@ const CoursesHeader = ({
 							type="button"
 						>
 							<span>+</span>
-							Creează curs
+							CreeazДѓ curs
 						</button>
 					</div>
 				</div>
@@ -52,7 +52,7 @@ const CoursesHeader = ({
 					<div className="admin-courses-search-wrapper">
 						<input
 							type="text"
-							placeholder="Caută după titlu..."
+							placeholder="CautДѓ dupДѓ titlu..."
 							value={searchQuery}
 							onChange={(e) => onSearchChange(e.target.value)}
 							className="admin-courses-search-input"
@@ -61,9 +61,9 @@ const CoursesHeader = ({
 							<button
 								className="admin-search-clear-btn"
 								onClick={() => onSearchChange('')}
-								aria-label="Golește căutarea"
+								aria-label="GoleИ™te cДѓutarea"
 							>
-								×
+								Г—
 							</button>
 						)}
 					</div>
@@ -76,7 +76,7 @@ const CoursesHeader = ({
 									className={`admin-view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
 									onClick={() => onViewModeChange('grid')}
 									title="Vizualizare Grid"
-									aria-label="Vizualizare grilă"
+									aria-label="Vizualizare grilДѓ"
 								>
 									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 0h6v6H0V0zm7 0h9v6H7V0zM0 7h6v9H0V7zm7 0h9v9H7V7z"/>
@@ -85,8 +85,8 @@ const CoursesHeader = ({
 								<button
 									className={`admin-view-mode-btn ${viewMode === 'list' || viewMode === 'table' ? 'active' : ''}`}
 									onClick={() => onViewModeChange(viewMode === 'table' ? 'table' : 'list')}
-									title="Vizualizare Listă"
-									aria-label="Vizualizare listă"
+									title="Vizualizare ListДѓ"
+									aria-label="Vizualizare listДѓ"
 								>
 									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 										<path d="M0 2h16v2H0V2zm0 5h16v2H0V7zm0 5h16v2H0v-2z"/>
@@ -119,7 +119,7 @@ const CoursesHeader = ({
 						<div className="admin-filter-group">
 							<label className="admin-filter-label">Status</label>
 							<div className="admin-filter-buttons">
-								{['all', 'published', 'draft', 'archived'].map(status => (
+								{['all', 'published', 'draft'].map(status => (
 									<button
 										key={status}
 										className={`admin-filter-btn ${filters.status === status ? 'active' : ''}`}
@@ -127,7 +127,7 @@ const CoursesHeader = ({
 									>
 										{status === 'all' ? 'Toate' : 
 										 status === 'published' ? 'Publicate' :
-										 status === 'draft' ? 'Ciornă' : 'Arhivate'}
+										 status === 'draft' ? 'CiornДѓ' : 'Arhivate'}
 									</button>
 								))}
 							</div>
@@ -141,7 +141,7 @@ const CoursesHeader = ({
 							onFilterChange('status', 'all');
 						}}
 					>
-						Resetează filtrele
+						ReseteazДѓ filtrele
 					</button>
 				</div>
 			)}
@@ -160,22 +160,10 @@ const CoursesHeader = ({
 							Publish
 						</button>
 						<button
-							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => onBulkAction('archive')}
-						>
-							Archive
-						</button>
-						<button
-							className="lms-btn-secondary lms-btn-sm va-btn-danger"
-							onClick={() => onBulkAction('disable')}
-						>
-							Disable
-						</button>
-						<button
 							className="lms-btn-secondary lms-btn-sm va-btn-danger"
 							onClick={() => onBulkAction('delete')}
 						>
-							🗑️ Șterge
+							рџ—‘пёЏ Иterge
 						</button>
 					</div>
 				</div>
@@ -185,4 +173,3 @@ const CoursesHeader = ({
 };
 
 export default CoursesHeader;
-

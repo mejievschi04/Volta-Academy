@@ -241,6 +241,7 @@
 }
 
 .lesson-page-body {
+	position: relative;
 	margin-bottom: var(--space-8);
 }
 
@@ -475,4 +476,13 @@
 	.lesson-page-btn {
 		width: 100%;
 	}
+}
+
+.lesson-progress-marker {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
 }
