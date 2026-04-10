@@ -27,7 +27,7 @@ class TestService
         $test = Test::create([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'type' => $data['type'] ?? 'graded',
+            'type' => 'final',
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => $data['max_attempts'] ?? null,
@@ -242,4 +242,3 @@ class TestService
         return $questions;
     }
 }
-

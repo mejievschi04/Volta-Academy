@@ -139,11 +139,6 @@
 	color: var(--color-warning);
 }
 
-.admin-tests-card .status.archived {
-	background: rgba(107, 114, 128, 0.18);
-	color: var(--text-tertiary);
-}
-
 .admin-tests-card p {
 	margin: 0;
 	color: var(--text-secondary);

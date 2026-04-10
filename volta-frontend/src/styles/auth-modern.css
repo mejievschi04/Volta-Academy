@@ -83,6 +83,12 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	overflow: hidden;
 }
 
+.modern-auth-liquid-ether {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+}
+
 .modern-auth-gradient {
 	position: absolute;
 	top: -50%;
@@ -91,19 +97,19 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	height: 200%;
 	background: radial-gradient(
 		circle,
-		rgba(56, 189, 248, 0.1) 0%,
+		rgba(99, 102, 241, 0.22) 0%,
 		transparent 70%
 	);
+	z-index: 1;
 	animation: pulse 8s ease-in-out infinite;
 }
 
 .modern-auth-pattern {
 	position: absolute;
 	inset: 0;
-	background-color: var(--btn-primary-text);
-	background-image: none;
-	color: rgba(0, 0, 0, 1);
-	opacity: 0.3;
+	background: linear-gradient(135deg, rgba(12, 18, 35, 0.44), rgba(30, 41, 59, 0.58));
+	opacity: 1;
+	z-index: 2;
 }
 
 @keyframes pulse {
@@ -122,7 +128,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
    ============================================ */
 .modern-auth-content {
 	position: relative;
-	z-index: 1;
+	z-index: 3;
 	width: 100%;
 	max-width: 440px;
 }
@@ -133,7 +139,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	padding: var(--space-10) var(--space-8);
 	border: 1px solid var(--border-primary);
 	box-shadow: var(--shadow-2xl);
-	backdrop-filter: blur(20px);
+	backdrop-filter: blur(16px);
 	animation: slideUp var(--transition-smooth);
 }
 

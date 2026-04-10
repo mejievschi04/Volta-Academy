@@ -5,6 +5,7 @@ import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
 import RichTextEditor from '../../components/RichTextEditor';
+import AICourseChat from '../../components/admin/ai/AICourseChat';
 import '../../styles/admin-course-builder.css';
 import { courseCoverSrc } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,11 +14,12 @@ const INLINE_TEST_DEFAULT = {
 	id: null,
 	title: '',
 	description: '',
-	type: 'graded',
+	type: 'final',
 	status: 'draft',
 	question_source: 'direct',
 	time_limit_minutes: null,
 	max_attempts: null,
+	passing_score: 70,
 	randomize_questions: true,
 	randomize_answers: true,
 	show_results_immediately: true,
@@ -111,15 +113,22 @@ const AdminCourseBuilderPage = () => {
 	const [lessonSaveStatus, setLessonSaveStatus] = useState(null);
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
 	const [showCourseEditModal, setShowCourseEditModal] = useState(false);
+	const [showVoltAssistant, setShowVoltAssistant] = useState(false);
 	const [courseEditSaving, setCourseEditSaving] = useState(false);
 	const [courseEditImageFile, setCourseEditImageFile] = useState(null);
 	const [courseEditImagePreviewUrl, setCourseEditImagePreviewUrl] = useState(null);
 	const [courseEditDraft, setCourseEditDraft] = useState({
 		title: '',
-		short_description: '',
 		description: '',
-		category: '',
+		short_description: '',
 		card_color: '#5b72ff',
+		level: 'beginner',
+		status: 'draft',
+		visibility: 'public',
+		estimated_duration_hours: '',
+		sequential_unlock: true,
+		min_test_score: 70,
+		has_certificate: false,
 	});
 
 	const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
@@ -196,6 +205,26 @@ const AdminCourseBuilderPage = () => {
 			],
 		[modules, rootLessons]
 	);
+
+	const voltCourseSummary = useMemo(() => {
+		const moduleLines = modules.slice(0, 6).map((moduleItem, index) => {
+			const lessonTitles = (moduleItem.lessons || [])
+				.slice(0, 4)
+				.map((lessonItem) => `${lessonItem.id ?? 'nou'}: ${lessonItem.title || 'Lecție'}`)
+				.join(', ');
+			return `${index + 1}. [module_id=${moduleItem.id ?? 'nou'}] ${moduleItem.title || 'Modul fără titlu'}${lessonTitles ? ` | lecții: ${lessonTitles}` : ''}`;
+		});
+		const rootLessonTitles = rootLessons
+			.slice(0, 6)
+			.map((lessonItem) => `${lessonItem.id ?? 'nou'}: ${lessonItem.title || 'Lecție'}`)
+			.join(', ');
+		return [
+			`Curs: ${course?.title || 'Curs curent'}`,
+			course?.description ? `Descriere: ${course.description}` : null,
+			moduleLines.length > 0 ? `Module existente:\n${moduleLines.join('\n')}` : 'Module existente: niciunul',
+			rootLessonTitles ? `Lecții la rădăcină: ${rootLessonTitles}` : null,
+		].filter(Boolean).join('\n\n');
+	}, [course?.description, course?.title, modules, rootLessons]);
 
 	const selectedLesson = useMemo(() => {
 		if (!selectedLessonId) return null;
@@ -658,8 +687,17 @@ const AdminCourseBuilderPage = () => {
 			const created = await adminService.createTest({
 				title,
 				description: inlineTest.description?.trim() || null,
-				type: inlineTest.type || 'graded',
+				type: 'final',
 				status: 'draft',
+				passing_score: inlineTest.passing_score ?? INLINE_TEST_DEFAULT.passing_score,
+				time_limit_minutes: inlineTest.time_limit_minutes ?? null,
+				max_attempts: inlineTest.max_attempts ?? null,
+				randomize_questions: Boolean(inlineTest.randomize_questions),
+				randomize_answers: Boolean(inlineTest.randomize_answers),
+				show_results_immediately: Boolean(inlineTest.show_results_immediately),
+				show_correct_answers: Boolean(inlineTest.show_correct_answers),
+				allow_review: Boolean(inlineTest.allow_review),
+				requires_manual_verification: Boolean(inlineTest.requires_manual_verification),
 			});
 			const newTestId = Number(created?.test?.id ?? created?.id);
 			if (!newTestId) throw new Error('ID test invalid');
@@ -754,7 +792,14 @@ const AdminCourseBuilderPage = () => {
 			const created = await adminService.createTest({
 				title,
 				status: 'draft',
-				type: 'graded',
+				type: 'final',
+				passing_score: INLINE_TEST_DEFAULT.passing_score,
+				randomize_questions: INLINE_TEST_DEFAULT.randomize_questions,
+				randomize_answers: INLINE_TEST_DEFAULT.randomize_answers,
+				show_results_immediately: INLINE_TEST_DEFAULT.show_results_immediately,
+				show_correct_answers: INLINE_TEST_DEFAULT.show_correct_answers,
+				allow_review: INLINE_TEST_DEFAULT.allow_review,
+				requires_manual_verification: INLINE_TEST_DEFAULT.requires_manual_verification,
 			});
 			const newTestId = Number(created?.test?.id ?? created?.id);
 			if (!newTestId) throw new Error('ID test invalid');
@@ -1137,6 +1182,327 @@ const AdminCourseBuilderPage = () => {
 		} finally {
 			setCourseActionLoading(false);
 		}
+	};	const getLessonContentFromPlanItem = (lessonItem) => {
+		if (!lessonItem || typeof lessonItem !== 'object') {
+			return '';
+		}
+
+		return String(lessonItem.content ?? lessonItem.body ?? lessonItem.html ?? '').trim();
+	};
+
+	const countLessonContentLines = (content) => {
+		const text = String(content ?? '').trim();
+		if (!text) return 0;
+
+		const normalized = text
+			.replace(/<br\s*\/?>(?![^<]*>)/gi, '\n')
+			.replace(/<br\s*\/?/gi, '\n')
+			.replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+			.replace(/\r\n/g, '\n')
+			.replace(/\r/g, '\n');
+		const plain = normalized.replace(/<[^>]*>/g, ' ');
+		return plain
+			.split(/\n+/)
+			.map((line) => line.trim())
+			.filter(Boolean)
+			.length;
+	};
+
+	const validateVoltPlanStructure = (plan) => {
+		if (!plan || typeof plan !== 'object') {
+			return { valid: false, message: 'Volt nu a returnat un plan valid.' };
+		}
+
+		const operations = Array.isArray(plan.operations) ? plan.operations : [];
+		const courseUpdates = plan.course_updates && typeof plan.course_updates === 'object' ? plan.course_updates : null;
+		if (!courseUpdates && operations.length === 0) {
+			return { valid: false, message: 'Planul Volt nu con?ine schimbari aplicabile.' };
+		}
+
+		const lessonOperations = operations.filter((op) => {
+			if (!op || typeof op !== 'object') return false;
+			const opType = String(op.op || '').trim();
+			return (
+				opType === 'create_lesson' ||
+				opType === 'createLesson' ||
+				opType === 'update_lesson' ||
+				opType === 'updateLesson'
+			);
+		});
+
+		for (const lessonOp of lessonOperations) {
+			const opType = String(lessonOp.op || '').trim();
+			const content = getLessonContentFromPlanItem(lessonOp);
+			const lineCount = countLessonContentLines(content);
+			if (opType === 'create_lesson' || opType === 'createLesson') {
+				if (!content || lineCount < 4) {
+					return {
+						valid: false,
+						message: `Lec?ia "${lessonOp.title || 'fara titlu'}" nu are con?inut suficient.`,
+					};
+				}
+			}
+
+			if (opType === 'update_lesson' || opType === 'updateLesson') {
+				if (content && lineCount < 4) {
+					return {
+						valid: false,
+						message: `Lec?ia "${lessonOp.title || 'fara titlu'}" are con?inut prea scurt.`,
+					};
+				}
+			}
+		}
+
+		const moduleOperations = operations.filter((op) => {
+			if (!op || typeof op !== 'object') return false;
+			const opType = String(op.op || '').trim();
+			return (
+				opType === 'create_module' ||
+				opType === 'createModule' ||
+				opType === 'update_module' ||
+				opType === 'updateModule'
+			);
+		});
+
+		if (moduleOperations.length > 0 && lessonOperations.length === 0) {
+			return {
+				valid: false,
+				message: 'Planul Volt modifica module, dar nu include lec?ii. Refuzam aplicarea pana prime?te con?inut real.',
+			};
+		}
+
+		return { valid: true, operations, courseUpdates };
+	};
+
+	const handleApplyVoltPlan = async (planPayload) => {
+		const plan = planPayload?.plan ?? planPayload;
+		const validation = validateVoltPlanStructure(plan);
+		if (!validation.valid) {
+			showToast(validation.message, 'error');
+			return;
+		}
+
+		const { operations, courseUpdates } = validation;
+
+		const allowedCourseKeys = [
+			'title',
+			'description',
+			'short_description',
+			'card_color',
+			'level',
+			'status',
+			'visibility',
+			'estimated_duration_hours',
+			'sequential_unlock',
+			'min_test_score',
+			'has_certificate',
+			'marketing_tags',
+		];
+		const filteredCourseUpdates = courseUpdates
+			? Object.fromEntries(
+				Object.entries(courseUpdates).filter(([key, value]) => allowedCourseKeys.includes(key) && value !== undefined)
+			)
+			: null;
+
+		const applyLessonsForModule = async (courseIdValue, moduleIdValue, lessons = []) => {
+			if (!Number.isFinite(Number(moduleIdValue)) || !Array.isArray(lessons) || lessons.length === 0) {
+				return 0;
+			}
+
+			let createdCount = 0;
+			for (const lessonItem of lessons) {
+				if (!lessonItem || typeof lessonItem !== 'object') continue;
+				const lessonContent = getLessonContentFromPlanItem(lessonItem);
+				if (!lessonContent) {
+					throw new Error(`Lec?ia "${lessonItem.title || 'fara titlu'}" nu are con?inut.`);
+				}
+				if (countLessonContentLines(lessonContent) < 4) {
+					throw new Error(`Lec?ia "${lessonItem.title || 'fara titlu'}" are con?inut prea scurt.`);
+				}
+				await adminService.builderCreateLesson(courseIdValue, {
+					module_id: Number(moduleIdValue),
+					title: lessonItem.title || 'Lec?ie noua',
+					content: lessonContent,
+					status: lessonItem.status || 'draft',
+					order: lessonItem.order ?? undefined,
+					is_preview: lessonItem.is_preview ?? undefined,
+				});
+				createdCount += 1;
+			}
+
+			return createdCount;
+		};
+
+		setCourseActionLoading(true);
+		try {
+			if (filteredCourseUpdates && Object.keys(filteredCourseUpdates).length > 0) {
+				await adminService.updateCourse(courseId, filteredCourseUpdates);
+			}
+
+			const structureOps = [];
+			let appliedSteps = 0;
+
+			for (const rawOp of operations) {
+				if (!rawOp || typeof rawOp !== 'object') continue;
+				const opType = String(rawOp.op || '').trim();
+
+				if (opType === 'create_module' || opType === 'createModule') {
+					const modulePayload = {
+						title: rawOp.title || 'Modul nou',
+						description: rawOp.description || '',
+						status: rawOp.status || 'draft',
+						order: rawOp.order ?? undefined,
+					};
+					const createdModuleResponse = await adminService.builderCreateModule(courseId, modulePayload);
+					const createdModule = createdModuleResponse?.module
+						|| createdModuleResponse?.data?.module
+						|| createdModuleResponse?.data
+						|| createdModuleResponse;
+					const createdModuleId = Number(createdModule?.id || createdModule?.module_id || createdModuleResponse?.id);
+					appliedSteps++;
+
+					if (Number.isFinite(createdModuleId) && Array.isArray(rawOp.lessons)) {
+						for (const lessonItem of rawOp.lessons) {
+							if (!lessonItem || typeof lessonItem !== 'object') continue;
+							const lessonContent = getLessonContentFromPlanItem(lessonItem);
+							if (!lessonContent) {
+								throw new Error(`Lec?ia "${lessonItem.title || 'fara titlu'}" nu are con?inut.`);
+							}
+							if (countLessonContentLines(lessonContent) < 4) {
+								throw new Error(`Lec?ia "${lessonItem.title || 'fara titlu'}" are con?inut prea scurt.`);
+							}
+							await adminService.builderCreateLesson(courseId, {
+								module_id: createdModuleId,
+								title: lessonItem.title || 'Lec?ie noua',
+								content: lessonContent,
+								status: lessonItem.status || 'draft',
+								order: lessonItem.order ?? undefined,
+								is_preview: lessonItem.is_preview ?? undefined,
+							});
+							appliedSteps++;
+						}
+					}
+					continue;
+				}
+
+				if (opType === 'update_module' || opType === 'updateModule') {
+					if (!rawOp.module_id) continue;
+					const payload = {};
+					if (rawOp.title !== undefined) payload.title = rawOp.title;
+					if (rawOp.description !== undefined) payload.description = rawOp.description;
+					if (rawOp.status !== undefined) payload.status = rawOp.status;
+					if (rawOp.order !== undefined) payload.order = rawOp.order;
+					if (Object.keys(payload).length > 0) {
+						await adminService.updateModule(rawOp.module_id, payload);
+						appliedSteps++;
+					}
+					if (Array.isArray(rawOp.lessons) && rawOp.lessons.length > 0) {
+						appliedSteps += await applyLessonsForModule(courseId, rawOp.module_id, rawOp.lessons);
+					}
+					continue;
+				}
+
+				if (opType === 'delete_module' || opType === 'deleteModule') {
+					if (!rawOp.module_id) continue;
+					await adminService.deleteModule(rawOp.module_id);
+					appliedSteps++;
+					continue;
+				}
+
+				if (opType === 'create_lesson' || opType === 'createLesson') {
+					const payload = {
+						module_id: rawOp.module_id ?? null,
+						title: rawOp.title || 'Lec?ie noua',
+						content: getLessonContentFromPlanItem(rawOp),
+						status: rawOp.status || 'draft',
+						order: rawOp.order ?? undefined,
+						is_preview: rawOp.is_preview ?? undefined,
+					};
+					if (!payload.content) {
+						throw new Error(`Lec?ia "${payload.title}" nu are con?inut.`);
+					}
+					if (countLessonContentLines(payload.content) < 4) {
+						throw new Error(`Lec?ia "${payload.title}" are con?inut prea scurt.`);
+					}
+					await adminService.builderCreateLesson(courseId, payload);
+					appliedSteps++;
+					continue;
+				}
+
+				if (opType === 'update_lesson' || opType === 'updateLesson') {
+					if (!rawOp.lesson_id) continue;
+					const payload = {};
+					if (rawOp.title !== undefined) payload.title = rawOp.title;
+					if (rawOp.content !== undefined || rawOp.body !== undefined || rawOp.html !== undefined) {
+						payload.content = getLessonContentFromPlanItem(rawOp);
+					}
+					if (rawOp.status !== undefined) payload.status = rawOp.status;
+					if (rawOp.is_preview !== undefined) payload.is_preview = rawOp.is_preview;
+					if (rawOp.order !== undefined) payload.order = rawOp.order;
+					if (payload.content === '') {
+						throw new Error(`Lec?ia "${rawOp.title || 'fara titlu'}" nu are con?inut.`);
+					}
+					if (countLessonContentLines(payload.content) < 4) {
+						throw new Error(`Lec?ia "${rawOp.title || 'fara titlu'}" are con?inut prea scurt.`);
+					}
+					if (Object.keys(payload).length > 0) {
+						await adminService.builderUpdateLesson(courseId, rawOp.lesson_id, payload);
+						appliedSteps++;
+					}
+					continue;
+				}
+
+				if (opType === 'delete_lesson' || opType === 'deleteLesson') {
+					if (!rawOp.lesson_id) continue;
+					await adminService.deleteLesson(rawOp.lesson_id);
+					appliedSteps++;
+					continue;
+				}
+
+				if (opType === 'reorderModules' || opType === 'reorder_modules') {
+					if (Array.isArray(rawOp.module_ids) && rawOp.module_ids.length > 0) {
+						structureOps.push({ op: 'reorderModules', module_ids: rawOp.module_ids });
+					}
+					continue;
+				}
+
+				if (opType === 'reorderLessons' || opType === 'reorder_lessons') {
+					if (rawOp.module_id && Array.isArray(rawOp.lesson_ids) && rawOp.lesson_ids.length > 0) {
+						structureOps.push({
+							op: 'reorderLessons',
+							module_id: rawOp.module_id,
+							lesson_ids: rawOp.lesson_ids,
+						});
+					}
+					continue;
+				}
+
+				if (opType === 'moveLesson' || opType === 'move_lesson') {
+					if (rawOp.lesson_id && rawOp.to_module_id) {
+						structureOps.push({
+							op: 'moveLesson',
+							lesson_id: rawOp.lesson_id,
+							to_module_id: rawOp.to_module_id,
+							to_index: rawOp.to_index ?? 0,
+						});
+					}
+				}
+			}
+
+			if (structureOps.length > 0) {
+				await adminService.patchCourseBuilderStructure(courseId, structureOps);
+				appliedSteps += structureOps.length;
+			}
+
+			await fetchStructure(true);
+			setShowVoltAssistant(false);
+			showToast(`Volt a aplicat ${appliedSteps} schimbari in builder.`, 'success');
+		} catch (e) {
+			console.error('Volt plan apply failed:', e);
+			showToast(e?.message || e?.response?.data?.message || 'Nu am putut aplica planul Volt.', 'error');
+		} finally {
+			setCourseActionLoading(false);
+		}
 	};
 
 	const handleLessonStatusToggle = async (lessonId, nextStatus) => {
@@ -1212,12 +1578,27 @@ const AdminCourseBuilderPage = () => {
 	const handleOpenCourseEdit = () => {
 		const tags = Array.isArray(course?.marketing_tags) ? course.marketing_tags : [];
 		const colorTag = tags.find((tag) => String(tag).startsWith('card_color:'));
+		const courseSettings = course?.settings || {};
+		const certificateSettings = courseSettings?.certificate || {};
+		const accessSettings = courseSettings?.access || {};
+		const currentVisibility = course?.visibility || courseSettings?.visibility || 'public';
+		const currentLevel = course?.level || 'beginner';
+		const currentStatus = course?.status || 'draft';
+		const currentDuration = course?.estimated_duration_hours ?? '';
 		setCourseEditDraft({
 			title: course?.title || '',
-			short_description: course?.short_description || '',
 			description: course?.description || '',
-			category: course?.category || '',
+			short_description: course?.short_description || '',
 			card_color: course?.card_color || (colorTag ? String(colorTag).replace('card_color:', '') : '#5b72ff'),
+			level: currentLevel,
+			status: currentStatus,
+			visibility: currentVisibility,
+			estimated_duration_hours: currentDuration,
+			sequential_unlock: course?.sequential_unlock !== false,
+			min_test_score: course?.min_test_score ?? certificateSettings?.min_score ?? 70,
+			has_certificate: course?.has_certificate === true || certificateSettings?.enabled === true,
+			access_type: accessSettings?.type || course?.access_type || 'free',
+			enrollment_type: accessSettings?.enrollment_type || course?.enrollment_type || 'open',
 		});
 		setCourseEditImageFile(null);
 		setShowCourseEditModal(true);
@@ -1229,19 +1610,25 @@ const AdminCourseBuilderPage = () => {
 			showToast('Titlul cursului este obligatoriu.', 'error');
 			return;
 		}
-		if (!courseEditDraft.short_description?.trim()) {
-			showToast('Descrierea scurtă este obligatorie.', 'error');
-			return;
-		}
 
 		setCourseEditSaving(true);
 		try {
 			const payload = new FormData();
 			payload.append('title', courseEditDraft.title.trim());
-			payload.append('short_description', courseEditDraft.short_description || '');
 			payload.append('description', courseEditDraft.description || '');
-			payload.append('category', courseEditDraft.category || '');
+			payload.append('short_description', courseEditDraft.short_description || '');
 			payload.append('card_color', courseEditDraft.card_color || '#5b72ff');
+			payload.append('level', courseEditDraft.level || 'beginner');
+			payload.append('status', courseEditDraft.status || 'draft');
+			payload.append('visibility', courseEditDraft.visibility || 'public');
+			payload.append('sequential_unlock', courseEditDraft.sequential_unlock !== false ? '1' : '0');
+			payload.append('min_test_score', String(courseEditDraft.min_test_score ?? 70));
+			payload.append('has_certificate', courseEditDraft.has_certificate ? '1' : '0');
+			if (courseEditDraft.estimated_duration_hours !== '' && courseEditDraft.estimated_duration_hours != null) {
+				payload.append('estimated_duration_hours', String(courseEditDraft.estimated_duration_hours));
+			}
+			payload.append('access_type', courseEditDraft.access_type || 'free');
+			payload.append('enrollment_type', courseEditDraft.enrollment_type || 'open');
 
 			const existingTags = Array.isArray(course?.marketing_tags) ? [...course.marketing_tags] : [];
 			const nonColorTags = existingTags.filter((tag) => !String(tag).startsWith('card_color:'));
@@ -1988,18 +2375,6 @@ const AdminCourseBuilderPage = () => {
 													/>
 												</div>
 												<div className="admin-course-builder-test-field">
-													<label htmlFor="course-test-type">Tip test</label>
-													<select
-														id="course-test-type"
-														value={inlineTest.type}
-														onChange={(e) => saveInlineTestPatch({ type: e.target.value })}
-													>
-														<option value="practice">Exersare</option>
-														<option value="graded">Notat</option>
-														<option value="final">Final</option>
-													</select>
-												</div>
-												<div className="admin-course-builder-test-field">
 													<label>Timp limită (minute)</label>
 													<input
 														type="number"
@@ -2016,6 +2391,87 @@ const AdminCourseBuilderPage = () => {
 														value={inlineTest.max_attempts ?? ''}
 														onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.value ? Number(e.target.value) : null })}
 													/>
+												</div>
+												<div className="admin-course-builder-test-field">
+													<label>Prag promovare (%)</label>
+													<input
+														type="number"
+														min="0"
+														max="100"
+														value={inlineTest.passing_score ?? 70}
+														onChange={(e) => saveInlineTestPatch({ passing_score: e.target.value === '' ? null : Number(e.target.value) })}
+													/>
+												</div>
+												<div className="admin-course-builder-test-settings-section">
+													<h3>Comportament test</h3>
+													<div className="admin-course-builder-test-toggle-list">
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.randomize_questions)}
+																onChange={(e) => saveInlineTestPatch({ randomize_questions: e.target.checked })}
+															/>
+															<span>
+																<strong>Amestecă întrebările</strong>
+																<small>Ordinea întrebărilor va fi randomizată pentru fiecare parcurgere.</small>
+															</span>
+														</label>
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.randomize_answers)}
+																onChange={(e) => saveInlineTestPatch({ randomize_answers: e.target.checked })}
+															/>
+															<span>
+																<strong>Amestecă răspunsurile</strong>
+																<small>Opțiunile grilă se afișează în ordine diferită.</small>
+															</span>
+														</label>
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.show_results_immediately)}
+																onChange={(e) => saveInlineTestPatch({ show_results_immediately: e.target.checked })}
+															/>
+															<span>
+																<strong>Arată rezultatul imediat</strong>
+																<small>Cursantul vede scorul imediat după trimitere.</small>
+															</span>
+														</label>
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.show_correct_answers)}
+																onChange={(e) => saveInlineTestPatch({ show_correct_answers: e.target.checked })}
+															/>
+															<span>
+																<strong>Arată răspunsurile corecte</strong>
+																<small>După finalizare se pot vedea răspunsurile corecte.</small>
+															</span>
+														</label>
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.allow_review)}
+																onChange={(e) => saveInlineTestPatch({ allow_review: e.target.checked })}
+															/>
+															<span>
+																<strong>Permite revizuirea</strong>
+																<small>Cursantul poate reveni să revadă testul după completare.</small>
+															</span>
+														</label>
+														<label className="admin-course-builder-test-toggle">
+															<input
+																type="checkbox"
+																checked={Boolean(inlineTest.requires_manual_verification)}
+																onChange={(e) => saveInlineTestPatch({ requires_manual_verification: e.target.checked })}
+															/>
+															<span>
+																<strong>Necesită verificare manuală</strong>
+																<small>Rezultatul final rămâne în așteptare până la corectare.</small>
+															</span>
+														</label>
+													</div>
 												</div>
 											</div>
 										)}
@@ -2096,6 +2552,35 @@ const AdminCourseBuilderPage = () => {
 				</div>
 			</div>
 
+			<button
+				type="button"
+				className="admin-course-builder-volt-fab"
+				onClick={() => setShowVoltAssistant(true)}
+				title="Deschide Volt pentru acest curs"
+				aria-label="Deschide Volt pentru acest curs"
+			>
+				<span className="admin-course-builder-volt-fab-label" aria-hidden="true">⚡</span>
+				<span className="admin-course-builder-volt-fab-text">Volt</span>
+			</button>
+
+			{showVoltAssistant && (
+				<div className="ai-chat-modal-overlay" onClick={() => setShowVoltAssistant(false)}>
+					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
+						<AICourseChat
+							initialCourseId={courseId}
+							mode="assist"
+							title="⚡ Volt pentru Builder"
+                        welcomeMessage={`Sunt Volt. Lucrezi la cursul "${course?.title || 'cursul curent'}". Pot modifica și genera module, lecții și conținut complet. Dacă îmi lipsesc detalii, te întreb pe rând.`}
+							showPlanPreview={false}
+							autoApplyPlan={true}
+							onPlanGenerated={() => {}}
+							onApplyPlan={handleApplyVoltPlan}
+							onClose={() => setShowVoltAssistant(false)}
+						/>
+					</div>
+				</div>
+			)}
+
 			{showCreateTestModal && (
 				<div className="admin-course-builder-test-modal-overlay" onClick={() => !creatingTest && setShowCreateTestModal(false)}>
 					<div className="admin-course-builder-test-modal" onClick={(e) => e.stopPropagation()}>
@@ -2125,75 +2610,170 @@ const AdminCourseBuilderPage = () => {
 
 			{showCourseEditModal && (
 				<div className="admin-course-builder-test-modal-overlay" onClick={() => !courseEditSaving && setShowCourseEditModal(false)}>
-					<div className="admin-course-builder-test-modal" onClick={(e) => e.stopPropagation()}>
+					<div className="admin-course-builder-test-modal admin-course-builder-course-edit-modal" onClick={(e) => e.stopPropagation()}>
 						<h3>Editare curs</h3>
-						<div className="admin-course-builder-test-modal-form">
-							<label htmlFor="course-edit-title">Titlu curs *</label>
-							<input
-								id="course-edit-title"
-								type="text"
-								value={courseEditDraft.title}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, title: e.target.value }))}
-								placeholder="Titlu curs"
-								disabled={courseEditSaving}
-							/>
-
-							<label htmlFor="course-edit-short-description">Descriere scurtă *</label>
-							<input
-								id="course-edit-short-description"
-								type="text"
-								value={courseEditDraft.short_description}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, short_description: e.target.value }))}
-								placeholder="Descriere scurtă (max 200)"
-								disabled={courseEditSaving}
-							/>
-
-							<label htmlFor="course-edit-description">Descriere</label>
-							<textarea
-								id="course-edit-description"
-								value={courseEditDraft.description}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, description: e.target.value }))}
-								placeholder="Descriere detaliată"
-								rows={4}
-								disabled={courseEditSaving}
-							/>
-
-							<label htmlFor="course-edit-category">Categorie</label>
-							<input
-								id="course-edit-category"
-								type="text"
-								value={courseEditDraft.category}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, category: e.target.value }))}
-								placeholder="Categorie curs"
-								disabled={courseEditSaving}
-							/>
-
-							<label htmlFor="course-edit-card-color">Culoare cartonaș</label>
-							<input
-								id="course-edit-card-color"
-								type="color"
-								value={courseEditDraft.card_color || '#5b72ff'}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, card_color: e.target.value }))}
-								disabled={courseEditSaving}
-							/>
-
-							<label htmlFor="course-edit-image">Poză curs {courseCoverSrc(course) ? '' : '*'}</label>
-							{(courseEditImagePreviewUrl || courseCoverSrc(course)) && (
-								<div className="admin-course-edit-cover-preview" style={{ marginBottom: 12 }}>
-									<img
-										src={courseEditImagePreviewUrl || courseCoverSrc(course)}
-										alt=""
-										style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, objectFit: 'cover', display: 'block' }}
+						<div className="admin-course-builder-test-modal-form admin-course-builder-course-edit-form">
+							<div className="admin-course-builder-course-edit-grid">
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-title">Titlu curs *</label>
+									<input
+										id="course-edit-title"
+										type="text"
+										value={courseEditDraft.title}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, title: e.target.value }))}
+										placeholder="Titlu curs"
+										disabled={courseEditSaving}
 									/>
 								</div>
-							)}
-							<input
-								id="course-edit-image"
-								type="file"
-								accept="image/*"
-								onChange={(e) => setCourseEditImageFile(e.target.files?.[0] || null)}
-								disabled={courseEditSaving}
-							/>
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-card-color">Culoare cartonaș</label>
+									<input
+										id="course-edit-card-color"
+										type="color"
+										value={courseEditDraft.card_color || '#5b72ff'}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, card_color: e.target.value }))}
+										disabled={courseEditSaving}
+									/>
+								</div>
+							</div>
+
+							<div className="admin-course-builder-course-edit-field">
+								<label htmlFor="course-edit-description">Descriere</label>
+								<textarea
+									id="course-edit-description"
+									rows={4}
+									value={courseEditDraft.description}
+									onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, description: e.target.value }))}
+									placeholder="Descrierea cursului"
+									disabled={courseEditSaving}
+								/>
+							</div>
+
+							<div className="admin-course-builder-course-edit-field">
+								<label htmlFor="course-edit-short-description">Descriere scurtă</label>
+								<textarea
+									id="course-edit-short-description"
+									rows={2}
+									value={courseEditDraft.short_description}
+									onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, short_description: e.target.value }))}
+									placeholder="Rezumatul care apare în carduri sau liste"
+									disabled={courseEditSaving}
+								/>
+							</div>
+
+							<div className="admin-course-builder-course-edit-grid">
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-level">Nivel</label>
+									<select
+										id="course-edit-level"
+										value={courseEditDraft.level || 'beginner'}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, level: e.target.value }))}
+										disabled={courseEditSaving}
+									>
+										<option value="beginner">Începător</option>
+										<option value="intermediate">Intermediar</option>
+										<option value="advanced">Avansat</option>
+									</select>
+								</div>
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-status">Status</label>
+									<select
+										id="course-edit-status"
+										value={courseEditDraft.status || 'draft'}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, status: e.target.value }))}
+										disabled={courseEditSaving}
+									>
+										<option value="draft">Draft</option>
+										<option value="published">Publicat</option>
+									</select>
+								</div>
+							</div>
+
+							<div className="admin-course-builder-course-edit-grid">
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-visibility">Vizibilitate</label>
+									<select
+										id="course-edit-visibility"
+										value={courseEditDraft.visibility || 'public'}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, visibility: e.target.value }))}
+										disabled={courseEditSaving}
+									>
+										<option value="public">Public</option>
+										<option value="private">Privat</option>
+										<option value="hidden">Ascuns</option>
+									</select>
+								</div>
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-hours">Durată estimată (ore)</label>
+									<input
+										id="course-edit-hours"
+										type="number"
+										min={1}
+										value={courseEditDraft.estimated_duration_hours}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, estimated_duration_hours: e.target.value ? parseInt(e.target.value, 10) : '' }))}
+										placeholder="Ex: 12"
+										disabled={courseEditSaving}
+									/>
+								</div>
+							</div>
+
+							<div className="admin-course-builder-course-edit-grid">
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-min-score">Scor minim quiz (%)</label>
+									<input
+										id="course-edit-min-score"
+										type="number"
+										min={0}
+										max={100}
+										value={courseEditDraft.min_test_score ?? 70}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, min_test_score: e.target.value ? parseInt(e.target.value, 10) : 70 }))}
+										disabled={courseEditSaving}
+									/>
+								</div>
+								<div className="admin-course-builder-course-edit-field">
+									<label htmlFor="course-edit-image">Poză curs {courseCoverSrc(course) ? '' : '*'}</label>
+									{(courseEditImagePreviewUrl || courseCoverSrc(course)) && (
+										<div className="admin-course-edit-cover-preview">
+											<img
+												src={courseEditImagePreviewUrl || courseCoverSrc(course)}
+												alt=""
+											/>
+										</div>
+									)}
+									<input
+										id="course-edit-image"
+										type="file"
+										accept="image/*"
+										onChange={(e) => setCourseEditImageFile(e.target.files?.[0] || null)}
+										disabled={courseEditSaving}
+									/>
+								</div>
+							</div>
+
+							<div className="admin-course-builder-course-edit-checks">
+								<label className="admin-course-builder-course-edit-check">
+									<input
+										type="checkbox"
+										checked={courseEditDraft.sequential_unlock !== false}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, sequential_unlock: e.target.checked }))}
+										disabled={courseEditSaving}
+									/>
+									<span>Deblocare secvențială</span>
+								</label>
+								<label className="admin-course-builder-course-edit-check">
+									<input
+										type="checkbox"
+										checked={courseEditDraft.has_certificate === true}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, has_certificate: e.target.checked }))}
+										disabled={courseEditSaving}
+									/>
+									<span>Certificat la finalizare</span>
+								</label>
+							</div>
+
+							<p className="admin-course-builder-course-edit-note">
+								Cursul rămâne gratuit și deschis implicit; aici ajustezi doar setările importante de publicare și finalizare.
+							</p>
 						</div>
 
 						<div className="admin-course-builder-test-modal-actions">
@@ -2213,15 +2793,4 @@ const AdminCourseBuilderPage = () => {
 };
 
 export default AdminCourseBuilderPage;
-
-
-
-
-
-
-
-
-
-
-
 

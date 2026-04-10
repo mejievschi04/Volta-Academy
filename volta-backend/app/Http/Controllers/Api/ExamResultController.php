@@ -471,6 +471,7 @@ class ExamResultController extends Controller
                 'answers' => $userAnswers,
                 'completed_at' => $examResult->completed_at,
                 'needs_manual_review' => $examResult->needs_manual_review ?? false,
+                'manual_review_scores' => is_array($examResult->manual_review_scores) ? $examResult->manual_review_scores : null,
                 'reviewed_at' => $examResult->reviewed_at,
                 'exam' => $examResult->exam ? [
                     'id' => $examResult->exam->id,
@@ -545,4 +546,3 @@ class ExamResultController extends Controller
         }
     }
 }
-

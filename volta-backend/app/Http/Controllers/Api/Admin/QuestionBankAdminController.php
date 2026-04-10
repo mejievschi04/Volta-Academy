@@ -119,7 +119,7 @@ class QuestionBankAdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|in:draft,published',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
             'questions' => 'nullable|array',
@@ -154,7 +154,7 @@ class QuestionBankAdminController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|in:draft,published',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
         ]);
@@ -402,7 +402,7 @@ class QuestionBankAdminController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema AI'),
+                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema Volt'),
             ], 500);
         }
 
@@ -451,7 +451,7 @@ class QuestionBankAdminController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema AI'),
+                'error' => 'Eroare la generarea întrebărilor: ' . ($e->getMessage() ?: 'Problema Volt'),
             ], 500);
         }
 
@@ -484,33 +484,60 @@ class QuestionBankAdminController extends Controller
         $validated = $request->validate([
             'topic' => 'nullable|string|min:2|max:300',
             'content' => 'nullable|string|min:10|max:10000',
+            'course_id' => 'nullable|integer|exists:courses,id',
             'numberOfQuestions' => 'nullable|integer|min:1|max:50',
             'difficulty' => 'nullable|in:easy,medium,hard',
             'questionTypes' => 'nullable|array',
+            'instructions' => 'nullable|string|max:4000',
+            'approvedQuestions' => 'nullable|array',
+            'approvedQuestions.*' => 'string',
+            'blockedQuestions' => 'nullable|array',
+            'blockedQuestions.*' => 'string',
         ]);
 
         $topic = trim((string) ($validated['topic'] ?? ''));
         $content = trim((string) ($validated['content'] ?? ''));
-        if ($topic === '' && $content === '') {
+        $courseId = isset($validated['course_id']) ? (int) $validated['course_id'] : null;
+        if ($topic === '' && $content === '' && !$courseId) {
             return response()->json([
-                'error' => 'Topic sau content este obligatoriu.',
+                'error' => 'Topic, content sau course_id este obligatoriu.',
             ], 422);
         }
 
         $seedContent = $content !== '' ? $content : "Topic: {$topic}";
+        if ($courseId) {
+            $course = Course::with(['modules.lessons'])->findOrFail($courseId);
+            $seedContent = $this->extractCourseContent($course);
+        }
+
+        $instructions = trim((string) ($validated['instructions'] ?? ''));
+        $approvedQuestions = array_values(array_filter(array_map('strval', (array) ($validated['approvedQuestions'] ?? []))));
+        $blockedQuestions = array_values(array_filter(array_map('strval', (array) ($validated['blockedQuestions'] ?? []))));
+        $autoGenerate = filter_var($request->input('autoGenerate', false), FILTER_VALIDATE_BOOLEAN);
         try {
-            $questions = $this->generateQuestionsWithAI(
-                $seedContent,
-                $validated['numberOfQuestions'] ?? 10,
-                $validated['difficulty'] ?? 'medium',
-                is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice']
-            );
+            if ($autoGenerate) {
+                $questions = $this->generateAutoQuestionsSequentially(
+                    $seedContent,
+                    max(1, (int) ($validated['numberOfQuestions'] ?? 1)),
+                    $validated['difficulty'] ?? 'medium',
+                    is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice']
+                );
+            } else {
+                $questions = $this->generateReviewDraftQuestionWithAI(
+                    $seedContent,
+                    $validated['difficulty'] ?? 'medium',
+                    is_array($validated['questionTypes'] ?? null) ? $validated['questionTypes'] : ['multiple_choice'],
+                    $instructions,
+                    $approvedQuestions,
+                    $blockedQuestions
+                );
+            }
         } catch (\Exception $e) {
             Log::error('Error generating AI preview questions', [
                 'error' => $e->getMessage(),
             ]);
             return response()->json([
-                'error' => 'Eroare la generarea draftului AI: ' . ($e->getMessage() ?: 'Problema AI'),
+                'error' => 'Eroare la generarea draftului Volt: ' . ($e->getMessage() ?: 'Problema Volt'),
             ], 500);
         }
 
@@ -543,14 +570,27 @@ class QuestionBankAdminController extends Controller
                     $textContent = preg_replace('/\s+/', ' ', $textContent);
                     $textContent = trim($textContent);
                     // Limit content length to avoid token limits
-                    $textContent = mb_substr($textContent, 0, 2000);
+                    $textContent = mb_substr($textContent, 0, 400);
                     $content .= "  Conținut: {$textContent}\n";
                 }
             }
             $content .= "\n";
         }
 
-        return $content;
+        return $this->compactCourseContentForQuestions($content);
+    }
+
+    /**
+     * Compact course content so question-generation prompts stay under model limits.
+     */
+    private function compactCourseContentForQuestions(string $courseContent, int $maxChars = 5000): string
+    {
+        $courseContent = trim($courseContent);
+        if ($courseContent === '' || mb_strlen($courseContent) <= $maxChars) {
+            return $courseContent;
+        }
+
+        return rtrim(mb_substr($courseContent, 0, max(0, $maxChars - 80))) . "\n[continut suplimentar omis]";
     }
 
     /**
@@ -559,47 +599,7 @@ class QuestionBankAdminController extends Controller
     private function generateQuestionsWithAI(string $courseContent, int $numberOfQuestions, string $difficulty, array $questionTypes = ['multiple_choice']): array
     {
         try {
-            $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
-            if (empty($typeList)) {
-                $typeList = ['multiple_choice'];
-            }
-            $typeHint = implode(', ', $typeList);
-
-            // Build prompt for AI
-            $prompt = "Generează {$numberOfQuestions} întrebări pentru un test bazat pe următorul conținut de curs.\n\n";
-            $prompt .= "Dificultate: {$difficulty}\n\n";
-            $prompt .= "Tipuri permise: {$typeHint}\n\n";
-            $prompt .= "Conținut curs:\n{$courseContent}\n\n";
-            $prompt .= "Răspunde DOAR în format JSON, fără text suplimentar. Format:\n";
-            $prompt .= "{\n";
-            $prompt .= '  "questions": [\n';
-            $prompt .= '    {\n';
-            $prompt .= '      "content": "Întrebarea",\n';
-            $prompt .= '      "type": "multiple_choice|true_false|short_answer",\n';
-            $prompt .= '      "answers": [\n';
-            $prompt .= '        {"text": "Răspuns 1", "is_correct": true},\n';
-            $prompt .= '        {"text": "Răspuns 2", "is_correct": false},\n';
-            $prompt .= '        {"text": "Răspuns 3", "is_correct": false},\n';
-            $prompt .= '        {"text": "Răspuns 4", "is_correct": false}\n';
-            $prompt .= '      ],\n';
-            $prompt .= '      "points": 1,\n';
-            $prompt .= '      "explanation": "Explicația răspunsului corect",\n';
-            $prompt .= '      "difficulty": "easy|medium|hard",\n';
-            $prompt .= '      "tags": ["tag1", "tag2"]\n';
-            $prompt .= '    }\n';
-            $prompt .= '  ]\n';
-            $prompt .= "}\n\n";
-            $prompt .= "IMPORTANT: Generează exact {$numberOfQuestions} întrebări relevante bazate pe conținutul cursului.";
-
-            // Use AI to generate questions
-            $response = $this->callAI($prompt);
-            
-            // Parse AI response
-            $questions = $this->parseAIResponse($response);
-            
-            // Format questions for database
-            return $this->formatQuestionsForDatabase($questions);
-            
+            return $this->generateAutoQuestionsSequentially($courseContent, $numberOfQuestions, $difficulty, $questionTypes);
         } catch (\Exception $e) {
             Log::error('Error generating questions with AI', [
                 'error' => $e->getMessage(),
@@ -611,22 +611,469 @@ class QuestionBankAdminController extends Controller
     }
 
     /**
+     * Generate multiple questions one by one so we can recover from weak model output.
+     */
+    private function generateAutoQuestionsSequentially(string $courseContent, int $numberOfQuestions, string $difficulty, array $questionTypes = ['multiple_choice']): array
+    {
+        $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
+        $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'true_false']));
+        if (empty($typeList)) {
+            $typeList = ['multiple_choice', 'true_false'];
+        }
+
+        $generatedQuestions = [];
+        $usedQuestionContents = [];
+        $usedNormalizedContents = [];
+
+        for ($index = 0; $index < $numberOfQuestions; $index++) {
+            $draftQuestions = $this->generateReviewDraftQuestionWithAI(
+                $courseContent,
+                $difficulty,
+                $typeList,
+                '',
+                $usedQuestionContents,
+                $usedQuestionContents
+            );
+
+            $candidate = is_array($draftQuestions[0] ?? null) ? $draftQuestions[0] : null;
+            $content = trim((string) ($candidate['content'] ?? $candidate['question'] ?? ''));
+            $normalized = $this->normalizeAiQuestionText($content);
+
+            if (!$candidate || $content === '' || ($normalized !== '' && in_array($normalized, $usedNormalizedContents, true))) {
+                $fallbackQuestion = $this->buildDeterministicFallbackReviewQuestion($courseContent, $difficulty, $index);
+                $fallbackFormatted = $this->formatQuestionsForDatabase([$fallbackQuestion]);
+                $candidate = $fallbackFormatted[0] ?? null;
+                $content = trim((string) ($candidate['content'] ?? ''));
+                $normalized = $this->normalizeAiQuestionText($content);
+            }
+
+            if (!$candidate || $content === '') {
+                Log::warning('Skipping empty AI auto-generated question candidate', [
+                    'index' => $index,
+                    'difficulty' => $difficulty,
+                ]);
+                continue;
+            }
+
+            $generatedQuestions[] = $candidate;
+            $usedQuestionContents[] = $content;
+            if ($normalized !== '') {
+                $usedNormalizedContents[] = $normalized;
+            }
+        }
+
+        if (empty($generatedQuestions)) {
+            $fallbackQuestion = $this->buildDeterministicFallbackReviewQuestion($courseContent, $difficulty, 0);
+            return $this->formatQuestionsForDatabase([$fallbackQuestion]);
+        }
+
+        return $generatedQuestions;
+    }
+
+    /**
+     * Generate a single review draft question for the AI approval flow.
+     */
+    private function generateReviewDraftQuestionWithAI(
+        string $courseContent,
+        string $difficulty,
+        array $questionTypes = ['multiple_choice'],
+        string $extraInstructions = '',
+        array $approvedQuestions = [],
+        array $blockedQuestions = []
+    ): array {
+        try {
+            $courseContent = $this->compactCourseContentForQuestions($courseContent);
+            $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
+            $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'true_false']));
+            if (empty($typeList)) {
+                $typeList = ['multiple_choice', 'true_false'];
+            }
+            $typeHint = implode(', ', $typeList);
+            $usedQuestions = array_values(array_filter(array_unique(array_merge($approvedQuestions, $blockedQuestions))));
+
+            $prompt = $this->buildQuestionGenerationPrompt(
+                $courseContent,
+                $difficulty,
+                $typeList,
+                $usedQuestions,
+                $extraInstructions
+            );
+
+            $response = $this->callAI($prompt, 512);
+            $questions = $this->parseAIResponse($response);
+            $questions = $this->filterStrongAiQuestions($questions, 1, $usedQuestions);
+
+            if (empty($questions)) {
+                Log::warning('AI review draft returned no acceptable questions on first attempt', [
+                    'response_preview' => substr($response, 0, 500),
+                    'type_hint' => $typeHint,
+                ]);
+
+                $fallbackPrompt = $this->buildFallbackReviewPrompt($courseContent, $difficulty, $typeHint);
+                if (!empty($usedQuestions)) {
+                    $fallbackPrompt .= "\nIntrebari deja folosite sau respinse:\n";
+                    foreach ($usedQuestions as $index => $usedQuestion) {
+                        $fallbackPrompt .= ($index + 1) . '. ' . $usedQuestion . "\n";
+                    }
+                    $fallbackPrompt .= "\n";
+                }
+                $fallbackResponse = $this->callAI($fallbackPrompt, 384);
+                $fallbackQuestions = $this->parseAIResponse($fallbackResponse);
+                $fallbackQuestions = $this->filterStrongAiQuestions($fallbackQuestions, 1, $usedQuestions);
+
+                if (!empty($fallbackQuestions)) {
+                    return $this->formatQuestionsForDatabase($fallbackQuestions);
+                }
+
+                Log::warning('AI review draft returned no acceptable questions after fallback attempt', [
+                    'response_preview' => substr($fallbackResponse, 0, 500),
+                    'type_hint' => $typeHint,
+                ]);
+
+                $deterministicFallback = $this->buildDeterministicFallbackReviewQuestion($courseContent, $difficulty);
+                Log::warning('Using deterministic fallback review question', [
+                    'content_preview' => mb_substr((string) ($deterministicFallback['content'] ?? ''), 0, 160),
+                    'difficulty' => $difficulty,
+                ]);
+                return $this->formatQuestionsForDatabase([$deterministicFallback]);
+            }
+
+            return $this->formatQuestionsForDatabase($questions);
+        } catch (\Exception $e) {
+            Log::error('Error generating review draft with AI', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Build the unified prompt used for question generation.
+     */
+    private function buildQuestionGenerationPrompt(
+        string $courseContent,
+        string $difficulty,
+        array $questionTypes,
+        array $usedQuestions = [],
+        string $extraInstructions = ''
+    ): string {
+        $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
+        if (empty($typeList)) {
+            $typeList = ['multiple_choice', 'true_false'];
+        }
+
+        $prompt = "Ești Volt Question Generator. Generezi exact o întrebare bună, bazată strict pe curs.\n\n";
+        $prompt .= "Contract de răspuns:\n";
+        $prompt .= "- răspunde strict JSON valid\n";
+        $prompt .= "- include `response_type` cu valoarea `question`\n";
+        $prompt .= "- nu folosi markdown și nu adăuga text extra\n";
+        $prompt .= "- o singură întrebare per răspuns\n";
+        $prompt .= "- dacă nu ai context suficient, simplifică întrebarea sau cere clarificare scurtă\n\n";
+        $prompt .= "Reguli de calitate:\n";
+        $prompt .= "- folosește doar informații din curs\n";
+        $prompt .= "- nu inventa detalii\n";
+        $prompt .= "- evită întrebările ambigue, prea generale sau cu mai multe idei\n";
+        $prompt .= "- întrebarea trebuie să testeze un concept important, nu un detaliu minor\n";
+        $prompt .= "- variantele greșite trebuie să fie plauzibile, dar clar greșite\n";
+        $prompt .= "- toate variantele trebuie să fie la același nivel de specificitate\n";
+        $prompt .= "- nu repeta și nu reformula întrebările deja folosite\n\n";
+        $prompt .= "Setări:\n";
+        $prompt .= "- difficulty: {$difficulty}\n";
+        $prompt .= "- allowed_types: " . implode(', ', $typeList) . "\n";
+        $prompt .= "- create exactly 1 question\n\n";
+        if (!empty($usedQuestions)) {
+            $prompt .= "Întrebări deja folosite sau respinse:\n";
+            foreach ($usedQuestions as $index => $usedQuestion) {
+                $prompt .= ($index + 1) . '. ' . $usedQuestion . "\n";
+            }
+            $prompt .= "\n";
+        }
+        if (trim($extraInstructions) !== '') {
+            $prompt .= "Instrucțiuni suplimentare:\n";
+            $prompt .= trim($extraInstructions) . "\n\n";
+        }
+        $prompt .= "Conținut curs:\n{$courseContent}\n\n";
+        $prompt .= "Schema JSON așteptată:\n";
+        $prompt .= "{\n";
+        $prompt .= '  "response_type": "question",\n';
+        $prompt .= '  "content": "Întrebarea",\n';
+        $prompt .= '  "type": "multiple_choice|true_false",\n';
+        $prompt .= '  "answers": [\n';
+        $prompt .= '    {"text": "Răspuns 1", "is_correct": true},\n';
+        $prompt .= '    {"text": "Răspuns 2", "is_correct": false},\n';
+        $prompt .= '    {"text": "Răspuns 3", "is_correct": false},\n';
+        $prompt .= '    {"text": "Răspuns 4", "is_correct": false}\n';
+        $prompt .= '  ],\n';
+        $prompt .= '  "points": 1,\n';
+        $prompt .= '  "explanation": "Explicația răspunsului corect",\n';
+        $prompt .= '  "difficulty": "easy|medium|hard",\n';
+        $prompt .= '  "tags": ["tag1", "tag2"]\n';
+        $prompt .= "}\n";
+
+        return $prompt;
+    }
+
+    /**
+     * Keep only questions that look structurally strong enough for manual review.
+     */
+    private function filterStrongAiQuestions(array $questions, int $minLength = 1, array $blockedQuestions = []): array
+    {
+        $filtered = [];
+        $blockedQuestions = array_values(array_filter(array_map('strval', $blockedQuestions)));
+
+        foreach ($questions as $question) {
+            if (!is_array($question)) {
+                continue;
+            }
+
+            $rejectionReasons = $this->getAiQuestionRejectionReasons($question);
+            if (empty($rejectionReasons) && $this->isAiQuestionTooSimilarToBlockedQuestions($question, $blockedQuestions)) {
+                $rejectionReasons[] = 'too_similar_to_blocked_question';
+            }
+            if (!empty($rejectionReasons)) {
+                Log::info('AI review draft question rejected', [
+                    'reasons' => $rejectionReasons,
+                    'type' => $question['type'] ?? null,
+                    'content_preview' => mb_substr(trim((string) ($question['content'] ?? $question['question'] ?? '')), 0, 160),
+                ]);
+                continue;
+            }
+
+            $filtered[] = $question;
+
+            if (count($filtered) >= $minLength) {
+                break;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Check whether an AI question repeats or too closely mirrors already used questions.
+     */
+    private function isAiQuestionTooSimilarToBlockedQuestions(array $question, array $blockedQuestions): bool
+    {
+        $content = $this->normalizeAiQuestionText((string) ($question['content'] ?? $question['question'] ?? ''));
+        if ($content === '') {
+            return false;
+        }
+
+        foreach ($blockedQuestions as $blockedQuestion) {
+            $blocked = $this->normalizeAiQuestionText($blockedQuestion);
+            if ($blocked === '') {
+                continue;
+            }
+
+            if ($content === $blocked) {
+                return true;
+            }
+
+            similar_text($content, $blocked, $percent);
+            if ($percent >= 88.0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize AI question text for duplicate detection.
+     */
+    private function normalizeAiQuestionText(string $text): string
+    {
+        $text = mb_strtolower(trim($text));
+        $text = preg_replace('/\s+/u', ' ', $text);
+        $text = preg_replace('/[^\p{L}\p{N}\s]+/u', '', $text);
+        return trim((string) $text);
+    }
+
+    /**
+     * Explain why an AI-generated draft question should be rejected.
+     */
+    private function getAiQuestionRejectionReasons(array $question): array
+    {
+        $reasons = [];
+
+        $content = trim((string) ($question['content'] ?? $question['question'] ?? ''));
+        if (mb_strlen($content) < 12) {
+            $reasons[] = 'content_too_short';
+        }
+
+        $type = (string) ($question['type'] ?? 'multiple_choice');
+        if (!in_array($type, ['multiple_choice', 'true_false'], true)) {
+            $reasons[] = 'unsupported_type';
+        }
+
+        $answers = is_array($question['answers'] ?? null) ? $question['answers'] : [];
+        if ($type === 'multiple_choice' && count($answers) < 4) {
+            $reasons[] = 'not_enough_answers_for_multiple_choice';
+        }
+        if ($type === 'true_false' && count($answers) < 2) {
+            $reasons[] = 'not_enough_answers_for_true_false';
+        }
+
+        $correctCount = 0;
+        foreach ($answers as $answer) {
+            if (is_array($answer) && !empty($answer['is_correct'])) {
+                $correctCount++;
+            }
+        }
+
+        if ($correctCount !== 1) {
+            $reasons[] = 'invalid_correct_answer_count';
+        }
+
+        return $reasons;
+    }
+
+    /**
+     * Build a simplified fallback prompt when the first AI attempt fails quality checks.
+     */
+    private function buildFallbackReviewPrompt(string $courseContent, string $difficulty, string $typeHint): string
+    {
+        return
+            "Ești Volt Question Generator. Generezi exact o singură întrebare simplă, de calitate, pentru aprobare manuală.\n\n" .
+            "Reguli:\n" .
+            "- folosește doar informațiile din curs\n" .
+            "- nu inventa detalii\n" .
+            "- întrebare clară, directă, cu un singur concept\n" .
+            "- 4 variante de răspuns, exact 1 corectă\n" .
+            "- răspunsurile greșite trebuie să fie plauzibile, dar clar greșite\n" .
+            "- returnează strict JSON valid\n\n" .
+            "Dificultate: {$difficulty}\n" .
+            "Tipuri permise: {$typeHint}\n" .
+            "Conținut curs:\n{$courseContent}\n\n" .
+            "Format exact:\n" .
+            "{\n" .
+            '  "response_type": "question",\n' .
+            '  "content": "Întrebare",\n' .
+            '  "type": "multiple_choice",\n' .
+            '  "answers": [\n' .
+            '    {"text": "Răspuns 1", "is_correct": true},\n' .
+            '    {"text": "Răspuns 2", "is_correct": false},\n' .
+            '    {"text": "Răspuns 3", "is_correct": false},\n' .
+            '    {"text": "Răspuns 4", "is_correct": false}\n' .
+            '  ],\n' .
+            '  "points": 1,\n' .
+            '  "explanation": "Explicație",\n' .
+            '  "difficulty": "easy|medium|hard",\n' .
+            '  "tags": ["tag1"]\n' .
+            "}\n";
+    }
+
+    /**
+     * Build a deterministic valid fallback question so the flow never returns empty.
+     */
+    private function buildDeterministicFallbackReviewQuestion(string $courseContent, string $difficulty, int $variantIndex = 0): array
+    {
+        $topic = $this->extractFallbackTopic($courseContent);
+        $variants = [
+            [
+                'content' => 'Care este subiectul principal al acestui curs?',
+                'explanation' => 'Întrebarea verifică tema centrală a cursului.',
+            ],
+            [
+                'content' => 'Ce concept este prezentat în principal în acest material?',
+                'explanation' => 'Întrebarea verifică ideea principală din conținutul cursului.',
+            ],
+            [
+                'content' => 'Care descriere se potrivește cel mai bine acestui curs?',
+                'explanation' => 'Întrebarea verifică înțelegerea generală a cursului.',
+            ],
+            [
+                'content' => 'Ce afirmă cel mai bine conținutul acestui curs?',
+                'explanation' => 'Întrebarea verifică subiectul central al cursului.',
+            ],
+        ];
+        $variant = $variants[$variantIndex % count($variants)];
+
+        return [
+            'content' => $variant['content'],
+            'type' => 'multiple_choice',
+            'answers' => [
+                ['text' => $topic, 'is_correct' => true],
+                ['text' => 'Un concept fara legatura', 'is_correct' => false],
+                ['text' => 'Un alt subiect din alt curs', 'is_correct' => false],
+                ['text' => 'Un raspuns ales la intamplare', 'is_correct' => false],
+            ],
+            'points' => 1,
+            'explanation' => $variant['explanation'],
+            'difficulty' => in_array($difficulty, ['easy', 'medium', 'hard'], true) ? $difficulty : 'medium',
+            'tags' => ['ai_fallback'],
+        ];
+    }
+
+    /**
+     * Extract a clean fallback topic from the course content.
+     */
+    private function extractFallbackTopic(string $courseContent): string
+    {
+        $lines = preg_split('/\R+/', trim($courseContent)) ?: [];
+
+        foreach ($lines as $line) {
+            $clean = trim((string) $line);
+            if ($clean === '') {
+                continue;
+            }
+
+            if (preg_match('/^Curs:\s*(.+)$/i', $clean, $matches)) {
+                $topic = trim($matches[1]);
+                if ($topic !== '') {
+                    return $topic;
+                }
+            }
+        }
+
+        foreach ($lines as $line) {
+            $clean = trim((string) $line);
+            if ($clean === '') {
+                continue;
+            }
+            if (preg_match('/^(Modul|Lectie|Lecție|Lesson):\s*(.+)$/i', $clean, $matches)) {
+                $topic = trim($matches[2]);
+                if ($topic !== '') {
+                    return $topic;
+                }
+            }
+        }
+
+        foreach ($lines as $line) {
+            $clean = trim((string) $line);
+            if ($clean === '') {
+                continue;
+            }
+            $clean = preg_replace('/^(Curs|Modul|Lectie|Lecție|Lesson):\s*/i', '', $clean);
+            $clean = trim((string) $clean);
+            if ($clean !== '' && mb_strlen($clean) >= 8) {
+                return $clean;
+            }
+        }
+
+        return 'tema principala a cursului';
+    }
+
+    /**
      * Call AI API to generate questions (with optional fallback models)
      */
-    private function callAI(string $prompt): string
+    private function callAI(string $prompt, int $maxTokens = 1200): string
     {
         // Use HTTP client to call AI API
         $provider = env('AI_PROVIDER', 'groq');
-        $apiKey = $provider === 'groq' ? env('GROQ_API_KEY') : env('OPENAI_API_KEY');
-        $apiUrl = $provider === 'groq'
-            ? env('GROQ_API_URL', 'https://api.groq.com/openai/v1')
-            : env('OPENAI_API_URL', 'https://api.openai.com/v1');
-        $model = $provider === 'groq'
-            ? env('GROQ_MODEL', 'llama-3.1-8b-instant')
-            : env('OPENAI_MODEL', 'gpt-4o-mini');
+        if ($provider === 'groq') {
+            $apiKey = env('GROQ_API_KEY');
+            $apiUrl = env('GROQ_API_URL', 'https://api.groq.com/openai/v1');
+            $model = env('GROQ_CREATOR_QUALITY_MODEL', env('GROQ_CREATOR_MODEL', env('GROQ_MODEL', 'llama-3.1-8b-instant')));
+        } else {
+            $apiKey = env('OPENAI_API_KEY');
+            $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
+            $model = env('OPENAI_CREATOR_QUALITY_MODEL', env('OPENAI_CREATOR_MODEL', env('OPENAI_MODEL', 'gpt-4o-mini')));
+        }
 
-        if (!$apiKey) {
-            // If Groq is configured but missing a key, try falling back to OpenAI if available
+        $requiresApiKey = true;
+        if ($requiresApiKey && !$apiKey) {
             if ($provider === 'groq' && env('OPENAI_API_KEY')) {
                 Log::info('GROQ key missing in env; falling back to OpenAI provider for this request');
                 $provider = 'openai';
@@ -642,31 +1089,49 @@ class QuestionBankAdminController extends Controller
         $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
 
         // Helper to perform a request with a specific model
-        $attemptRequest = function(string $modelToUse) use ($apiUrl, $apiKey, $prompt, $verify) {
-            return \Illuminate\Support\Facades\Http::withHeaders([
-                'Authorization' => "Bearer {$apiKey}",
+        $attemptRequest = function(string $modelToUse) use ($apiUrl, $apiKey, $prompt, $verify, $maxTokens) {
+            $headers = [
                 'Content-Type' => 'application/json',
-            ])->withOptions([
+            ];
+            if (!empty($apiKey)) {
+                $headers['Authorization'] = "Bearer {$apiKey}";
+            }
+
+            return \Illuminate\Support\Facades\Http::withHeaders($headers)->withOptions([
                 'verify' => $verify,
             ])->timeout(120)->post("{$apiUrl}/chat/completions", [
                 'model' => $modelToUse,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'Ești un asistent AI expert în crearea de întrebări educaționale. Generează întrebări clare, relevante și bine structurate bazate pe conținutul furnizat. Răspunde ÎNTOTDEAUNA în format JSON valid.'
+                        'content' => 'Ești Volt Question Generator. Generezi exact o întrebare bună, bazată strict pe curs. Răspunde strict JSON valid, include response_type=question, fără markdown și fără text extra.'
                     ],
                     [
                         'role' => 'user',
                         'content' => $prompt
                     ]
                 ],
-                'temperature' => 0.7,
-                'max_tokens' => 4000,
+                'temperature' => 0.2,
+                'max_tokens' => max(256, min(4000, $maxTokens)),
+                'response_format' => ['type' => 'json_object'],
             ]);
         };
 
         // First attempt with configured model
         $response = $attemptRequest($model);
+
+        if ($response->status() === 429) {
+            $retryDelay = $this->extractRetryDelaySeconds($response->body(), $response->header('Retry-After'));
+            if ($retryDelay > 0) {
+                Log::warning('AI rate limited; retrying after backoff', [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'retry_delay_seconds' => $retryDelay,
+                ]);
+                usleep(($retryDelay + 1) * 1000000);
+                $response = $attemptRequest($model);
+            }
+        }
 
         // If initial attempt failed, try fallbacks (only for model errors)
         if (!$response->successful()) {
@@ -756,23 +1221,59 @@ class QuestionBankAdminController extends Controller
     }
 
     /**
+     * Extract retry delay seconds from a provider rate-limit response.
+     */
+    private function extractRetryDelaySeconds(string $body, $retryAfterHeader = null): int
+    {
+        if (is_numeric($retryAfterHeader)) {
+            return max(1, (int) ceil((float) $retryAfterHeader));
+        }
+
+        if (preg_match('/try again in\s+([0-9]+(?:\.[0-9]+)?)s/i', $body, $matches)) {
+            return max(1, (int) ceil((float) $matches[1]));
+        }
+
+        return 0;
+    }
+
+    /**
      * Parse AI response to extract questions
      */
     private function parseAIResponse(string $response): array
     {
-        // Try to extract JSON from response
-        $jsonPattern = '/\{[\s\S]*\}/';
-        if (preg_match($jsonPattern, $response, $matches)) {
-            $data = json_decode($matches[0], true);
-            if (json_last_error() === JSON_ERROR_NONE && isset($data['questions'])) {
-                return $data['questions'];
-            }
+        $candidates = [];
+        $trimmed = trim($response);
+        if ($trimmed !== '') {
+            $candidates[] = $trimmed;
         }
 
-        // Try to parse as direct JSON
-        $data = json_decode($response, true);
-        if (json_last_error() === JSON_ERROR_NONE && isset($data['questions'])) {
-            return $data['questions'];
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/i', $response, $matches)) {
+            $candidates[] = trim($matches[1]);
+        }
+
+        $firstBrace = strpos($response, '{');
+        $lastBrace = strrpos($response, '}');
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $candidates[] = trim(substr($response, $firstBrace, $lastBrace - $firstBrace + 1));
+        }
+
+        foreach ($candidates as $candidate) {
+            $data = json_decode($candidate, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                continue;
+            }
+
+            if (isset($data['questions']) && is_array($data['questions'])) {
+                return $data['questions'];
+            }
+
+            if (isset($data['content']) || isset($data['question'])) {
+                return [$data];
+            }
+
+            if (array_is_list($data)) {
+                return $data;
+            }
         }
 
         Log::warning('Could not parse AI response', [
@@ -871,4 +1372,5 @@ class QuestionBankAdminController extends Controller
         return $formatted;
     }
 }
+
 

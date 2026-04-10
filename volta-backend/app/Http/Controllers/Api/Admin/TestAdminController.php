@@ -101,7 +101,7 @@ class TestAdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'nullable|in:practice,graded,final',
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|in:draft,published',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
             'passing_score' => 'nullable|integer|min:0|max:100',
@@ -172,7 +172,7 @@ class TestAdminController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'nullable|in:practice,graded,final',
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|in:draft,published',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
             'passing_score' => 'nullable|integer|min:0|max:100',
@@ -634,4 +634,3 @@ class TestAdminController extends Controller
         ]);
     }
 }
-

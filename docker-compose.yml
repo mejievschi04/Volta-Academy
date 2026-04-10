@@ -65,6 +65,12 @@ services:
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
       HUGGINGFACE_API_URL: ${HUGGINGFACE_API_URL:-https://router.huggingface.co}
       HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      OLLAMA_API_URL: ${OLLAMA_API_URL:-http://host.docker.internal:11434/v1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma:2b-instruct}
+      OLLAMA_CREATOR_MODEL: ${OLLAMA_CREATOR_MODEL:-gemma:2b-instruct}
+      OLLAMA_CREATOR_QUALITY_MODEL: ${OLLAMA_CREATOR_QUALITY_MODEL:-qwen2.5:7b-instruct}
+      OLLAMA_TUTOR_MODEL: ${OLLAMA_TUTOR_MODEL:-gemma:2b-instruct}
       AI_VERIFY_SSL: ${AI_VERIFY_SSL:-true}
       LOG_CHANNEL: stack
       LOG_LEVEL: ${LOG_LEVEL:-error}

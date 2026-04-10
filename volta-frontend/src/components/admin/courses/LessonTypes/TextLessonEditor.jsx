@@ -7,9 +7,9 @@ import { useToast } from '../../../../contexts/ToastContext';
  * Text Lesson Editor - Conform defacut.md secțiunea 5.2
  * Features:
  * - Notion-like editor
- * - AI rewrite / simplify / expand
+ * - Volt rewrite / simplify / expand
  * - Reading time calculation
- * - Difficulty score (AI)
+ * - Difficulty score (Volt)
  */
 const TextLessonEditor = ({ lesson, onUpdate }) => {
 	const { showToast } = useToast();
@@ -28,8 +28,8 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 		return minutes;
 	};
 
-	// AI rewrite/simplify/expand
-	const handleAITransform = async (action) => {
+	// Volt rewrite/simplify/expand
+	const handleVoltTransform = async (action) => {
 		if (!lesson.content || !lesson.content.trim()) {
 			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
 			return;
@@ -77,7 +77,7 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 		}
 	};
 
-	// Calculate difficulty score with AI
+	// Calculate difficulty score with Volt
 	const handleCalculateDifficulty = async () => {
 		if (!lesson.content || !lesson.content.trim()) {
 			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
@@ -150,33 +150,33 @@ Răspunde în format JSON:
 
 	return (
 		<div className="text-lesson-editor">
-			{/* AI Actions Toolbar */}
+			{/* Volt actions toolbar */}
 			<div className="admin-form-group">
 				<div className="ai-actions-toolbar">
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleAITransform('rewrite')}
+						onClick={() => handleVoltTransform('rewrite')}
 						disabled={aiProcessing || !lesson.content}
-						title="Reformulează textul cu AI"
+						title="Reformulează textul cu Volt"
 					>
 						🤖 Reformulează
 					</button>
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleAITransform('simplify')}
+						onClick={() => handleVoltTransform('simplify')}
 						disabled={aiProcessing || !lesson.content}
-						title="Simplifică textul cu AI"
+						title="Simplifică textul cu Volt"
 					>
 						🤖 Simplifică
 					</button>
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleAITransform('expand')}
+						onClick={() => handleVoltTransform('expand')}
 						disabled={aiProcessing || !lesson.content}
-						title="Extinde textul cu AI"
+						title="Extinde textul cu Volt"
 					>
 						🤖 Extinde
 					</button>
@@ -185,7 +185,7 @@ Răspunde în format JSON:
 						className="admin-btn admin-btn-sm admin-btn-secondary"
 						onClick={handleCalculateDifficulty}
 						disabled={aiProcessing || !lesson.content}
-						title="Calculează dificultatea cu AI"
+						title="Calculează dificultatea cu Volt"
 					>
 						📊 Dificultate
 					</button>

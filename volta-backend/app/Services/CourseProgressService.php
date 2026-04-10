@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\Test;
 use App\Models\User;
 use App\Models\CourseTest;
+use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -32,6 +33,10 @@ class CourseProgressService
 
     protected function isLessonMarkedComplete(User $user, int $lessonId): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return false;
+        }
+
         $lessonProgress = DB::table('lesson_progress')
             ->where('user_id', $user->id)
             ->where('lesson_id', $lessonId)
@@ -48,6 +53,10 @@ class CourseProgressService
      */
     public function calculateCourseProgress(User $user, Course $course): float
     {
+        if ($user->isLearningActivityExempt()) {
+            return 0;
+        }
+
         // Include draft + published (lessons created in builder default to draft)
         $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
         $rootLessons = $this->getCourseRootLessons($course);
@@ -127,6 +136,10 @@ class CourseProgressService
      */
     public function calculateModuleProgress(User $user, Module $module): float
     {
+        if ($user->isLearningActivityExempt()) {
+            return 0;
+        }
+
         $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
         
         if ($lessons->isEmpty()) {
@@ -236,6 +249,10 @@ class CourseProgressService
      */
     public function completeLesson(User $user, Lesson $lesson): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // Check if already completed
         $existing = DB::table('lesson_progress')
             ->where('user_id', $user->id)
@@ -260,6 +277,23 @@ class CourseProgressService
             ]
         );
 
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'action' => 'completed_lesson',
+            'model_type' => 'Lesson',
+            'model_id' => $lesson->id,
+            'description' => "{$user->name} a finalizat lecția \"{$lesson->title}\"",
+            'new_values' => [
+                'lesson_id' => $lesson->id,
+                'lesson_title' => $lesson->title,
+                'module_id' => $lesson->module_id,
+                'course_id' => $lesson->course_id ?? $lesson->module?->course_id,
+                'completed_at' => Carbon::now()->toDateTimeString(),
+            ],
+            'ip_address' => request()?->ip(),
+            'user_agent' => request()?->userAgent(),
+        ]);
+
         // Update lesson completion count
         $lesson->increment('completions_count');
 
@@ -279,15 +313,40 @@ class CourseProgressService
                     $isCourseComplete = $this->isCourseComplete($user, $lesson->module->course);
                     
                     if ($isCourseComplete) {
+                        $course = $lesson->module->course;
+                        $existingCourseProgress = DB::table('course_user')
+                            ->where('user_id', $user->id)
+                            ->where('course_id', $course->id)
+                            ->first();
+                        $wasCompleted = $existingCourseProgress && !empty($existingCourseProgress->completed_at);
+
                         // Mark course as completed
                         DB::table('course_user')
                             ->where('user_id', $user->id)
-                            ->where('course_id', $lesson->module->course->id)
+                            ->where('course_id', $course->id)
                             ->update([
                                 'completed_at' => Carbon::now(),
                                 'updated_at' => Carbon::now(),
                             ]);
-                        app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $lesson->module->course);
+
+                        if (!$wasCompleted) {
+                            ActivityLog::create([
+                                'user_id' => $user->id,
+                                'action' => 'completed_course',
+                                'model_type' => 'Course',
+                                'model_id' => $course->id,
+                                'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
+                                'new_values' => [
+                                    'course_id' => $course->id,
+                                    'course_title' => $course->title,
+                                    'progress_percentage' => 100,
+                                    'completed_at' => Carbon::now()->toDateTimeString(),
+                                ],
+                                'ip_address' => request()?->ip(),
+                                'user_agent' => request()?->userAgent(),
+                            ]);
+                        }
+                        app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                     }
                 }
             } else {
@@ -308,6 +367,10 @@ class CourseProgressService
      */
     public function isModuleComplete(User $user, Module $module): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
         
         if ($lessons->isEmpty()) {
@@ -385,6 +448,10 @@ class CourseProgressService
      */
     public function isCourseComplete(User $user, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
         $rootLessons = $this->getCourseRootLessons($course);
 
@@ -709,6 +776,10 @@ class CourseProgressService
      */
     public function canUserProgress(User $user, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // Aliniat cu isCourseComplete: orice test publicat legat de curs trebuie promovat
         foreach (CourseTest::where('course_id', $course->id)->with('test')->get() as $courseTest) {
             $test = $courseTest->test;
@@ -886,5 +957,4 @@ class CourseProgressService
         return $accessStatus;
     }
 }
-
 

@@ -85,7 +85,7 @@ class UserAdminController extends Controller
         // Calculate course statistics for each user (skip admins)
         $usersWithStats = collect($users)->map(function ($user) use ($allCourses, $totalCourses, $allProgress) {
             // Skip statistics for admin users
-            if ($user->role === 'admin') {
+            if (in_array($user->role, ['admin', 'analyst'], true)) {
                 $user->total_courses = null;
                 $user->completed_courses = null;
                 $user->completion_percentage = null;
@@ -442,6 +442,12 @@ class UserAdminController extends Controller
     {
         $user = User::findOrFail($id);
 
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Nu atribuim cursuri pentru rolurile administrator sau analist.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'course_ids' => 'required|array',
             'course_ids.*' => 'exists:courses,id',
@@ -610,6 +616,9 @@ class UserAdminController extends Controller
         }
         
         $user->save();
+        if ($user->isLearningActivityExempt()) {
+            $user->assignedCourses()->detach();
+        }
         
         return response()->json([
             'message' => 'Rol și permisiuni actualizate cu succes',
@@ -758,4 +767,3 @@ class UserAdminController extends Controller
         return $activities;
     }
 }
-

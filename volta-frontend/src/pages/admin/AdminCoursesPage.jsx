@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
+import AICourseChat from '../../components/admin/ai/AICourseChat';
 import { courseCoverSrc } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
 import './AdminCoursesPage.css';
@@ -18,6 +19,7 @@ const AdminCoursesPage = () => {
 	const [search, setSearch] = useState('');
 	const [showCreateMenu, setShowCreateMenu] = useState(false);
 	const [showBuildModal, setShowBuildModal] = useState(false);
+	const [showAiCourseChat, setShowAiCourseChat] = useState(false);
 	const createMenuRef = useRef(null);
 
 	const fetchCourses = async () => {
@@ -62,11 +64,29 @@ const AdminCoursesPage = () => {
 				formData.append('title', title);
 				formData.append('description', description);
 				formData.append('status', 'draft');
+				formData.append('level', 'beginner');
+				formData.append('visibility', 'public');
+				formData.append('sequential_unlock', '1');
+				formData.append('min_test_score', '70');
+				formData.append('has_certificate', '0');
+				formData.append('access_type', 'free');
+				formData.append('enrollment_type', 'open');
 				if (image) formData.append('image', image);
 				if (pdfFile) formData.append('pdf_file', pdfFile);
 				payload = formData;
 			} else {
-				payload = { title, description, status: 'draft' };
+				payload = {
+					title,
+					description,
+					status: 'draft',
+					level: 'beginner',
+					visibility: 'public',
+					sequential_unlock: true,
+					min_test_score: 70,
+					has_certificate: false,
+					access_type: 'free',
+					enrollment_type: 'open',
+				};
 			}
 			const result = await adminService.createCourse(payload);
 			const courseId = result?.course?.id;
@@ -78,6 +98,14 @@ const AdminCoursesPage = () => {
 			console.error('Error creating course:', err);
 		} finally {
 			setCreating(false);
+		}
+	};
+
+	const handleAiCourseGenerated = (course) => {
+		if (course?.id) {
+			setShowAiCourseChat(false);
+			fetchCourses();
+			navigate(`/admin/courses/${course.id}/builder`);
 		}
 	};
 
@@ -102,13 +130,23 @@ const AdminCoursesPage = () => {
 
 	return (
 		<div className="admin-container admin-courses-clean-page">
-			{showBuildModal && canMutateInAdminArea && (
-				<BuildCourseModal
-					onClose={() => { setShowBuildModal(false); }}
-					onSubmit={handleBuildSubmit}
-					loading={creating}
-				/>
-			)}
+					{showBuildModal && canMutateInAdminArea && (
+						<BuildCourseModal
+							onClose={() => { setShowBuildModal(false); }}
+							onSubmit={handleBuildSubmit}
+							loading={creating}
+						/>
+					)}
+					{showAiCourseChat && canMutateInAdminArea && (
+						<div className="ai-chat-modal-overlay" onClick={() => setShowAiCourseChat(false)}>
+							<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
+								<AICourseChat
+									onCourseGenerated={handleAiCourseGenerated}
+									onClose={() => setShowAiCourseChat(false)}
+								/>
+							</div>
+						</div>
+					)}
 			<header className="admin-courses-clean-header">
 				<div>
 					<h1>Cursuri</h1>
@@ -125,14 +163,8 @@ const AdminCoursesPage = () => {
 								<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
 									Curs nou
 								</button>
-								<button onClick={() => { setShowCreateMenu(false); setShowBuildModal(true); }}>
-									Curs asistat AI
-								</button>
-								<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new?template=1'); }}>
-									Curs din șablon
-								</button>
-								<button disabled title="În curând">
-									Import SCORM (în curând)
+								<button onClick={() => { setShowCreateMenu(false); setShowAiCourseChat(true); }}>
+									Curs cu Volt
 								</button>
 							</div>
 						)}

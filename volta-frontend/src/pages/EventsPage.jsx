@@ -1,8 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
+
+const STATUS_BADGES = {
+	published: { label: 'Publicat', color: '#10b981' },
+	upcoming: { label: 'Viitor', color: '#f59e0b' },
+	live: { label: 'Live', color: '#ef4444' },
+	completed: { label: 'Finalizat', color: '#64748b' },
+	cancelled: { label: 'Anulat', color: '#94a3b8' },
+};
+
+const parseEventDate = (dateString) => {
+	if (!dateString) return null;
+	const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+	if (!parts) return null;
+	return new Date(
+		Number(parts[1]),
+		Number(parts[2]) - 1,
+		Number(parts[3]),
+		Number(parts[4]),
+		Number(parts[5]),
+	);
+};
+
+const getTimelineGroup = (event) => {
+	if (event?.is_completed || event?.status === 'completed') {
+		return 'completed';
+	}
+	const endDate = parseEventDate(event?.end_date);
+	return endDate && endDate.getTime() < Date.now() ? 'completed' : 'upcoming';
+};
 
 const EventsPage = () => {
 	const navigate = useNavigate();
@@ -12,8 +41,6 @@ const EventsPage = () => {
 	const [error, setError] = useState(null);
 	const [filters, setFilters] = useState({
 		type: 'all',
-		access_type: 'all',
-		date_filter: 'all', // all, upcoming, past, live
 	});
 	useEffect(() => {
 		fetchEvents();
@@ -22,10 +49,20 @@ const EventsPage = () => {
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			const data = await eventsService.getAll(filters);
+			setError(null);
+			const data = await eventsService.getAll({ ...filters, date_filter: 'all' });
 			// Handle pagination if present
 			const eventsList = Array.isArray(data) ? data : (data?.data || []);
-			setEvents(eventsList);
+			setEvents(
+				[...eventsList].sort((a, b) => {
+					const aGroup = getTimelineGroup(a);
+					const bGroup = getTimelineGroup(b);
+					if (aGroup !== bGroup) {
+						return aGroup === 'upcoming' ? -1 : 1;
+					}
+					return (parseEventDate(a.start_date)?.getTime() || 0) - (parseEventDate(b.start_date)?.getTime() || 0);
+				}),
+			);
 		} catch (err) {
 			console.error('Error fetching events:', err);
 			setError('Nu s-au putut încărca evenimentele');
@@ -34,61 +71,199 @@ const EventsPage = () => {
 		}
 	};
 
+	const groupedEvents = useMemo(() => {
+		return events.reduce(
+			(acc, event) => {
+				acc[getTimelineGroup(event)].push(event);
+				return acc;
+			},
+			{ upcoming: [], completed: [] },
+		);
+	}, [events]);
+
 	const formatDate = (dateString) => {
-		if (!dateString) return 'N/A';
-		// Parse datetime string directly without timezone conversion
-		// Format: YYYY-MM-DD HH:mm:ss
-		const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
-		if (!parts) return dateString;
-		
-		const [, year, month, day, hour, minute] = parts;
-		// Format as DD.MM.YYYY, HH:mm (no timezone conversion)
-		return `${day}.${month}.${year}, ${hour}:${minute}`;
+		const date = parseEventDate(dateString);
+		if (!date) return dateString || 'N/A';
+		const pad = (value) => String(value).padStart(2, '0');
+		return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	};
 
 	const formatTime = (dateString) => {
-		if (!dateString) return '';
-		// Parse datetime string directly without timezone conversion
-		// Format: YYYY-MM-DD HH:mm:ss
-		const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
-		if (!parts) return dateString;
-		
-		const [, , , , hour, minute] = parts;
-		// Return time as HH:mm (no timezone conversion)
-		return `${hour}:${minute}`;
+		const date = parseEventDate(dateString);
+		if (!date) return '';
+		const pad = (value) => String(value).padStart(2, '0');
+		return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+	};
+
+	const formatDuration = (startDateString, endDateString) => {
+		const start = parseEventDate(startDateString);
+		const end = parseEventDate(endDateString);
+		if (!start || !end) return null;
+		const minutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+		const hours = Math.floor(minutes / 60);
+		const remainingMinutes = minutes % 60;
+		const hourLabel = hours === 1 ? 'ora' : 'ore';
+		if (hours > 0 && remainingMinutes > 0) return `${hours} ${hourLabel} ${remainingMinutes} min`;
+		if (hours > 0) return `${hours} ${hourLabel}`;
+		return `${remainingMinutes} min`;
 	};
 
 
 	const getEventTypeLabel = (type) => {
 		const labels = {
-			live_online: 'Live Online',
+			live_online: 'Online',
 			physical: 'Fizic',
-			webinar: 'Webinar',
-			workshop: 'Workshop',
 		};
 		return labels[type] || type;
 	};
 
-	const getStatusBadge = (status) => {
-		const badges = {
-			published: { label: 'Publicat', color: '#10b981' },
-			upcoming: { label: 'Viitor', color: '#FFEE00' },
-			live: { label: 'Live', color: '#ef4444' },
-			completed: { label: 'Finalizat', color: '#FFEE00' },
-		};
-		return badges[status] || null;
+	const getStatusBadge = (event) => {
+		return STATUS_BADGES[event.status] || STATUS_BADGES[getTimelineGroup(event) === 'completed' ? 'completed' : 'upcoming'];
 	};
 
 	const handleRegister = async (eventId, e) => {
 		e.stopPropagation();
 		try {
 			await eventsService.register(eventId);
-			await fetchEvents(); // Refresh to update registration status
+			await fetchEvents();
 			showSuccess('Te-ai înscris cu succes la eveniment!');
 		} catch (err) {
 			logger.error('Error registering:', err);
 			showError(err.response?.data?.message || 'Eroare la înscriere');
 		}
+	};
+
+	const renderEventSection = (title, subtitle, sectionEvents) => {
+		if (!sectionEvents.length) return null;
+
+		return (
+			<section key={title} style={{ marginTop: '2rem' }}>
+				<div style={{ marginBottom: '1rem' }}>
+					<h2 style={{ marginBottom: '0.35rem' }}>{title}</h2>
+					<p style={{ color: 'var(--va-muted)', margin: 0 }}>{subtitle}</p>
+				</div>
+				<div className="events-grid">
+					{sectionEvents.map((event) => {
+						const statusBadge = getStatusBadge(event);
+						const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
+						const isCompleted = getTimelineGroup(event) === 'completed';
+						const duration = formatDuration(event.start_date, event.end_date);
+
+						return (
+							<div
+								key={event.id}
+								className="va-card-enhanced stagger-item"
+								style={{ cursor: 'pointer' }}
+								onClick={() => navigate(`/events/${event.id}`)}
+							>
+								{event.thumbnail && (
+									<div
+										className="events-card-thumbnail"
+										style={{
+											width: '100%',
+											height: '200px',
+											backgroundImage: `url(${event.thumbnail})`,
+											backgroundSize: 'cover',
+											backgroundPosition: 'center',
+											borderRadius: '8px 8px 0 0',
+										}}
+									/>
+								)}
+								<div className="va-card-body">
+									<div className="events-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem', gap: '0.75rem' }}>
+										<h3 className="va-card-title" style={{ marginBottom: 0, flex: 1 }}>
+											📅 {event.title}
+										</h3>
+										{statusBadge && (
+											<span className="events-card-status-badge" style={{
+												padding: '0.25rem 0.75rem',
+												borderRadius: '12px',
+												fontSize: '0.75rem',
+												fontWeight: 'bold',
+												background: statusBadge.color,
+												color: '#fff',
+											}}>
+												{statusBadge.label}
+											</span>
+										)}
+									</div>
+									{event.short_description && (
+										<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
+											{event.short_description}
+										</p>
+									)}
+									<p style={{ color: 'var(--va-muted)', marginBottom: '1rem', lineHeight: '1.6' }}>
+										{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
+									</p>
+									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
+										<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+											<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
+											{duration && <span>⏱️ <strong style={{ color: 'var(--va-text)' }}>{duration}</strong></span>}
+										</div>
+										{event.instructor && (
+											<div style={{ marginBottom: '0.5rem' }}>
+												👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
+											</div>
+										)}
+										<div style={{ marginBottom: '0.5rem' }}>
+											📍 <strong style={{ color: 'var(--va-text)' }}>
+												{event.location || event.live_link || 'N/A'}
+											</strong>
+										</div>
+										<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+											🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
+											{event.end_date && (
+												<span style={{ marginLeft: '0.5rem' }}>
+													- {formatTime(event.end_date)}
+												</span>
+											)}
+										</div>
+										{event.max_capacity && (
+											<div style={{ marginBottom: '0.5rem' }}>
+												👥 <strong style={{ color: 'var(--va-text)' }}>
+													{event.registrations_count || 0} / {event.max_capacity} înscriși
+													{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
+												</strong>
+											</div>
+										)}
+									</div>
+									<div className="events-card-actions">
+										<button
+											className="lms-btn-primary"
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate(`/events/${event.id}`);
+											}}
+											style={{ flex: 1 }}
+										>
+											Vezi Detalii
+										</button>
+										{!isCompleted && !event.user_registered && !isFull && event.status !== 'cancelled' && (
+											<button
+												className="lms-btn-secondary"
+												onClick={(e) => handleRegister(event.id, e)}
+												style={{ background: '#10b981', color: '#fff' }}
+											>
+												Înscrie-te
+											</button>
+										)}
+										{event.user_registered && (
+											<button
+												className="lms-btn-secondary"
+												disabled
+												style={{ background: '#10b981', color: '#fff', cursor: 'not-allowed' }}
+											>
+												Înscris
+											</button>
+										)}
+									</div>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			</section>
+		);
 	};
 
 	if (loading) {
@@ -112,7 +287,7 @@ const EventsPage = () => {
 					Evenimente
 				</h1>
 				<p className="events-page-subtitle">
-					Vezi toate evenimentele planificate: cursuri, workshop-uri, examene și webinar-uri.
+					Evenimente online și fizice planificate în platformă.
 				</p>
 			</div>
 
@@ -123,21 +298,9 @@ const EventsPage = () => {
 					onChange={(e) => setFilters({ ...filters, type: e.target.value })}
 					className="events-filter-select"
 				>
-					<option value="all">Toate tipurile</option>
-					<option value="live_online">Live Online</option>
-					<option value="physical">Fizic</option>
-					<option value="webinar">Webinar</option>
-					<option value="workshop">Workshop</option>
-				</select>
-				<select
-					value={filters.date_filter}
-					onChange={(e) => setFilters({ ...filters, date_filter: e.target.value })}
-					className="events-filter-select"
-				>
 					<option value="all">Toate</option>
-					<option value="upcoming">Viitoare</option>
-					<option value="live">Live</option>
-					<option value="past">Trecute</option>
+					<option value="live_online">Online</option>
+					<option value="physical">Fizic</option>
 				</select>
 			</div>
 
@@ -147,11 +310,32 @@ const EventsPage = () => {
 				</div>
 			)}
 
+			{events.length > 0 && (
+				<div className="va-card" style={{ marginBottom: '1.5rem' }}>
+					<div className="va-card-body" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+						<div style={{ flex: 1, minWidth: '180px' }}>
+							<div style={{ fontSize: '0.8rem', color: 'var(--va-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+								Evenimente viitoare
+							</div>
+							<div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{groupedEvents.upcoming.length}</div>
+						</div>
+						<div style={{ flex: 1, minWidth: '180px' }}>
+							<div style={{ fontSize: '0.8rem', color: 'var(--va-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+								Evenimente finalizate
+							</div>
+							<div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{groupedEvents.completed.length}</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{events.length > 0 ? (
 						<div className="events-grid">
 							{events.map((event) => {
-								const statusBadge = getStatusBadge(event.status);
+								const statusBadge = getStatusBadge(event);
 								const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
+								const isCompleted = getTimelineGroup(event) === 'completed';
+								const duration = formatDuration(event.start_date, event.end_date);
 								
 								return (
 									<div
@@ -241,7 +425,7 @@ const EventsPage = () => {
 												>
 													Vezi Detalii
 												</button>
-												{!event.user_registered && !isFull && event.status !== 'completed' && event.status !== 'cancelled' && (
+												{!event.user_registered && !isFull && !isCompleted && event.status !== 'cancelled' && (
 													<button
 														className="lms-btn-secondary"
 														onClick={(e) => handleRegister(event.id, e)}
@@ -288,4 +472,3 @@ const EventsPage = () => {
 };
 
 export default EventsPage;
-

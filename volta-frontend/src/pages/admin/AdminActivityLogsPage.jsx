@@ -22,21 +22,26 @@ function getFriendlyLogLine(log) {
 
 	if (action === 'completed_course') {
 		const title = nv.course_title || 'cursul';
-		return `${name} a finalizat cursul «${title}».`;
+		return `${name} a finalizat cursul „${title}”.`;
+	}
+	if (action === 'completed_lesson') {
+		const title = nv.lesson_title || 'lecția';
+		return `${name} a finalizat lecția "${title}".`;
 	}
 	if (action === 'completed_exam') {
 		const ex = nv.exam_title || 'testul';
 		const pct = nv.percentage;
 		return pct != null
-			? `${name} a finalizat testul «${ex}» cu ${pct}%.`
-			: `${name} a finalizat testul «${ex}».`;
+			? `${name} a finalizat testul „${ex}” și a obținut ${pct}%.`
+			: `${name} a finalizat testul „${ex}”.`;
 	}
 	if (action === 'telemetry.learner_attempt_submitted') {
 		const pct = nv.percentage ?? nv.score_percentage ?? nv.percent;
 		const title = nv.test_title || nv.exam_title;
-		const pctPart = pct != null ? ` cu ${pct}%` : '';
-		const titlePart = title ? ` «${title}»` : '';
-		return `${name} a trimis testul${titlePart}${pctPart}.`;
+		if (title && pct != null) return `${name} a trimis testul „${title}” și a obținut ${pct}%.`;
+		if (title) return `${name} a trimis testul „${title}”.`;
+		if (pct != null) return `${name} a trimis testul și a obținut ${pct}%.`;
+		return `${name} a trimis un test.`;
 	}
 	if (action === 'telemetry.learner_attempt_started') {
 		return `${name} a început un test.`;
@@ -64,21 +69,14 @@ function getSimpleIcon(action) {
 	return '•';
 }
 
-function formatJsonBlock(obj) {
-	if (obj == null || (typeof obj === 'object' && Object.keys(obj).length === 0)) return null;
-	try {
-		return JSON.stringify(obj, null, 2);
-	} catch {
-		return String(obj);
-	}
-}
-
 /** Filtre fixe — fără liste tehnice din server. */
 const SIMPLE_EVENT_TYPES = [
 	{ value: '', label: 'Orice' },
 	{ value: 'completed_course', label: 'Curs finalizat' },
+	{ value: 'completed_lesson', label: 'Lecție finalizată' },
 	{ value: 'completed_exam', label: 'Test cu notă' },
 	{ value: 'telemetry.learner_attempt_submitted', label: 'Test trimis' },
+	{ value: 'telemetry.learner_focus_seconds', label: 'Timp pe lecție' },
 ];
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -108,6 +106,7 @@ const AdminActivityLogsPage = () => {
 	const [searchInput, setSearchInput] = useState('');
 	const searchDebounceRef = useRef(null);
 	const searchEffectBoot = useRef(true);
+	const autoExpandedFiltersRef = useRef(false);
 
 	const [availableFilters, setAvailableFilters] = useState({
 		action_scopes: [],
@@ -147,7 +146,7 @@ const AdminActivityLogsPage = () => {
 				total: data.pagination?.total ?? 0,
 			}));
 			if (data.filters?.action_scopes?.length) {
-				setAvailableFilters((prev) => ({
+				setAvailableFilters(() => ({
 					action_scopes: data.filters.action_scopes,
 				}));
 			}
@@ -163,6 +162,27 @@ const AdminActivityLogsPage = () => {
 	useEffect(() => {
 		fetchLogs();
 	}, [fetchLogs]);
+
+	useEffect(() => {
+		// If strict defaults produce an empty list, auto-broaden once so admins always see activity.
+		if (loading || logs.length > 0 || autoExpandedFiltersRef.current) return;
+		const hasStrictDefaults =
+			filters.action_scope === 'elev_progres' &&
+			!showMyActions &&
+			!filters.search &&
+			!filters.action &&
+			!filters.date_from &&
+			!filters.date_to;
+		if (!hasStrictDefaults) return;
+		autoExpandedFiltersRef.current = true;
+		setShowMyActions(true);
+		setFilters((prev) => ({
+			...prev,
+			action_scope: 'all',
+			action: '',
+		}));
+		setPagination((prev) => ({ ...prev, current_page: 1 }));
+	}, [loading, logs.length, filters, showMyActions]);
 
 	useEffect(() => {
 		if (searchEffectBoot.current) {
@@ -203,11 +223,8 @@ const AdminActivityLogsPage = () => {
 		if (availableFilters.action_scopes?.length) return availableFilters.action_scopes;
 		return [
 			{ id: 'elev_progres', label: 'Progres elevi (cursuri și teste)' },
-			{ id: 'all', label: 'Tot jurnalul' },
-			{ id: 'telemetry', label: 'Telemetrie (toate)' },
-			{ id: 'learner', label: 'Elevi / învățare' },
-			{ id: 'admin_ops', label: 'Admin & builder' },
-			{ id: 'legacy', label: 'Fără telemetrie' },
+			{ id: 'all', label: 'Toată activitatea' },
+			{ id: 'learner', label: 'Activitate elevi' },
 		];
 	}, [availableFilters.action_scopes]);
 
@@ -341,10 +358,6 @@ const AdminActivityLogsPage = () => {
 						{logs.map((log) => {
 							const line = getFriendlyLogLine(log);
 							const isOpen = expandedId === log.id;
-							const payloadJson = formatJsonBlock(log.new_values);
-							const oldJson = formatJsonBlock(log.old_values);
-							const showTechnical =
-								filters.action_scope === 'all' || filters.action_scope === 'admin_ops' || filters.action_scope === 'telemetry';
 
 							return (
 								<div key={log.id} className="admin-activity-logs-item">
@@ -385,29 +398,6 @@ const AdminActivityLogsPage = () => {
 													<strong>{log.user.name}</strong>
 												</p>
 											)}
-											{showTechnical && (
-												<p className="admin-activity-logs-detail-tech">
-													<code>{log.action}</code>
-													{log.model_id != null && <> · id: {log.model_id}</>}
-												</p>
-											)}
-											{log.user_agent && showTechnical && (
-												<p className="admin-activity-logs-detail-ua">
-													<small>{log.user_agent}</small>
-												</p>
-											)}
-											{showTechnical && oldJson && (
-												<div className="admin-activity-logs-json-block">
-													<strong>Înainte</strong>
-													<pre>{oldJson}</pre>
-												</div>
-											)}
-											{showTechnical && payloadJson && (
-												<div className="admin-activity-logs-json-block">
-													<strong>Detalii tehnice</strong>
-													<pre>{payloadJson}</pre>
-												</div>
-											)}
 										</div>
 									)}
 								</div>
@@ -421,6 +411,27 @@ const AdminActivityLogsPage = () => {
 						<div className="admin-activity-logs-empty-text">
 							Schimbă filtrele sau așteaptă ca elevii să finalizeze cursuri sau teste.
 						</div>
+						<button
+							type="button"
+							className="lms-btn-primary lms-btn-sm"
+							style={{ marginTop: '0.9rem' }}
+							onClick={() => {
+								autoExpandedFiltersRef.current = true;
+								setSearchInput('');
+								setShowMyActions(true);
+								setFilters((prev) => ({
+									...prev,
+									search: '',
+									action: '',
+									action_scope: 'all',
+									date_from: '',
+									date_to: '',
+								}));
+								setPagination((prev) => ({ ...prev, current_page: 1 }));
+							}}
+						>
+							Arată toată activitatea
+						</button>
 					</div>
 				)}
 

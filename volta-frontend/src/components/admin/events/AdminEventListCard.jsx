@@ -2,33 +2,13 @@ import React from 'react';
 import './AdminEventListCard.css';
 
 const TYPE_LABELS = {
-	live_online: 'Live online',
+	live_online: 'Online',
 	physical: 'Fizic',
-	webinar: 'Webinar',
-	workshop: 'Workshop',
 };
 
 const ACCESS_LABELS = {
 	free: 'Gratuit',
 	course_included: 'Inclus în curs',
-};
-
-const STATUS_LABELS = {
-	draft: 'Ciornă',
-	published: 'Publicat',
-	upcoming: 'Viitor',
-	live: 'Live',
-	completed: 'Finalizat',
-	cancelled: 'Anulat',
-};
-
-const STATUS_MOD = {
-	draft: 'aev-status--draft',
-	published: 'aev-status--published',
-	upcoming: 'aev-status--upcoming',
-	live: 'aev-status--live',
-	completed: 'aev-status--completed',
-	cancelled: 'aev-status--cancelled',
 };
 
 function previewDescription(event) {
@@ -52,12 +32,8 @@ function locationLine(event) {
  */
 export default function AdminEventListCard({
 	event,
-	selected,
-	onSelectChange,
-	busy,
 	formatDate,
 	calculateDuration,
-	onQuickAction,
 	onEdit,
 	onDelete,
 	readOnly = false,
@@ -67,32 +43,16 @@ export default function AdminEventListCard({
 	const typeLabel = TYPE_LABELS[event.type] || event.type;
 	const accessLabel =
 		event.access_type === 'course_included' ? ACCESS_LABELS.course_included || event.access_type : null;
-	const statusKey = event.status || 'draft';
-	const statusClass = STATUS_MOD[statusKey] || STATUS_MOD.draft;
-	const statusText = STATUS_LABELS[statusKey] || statusKey;
 
 	return (
 		<article className="aev-card" aria-labelledby={`aev-title-${event.id}`}>
 			<div className="aev-card__shell">
-				<header className="aev-card__head">
-					{!readOnly && (
-						<div className="aev-card__pick">
-							<input
-								id={`aev-sel-${event.id}`}
-								type="checkbox"
-								className="aev-card__checkbox"
-								checked={selected}
-								onChange={(e) => onSelectChange(e.target.checked)}
-								aria-label={`Selectează evenimentul: ${event.title}`}
-							/>
-						</div>
-					)}
+				<header className="aev-card__head aev-card__head--no-select">
 					<div className="aev-card__head-main">
 						<div className="aev-card__title-row">
 							<h2 id={`aev-title-${event.id}`} className="aev-card__title">
 								{event.title}
 							</h2>
-							<span className={`aev-status ${statusClass}`}>{statusText}</span>
 						</div>
 						<p className="aev-card__when">
 							{event.start_date ? (
@@ -146,65 +106,10 @@ export default function AdminEventListCard({
 				</div>
 
 				{readOnly ? null : (
-				<details className="aev-actions">
-					<summary className="aev-actions__toggle">Acțiuni</summary>
-					<div
-						className="aev-actions__panel"
-						role="toolbar"
-						aria-label={`Acțiuni pentru eveniment: ${event.title}`}
-					>
-						{event.status === 'draft' ? (
-							<button
-								type="button"
-								className="admin-btn admin-btn-sm admin-btn-primary"
-								disabled={busy}
-								aria-busy={busy}
-								aria-label="Publică evenimentul"
-								onClick={() => onQuickAction(event.id, 'publish')}
-							>
-								Publică
-							</button>
-						) : null}
-						{event.status === 'published' || event.status === 'upcoming' ? (
-							<button
-								type="button"
-								className="admin-btn admin-btn-sm admin-btn-secondary"
-								disabled={busy}
-								aria-busy={busy}
-								aria-label="Retrage evenimentul din publicare"
-								onClick={() => onQuickAction(event.id, 'unpublish')}
-							>
-								Retrage din publicare
-							</button>
-						) : null}
-						{!['completed', 'cancelled'].includes(event.status) ? (
-							<button
-								type="button"
-								className="admin-btn admin-btn-sm admin-btn-secondary"
-								disabled={busy}
-								aria-busy={busy}
-								aria-label="Anulează evenimentul"
-								onClick={() => onQuickAction(event.id, 'cancel')}
-							>
-								Anulează
-							</button>
-						) : null}
-						{['published', 'upcoming', 'live'].includes(event.status) ? (
-							<button
-								type="button"
-								className="admin-btn admin-btn-sm admin-btn-primary"
-								disabled={busy}
-								aria-busy={busy}
-								aria-label="Marchează evenimentul ca finalizat"
-								onClick={() => onQuickAction(event.id, 'complete')}
-							>
-								Finalizează
-							</button>
-						) : null}
+					<div className="aev-card__actions-bar" role="toolbar" aria-label={`Acțiuni: ${event.title}`}>
 						<button
 							type="button"
 							className="admin-btn admin-btn-sm admin-btn-secondary"
-							disabled={busy}
 							aria-label="Editează evenimentul"
 							onClick={() => onEdit(event)}
 						>
@@ -213,7 +118,6 @@ export default function AdminEventListCard({
 						<button
 							type="button"
 							className="admin-btn admin-btn-sm admin-btn-danger"
-							disabled={busy}
 							aria-label="Șterge evenimentul"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -223,7 +127,6 @@ export default function AdminEventListCard({
 							Șterge
 						</button>
 					</div>
-				</details>
 				)}
 			</div>
 		</article>

@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
+use App\Jobs\SyncAiKnowledgeJob;
 
 class Lesson extends Model
 {
     use HasFactory;
+    use InvalidatesTutorKnowledgeCache;
 
     protected $fillable = [
         'course_id',
@@ -89,6 +92,8 @@ class Lesson extends Model
 
         // Recalculate progress when lesson is updated
         static::saved(function ($lesson) {
+            self::clearTutorKnowledgeCache((int) ($lesson->course_id ?? 0));
+            SyncAiKnowledgeJob::dispatch((int) $lesson->id, null, 'sync')->onConnection('background');
             if ($lesson->module && $lesson->module->course) {
                 app(\App\Services\CourseProgressService::class)
                     ->recalculateCourseProgress($lesson->module->course);
@@ -96,6 +101,8 @@ class Lesson extends Model
         });
 
         static::deleted(function ($lesson) {
+            self::clearTutorKnowledgeCache((int) ($lesson->course_id ?? 0));
+            SyncAiKnowledgeJob::dispatch((int) $lesson->id, null, 'delete')->onConnection('background');
             if ($lesson->module && $lesson->module->course) {
                 app(\App\Services\CourseProgressService::class)
                     ->recalculateCourseProgress($lesson->module->course);

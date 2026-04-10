@@ -6,11 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model; // <--- trebuie adăugat
 use App\Models\User; // pentru relația teacher
 use App\Models\Module; // pentru relația modules
+use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
+use App\Jobs\SyncAiKnowledgeJob;
 use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
     use HasFactory;
+    use InvalidatesTutorKnowledgeCache;
 
     protected $fillable = [
         'title',
@@ -203,5 +206,20 @@ class Course extends Model
         return $this->belongsToMany(CourseMap::class, 'course_map_course')
             ->withPivot('order')
             ->withTimestamps();
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function (self $course) {
+            self::clearTutorKnowledgeCache((int) $course->id);
+            SyncAiKnowledgeJob::dispatch(null, (int) $course->id, 'sync')->onConnection('background');
+        });
+
+        static::deleted(function (self $course) {
+            self::clearTutorKnowledgeCache((int) $course->id);
+            SyncAiKnowledgeJob::dispatch(null, (int) $course->id, 'sync')->onConnection('background');
+        });
     }
 }

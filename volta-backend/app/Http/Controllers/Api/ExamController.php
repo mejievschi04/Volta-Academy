@@ -9,6 +9,7 @@ use App\Models\Exam;
 use App\Models\Test;
 use App\Models\ExamResult;
 use App\Models\TestResult;
+use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\TestQuestionSelectionService;
 use Carbon\Carbon;
@@ -87,6 +88,83 @@ class ExamController extends Controller
             'message' => 'Examenul nu este Г®ncДѓ publicat.',
             'unpublished' => true,
         ], 403);
+    }
+
+    protected function resolveExamDeadline(Exam $exam, $user): array
+    {
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $type = (string) ($settings['deadline_type'] ?? 'none');
+        $deadlineAt = null;
+
+        if ($type === 'fixed') {
+            $raw = $settings['deadline_at'] ?? null;
+            if (is_string($raw) && trim($raw) !== '') {
+                try {
+                    $deadlineAt = Carbon::parse($raw);
+                } catch (\Throwable $e) {
+                    $deadlineAt = null;
+                }
+            }
+        } elseif ($type === 'relative') {
+            $days = max(0, (int) ($settings['deadline_days'] ?? 0));
+            if ($days > 0) {
+                $anchor = null;
+
+                if ($exam->course_id) {
+                    $courseUser = DB::table('course_user')
+                        ->where('course_id', $exam->course_id)
+                        ->where('user_id', $user->id)
+                        ->first();
+
+                    if ($courseUser && ! empty($courseUser->created_at)) {
+                        try {
+                            $anchor = Carbon::parse($courseUser->created_at);
+                        } catch (\Throwable $e) {
+                            $anchor = null;
+                        }
+                    }
+                }
+
+                if (! $anchor && $exam->created_at) {
+                    $anchor = Carbon::parse($exam->created_at);
+                }
+
+                if ($anchor) {
+                    $deadlineAt = $anchor->copy()->addDays($days)->endOfDay();
+                }
+            }
+        }
+
+        return [
+            'type' => $type,
+            'deadline_at' => $deadlineAt?->toIso8601String(),
+            'is_overdue' => $deadlineAt ? now()->greaterThan($deadlineAt) : false,
+        ];
+    }
+
+    protected function gateExamAvailability(Exam $exam, $user): ?JsonResponse
+    {
+        if ($user->isAdmin() || $user->isInstructor()) {
+            return null;
+        }
+
+        if (! $exam->isVisibleToLearner($user)) {
+            return response()->json([
+                'message' => 'Nu ai acces la acest examen.',
+                'allowed' => false,
+            ], 403);
+        }
+
+        $deadline = $this->resolveExamDeadline($exam, $user);
+        if ($deadline['is_overdue']) {
+            return response()->json([
+                'message' => 'Termenul pentru acest examen a expirat.',
+                'deadline_passed' => true,
+                'deadline_at' => $deadline['deadline_at'],
+            ], 403);
+        }
+
+        return null;
     }
 
     protected function isAnswerCorrectFlag($answer): bool
@@ -244,7 +322,7 @@ class ExamController extends Controller
             ->whereNull('course_id')
             ->orderBy('title')
             ->get()
-            ->filter(fn (Exam $e) => $e->isVisibleToLearner($user))
+            ->filter(fn (Exam $e) => $e->isVisibleToLearner($user) && ! $this->resolveExamDeadline($e, $user)['is_overdue'])
             ->values();
 
         return response()->json([
@@ -349,7 +427,7 @@ class ExamController extends Controller
             'instructions' => null,
             'show_feedback_instant' => (bool) ($test->show_results_immediately ?? false),
             'show_correct_answers' => (bool) ($test->show_correct_answers ?? false),
-            'type' => $test->type ?? 'graded',
+            'type' => $test->type ?? 'final',
             'course_id' => $resolvedCourseId,
             'module_id' => $moduleId,
             'lesson_id' => null,
@@ -395,8 +473,12 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
             return $blocked;
         }
+        if ($blocked = $this->gateExamAvailability($exam, $user)) {
+            return $blocked;
+        }
 
         $settings = is_array($exam->settings) ? $exam->settings : [];
+        $deadline = $this->resolveExamDeadline($exam, $user);
 
         // Check access
         $accessCheck = $this->progressService->isExamUnlocked(
@@ -467,8 +549,13 @@ class ExamController extends Controller
             'title' => $exam->title,
             'description' => $exam->description,
             'instructions' => $settings['instructions'] ?? null,
+            'manual_review' => array_key_exists('manual_review', $settings) ? (bool) $settings['manual_review'] : true,
+            'manual_review_mode' => (string) ($settings['manual_review_mode'] ?? 'after_complete'),
             'show_feedback_instant' => (bool) ($settings['show_feedback_instant'] ?? false),
             'show_correct_answers' => (bool) ($settings['show_correct_answers'] ?? false),
+            'navigation_mode' => (string) ($settings['navigation_mode'] ?? 'sequential'),
+            'deadline_type' => $deadline['type'],
+            'deadline_at' => $deadline['deadline_at'],
             'course_id' => $exam->course_id,
             'module_id' => $exam->module_id,
             'lesson_id' => $exam->lesson_id,
@@ -532,16 +619,20 @@ class ExamController extends Controller
             return $blocked;
         }
 
+        $trackLearning = ! $user->isLearningActivityExempt();
+
         try {
             // Check attempt limits
-            $userAttempts = TestResult::where('test_id', $test->id)
-                ->where('user_id', $user->id)
-                ->get();
+            $userAttempts = $trackLearning
+                ? TestResult::where('test_id', $test->id)
+                    ->where('user_id', $user->id)
+                    ->get()
+                : collect();
             
-            $currentAttempt = $userAttempts->count();
+            $currentAttempt = $trackLearning ? $userAttempts->count() : 0;
             $nextAttempt = $currentAttempt + 1;
             
-            if ($test->max_attempts && $nextAttempt > $test->max_attempts) {
+            if ($trackLearning && $test->max_attempts && $nextAttempt > $test->max_attempts) {
                 return response()->json([
                     'message' => "Ai atins limita de {$test->max_attempts} Г®ncercДѓri pentru acest test.",
                     'max_attempts_reached' => true,
@@ -608,30 +699,33 @@ class ExamController extends Controller
                 : (int) ($test->passing_score ?? 70);
             $passed = !$needsManualReview && $percentage >= $passingScore;
             
-            // Create test result
-            // Use only fields that are in the fillable array of TestResult model
-            $testResult = TestResult::create([
-                'test_id' => $test->id,
-                'user_id' => $user->id,
-                'attempt_number' => $nextAttempt,
-                'score' => $score,
-                'max_score' => $totalPoints,
-                'correct_answers_count' => $correctAnswersCount,
-                'total_questions' => $totalQuestions,
-                'percentage' => $percentage,
-                'passed' => $passed,
-                'answers' => $answers,
-                'started_at' => $startedAt,
-                'time_taken_minutes' => $startedAt ? max(0, (int) floor($startedAt->diffInSeconds(now()) / 60)) : null,
-                'completed_at' => now(),
-                'status' => $needsManualReview ? 'pending_review' : 'completed',
-                'needs_manual_review' => $needsManualReview,
-            ]);
-        
+            $testResult = null;
+            if ($trackLearning) {
+                $testResult = TestResult::create([
+                    'test_id' => $test->id,
+                    'user_id' => $user->id,
+                    'attempt_number' => $nextAttempt,
+                    'score' => $score,
+                    'max_score' => $totalPoints,
+                    'correct_answers_count' => $correctAnswersCount,
+                    'total_questions' => $totalQuestions,
+                    'percentage' => $percentage,
+                    'passed' => $passed,
+                    'answers' => $answers,
+                    'started_at' => $startedAt,
+                    'time_taken_minutes' => $startedAt ? max(0, (int) floor($startedAt->diffInSeconds(now()) / 60)) : null,
+                    'completed_at' => now(),
+                    'status' => $needsManualReview ? 'pending_review' : 'completed',
+                    'needs_manual_review' => $needsManualReview,
+                ]);
+            }
+
             // Get course from CourseTest relationship
-            if ($courseTest) {
+            $courseForLog = null;
+            if ($courseTest && $trackLearning) {
                 try {
                     $course = \App\Models\Course::find($courseTest->course_id);
+                    $courseForLog = $course instanceof Course ? $course : null;
                     $module = ($courseTest->scope === 'module') ? \App\Models\Module::find($courseTest->scope_id) : null;
                     
                     // If test is required and passed, recalculate progress
@@ -649,14 +743,7 @@ class ExamController extends Controller
                                         
                                         // Check if course is now complete
                                         if ($this->progressService->canFinalizeCourse($user, $course)) {
-                                            // Mark course as completed
-                                            DB::table('course_user')
-                                                ->where('user_id', $user->id)
-                                                ->where('course_id', $course->id)
-                                                ->update([
-                                                    'completed_at' => now(),
-                                                    'updated_at' => now(),
-                                                ]);
+                                            $this->markCourseCompletedWithActivity($user, $course, $request);
                                             app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                         }
                                     }
@@ -674,14 +761,7 @@ class ExamController extends Controller
                                 
                                 // Check if course is now complete
                                 if ($this->progressService->canFinalizeCourse($user, $course)) {
-                                    // Mark course as completed
-                                    DB::table('course_user')
-                                        ->where('user_id', $user->id)
-                                        ->where('course_id', $course->id)
-                                        ->update([
-                                            'completed_at' => now(),
-                                            'updated_at' => now(),
-                                        ]);
+                                    $this->markCourseCompletedWithActivity($user, $course, $request);
                                     app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                 }
                             } catch (\Exception $e) {
@@ -699,11 +779,27 @@ class ExamController extends Controller
                     ]);
                 }
             }
+
+            if ($trackLearning) {
+                $this->logExamSubmission(
+                    $user,
+                    (string) $test->title,
+                    (int) $test->id,
+                    'Test',
+                    $courseForLog,
+                    (float) $score,
+                    (float) $totalPoints,
+                    (float) $percentage,
+                    (bool) $passed,
+                    (int) $nextAttempt,
+                    $request
+                );
+            }
             
             return response()->json([
                 'message' => 'Test trimis cu succes',
                 'result' => [
-                    'id' => $testResult->id,
+                    'id' => $testResult?->id,
                     'score' => $score,
                     'total_points' => $totalPoints,
                     'max_score' => $totalPoints,
@@ -715,9 +811,9 @@ class ExamController extends Controller
                         ? max(0, $test->max_attempts - $nextAttempt)
                         : null,
                     'needs_manual_review' => $needsManualReview,
-                    'status' => $testResult->status,
-                    'completed_at' => $testResult->completed_at,
-                    'answers' => is_array($testResult->answers) ? $testResult->answers : (is_array($answers) ? $answers : []),
+                    'status' => $testResult?->status ?? ($needsManualReview ? 'pending_review' : 'completed'),
+                    'completed_at' => $testResult?->completed_at,
+                    'answers' => $testResult && is_array($testResult->answers) ? $testResult->answers : (is_array($answers) ? $answers : []),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -743,6 +839,11 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
             return $blocked;
         }
+        if ($blocked = $this->gateExamAvailability($exam, $user)) {
+            return $blocked;
+        }
+
+        $trackLearning = ! $user->isLearningActivityExempt();
 
         // Check access
         $accessCheck = $this->progressService->isExamUnlocked(
@@ -761,14 +862,16 @@ class ExamController extends Controller
         }
 
         // Check attempt limits
-        $userAttempts = ExamResult::where('exam_id', $exam->id)
-            ->where('user_id', $user->id)
-            ->get();
+        $userAttempts = $trackLearning
+            ? ExamResult::where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->get()
+            : collect();
 
-        $currentAttempt = $userAttempts->count();
+        $currentAttempt = $trackLearning ? $userAttempts->count() : 0;
         $nextAttempt = $currentAttempt + 1;
 
-        if ($exam->max_attempts && $nextAttempt > $exam->max_attempts) {
+        if ($trackLearning && $exam->max_attempts && $nextAttempt > $exam->max_attempts) {
             return response()->json([
                 'message' => "Ai atins limita de {$exam->max_attempts} Г®ncercДѓri pentru acest test.",
                 'max_attempts_reached' => true,
@@ -776,17 +879,23 @@ class ExamController extends Controller
         }
 
         $answers = $request->input('answers', []);
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $manualReviewEnabled = array_key_exists('manual_review', $settings)
+            ? (bool) $settings['manual_review']
+            : true;
+        $manualReviewMode = (string) ($settings['manual_review_mode'] ?? 'after_complete');
 
         // Calculate score
         $score = 0;
         $totalPoints = 0;
         $needsManualReview = false;
+        $hasManualQuestions = false;
 
         foreach ($exam->questions as $question) {
             $totalPoints += $question->points ?? 1;
 
             if (in_array($question->question_type ?? '', ['open_text', 'short_answer', 'essay'], true)) {
-                $needsManualReview = true;
+                $hasManualQuestions = true;
             } else {
                 // Multiple choice
                 $questionAnswers = $question->answers->values();
@@ -806,63 +915,60 @@ class ExamController extends Controller
             }
         }
 
+        $needsManualReview = $manualReviewEnabled && $hasManualQuestions;
+
         $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
         $passingScore = $exam->passing_score ?? 70;
         $passed = !$needsManualReview && $percentage >= $passingScore;
 
-        // Create exam result
-        $examResult = ExamResult::create([
-            'exam_id' => $exam->id,
-            'user_id' => $user->id,
-            'attempt_number' => $nextAttempt,
-            'score' => $score,
-            'total_points' => $totalPoints,
-            'percentage' => $percentage,
-            'passed' => $passed,
-            'answers' => $answers,
-            'completed_at' => now(),
-            'needs_manual_review' => $needsManualReview,
-        ]);
+        $examResult = null;
+        if ($trackLearning) {
+            $examResult = ExamResult::create([
+                'exam_id' => $exam->id,
+                'user_id' => $user->id,
+                'attempt_number' => $nextAttempt,
+                'score' => $score,
+                'total_points' => $totalPoints,
+                'percentage' => $percentage,
+                'passed' => $passed,
+                'answers' => $answers,
+                'completed_at' => now(),
+                'needs_manual_review' => $needsManualReview,
+            ]);
 
-        // If exam is required and passed, recalculate progress
-        if ($exam->is_required && $passed) {
-            if ($exam->module) {
-                // Recalculate module progress
-                $this->progressService->calculateModuleProgress($user, $exam->module);
-                
-                // Check if module is now complete
-                if ($this->progressService->isModuleComplete($user, $exam->module)) {
-                    // Recalculate course progress
-                    if ($exam->course) {
-                        $this->progressService->calculateCourseProgress($user, $exam->course);
-                        
-                        // Check if course is now complete
-                        if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
-                            // Mark course as completed
-                            \DB::table('course_user')
-                                ->where('user_id', $user->id)
-                                ->where('course_id', $exam->course->id)
-                                ->update([
-                                    'completed_at' => now(),
-                                    'updated_at' => now(),
-                                ]);
+            $this->logExamSubmission(
+                $user,
+                (string) $exam->title,
+                (int) $exam->id,
+                'Exam',
+                $exam->course instanceof Course ? $exam->course : null,
+                (float) $score,
+                (float) $totalPoints,
+                (float) $percentage,
+                (bool) $passed,
+                (int) $nextAttempt,
+                $request
+            );
+
+            if ($exam->is_required && $passed) {
+                if ($exam->module) {
+                    $this->progressService->calculateModuleProgress($user, $exam->module);
+                    
+                    if ($this->progressService->isModuleComplete($user, $exam->module)) {
+                        if ($exam->course) {
+                            $this->progressService->calculateCourseProgress($user, $exam->course);
+                            
+                            if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
+                                $this->markCourseCompletedWithActivity($user, $exam->course, $request);
+                            }
                         }
                     }
-                }
-            } elseif ($exam->course) {
-                // Course-level exam, recalculate course progress
-                $this->progressService->calculateCourseProgress($user, $exam->course);
-                
-                // Check if course is now complete
-                if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
-                    // Mark course as completed
-                    \DB::table('course_user')
-                        ->where('user_id', $user->id)
-                        ->where('course_id', $exam->course->id)
-                        ->update([
-                            'completed_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                } elseif ($exam->course) {
+                    $this->progressService->calculateCourseProgress($user, $exam->course);
+                    
+                    if ($this->progressService->canFinalizeCourse($user, $exam->course)) {
+                        $this->markCourseCompletedWithActivity($user, $exam->course, $request);
+                    }
                 }
             }
         }
@@ -870,7 +976,7 @@ class ExamController extends Controller
         return response()->json([
             'message' => 'Test trimis cu succes',
             'result' => [
-                'id' => $examResult->id,
+                'id' => $examResult?->id,
                 'score' => $score,
                 'total_points' => $totalPoints,
                 'percentage' => $percentage,
@@ -881,7 +987,10 @@ class ExamController extends Controller
                     ? max(0, $exam->max_attempts - $nextAttempt)
                     : null,
                 'needs_manual_review' => $needsManualReview,
-                'completed_at' => $examResult->completed_at,
+                'manual_review_mode' => $manualReviewMode,
+                'manual_review_enabled' => $manualReviewEnabled,
+                'has_manual_questions' => $hasManualQuestions,
+                'completed_at' => $examResult?->completed_at,
                 'status' => $needsManualReview ? 'pending_review' : 'completed',
             ],
         ]);
@@ -902,6 +1011,103 @@ class ExamController extends Controller
 
         return null;
     }
+
+    protected function logExamSubmission(
+        $user,
+        string $title,
+        int $modelId,
+        string $modelType,
+        ?Course $course,
+        float|int $score,
+        float|int $totalPoints,
+        float|int $percentage,
+        bool $passed,
+        int $attemptNumber,
+        Request $request
+    ): void {
+        try {
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'completed_exam',
+                'model_type' => $modelType,
+                'model_id' => $modelId,
+                'description' => "{$user->name} a finalizat testul \"{$title}\" și a obținut {$percentage}%",
+                'new_values' => [
+                    'exam_id' => $modelId,
+                    'exam_title' => $title,
+                    'course_id' => $course?->id,
+                    'course_title' => $course?->title,
+                    'score' => $score,
+                    'total_points' => $totalPoints,
+                    'percentage' => $percentage,
+                    'passed' => $passed,
+                    'attempt_number' => $attemptNumber,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log completed_exam activity', [
+                'user_id' => $user->id ?? null,
+                'model_id' => $modelId,
+                'model_type' => $modelType,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function markCourseCompletedWithActivity($user, Course $course, Request $request): void
+    {
+        if ($user->isLearningActivityExempt()) {
+            return;
+        }
+
+        $existing = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->first();
+
+        $wasCompleted = $existing && !empty($existing->completed_at);
+
+        DB::table('course_user')->updateOrInsert(
+            [
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+            ],
+            [
+                'enrolled' => true,
+                'enrolled_at' => $existing->enrolled_at ?? now(),
+                'progress_percentage' => 100,
+                'completed_at' => $existing->completed_at ?? now(),
+                'updated_at' => now(),
+                'created_at' => $existing->created_at ?? now(),
+            ]
+        );
+
+        if (!$wasCompleted) {
+            try {
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'completed_course',
+                    'model_type' => 'Course',
+                    'model_id' => $course->id,
+                    'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
+                    'new_values' => [
+                        'course_id' => $course->id,
+                        'course_title' => $course->title,
+                        'progress_percentage' => 100,
+                        'completed_at' => now()->toDateTimeString(),
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to log completed_course activity', [
+                    'user_id' => $user->id ?? null,
+                    'course_id' => $course->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
 }
-
-

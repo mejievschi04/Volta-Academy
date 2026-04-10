@@ -3,7 +3,8 @@ import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
 
 const DEFAULT_TIMEZONE = 'Europe/Bucharest';
-const DEFAULT_END_OFFSET_HOURS = 1;
+const DEFAULT_DURATION_MINUTES = 60;
+const TIME_24H_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export const emptyEventForm = () => ({
 	title: '',
@@ -11,6 +12,7 @@ export const emptyEventForm = () => ({
 	type: 'live_online',
 	event_date: '',
 	start_time: '09:00',
+	duration_minutes: DEFAULT_DURATION_MINUTES,
 	location: '',
 	live_link: '',
 });
@@ -20,6 +22,17 @@ const trimOrNull = (v) => {
 	return t || null;
 };
 
+const normalizeTimeInput = (rawValue) => {
+	const onlyDigitsAndColon = rawValue.replace(/[^\d:]/g, '');
+	const compact = onlyDigitsAndColon.replace(/:+/g, ':');
+	if (compact.includes(':')) {
+		const [h = '', m = ''] = compact.split(':');
+		return `${h.slice(0, 2)}:${m.slice(0, 2)}`;
+	}
+	if (compact.length <= 2) return compact;
+	return `${compact.slice(0, 2)}:${compact.slice(2, 4)}`;
+};
+
 const toDateTimeLocal = (eventDate, timeHm) => {
 	if (!eventDate || !timeHm) return '';
 	const [h, rest = '00'] = timeHm.split(':');
@@ -27,7 +40,7 @@ const toDateTimeLocal = (eventDate, timeHm) => {
 	return `${eventDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-const addHoursToDateTimeLocal = (dateTimeLocal, hours) => {
+const addMinutesToDateTimeLocal = (dateTimeLocal, minutesToAdd) => {
 	const m = dateTimeLocal.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
 	if (!m) return null;
 	const d = new Date(
@@ -37,9 +50,17 @@ const addHoursToDateTimeLocal = (dateTimeLocal, hours) => {
 		parseInt(m[4], 10),
 		parseInt(m[5], 10)
 	);
-	d.setTime(d.getTime() + hours * 3600000);
+	d.setTime(d.getTime() + minutesToAdd * 60000);
 	const pad = (n) => String(n).padStart(2, '0');
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const calculateDurationMinutes = (startDate, endDate) => {
+	if (!startDate || !endDate) return DEFAULT_DURATION_MINUTES;
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+	const diff = Math.round((end.getTime() - start.getTime()) / 60000);
+	return Number.isFinite(diff) && diff > 0 ? diff : DEFAULT_DURATION_MINUTES;
 };
 
 /**
@@ -83,6 +104,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				type: formType,
 				event_date: eventDate,
 				start_time: startTime,
+				duration_minutes: calculateDurationMinutes(editingEvent.start_date, editingEvent.end_date),
 				location: formType === 'physical' ? (editingEvent.location || '') : '',
 				live_link: formType === 'live_online' ? (editingEvent.live_link || '') : '',
 			});
@@ -95,6 +117,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				...emptyEventForm(),
 				event_date: prefill.event_date,
 				start_time: prefill.start_time || '09:00',
+				duration_minutes: DEFAULT_DURATION_MINUTES,
 			});
 		} else {
 			setFormData(emptyEventForm());
@@ -116,6 +139,11 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 		}
 		if (!formData.start_time) {
 			newErrors.start_time = 'Alege ora de început';
+		} else if (!TIME_24H_REGEX.test(formData.start_time.trim())) {
+			newErrors.start_time = 'Folosește formatul 24h: HH:mm (ex. 09:30)';
+		}
+		if (!formData.duration_minutes || Number(formData.duration_minutes) < 5) {
+			newErrors.duration_minutes = 'Durata trebuie să fie de cel puțin 5 minute';
 		}
 		if (formData.type === 'physical') {
 			if (!formData.location || formData.location.trim().length < 2) {
@@ -145,6 +173,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				description: true,
 				event_date: true,
 				start_time: true,
+				duration_minutes: true,
 				location: true,
 				live_link: true,
 			});
@@ -167,7 +196,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 			};
 
 			const startLocal = toDateTimeLocal(formData.event_date, formData.start_time);
-			const endLocal = addHoursToDateTimeLocal(startLocal, DEFAULT_END_OFFSET_HOURS);
+			const endLocal = addMinutesToDateTimeLocal(startLocal, Number(formData.duration_minutes));
 			if (!startLocal || !endLocal) {
 				showError('Dată sau oră invalidă.');
 				return;
@@ -178,7 +207,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				description: formData.description.trim(),
 				short_description: editingEvent?.short_description?.trim() || null,
 				type: formData.type,
-				status: editingEvent?.status ?? 'draft',
+				status: editingEvent ? (editingEvent.status ?? 'published') : 'published',
 				start_date: formatDateForBackend(startLocal),
 				end_date: formatDateForBackend(endLocal),
 				timezone: DEFAULT_TIMEZONE,
@@ -246,7 +275,6 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				<div className="admin-event-modal-body">
 					<form onSubmit={handleSubmit} className="admin-event-form">
 						<section className="admin-form-section">
-							<h3 className="admin-form-section-title">Conținut</h3>
 							<div className="admin-form-group">
 								<label className="admin-form-label" htmlFor="va-evt-title">
 									Titlu
@@ -288,7 +316,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 									}}
 									placeholder="Agendă, ce vor învăța participanții…"
 									required
-									rows={5}
+									rows={4}
 								/>
 								{errors.description && touched.description && (
 									<div className="admin-event-error">{errors.description}</div>
@@ -297,7 +325,6 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 						</section>
 
 						<section className="admin-form-section">
-							<h3 className="admin-form-section-title">Format</h3>
 							<fieldset className="admin-event-format-fieldset">
 								<legend className="admin-event-format-legend">Unde are loc evenimentul?</legend>
 								<div className="admin-event-format-options">
@@ -324,9 +351,8 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 						</section>
 
 						<section className="admin-form-section">
-							<h3 className="admin-form-section-title">Program</h3>
 							<p className="admin-event-form-hint admin-event-form-intro">
-								Introdu data și ora de început. Sfârșitul este setat automat la +{DEFAULT_END_OFFSET_HOURS} oră.
+								Alege data, ora de început și durata evenimentului.
 							</p>
 							<div className="admin-event-form-grid-2">
 								<div className="admin-form-group">
@@ -354,16 +380,18 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 								</div>
 								<div className="admin-form-group">
 									<label className="admin-form-label" htmlFor="va-evt-time">
-										Ora început
+										Ora început (24h, {DEFAULT_TIMEZONE})
 									</label>
 									<input
 										id="va-evt-time"
-										type="time"
-										step={60}
+										type="text"
+										inputMode="numeric"
+										placeholder="HH:mm"
+										maxLength={5}
 										className="admin-form-input admin-event-input"
 										value={formData.start_time}
 										onChange={(e) => {
-											setFormData({ ...formData, start_time: e.target.value });
+											setFormData({ ...formData, start_time: normalizeTimeInput(e.target.value) });
 											if (touched.start_time) validate();
 										}}
 										onBlur={() => {
@@ -376,13 +404,36 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 										<div className="admin-event-error">{errors.start_time}</div>
 									)}
 								</div>
+								<div className="admin-form-group">
+									<label className="admin-form-label" htmlFor="va-evt-duration">
+										Durată (minute)
+									</label>
+									<input
+										id="va-evt-duration"
+										type="number"
+										min={5}
+										step={5}
+										className="admin-form-input admin-event-input"
+										value={formData.duration_minutes}
+										onChange={(e) => {
+											setFormData({ ...formData, duration_minutes: e.target.value });
+											if (touched.duration_minutes) validate();
+										}}
+										onBlur={() => {
+											setTouched({ ...touched, duration_minutes: true });
+											validate();
+										}}
+										required
+									/>
+									<p className="admin-event-form-hint">Ex.: 30, 60, 90, 120</p>
+									{errors.duration_minutes && touched.duration_minutes && (
+										<div className="admin-event-error">{errors.duration_minutes}</div>
+									)}
+								</div>
 							</div>
 						</section>
 
 						<section className="admin-form-section">
-							<h3 className="admin-form-section-title">
-								{formData.type === 'physical' ? 'Locație' : 'Link participare'}
-							</h3>
 							{formData.type === 'physical' ? (
 								<div className="admin-form-group">
 									<label className="admin-form-label" htmlFor="va-evt-loc">

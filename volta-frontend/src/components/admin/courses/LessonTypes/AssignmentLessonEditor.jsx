@@ -7,14 +7,14 @@ import { useToast } from '../../../../contexts/ToastContext';
  * Assignment / Practice Lesson Editor - Conform defacut.md secțiunea 5.3
  * Features:
  * - Creator defines: objective, constraints
- * - AI: Generates exercises, auto-feedback, scoring
+ * - Volt: generates exercises, auto-feedback, scoring
  */
 const AssignmentLessonEditor = ({ lesson, onUpdate }) => {
 	const { showToast } = useToast();
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [generatedExercises, setGeneratedExercises] = useState([]);
 
-	// Generate exercises with AI
+	// Generate exercises with Volt
 	const handleGenerateExercises = async () => {
 		if (!lesson.objective || !lesson.objective.trim()) {
 			showToast('Te rugăm să definiți mai întâi obiectivul exercițiului', 'info');
@@ -81,7 +81,7 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing exercises response:', e);
-				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
+				showToast('Eroare la parsarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating exercises:', error);
@@ -127,10 +127,10 @@ Răspunde în format JSON:
 					onClick={handleGenerateExercises}
 					disabled={aiGenerating || !lesson.objective}
 				>
-					{aiGenerating ? '⏳ Generează exerciții...' : '🤖 Generează Exerciții cu AI'}
+					{aiGenerating ? '⏳ Generează exerciții...' : '🤖 Generează exerciții cu Volt'}
 				</button>
 				<p className="admin-form-hint">
-					AI-ul va genera exerciții practice pe baza obiectivului și constrângerilor definite
+					Volt va genera exerciții practice pe baza obiectivului și constrângerilor definite
 				</p>
 			</div>
 

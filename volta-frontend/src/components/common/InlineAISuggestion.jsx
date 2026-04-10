@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
 /**
- * Inline AI Suggestion Component - Conform defacut.md secțiunea 11
- * "Inline AI suggestions" - Non-intrusive AI suggestions that appear inline
+ * Inline Volt suggestion component - Conform defacut.md secțiunea 11
+ * Non-intrusive Volt suggestions that appear inline
  */
 const InlineAISuggestion = ({ 
 	suggestion, 
@@ -19,7 +19,7 @@ const InlineAISuggestion = ({
 		<div className={`inline-ai-suggestion inline-ai-suggestion-${position}`}>
 			<div className="inline-ai-suggestion-header">
 				<span className="inline-ai-suggestion-icon">✨</span>
-				<span className="inline-ai-suggestion-label">Sugestie AI</span>
+				<span className="inline-ai-suggestion-label">Sugestie Volt</span>
 				<button
 					type="button"
 					className="inline-ai-suggestion-expand"

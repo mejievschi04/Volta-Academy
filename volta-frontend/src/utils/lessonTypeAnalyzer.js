@@ -104,7 +104,7 @@ const generateRecommendations = (stats) => {
 	if (hasAssignment && typeCounts.assignment > 0) {
 		recommendations.assessments.push({
 			type: 'assignment_review',
-			reason: `${typeCounts.assignment} teme practice - necesită evaluare manuală sau AI`,
+			reason: `${typeCounts.assignment} teme practice - necesită evaluare manuală sau Volt`,
 			priority: 'high',
 			autoGenerate: false
 		});
@@ -144,7 +144,7 @@ const generateRecommendations = (stats) => {
 	if (hasVideo) {
 		recommendations.features.push({
 			feature: 'ai_tutor',
-			reason: 'Lecții video - AI Tutor poate răspunde la întrebări bazate pe transcrieri',
+			reason: 'Lecții video - Volt Assistant poate răspunde la întrebări bazate pe transcrieri',
 			enabled: true
 		});
 		recommendations.features.push({
@@ -183,7 +183,7 @@ const generateRecommendations = (stats) => {
 	if (hasAssignment) {
 		recommendations.features.push({
 			feature: 'ai_feedback',
-			reason: 'Teme practice - feedback automat cu AI',
+			reason: 'Teme practice - feedback automat cu Volt',
 			enabled: true
 		});
 		recommendations.features.push({
@@ -284,3 +284,6 @@ export const checkCourseReadiness = (courseData) => {
 		score: Math.max(0, 100 - (issues.length * 20) - (warnings.length * 5))
 	};
 };
+
+
+

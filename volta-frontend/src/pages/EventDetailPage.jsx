@@ -50,10 +50,8 @@ const EventDetailPage = () => {
 
 	const getEventTypeLabel = (type) => {
 		const labels = {
-			live_online: 'Live Online',
+			live_online: 'Online',
 			physical: 'Fizic',
-			webinar: 'Webinar',
-			workshop: 'Workshop',
 		};
 		return labels[type] || type;
 	};

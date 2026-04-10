@@ -89,6 +89,8 @@ const RteIcon = ({ name }) => {
 };
 
 const RTE_PDF_IFRAME_PAD = 40;
+const RTE_IMAGE_MIN_WIDTH = 20;
+const RTE_IMAGE_MAX_WIDTH = 100;
 
 function isLikelyPdfIframeSrc(src) {
 	if (!src || typeof src !== 'string') return false;
@@ -162,6 +164,53 @@ function applyRtePdfFigureLayout(figure, viewportHeight, cropTop) {
 	return true;
 }
 
+function findEditableImage(target, editorRoot) {
+	let node = target;
+	while (node && node !== editorRoot) {
+		if (node.nodeType === 1 && node.tagName === 'IMG') {
+			return node;
+		}
+		node = node.parentElement;
+	}
+	return target?.tagName === 'IMG' ? target : null;
+}
+
+function readImageWidthPercent(img) {
+	if (!img) return 100;
+	const inlineWidth = img.style.width?.trim();
+	if (inlineWidth?.endsWith('%')) {
+		const parsed = parseFloat(inlineWidth);
+		if (Number.isFinite(parsed)) {
+			return Math.max(RTE_IMAGE_MIN_WIDTH, Math.min(RTE_IMAGE_MAX_WIDTH, parsed));
+		}
+	}
+
+	if (img.parentElement) {
+		const parentWidth = img.parentElement.clientWidth;
+		const imageWidth = img.clientWidth;
+		if (parentWidth > 0 && imageWidth > 0) {
+			const percent = (imageWidth / parentWidth) * 100;
+			if (Number.isFinite(percent)) {
+				return Math.max(RTE_IMAGE_MIN_WIDTH, Math.min(RTE_IMAGE_MAX_WIDTH, Math.round(percent)));
+			}
+		}
+	}
+
+	return 100;
+}
+
+function applyImageLayout(img, widthPercent) {
+	if (!img) return;
+	const safeWidth = Math.max(RTE_IMAGE_MIN_WIDTH, Math.min(RTE_IMAGE_MAX_WIDTH, Math.round(Number(widthPercent) || 100)));
+	img.style.width = `${safeWidth}%`;
+	img.style.maxWidth = '100%';
+	img.style.height = 'auto';
+	img.style.display = 'block';
+	img.style.borderRadius = '8px';
+	img.style.margin = '1rem auto';
+	img.setAttribute('data-rte-resizable-image', '1');
+}
+
 /** 'crop' = marginea de sus (decupare); 'height' = înălțime vizibilă (margine jos / laterale) */
 function attachPdfLayoutPointerDrag(figure, kind, startClientY, onCommit) {
 	const { viewportHeight: startH, cropTop: startC } = readRtePdfFigureLayout(figure);
@@ -214,6 +263,8 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const fileInputRef = useRef(null);
 	const imageInputRef = useRef(null);
 	const [pdfEditHost, setPdfEditHost] = useState(null);
+	const [imageEditHost, setImageEditHost] = useState(null);
+	const [imageWidthPercent, setImageWidthPercent] = useState(100);
 
 	const getApiFriendlyError = (error, fallbackMessage) => {
 		const data = error?.response?.data;
@@ -299,9 +350,22 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		setPdfEditHost(figure);
 	};
 
+	const openImageLayoutEditor = useCallback((img) => {
+		if (!img || !editorRef.current?.contains(img)) return;
+		setImageEditHost(img);
+		setImageWidthPercent(readImageWidthPercent(img));
+	}, []);
+
 	const handleEditorDoubleClick = (e) => {
 		const editor = editorRef.current;
 		if (!editor) return;
+		const img = findEditableImage(e.target, editor);
+		if (img) {
+			e.preventDefault();
+			e.stopPropagation();
+			openImageLayoutEditor(img);
+			return;
+		}
 		const figure = findRtePdfFigure(e.target, editor);
 		if (!figure) return;
 		e.preventDefault();
@@ -318,6 +382,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		}
 		setPdfEditHost(null);
 	}, [onChange]);
+
+	const closeImageInlineEdit = useCallback(() => {
+		syncEditorFromDom();
+		setImageEditHost(null);
+	}, []);
 
 	useEffect(() => {
 		if (!pdfEditHost) return undefined;
@@ -340,10 +409,36 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	}, [pdfEditHost, closePdfInlineEdit]);
 
 	useEffect(() => {
+		if (!imageEditHost) return undefined;
+		const onKey = (e) => {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				closeImageInlineEdit();
+			}
+		};
+		const onDown = (e) => {
+			if (imageEditHost.contains(e.target)) return;
+			closeImageInlineEdit();
+		};
+		window.addEventListener('keydown', onKey, true);
+		document.addEventListener('mousedown', onDown, true);
+		return () => {
+			window.removeEventListener('keydown', onKey, true);
+			document.removeEventListener('mousedown', onDown, true);
+		};
+	}, [imageEditHost, closeImageInlineEdit]);
+
+	useEffect(() => {
 		if (pdfEditHost && !pdfEditHost.isConnected) {
 			setPdfEditHost(null);
 		}
 	}, [value, pdfEditHost]);
+
+	useEffect(() => {
+		if (imageEditHost && !imageEditHost.isConnected) {
+			setImageEditHost(null);
+		}
+	}, [value, imageEditHost]);
 
 	const handlePaste = (e) => {
 		e.preventDefault();
@@ -718,10 +813,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		const normalizedUrl = toImageUrl(imageUrl) || imageUrl;
 		const img = document.createElement('img');
 		img.src = normalizedUrl;
-		img.style.maxWidth = '100%';
-		img.style.height = 'auto';
-		img.style.borderRadius = '8px';
-		img.style.margin = '1rem 0';
+		applyImageLayout(img, 100);
 		insertNodeAtSelection(img);
 	};
 
@@ -1205,6 +1297,21 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					pdfEditHost,
 				)
 				: null}
+
+			{imageEditHost
+				? createPortal(
+					<ImageInlineEditChrome
+						image={imageEditHost}
+						widthPercent={imageWidthPercent}
+						onWidthChange={(nextWidth) => {
+							setImageWidthPercent(nextWidth);
+							applyImageLayout(imageEditHost, nextWidth);
+							syncEditorFromDom();
+						}}
+					/>,
+					document.body,
+				)
+				: null}
 		</div>
 	);
 };
@@ -1257,6 +1364,69 @@ const PdfInlineEditChrome = ({ figure, onSync }) => {
 					onPointerDown={onHandleDown(kind)}
 				/>
 			))}
+		</div>
+	);
+};
+
+const IMAGE_PRESET_WIDTHS = [25, 40, 60, 80, 100];
+
+const ImageInlineEditChrome = ({ image, widthPercent, onWidthChange }) => {
+	const [position, setPosition] = useState(null);
+
+	useLayoutEffect(() => {
+		image.classList.add('rte-image--editing');
+		const updatePosition = () => {
+			if (!image.isConnected) return;
+			const rect = image.getBoundingClientRect();
+			setPosition({
+				top: Math.max(12, rect.top - 88),
+				left: rect.left + rect.width / 2,
+			});
+		};
+		updatePosition();
+		window.addEventListener('resize', updatePosition);
+		window.addEventListener('scroll', updatePosition, true);
+		return () => {
+			image.classList.remove('rte-image--editing');
+			window.removeEventListener('resize', updatePosition);
+			window.removeEventListener('scroll', updatePosition, true);
+		};
+	}, [image]);
+
+	if (!position) {
+		return null;
+	}
+
+	return (
+		<div
+			className="rte-image-chrome"
+			contentEditable={false}
+			style={{ top: position.top, left: position.left }}
+		>
+			<div className="rte-image-toolbar" onMouseDown={(e) => e.preventDefault()}>
+				<span className="rte-image-toolbar__label">Dimensiune imagine</span>
+				<input
+					type="range"
+					min={RTE_IMAGE_MIN_WIDTH}
+					max={RTE_IMAGE_MAX_WIDTH}
+					step="5"
+					value={widthPercent}
+					onChange={(e) => onWidthChange(Number(e.target.value))}
+				/>
+				<span className="rte-image-toolbar__value">{Math.round(widthPercent)}%</span>
+			</div>
+			<div className="rte-image-presets" onMouseDown={(e) => e.preventDefault()}>
+				{IMAGE_PRESET_WIDTHS.map((preset) => (
+					<button
+						key={preset}
+						type="button"
+						className={`rte-image-preset${Math.round(widthPercent) === preset ? ' is-active' : ''}`}
+						onClick={() => onWidthChange(preset)}
+					>
+						{preset}%
+					</button>
+				))}
+			</div>
 		</div>
 	);
 };

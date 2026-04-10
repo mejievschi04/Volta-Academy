@@ -953,6 +953,60 @@ class DashboardAdminController extends Controller
             }
         }
 
+        // Recent lesson completions and learning time telemetry
+        if (Schema::hasTable('activity_logs')) {
+            try {
+                $recentLearnerActivity = ActivityLog::with('user:id,name,role')
+                    ->whereIn('action', ['completed_lesson', 'telemetry.learner_focus_seconds'])
+                    ->whereHas('user', fn ($q) => $q->where('role', 'student'))
+                    ->latest('created_at')
+                    ->take(20)
+                    ->get();
+
+                foreach ($recentLearnerActivity as $log) {
+                    $user = $log->user;
+                    if (!$user || $user->role !== 'student') {
+                        continue;
+                    }
+
+                    $newValues = is_array($log->new_values) ? $log->new_values : [];
+
+                    if ($log->action === 'completed_lesson') {
+                        $lessonTitle = $newValues['lesson_title'] ?? 'o lecție';
+                        $activities[] = [
+                            'id' => 'lesson_' . $log->id,
+                            'type' => 'lesson_completed',
+                            'description' => "{$user->name} a finalizat lecția \"{$lessonTitle}\"",
+                            'created_at' => optional($log->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
+                        ];
+                        continue;
+                    }
+
+                    if ($log->action === 'telemetry.learner_focus_seconds') {
+                        $seconds = (int) ($newValues['seconds'] ?? 0);
+                        if ($seconds < 30) {
+                            continue;
+                        }
+                        $lessonId = (int) ($newValues['lesson_id'] ?? 0);
+                        $lessonTitle = null;
+                        if ($lessonId > 0) {
+                            $lessonTitle = Lesson::query()->whereKey($lessonId)->value('title');
+                        }
+                        $minutes = max(1, (int) round($seconds / 60));
+                        $lessonPart = $lessonTitle ? " la lecția \"{$lessonTitle}\"" : '';
+                        $activities[] = [
+                            'id' => 'focus_' . $log->id,
+                            'type' => 'learning_time',
+                            'description' => "{$user->name} a studiat {$minutes} min{$lessonPart}",
+                            'created_at' => optional($log->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Error fetching learner activity logs for dashboard: ' . $e->getMessage());
+            }
+        }
+
         // Sort by date and take most recent
         usort($activities, function($a, $b) {
             return strtotime($b['created_at']) - strtotime($a['created_at']);

@@ -41,45 +41,59 @@
 	}
 }
 
-/* Animated background circles */
-.splash-bg-circles {
+/* Login-like background (same pattern as login page) */
+.splash-login-like-background {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
 	z-index: 0;
 }
 
-.splash-circle {
+.splash-login-liquid-ether {
 	position: absolute;
-	border-radius: 50%;
-	background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
-	filter: blur(60px);
-	animation: circleFloat 8s ease-in-out infinite;
+	inset: 0;
+	z-index: 0;
 }
 
-.splash-circle.circle-1 {
-	width: 400px;
-	height: 400px;
-	top: -200px;
-	left: -200px;
-	animation-delay: 0s;
+.splash-login-gradient {
+	position: absolute;
+	top: -50%;
+	right: -50%;
+	width: 200%;
+	height: 200%;
+	background: radial-gradient(circle, rgba(255, 238, 0, 0.58) 0%, rgba(255, 238, 0, 0.22) 26%, transparent 70%);
+	z-index: 1;
+	opacity: 0.92;
+	transform: scale(1.03);
+	mix-blend-mode: screen;
 }
 
-.splash-circle.circle-2 {
-	width: 500px;
-	height: 500px;
-	bottom: -250px;
-	right: -250px;
-	animation-delay: 2s;
+.splash-login-pattern {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, rgba(5, 8, 18, 0.56), rgba(11, 17, 34, 0.66));
+	opacity: 1;
+	z-index: 2;
+	transition: background 280ms ease;
 }
 
-.splash-circle.circle-3 {
-	width: 300px;
-	height: 300px;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	animation-delay: 4s;
+.splash-logo-center-mask {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	pointer-events: none;
+	background: radial-gradient(
+		circle at 50% 46%,
+		rgba(4, 8, 18, 0.84) 0%,
+		rgba(4, 8, 18, 0.72) 16%,
+		rgba(4, 8, 18, 0.46) 34%,
+		transparent 58%
+	);
+}
+
+/* Prevent temporary flash/over-bright look when typewriter starts */
+.splash-page.splash-phase-typewriter .splash-login-pattern {
+	background: linear-gradient(135deg, rgba(3, 6, 14, 0.64), rgba(8, 13, 28, 0.74));
 }
 
 /* Main content */
@@ -91,7 +105,7 @@
 	gap: var(--space-10);
 	padding: var(--space-8);
 	position: relative;
-	z-index: 2;
+	z-index: 4;
 }
 
 .splash-center-area {
@@ -297,6 +311,20 @@
 	transform: scale(0.98);
 }
 
+.splash-powered-by {
+	position: absolute;
+	left: 50%;
+	bottom: var(--space-3);
+	transform: translateX(-50%);
+	margin: 0;
+	z-index: 10;
+	font-size: 0.7rem;
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.58);
+	pointer-events: none;
+	user-select: none;
+}
+
 /* Animations */
 @keyframes contentFadeIn {
 	from {
@@ -463,4 +491,10 @@
 		padding: var(--space-2) var(--space-4);
 		font-size: var(--font-size-sm);
 	}
+
+	.splash-powered-by {
+		bottom: var(--space-2);
+		font-size: 0.62rem;
+	}
 }
+

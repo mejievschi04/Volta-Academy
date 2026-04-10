@@ -8,7 +8,7 @@ import './Step5LearningUX.css';
  * - Deblocare progresivă
  * - Estimare timp
  * - Reminder-e
- * - AI opțional: Recomandă pacing optim
+ * - Volt opțional: recomandă pacing optim
  */
 const Step5LearningUX = ({ data, onUpdate }) => {
 	const learningUX = data.learning_ux || {};

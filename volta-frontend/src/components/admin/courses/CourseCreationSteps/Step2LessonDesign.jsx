@@ -7,7 +7,7 @@ import './Step2LessonDesign.css';
  * - Tip lecție (Teorie, Practică, Recap, Evaluare)
  * - Structură internă (Intro, Conținut, Exemplu, Mini-task)
  * - Nivel dificultate
- * - AI opțional: Sugerează flow didactic
+ * - Volt opțional: sugerează flow didactic
  */
 const Step2LessonDesign = ({ data, onUpdate }) => {
 	const modules = data.structure?.modules || [];

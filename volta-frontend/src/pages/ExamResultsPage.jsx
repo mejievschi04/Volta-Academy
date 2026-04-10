@@ -98,8 +98,22 @@ const ExamResultsPage = () => {
 
 	const getManualReviewScore = (questionId) => {
 		if (!selectedResult || !selectedResult.manual_review_scores) return null;
-		return selectedResult.manual_review_scores[questionId] ?? null;
+		const entry = selectedResult.manual_review_scores[questionId] ?? selectedResult.manual_review_scores[String(questionId)] ?? null;
+		if (entry == null) return null;
+		return typeof entry === 'object' ? (entry.score ?? null) : entry;
 	};
+
+	const getManualReviewFeedback = (questionId) => {
+		if (!selectedResult || !selectedResult.manual_review_scores) return null;
+		const entry = selectedResult.manual_review_scores[questionId] ?? selectedResult.manual_review_scores[String(questionId)] ?? null;
+		if (!entry || typeof entry !== 'object') return null;
+		return entry.feedback ?? null;
+	};
+
+	const overallManualFeedback = useMemo(() => {
+		if (!selectedResult?.manual_review_scores || typeof selectedResult.manual_review_scores !== 'object') return null;
+		return selectedResult.manual_review_scores?._meta?.overall_feedback ?? null;
+	}, [selectedResult]);
 
 	if (loading) {
 		return (
@@ -266,10 +280,15 @@ const ExamResultsPage = () => {
 									</div>
 								</div>
 							</div>
-							<div className={`exam-result-status-display ${selectedResult.passed ? 'passed' : 'failed'}`}>
-								{selectedResult.passed ? '✓ TEST PROMOVAT' : '✗ TEST NE PROMOVAT'}
-							</div>
+						<div className={`exam-result-status-display ${selectedResult.passed ? 'passed' : 'failed'}`}>
+							{selectedResult.passed ? '✓ TEST PROMOVAT' : '✗ TEST NE PROMOVAT'}
 						</div>
+						{overallManualFeedback ? (
+							<div className="exam-result-manual-review">
+								<strong>Feedback general:</strong> {overallManualFeedback}
+							</div>
+						) : null}
+					</div>
 
 						{/* Questions and Answers */}
 						{selectedResult.exam?.questions && selectedResult.exam.questions.length > 0 ? (
@@ -282,6 +301,7 @@ const ExamResultsPage = () => {
 										const isOpenText = ['open_text', 'short_answer', 'essay'].includes(getQuestionType(question));
 										const isCorrect = !isOpenText ? isCorrectAnswer(question) : null;
 										const manualScore = getManualReviewScore(question.id);
+										const manualFeedback = getManualReviewFeedback(question.id);
 										const maxPoints = question.points || 1;
 										const correctAnswerIndex = question.correct_answer_index ?? question.answers?.findIndex(a => a.is_correct) ?? -1;
 
@@ -326,6 +346,11 @@ const ExamResultsPage = () => {
 																⏳ În așteptarea evaluării manuale
 															</div>
 														)}
+														{manualFeedback ? (
+															<div className="exam-result-manual-review">
+																<strong>Feedback:</strong> {manualFeedback}
+															</div>
+														) : null}
 													</div>
 												) : (
 													<div>
@@ -408,4 +433,3 @@ const ExamResultsPage = () => {
 };
 
 export default ExamResultsPage;
-

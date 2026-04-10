@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
+import AICourseChat from '../../components/admin/ai/AICourseChat';
 import './CourseCreationPage.css';
 
 const CourseCreationPage = () => {
@@ -12,11 +13,10 @@ const CourseCreationPage = () => {
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
-	const [image, setImage] = useState(null);
-	const [pdfFile, setPdfFile] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [step, setStep] = useState(1);
+	const [creationMode, setCreationMode] = useState('manual');
+	const [showAiCourseChat, setShowAiCourseChat] = useState(false);
 
 	useEffect(() => {
 		if (!canMutateInAdminArea) {
@@ -36,22 +36,18 @@ const CourseCreationPage = () => {
 		setLoading(true);
 		try {
 			const cleanDescription = description.trim();
-			let payload;
-			if (image || pdfFile) {
-				const formData = new FormData();
-				formData.append('title', t);
-				formData.append('description', cleanDescription || '');
-				formData.append('status', 'draft');
-				if (image) formData.append('image', image);
-				if (pdfFile) formData.append('pdf_file', pdfFile);
-				payload = formData;
-			} else {
-				payload = {
-					title: t,
-					description: cleanDescription || '',
-					status: 'draft',
-				};
-			}
+			const payload = {
+				title: t,
+				description: cleanDescription || '',
+				status: 'draft',
+				level: 'beginner',
+				visibility: 'public',
+				sequential_unlock: true,
+				min_test_score: 70,
+				has_certificate: false,
+				access_type: 'free',
+				enrollment_type: 'open',
+			};
 			const result = await adminService.createCourse(payload);
 			const courseId = result?.course?.id;
 			if (courseId) {
@@ -70,14 +66,12 @@ const CourseCreationPage = () => {
 		}
 	};
 
-	const handleContinue = () => {
-		const t = title?.trim();
-		setError('');
-		if (!t) {
-			setError('Titlul este obligatoriu.');
-			return;
+	const handleAiCourseGenerated = (course) => {
+		if (course?.id) {
+			setShowAiCourseChat(false);
+			showToast('Curs creat asistat de Volt.', 'success');
+			navigate(`/admin/courses/${course.id}/builder`);
 		}
-		setStep(2);
 	};
 
 	if (!canMutateInAdminArea) {
@@ -86,6 +80,16 @@ const CourseCreationPage = () => {
 
 	return (
 		<div className="admin-container course-creation-simple-page">
+			{showAiCourseChat && (
+				<div className="ai-chat-modal-overlay" onClick={() => setShowAiCourseChat(false)}>
+					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
+						<AICourseChat
+							onCourseGenerated={handleAiCourseGenerated}
+							onClose={() => setShowAiCourseChat(false)}
+						/>
+					</div>
+				</div>
+			)}
 			<div className="course-creation-simple-card">
 				<header className="course-creation-simple-header">
 					<button
@@ -98,79 +102,67 @@ const CourseCreationPage = () => {
 					</button>
 					<h1 className="course-creation-simple-title">Creează curs nou</h1>
 					<p className="course-creation-simple-subtitle">
-						Creare pe pași. Definim minimul acum, iar setările le completezi după creare.
+						Alege una dintre cele două căi: curs creat cu Volt sau curs creat manual.
 					</p>
-					<div className="course-creation-steps">
-						<span className={step === 1 ? 'active' : ''}>Pas 1: Titlu</span>
-						<span className={step === 2 ? 'active' : ''}>Pas 2: Detalii opționale</span>
-					</div>
 				</header>
 
 				<form onSubmit={handleSubmit} className="course-creation-simple-form">
-					{step === 1 && (
-						<div className="course-creation-simple-field">
-							<label className="course-creation-simple-label">
-								Titlu curs <span className="course-creation-simple-required">*</span>
-							</label>
-							<input
-								type="text"
-								placeholder="Titlul cursului"
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								className="course-creation-simple-input"
-								autoFocus
-								disabled={loading}
-							/>
-							<p className="course-creation-simple-hint">După creare poți adăuga lecții și teste.</p>
-						</div>
-					)}
+					<div className="course-creation-mode-switch">
+						<button
+							type="button"
+							className={`course-creation-mode-card${creationMode === 'manual' ? ' is-active' : ''}`}
+							onClick={() => {
+								setCreationMode('manual');
+								setShowAiCourseChat(false);
+							}}
+							disabled={loading}
+						>
+							<span className="course-creation-mode-card-label">Curs</span>
+							<span className="course-creation-mode-card-title">Creează manual</span>
+							<span className="course-creation-mode-card-desc">Completezi titlul și descrierea, apoi intri în Builder.</span>
+						</button>
+						<button
+							type="button"
+							className={`course-creation-mode-card${creationMode === 'volt' ? ' is-active' : ''}`}
+							onClick={() => {
+								setCreationMode('volt');
+								setShowAiCourseChat(true);
+							}}
+							disabled={loading}
+						>
+							<span className="course-creation-mode-card-label">Volt</span>
+							<span className="course-creation-mode-card-title">Creează cu Volt</span>
+							<span className="course-creation-mode-card-desc">Volt îți construiește cursul complet cu module și lecții.</span>
+						</button>
+					</div>
 
-					{step === 2 && (
-						<>
-							<div className="course-creation-simple-field">
-								<label className="course-creation-simple-label">Descriere</label>
-								<textarea
-									placeholder="Scopul și conținutul cursului (opțional)"
-									value={description}
-									onChange={(e) => setDescription(e.target.value)}
-									className="course-creation-simple-textarea"
-									rows={4}
-									disabled={loading}
-								/>
-							</div>
+					<div className="course-creation-simple-field">
+						<label className="course-creation-simple-label">
+							Titlu curs <span className="course-creation-simple-required">*</span>
+						</label>
+						<input
+							type="text"
+							placeholder="Titlul cursului"
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
+							className="course-creation-simple-input"
+							autoFocus
+							disabled={loading}
+						/>
+						<p className="course-creation-simple-hint">După creare poți adăuga lecții și teste.</p>
+					</div>
 
-							<details className="course-creation-simple-advanced" open>
-								<summary>Media opțională</summary>
-								<div className="course-creation-simple-field">
-									<label className="course-creation-simple-label">Imagine curs</label>
-									<input
-										type="file"
-										accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-										onChange={(e) => setImage(e.target.files?.[0] || null)}
-										className="course-creation-simple-file"
-										disabled={loading}
-									/>
-									{image && (
-										<div className="course-creation-simple-image-preview">
-											<img src={URL.createObjectURL(image)} alt="Preview" />
-										</div>
-									)}
-								</div>
-
-								<div className="course-creation-simple-field">
-									<label className="course-creation-simple-label">Fișier PDF (opțional)</label>
-									<input
-										type="file"
-										accept=".pdf,application/pdf"
-										onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
-										className="course-creation-simple-file"
-										disabled={loading}
-									/>
-									{pdfFile && <span className="course-creation-simple-file-name">{pdfFile.name}</span>}
-								</div>
-							</details>
-						</>
-					)}
+					<div className="course-creation-simple-field">
+						<label className="course-creation-simple-label">Descriere</label>
+						<textarea
+							placeholder="Scopul și conținutul cursului (opțional)"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							className="course-creation-simple-textarea"
+							rows={4}
+							disabled={loading}
+						/>
+					</div>
 
 					{error && <div className="course-creation-simple-error" role="alert">{error}</div>}
 
@@ -183,43 +175,14 @@ const CourseCreationPage = () => {
 						>
 							Anulare
 						</button>
-						{step === 1 ? (
-							<>
-								<button
-									type="button"
-									className="course-creation-simple-btn-secondary"
-									onClick={handleContinue}
-									disabled={loading}
-								>
-									Continuă
-								</button>
-								<button
-									type="submit"
-									className="course-creation-simple-btn-primary"
-									disabled={loading}
-								>
-									{loading ? 'Se creează...' : 'Creează acum'}
-								</button>
-							</>
-						) : (
-							<>
-								<button
-									type="button"
-									className="course-creation-simple-btn-secondary"
-									onClick={() => setStep(1)}
-									disabled={loading}
-								>
-									Înapoi
-								</button>
-								<button
-									type="submit"
-									className="course-creation-simple-btn-primary"
-									disabled={loading}
-								>
-									{loading ? 'Se creează...' : 'Creează și deschide în Builder'}
-								</button>
-							</>
-						)}
+						<button
+							type={creationMode === 'volt' ? 'button' : 'submit'}
+							className="course-creation-simple-btn-primary"
+							onClick={creationMode === 'volt' ? () => setShowAiCourseChat(true) : undefined}
+							disabled={loading}
+						>
+							{loading ? 'Se creează...' : creationMode === 'volt' ? 'Deschide Volt' : 'Creează curs'}
+						</button>
 					</div>
 				</form>
 			</div>

@@ -3,7 +3,7 @@ import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
 
 /**
- * AI Assessment Generator - Conform defacut.md secțiunea 6
+ * Volt assessment generator - Conform defacut.md secțiunea 6
  * Features:
  * - Question generation
  * - Difficulty balancing
@@ -16,7 +16,7 @@ const AIAssessmentGenerator = ({ courseData, lessonData, moduleData, assessmentT
 	const [difficultyAnalysis, setDifficultyAnalysis] = useState(null);
 	const [antiPatterns, setAntiPatterns] = useState([]);
 
-	// Generate questions with AI
+	// Generate questions with Volt
 	const handleGenerateQuestions = async () => {
 		setGenerating(true);
 		try {
@@ -98,7 +98,7 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing questions response:', e);
-				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
+				showToast('Eroare la parsarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating questions:', error);
@@ -188,10 +188,10 @@ Răspunde în format JSON:
 					onClick={handleGenerateQuestions}
 					disabled={generating}
 				>
-					{generating ? '⏳ Generează întrebări...' : '🤖 Generează Întrebări cu AI'}
+					{generating ? '⏳ Generează întrebări...' : '🤖 Generează întrebări cu Volt'}
 				</button>
 				<p className="admin-form-hint">
-					AI-ul va genera întrebări echilibrate pentru {assessmentType === 'lesson_quiz' ? 'quiz-ul de lecție' : assessmentType === 'module_test' ? 'testul de modul' : 'examenul final'}
+					Volt va genera întrebări echilibrate pentru {assessmentType === 'lesson_quiz' ? 'quiz-ul de lecție' : assessmentType === 'module_test' ? 'testul de modul' : 'examenul final'}
 				</p>
 			</div>
 

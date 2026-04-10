@@ -4,7 +4,7 @@ import { useToast } from '../../../contexts/ToastContext';
 
 /**
  * Course Quality Validation - Conform defacut.md secțiunea 8
- * AI checks:
+ * Volt checks:
  * - Lesson length
  * - Content gaps
  * - Difficulty spikes
@@ -146,7 +146,7 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing validation response:', e);
-				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
+				showToast('Eroare la parsarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error validating course:', error);
@@ -186,7 +186,7 @@ Răspunde în format JSON:
 					onClick={handleValidate}
 					disabled={validating}
 				>
-					{validating ? '⏳ Validează...' : '🤖 Rulează Validare AI'}
+					{validating ? '⏳ Validează...' : '🤖 Rulează validare Volt'}
 				</button>
 			</div>
 

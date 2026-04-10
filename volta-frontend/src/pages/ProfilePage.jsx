@@ -6,6 +6,9 @@ import { useToast } from '../contexts/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { toImageUrl } from '../utils/imageUrl';
 
+const AVATAR_EDITOR_SIZE = 280;
+const AVATAR_OUTPUT_SIZE = 512;
+
 const ProfilePage = () => {
 	const { userId } = useParams(); // Optional user ID from URL
 	const navigate = useNavigate();
@@ -17,6 +20,7 @@ const ProfilePage = () => {
 	const [error, setError] = useState(null);
 	const [uploadingAvatar, setUploadingAvatar] = useState(false);
 	const [showRemoveAvatarConfirm, setShowRemoveAvatarConfirm] = useState(false);
+	const [avatarEditorState, setAvatarEditorState] = useState(null);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -56,22 +60,32 @@ const ProfilePage = () => {
 		fetchData();
 	}, [userId, isViewingOtherUser]);
 
-	const handleAvatarChange = async (e) => {
+	const handleAvatarChange = (e) => {
 		const file = e.target?.files?.[0];
 		if (!file || !file.type.startsWith('image/')) {
 			showToast('Alege o imagine (JPG, PNG, GIF sau WebP)', 'error');
+			if (fileInputRef.current) fileInputRef.current.value = '';
 			return;
 		}
 		if (file.size > 2 * 1024 * 1024) {
 			showToast('Imaginea trebuie să aibă maxim 2 MB', 'error');
 			return;
 		}
+		setAvatarEditorState({
+			fileName: file.name,
+			imageUrl: URL.createObjectURL(file),
+		});
+		return;
+	};
+
+	const handleSaveAvatar = async (file) => {
 		try {
 			setUploadingAvatar(true);
 			const data = await profileService.uploadAvatar(file);
 			if (data?.user) {
 				setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, avatar: data.user.avatar } } : prev);
 				await checkAuth();
+				setAvatarEditorState(null);
 				showToast('Poza de profil a fost actualizată', 'success');
 			}
 		} catch (err) {
@@ -339,9 +353,179 @@ const ProfilePage = () => {
 				variant="danger"
 				loading={uploadingAvatar}
 			/>
+			<AvatarEditorModal
+				open={Boolean(avatarEditorState)}
+				imageUrl={avatarEditorState?.imageUrl || ''}
+				fileName={avatarEditorState?.fileName || 'avatar.jpg'}
+				busy={uploadingAvatar}
+				onClose={() => {
+					setAvatarEditorState(null);
+					if (fileInputRef.current) fileInputRef.current.value = '';
+				}}
+				onSave={handleSaveAvatar}
+			/>
+		</div>
+	);
+};
+
+const AvatarEditorModal = ({ open, imageUrl, fileName, busy, onClose, onSave }) => {
+	const [imageElement, setImageElement] = useState(null);
+	const [zoom, setZoom] = useState(1);
+	const [position, setPosition] = useState({ x: 0, y: 0 });
+	const dragStateRef = useRef(null);
+
+	useEffect(() => {
+		if (!open || !imageUrl) return undefined;
+		let active = true;
+		const img = new Image();
+		img.onload = () => {
+			if (!active) return;
+			setImageElement(img);
+			const minZoom = Math.max(AVATAR_EDITOR_SIZE / img.width, AVATAR_EDITOR_SIZE / img.height);
+			setZoom(minZoom);
+			setPosition({ x: 0, y: 0 });
+		};
+		img.src = imageUrl;
+		return () => {
+			active = false;
+		};
+	}, [open, imageUrl]);
+
+	useEffect(() => {
+		if (!imageUrl) return undefined;
+		return () => {
+			if (imageUrl.startsWith('blob:')) {
+				URL.revokeObjectURL(imageUrl);
+			}
+		};
+	}, [imageUrl]);
+
+	const clampPosition = (nextPosition, nextZoom = zoom) => {
+		if (!imageElement) return nextPosition;
+		const scaledWidth = imageElement.width * nextZoom;
+		const scaledHeight = imageElement.height * nextZoom;
+		const limitX = Math.max(0, (scaledWidth - AVATAR_EDITOR_SIZE) / 2);
+		const limitY = Math.max(0, (scaledHeight - AVATAR_EDITOR_SIZE) / 2);
+		return {
+			x: Math.min(limitX, Math.max(-limitX, nextPosition.x)),
+			y: Math.min(limitY, Math.max(-limitY, nextPosition.y)),
+		};
+	};
+
+	const handlePointerDown = (e) => {
+		if (!imageElement) return;
+		e.preventDefault();
+		dragStateRef.current = {
+			pointerId: e.pointerId,
+			startX: e.clientX,
+			startY: e.clientY,
+			startPosition: position,
+		};
+		e.currentTarget.setPointerCapture?.(e.pointerId);
+	};
+
+	const handlePointerMove = (e) => {
+		const dragState = dragStateRef.current;
+		if (!dragState || dragState.pointerId !== e.pointerId) return;
+		setPosition(clampPosition({
+			x: dragState.startPosition.x + (e.clientX - dragState.startX),
+			y: dragState.startPosition.y + (e.clientY - dragState.startY),
+		}));
+	};
+
+	const handlePointerUp = (e) => {
+		if (dragStateRef.current?.pointerId === e.pointerId) {
+			dragStateRef.current = null;
+		}
+	};
+
+	const handleZoomChange = (nextZoom) => {
+		setZoom(nextZoom);
+		setPosition((prev) => clampPosition(prev, nextZoom));
+	};
+
+	const handleSave = async () => {
+		if (!imageElement) return;
+		const canvas = document.createElement('canvas');
+		canvas.width = AVATAR_OUTPUT_SIZE;
+		canvas.height = AVATAR_OUTPUT_SIZE;
+		const context = canvas.getContext('2d');
+		if (!context) return;
+
+		const scale = AVATAR_OUTPUT_SIZE / AVATAR_EDITOR_SIZE;
+		context.clearRect(0, 0, canvas.width, canvas.height);
+		context.save();
+		context.beginPath();
+		context.arc(AVATAR_OUTPUT_SIZE / 2, AVATAR_OUTPUT_SIZE / 2, AVATAR_OUTPUT_SIZE / 2, 0, Math.PI * 2);
+		context.closePath();
+		context.clip();
+		context.translate(AVATAR_OUTPUT_SIZE / 2 + position.x * scale, AVATAR_OUTPUT_SIZE / 2 + position.y * scale);
+		context.scale(zoom * scale, zoom * scale);
+		context.drawImage(imageElement, -imageElement.width / 2, -imageElement.height / 2);
+		context.restore();
+
+		const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+		if (!blob) return;
+		const nextFileName = fileName.replace(/\.[^.]+$/, '') + '.jpg';
+		await onSave(new File([blob], nextFileName, { type: 'image/jpeg' }));
+	};
+
+	if (!open) return null;
+
+	const minZoom = imageElement ? Math.max(AVATAR_EDITOR_SIZE / imageElement.width, AVATAR_EDITOR_SIZE / imageElement.height) : 1;
+	const maxZoom = Math.max(3, minZoom * 3);
+
+	return (
+		<div className="va-avatar-editor-overlay" onClick={() => !busy && onClose()}>
+			<div className="va-avatar-editor-modal" onClick={(e) => e.stopPropagation()}>
+				<div className="va-avatar-editor-header">
+					<div>
+						<h3>Poziționează poza de profil</h3>
+						<p>Mută imaginea și ajustează zoom-ul până arată exact cum vrei.</p>
+					</div>
+					<button type="button" className="va-avatar-editor-close" onClick={onClose} disabled={busy}>×</button>
+				</div>
+				<div className="va-avatar-editor-stage-wrap">
+					<div
+						className="va-avatar-editor-stage"
+						onPointerDown={handlePointerDown}
+						onPointerMove={handlePointerMove}
+						onPointerUp={handlePointerUp}
+						onPointerCancel={handlePointerUp}
+					>
+						{imageElement ? (
+							<img
+								src={imageUrl}
+								alt="Previzualizare avatar"
+								className="va-avatar-editor-image"
+								style={{ transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})` }}
+							/>
+						) : null}
+						<div className="va-avatar-editor-mask" />
+					</div>
+				</div>
+				<div className="va-avatar-editor-controls">
+					<label htmlFor="va-avatar-editor-zoom">Zoom</label>
+					<input
+						id="va-avatar-editor-zoom"
+						type="range"
+						min={minZoom}
+						max={maxZoom}
+						step="0.01"
+						value={zoom}
+						onChange={(e) => handleZoomChange(Number(e.target.value))}
+						disabled={!imageElement || busy}
+					/>
+				</div>
+				<div className="va-avatar-editor-actions">
+					<button type="button" className="va-profile-avatar-btn" onClick={onClose} disabled={busy}>Anulează</button>
+					<button type="button" className="va-profile-avatar-btn va-avatar-editor-save" onClick={handleSave} disabled={!imageElement || busy}>
+						{busy ? 'Se salvează...' : 'Salvează poza'}
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 };
 
 export default ProfilePage;
-

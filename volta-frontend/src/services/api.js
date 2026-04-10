@@ -401,7 +401,7 @@ export const adminService = {
   },
   
   generateCourseStructure: async (courseInfo) => {
-    // Call AI service to generate course structure
+    // Call Volt generation service for course structure
     const response = await api.post('/admin/ai/generate-course-structure', courseInfo);
     return response.data;
   },
@@ -802,19 +802,27 @@ export const adminService = {
     return response.data;
   },
 
-  previewQuestionsWithAI: async (bankId, payload = {}) => {
-    const response = await api.post(`/admin/question-banks/${bankId}/ai/preview`, payload);
-    return response.data;
-  },
-
-  improveQuestionWithAI: async (questionId, instruction = '') => {
-    const response = await api.post(`/admin/questions/${questionId}/improve`, {
-      instruction,
+  previewQuestionsWithVolt: async (bankId, payload = {}) => {
+    const response = await api.post(`/admin/question-banks/${bankId}/ai/preview`, payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
     });
     return response.data;
   },
 
-  autoTagQuestionWithAI: async (questionId) => {
+  improveQuestionWithVolt: async (questionId, instruction = '') => {
+    const response = await api.post(
+      `/admin/questions/${questionId}/improve`,
+      {
+        instruction,
+      },
+      {
+        timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+      }
+    );
+    return response.data;
+  },
+
+  autoTagQuestionWithVolt: async (questionId) => {
     const response = await api.post(`/admin/questions/${questionId}/auto-tag`);
     return response.data;
   },
@@ -1058,9 +1066,10 @@ export const adminService = {
     return response.data;
   },
 
-  submitExamManualReview: async (resultId, reviewScores) => {
+  submitExamManualReview: async (resultId, reviewScores, overallFeedback = '') => {
     const response = await api.post(`/admin/exam-results/${resultId}/manual-review`, {
       manual_review_scores: reviewScores,
+      overall_feedback: overallFeedback || undefined,
     });
     return response.data;
   },
@@ -1266,10 +1275,24 @@ export const adminService = {
 };
 
 export const messagesService = {
-  // Get all conversations for the current user
-  getConversations: async () => {
+  getUnreadCount: async () => {
     try {
-      const response = await api.get('/messages/conversations');
+      const response = await api.get('/messages/unread-count');
+      return response.data?.data?.unreadCount ?? response.data?.unreadCount ?? 0;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return 0;
+      }
+      throw error;
+    }
+  },
+
+  // Get all conversations for the current user
+  getConversations: async (options = {}) => {
+    try {
+      const response = await api.get('/messages/conversations', {
+        params: options,
+      });
       return response.data?.data || response.data || [];
     } catch (error) {
       // If endpoint doesn't exist yet, return empty array (will use mock data)

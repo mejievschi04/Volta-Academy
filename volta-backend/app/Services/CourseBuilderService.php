@@ -710,7 +710,6 @@ class CourseBuilderService
             Test::query()
                 ->whereIn('id', $linkedTestIds)
                 ->where('status', '!=', 'published')
-                ->where('status', '!=', 'archived')
                 ->update(['status' => 'published']);
         }
     }

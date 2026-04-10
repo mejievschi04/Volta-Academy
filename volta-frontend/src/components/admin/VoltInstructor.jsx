@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './VoltInstructor.css';
 
 /**
- * Volt Instructor - Asistent AI pentru instructori
+ * Volt Instructor - Asistent Volt pentru instructori
  * Fiecare acțiune poate avea propriile întrebări (questions, pdfUploadQuestionIndex)
  */
 const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploadQuestionIndex = -1 }) => {
@@ -15,7 +15,7 @@ const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploa
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 	const messagesEndRef = useRef(null);
 
-	const defaultWelcome = 'Mă numesc Volt și sunt instructor AI în construcție. Abia aștept ca Ion să finalizeze elaborarea mea pentru a îmbunătăți procesul de învățare la Volta.';
+	const defaultWelcome = 'Mă numesc Volt și sunt asistentul Volt în construcție. Abia aștept ca Ion să finalizeze elaborarea mea pentru a îmbunătăți procesul de învățare la Volta.';
 	const message = welcomeMessage ?? defaultWelcome;
 
 	const activeAction = activeActionIndex !== null ? actions[activeActionIndex] : null;

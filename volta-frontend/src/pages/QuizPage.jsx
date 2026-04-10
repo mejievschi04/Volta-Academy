@@ -19,6 +19,11 @@ const QuizPage = () => {
 	const [startTime, setStartTime] = useState(null);
 	const observerRef = useRef(null);
 	const timerIntervalRef = useRef(null);
+	const reviewAnswers = useMemo(() => {
+		if (!submitted || !result || !result.answers || typeof result.answers !== 'object') return null;
+		return result.answers;
+	}, [submitted, result]);
+	const visibleAnswers = reviewAnswers || answers;
 
 	useEffect(() => {
 		const handleResize = () => {
@@ -37,9 +42,9 @@ const QuizPage = () => {
 				
 				if (data.hasResult && data.result) {
 					setResult(data.result);
-					setAnswers(data.result.answers || {});
 					setSubmitted(true);
 					setSaved(true);
+					setAnswers({});
 				} else if (data.duration_minutes && !saved) {
 					// Initialize timer if quiz has time limit
 					setTimeRemaining(data.duration_minutes * 60); // Convert to seconds
@@ -182,7 +187,7 @@ const QuizPage = () => {
 		if (!result || !quiz) return null;
 
 		const totalQuestions = quiz.questions.length;
-		const correctAnswers = quiz.questions.filter(q => answers[q.id] === q.answerIndex).length;
+		const correctAnswers = quiz.questions.filter(q => visibleAnswers[q.id] === q.answerIndex).length;
 		const incorrectAnswers = totalQuestions - correctAnswers;
 		const percentage = result.percentage || 0;
 
@@ -193,12 +198,12 @@ const QuizPage = () => {
 			percentage,
 			passed: result.passed || false
 		};
-	}, [result, quiz, answers]);
+	}, [result, quiz, visibleAnswers]);
 
 	// Get question status for sidebar
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (saved || submitted) {
-			const isCorrect = answers[questionId] === quiz.questions.find(q => q.id === questionId)?.answerIndex;
+			const isCorrect = visibleAnswers[questionId] === quiz.questions.find(q => q.id === questionId)?.answerIndex;
 			return isCorrect ? 'completed' : 'incorrect';
 		}
 		const isAnswered = answers[questionId] !== undefined;
@@ -206,7 +211,7 @@ const QuizPage = () => {
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, saved, submitted, quiz]);
+	}, [answers, currentQuestionIndex, saved, submitted, quiz, visibleAnswers]);
 
 	if (loading) {
 		return (
@@ -508,7 +513,7 @@ const QuizPage = () => {
 							{quiz.questions && quiz.questions.length > 0 ? (
 								quiz.questions.map((q, idx) => {
 									const isOpenText = q.type === 'open_text';
-									const isCorrect = !isOpenText && answers[q.id] === q.answerIndex;
+									const isCorrect = !isOpenText && visibleAnswers[q.id] === q.answerIndex;
 									const showResult = (submitted || saved) && result;
 									const isFlagged = flaggedQuestions.has(q.id);
 									const points = q.points || 1;
@@ -639,7 +644,7 @@ const QuizPage = () => {
 												<div className="va-form-group" style={{ marginTop: '1.5rem' }}>
 													<textarea
 														className="va-form-input"
-														value={typeof answers[q.id] === 'string' ? answers[q.id] : ''}
+														value={typeof visibleAnswers[q.id] === 'string' ? visibleAnswers[q.id] : ''}
 														onChange={(e) => {
 															if (!saved && !submitted) {
 																handleAnswerChange(q.id, e.target.value);
@@ -673,7 +678,7 @@ const QuizPage = () => {
 												<>
 													<div className="va-answer-options" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
 														{q.options && q.options.map((opt, i) => {
-															const isSelected = answers[q.id] === i;
+															const isSelected = visibleAnswers[q.id] === i;
 															const isCorrectOption = i === q.answerIndex;
 															
 															return (
@@ -898,8 +903,8 @@ const QuizPage = () => {
 								</h3>
 								<div style={{ display: 'grid', gap: '1rem' }}>
 									{quiz.questions.map((q, idx) => {
-										const isCorrect = answers[q.id] === q.answerIndex;
-										const userAnswer = answers[q.id];
+										const isCorrect = visibleAnswers[q.id] === q.answerIndex;
+										const userAnswer = visibleAnswers[q.id];
 										const correctAnswer = q.answerIndex;
 										
 										return (

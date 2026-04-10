@@ -149,6 +149,11 @@ const AdminTeamMembersPage = () => {
 	};
 
 	const handleAssignCourses = async (memberId, courseIds) => {
+		const target = members.find((member) => member.id === memberId);
+		if (target && ['admin', 'analyst'].includes(target.role)) {
+			showError('Nu atribuim cursuri pentru administrator sau analist.');
+			return;
+		}
 		setActionLoading(memberId);
 		try {
 			await adminService.assignCourses(memberId, courseIds);
@@ -331,6 +336,10 @@ const AdminTeamMembersPage = () => {
 											<button
 												className="lms-btn-secondary lms-btn-sm admin-team-member-action-btn admin-team-member-action-btn-courses"
 												onClick={() => {
+													if (['admin', 'analyst'].includes(member.role)) {
+														showError('Nu atribuim cursuri pentru administrator sau analist.');
+														return;
+													}
 													setSelectedMember(member);
 													setShowCoursesModal(true);
 												}}
@@ -546,6 +555,7 @@ const CoursesAssignmentModal = ({ member, courses, onClose, onSave, loading }) =
 	const [selectedCourseIds, setSelectedCourseIds] = useState(
 		member.assignedCourses?.map(c => c.id) || []
 	);
+	const isAssignmentRestricted = ['admin', 'analyst'].includes(member.role);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -571,15 +581,21 @@ const CoursesAssignmentModal = ({ member, courses, onClose, onSave, loading }) =
 					<form onSubmit={handleSubmit} className="admin-team-members-modal-form">
 						<div className="admin-form-group">
 							<label className="admin-form-label">Selectează Cursuri</label>
+							{isAssignmentRestricted && (
+								<p className="admin-form-hint">
+									Acest rol nu primește atribuiri de cursuri, teste sau examene.
+								</p>
+							)}
 							<div className="admin-team-members-courses-list">
 								{courses.map((course) => (
 									<label 
 										key={course.id} 
-										className={`admin-team-members-course-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}
+										className={`admin-team-members-course-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''} ${isAssignmentRestricted ? 'is-disabled' : ''}`}
 									>
 										<input
 											type="checkbox"
 											checked={selectedCourseIds.includes(course.id)}
+											disabled={isAssignmentRestricted}
 											onChange={(e) => {
 												if (e.target.checked) {
 													setSelectedCourseIds([...selectedCourseIds, course.id]);
@@ -597,8 +613,8 @@ const CoursesAssignmentModal = ({ member, courses, onClose, onSave, loading }) =
 							<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={loading}>
 								Anulează
 							</button>
-							<button type="submit" className="lms-btn-primary" disabled={loading}>
-								{loading ? 'Se salvează...' : 'Salvează'}
+							<button type="submit" className="lms-btn-primary" disabled={loading || isAssignmentRestricted}>
+								{loading ? 'Se salvează...' : isAssignmentRestricted ? 'Nu este permis' : 'Salvează'}
 							</button>
 						</div>
 					</form>
@@ -670,4 +686,3 @@ const SuspendModal = ({ member, onClose, onSave, loading }) => {
 };
 
 export default AdminTeamMembersPage;
-

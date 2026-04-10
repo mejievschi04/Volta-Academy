@@ -540,15 +540,18 @@ class QuestionAdminController extends Controller
     private function callAi(string $prompt): string
     {
         $provider = env('AI_PROVIDER', 'groq');
-        $apiKey = $provider === 'groq' ? env('GROQ_API_KEY') : env('OPENAI_API_KEY');
-        $apiUrl = $provider === 'groq'
-            ? env('GROQ_API_URL', 'https://api.groq.com/openai/v1')
-            : env('OPENAI_API_URL', 'https://api.openai.com/v1');
-        $model = $provider === 'groq'
-            ? env('GROQ_MODEL', 'llama-3.1-8b-instant')
-            : env('OPENAI_MODEL', 'gpt-4o-mini');
+        if ($provider === 'groq') {
+            $apiKey = env('GROQ_API_KEY');
+            $apiUrl = env('GROQ_API_URL', 'https://api.groq.com/openai/v1');
+            $model = env('GROQ_MODEL', 'llama-3.1-8b-instant');
+        } else {
+            $apiKey = env('OPENAI_API_KEY');
+            $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
+            $model = env('OPENAI_MODEL', 'gpt-4o-mini');
+        }
 
-        if (!$apiKey) {
+        $requiresApiKey = true;
+        if ($requiresApiKey && !$apiKey) {
             if ($provider === 'groq' && env('OPENAI_API_KEY')) {
                 $provider = 'openai';
                 $apiKey = env('OPENAI_API_KEY');
@@ -560,17 +563,21 @@ class QuestionAdminController extends Controller
         }
 
         $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+        $headers = [
             'Content-Type' => 'application/json',
-        ])->withOptions([
+        ];
+        if (!empty($apiKey)) {
+            $headers['Authorization'] = "Bearer {$apiKey}";
+        }
+
+        $response = Http::withHeaders($headers)->withOptions([
             'verify' => $verify,
         ])->timeout(120)->post("{$apiUrl}/chat/completions", [
             'model' => $model,
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'Ești un asistent AI educațional. Răspunzi strict JSON valid.',
+                    'content' => 'Ești un asistent AI educațional. Folosești STRICT informația din contextul trimis (storage intern), fără web/external knowledge. Dacă informația nu este suficientă, răspunzi cu JSON valid și explici că este nevoie de context suplimentar.',
                 ],
                 [
                     'role' => 'user',
@@ -593,4 +600,3 @@ class QuestionAdminController extends Controller
         return $data['choices'][0]['message']['content'] ?? '';
     }
 }
-

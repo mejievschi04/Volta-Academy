@@ -34,10 +34,34 @@ class EventAdminController extends Controller
         }
 
         // Status filter
-        if ($request->has('status') && $request->status !== 'all') {
+        if ($request->filled('status') && $request->status !== 'all') {
             if (Schema::hasColumn('events', 'status')) {
-                $query->where('status', $request->status);
+                $status = $request->status;
+                $now = now();
+
+                if ($status === 'future') {
+                    $query->where(function ($q) use ($now) {
+                        $q->whereIn('status', ['published', 'upcoming', 'live'])
+                            ->orWhere(function ($dateScoped) use ($now) {
+                                $dateScoped->whereNotIn('status', ['draft', 'completed', 'cancelled'])
+                                    ->where('end_date', '>=', $now);
+                            });
+                    });
+                } elseif ($status === 'completed') {
+                    $query->where(function ($q) use ($now) {
+                        $q->where('status', 'completed')
+                            ->orWhere(function ($dateScoped) use ($now) {
+                                $dateScoped->whereNotIn('status', ['draft', 'cancelled'])
+                                    ->where('end_date', '<', $now);
+                            });
+                    });
+                } else {
+                    $query->where('status', $status);
+                }
             }
+        } elseif (Schema::hasColumn('events', 'status')) {
+            // Default admin list: no drafts (evenimentele noi se publică automat)
+            $query->whereNotIn('status', ['draft']);
         }
 
         // Type filter
@@ -153,10 +177,9 @@ class EventAdminController extends Controller
             $validated['end_date'] = $this->parseLocalDateTime($validated['end_date']);
         }
 
-        // Set default values
-        if (!isset($validated['status'])) {
-            $validated['status'] = 'draft';
-        }
+        // Evenimentele create din admin sunt întotdeauna publicate (vizibile pentru elevi)
+        $validated['status'] = 'published';
+
         if (!isset($validated['timezone'])) {
             $validated['timezone'] = 'Europe/Bucharest';
         }

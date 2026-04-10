@@ -302,6 +302,13 @@ class CourseController extends Controller
             return response()->json(['error' => 'Utilizator neautentificat'], 401);
         }
 
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Cursul nu este urmărit pentru acest rol.',
+                'completed_at' => null,
+            ]);
+        }
+
         // Check if test is passed
         $exam = \App\Models\Exam::where('course_id', $course->id)->first();
         if (!$exam) {

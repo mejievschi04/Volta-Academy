@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isStaffAdminRole } from '../constants/staffRoles';
 import { prefetchRoute } from '../utils/prefetch';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
+import LiquidEther from '../components/backgrounds/LiquidEther';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
@@ -55,6 +56,14 @@ const LoginPage = () => {
 		<div className="modern-auth-container">
 			{/* Background decorative elements */}
 			<div className="modern-auth-background">
+				<LiquidEther
+					className="modern-auth-liquid-ether"
+					resolution={0.4}
+					autoDemo={true}
+					autoSpeed={0.45}
+					autoIntensity={1.6}
+					colors={['#1d4ed8', '#4338ca', '#7c3aed']}
+				/>
 				<div className="modern-auth-gradient"></div>
 				<div className="modern-auth-pattern"></div>
 			</div>

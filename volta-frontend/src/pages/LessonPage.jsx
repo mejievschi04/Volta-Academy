@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toImageUrl } from '../utils/imageUrl';
+import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -33,7 +33,7 @@ const LessonPage = () => {
 	useLessonTimeTracking(lessonId, {
 		userId: user?.id,
 		isCompleted,
-		enabled: Boolean(user?.id && lessonId),
+		enabled: Boolean(user?.id && lessonId && !['admin', 'analyst'].includes(user?.actualRole || user?.role || '')),
 	});
 
 	// Handle auto-complete function
@@ -367,13 +367,7 @@ const LessonPage = () => {
 								);
 							}
 							if (hasLegacyContent) {
-								const html = (lesson.content || '').replace(
-									/<img([^>]*)\ssrc=["']([^"']+)["']/gi,
-									(_, attrs, src) => {
-										const url = toImageUrl(src) || src;
-										return `<a href="${url}" target="_blank" rel="noreferrer" class="lesson-img-link">Deschide imagine</a>`;
-									}
-								);
+								const html = normalizeRichTextMediaHtml(lesson.content || '');
 								return (
 									<div
 										className="lesson-page-content-text"

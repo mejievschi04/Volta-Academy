@@ -165,11 +165,6 @@
   color: var(--color-warning);
 }
 
-.admin-courses-clean-overlay .status.archived {
-  background: rgba(107, 114, 128, 0.18);
-  color: var(--text-tertiary);
-}
-
 .admin-courses-clean-card-body {
   padding: 12px;
 }

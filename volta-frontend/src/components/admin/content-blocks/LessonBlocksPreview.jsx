@@ -1,5 +1,6 @@
 import React from 'react';
 import { toImageUrl } from '../../../utils/imageUrl';
+import { normalizeRichTextMediaHtml } from '../../../utils/richTextContent';
 
 const normalizeYouTubeEmbed = (url) => {
 	if (!url) return null;
@@ -67,13 +68,7 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 				const label = `${idx + 1}. ${b.type || 'block'}`;
 
 				if (b.type === 'text') {
-					const html = (b.source || '').replace(
-						/<img([^>]*)\ssrc=["']([^"']+)["']/gi,
-						(_, attrs, src) => {
-							const url = toImageUrl(src) || src;
-							return `<a href="${url}" target="_blank" rel="noreferrer" class="lesson-img-link">Deschide imagine</a>`;
-						}
-					);
+					const html = normalizeRichTextMediaHtml(b.source || '');
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
 							<div
@@ -324,4 +319,3 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 };
 
 export default LessonBlocksPreview;
-

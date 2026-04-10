@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 /**
- * AI Tutor Settings - Conform defacut.md secțiunea 7.2
+ * Volt Assistant settings - Conform defacut.md secțiunea 7.2
  * Creator Controls:
  * - Tone
  * - Depth
@@ -57,9 +57,9 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 
 	return (
 		<div className="ai-tutor-settings">
-			<h3 className="admin-form-section-title">⚡ Setări Volt</h3>
+			<h3 className="admin-form-section-title">⚡ Setări Volt Assistant</h3>
 			<p className="admin-form-hint">
-				Configurează comportamentul Volt pentru acest curs. Aceste setări se aplică tuturor studenților.
+				Configurează comportamentul Volt Assistant pentru acest curs. Aceste setări se aplică tuturor cursanților.
 			</p>
 
 			{/* Tone */}
@@ -98,9 +98,9 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 
 			{/* Allowed Topics */}
 			<div className="admin-form-group">
-				<label className="admin-form-label">Allowed Topics (Teme Permise)</label>
+				<label className="admin-form-label">Teme permise</label>
 				<p className="admin-form-hint">
-					Volt va răspunde doar despre aceste teme. Lasă gol pentru a permite toate temele.
+					Volt Assistant va răspunde doar despre aceste teme. Lasă gol pentru a permite toate temele.
 				</p>
 				<div className="topics-input-group">
 					<input
@@ -149,7 +149,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 			<div className="admin-form-group">
 				<label className="admin-form-label">Restricted Topics (Teme Restricționate)</label>
 				<p className="admin-form-hint">
-					Volt NU va răspunde despre aceste teme. Util pentru a evita subiecte sensibile sau off-topic.
+					Volt Assistant NU va răspunde despre aceste teme. Util pentru a evita subiecte sensibile sau off-topic.
 				</p>
 				<div className="topics-input-group">
 					<input
@@ -198,3 +198,7 @@ const AITutorSettings = ({ courseData, onUpdate }) => {
 };
 
 export default AITutorSettings;
+
+
+
+

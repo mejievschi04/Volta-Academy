@@ -1,9 +1,62 @@
-import api from '../api.js';
+import api, { ensureApiCsrfCookie } from '../api.js';
 
-// Service for AI generation using Hugging Face API
+function getCookie(name) {
+	const cookieString = typeof document !== 'undefined' ? document.cookie : '';
+	if (!cookieString) return null;
+	const cookies = cookieString.split(';');
+	for (const cookie of cookies) {
+		const [rawName, ...rest] = cookie.trim().split('=');
+		if (rawName === name) {
+			return rest.join('=');
+		}
+	}
+	return null;
+}
+
+function getXsrfToken() {
+	const raw = getCookie('XSRF-TOKEN');
+	if (!raw) return null;
+	try {
+		return decodeURIComponent(raw);
+	} catch {
+		return raw;
+	}
+}
+
+async function fetchWithCsrfRetry(url, options) {
+	await ensureApiCsrfCookie();
+	let xsrfToken = getXsrfToken();
+	let response = await fetch(url, {
+		...options,
+		headers: {
+			...(options?.headers || {}),
+			...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+		},
+	});
+
+	if (response.status === 419) {
+		await ensureApiCsrfCookie();
+		xsrfToken = getXsrfToken();
+		response = await fetch(url, {
+			...options,
+			headers: {
+				...(options?.headers || {}),
+				...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+			},
+		});
+	}
+
+	return response;
+}
+
+function delay(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Service for Volt-assisted generation (OpenAI-compatible / Hugging Face APIs)
 export const openaiService = {
 	/**
-	 * Generate a course using AI chat
+	 * Generate a course using Volt chat
 	 * @param {Object} params - Course generation parameters
 	 * @param {string} params.prompt - User's prompt/request
 	 * @param {Array} params.messages - Chat history (optional)
@@ -25,7 +78,7 @@ export const openaiService = {
 	},
 
 	/**
-	 * Generate a test using AI chat
+	 * Generate a test using Volt chat
 	 * @param {Object} params - Test generation parameters
 	 * @param {string} params.prompt - User's prompt/request
 	 * @param {Array} params.messages - Chat history (optional)
@@ -55,11 +108,11 @@ export const openaiService = {
 	 * @param {Function} onData - Callback for special data (like course_id)
 	 * @returns {Promise} Full response
 	 */
-	streamCourseGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null) => {
+	streamCourseGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null, extraPayload = {}) => {
 		try {
 			const token = localStorage.getItem('token');
 			console.log('Starting course generation request...', { courseId });
-			const response = await fetch('/api/admin/ai/generate-course', {
+			const response = await fetchWithCsrfRetry('/api/admin/ai/generate-course', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -67,12 +120,12 @@ export const openaiService = {
 					...(token ? { 'Authorization': `Bearer ${token}` } : {}),
 				},
 				credentials: 'include',
-				body: JSON.stringify({ 
-					prompt, 
-					messages, 
+				body: JSON.stringify({
+					prompt,
+					messages,
 					courseId, // Include course ID for updates
 					type: 'course',
-					provider: 'huggingface'
+					...extraPayload,
 				}),
 			});
 
@@ -80,6 +133,31 @@ export const openaiService = {
 				const errorText = await response.text();
 				console.error('HTTP error response:', response.status, errorText);
 				throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+			}
+
+			const contentType = response.headers.get('content-type') || '';
+			if (!contentType.includes('text/event-stream')) {
+				const data = await response.json();
+				if (data?.error) {
+					throw new Error(data.error);
+				}
+
+				const finalContent = String(data?.content || '').trim();
+				if (finalContent && onChunk) {
+					onChunk(finalContent);
+				}
+				if (onData) {
+					onData(data);
+				}
+
+				return {
+					content: finalContent,
+					response_type: data?.response_type || null,
+					clarification_question: data?.clarification_question || null,
+					course_id: data?.course_id || null,
+					course_created: data?.course_created || null,
+					course_updated: data?.course_updated || null,
+				};
 			}
 
 			if (!response.body) {
@@ -140,8 +218,7 @@ export const openaiService = {
 							if (parsed.content) {
 								fullResponse += parsed.content;
 								if (onChunk) onChunk(parsed.content);
-							} else if (parsed.course_id || parsed.course_created) {
-								// Handle course creation notification
+							} else if (parsed.course_id || parsed.course_created || parsed.course_updated || parsed.response_type || parsed.clarification_question || parsed.question || parsed.message) {
 								if (onData) {
 									onData(parsed);
 								}
@@ -168,6 +245,37 @@ export const openaiService = {
 	},
 
 	/**
+	 * Extract text from an uploaded document for Volt.
+	 * Returns a normalized payload with text and preview.
+	 */
+	extractDocumentContext: async (file) => {
+		try {
+			const token = localStorage.getItem('token');
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const response = await fetchWithCsrfRetry('/api/ai/extract-document', {
+				method: 'POST',
+				headers: {
+					...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+				},
+				credentials: 'include',
+				body: formData,
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+			}
+
+			return await response.json();
+		} catch (error) {
+			console.error('Error extracting document context:', error);
+			throw error;
+		}
+	},
+
+	/**
 	 * Stream chat response for test generation
 	 * @param {string} prompt - User's prompt
 	 * @param {Array} messages - Chat history
@@ -176,11 +284,11 @@ export const openaiService = {
 	 * @param {Function} onData - Callback for special data (like test_id)
 	 * @returns {Promise} Full response
 	 */
-	streamTestGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null) => {
+	streamTestGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null, extraPayload = {}) => {
 		try {
 			const token = localStorage.getItem('token');
 			console.log('Starting test generation request...');
-			const response = await fetch('/api/admin/ai/generate-test', {
+			const response = await fetchWithCsrfRetry('/api/admin/ai/generate-test', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -188,12 +296,12 @@ export const openaiService = {
 					...(token ? { 'Authorization': `Bearer ${token}` } : {}),
 				},
 				credentials: 'include',
-				body: JSON.stringify({ 
-					prompt, 
-					messages, 
-					courseId, 
+				body: JSON.stringify({
+					prompt,
+					messages,
+					courseId,
 					type: 'test',
-					provider: 'huggingface'
+					...extraPayload,
 				}),
 			});
 
@@ -288,4 +396,5 @@ export const openaiService = {
 		}
 	},
 };
+
 

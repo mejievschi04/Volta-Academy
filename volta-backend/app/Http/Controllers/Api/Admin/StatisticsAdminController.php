@@ -210,14 +210,15 @@ class StatisticsAdminController extends Controller
             ->join('users', 'users.id', '=', 'lp.user_id')
             ->where('users.role', 'student')
             ->join('lessons as l', 'l.id', '=', 'lp.lesson_id')
-            ->join('modules as m', 'm.id', '=', 'l.module_id')
+            ->leftJoin('modules as m', 'm.id', '=', 'l.module_id')
             ->select(
                 'lp.user_id',
-                'm.course_id',
+                DB::raw('COALESCE(l.course_id, m.course_id) as course_id'),
                 DB::raw('COALESCE(SUM(lp.time_spent_seconds), 0) as time_spent_seconds'),
                 DB::raw('SUM(CASE WHEN lp.completed THEN 1 ELSE 0 END) as lessons_completed')
             )
-            ->groupBy('lp.user_id', 'm.course_id')
+            ->whereRaw('COALESCE(l.course_id, m.course_id) IS NOT NULL')
+            ->groupBy('lp.user_id', DB::raw('COALESCE(l.course_id, m.course_id)'))
             ->get();
 
         $out = [];

@@ -69,8 +69,8 @@ class ActivityLogAdminController extends Controller
         if ($actionScope && $actionScope !== 'all') {
             match ($actionScope) {
                 'elev_progres' => $query->where(function ($q) {
-                    $q->whereIn('action', ['completed_course', 'completed_exam'])
-                        ->orWhere('action', 'telemetry.learner_attempt_submitted');
+                    $q->whereIn('action', ['completed_course', 'completed_exam', 'completed_lesson'])
+                        ->orWhereIn('action', ['telemetry.learner_attempt_submitted', 'telemetry.learner_focus_seconds']);
                 }),
                 'telemetry' => $query->where('action', 'like', 'telemetry.%'),
                 'learner' => $query->where('action', 'like', 'telemetry.learner%'),

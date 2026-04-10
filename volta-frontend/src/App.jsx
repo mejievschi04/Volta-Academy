@@ -14,7 +14,6 @@ import AdminTopNavControls from './components/admin/AdminTopNavControls';
 import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
 import StudentTopNavCalendar from './components/student/StudentTopNavCalendar';
 import AdminStylesLoader from './components/AdminStylesLoader';
-import AITutor from './components/student/AITutor';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { prefetchRoute } from './utils/prefetch';
 import { toImageUrl } from './utils/imageUrl';
@@ -232,6 +231,9 @@ function Layout({ children }) {
 		return saved !== null ? saved === 'true' : false;
 	});
 	const [messagesUnreadCount, setMessagesUnreadCount] = React.useState(0);
+	const unreadPollingInFlightRef = React.useRef(false);
+	const unreadPollingFailuresRef = React.useRef(0);
+	const unreadPollingCooldownUntilRef = React.useRef(0);
 
 	const prevShowUserLayoutRef = React.useRef(null);
 	React.useEffect(() => {
@@ -332,21 +334,30 @@ function Layout({ children }) {
 			return;
 		}
 
+		if (Date.now() < unreadPollingCooldownUntilRef.current) {
+			return;
+		}
+
+		// Avoid overlapping polls when backend is slow.
+		if (unreadPollingInFlightRef.current) {
+			return;
+		}
+		unreadPollingInFlightRef.current = true;
+
 		try {
-			const data = await messagesService.getConversations();
-			const list = Array.isArray(data) ? data : [];
-			const total = list.reduce((sum, conversation) => {
-				const value = Number(
-					conversation?.unreadCount ??
-					conversation?.unread_count ??
-					conversation?.unread_messages_count ??
-					conversation?.unreadMessagesCount ??
-					0
-				);
-				return sum + (Number.isFinite(value) ? Math.max(0, value) : 0);
-			}, 0);
-			setMessagesUnreadCount(total);
-		} catch {}
+			const total = await messagesService.getUnreadCount();
+			setMessagesUnreadCount(Number.isFinite(Number(total)) ? Math.max(0, Number(total)) : 0);
+			unreadPollingFailuresRef.current = 0;
+		} catch {
+			unreadPollingFailuresRef.current += 1;
+			if (unreadPollingFailuresRef.current >= 3) {
+				// If backend is temporarily overloaded, pause polling briefly.
+				unreadPollingCooldownUntilRef.current = Date.now() + 60000;
+				unreadPollingFailuresRef.current = 0;
+			}
+		} finally {
+			unreadPollingInFlightRef.current = false;
+		}
 	}, [user]);
 
 	React.useEffect(() => {
@@ -548,12 +559,14 @@ function Layout({ children }) {
 						{ path: '/admin/content', search: '?tab=courses', label: 'Cursuri' },
 						{ path: '/admin/content', search: '?tab=tests', label: 'Teste' },
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
+						{ path: '/admin/content', search: '?tab=manual-review', label: 'Verificare manuală' },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
 					]
 					: [
 						{ path: '/admin/content', search: '?tab=courses&view=maps', label: 'Cursuri' },
 						{ path: '/admin/content', search: '?tab=tests', label: 'Teste' },
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
+						{ path: '/admin/content', search: '?tab=manual-review', label: 'Verificare manuală' },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
 					],
 		},
@@ -1069,10 +1082,6 @@ function Layout({ children }) {
 						<main className="va-main">{children}</main>
 					</div>
 					
-					{/* AI Tutor - Only on courses page */}
-					{user && location.pathname === '/courses' && (
-						<AITutor />
-					)}
 				</>
 			) : (
 				// Regular users get modern top navigation with sidebar on mobile
@@ -1358,10 +1367,6 @@ function Layout({ children }) {
 						<main className="va-main">{children}</main>
 					</div>
 					
-					{/* AI Tutor - Only on courses page */}
-					{showUserLayout && user && location.pathname === '/courses' && (
-						<AITutor />
-					)}
 
 					{/* Înapoi la Admin - minimal button when admin views as student */}
 					{isStudentPreviewMode && (

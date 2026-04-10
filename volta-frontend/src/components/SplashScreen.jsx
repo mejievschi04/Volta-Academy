@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
+import LiquidEther from './backgrounds/LiquidEther';
 import './SplashScreen.css';
 
 const TYPEWRITER_TEXT = 'VOLTA ACADEMY';
+const SPLASH_LIQUID_COLORS = ['#7a7000', '#ffee00', '#ffee00'];
 
 const SplashScreen = ({ onStart, appReady = true }) => {
 	const [displayedText, setDisplayedText] = useState('');
@@ -44,14 +46,22 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 	const canShowButtons = showButton && appReady;
 
 	return (
-		<div className="splash-page">
+		<div className={`splash-page splash-phase-${phase}`}>
 			{/* Overlay negru - se estompează în 1.2s */}
 			<div className="splash-light-overlay" aria-hidden="true" />
 
-			<div className="splash-bg-circles">
-				<div className="splash-circle circle-1"></div>
-				<div className="splash-circle circle-2"></div>
-				<div className="splash-circle circle-3"></div>
+			<div className="splash-login-like-background" aria-hidden="true">
+				<LiquidEther
+					className="splash-login-liquid-ether"
+					resolution={0.4}
+					autoDemo={true}
+					autoSpeed={0.45}
+					autoIntensity={1.55}
+					colors={SPLASH_LIQUID_COLORS}
+				/>
+				<div className="splash-login-gradient" />
+				<div className="splash-login-pattern" />
+				<div className="splash-logo-center-mask" />
 			</div>
 
 			<div className="splash-content">
@@ -92,15 +102,13 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 			{showButton && (
 				<>
 					{canShowButtons ? (
-						<>
-							<button className="splash-review-btn" onClick={() => window.open('https://www.google.com/search?q=volta+academy+recenzii', '_blank')} aria-label="Recenzii">Recenzie</button>
-							<button className="splash-start-btn" onClick={() => onStart?.()} aria-label="Începe">Începe</button>
-						</>
+						<button className="splash-start-btn" onClick={() => onStart?.()} aria-label="Începe">Începe</button>
 					) : (
 						<div className="splash-loading-dots" aria-live="polite">Se încarcă...</div>
 					)}
 				</>
 			)}
+			{canShowButtons && <p className="splash-powered-by">Powered by Mejievski</p>}
 		</div>
 	);
 };

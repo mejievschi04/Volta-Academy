@@ -829,6 +829,36 @@ body.admin-view .va-main {
 	overflow: hidden;
 }
 
+.admin-events-two-groups {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-8);
+	padding-bottom: var(--space-4);
+}
+
+.admin-events-group__title {
+	margin: 0 0 var(--space-4) 0;
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.admin-events-group__empty {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.admin-events-time-menu {
+	flex-wrap: wrap;
+	margin: 0 0 var(--space-4) 0;
+	padding: 0 var(--space-1);
+}
+
+.admin-events-tab-empty .lms-btn-secondary {
+	margin-top: var(--space-3);
+}
+
 .admin-events-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -1624,14 +1654,14 @@ body.admin-view .va-main {
 	box-shadow: var(--shadow-2xl);
 	width: 100%;
 	max-width: 600px;
-	max-height: 80vh;
+	max-height: 92vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
 .admin-event-modal-header {
-	padding: var(--space-4) var(--space-6);
+	padding: var(--space-3) var(--space-4);
 	border-bottom: 1px solid var(--border-primary);
 	display: flex;
 	align-items: center;
@@ -1640,7 +1670,7 @@ body.admin-view .va-main {
 }
 
 .admin-event-modal-title {
-	font-size: var(--font-size-xl);
+	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
 	margin: 0;
@@ -1671,21 +1701,21 @@ body.admin-view .va-main {
 .admin-event-modal-body {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--space-4) var(--space-6);
+	padding: var(--space-3) var(--space-4);
 }
 
 .admin-event-form {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-3);
+	gap: var(--space-1);
 }
 
 .admin-event-form-actions {
 	display: flex;
 	justify-content: flex-end;
-	gap: var(--space-3);
-	margin-top: var(--space-4);
-	padding-top: var(--space-4);
+	gap: var(--space-2);
+	margin-top: var(--space-1);
+	padding-top: var(--space-2);
 	border-top: 1px solid var(--border-primary);
 }
 
@@ -1709,7 +1739,7 @@ body.admin-view .va-main {
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
-	padding: var(--space-2) var(--space-4);
+	padding: 0.45rem var(--space-3);
 	border-radius: var(--radius-lg);
 	font-family: var(--font-family);
 	font-size: var(--font-size-sm);
@@ -1719,8 +1749,8 @@ body.admin-view .va-main {
 	cursor: pointer;
 	transition: all var(--transition-base);
 	white-space: nowrap;
-	min-width: 100px;
-	height: 36px;
+	min-width: 92px;
+	height: 34px;
 }
 
 .admin-event-btn-primary {
@@ -1775,7 +1805,7 @@ body.admin-view .va-main {
 }
 
 /* ============================================
-   19. ADMIN AI GENERATING STATE
+   19. ADMIN VOLT GENERATING STATE
    ============================================ */
 .admin-ai-generating {
 	padding: var(--space-6);
@@ -1797,11 +1827,13 @@ body.admin-view .va-main {
 }
 
 .admin-event-form .admin-form-group {
-	margin-bottom: var(--space-3);
+	margin-bottom: var(--space-1);
 }
 
 .admin-event-form .admin-form-section {
-	margin-top: var(--space-6);
+	margin-top: 0;
+	margin-bottom: 0;
+	padding: var(--space-2);
 }
 .admin-event-form .admin-form-section:first-child {
 	margin-top: 0;
@@ -1816,7 +1848,7 @@ body.admin-view .va-main {
 .admin-event-form-grid-2 {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: var(--space-4);
+	gap: var(--space-2);
 	align-items: start;
 }
 
@@ -1829,18 +1861,18 @@ body.admin-view .va-main {
 .admin-event-form-hint {
 	font-size: var(--font-size-xs);
 	color: var(--text-tertiary);
-	margin: var(--space-1) 0 0 0;
+	margin: 2px 0 0 0;
 	line-height: var(--line-height-normal);
 }
 
 .admin-event-form-intro {
-	margin: 0 0 var(--space-3) 0;
+	margin: 0 0 var(--space-2) 0;
 }
 
 .admin-event-format-fieldset {
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-md);
-	padding: var(--space-4);
+	padding: var(--space-2);
 	margin: 0;
 	background: var(--bg-secondary);
 }
@@ -1855,7 +1887,7 @@ body.admin-view .va-main {
 .admin-event-format-options {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--space-4);
+	gap: var(--space-2);
 }
 
 .admin-event-format-option {

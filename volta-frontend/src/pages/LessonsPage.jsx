@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter } from '../utils/lessonOrder';
+import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import './LessonsPage.css';
 
@@ -124,7 +125,7 @@ const LessonsPage = () => {
 	useLessonTimeTracking(selectedLessonId, {
 		userId: user?.id,
 		isCompleted,
-		enabled: lessonReadyForTracking,
+		enabled: lessonReadyForTracking && !['admin', 'analyst'].includes(user?.actualRole || user?.role || ''),
 	});
 
 	const fetchCourseData = async () => {
@@ -732,7 +733,7 @@ const LessonsPage = () => {
 									return (
 										<div
 											className="lessons-page-lesson-content-text"
-											dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+											dangerouslySetInnerHTML={{ __html: normalizeRichTextMediaHtml(currentLesson.content) }}
 										/>
 									);
 								}

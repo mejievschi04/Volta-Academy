@@ -14,6 +14,17 @@ use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
 {
+    private static ?bool $hasConversationParticipantsTable = null;
+
+    private function hasConversationParticipantsTable(): bool
+    {
+        if (self::$hasConversationParticipantsTable === null) {
+            self::$hasConversationParticipantsTable = Schema::hasTable('conversation_participants');
+        }
+
+        return self::$hasConversationParticipantsTable;
+    }
+
     private function participantGroupRole(Conversation $conversation, User $participant): string
     {
         $gr = $participant->pivot->group_role ?? null;
@@ -84,9 +95,109 @@ class MessageController extends Controller
     /**
      * Get all conversations for the authenticated user
      */
+    public function getUnreadCount(Request $request)
+    {
+        $user = Auth::user();
+        $userId = (int) $user->id;
+
+        // Query optimizat: obținem IDs de conversații o singură dată și evităm whereHas + orWhereHas costisitor.
+        $directConversationIds = Conversation::query()
+            ->where('is_group', false)
+            ->where(function ($pair) use ($userId) {
+                $pair->where('user1_id', $userId)
+                    ->orWhere('user2_id', $userId);
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $groupConversationIds = [];
+        if ($this->hasConversationParticipantsTable()) {
+            $groupConversationIds = DB::table('conversation_participants')
+                ->where('user_id', $userId)
+                ->pluck('conversation_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        $conversationIds = array_values(array_unique(array_merge($directConversationIds, $groupConversationIds)));
+        if (empty($conversationIds)) {
+            return response()->json([
+                'data' => [
+                    'unreadCount' => 0,
+                ],
+            ]);
+        }
+
+        $count = Message::query()
+            ->whereIn('conversation_id', $conversationIds)
+            ->where('read', false)
+            ->where('sender_id', '!=', $userId)
+            ->count();
+
+        return response()->json([
+            'data' => [
+                'unreadCount' => $count,
+            ],
+        ]);
+    }
+
+    /**
+     * Get all conversations for the authenticated user
+     */
     public function getConversations(Request $request)
     {
         $user = Auth::user();
+        $summaryOnly = filter_var($request->query('summary', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($summaryOnly) {
+            $conversations = Conversation::query()
+                ->select('id', 'last_message_at', 'updated_at')
+                ->where(function ($query) use ($user) {
+                    $query->where(function ($sub) use ($user) {
+                        $sub->where('is_group', false)
+                            ->where(function ($pair) use ($user) {
+                                $pair->where('user1_id', $user->id)
+                                    ->orWhere('user2_id', $user->id);
+                            });
+                    });
+
+                    if ($this->hasConversationParticipantsTable()) {
+                        $query->orWhereHas('participants', function ($p) use ($user) {
+                            $p->where('users.id', $user->id);
+                        });
+                    }
+                })
+                ->orderByDesc('last_message_at')
+                ->get();
+
+            if ($conversations->isEmpty()) {
+                return response()->json([
+                    'data' => [],
+                ]);
+            }
+
+            $conversationIds = $conversations->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $unreadByConversation = Message::query()
+                ->select('conversation_id', DB::raw('COUNT(*) as unread_count'))
+                ->whereIn('conversation_id', $conversationIds)
+                ->where('sender_id', '!=', $user->id)
+                ->where('read', false)
+                ->groupBy('conversation_id')
+                ->pluck('unread_count', 'conversation_id');
+
+            $summary = $conversations->map(function ($conversation) use ($unreadByConversation) {
+                $unread = (int) ($unreadByConversation[$conversation->id] ?? 0);
+                return [
+                    'id' => $conversation->id,
+                    'unreadCount' => $unread,
+                ];
+            });
+
+            return response()->json([
+                'data' => $summary,
+            ]);
+        }
 
         $conversations = Conversation::query()
             ->where(function ($query) use ($user) {
@@ -98,7 +209,7 @@ class MessageController extends Controller
                         });
                 });
 
-                if (Schema::hasTable('conversation_participants')) {
+                if ($this->hasConversationParticipantsTable()) {
                     $query->orWhereHas('participants', function ($p) use ($user) {
                         $p->where('users.id', $user->id);
                     });
@@ -376,7 +487,7 @@ class MessageController extends Controller
                                 ->orWhere('user2_id', $user->id);
                         });
                 });
-                if (Schema::hasTable('conversation_participants')) {
+                if ($this->hasConversationParticipantsTable()) {
                     $q->orWhereHas('participants', function ($p) use ($user) {
                         $p->where('users.id', $user->id);
                     });

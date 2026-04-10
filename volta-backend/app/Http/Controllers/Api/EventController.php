@@ -18,9 +18,13 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = Event::with(['instructor:id,name,email,avatar', 'course:id,title'])
-            ->where('status', 'published')
-            ->orWhere('status', 'upcoming')
-            ->orWhere('status', 'live');
+            ->where(function ($q) {
+                $q->whereIn('status', ['published', 'upcoming', 'live', 'completed'])
+                    ->orWhere(function ($dateScoped) {
+                        $dateScoped->whereNotIn('status', ['draft', 'cancelled'])
+                            ->whereNotNull('end_date');
+                    });
+            });
 
         // Type filter
         if ($request->has('type') && $request->type !== 'all') {
@@ -42,6 +46,7 @@ class EventController extends Controller
                     $query->where('start_date', '>', $now);
                     break;
                 case 'past':
+                case 'completed':
                     $query->where('end_date', '<', $now);
                     break;
                 case 'live':
@@ -63,7 +68,18 @@ class EventController extends Controller
         // Add user-specific data if authenticated
         if (Auth::check()) {
             $events->getCollection()->transform(function($event) {
-                return $this->addUserEventData($event);
+                $event = $this->addUserEventData($event);
+                $event->is_upcoming = $event->is_upcoming;
+                $event->is_live = $event->is_live;
+                $event->is_completed = $event->is_completed;
+                return $event;
+            });
+        } else {
+            $events->getCollection()->transform(function($event) {
+                $event->is_upcoming = $event->is_upcoming;
+                $event->is_live = $event->is_live;
+                $event->is_completed = $event->is_completed;
+                return $event;
             });
         }
 

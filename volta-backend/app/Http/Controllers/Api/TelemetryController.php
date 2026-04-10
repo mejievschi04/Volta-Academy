@@ -35,6 +35,11 @@ class TelemetryController extends Controller
             ], 422);
         }
 
+        $user = $request->user();
+        if ($user && $user->isLearningActivityExempt()) {
+            return response()->json(['ok' => true]);
+        }
+
         if ($validated['event_name'] === 'learner_focus_seconds') {
             $sec = (int) ($request->input('payload.seconds'));
             $lessonId = (int) ($request->input('payload.lesson_id'));
@@ -59,4 +64,3 @@ class TelemetryController extends Controller
         return response()->json(['ok' => true]);
     }
 }
-

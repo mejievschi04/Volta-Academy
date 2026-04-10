@@ -4,7 +4,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import './CourseTestsManager.css';
 
-const TYPE_LABELS = { practice: 'Exersare', graded: 'Notat', final: 'Final' };
+const TYPE_LABELS = { final: 'Test final' };
 
 const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 	const { showToast } = useToast();
@@ -103,12 +103,10 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 	};
 
 	const getTestTypeBadge = (type) => {
-		const types = {
-			practice: { label: 'Exersare', color: '#FFEE00' },
-			graded: { label: 'Notat', color: '#FFEE00' },
-			final: { label: 'Final', color: '#EF4444' },
-		};
-		const badge = types[type] || types.graded;
+		const normalized = String(type || 'final').toLowerCase();
+		const badge = normalized === 'final'
+			? { label: 'Test final', color: '#EF4444' }
+			: { label: 'Test final', color: '#EF4444' };
 		return (
 			<span className="test-type-badge" style={{ backgroundColor: `${badge.color}20`, color: badge.color }}>
 				{badge.label}

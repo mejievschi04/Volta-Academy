@@ -100,6 +100,14 @@ class User extends Authenticatable
         return ($this->role ?? '') === 'analyst';
     }
 
+    /**
+     * Admin și analist nu intră în tracking-ul de învățare/statistică.
+     */
+    public function isLearningActivityExempt(): bool
+    {
+        return in_array($this->role ?? '', ['admin', 'analyst'], true);
+    }
+
     /** Admin, instructor sau analist (API + shell admin; drepturi diferite). */
     public function canAccessAdmin(): bool
     {

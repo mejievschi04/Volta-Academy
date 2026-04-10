@@ -7,8 +7,8 @@ import { useToast } from '../../../../contexts/ToastContext';
  * Video Lesson Editor - Conform defacut.md secțiunea 5.1
  * Features:
  * - Upload video
- * - AI auto: transcription, chapters, highlights, summary
- * - AI Tutor Context
+ * - Volt auto: transcription, chapters, highlights, summary
+ * - Volt Assistant context
  * - Quiz base generation
  */
 const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
@@ -35,10 +35,10 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 			const videoUrl = URL.createObjectURL(file);
 			onUpdate({ video_url: videoUrl, video_file: file });
 			
-			// Auto-trigger AI processing after upload
+			// Auto-trigger Volt processing after upload
 			if (file) {
 				setTimeout(() => {
-					handleProcessVideoAI(file);
+					handleProcessVideoVolt(file);
 				}, 1000);
 			}
 		} catch (error) {
@@ -49,8 +49,8 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 		}
 	};
 
-	// Process video with AI (transcription, chapters, highlights, summary)
-	const handleProcessVideoAI = async (videoFile) => {
+	// Process video with Volt (transcription, chapters, highlights, summary)
+	const handleProcessVideoVolt = async (videoFile) => {
 		if (!videoFile && !lesson.video_url) {
 			showToast('Te rugăm să încarci mai întâi un video', 'info');
 			return;
@@ -58,7 +58,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 
 		setAiProcessing(true);
 		try {
-			// Generate AI processing prompt
+			// Generate Volt processing prompt
 			const prompt = `Procesează acest video pentru lecție: "${lesson.title || 'Lecție video'}".
 
 ${lesson.description ? `Descriere: ${lesson.description}` : ''}
@@ -68,7 +68,7 @@ Generează:
 2. Chapters (capitole cu timestamp-uri)
 3. Highlights (puncte importante)
 4. Summary (rezumat al conținutului)
-5. AI Tutor Context (context pentru AI Tutor)
+5. Volt Assistant context (context pentru Volt Assistant)
 6. Quiz Base (întrebări de bază pentru quiz)
 
 Răspunde în format JSON:
@@ -83,7 +83,7 @@ Răspunde în format JSON:
     {"text": "Punct important 2", "timestamp": "08:45"}
   ],
   "summary": "Rezumat al conținutului...",
-  "tutorContext": "Context pentru AI Tutor...",
+  "tutorContext": "context pentru Volt Assistant...",
   "quizBase": [
     {"question": "Întrebare 1?", "type": "multiple_choice", "options": ["A", "B", "C"], "correct": 0},
     {"question": "Întrebare 2?", "type": "true_false", "correct": true}
@@ -103,7 +103,7 @@ Răspunde în format JSON:
 				() => {}
 			);
 
-			// Parse AI response
+			// Parse Volt response
 			try {
 				const jsonMatch = fullResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
 				                  fullResponse.match(/```\s*([\s\S]*?)\s*```/);
@@ -112,7 +112,7 @@ Răspunde în format JSON:
 				
 				setAiResults(parsed);
 				
-				// Auto-update lesson with AI results
+				// Auto-update lesson with Volt results
 				onUpdate({
 					ai_transcription: parsed.transcription,
 					ai_chapters: parsed.chapters,
@@ -122,12 +122,12 @@ Răspunde în format JSON:
 					ai_quiz_base: parsed.quizBase
 				});
 			} catch (e) {
-				console.error('Error parsing AI response:', e);
-				showToast('Eroare la procesarea răspunsului AI. Vezi consola pentru detalii.', 'error');
+				console.error('Error parsing Volt response:', e);
+				showToast('Eroare la procesarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
-			console.error('Error processing video with AI:', error);
-			showToast('Eroare la procesarea video-ului cu AI: ' + (error.message || 'Eroare necunoscută'), 'error');
+			console.error('Error processing video with Volt:', error);
+			showToast('Eroare la procesarea video-ului cu Volt: ' + (error.message || 'Eroare necunoscută'), 'error');
 		} finally {
 			setAiProcessing(false);
 		}
@@ -173,28 +173,28 @@ Răspunde în format JSON:
 				</div>
 			</div>
 
-			{/* AI Processing Button */}
+			{/* Volt processing button */}
 			{lesson.video_url && (
 				<div className="admin-form-group">
 					<button
 						type="button"
 						className="admin-btn admin-btn-primary"
-						onClick={() => handleProcessVideoAI()}
+						onClick={() => handleProcessVideoVolt()}
 						disabled={aiProcessing}
 					>
-						{aiProcessing ? '⏳ Procesează cu AI...' : '🤖 Procesează Video cu AI'}
+						{aiProcessing ? '⏳ Procesează cu Volt...' : '🤖 Procesează video cu Volt'}
 					</button>
 					<p className="admin-form-hint">
-						Volt va genera: transcriere, capitole, highlights, rezumat, context pentru Volt și întrebări quiz
+						Volt Assistant va genera: transcriere, capitole, highlights, rezumat, context pentru Volt Assistant și întrebări quiz
 					</p>
 				</div>
 			)}
 
-			{/* AI Results Display */}
+			{/* Volt results display */}
 			{aiResults.transcription && (
 				<div className="ai-results-panel">
 					<div className="ai-results-header">
-						<h4>✨ Rezultate AI</h4>
+						<h4>✨ Rezultate Volt</h4>
 					</div>
 
 					{/* Transcription */}
@@ -262,10 +262,10 @@ Răspunde în format JSON:
 						</div>
 					)}
 
-					{/* Volt Context */}
+					{/* Volt Assistant context */}
 					{aiResults.tutorContext && (
 						<div className="ai-result-section">
-							<h5>⚡ Volt Context</h5>
+							<h5>⚡ Context Volt Assistant</h5>
 							<textarea
 								className="admin-form-textarea"
 								value={aiResults.tutorContext}
@@ -274,7 +274,7 @@ Răspunde în format JSON:
 									onUpdate({ ai_tutor_context: e.target.value });
 								}}
 								rows={4}
-								placeholder="Context pentru Volt..."
+								placeholder="context pentru Volt Assistant..."
 							/>
 						</div>
 					)}
@@ -324,3 +324,5 @@ Răspunde în format JSON:
 };
 
 export default VideoLessonEditor;
+
+

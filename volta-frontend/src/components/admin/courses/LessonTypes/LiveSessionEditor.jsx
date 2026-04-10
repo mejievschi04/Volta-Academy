@@ -7,7 +7,7 @@ import { useToast } from '../../../../contexts/ToastContext';
  * Live Session Editor - Conform defacut.md secțiunea 5.4
  * Features:
  * - Schedule
- * - Agenda (AI generated)
+ * - Agenda (Volt generated)
  * - Post-session summary (auto-generated)
  */
 const LiveSessionEditor = ({ lesson, onUpdate }) => {
@@ -15,7 +15,7 @@ const LiveSessionEditor = ({ lesson, onUpdate }) => {
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [generatedAgenda, setGeneratedAgenda] = useState(null);
 
-	// Generate agenda with AI
+	// Generate agenda with Volt
 	const handleGenerateAgenda = async () => {
 		if (!lesson.title || !lesson.title.trim()) {
 			showToast('Te rugăm să introduci mai întâi titlul sesiunii', 'info');
@@ -86,7 +86,7 @@ Răspunde în format JSON:
 				}
 			} catch (e) {
 				console.error('Error parsing agenda response:', e);
-				showToast('Eroare la parsarea răspunsului AI. Vezi consola pentru detalii.', 'error');
+				showToast('Eroare la parsarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error generating agenda:', error);
@@ -141,10 +141,10 @@ Răspunde în format JSON:
 					onClick={handleGenerateAgenda}
 					disabled={aiGenerating || !lesson.title}
 				>
-					{aiGenerating ? '⏳ Generează agendă...' : '🤖 Generează Agendă cu AI'}
+					{aiGenerating ? '⏳ Generează agendă...' : '🤖 Generează agendă cu Volt'}
 				</button>
 				<p className="admin-form-hint">
-					AI-ul va genera o agendă detaliată pentru sesiunea live
+					Volt va genera o agendă detaliată pentru sesiunea live
 				</p>
 			</div>
 

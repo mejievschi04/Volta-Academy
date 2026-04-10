@@ -43,6 +43,10 @@
 	min-width: 0;
 }
 
+.aev-card__head--no-select {
+	grid-template-columns: 1fr;
+}
+
 .aev-card__pick {
 	padding-top: 0.15rem;
 }
@@ -203,6 +207,16 @@
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
 	line-height: 1.2;
+}
+
+.aev-card__actions-bar {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	margin-top: auto;
+	padding-top: var(--space-3);
+	border-top: 1px solid var(--border-primary);
 }
 
 .aev-actions {

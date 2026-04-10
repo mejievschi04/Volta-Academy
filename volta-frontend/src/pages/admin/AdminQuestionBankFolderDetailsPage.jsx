@@ -7,6 +7,7 @@ import Drawer from '../../components/admin/question-banks/Drawer';
 import QuestionRow from '../../components/admin/question-banks/QuestionRow';
 import Tag from '../../components/admin/question-banks/Tag';
 import QuestionBuilderEditor from '../../components/admin/question-banks/QuestionBuilderEditor';
+import AIGenerateQuestionsModal from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModal';
 import { useAuth } from '../../contexts/AuthContext';
 import './AdminQuestionBanksPage.css';
 
@@ -25,6 +26,22 @@ const AdminQuestionBankFolderDetailsPage = () => {
   const [questionEditorOpen, setQuestionEditorOpen] = useState(false);
   const [questionEditorSaving, setQuestionEditorSaving] = useState(false);
   const [questionEditorNumber, setQuestionEditorNumber] = useState(1);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [aiCourses, setAiCourses] = useState([]);
+  const [aiCoursesLoading, setAiCoursesLoading] = useState(false);
+  const [aiSelectedCourseId, setAiSelectedCourseId] = useState('');
+  const [aiReviewStarted, setAiReviewStarted] = useState(false);
+  const [aiCurrentDraftQuestion, setAiCurrentDraftQuestion] = useState(null);
+  const [aiApprovedQuestions, setAiApprovedQuestions] = useState([]);
+  const [aiGeneratedCount, setAiGeneratedCount] = useState(0);
+  const [aiGeneratedPreviews, setAiGeneratedPreviews] = useState([]);
+  const [aiOptions, setAiOptions] = useState({
+    numberOfQuestions: 10,
+    difficulty: 'medium',
+    questionTypes: ['multiple_choice'],
+  });
   const [questionDraft, setQuestionDraft] = useState({
     id: null,
     type: 'single_choice',
@@ -62,6 +79,50 @@ const AdminQuestionBankFolderDetailsPage = () => {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCourses = async () => {
+      setAiCoursesLoading(true);
+      try {
+        const res = await adminService.getCourses({ per_page: 500, status: 'all' });
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        if (!cancelled) {
+          setAiCourses(list);
+        }
+      } catch (err) {
+        console.error('Error fetching courses for Volt generation:', err);
+        if (!cancelled) {
+          setAiCourses([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAiCoursesLoading(false);
+        }
+      }
+    };
+
+    loadCourses();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showAIModal || aiSelectedCourseId || aiCourses.length === 0) return;
+    setAiSelectedCourseId(String(aiCourses[0].id));
+  }, [showAIModal, aiSelectedCourseId, aiCourses]);
+
+  const aiTargetCount = Math.max(1, Number(aiOptions.numberOfQuestions) || 1);
+
+  const resolveValidCourseId = (candidateId = aiSelectedCourseId) => {
+    const parsed = Number.parseInt(String(candidateId), 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) return null;
+    return parsed;
+  };
+
+  const trimQuestionText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
   const toggleSelect = (questionId) => {
     setSelectedIds((prev) => (prev.includes(questionId) ? prev.filter((idv) => idv !== questionId) : [...prev, questionId]));
@@ -112,6 +173,189 @@ const AdminQuestionBankFolderDetailsPage = () => {
       await loadData();
     } catch {
       error('Nu am putut salva folderul.');
+    }
+  };
+
+  const fetchAiDraftQuestion = async (
+    approvedQuestions = [],
+    blockedQuestions = [],
+    courseIdOverride = null,
+    autoGenerate = false
+  ) => {
+    const validCourseId = resolveValidCourseId(courseIdOverride);
+    if (!validCourseId) {
+      throw new Error('Alege un curs valid înainte de generare.');
+    }
+
+    const result = await adminService.previewQuestionsWithVolt(id, {
+      course_id: validCourseId,
+      numberOfQuestions: Math.max(1, Number(aiOptions.numberOfQuestions) || 1),
+      difficulty: aiOptions.difficulty,
+      questionTypes: aiOptions.questionTypes,
+      instructions: '',
+      approvedQuestions: approvedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
+      blockedQuestions: blockedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
+      autoGenerate,
+    });
+
+    const draft = Array.isArray(result?.draft) ? result.draft : [];
+    return draft;
+  };
+
+  const handleOpenAIModal = () => {
+    setAiOptions({
+      numberOfQuestions: 10,
+      difficulty: 'medium',
+      questionTypes: ['multiple_choice'],
+    });
+    setAiError(null);
+    setAiReviewStarted(false);
+    setAiCurrentDraftQuestion(null);
+    setAiApprovedQuestions([]);
+    setAiGeneratedCount(0);
+    setAiGeneratedPreviews([]);
+    if (!aiSelectedCourseId && aiCourses.length > 0) {
+      setAiSelectedCourseId(String(aiCourses[0].id));
+    }
+    setShowAIModal(true);
+  };
+
+  const startAiReview = async (overrideCourseId = null) => {
+    const effectiveCourseId = resolveValidCourseId(overrideCourseId);
+    if (!effectiveCourseId) {
+      error('Alege mai întâi un curs sursă.');
+      return;
+    }
+
+    setAiReviewStarted(true);
+    setAiCurrentDraftQuestion(null);
+    try {
+      setAiGenerating(true);
+      setAiError(null);
+      setAiGeneratedCount(0);
+      setAiGeneratedPreviews([]);
+
+      const draft = await fetchAiDraftQuestion([], [], effectiveCourseId);
+      if (!draft) {
+        throw new Error('Volt nu a returnat nicio întrebare.');
+      }
+      setAiCurrentDraftQuestion(draft);
+      setAiGeneratedCount(1);
+    } catch (err) {
+      console.error('Error generating questions:', err);
+      const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
+      setAiError(message);
+      setAiReviewStarted(false);
+      error(message);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const advanceAiDraft = async (shouldApprove = false) => {
+    if (!aiCurrentDraftQuestion) return;
+
+    const nextApproved = shouldApprove ? [...aiApprovedQuestions, aiCurrentDraftQuestion] : aiApprovedQuestions;
+    const nextApprovedCount = nextApproved.length;
+
+    if (shouldApprove && nextApprovedCount >= aiTargetCount) {
+      try {
+        setAiGenerating(true);
+        await adminService.addQuestionsToBankBulk(id, nextApproved);
+        success(`Au fost salvate ${nextApproved.length} întrebări aprobate.`);
+        setShowAIModal(false);
+        setAiReviewStarted(false);
+        setAiCurrentDraftQuestion(null);
+        setAiApprovedQuestions([]);
+        setAiGeneratedCount(0);
+        setAiError(null);
+        await loadData();
+      } catch (err) {
+        console.error('Error saving approved Volt questions:', err);
+        const message = err.response?.data?.message || err.message || 'Eroare la salvarea întrebărilor aprobate.';
+        setAiError(message);
+        error(message);
+      } finally {
+        setAiGenerating(false);
+      }
+      return;
+    }
+
+    try {
+      setAiGenerating(true);
+      setAiError(null);
+      const blockedQuestions = shouldApprove
+        ? nextApproved
+        : [...aiApprovedQuestions, aiCurrentDraftQuestion].filter(Boolean);
+      const draft = await fetchAiDraftQuestion(nextApproved, blockedQuestions, aiSelectedCourseId);
+      if (!draft) {
+        throw new Error('Volt nu a returnat următoarea întrebare.');
+      }
+      setAiApprovedQuestions(nextApproved);
+      setAiCurrentDraftQuestion(draft);
+      setAiGeneratedCount((prev) => prev + 1);
+    } catch (err) {
+      console.error('Error advancing Volt draft:', err);
+      const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea următoarei întrebări.';
+      setAiError(message);
+      error(message);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const startAiAutoGenerate = async (overrideCourseId = null, requestedCount = null) => {
+    const effectiveCourseId = resolveValidCourseId(overrideCourseId);
+    if (!effectiveCourseId) {
+      error('Alege mai întâi un curs sursă.');
+      return;
+    }
+
+    try {
+      setAiGenerating(true);
+      setAiError(null);
+      const targetCount = Math.max(1, Number(requestedCount) || aiTargetCount);
+      setAiGeneratedCount(0);
+      setAiGeneratedPreviews([]);
+      const generatedQuestions = [];
+      const generatedPreviews = [];
+
+      for (let index = 0; index < targetCount; index += 1) {
+        const draft = await fetchAiDraftQuestion(generatedQuestions, generatedQuestions, effectiveCourseId, false);
+        const candidate = Array.isArray(draft) ? draft[0] : null;
+        const content = trimQuestionText(candidate?.content || candidate?.question || '');
+
+        if (!candidate || !content) {
+          throw new Error('Volt nu a returnat nicio întrebare.');
+        }
+
+        generatedQuestions.push(candidate);
+        generatedPreviews.push({
+          index: index + 1,
+          content,
+          type: candidate.type || 'multiple_choice',
+        });
+        setAiGeneratedCount(index + 1);
+        setAiGeneratedPreviews([...generatedPreviews]);
+      }
+
+      await adminService.addQuestionsToBankBulk(id, generatedQuestions);
+      success(`Au fost generate și salvate ${generatedQuestions.length} întrebări.`);
+      setShowAIModal(false);
+      setAiCurrentDraftQuestion(null);
+      setAiApprovedQuestions([]);
+      setAiGeneratedCount(0);
+      setAiGeneratedPreviews([]);
+      setAiReviewStarted(false);
+      setAiError(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error generating questions:', err);
+      const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
+      setAiError(message);
+      error(message);
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -187,58 +431,60 @@ const AdminQuestionBankFolderDetailsPage = () => {
   };
 
   return (
-    <div className="qb-page">
-      <header className="qb-details-header">
-        <Link to="/admin/question-banks" className="qb-back-btn">
-          ← Înapoi
-        </Link>
-        <div>
-          <h1>{folder?.title || 'Detalii folder'}</h1>
-          <div className="qb-folder-tags">
-            {(folder?.tags || []).map((tag) => (
-              <Tag key={tag.id}>{tag.name}</Tag>
-            ))}
+    <div className="qb-page qb-page-v2">
+      <div className="qb-shell qb-shell-detail">
+        <header className="qb-details-header">
+          <Link to="/admin/question-banks" className="qb-back-btn">
+            ← Înapoi
+          </Link>
+          <div className="qb-details-title-wrap">
+            <h1>{folder?.title || 'Detalii folder'}</h1>
+            <div className="qb-folder-tags">
+              {(folder?.tags || []).map((tag) => (
+                <Tag key={tag.id}>{tag.name}</Tag>
+              ))}
+            </div>
           </div>
-        </div>
-        <button type="button" className="lms-btn-secondary" onClick={() => setEditOpen(true)}>
-          Editează
-        </button>
-      </header>
-
-      <section className="qb-rows">
-        {loading ? (
-          <p>Se încarcă...</p>
-        ) : (
-          questions.map((question) => (
-            <QuestionRow
-              key={question.id}
-              question={question}
-              selected={selectedIds.includes(question.id)}
-              isActive={drawerQuestion?.id === question.id}
-              onToggleSelect={toggleSelect}
-              onToggleStar={toggleStar}
-              onOpenDrawer={setDrawerQuestion}
-              readOnly={readOnly}
-            />
-          ))
-        )}
-      </section>
-
-      {!readOnly && (
-      <footer className="qb-details-footer">
-        <button type="button" className="lms-btn-secondary" onClick={openCreateQuestionEditor}>
-          + Adaugă întrebare
-        </button>
-        <button type="button" className="lms-btn-primary">
-          ✨ Generează cu AI
-        </button>
-        {!!selectedIds.length && (
-          <button type="button" className="lms-btn-secondary va-btn-danger" onClick={runBulkDelete}>
-            Șterge selecția
+          <button type="button" className="lms-btn-secondary" onClick={() => setEditOpen(true)}>
+            Editează
           </button>
+        </header>
+
+        <section className="qb-rows">
+          {loading ? (
+            <p>Se încarcă...</p>
+          ) : (
+            questions.map((question) => (
+              <QuestionRow
+                key={question.id}
+                question={question}
+                selected={selectedIds.includes(question.id)}
+                isActive={drawerQuestion?.id === question.id}
+                onToggleSelect={toggleSelect}
+                onToggleStar={toggleStar}
+                onOpenDrawer={setDrawerQuestion}
+                readOnly={readOnly}
+              />
+            ))
+          )}
+        </section>
+
+        {!readOnly && (
+          <footer className="qb-details-footer">
+            <button type="button" className="lms-btn-secondary" onClick={openCreateQuestionEditor}>
+              + Adaugă întrebare
+            </button>
+            <button type="button" className="lms-btn-primary" onClick={handleOpenAIModal}>
+              ✨ Generează cu Volt
+            </button>
+            {!!selectedIds.length && (
+              <button type="button" className="lms-btn-secondary va-btn-danger" onClick={runBulkDelete}>
+                Șterge selecția
+              </button>
+            )}
+          </footer>
         )}
-      </footer>
-      )}
+      </div>
 
       <Drawer
         open={Boolean(drawerQuestion)}
@@ -281,6 +527,23 @@ const AdminQuestionBankFolderDetailsPage = () => {
           </div>
         </div>
       </Modal>
+
+      <AIGenerateQuestionsModal
+        open={showAIModal}
+        aiGenerating={aiGenerating}
+        courses={aiCourses}
+        coursesLoading={aiCoursesLoading}
+        selectedCourseId={aiSelectedCourseId}
+        setSelectedCourseId={setAiSelectedCourseId}
+        aiOptions={aiOptions}
+        setAiOptions={setAiOptions}
+        aiError={aiError}
+        aiGeneratedCount={aiGeneratedCount}
+        aiTargetCount={aiTargetCount}
+        aiGeneratedPreviews={aiGeneratedPreviews}
+        onClose={() => setShowAIModal(false)}
+        onStartReview={startAiAutoGenerate}
+      />
     </div>
   );
 };

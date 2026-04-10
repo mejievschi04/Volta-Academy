@@ -27,11 +27,17 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const [previewQuestion, setPreviewQuestion] = useState(null);
 	const [previewShowCorrect, setPreviewShowCorrect] = useState(false);
 	const [duplicateLoading, setDuplicateLoading] = useState(false);
-	// AI Generation state
+	// Volt generation state
 	const [showAIModal, setShowAIModal] = useState(false);
-	const [aiContent, setAiContent] = useState('');
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [aiError, setAiError] = useState(null);
+	const [aiCourses, setAiCourses] = useState([]);
+	const [aiCoursesLoading, setAiCoursesLoading] = useState(false);
+	const [aiSelectedCourseId, setAiSelectedCourseId] = useState('');
+	const [aiReviewStarted, setAiReviewStarted] = useState(false);
+	const [aiCurrentDraftQuestion, setAiCurrentDraftQuestion] = useState(null);
+	const [aiApprovedQuestions, setAiApprovedQuestions] = useState([]);
+	const [aiGeneratedCount, setAiGeneratedCount] = useState(0);
 	const [aiOptions, setAiOptions] = useState({
 		numberOfQuestions: 10,
 		difficulty: 'medium',
@@ -44,6 +50,98 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			fetchQuestions();
 		}
 	}, [bankId]);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		const loadCourses = async () => {
+			setAiCoursesLoading(true);
+			try {
+				const res = await adminService.getCourses({ per_page: 500, status: 'all' });
+				const list = Array.isArray(res) ? res : (res?.data || []);
+				if (!cancelled) {
+					setAiCourses(list);
+				}
+			} catch (err) {
+				console.error('Error fetching courses for Volt generation:', err);
+				if (!cancelled) {
+					setAiCourses([]);
+				}
+			} finally {
+				if (!cancelled) {
+					setAiCoursesLoading(false);
+				}
+			}
+		};
+
+		loadCourses();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	useEffect(() => {
+		if (!showAIModal || aiSelectedCourseId || aiCourses.length === 0) return;
+		setAiSelectedCourseId(String(aiCourses[0].id));
+	}, [showAIModal, aiSelectedCourseId, aiCourses]);
+
+	const aiTargetCount = Math.max(1, Number(aiOptions.numberOfQuestions) || 1);
+
+	const resolveValidCourseId = (candidateId = aiSelectedCourseId) => {
+		const parsed = Number.parseInt(String(candidateId), 10);
+		if (!Number.isInteger(parsed) || parsed <= 0) return null;
+		return parsed;
+	};
+
+	const ensureBankExists = async () => {
+		let actualBankId = bankId;
+		if (actualBankId && !String(actualBankId).startsWith('temp-')) {
+			return actualBankId;
+		}
+
+		if (!data.title?.trim()) {
+			showToast('Salvează mai întâi banca de întrebări (completează pasul 1)', 'error');
+			return null;
+		}
+
+		try {
+			const saved = await adminService.createQuestionBank({
+				title: data.title.trim(),
+				description: data.description || null,
+				category: data.category || null,
+			});
+			actualBankId = saved?.bank?.id ?? saved?.id ?? null;
+			if (actualBankId) {
+				window.history.replaceState({}, '', `/admin/question-banks/${actualBankId}/builder`);
+				return actualBankId;
+			}
+			showToast('Nu am putut crea banca de întrebări.', 'error');
+			return null;
+		} catch (err) {
+			console.error('Error creating bank:', err);
+			showToast('Eroare la crearea băncii de întrebări', 'error');
+			return null;
+		}
+	};
+
+	const fetchAiDraftQuestion = async (actualBankId, approvedQuestions = [], courseIdOverride = null) => {
+		const validCourseId = resolveValidCourseId(courseIdOverride);
+		if (!validCourseId) {
+			throw new Error('Alege un curs valid înainte de generare.');
+		}
+
+		const result = await adminService.previewQuestionsWithVolt(actualBankId, {
+			course_id: validCourseId,
+			numberOfQuestions: 1,
+			difficulty: aiOptions.difficulty,
+			questionTypes: aiOptions.questionTypes,
+			instructions: '',
+			approvedQuestions: approvedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
+		});
+
+		const draft = Array.isArray(result?.draft) ? result.draft : [];
+		return draft[0] || null;
+	};
 
 	const fetchQuestions = async () => {
 		try {
@@ -308,74 +406,164 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	};
 
 	const handleOpenAIModal = () => {
-		// Pre-fill with bank title and description if available
-		const contextText = [data.title, data.description].filter(Boolean).join('\n\n');
-		setAiContent(contextText);
 		setAiOptions({
 			numberOfQuestions: 10,
 			difficulty: 'medium',
 			questionTypes: ['multiple_choice']
 		});
 		setAiError(null);
+		setAiReviewStarted(false);
+		setAiCurrentDraftQuestion(null);
+		setAiApprovedQuestions([]);
+		setAiGeneratedCount(0);
+		if (!aiSelectedCourseId && aiCourses.length > 0) {
+			setAiSelectedCourseId(String(aiCourses[0].id));
+		}
 		setShowAIModal(true);
 	};
 
-	const handleGenerateQuestions = async () => {
-		if (!aiContent?.trim()) {
-			showToast('Introdu conținutul pentru generarea întrebărilor', 'error');
+	const startAiReview = async (overrideCourseId = null) => {
+		const effectiveCourseId = resolveValidCourseId(overrideCourseId);
+		if (!effectiveCourseId) {
+			showToast('Alege mai întâi un curs sursă', 'error');
 			return;
 		}
 
-		// Need bank ID for generation - if new bank, save it first
-		let actualBankId = bankId;
-		if (!actualBankId || actualBankId.toString().startsWith('temp-')) {
-			// Bank not saved yet - need to save it first
-			if (!data.title?.trim()) {
-				showToast('Salvează mai întâi banca de întrebări (completează pasul 1)', 'error');
+		setAiReviewStarted(true);
+		setAiCurrentDraftQuestion(null);
+		try {
+			setAiGenerating(true);
+			setAiError(null);
+
+			const actualBankId = await ensureBankExists();
+			if (!actualBankId) {
+				setAiReviewStarted(false);
 				return;
 			}
+
+			const draft = await fetchAiDraftQuestion(actualBankId, [], effectiveCourseId);
+			if (!draft) {
+				throw new Error('Volt nu a returnat nicio întrebare.');
+			}
+			setAiCurrentDraftQuestion(draft);
+			setAiGeneratedCount(1);
+		} catch (err) {
+			console.error('Error generating questions:', err);
+			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
+			setAiError(message);
+			setAiReviewStarted(false);
+			showToast(message, 'error');
+		} finally {
+			setAiGenerating(false);
+		}
+	};
+
+	const advanceAiDraft = async (shouldApprove = false) => {
+		if (!aiCurrentDraftQuestion) return;
+
+		const nextApproved = shouldApprove ? [...aiApprovedQuestions, aiCurrentDraftQuestion] : aiApprovedQuestions;
+		const nextApprovedCount = nextApproved.length;
+		const target = aiTargetCount;
+
+		if (shouldApprove && nextApprovedCount >= target) {
 			try {
-				const saved = await adminService.createQuestionBank({
-					title: data.title.trim(),
-					description: data.description || null,
-					category: data.category || null,
-				});
-				if (saved?.id) {
-					actualBankId = saved.id;
-					// Update the bankId in parent component if possible
-					window.history.replaceState({}, '', `/admin/question-banks/${actualBankId}/builder`);
-				}
+				setAiGenerating(true);
+				const actualBankId = await ensureBankExists();
+				if (!actualBankId) return;
+				await adminService.addQuestionsToBankBulk(actualBankId, nextApproved);
+				showToast(`Au fost salvate ${nextApproved.length} întrebări aprobate.`, 'success');
+				setShowAIModal(false);
+				setAiReviewStarted(false);
+				setAiCurrentDraftQuestion(null);
+				setAiApprovedQuestions([]);
+				setAiGeneratedCount(0);
+				setAiError(null);
+				const updated = await adminService.getQuestionBankQuestions(actualBankId);
+				onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
 			} catch (err) {
-				console.error('Error creating bank:', err);
-				showToast('Eroare la crearea băncii de întrebări', 'error');
+				console.error('Error saving approved questions:', err);
+				const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Nu am putut salva întrebările aprobate.';
+				setAiError(message);
+				showToast(message, 'error');
+			} finally {
+				setAiGenerating(false);
+			}
+			return;
+		}
+
+		try {
+			setAiGenerating(true);
+			const actualBankId = await ensureBankExists();
+			if (!actualBankId) {
+				setAiReviewStarted(false);
 				return;
 			}
+			const draft = await fetchAiDraftQuestion(actualBankId, nextApproved, effectiveCourseId);
+			if (!draft) {
+				throw new Error('Volt nu a returnat o întrebare nouă.');
+			}
+			setAiApprovedQuestions(nextApproved);
+			setAiCurrentDraftQuestion(draft);
+			setAiGeneratedCount((prev) => prev + 1);
+		} catch (err) {
+			console.error('Error advancing Volt draft:', err);
+			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea următoarei întrebări.';
+			setAiError(message);
+			setAiReviewStarted(false);
+			showToast(message, 'error');
+		} finally {
+			setAiGenerating(false);
+		}
+	};
+
+	const startAiAutoGenerate = async (overrideCourseId = null, requestedCount = null) => {
+		const effectiveCourseId = resolveValidCourseId(overrideCourseId);
+		if (!effectiveCourseId) {
+			showToast('Alege mai întâi un curs sursă', 'error');
+			return;
 		}
 
 		try {
 			setAiGenerating(true);
 			setAiError(null);
-			
-			// Generate questions using AI with the provided text content
-			const result = await adminService.generateQuestionsFromText(
-				actualBankId,
-				aiContent.trim(),
-				aiOptions
-			);
-			
-			showToast(`S-au generat ${result.questions_generated || 0} întrebări cu succes!`, 'success');
-			setShowAIModal(false);
-			setAiContent('');
-			
-			// Reload questions
-			if (actualBankId) {
-				const updated = await adminService.getQuestionBankQuestions(actualBankId);
-				onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
+			setAiReviewStarted(false);
+			setAiCurrentDraftQuestion(null);
+			setAiApprovedQuestions([]);
+
+			const targetCount = Math.max(1, Number(requestedCount) || aiTargetCount);
+			const actualBankId = await ensureBankExists();
+			if (!actualBankId) {
+				setAiReviewStarted(false);
+				return;
 			}
+
+			const result = await adminService.previewQuestionsWithVolt(actualBankId, {
+				course_id: effectiveCourseId,
+				numberOfQuestions: targetCount,
+				difficulty: aiOptions.difficulty,
+				questionTypes: aiOptions.questionTypes,
+				autoGenerate: true,
+			});
+
+			const generatedQuestions = Array.isArray(result?.draft) ? result.draft : [];
+			if (!generatedQuestions.length) {
+				throw new Error('Volt nu a returnat nicio întrebare.');
+			}
+
+			await adminService.addQuestionsToBankBulk(actualBankId, generatedQuestions);
+			showToast(`Au fost generate și salvate ${generatedQuestions.length} întrebări.`, 'success');
+			setShowAIModal(false);
+			setAiCurrentDraftQuestion(null);
+			setAiApprovedQuestions([]);
+			setAiGeneratedCount(0);
+			setAiError(null);
+			const updated = await adminService.getQuestionBankQuestions(actualBankId);
+			onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
 		} catch (err) {
 			console.error('Error generating questions:', err);
-			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu AI';
+			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
 			setAiError(message);
+			setAiReviewStarted(false);
 			showToast(message, 'error');
 		} finally {
 			setAiGenerating(false);
@@ -400,7 +588,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				{/* Left: Form (scrollable) */}
 				<div className="step2-form-column">
 					<div className="admin-course-builder-form">
-						{/* AI Generation Button */}
+						{/* Volt generation button */}
 						<div className="admin-form-section" style={{ marginBottom: '1.5rem' }}>
 							<div className="admin-form-section-header">
 								<h3 className="admin-form-section-title">Adaugă Întrebări</h3>
@@ -409,7 +597,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									className="lms-btn-primary"
 									onClick={handleOpenAIModal}
 								>
-									🤖 Generează cu AI
+									🤖 Generează cu Volt
 								</button>
 							</div>
 						</div>
@@ -659,7 +847,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<div className="lms-empty-icon">📝</div>
 							<h3 className="lms-empty-title">Nicio întrebare încă</h3>
 							<p className="lms-empty-description">
-								Adaugă prima întrebare folosind formularul alăturat sau generează cu AI
+								Adaugă prima întrebare folosind formularul alăturat sau generează cu Volt
 							</p>
 						</div>
 					)}
@@ -670,13 +858,15 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			<AIGenerateQuestionsModal
 				open={showAIModal}
 				aiGenerating={aiGenerating}
-				aiContent={aiContent}
-				setAiContent={setAiContent}
+				courses={aiCourses}
+				coursesLoading={aiCoursesLoading}
+				selectedCourseId={aiSelectedCourseId}
+				setSelectedCourseId={setAiSelectedCourseId}
 				aiOptions={aiOptions}
 				setAiOptions={setAiOptions}
 				aiError={aiError}
 				onClose={() => setShowAIModal(false)}
-				onGenerate={handleGenerateQuestions}
+				onStartReview={startAiAutoGenerate}
 			/>
 
 			<Modal

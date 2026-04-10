@@ -37,6 +37,7 @@ class CourseProgressController extends Controller
             }
 
             $course = Course::findOrFail($courseId);
+            $isLearningExempt = $user->isLearningActivityExempt();
 
             // Check if user is enrolled
             $enrollment = \DB::table('course_user')
@@ -46,7 +47,7 @@ class CourseProgressController extends Controller
                 ->first();
 
             // If not enrolled, auto-enroll the user (all courses are free)
-            if (!$enrollment) {
+            if (!$enrollment && ! $isLearningExempt) {
                 \DB::table('course_user')->updateOrInsert(
                     [
                         'user_id' => $user->id,
@@ -103,6 +104,29 @@ class CourseProgressController extends Controller
                     'can_progress' => false,
                     'course_complete' => false,
                 ];
+            }
+
+            if ($isLearningExempt) {
+                $accessStatus['progress_percentage'] = 0;
+                $accessStatus['lessons'] = collect($accessStatus['root_lessons'] ?? [])
+                    ->concat(
+                        collect($accessStatus['modules'] ?? [])
+                            ->flatMap(fn ($m) => collect($m['lessons'] ?? []))
+                    )
+                    ->map(fn ($l) => [
+                        'lesson_id' => $l['id'],
+                        'completed' => false,
+                        'progress_percentage' => 0,
+                    ])
+                    ->values()
+                    ->all();
+                $accessStatus['next_lesson'] = null;
+                $accessStatus['next_exam'] = null;
+                $accessStatus['can_progress'] = true;
+                $accessStatus['course_complete'] = false;
+                $accessStatus['enrolled'] = false;
+
+                return response()->json($accessStatus);
             }
 
             // Get next incomplete lesson (for resume functionality)
@@ -190,6 +214,13 @@ class CourseProgressController extends Controller
             }
 
             $course = Course::findOrFail($courseId);
+
+            if ($user->isLearningActivityExempt()) {
+                return response()->json([
+                    'message' => 'Cursul poate fi navigat fără finalizare obligatorie pentru acest rol.',
+                    'completed_at' => null,
+                ]);
+            }
 
             $this->progressService->calculateCourseProgress($user, $course);
 
@@ -283,6 +314,11 @@ class CourseProgressController extends Controller
     public function completeLesson(Request $request, $lessonId)
     {
         $user = Auth::user();
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Lecția a fost deschisă fără a fi înregistrată în progres.',
+            ]);
+        }
         $lesson = Lesson::with(['module.course', 'course'])->findOrFail($lessonId);
 
         $module = $lesson->module;
@@ -337,6 +373,12 @@ class CourseProgressController extends Controller
     {
         $user = Auth::user();
         $module = Module::with('course')->findOrFail($moduleId);
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'unlocked' => true,
+                'progress' => 0,
+            ]);
+        }
 
         $isUnlocked = $this->progressService->isModuleUnlocked($user, $module, $module->course);
         $progress = $this->progressService->calculateModuleProgress($user, $module);
@@ -355,6 +397,13 @@ class CourseProgressController extends Controller
         $user = Auth::user();
         $lesson = Lesson::with(['module', 'module.course', 'course'])->findOrFail($lessonId);
         $course = $lesson->module?->course ?: $lesson->course;
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'unlocked' => true,
+                'completed' => false,
+                'is_preview' => $lesson->is_preview,
+            ]);
+        }
 
         if (!$course) {
             return response()->json([
@@ -389,6 +438,12 @@ class CourseProgressController extends Controller
     public function checkExamAccess(Request $request, $examId)
     {
         $user = Auth::user();
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'unlocked' => true,
+                'is_required' => false,
+            ]);
+        }
 
         $test = Test::find($examId);
         if ($test) {
@@ -439,6 +494,16 @@ class CourseProgressController extends Controller
     {
         $user = Auth::user();
         $lesson = Lesson::findOrFail($lessonId);
+
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Progresul nu este înregistrat pentru acest rol.',
+                'progress_percentage' => 0,
+                'last_milestone_reached' => 0,
+                'completed' => false,
+                'auto_completed' => false,
+            ]);
+        }
 
         $validated = $request->validate([
             'progress_percentage' => 'nullable|numeric|min:0|max:100',

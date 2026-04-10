@@ -62,10 +62,12 @@ Route::middleware('throttle:120,1')->group(function () {
     Route::get('/builder-media/{courseId}/{mediaId}', [CourseBuilderController::class, 'serveMediaFilePublic']);
 });
 
-// CSRF cookie endpoint (needed for session-based auth with CORS)
+// CSRF cookie pentru SPA: Sanctum (EnsureFrontendRequestsAreStateful) aplică deja EncryptCookies,
+// StartSession și VerifyCsrfToken pentru Origin/Referer din config('sanctum.stateful').
+// Nu folosi middleware('web') aici — se suprapune peste stack-ul API și poate produce 500 (sesiune dublă).
 Route::get('/csrf-cookie', function () {
     return response()->json(['message' => 'CSRF cookie set']);
-})->middleware('web');
+});
 
 // Debug-only: check cookies/session (disabled in production)
 if (config('app.debug')) {
@@ -135,6 +137,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched']);
     
     // Messages
+    Route::get('/messages/unread-count', [\App\Http\Controllers\Api\MessageController::class, 'getUnreadCount']);
     Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
     Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
     Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
@@ -148,6 +151,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     Route::patch('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'updateParticipantGroupRole']);
     Route::delete('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'removeParticipant']);
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
+
+    // Admin AI Assistant
+    Route::post('/ai/extract-document', [\App\Http\Controllers\AIController::class, 'extractDocumentContext']);
 });
 
 // Admin routes (require admin role) with rate limiting
@@ -365,3 +371,6 @@ Route::middleware([
     Route::post('/ai/generate-course', [\App\Http\Controllers\AIController::class, 'generateCourse']);
     Route::post('/ai/generate-test', [\App\Http\Controllers\AIController::class, 'generateTest']);
 });
+
+
+

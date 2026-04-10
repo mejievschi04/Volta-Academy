@@ -118,7 +118,8 @@ class QuizController extends Controller
         
         // Check if user can submit (check attempt limits)
         $user = Auth::user();
-        if ($user) {
+        $trackLearning = $user && ! $user->isLearningActivityExempt();
+        if ($user && $trackLearning) {
             $existingResults = ExamResult::where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
                 ->get();
@@ -175,7 +176,7 @@ class QuizController extends Controller
         $passed = !$needsManualReview && $percentage >= 50; // Pass if at least 50% and no manual review needed
         
         // Save quiz result to database
-        if ($user) {
+        if ($user && $trackLearning) {
             $existingResults = ExamResult::where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
                 ->get();
@@ -296,4 +297,3 @@ class QuizController extends Controller
 
     // Removed: showCategoryQuiz and submitCategoryQuiz - categories are no longer supported
 }
-

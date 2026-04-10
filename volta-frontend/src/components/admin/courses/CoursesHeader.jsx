@@ -8,7 +8,7 @@ const CoursesHeader = ({
 	sortBy,
 	onSortChange,
 	onCreateCourse,
-	onCreateAICourse,
+	onCreateVoltCourse,
 	selectedCount,
 	onBulkAction,
 	loading,

@@ -9,7 +9,7 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 	const [messages, setMessages] = useState([
 		{
 			role: 'assistant',
-			content: 'Bună! Sunt asistentul tău AI pentru crearea testelor. Spune-mi tipul de test, numărul de întrebări și subiectul pe care îl acoperă.',
+			content: 'Bună! Sunt asistentul tău Volt pentru crearea testelor. Spune-mi tipul de test, numărul de întrebări și subiectul pe care îl acoperă.',
 		},
 	]);
 	const [input, setInput] = useState('');
@@ -102,9 +102,9 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 
 		if (titleMatch || descMatch) {
 			return {
-				title: titleMatch ? titleMatch[1].trim() : 'Test generat prin AI',
+				title: titleMatch ? titleMatch[1].trim() : 'Test generat prin Volt',
 				description: descMatch ? descMatch[1].trim() : response.substring(0, 200),
-				type: 'graded',
+				type: 'final',
 				status: 'draft',
 			};
 		}
@@ -117,9 +117,9 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 
 		try {
 			const testData = {
-				title: generatedTest.title || 'Test generat prin AI',
+				title: generatedTest.title || 'Test generat prin Volt',
 				description: generatedTest.description || '',
-				type: generatedTest.type || 'graded',
+				type: 'final',
 				status: 'draft',
 				course_id: courseId,
 			};
@@ -143,7 +143,7 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 	return (
 		<div className="ai-chat-container">
 			<div className="ai-chat-header">
-				<h2>🤖 Creator Test AI</h2>
+				<h2>🤖 Creator Test Volt</h2>
 				{onClose && (
 					<button className="ai-chat-close" onClick={onClose}>
 						×
@@ -209,4 +209,3 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 };
 
 export default AITestChat;
-

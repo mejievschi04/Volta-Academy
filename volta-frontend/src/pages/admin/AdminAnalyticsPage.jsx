@@ -375,10 +375,10 @@ const AdminAnalyticsPage = () => {
 				</div>
 			</section>
 
-			{/* AI Recommendations */}
+			{/* Volt recommendations */}
 			{(problematicCourses.length > 0 || completionRate < 70) && (
 				<section className="analytics-section">
-					<h2 className="analytics-section-title">Recomandări AI</h2>
+					<h2 className="analytics-section-title">Recomandări Volt</h2>
 					<div className="analytics-ai-grid">
 						{problematicCourses.slice(0, 2).map((c) => (
 							<div

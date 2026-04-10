@@ -24,6 +24,10 @@ class ProgressionEngine
      */
     public function isLessonUnlocked(User $user, Lesson $lesson, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // Preview lessons are always unlocked
         if ($lesson->is_preview) {
             return true;
@@ -57,6 +61,10 @@ class ProgressionEngine
      */
     public function isModuleUnlocked(User $user, Module $module, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // If module is not locked, check rules
         if (!$module->is_locked) {
             return $this->checkModuleRules($user, $module, $course);
@@ -90,6 +98,10 @@ class ProgressionEngine
      */
     public function isTestUnlocked(User $user, Test $test, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // Get course-test relationship
         $courseTest = CourseTest::where('course_id', $course->id)
             ->where('test_id', $test->id)
@@ -161,6 +173,10 @@ class ProgressionEngine
      */
     protected function checkLessonCompletion(User $user, ProgressionRule $rule): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if ($rule->condition_type !== 'lesson' || !$rule->condition_id) {
             return false;
         }
@@ -177,6 +193,10 @@ class ProgressionEngine
      */
     protected function checkTestPassing(User $user, ProgressionRule $rule): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if ($rule->condition_type !== 'test' || !$rule->condition_id) {
             return false;
         }
@@ -191,6 +211,10 @@ class ProgressionEngine
      */
     protected function checkMinimumScore(User $user, ProgressionRule $rule): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if (!$rule->condition_value) {
             return false;
         }
@@ -219,6 +243,10 @@ class ProgressionEngine
      */
     protected function checkOrderConstraint(User $user, ProgressionRule $rule, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if ($rule->condition_type === 'lesson' && $rule->condition_id) {
             // Check if previous lessons are completed
             $targetLesson = Lesson::find($rule->target_id);
@@ -263,6 +291,10 @@ class ProgressionEngine
      */
     protected function checkPrerequisite(User $user, ProgressionRule $rule, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         // Required lessons: condition_value as JSON array of lesson ids
         if ($rule->condition_type === 'lesson' && $rule->condition_value) {
             $lessonIds = json_decode($rule->condition_value, true);
@@ -349,6 +381,10 @@ class ProgressionEngine
      */
     protected function checkSequentialUnlock(User $user, Lesson $lesson, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if (!$course->sequential_unlock) {
             return true;
         }
@@ -376,6 +412,10 @@ class ProgressionEngine
      */
     protected function checkSequentialModuleUnlock(User $user, Module $module, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         if (!$course->sequential_unlock) {
             return true;
         }
@@ -430,6 +470,10 @@ class ProgressionEngine
      */
     protected function checkModuleRules(User $user, Module $module, Course $course): bool
     {
+        if ($user->isLearningActivityExempt()) {
+            return true;
+        }
+
         $rules = $course->progressionRules()
             ->where('target_type', 'module')
             ->where('target_id', $module->id)
@@ -463,4 +507,3 @@ class ProgressionEngine
             ->exists();
     }
 }
-

@@ -829,28 +829,44 @@ class ExamAdminController extends Controller
             'manual_review_scores' => 'required|array',
             'manual_review_scores.*.question_id' => 'required|exists:exam_questions,id',
             'manual_review_scores.*.score' => 'required|numeric|min:0',
+            'manual_review_scores.*.feedback' => 'nullable|string|max:2000',
+            'overall_feedback' => 'nullable|string|max:4000',
         ]);
 
         $result = ExamResult::with('exam.course', 'exam.questions')->findOrFail($resultId);
         $this->assertExamAccessibleByInstructor($result->exam);
+        if ($result->reviewed_at) {
+            return response()->json([
+                'error' => 'Acest rezultat a fost deja verificat.',
+            ], 422);
+        }
 
         // Calculate new total score
-        $autoScore = $result->score; // Score from multiple choice questions
+        $autoScore = (float) $result->score; // Score from multiple choice questions
         $manualScore = 0;
         $manualScores = [];
 
         foreach ($validated['manual_review_scores'] as $reviewScore) {
             $question = $result->exam->questions->find($reviewScore['question_id']);
             if ($question && $question->requiresManualGrading()) {
-                $maxPoints = $question->points ?? 1;
-                $givenScore = min($reviewScore['score'], $maxPoints); // Don't exceed max points
+                $maxPoints = (float) ($question->points ?? 1);
+                $givenScore = min(max(0, (float) $reviewScore['score']), $maxPoints); // Don't exceed max points
                 $manualScore += $givenScore;
-                $manualScores[$reviewScore['question_id']] = $givenScore;
+                $manualScores[$reviewScore['question_id']] = [
+                    'score' => $givenScore,
+                    'feedback' => $reviewScore['feedback'] ?? null,
+                ];
             }
         }
 
+        if (!empty($validated['overall_feedback'])) {
+            $manualScores['_meta'] = [
+                'overall_feedback' => $validated['overall_feedback'],
+            ];
+        }
+
         $newTotalScore = $autoScore + $manualScore;
-        $newPercentage = $result->total_points > 0 ? round(($newTotalScore / $result->total_points) * 100) : 0;
+        $newPercentage = $result->total_points > 0 ? round(($newTotalScore / $result->total_points) * 100, 2) : 0;
         $passingScore = (int) ($result->exam->passing_score ?? 70);
         $newPassed = $newPercentage >= $passingScore;
 
@@ -875,4 +891,3 @@ class ExamAdminController extends Controller
         ]);
     }
 }
-

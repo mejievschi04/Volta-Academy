@@ -1,71 +1,64 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
-import ConfirmModal from '../../components/common/ConfirmModal';
 import AdminEventListCard from '../../components/admin/events/AdminEventListCard';
 import AdminEventFormModal from '../../components/admin/events/AdminEventFormModal';
 import { useAuth } from '../../contexts/AuthContext';
 
+/** Parse dată/oră din API (YYYY-MM-DD HH:mm sau T) ca timp local, fără UTC shift. */
+function parseWallClockToMs(dateString) {
+	if (!dateString) return null;
+	const s = String(dateString);
+	const m = s.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+	if (!m) {
+		const t = Date.parse(s);
+		return Number.isFinite(t) ? t : null;
+	}
+	const [, y, mo, d, h, mi] = m;
+	return new Date(
+		parseInt(y, 10),
+		parseInt(mo, 10) - 1,
+		parseInt(d, 10),
+		parseInt(h, 10),
+		parseInt(mi, 10),
+	).getTime();
+}
+
 const AdminEventsPage = () => {
 	const { canMutateInAdminArea } = useAuth();
-	const { success: showSuccess, error: showError } = useToast();
+	const { error: showError } = useToast();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
 	const [editingEvent, setEditingEvent] = useState(null);
-	
-	// Filters and search
+
 	const [searchQuery, setSearchQuery] = useState('');
 	const [filters, setFilters] = useState({
-		status: 'all',
 		type: 'all',
-		instructor: 'all',
-		date_from: '',
-		date_to: '',
 	});
-	const [sortBy, setSortBy] = useState('start_date');
-	const [sortDirection, setSortDirection] = useState('asc');
-	
-	// Bulk actions
-	const [selectedEvents, setSelectedEvents] = useState(new Set());
-	const [actionLoading, setActionLoading] = useState(null);
-	const [bulkConfirm, setBulkConfirm] = useState(null); // { action, count }
 
+	/** Reîmparte viitor/trecut fără refresh manual (actualizare la ~1 min). */
+	const [nowTick, setNowTick] = useState(() => Date.now());
 	useEffect(() => {
-		if (!canMutateInAdminArea) {
-			setSelectedEvents(new Set());
-		}
-	}, [canMutateInAdminArea]);
-	
-	// Insights
-	const [insights, setInsights] = useState(null);
-
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-
-	const fetchInsights = useCallback(async () => {
-		try {
-			const data = await adminService.getEventInsights();
-			setInsights(data);
-		} catch (err) {
-			console.error('Error fetching insights:', err);
-		}
+		const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
+		return () => window.clearInterval(id);
 	}, []);
 
-	// Fetch events with filters
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+	/** Meniu: o singură listă vizibilă — viitoare sau trecute */
+	const [timeScope, setTimeScope] = useState('upcoming');
+
 	const fetchEvents = useCallback(async () => {
 		try {
 			setLoading(true);
 			const params = {
 				search: searchQuery,
-				status: filters.status !== 'all' ? filters.status : null,
 				type: filters.type !== 'all' ? filters.type : null,
-				instructor: filters.instructor !== 'all' ? filters.instructor : null,
-				date_from: filters.date_from || null,
-				date_to: filters.date_to || null,
-				sort_by: sortBy,
-				sort_direction: sortDirection,
+				sort_by: 'start_date',
+				sort_direction: 'asc',
+				per_page: 500,
 			};
 			const data = await adminService.getEvents(params);
 			setEvents(Array.isArray(data) ? data : (data?.data || []));
@@ -75,90 +68,51 @@ const AdminEventsPage = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [searchQuery, filters, sortBy, sortDirection]);
+	}, [searchQuery, filters.type]);
 
-	useEffect(() => {
-		fetchInsights();
-	}, [fetchInsights]);
-
-	// Update events when filters change
 	useEffect(() => {
 		const timeoutId = setTimeout(() => {
 			fetchEvents();
-		}, 300); // Debounce search
-
+		}, 300);
 		return () => clearTimeout(timeoutId);
 	}, [fetchEvents]);
 
 	useEffect(() => {
 		const onRefresh = () => {
 			fetchEvents();
-			fetchInsights();
 		};
 		window.addEventListener('volta-admin-events-refresh', onRefresh);
 		return () => window.removeEventListener('volta-admin-events-refresh', onRefresh);
-	}, [fetchEvents, fetchInsights]);
+	}, [fetchEvents]);
 
-	// Quick actions
-	const handleQuickAction = async (eventId, action) => {
-		setActionLoading(eventId);
-		try {
-			await adminService.eventQuickAction(eventId, action);
-			await fetchEvents();
-			await fetchInsights();
-		} catch (err) {
-			logger.error(`Error ${action} event:`, err);
-			showError(`Eroare la ${action}: ${err.response?.data?.message || err.message}`);
-		} finally {
-			setActionLoading(null);
-		}
-	};
-
-	// Bulk actions
-	const handleBulkActionClick = (action) => {
-		if (selectedEvents.size === 0) return;
-		setBulkConfirm({ action, count: selectedEvents.size });
-	};
-
-	const handleConfirmBulkAction = async () => {
-		if (!bulkConfirm) return;
-		const { action } = bulkConfirm;
-		setActionLoading('bulk');
-		try {
-			await adminService.eventBulkAction(action, Array.from(selectedEvents));
-			setBulkConfirm(null);
-			setSelectedEvents(new Set());
-			await fetchEvents();
-			await fetchInsights();
-			showSuccess(`${action} efectuat cu succes`);
-		} catch (err) {
-			logger.error(`Error bulk ${action}:`, err);
-			showError(`Eroare la ${action} în masă: ${err.response?.data?.message || err.message}`);
-		} finally {
-			setActionLoading(null);
-		}
-	};
-
-	// Select events
-	const handleSelectEvent = (eventId, checked) => {
-		setSelectedEvents(prev => {
-			const newSet = new Set(prev);
-			if (checked) {
-				newSet.add(eventId);
-			} else {
-				newSet.delete(eventId);
+	const { upcomingEvents, pastEvents } = useMemo(() => {
+		const now = nowTick;
+		const upcoming = [];
+		const past = [];
+		for (const ev of events) {
+			const endMs = parseWallClockToMs(ev.end_date);
+			if (endMs == null) {
+				upcoming.push(ev);
+				continue;
 			}
-			return newSet;
-		});
-	};
-
-	const handleSelectAll = (checked) => {
-		if (checked) {
-			setSelectedEvents(new Set(events.map(e => e.id)));
-		} else {
-			setSelectedEvents(new Set());
+			if (endMs >= now) {
+				upcoming.push(ev);
+			} else {
+				past.push(ev);
+			}
 		}
-	};
+		upcoming.sort((a, b) => {
+			const ta = parseWallClockToMs(a.start_date) ?? 0;
+			const tb = parseWallClockToMs(b.start_date) ?? 0;
+			return ta - tb;
+		});
+		past.sort((a, b) => {
+			const ta = parseWallClockToMs(a.end_date) ?? 0;
+			const tb = parseWallClockToMs(b.end_date) ?? 0;
+			return tb - ta;
+		});
+		return { upcomingEvents: upcoming, pastEvents: past };
+	}, [events, nowTick]);
 
 	const handleEdit = (event) => {
 		setEditingEvent(event);
@@ -184,62 +138,69 @@ const AdminEventsPage = () => {
 
 	const formatDate = (dateString) => {
 		if (!dateString) return 'N/A';
-		// Parse datetime string directly without timezone conversion
-		// Format: YYYY-MM-DD HH:mm:ss
 		const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
 		if (!parts) return dateString;
-		
-		const [, year, month, day, hour, minute] = parts;
-		// Format as DD.MM.YYYY, HH:mm (no timezone conversion)
-		return `${day}.${month}.${year}, ${hour}:${minute}`;
-	};
 
-	const formatTime = (dateString) => {
-		if (!dateString) return '';
-		// Parse datetime string directly without timezone conversion
-		// Format: YYYY-MM-DD HH:mm:ss
-		const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
-		if (!parts) return dateString;
-		
-		const [, , , , hour, minute] = parts;
-		// Return time as HH:mm (no timezone conversion)
-		return `${hour}:${minute}`;
+		const [, year, month, day, hour, minute] = parts;
+		return `${day}.${month}.${year}, ${hour}:${minute}`;
 	};
 
 	const calculateDuration = (startDateString, endDateString) => {
 		if (!startDateString || !endDateString) return '';
-		
+
 		try {
-			// Parse dates directly without timezone conversion
 			const startMatch = startDateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
 			const endMatch = endDateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
-			
+
 			if (!startMatch || !endMatch) return '';
-			
+
 			const start = new Date(
-				parseInt(startMatch[1]), parseInt(startMatch[2]) - 1, parseInt(startMatch[3]),
-				parseInt(startMatch[4]), parseInt(startMatch[5])
+				parseInt(startMatch[1], 10),
+				parseInt(startMatch[2], 10) - 1,
+				parseInt(startMatch[3], 10),
+				parseInt(startMatch[4], 10),
+				parseInt(startMatch[5], 10),
 			);
 			const end = new Date(
-				parseInt(endMatch[1]), parseInt(endMatch[2]) - 1, parseInt(endMatch[3]),
-				parseInt(endMatch[4]), parseInt(endMatch[5])
+				parseInt(endMatch[1], 10),
+				parseInt(endMatch[2], 10) - 1,
+				parseInt(endMatch[3], 10),
+				parseInt(endMatch[4], 10),
+				parseInt(endMatch[5], 10),
 			);
-			
+
 			const durationMinutes = Math.round((end - start) / 60000);
 			const hours = Math.floor(durationMinutes / 60);
 			const minutes = durationMinutes % 60;
-			
+			const hourLabel = hours === 1 ? 'ora' : 'ore';
+
 			if (hours > 0 && minutes > 0) {
-				return `${hours}h ${minutes}m`;
-			} else if (hours > 0) {
-				return `${hours}h`;
-			} else {
-				return `${minutes}m`;
+				return `${hours} ${hourLabel} ${minutes} min`;
 			}
-		} catch (err) {
+			if (hours > 0) {
+				return `${hours} ${hourLabel}`;
+			}
+			return `${minutes} min`;
+		} catch {
 			return '';
 		}
 	};
+
+	const renderEventGrid = (list) => (
+		<div className="aev-list-grid">
+			{list.map((event) => (
+				<AdminEventListCard
+					key={event.id}
+					event={event}
+					formatDate={formatDate}
+					calculateDuration={calculateDuration}
+					onEdit={handleEdit}
+					onDelete={handleDelete}
+					readOnly={!canMutateInAdminArea}
+				/>
+			))}
+		</div>
+	);
 
 	if (loading) {
 		return (
@@ -251,30 +212,34 @@ const AdminEventsPage = () => {
 		);
 	}
 
+	const hasAny = upcomingEvents.length > 0 || pastEvents.length > 0;
+	const filtersActive = searchQuery || filters.type !== 'all';
+	const activeList = timeScope === 'upcoming' ? upcomingEvents : pastEvents;
+
 	return (
 		<div className="admin-container admin-events-page">
 			<div className="admin-page-header">
 				<div className="admin-page-header-content">
 					<h1 className="admin-page-title">Gestionare Evenimente</h1>
 					<p className="admin-page-subtitle">
-						Gestionează toate evenimentele din platformă. Pentru calendar și creare rapidă, folosește iconița de calendar din bara de sus (lângă notificări).
+						Alege din meniu „Viitoare” sau „Trecute”. Evenimentele noi se publică automat; după data de
+						sfârșit trec singure la trecute. Calendar rapid: iconița din bară.
 					</p>
 				</div>
 				{canMutateInAdminArea && (
-				<button
-					type="button"
-					className="lms-btn-primary"
-					onClick={() => {
-						setEditingEvent(null);
-						setShowModal(true);
-					}}
-				>
-					+ Adaugă Eveniment Nou
-				</button>
+					<button
+						type="button"
+						className="lms-btn-primary"
+						onClick={() => {
+							setEditingEvent(null);
+							setShowModal(true);
+						}}
+					>
+						+ Adaugă Eveniment Nou
+					</button>
 				)}
 			</div>
 
-			{/* Search and Filters */}
 			<div className="admin-courses-toolbar">
 				<div className="admin-courses-search">
 					<input
@@ -289,6 +254,7 @@ const AdminEventsPage = () => {
 							className="admin-search-clear-btn"
 							onClick={() => setSearchQuery('')}
 							aria-label="Golește căutarea"
+							type="button"
 						>
 							×
 						</button>
@@ -297,131 +263,115 @@ const AdminEventsPage = () => {
 				<div className="admin-courses-actions">
 					<select
 						className="admin-filter-select"
-						value={filters.status}
-						onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-					>
-						<option value="all">Toate statusurile</option>
-						<option value="draft">Draft</option>
-						<option value="published">Publicat</option>
-						<option value="upcoming">Viitor</option>
-						<option value="live">Live</option>
-						<option value="completed">Finalizat</option>
-						<option value="cancelled">Anulat</option>
-					</select>
-					<select
-						className="admin-filter-select"
 						value={filters.type}
 						onChange={(e) => setFilters({ ...filters, type: e.target.value })}
 					>
-						<option value="all">Toate tipurile</option>
-						<option value="live_online">Live Online</option>
+						<option value="all">Toate</option>
+						<option value="live_online">Online</option>
 						<option value="physical">Fizic</option>
-						<option value="webinar">Webinar</option>
-						<option value="workshop">Workshop</option>
 					</select>
 				</div>
 			</div>
 
-			{error && (
-				<div className="lms-error-message">
-					{error}
-				</div>
+			{error && <div className="lms-error-message">{error}</div>}
+
+			{hasAny && (
+				<nav
+					className="admin-events-view-toggle admin-events-time-menu"
+					role="tablist"
+					aria-label="Afișare evenimente după timp"
+				>
+					<button
+						type="button"
+						role="tab"
+						id="admin-events-tab-upcoming"
+						aria-selected={timeScope === 'upcoming'}
+						aria-controls="admin-events-panel"
+						className={`lms-btn-secondary lms-btn-sm${timeScope === 'upcoming' ? ' active' : ''}`}
+						onClick={() => setTimeScope('upcoming')}
+					>
+						Viitoare și în desfășurare ({upcomingEvents.length})
+					</button>
+					<button
+						type="button"
+						role="tab"
+						id="admin-events-tab-past"
+						aria-selected={timeScope === 'past'}
+						aria-controls="admin-events-panel"
+						className={`lms-btn-secondary lms-btn-sm${timeScope === 'past' ? ' active' : ''}`}
+						onClick={() => setTimeScope('past')}
+					>
+						Trecute ({pastEvents.length})
+					</button>
+				</nav>
 			)}
 
-
-			{/* Bulk Actions Toolbar */}
-			{selectedEvents.size > 0 && canMutateInAdminArea && (
-				<div className="admin-bulk-actions-bar">
-					<div className="admin-bulk-actions-info">
-						<strong>{selectedEvents.size}</strong> eveniment(e) selectat(e)
+			<div
+				id="admin-events-panel"
+				role="tabpanel"
+				aria-labelledby={timeScope === 'upcoming' ? 'admin-events-tab-upcoming' : 'admin-events-tab-past'}
+				style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+			>
+				{!hasAny ? (
+					<div className="lms-empty-state">
+						<div className="lms-empty-icon">📅</div>
+						<h3 className="lms-empty-title">Nu există evenimente</h3>
+						<p className="lms-empty-description">
+							{filtersActive
+								? 'Încearcă să modifici filtrele sau căutarea'
+								: 'Creează primul eveniment pentru a începe'}
+						</p>
+						{!filtersActive && canMutateInAdminArea && (
+							<button
+								type="button"
+								className="lms-btn-primary"
+								onClick={() => {
+									setEditingEvent(null);
+									setShowModal(true);
+								}}
+							>
+								<span className="admin-btn-icon">+</span>
+								Adaugă Eveniment Nou
+							</button>
+						)}
 					</div>
-					<div className="admin-bulk-actions-buttons">
-						<button
-							type="button"
-							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkActionClick('publish')}
-							disabled={actionLoading === 'bulk'}
-						>
-							Publică
-						</button>
-						<button
-							type="button"
-							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkActionClick('unpublish')}
-							disabled={actionLoading === 'bulk'}
-						>
-							Retrage
-						</button>
-						<button
-							type="button"
-							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => handleBulkActionClick('cancel')}
-							disabled={actionLoading === 'bulk'}
-						>
-							Anulează
-						</button>
-						<button
-							type="button"
-							className="lms-btn-secondary lms-btn-sm va-btn-danger"
-							onClick={() => handleBulkActionClick('delete')}
-							disabled={actionLoading === 'bulk'}
-						>
-							Șterge
-						</button>
-						<button
-							type="button"
-							className="lms-btn-secondary lms-btn-sm"
-							onClick={() => setSelectedEvents(new Set())}
-						>
-							Anulează selecția
-						</button>
+				) : activeList.length === 0 ? (
+					<div className="lms-empty-state admin-events-tab-empty">
+						<div className="lms-empty-icon">📅</div>
+						<h3 className="lms-empty-title">
+							{timeScope === 'upcoming' ? 'Niciun eveniment viitor' : 'Niciun eveniment trecut'}
+						</h3>
+						<p className="lms-empty-description">
+							{timeScope === 'upcoming'
+								? pastEvents.length > 0
+									? 'Toate evenimentele sunt deja încheiate. Poți vedea istoricul la „Trecute”.'
+									: 'Adaugă un eveniment nou pentru a-l vedea aici.'
+								: upcomingEvents.length > 0
+									? 'Evenimentele încheiate apar aici. Pentru cele viitoare, deschide „Viitoare și în desfășurare”.'
+									: 'Nu există evenimente încheiate încă.'}
+						</p>
+						{timeScope === 'upcoming' && pastEvents.length > 0 && (
+							<button
+								type="button"
+								className="lms-btn-secondary"
+								onClick={() => setTimeScope('past')}
+							>
+								Mergi la evenimente trecute
+							</button>
+						)}
+						{timeScope === 'past' && upcomingEvents.length > 0 && (
+							<button
+								type="button"
+								className="lms-btn-secondary"
+								onClick={() => setTimeScope('upcoming')}
+							>
+								Mergi la evenimente viitoare
+							</button>
+						)}
 					</div>
-				</div>
-			)}
-
-			<div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-					{events.length > 0 ? (
-						<div className="aev-list-grid">
-							{events.map((event) => (
-								<AdminEventListCard
-									key={event.id}
-									event={event}
-									selected={selectedEvents.has(event.id)}
-									onSelectChange={(checked) => handleSelectEvent(event.id, checked)}
-									busy={actionLoading === event.id}
-									formatDate={formatDate}
-									calculateDuration={calculateDuration}
-									onQuickAction={handleQuickAction}
-									onEdit={handleEdit}
-									onDelete={handleDelete}
-									readOnly={!canMutateInAdminArea}
-								/>
-							))}
-						</div>
-					) : (
-						<div className="lms-empty-state">
-							<div className="lms-empty-icon">📅</div>
-							<h3 className="lms-empty-title">Nu există evenimente</h3>
-							<p className="lms-empty-description">
-								{searchQuery || filters.status !== 'all' || filters.type !== 'all'
-									? 'Încearcă să modifici filtrele sau căutarea'
-									: 'Creează primul eveniment pentru a începe'}
-							</p>
-							{!searchQuery && filters.status === 'all' && filters.type === 'all' && canMutateInAdminArea && (
-								<button
-									type="button"
-									className="lms-btn-primary"
-									onClick={() => {
-										setEditingEvent(null);
-										setShowModal(true);
-									}}
-								>
-									<span className="admin-btn-icon">+</span>
-									Adaugă Eveniment Nou
-								</button>
-							)}
-						</div>
-					)}
+				) : (
+					renderEventGrid(activeList)
+				)}
 			</div>
 
 			{showModal && canMutateInAdminArea && (
@@ -435,12 +385,10 @@ const AdminEventsPage = () => {
 					prefill={null}
 					onSaved={() => {
 						fetchEvents();
-						fetchInsights();
 					}}
 				/>
 			)}
 
-			{/* Delete Confirmation Modal */}
 			{showDeleteConfirm && (
 				<div
 					style={{
@@ -458,6 +406,7 @@ const AdminEventsPage = () => {
 						padding: '1rem',
 					}}
 					onClick={() => setShowDeleteConfirm(null)}
+					role="presentation"
 				>
 					<div
 						style={{
@@ -469,6 +418,8 @@ const AdminEventsPage = () => {
 							maxWidth: '400px',
 							width: '100%',
 						}}
+						onClick={(e) => e.stopPropagation()}
+						role="presentation"
 					>
 						<h3 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--text-primary)' }}>
 							Confirmă ștergerea
@@ -499,21 +450,8 @@ const AdminEventsPage = () => {
 					</div>
 				</div>
 			)}
-
-			<ConfirmModal
-				open={!!bulkConfirm}
-				onClose={() => setBulkConfirm(null)}
-				onConfirm={handleConfirmBulkAction}
-				title="Acțiune în masă"
-				message={bulkConfirm ? `Sigur dorești să ${bulkConfirm.action} ${bulkConfirm.count} eveniment(e)?` : ''}
-				confirmLabel={bulkConfirm?.action === 'delete' ? 'Șterge' : 'Confirmă'}
-				cancelLabel="Anulare"
-				variant={bulkConfirm?.action === 'delete' ? 'danger' : 'primary'}
-				loading={actionLoading === 'bulk'}
-			/>
 		</div>
 	);
 };
 
 export default AdminEventsPage;
-

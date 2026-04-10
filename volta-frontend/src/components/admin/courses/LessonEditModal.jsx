@@ -254,9 +254,9 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 									type="button"
 									className="admin-btn admin-btn-sm admin-btn-secondary"
 									onClick={() => {
-										showToast('Funcția de generare AI quiz va fi disponibilă în curând', 'info');
+										showToast('Funcția de generare quiz cu Volt va fi disponibilă în curând', 'info');
 									}}
-									title="Generează întrebări quiz cu AI"
+									title="Generează întrebări quiz cu Volt"
 								>
 									🤖 Generează Întrebări
 								</button>
@@ -268,7 +268,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 									setEditingLesson(updated);
 									if (onUpdate) onUpdate(updated);
 								}}
-								placeholder="Scrie întrebările quiz aici sau folosește AI pentru a genera..."
+								placeholder="Scrie întrebările quiz aici sau folosește Volt pentru a genera..."
 								style={{ minHeight: '300px' }}
 							/>
 						</div>

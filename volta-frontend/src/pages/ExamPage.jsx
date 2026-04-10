@@ -69,6 +69,11 @@ const ExamPage = () => {
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [congratsCourseTitle, setCongratsCourseTitle] = useState('');
 	const timerIntervalRef = useRef(null);
+	const reviewAnswers = useMemo(() => {
+		if (!submitted || !result || !result.answers || typeof result.answers !== 'object') return null;
+		return normalizeAnswersFromApi(result.answers, exam?.questions || []);
+	}, [submitted, result, exam?.questions]);
+	const visibleAnswers = reviewAnswers || answers;
 
 	const fetchExamData = useCallback(async ({ forceFreshAttempt = false } = {}) => {
 		const draftKey = buildExamDraftKey(user?.id, courseId, examId);
@@ -86,8 +91,8 @@ const ExamPage = () => {
 
 			if (data.latest_result && !forceFreshAttempt) {
 				setResult(data.latest_result);
-				setAnswers(normalizeAnswersFromApi(data.latest_result.answers, data.questions));
 				setSubmitted(true);
+				setAnswers({});
 			} else {
 				setResult(null);
 				setSubmitted(false);
@@ -290,7 +295,7 @@ const ExamPage = () => {
 		const totalQuestions = exam.questions.length;
 		const correctAnswers = exam.questions.filter(q => {
 			if (['open_text', 'short_answer', 'essay'].includes(q.type || '')) return false;
-			const userAnswer = normalizeAnswerIndex(answers[q.id]);
+			const userAnswer = normalizeAnswerIndex(visibleAnswers[q.id]);
 			const correctIndex = normalizeAnswerIndex(q.answerIndex);
 			return userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
 		}).length;
@@ -303,25 +308,34 @@ const ExamPage = () => {
 			percentage: result.percentage || 0,
 			passed: result.passed || false,
 		};
-	}, [result, exam, answers, normalizeAnswerIndex]);
+	}, [result, exam, visibleAnswers, normalizeAnswerIndex]);
 	const needsManualReview = Boolean(result?.needs_manual_review || result?.status === 'pending_review');
+	const showsPartialManualReview = Boolean(needsManualReview && exam?.manual_review_mode === 'partial');
+	const isSequentialNavigation = (exam?.navigation_mode || 'sequential') !== 'free';
+	const canShowInstantResults = Boolean(submitted && result && (( !needsManualReview && exam?.show_feedback_instant) || showsPartialManualReview));
+	const canShowCorrectAnswers = Boolean(canShowInstantResults && exam?.show_correct_answers);
+	const visibleQuestions = useMemo(() => {
+		if (!exam?.questions) return [];
+		if (!isSequentialNavigation || submitted) return exam.questions;
+		return exam.questions[currentQuestionIndex] ? [exam.questions[currentQuestionIndex]] : [];
+	}, [exam, isSequentialNavigation, submitted, currentQuestionIndex]);
 
 	// Get question status
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
 			const question = exam.questions.find(q => q.id === questionId);
 			if (['open_text', 'short_answer', 'essay'].includes(question.type || '')) return 'pending';
-			const userAnswer = normalizeAnswerIndex(answers[questionId]);
+			const userAnswer = normalizeAnswerIndex(visibleAnswers[questionId]);
 			const correctIndex = normalizeAnswerIndex(question.answerIndex);
 			const isCorrect = userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
 			return isCorrect ? 'completed' : 'incorrect';
 		}
-		const isAnswered = answers[questionId] !== undefined;
+			const isAnswered = answers[questionId] !== undefined;
 		const isCurrent = index === currentQuestionIndex;
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, submitted, result, exam, normalizeAnswerIndex]);
+	}, [answers, currentQuestionIndex, submitted, result, exam, normalizeAnswerIndex, visibleAnswers]);
 
 	if (loading) {
 		return (
@@ -412,6 +426,12 @@ const ExamPage = () => {
 							{exam.max_attempts && (
 								<li>Ai {exam.max_attempts} {exam.max_attempts === 1 ? 'încercare' : 'încercări'} disponibile</li>
 							)}
+							{exam.deadline_at && (
+								<li>Termen limita: {new Date(exam.deadline_at).toLocaleString('ro-RO')}</li>
+							)}
+							{isSequentialNavigation && (
+								<li>Parcurgerea este secventiala, cate o intrebare pe rand</li>
+							)}
 							{exam.is_required && (
 								<li className="student-exam-instructions-warning">
 									⚠️ Acest test este obligatoriu. Progresul tău va fi blocat până când îl promovezi.
@@ -471,14 +491,16 @@ const ExamPage = () => {
 							{exam.questions.map((q, idx) => {
 								const status = getQuestionStatus(q.id, idx);
 								const isFlagged = flaggedQuestions.has(q.id);
+								const canJumpToQuestion = !isSequentialNavigation || idx <= currentQuestionIndex;
 								return (
 									<button
 										key={q.id}
 										type="button"
-										onClick={() => scrollToQuestion(idx)}
+										onClick={() => canJumpToQuestion && scrollToQuestion(idx)}
 										className={`student-exam-nav-item ${status === 'current' ? 'current' : ''} ${status === 'answered' ? 'answered' : ''} ${isFlagged ? 'flagged' : ''}`}
 										title={`Întrebarea ${idx + 1}`}
 										aria-current={status === 'current' ? 'true' : undefined}
+										disabled={!canJumpToQuestion}
 									>
 										{idx + 1}
 									</button>
@@ -487,7 +509,8 @@ const ExamPage = () => {
 						</div>
 					</aside>
 					<div className="student-exam-questions">
-					{exam.questions.map((q, idx) => {
+					{visibleQuestions.map((q, idx) => {
+						const actualIndex = isSequentialNavigation && !submitted ? currentQuestionIndex : idx;
 						const isOpenText = ['open_text', 'short_answer', 'essay'].includes(q.type || '');
 						const isFlagged = flaggedQuestions.has(q.id);
 
@@ -499,7 +522,7 @@ const ExamPage = () => {
 							>
 								<div className="student-exam-question-header">
 									<div className="student-exam-question-number">
-										{idx + 1}
+										{actualIndex + 1}
 									</div>
 									<div className="student-exam-question-content">
 										<div className="student-exam-question-text">{q.text}</div>
@@ -552,6 +575,26 @@ const ExamPage = () => {
 							</div>
 						);
 					})}
+					{isSequentialNavigation && !submitted && exam.questions.length > 0 && (
+						<div className="student-exam-question-sequence-actions">
+							<button
+								type="button"
+								className="student-exam-btn student-exam-btn-secondary"
+								onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+								disabled={currentQuestionIndex === 0}
+							>
+								Intrebarea anterioara
+							</button>
+							<button
+								type="button"
+								className="student-exam-btn student-exam-btn-secondary"
+								onClick={() => setCurrentQuestionIndex((prev) => Math.min(exam.questions.length - 1, prev + 1))}
+								disabled={currentQuestionIndex >= exam.questions.length - 1}
+							>
+								Intrebarea urmatoare
+							</button>
+						</div>
+					)}
 					</div>
 				</div>
 			)}
@@ -574,6 +617,18 @@ const ExamPage = () => {
 						</div>
 					</div>
 
+					{showsPartialManualReview && (
+						<div className="student-exam-result-subtitle">
+							Rezultat provizoriu: vezi partea evaluata automat acum, iar raspunsurile deschise raman in verificare manuala.
+						</div>
+					)}
+					{!canShowInstantResults && !needsManualReview && (
+						<div className="student-exam-result-subtitle">
+							Raspunsurile au fost trimise. Rezultatul nu este afisat imediat pentru acest examen.
+						</div>
+					)}
+					{canShowInstantResults && (
+					<>
 					<div className="student-exam-result-stats">
 						<div className="student-exam-result-stat">
 							<div className="student-exam-result-stat-label">Scor</div>
@@ -604,9 +659,12 @@ const ExamPage = () => {
 					</div>
 
 					{/* După trimitere: rezumat pe întrebări (în timpul testului nu se arată varianta corectă). */}
+					</>
+					)}
+					{canShowInstantResults && (
 					<div className="student-exam-final-feedback">
 						{exam.questions.map((q, idx) => {
-							const userAnswer = answers[q.id];
+							const userAnswer = visibleAnswers[q.id];
 							const userAnswerIndex = normalizeAnswerIndex(userAnswer);
 							const correctIndex = normalizeAnswerIndex(q.answerIndex);
 							const isOpenText = ['open_text', 'short_answer', 'essay'].includes(q.type || '');
@@ -631,7 +689,7 @@ const ExamPage = () => {
 													<strong>Răspunsul tău:</strong> {q.options[userAnswerIndex]}
 												</div>
 											)}
-											{!isCorrect && correctIndex !== null && q.options?.[correctIndex] != null && (
+											{canShowCorrectAnswers && !isCorrect && correctIndex !== null && q.options?.[correctIndex] != null && (
 												<div className="student-exam-feedback-item-correct">
 													<strong>Răspuns corect:</strong> {q.options[correctIndex]}
 												</div>
@@ -643,7 +701,7 @@ const ExamPage = () => {
 											<strong>Răspunsul tău:</strong> {userAnswer}
 										</div>
 									)}
-									{q.explanation && (
+									{canShowCorrectAnswers && q.explanation && (
 										<div className="student-exam-feedback-item-explanation">
 											<strong>Explicație:</strong> {q.explanation}
 										</div>
@@ -652,6 +710,8 @@ const ExamPage = () => {
 							);
 						})}
 					</div>
+
+					)}
 
 					{/* Blocking Message */}
 					{exam.is_required && !result.passed && !needsManualReview && (
@@ -711,4 +771,3 @@ const ExamPage = () => {
 };
 
 export default ExamPage;
-

@@ -62,6 +62,9 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
   const [createFromSelectionOpen, setCreateFromSelectionOpen] = useState(false);
   const [createFromSelectionForm, setCreateFromSelectionForm] = useState({ title: '', description: '', tagsText: '' });
   const [createFromSelectionLoading, setCreateFromSelectionLoading] = useState(false);
+  const [moveToExistingOpen, setMoveToExistingOpen] = useState(false);
+  const [moveTargetBankId, setMoveTargetBankId] = useState('');
+  const [moveToExistingLoading, setMoveToExistingLoading] = useState(false);
   const catalogSelectAllRef = useRef(null);
 
   const loadFolders = async () => {
@@ -159,6 +162,11 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     [catalogRows]
   );
 
+  const moveTargetFolders = useMemo(
+    () => folders.filter((folder) => folder && folder.id != null),
+    [folders]
+  );
+
   useEffect(() => {
     const el = catalogSelectAllRef.current;
     if (!el || hubTab !== 'catalog') return;
@@ -196,6 +204,24 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     setCreateFromSelectionOpen(true);
   };
 
+  const openMoveToExistingModal = () => {
+    if (selectedQuestionIds.length < 1) {
+      error('Selectează cel puțin o întrebare din catalog.');
+      return;
+    }
+    if (!moveTargetFolders.length) {
+      error('Nu există niciun folder disponibil.');
+      return;
+    }
+    setMoveTargetBankId((prev) => {
+      if (prev && moveTargetFolders.some((folder) => String(folder.id) === String(prev))) {
+        return prev;
+      }
+      return String(moveTargetFolders[0].id);
+    });
+    setMoveToExistingOpen(true);
+  };
+
   const createFolderFromSelection = async () => {
     if (!createFromSelectionForm.title.trim()) {
       error('Numele folderului este obligatoriu.');
@@ -228,6 +254,31 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
       error(e?.response?.data?.error || e?.response?.data?.message || 'Operațiunea a eșuat.');
     } finally {
       setCreateFromSelectionLoading(false);
+    }
+  };
+
+  const moveSelectionToExistingFolder = async () => {
+    if (!moveTargetBankId) {
+      error('Selectează un folder existent.');
+      return;
+    }
+    if (selectedQuestionIds.length < 1) {
+      error('Selectează cel puțin o întrebare.');
+      return;
+    }
+    setMoveToExistingLoading(true);
+    try {
+      await adminService.moveQuestionsToFolderBulk(selectedQuestionIds, Number(moveTargetBankId));
+      const targetFolder = moveTargetFolders.find((folder) => String(folder.id) === String(moveTargetBankId));
+      success(`Au fost mutate ${selectedQuestionIds.length} întrebări în folderul existent${targetFolder?.title ? `: ${targetFolder.title}` : ''}.`);
+      setMoveToExistingOpen(false);
+      setSelectedQuestionIds([]);
+      setCatalogTick((t) => t + 1);
+      await loadFolders();
+    } catch (e) {
+      error(e?.response?.data?.error || e?.response?.data?.message || 'Operațiunea a eșuat.');
+    } finally {
+      setMoveToExistingLoading(false);
     }
   };
 
@@ -390,8 +441,8 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
             {canMutateInAdminArea ? (
               <div className="qb-catalog-toolbar">
                 <p className="qb-catalog-toolbar-hint">
-                  Bifează întrebările din teste fără folder, apoi creează un folder care le conține pe toate. Selecția se
-                  păstrează la schimbarea paginii.
+                  Bifează întrebările din teste fără folder, apoi le poți muta într-un folder existent sau crea unul nou.
+                  Selecția se păstrează la schimbarea paginii.
                 </p>
                 <div className="qb-catalog-toolbar-actions">
                   <button
@@ -409,6 +460,14 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
                     onClick={openCreateFromSelectionModal}
                   >
                     Folder nou din selecție ({selectedQuestionIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="lms-btn-secondary"
+                    disabled={selectedQuestionIds.length === 0 || moveTargetFolders.length === 0}
+                    onClick={openMoveToExistingModal}
+                  >
+                    Adaugă în folder existent
                   </button>
                 </div>
               </div>
@@ -627,6 +686,50 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
               </button>
               <button type="button" className="lms-btn-primary" onClick={createFolderFromSelection} disabled={createFromSelectionLoading}>
                 {createFromSelectionLoading ? 'Se creează...' : 'Creează folder și mută'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          isOpen={moveToExistingOpen && canMutateInAdminArea}
+          onClose={() => !moveToExistingLoading && setMoveToExistingOpen(false)}
+        >
+          <div className="qb-modal qb-modal-from-selection">
+            <h3>Adaugă în folder existent</h3>
+            <p className="qb-modal-warning">
+              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în folderul ales. După mutare, ele nu
+              vor mai rămâne atașate direct testului.
+            </p>
+            <label htmlFor="qb-move-target-folder">Folder existent</label>
+            <select
+              id="qb-move-target-folder"
+              className="admin-form-input"
+              value={moveTargetBankId}
+              onChange={(e) => setMoveTargetBankId(e.target.value)}
+            >
+              {moveTargetFolders.map((folder) => (
+                <option key={folder.id} value={String(folder.id)}>
+                  {folder.title || `Banca #${folder.id}`}
+                </option>
+              ))}
+            </select>
+            <div className="qb-modal-actions">
+              <button
+                type="button"
+                className="lms-btn-secondary"
+                onClick={() => setMoveToExistingOpen(false)}
+                disabled={moveToExistingLoading}
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                className="lms-btn-primary"
+                onClick={moveSelectionToExistingFolder}
+                disabled={moveToExistingLoading || moveTargetFolders.length === 0}
+              >
+                {moveToExistingLoading ? 'Se mută...' : 'Mută în folder'}
               </button>
             </div>
           </div>
