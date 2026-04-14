@@ -1,65 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { adminService } from '../../services/api';
-
-function stripHtml(html) {
-	if (!html) return '';
-	const tmp = document.createElement('DIV');
-	tmp.innerHTML = html;
-	return tmp.textContent || tmp.innerText || '';
-}
-
-/** Un singur rând, pe română simplu — fără nume de acțiuni din cod. */
-function getFriendlyLogLine(log) {
-	const descRaw = log.description || '';
-	const desc = stripHtml(descRaw).trim();
-	const telemetryGeneric = /^Telemetry event:/i.test(desc);
-	if (desc && !telemetryGeneric) {
-		return desc;
-	}
-	const nv = log.new_values && typeof log.new_values === 'object' ? log.new_values : {};
-	const name = log.user?.name || 'Un utilizator';
-	const action = log.action || '';
-
-	if (action === 'completed_course') {
-		const title = nv.course_title || 'cursul';
-		return `${name} a finalizat cursul „${title}”.`;
-	}
-	if (action === 'completed_lesson') {
-		const title = nv.lesson_title || 'lecția';
-		return `${name} a finalizat lecția "${title}".`;
-	}
-	if (action === 'completed_exam') {
-		const ex = nv.exam_title || 'testul';
-		const pct = nv.percentage;
-		return pct != null
-			? `${name} a finalizat testul „${ex}” și a obținut ${pct}%.`
-			: `${name} a finalizat testul „${ex}”.`;
-	}
-	if (action === 'telemetry.learner_attempt_submitted') {
-		const pct = nv.percentage ?? nv.score_percentage ?? nv.percent;
-		const title = nv.test_title || nv.exam_title;
-		if (title && pct != null) return `${name} a trimis testul „${title}” și a obținut ${pct}%.`;
-		if (title) return `${name} a trimis testul „${title}”.`;
-		if (pct != null) return `${name} a trimis testul și a obținut ${pct}%.`;
-		return `${name} a trimis un test.`;
-	}
-	if (action === 'telemetry.learner_attempt_started') {
-		return `${name} a început un test.`;
-	}
-	if (action === 'telemetry.learner_result_viewed') {
-		return `${name} a vizualizat rezultatul unui test.`;
-	}
-	if (action === 'telemetry.learner_focus_seconds') {
-		const sec = nv.seconds;
-		return sec ? `${name} a petrecut timp pe o lecție (${sec} secunde).` : `${name} a avansat la o lecție.`;
-	}
-
-	if (telemetryGeneric) {
-		const rest = desc.replace(/^Telemetry event:\s*/i, '').trim();
-		return rest ? `${name}: ${rest}` : `${name} — activitate în platformă`;
-	}
-	return desc || `${name} — activitate în platformă`;
-}
+import {
+	getFriendlyLogLine,
+	getActionLabelRo,
+	ACTION_LABELS_RO,
+} from '../../utils/activityLogLabels';
 
 function getSimpleIcon(action) {
 	if (!action) return '✓';
@@ -69,15 +14,24 @@ function getSimpleIcon(action) {
 	return '•';
 }
 
-/** Filtre fixe — fără liste tehnice din server. */
-const SIMPLE_EVENT_TYPES = [
-	{ value: '', label: 'Orice' },
-	{ value: 'completed_course', label: 'Curs finalizat' },
-	{ value: 'completed_lesson', label: 'Lecție finalizată' },
-	{ value: 'completed_exam', label: 'Test cu notă' },
-	{ value: 'telemetry.learner_attempt_submitted', label: 'Test trimis' },
-	{ value: 'telemetry.learner_focus_seconds', label: 'Timp pe lecție' },
+/** Valori permise la filtru — etichetele vin din ACTION_LABELS_RO (aceeași sursă ca în jurnal). */
+const SIMPLE_EVENT_FILTER_VALUES = [
+	'',
+	'completed_course',
+	'completed_lesson',
+	'completed_exam',
+	'telemetry.learner_attempt_submitted',
+	'telemetry.learner_attempt_started',
+	'telemetry.learner_result_viewed',
+	'telemetry.learner_focus_seconds',
+	'telemetry.learner_answer_saved',
+	'telemetry.learner_retake_weak_areas_started',
 ];
+
+const SIMPLE_EVENT_TYPES = SIMPLE_EVENT_FILTER_VALUES.map((value) => ({
+	value,
+	label: value === '' ? 'Orice' : ACTION_LABELS_RO[value] || getActionLabelRo(value),
+}));
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -95,18 +49,16 @@ const AdminActivityLogsPage = () => {
 	const [filters, setFilters] = useState({
 		search: '',
 		action: '',
-		action_scope: 'elev_progres',
+		action_scope: 'all',
 		user_id: '',
 		date_from: '',
 		date_to: '',
-		sort_by: 'created_at',
 		sort_dir: 'desc',
 	});
 	const [showMyActions, setShowMyActions] = useState(false);
 	const [searchInput, setSearchInput] = useState('');
 	const searchDebounceRef = useRef(null);
 	const searchEffectBoot = useRef(true);
-	const autoExpandedFiltersRef = useRef(false);
 
 	const [availableFilters, setAvailableFilters] = useState({
 		action_scopes: [],
@@ -126,7 +78,7 @@ const AdminActivityLogsPage = () => {
 				user_id: filters.user_id || undefined,
 				date_from: filters.date_from || undefined,
 				date_to: filters.date_to || undefined,
-				sort_by: filters.sort_by,
+				sort_by: 'created_at',
 				sort_dir: filters.sort_dir,
 				exclude_self: showMyActions ? 0 : 1,
 			};
@@ -162,27 +114,6 @@ const AdminActivityLogsPage = () => {
 	useEffect(() => {
 		fetchLogs();
 	}, [fetchLogs]);
-
-	useEffect(() => {
-		// If strict defaults produce an empty list, auto-broaden once so admins always see activity.
-		if (loading || logs.length > 0 || autoExpandedFiltersRef.current) return;
-		const hasStrictDefaults =
-			filters.action_scope === 'elev_progres' &&
-			!showMyActions &&
-			!filters.search &&
-			!filters.action &&
-			!filters.date_from &&
-			!filters.date_to;
-		if (!hasStrictDefaults) return;
-		autoExpandedFiltersRef.current = true;
-		setShowMyActions(true);
-		setFilters((prev) => ({
-			...prev,
-			action_scope: 'all',
-			action: '',
-		}));
-		setPagination((prev) => ({ ...prev, current_page: 1 }));
-	}, [loading, logs.length, filters, showMyActions]);
 
 	useEffect(() => {
 		if (searchEffectBoot.current) {
@@ -245,7 +176,7 @@ const AdminActivityLogsPage = () => {
 				<div>
 					<h1 className="admin-page-title">Activitate elevi</h1>
 					<p className="admin-page-subtitle">
-						Vezi ce fac cursanții: finalizări de curs, teste, note în procente. Acțiunile tale ca administrator nu apar aici, decât dacă bifezi opțiunea de mai jos.
+						Implicit vezi tot jurnalul (poți restrânge din „Ce vrei să vezi” și „Tip eveniment”). Acțiunile tale ca administrator nu apar, decât dacă bifezi opțiunea de mai jos.
 					</p>
 				</div>
 			</div>
@@ -310,25 +241,14 @@ const AdminActivityLogsPage = () => {
 						</select>
 					</div>
 					<div className="admin-activity-logs-filter-group">
-						<label className="admin-activity-logs-filter-label">Ordonare</label>
-						<select
-							className="admin-activity-logs-filter-input"
-							value={filters.sort_by}
-							onChange={(e) => handleFilterChange('sort_by', e.target.value)}
-						>
-							<option value="created_at">După dată</option>
-							<option value="action">După tip eveniment</option>
-						</select>
-					</div>
-					<div className="admin-activity-logs-filter-group">
-						<label className="admin-activity-logs-filter-label">Sens</label>
+						<label className="admin-activity-logs-filter-label">Ordine în listă</label>
 						<select
 							className="admin-activity-logs-filter-input"
 							value={filters.sort_dir}
 							onChange={(e) => handleFilterChange('sort_dir', e.target.value)}
 						>
-							<option value="desc">{filters.sort_by === 'action' ? 'Z → A' : 'Cel mai nou primul'}</option>
-							<option value="asc">{filters.sort_by === 'action' ? 'A → Z' : 'Cel mai vechi primul'}</option>
+							<option value="desc">Cel mai nou primul</option>
+							<option value="asc">Cel mai vechi primul</option>
 						</select>
 					</div>
 					<div className="admin-activity-logs-filter-group">
@@ -385,7 +305,7 @@ const AdminActivityLogsPage = () => {
 													)}
 													<span className="admin-activity-logs-meta-item">{formatDate(log.created_at)}</span>
 													<span className="admin-activity-logs-meta-item admin-activity-logs-chevron">
-														{isOpen ? 'Mai puțin' : 'Mai mult'}
+														{isOpen ? 'Ascunde' : 'Vezi tot'}
 													</span>
 												</div>
 											</div>
@@ -393,11 +313,24 @@ const AdminActivityLogsPage = () => {
 									</button>
 									{isOpen && (
 										<div className="admin-activity-logs-detail">
-											{log.user && (
+											{log.user?.name ? (
 												<p className="admin-activity-logs-detail-desc" style={{ marginTop: 'var(--space-3)' }}>
 													<strong>{log.user.name}</strong>
+													{log.user.email ? (
+														<>
+															{' '}
+															<span className="admin-activity-logs-detail-tech" style={{ fontWeight: 'normal' }}>
+																({log.user.email})
+															</span>
+														</>
+													) : null}
 												</p>
-											)}
+											) : null}
+											{log.action ? (
+												<p className="admin-activity-logs-detail-tech" title={log.action}>
+													Tip înregistrare: <strong>{getActionLabelRo(log.action)}</strong>
+												</p>
+											) : null}
 										</div>
 									)}
 								</div>
@@ -416,7 +349,6 @@ const AdminActivityLogsPage = () => {
 							className="lms-btn-primary lms-btn-sm"
 							style={{ marginTop: '0.9rem' }}
 							onClick={() => {
-								autoExpandedFiltersRef.current = true;
 								setSearchInput('');
 								setShowMyActions(true);
 								setFilters((prev) => ({

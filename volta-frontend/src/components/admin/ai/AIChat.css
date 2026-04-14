@@ -306,6 +306,52 @@
 	font-weight: var(--font-weight-semibold, 600);
 }
 
+.ai-chat-guided-brief {
+	padding: 12px 14px;
+	border-top: 1px solid var(--border-primary, var(--border-secondary));
+	border-bottom: 1px solid var(--border-primary, var(--border-secondary));
+	background: var(--bg-secondary, var(--bg-tertiary));
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.ai-chat-guided-brief-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px;
+}
+
+.ai-chat-guided-brief-input,
+.ai-chat-guided-brief-row input,
+.ai-chat-guided-brief-row select,
+.ai-chat-guided-brief-textarea {
+	width: 100%;
+	border: 1px solid var(--border-primary, var(--border-secondary));
+	background: var(--bg-elevated, var(--color-white));
+	color: var(--text-primary);
+	border-radius: 8px;
+	padding: 8px 10px;
+	font-size: 0.85rem;
+}
+
+.ai-chat-guided-brief-textarea {
+	resize: vertical;
+	min-height: 72px;
+}
+
+.ai-chat-guided-brief-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ai-chat-guided-brief-row label {
+	font-size: 0.74rem;
+	color: var(--text-secondary);
+	font-weight: 600;
+}
+
 .ai-chat-input-form {
 	display: flex;
 	align-items: center;

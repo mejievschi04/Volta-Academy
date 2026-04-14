@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
+import { buildTextLessonDifficultyPrompt, buildTextLessonTransformPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
  * Text Lesson Editor - Conform defacut.md secțiunea 5.2
@@ -17,18 +18,16 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 	const [readingTime, setReadingTime] = useState(null);
 	const [difficultyScore, setDifficultyScore] = useState(null);
 
-	// Calculate reading time
 	const calculateReadingTime = (content) => {
 		if (!content) return null;
-		const text = content.replace(/<[^>]*>/g, ''); // Strip HTML
+		const text = content.replace(/<[^>]*>/g, '');
 		const words = text.split(/\s+/).filter(word => word.length > 0);
-		const wordsPerMinute = 200; // Average reading speed
+		const wordsPerMinute = 200;
 		const minutes = Math.ceil(words.length / wordsPerMinute);
 		setReadingTime(minutes);
 		return minutes;
 	};
 
-	// Volt rewrite/simplify/expand
 	const handleVoltTransform = async (action) => {
 		if (!lesson.content || !lesson.content.trim()) {
 			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
@@ -37,18 +36,10 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 
 		setAiProcessing(true);
 		try {
-			const actionPrompts = {
-				rewrite: 'Reformulează și îmbunătățește textul, păstrând sensul original dar făcându-l mai clar și mai captivant.',
-				simplify: 'Simplifică textul pentru a fi mai ușor de înțeles, fără a pierde informațiile esențiale.',
-				expand: 'Extinde textul cu mai multe detalii, exemple și explicații pentru a fi mai complet.'
-			};
-
-			const prompt = `${actionPrompts[action]}
-
-Text original:
-${lesson.content.replace(/<[^>]*>/g, '').substring(0, 2000)}
-
-Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simplify' ? 'simplificată' : 'extinsă'} a textului.`;
+			const prompt = buildTextLessonTransformPrompt({
+				action,
+				lessonContent: lesson.content.replace(/<[^>]*>/g, '').substring(0, 2000),
+			});
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(
@@ -63,10 +54,7 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 				() => {}
 			);
 
-			// Extract text from response (remove markdown code blocks if present)
-			let transformedText = fullResponse.replace(/```[\s\S]*?```/g, '').trim();
-			
-			// Update lesson content
+			const transformedText = fullResponse.replace(/```[\s\S]*?```/g, '').trim();
 			onUpdate({ content: transformedText });
 			calculateReadingTime(transformedText);
 		} catch (error) {
@@ -77,7 +65,6 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 		}
 	};
 
-	// Calculate difficulty score with Volt
 	const handleCalculateDifficulty = async () => {
 		if (!lesson.content || !lesson.content.trim()) {
 			showToast('Te rugăm să adaugi mai întâi conținut', 'info');
@@ -86,16 +73,9 @@ Generează versiunea ${action === 'rewrite' ? 'reformulată' : action === 'simpl
 
 		setAiProcessing(true);
 		try {
-			const prompt = `Analizează dificultatea acestui text pentru lecție și oferă un scor de dificultate (1-10, unde 1 = foarte ușor, 10 = foarte dificil).
-
-Text:
-${lesson.content.replace(/<[^>]*>/g, '').substring(0, 2000)}
-
-Răspunde în format JSON:
-{
-  "difficulty_score": 5,
-  "reasoning": "Explicație scurtă de ce acest scor..."
-}`;
+			const prompt = buildTextLessonDifficultyPrompt(
+				lesson.content.replace(/<[^>]*>/g, '').substring(0, 2000)
+			);
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(
@@ -110,24 +90,22 @@ Răspunde în format JSON:
 				() => {}
 			);
 
-			// Parse response
 			try {
-				const jsonMatch = fullResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
-				                  fullResponse.match(/```\s*([\s\S]*?)\s*```/);
+				const jsonMatch = fullResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+					fullResponse.match(/```\s*([\s\S]*?)\s*```/);
 				const jsonStr = jsonMatch ? jsonMatch[1] : fullResponse;
 				const parsed = JSON.parse(jsonStr);
-				
+
 				setDifficultyScore(parsed.difficulty_score);
-				onUpdate({ 
+				onUpdate({
 					difficulty_score: parsed.difficulty_score,
-					difficulty_reasoning: parsed.reasoning
+					difficulty_reasoning: parsed.reasoning,
 				});
 			} catch (e) {
 				console.error('Error parsing difficulty response:', e);
-				// Try to extract number from response
 				const scoreMatch = fullResponse.match(/(\d+)/);
 				if (scoreMatch) {
-					const score = parseInt(scoreMatch[1]);
+					const score = parseInt(scoreMatch[1], 10);
 					if (score >= 1 && score <= 10) {
 						setDifficultyScore(score);
 						onUpdate({ difficulty_score: score });
@@ -142,7 +120,6 @@ Răspunde în format JSON:
 		}
 	};
 
-	// Handle content change
 	const handleContentChange = (content) => {
 		onUpdate({ content });
 		calculateReadingTime(content);
@@ -150,7 +127,6 @@ Răspunde în format JSON:
 
 	return (
 		<div className="text-lesson-editor">
-			{/* Volt actions toolbar */}
 			<div className="admin-form-group">
 				<div className="ai-actions-toolbar">
 					<button
@@ -187,12 +163,11 @@ Răspunde în format JSON:
 						disabled={aiProcessing || !lesson.content}
 						title="Calculează dificultatea cu Volt"
 					>
-						📊 Dificultate
+						📉 Dificultate
 					</button>
 				</div>
 			</div>
 
-			{/* Content Editor */}
 			<div className="admin-form-group">
 				<label className="admin-form-label">
 					Conținut Text <span className="admin-form-required">*</span>
@@ -205,7 +180,6 @@ Răspunde în format JSON:
 				/>
 			</div>
 
-			{/* Stats */}
 			<div className="text-lesson-stats">
 				{readingTime && (
 					<div className="stat-item">
@@ -215,13 +189,12 @@ Răspunde în format JSON:
 				)}
 				{difficultyScore && (
 					<div className="stat-item">
-						<span className="stat-label">📊 Difficulty Score:</span>
+						<span className="stat-label">📉 Difficulty Score:</span>
 						<span className="stat-value">{difficultyScore}/10</span>
 					</div>
 				)}
 			</div>
 
-			{/* Mobile-ready validation */}
 			{readingTime && readingTime > 10 && (
 				<div className="admin-form-warning">
 					⚠️ Reading time depășește 10 minute ({readingTime} min). Pentru mobile-ready, recomandăm lecții sub 10 minute.

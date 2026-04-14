@@ -1,4 +1,5 @@
 import React from 'react';
+import { getDashboardActivityActionLabel } from '../../utils/activityLogLabels';
 
 const ACTIVITY_ICONS = {
 	enrollment: '👤',
@@ -99,7 +100,7 @@ export default function ActivityFeedModern({ activities, loading }) {
 						<div className="admin-activity-content">
 							<div className="admin-activity-header">
 								<span className="admin-activity-actor">{activity.actor || 'Sistem'}</span>
-								<span className="admin-activity-action">{activity.action || 'actiune inregistrata'}</span>
+								<span className="admin-activity-action">{getDashboardActivityActionLabel(activity)}</span>
 							</div>
 							<div className="admin-activity-description">
 								{activity.description || activity.message}

@@ -12,6 +12,7 @@ use App\Models\Lesson;
 use App\Models\User;
 use App\Services\AIKnowledgeService;
 use App\Services\CourseBuilderService;
+use App\Services\VoltPromptService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -21,7 +22,7 @@ use Illuminate\Http\UploadedFile;
 
 class AIController extends Controller
 {
-    private const MIN_LESSON_LINES = 20;
+    private const DEFAULT_MIN_LESSON_LINES = 10;
 
     private $apiKey;
     private $apiUrl;
@@ -82,10 +83,50 @@ class AIController extends Controller
                 $this->apiKey = (string) env('GROQ_API_KEY', '');
                 $this->apiUrl = rtrim((string) env('GROQ_API_URL', 'https://api.groq.com/openai/v1'), '/');
                 $this->model = (string) env('GROQ_CREATOR_MODEL', env('GROQ_MODEL', 'llama-3.1-8b-instant'));
+                $this->groqModelFallbackChain = $this->buildGroqModelFallbackChain();
                 $this->hfApiKey = null;
                 $this->hfApiUrl = null;
                 break;
         }
+    }
+
+    private function buildGroqModelFallbackChain(): array
+    {
+        $configured = [];
+        $deprecatedModels = [
+            'llama3-8b-8192',
+            'gemma2-9b-it',
+            'mixtral-8x7b-32768',
+        ];
+
+        $primary = trim((string) env('GROQ_CREATOR_MODEL', env('GROQ_MODEL', 'llama-3.1-8b-instant')));
+        $quality = trim((string) env('GROQ_CREATOR_QUALITY_MODEL', ''));
+        $fallbackRaw = (string) env('GROQ_FALLBACK_MODELS', '');
+        $fallbackList = array_map('trim', explode(',', $fallbackRaw));
+
+        foreach (array_merge([$primary, $quality], $fallbackList) as $candidate) {
+            if ($candidate === '' || in_array($candidate, $configured, true)) {
+                continue;
+            }
+            if (in_array(strtolower($candidate), $deprecatedModels, true)) {
+                continue;
+            }
+            $configured[] = $candidate;
+        }
+
+        if (!empty($configured)) {
+            return $configured;
+        }
+
+        return [
+            'llama-3.1-8b-instant',
+            'llama-3.3-70b-versatile',
+        ];
+    }
+
+    private function getMinLessonLines(): int
+    {
+        return max(6, (int) env('AI_MIN_LESSON_LINES', self::DEFAULT_MIN_LESSON_LINES));
     }
     
     /**
@@ -283,6 +324,45 @@ class AIController extends Controller
     }
 
     /**
+     * Detect unavailable/deprecated model errors so we can fallback.
+     */
+    private function isModelUnavailableError(int $statusCode, string $errorBody): bool
+    {
+        $normalized = strtolower($errorBody);
+        $mentionsModel = str_contains($normalized, 'model');
+        if (!$mentionsModel) {
+            return false;
+        }
+
+        if ($statusCode === 404 && (
+            str_contains($normalized, 'not found') ||
+            str_contains($normalized, 'does not exist') ||
+            str_contains($normalized, 'no access')
+        )) {
+            return true;
+        }
+
+        if ($statusCode === 400 && (
+            str_contains($normalized, 'decommissioned') ||
+            str_contains($normalized, 'no longer supported') ||
+            str_contains($normalized, 'deprecated')
+        )) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function extractRetryAfterSeconds(string $errorBody, int $fallback = 20): int
+    {
+        if (preg_match('/retry after\s*([0-9]+)s/i', $errorBody, $matches)) {
+            return max(5, (int) ($matches[1] ?? $fallback));
+        }
+
+        return $fallback;
+    }
+
+    /**
      * Generate guided course creation without streaming, so we can validate the final JSON before saving.
      */
     private function generateGuidedCourseCreationJson(array $messages, ?int $teacherId = null, ?int $courseId = null, string $mode = ''): array
@@ -293,7 +373,14 @@ class AIController extends Controller
         $guidedTimeoutRaw = (int) env('AI_GUIDED_CREATION_TIMEOUT', 0);
         $timeout = $guidedTimeoutRaw <= 0 ? $defaultTimeout : max($defaultTimeout, $guidedTimeoutRaw);
         $connectTimeout = max(5, (int) env('AI_CONNECT_TIMEOUT', 15));
-        $maxTokens = max(700, (int) env('AI_GUIDED_MAX_TOKENS', 1200));
+        // Full guided courses need large JSON (2+ modules, 2+ lessons each, long HTML per lesson).
+        // Defaults around 1100–1200 truncate output → invalid JSON or validation failure.
+        $maxTokens = max(700, (int) env('AI_GUIDED_MAX_TOKENS', 8192));
+        if ($maxTokens < 4000) {
+            Log::warning("{$providerName} guided course: AI_GUIDED_MAX_TOKENS is low; increase toward 8192+ if courses fail to save", [
+                'max_tokens' => $maxTokens,
+            ]);
+        }
 
         $effectiveModel = $this->model;
         if ($this->provider === 'groq') {
@@ -318,137 +405,167 @@ class AIController extends Controller
         }
 
         $lastError = null;
+        $minRequiredLessonLines = max(1, $this->getMinLessonLines() + 1); // "mai mult de 10" => at least 11
+        $autoValidationRetries = 3;
+
         foreach ($attemptModels as $attemptIndex => $modelToUse) {
-            $payload = [
-                'model' => $modelToUse,
-                'messages' => $messages,
-                'stream' => false,
-                'temperature' => 0.2,
-                'max_tokens' => $maxTokens,
-                'top_p' => 1,
-            ];
+            $modelMessages = $messages;
 
-            if ($this->provider === 'openai') {
-                $payload['response_format'] = ['type' => 'json_object'];
-            }
-
-            try {
-                Log::info("{$providerName} guided course JSON request", [
+            for ($regenAttempt = 0; $regenAttempt < $autoValidationRetries; $regenAttempt++) {
+                $payload = [
                     'model' => $modelToUse,
-                    'attempt' => $attemptIndex + 1,
-                    'messages_count' => count($messages),
-                ]);
+                    'messages' => $modelMessages,
+                    'stream' => false,
+                    'temperature' => 0.2,
+                    'max_tokens' => $maxTokens,
+                    'top_p' => 1,
+                ];
 
-                $request = Http::withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                ])
-                    ->timeout($timeout)
-                    ->connectTimeout($connectTimeout)
-                    ->withOptions([
-                        'verify' => filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
-                    ])
-                    ->post("{$this->apiUrl}/chat/completions", $payload);
-
-                if (!$request->successful()) {
-                    $errorBody = $request->body();
-                    $statusCode = $request->status();
-                    $isModelNotFound = ($statusCode === 404 && (
-                        str_contains(strtolower($errorBody), 'model') &&
-                        (str_contains(strtolower($errorBody), 'not found') || str_contains(strtolower($errorBody), 'does not exist') || str_contains(strtolower($errorBody), 'no access'))
-                    ));
-                    $isRateLimit = $this->isRateLimitError($statusCode, $errorBody);
-
-                    if ($this->provider === 'groq' && ($isModelNotFound || $isRateLimit) && $attemptIndex < count($attemptModels) - 1) {
-                        Log::warning("{$providerName} guided request retrying with fallback model", [
-                            'status' => $statusCode,
-                            'model' => $modelToUse,
-                            'error' => substr($errorBody, 0, 300),
-                        ]);
-                        continue;
-                    }
-
-                    throw new \Exception("{$providerName} API error: HTTP {$statusCode}. " . substr($errorBody, 0, 200));
+                if ($this->provider === 'openai') {
+                    $payload['response_format'] = ['type' => 'json_object'];
                 }
 
-                $content = data_get($request->json(), 'choices.0.message.content', '');
-                if (!is_string($content) || trim($content) === '') {
-                    throw new \Exception("{$providerName} API returned empty course content");
-                }
-
-                $courseData = $this->extractFirstJsonObjectFromText($content);
-                if (!$courseData) {
-                    $fallbackText = trim($content);
-                    $clarificationQuestion = $fallbackText !== ''
-                        ? Str::limit($fallbackText, 300, '')
-                        : 'Am nevoie de o singură clarificare ca să continui cu cursul.';
-
-                    Log::warning("{$providerName} guided course response was not JSON; returning clarification fallback", [
+                try {
+                    Log::info("{$providerName} guided course JSON request", [
                         'model' => $modelToUse,
-                        'response_preview' => substr($fallbackText, 0, 500),
+                        'attempt' => $attemptIndex + 1,
+                        'regen_attempt' => $regenAttempt + 1,
+                        'messages_count' => count($modelMessages),
                     ]);
 
-                    return [
-                        'response_type' => 'clarification',
-                        'clarification_question' => $clarificationQuestion,
-                        'content' => $clarificationQuestion,
-                    ];
-                }
+                    $request = Http::withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $this->apiKey,
+                    ])
+                        ->timeout($timeout)
+                        ->connectTimeout($connectTimeout)
+                        ->withOptions([
+                            'verify' => filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
+                        ])
+                        ->post("{$this->apiUrl}/chat/completions", $payload);
 
-                $responseType = strtolower(trim((string) ($courseData['response_type'] ?? $courseData['type'] ?? '')));
-                if ($responseType === 'clarification') {
-                    $clarificationQuestion = trim((string) ($courseData['clarification_question'] ?? $courseData['question'] ?? $courseData['message'] ?? ''));
-                    if ($clarificationQuestion === '') {
-                        $clarificationQuestion = 'Am nevoie de o singură clarificare ca să continui cu cursul.';
+                    if (!$request->successful()) {
+                        $errorBody = $request->body();
+                        $statusCode = $request->status();
+                        $isModelNotFound = $this->isModelUnavailableError($statusCode, $errorBody);
+                        $isRateLimit = $this->isRateLimitError($statusCode, $errorBody);
+
+                        if ($this->provider === 'groq' && ($isModelNotFound || $isRateLimit) && $attemptIndex < count($attemptModels) - 1) {
+                            Log::warning("{$providerName} guided request retrying with fallback model", [
+                                'status' => $statusCode,
+                                'model' => $modelToUse,
+                                'error' => substr($errorBody, 0, 300),
+                            ]);
+                            continue 2;
+                        }
+
+                        throw new \Exception("{$providerName} API error: HTTP {$statusCode}. " . substr($errorBody, 0, 200));
                     }
 
-                    return [
-                        'response_type' => 'clarification',
-                        'clarification_question' => $clarificationQuestion,
-                        'content' => $clarificationQuestion,
-                    ];
-                }
-
-                if ($responseType !== 'course') {
-                    $clarificationQuestion = trim((string) ($courseData['clarification_question'] ?? $courseData['question'] ?? $courseData['message'] ?? ''));
-                    if ($clarificationQuestion === '') {
-                        $clarificationQuestion = 'Am nevoie de o singură clarificare ca să continui cu cursul.';
+                    $content = data_get($request->json(), 'choices.0.message.content', '');
+                    if (!is_string($content) || trim($content) === '') {
+                        throw new \Exception("{$providerName} API returned empty course content");
                     }
 
+                    $courseData = $this->extractFirstJsonObjectFromText($content);
+                    if (!$courseData) {
+                        $fallbackText = trim($content);
+                        $clarificationQuestion = $fallbackText !== ''
+                            ? Str::limit($fallbackText, 300, '')
+                            : 'Am nevoie de o singură clarificare ca să continui cu cursul.';
+
+                        Log::warning("{$providerName} guided course response was not JSON; returning clarification fallback", [
+                            'model' => $modelToUse,
+                            'response_preview' => substr($fallbackText, 0, 500),
+                        ]);
+
+                        return [
+                            'response_type' => 'clarification',
+                            'clarification_question' => $clarificationQuestion,
+                            'content' => $clarificationQuestion,
+                        ];
+                    }
+
+                    $responseType = strtolower(trim((string) ($courseData['response_type'] ?? $courseData['type'] ?? '')));
+                    if ($responseType === 'clarification') {
+                        $clarificationQuestion = trim((string) ($courseData['clarification_question'] ?? $courseData['question'] ?? $courseData['message'] ?? ''));
+                        if ($clarificationQuestion === '') {
+                            $clarificationQuestion = 'Am nevoie de o singură clarificare ca să continui cu cursul.';
+                        }
+
+                        return [
+                            'response_type' => 'clarification',
+                            'clarification_question' => $clarificationQuestion,
+                            'content' => $clarificationQuestion,
+                        ];
+                    }
+
+                    if ($responseType !== 'course') {
+                        $clarificationQuestion = trim((string) ($courseData['clarification_question'] ?? $courseData['question'] ?? $courseData['message'] ?? ''));
+                        if ($clarificationQuestion === '') {
+                            $clarificationQuestion = 'Am nevoie de o singură clarificare ca să continui cu cursul.';
+                        }
+
+                        return [
+                            'response_type' => 'clarification',
+                            'clarification_question' => $clarificationQuestion,
+                            'content' => $clarificationQuestion,
+                        ];
+                    }
+
+                    $validation = $this->validateAndNormalizeCourseData($courseData);
+                    if (!($validation['ok'] ?? false)) {
+                        $reasons = $validation['reasons'] ?? [];
+                        $detail = $reasons !== []
+                            ? 'Validare curs: ' . implode(' ', $reasons)
+                            : 'Cursul generat nu a trecut validarea.';
+
+                        Log::warning("{$providerName} guided course validation failed; forcing auto-regeneration", [
+                            'model' => $modelToUse,
+                            'regen_attempt' => $regenAttempt + 1,
+                            'reasons' => $reasons,
+                        ]);
+
+                        if ($regenAttempt < ($autoValidationRetries - 1)) {
+                            $modelMessages[] = [
+                                'role' => 'user',
+                                'content' => "Refă TOT cursul în JSON valid. Reguli obligatorii: fiecare lecție trebuie să aibă mai mult de 10 rânduri (minimum {$minRequiredLessonLines} rânduri utile), folosind paragrafe separate <p>, liste <li> și exemple practice. Corectează strict aceste probleme: {$detail}",
+                            ];
+                            continue;
+                        }
+
+                        return [
+                            'response_type' => 'clarification',
+                            'clarification_question' => $detail . ' Am încercat regenerare automată, dar încă nu a respectat regula de conținut. Dă un topic mai specific ca să detaliez lecțiile.',
+                            'content' => $detail,
+                        ];
+                    }
+
+                    $validated = $validation['data'];
+                    $validated['response_type'] = 'course';
+                    $validatedJson = json_encode($validated, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    $createdCourse = $this->createOrUpdateCourseFromResponse($validatedJson, $teacherId, $courseId);
+                    if (!$createdCourse) {
+                        throw new \Exception('Course could not be created from Volt response');
+                    }
+
+                    $isUpdate = $courseId !== null;
                     return [
-                        'response_type' => 'clarification',
-                        'clarification_question' => $clarificationQuestion,
-                        'content' => $clarificationQuestion,
+                        'response_type' => 'course',
+                        'content' => "\n\n✅ Cursul a fost " . ($isUpdate ? 'actualizat' : 'creat') . " automat în background!\n\n📚 ID: {$createdCourse->id}\n📝 Titlu: {$createdCourse->title}\n📦 Module: " . $createdCourse->modules()->count() . "\n📄 Lecții: " . $createdCourse->lessons()->count() . "\n\nPoți continua conversația sau să îmi spui dacă vrei să modific ceva.",
+                        'course_id' => $createdCourse->id,
+                        'course_created' => !$isUpdate,
+                        'course_updated' => $isUpdate,
                     ];
+                } catch (\Throwable $e) {
+                    $lastError = $e;
+                    Log::warning("{$providerName} guided course JSON attempt failed", [
+                        'attempt' => $attemptIndex + 1,
+                        'regen_attempt' => $regenAttempt + 1,
+                        'model' => $modelToUse,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-
-                $validated = $this->validateAndNormalizeCourseData($courseData);
-                if (!$validated) {
-                    throw new \Exception('Volt course JSON did not pass validation');
-                }
-
-                $validated['response_type'] = 'course';
-                $validatedJson = json_encode($validated, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                $createdCourse = $this->createOrUpdateCourseFromResponse($validatedJson, $teacherId, $courseId);
-                if (!$createdCourse) {
-                    throw new \Exception('Course could not be created from Volt response');
-                }
-
-                $isUpdate = $courseId !== null;
-                return [
-                    'response_type' => 'course',
-                    'content' => "\n\n✅ Cursul a fost " . ($isUpdate ? 'actualizat' : 'creat') . " automat în background!\n\n📚 ID: {$createdCourse->id}\n📝 Titlu: {$createdCourse->title}\n📦 Module: " . $createdCourse->modules()->count() . "\n📄 Lecții: " . $createdCourse->lessons()->count() . "\n\nPoți continua conversația sau să îmi spui dacă vrei să modific ceva.",
-                    'course_id' => $createdCourse->id,
-                    'course_created' => !$isUpdate,
-                    'course_updated' => $isUpdate,
-                ];
-            } catch (\Throwable $e) {
-                $lastError = $e;
-                Log::warning("{$providerName} guided course JSON attempt failed", [
-                    'attempt' => $attemptIndex + 1,
-                    'model' => $modelToUse,
-                    'error' => $e->getMessage(),
-                ]);
             }
         }
 
@@ -593,6 +710,113 @@ class AIController extends Controller
         }
 
         return $blocks ? implode("\n\n---\n\n", $blocks) : '(fără conținut text extras)';
+    }
+
+    /**
+     * Build chat-completions messages with a system prompt and clean history.
+     */
+    private function formatMessages(string $systemPrompt, $messages, ?string $prompt = null): array
+    {
+        $formatted = [
+            [
+                'role' => 'system',
+                'content' => $systemPrompt,
+            ],
+        ];
+
+        $history = is_array($messages) ? $messages : [];
+        foreach ($history as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+
+            $role = strtolower(trim((string) ($message['role'] ?? '')));
+            $content = trim((string) ($message['content'] ?? ''));
+            if ($content === '') {
+                continue;
+            }
+
+            if (!in_array($role, ['user', 'assistant', 'system'], true)) {
+                $role = 'user';
+            }
+
+            // We already inject our canonical system prompt above.
+            if ($role === 'system') {
+                continue;
+            }
+
+            $formatted[] = [
+                'role' => $role,
+                'content' => $content,
+            ];
+        }
+
+        $promptText = trim((string) ($prompt ?? ''));
+        if ($promptText !== '') {
+            $lastMessage = end($formatted);
+            $lastIsSameUserPrompt = is_array($lastMessage)
+                && (($lastMessage['role'] ?? null) === 'user')
+                && (($lastMessage['content'] ?? '') === $promptText);
+
+            if (!$lastIsSameUserPrompt) {
+                $formatted[] = [
+                    'role' => 'user',
+                    'content' => $promptText,
+                ];
+            }
+        }
+
+        return $formatted;
+    }
+
+    private function normalizeGuidedBrief($raw): ?array
+    {
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        $sanitizeText = static fn ($value): string => trim((string) $value);
+        $sanitizeInt = static function ($value, int $fallback, int $min, int $max): int {
+            $parsed = filter_var($value, FILTER_VALIDATE_INT);
+            if ($parsed === false) {
+                return $fallback;
+            }
+
+            return max($min, min($max, (int) $parsed));
+        };
+
+        $topic = $sanitizeText($raw['topic'] ?? '');
+        $courseTitle = $sanitizeText($raw['course_title'] ?? '');
+        $description = $sanitizeText($raw['description'] ?? '');
+        $targetAudience = $sanitizeText($raw['target_audience'] ?? '');
+        $level = $sanitizeText($raw['level'] ?? 'incepator');
+        $style = $sanitizeText($raw['style'] ?? 'practic');
+        $lessonSize = $sanitizeText($raw['lesson_size'] ?? 'mediu');
+        $language = $sanitizeText($raw['language'] ?? 'ro');
+        $modulesCount = $sanitizeInt($raw['modules_count'] ?? 3, 3, 2, 12);
+        $lessonsPerModule = $sanitizeInt($raw['lessons_per_module'] ?? 2, 2, 2, 8);
+
+        if ($topic === '' && $courseTitle === '' && $description === '') {
+            return null;
+        }
+
+        return [
+            'topic' => $topic,
+            'course_title' => $courseTitle,
+            'description' => $description,
+            'target_audience' => $targetAudience,
+            'level' => $level,
+            'style' => $style,
+            'lesson_size' => $lessonSize,
+            'language' => $language,
+            'modules_count' => $modulesCount,
+            'lessons_per_module' => $lessonsPerModule,
+        ];
+    }
+
+    private function buildGuidedBriefPrompt(array $brief): string
+    {
+        return VoltPromptService::buildGuidedBriefPrompt($brief);
     }
 
     /**
@@ -1519,6 +1743,10 @@ class AIController extends Controller
         $teacherId = $request->input('teacher_id') ?? Auth::id();
 
         $mode = (string) $request->input('mode', $type === 'tutor' ? 'admin_tutor' : '');
+        $guidedBrief = null;
+        if ($type === 'course' && str_contains((string) $mode, 'guided_creation')) {
+            $guidedBrief = $this->normalizeGuidedBrief($request->input('guided_brief'));
+        }
         $tutorContext = null;
         if ($type === 'tutor' || str_starts_with($mode, 'admin_tutor') || str_starts_with($mode, 'student_tutor')) {
             $tutorContext = $this->buildTutorContext($request, $prompt);
@@ -1540,6 +1768,9 @@ class AIController extends Controller
             $systemPrompt .= "\n\nContext din baza de date (folosește-l ca sursă principală și nu spune că nu ai acces la date dacă există context):\n"
                 . json_encode($tutorContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
+        if ($guidedBrief) {
+            $systemPrompt .= $this->buildGuidedBriefPrompt($guidedBrief);
+        }
 
         $attachments = $request->input('attachments', []);
         if (is_array($attachments) && !empty($attachments)) {
@@ -1556,6 +1787,24 @@ class AIController extends Controller
                 $guidedResult = $this->generateGuidedCourseCreationJson($formattedMessages, $teacherId, $courseId, $mode);
                 return response()->json($guidedResult);
             } catch (\Throwable $e) {
+                if ($this->isRateLimitError(0, (string) $e->getMessage())) {
+                    $retryAfterSeconds = $this->extractRetryAfterSeconds((string) $e->getMessage(), 20);
+
+                    Log::warning('Guided course creation rate limited', [
+                        'message' => $e->getMessage(),
+                        'retry_after_seconds' => $retryAfterSeconds,
+                        'course_id' => $courseId,
+                        'teacher_id' => $teacherId,
+                    ]);
+
+                    return response()->json([
+                        'response_type' => 'clarification',
+                        'clarification_question' => "Serviciul AI este ocupat acum (rate limit). Reîncearcă peste {$retryAfterSeconds} secunde.",
+                        'content' => "Serviciul AI este ocupat acum (rate limit). Reîncearcă peste {$retryAfterSeconds} secunde.",
+                        'retry_after_seconds' => $retryAfterSeconds,
+                    ]);
+                }
+
                 Log::error('Guided course creation failed', [
                     'message' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
@@ -1716,525 +1965,34 @@ class AIController extends Controller
 
     private function buildGuidedCourseCreationPrompt(): string
     {
-        return <<<PROMPT
-Ești Volt Course Creator. Generezi cursuri complete în limba română.
-
-Reguli esențiale:
-- Dacă cererea este clară, livrezi direct cursul complet.
-- Dacă lipsește o singură informație esențială, răspunzi cu `response_type: clarification` și pui o singură întrebare scurtă.
-- Nu faci preview, outline sau draft intermediar.
-- Nu pui mai multe întrebări în același mesaj.
-- Folosești documentele atașate ca sursă principală.
-- Nu inventezi lecții goale; fiecare lecție trebuie să aibă conținut real.
-- Dacă utilizatorul cere să alegi tu, faci presupuneri explicite și le notezi în `assumptions`.
-- Când răspunzi cu structura finală, întotdeauna returnezi json valid, fără text extra.
-- Lecțiile trebuie să includă introducere, explicație, exemplu, exercițiu/aplicație și recapitulare.
-
-Schema de răspuns:
-- `response_type`: `clarification` sau `course`
-- pentru `clarification`: `clarification_question` + `assumptions`
-- pentru `course`: `title`, `description`, `short_description`, `style`, `lesson_size`, `assumptions`, `modules`
-
-Exemplu de clarificare:
-{
-  "response_type": "clarification",
-  "clarification_question": "Ce nivel vrei pentru curs: începător, mediu sau avansat?"
-}
-
-Exemplu de curs complet:
-{
-  "response_type": "course",
-  "title": "Introducere în React",
-  "description": "Curs practic despre componente, props, state și flux de date.",
-  "short_description": "Bazele React explicate practic.",
-  "style": "practic",
-  "lesson_size": "mediu",
-  "assumptions": ["nivel: începător", "module: 3", "lecții per modul: 2"],
-  "modules": [
-    {
-      "title": "Fundamente React",
-      "description": "Ce este React și cum funcționează.",
-      "lessons": [
-        {
-          "title": "Ce este React",
-          "content": "<p>...</p>"
-        }
-      ]
-    }
-  ]
-}
-
-Setări implicite dacă lipsesc detalii:
-- nivel: începător
-- module: 3
-- lecții per modul: 2
-- stil: practic
-- durată lecții: medie
-- evaluare: quiz
-- status: draft
-- vizibilitate: public
-PROMPT;
+        return VoltPromptService::buildGuidedCourseCreationPrompt();
     }
 
     private function buildBuilderDiffPrompt(): string
     {
-        return <<<PROMPT
-Ești Volt, asistent Volt pentru builder-ul de curs.
-
-Reguli:
-- răspunde strict cu JSON valid
-- propune doar modificările minime necesare
-- dacă lipsesc detalii esențiale, pune o singură întrebare scurtă de clarificare
-- nu rescrie tot cursul dacă este nevoie doar de o schimbare locală
-- pentru lecții, include întotdeauna conținut real, nu doar titlu sau rezumat
-- dacă utilizatorul cere să dezvolți, să completezi sau să scrii lecția, folosește operații `create_lesson` sau `update_lesson` cu `content`
-- dacă un modul este creat sau schimbat și cererea este educațională, include și lecțiile lui
-- nu returna module fără lecții atunci când cererea cere conținut de învățare
-- dacă nu poți produce conținut bun pentru lecții, cere clarificare
-
-Schema:
-{
-  "summary": "...",
-  "needs_confirmation": false,
-  "clarification_question": "",
-  "course_updates": {
-    "title": "...",
-    "description": "...",
-    "short_description": "..."
-  },
-  "operations": [
-    {
-      "op": "update_module",
-      "module_id": 123,
-      "title": "...",
-      "description": "..."
-    },
-    {
-      "op": "create_lesson",
-      "module_id": 123,
-      "title": "...",
-      "content": "<p>...</p>"
-    }
-  ]
-}
-
-Preferințe:
-- update în loc de create, dacă există deja un modul sau o lecție potrivită
-- 1-3 operații relevante sunt de obicei suficiente
-- fără text în afara JSON-ului
-PROMPT;
+        return VoltPromptService::buildBuilderDiffPrompt();
     }
 
     private function getSystemPrompt($type, $courseId = null, $isClarification = false, $mode = '')
     {
         if ($type === 'course' && str_contains($mode, 'guided_creation')) {
-            return $this->buildGuidedCourseCreationPrompt();
-        }
-
-        if (str_contains($mode, ':builder_diff')) {
-            return $this->buildBuilderDiffPrompt();
-        }
-
-        if (str_starts_with($mode, 'admin_tutor') || $type === 'tutor') {
-            $ultraShort = str_contains($mode, ':ultra_short');
-            $quizMode = str_contains($mode, ':quiz');
-            $evaluationMode = str_contains($mode, ':evaluation');
-            $builderDiffMode = str_contains($mode, ':builder_diff');
-            return "Ești Volt, tutor Volt pentru administrator.
-
-Scopul tău:
-- ajuți administratorul să înțeleagă cursurile, lecțiile, exercițiile și progresul lor
-- folosești doar contextul primit: catalogul de cursuri, cursul/lecția potrivită, progresul și greșelile recente
-- răspunzi repede, clar și practic
-- păstrezi răspunsurile scurte implicit; intri în detaliu doar dacă utilizatorul cere explicit sau dacă întrebarea chiar o cere
-
-Reguli de bază:
-- nu inventa informații și nu folosi web sau surse externe
-- nu spune „nu am acces la baza de date” dacă ai deja context relevant
-- dacă există context suficient, răspunde direct, fără să ceri confirmare
-- dacă lipsește ceva important, pune o singură întrebare scurtă și specifică
-- dacă lipsesc mai multe detalii, pui DOAR 1 întrebare per răspuns și aștepți răspunsul utilizatorului înainte de următoarea
-- nu trimite listă de întrebări de clarificare într-un singur mesaj
-- dacă nu găsești potrivirea perfectă, spune cea mai apropiată opțiune și ce lipsește ca să fii exact
-- dacă poți răspunde în 1-2 propoziții, nu extinde inutil
-- dacă utilizatorul cere „mai mult”, „detaliat”, „explică”, atunci extinzi cu pași și exemple
-
-Cum alegi răspunsul:
-- dacă întrebarea este despre un curs sau o lecție, numește explicit cursul/lecția găsită
-- dacă există mai multe potriviri, arată maximum 3 opțiuni și spune pe scurt diferența dintre ele
-- dacă întrebarea e despre cursuri disponibile, listează doar cursurile relevante: titlu, nivel, 1 idee scurtă despre conținut
-- dacă întrebarea cere explicații, oferă 2-4 pași sau idei clare, nu un eseu lung
-- dacă utilizatorul cere ajutor practic, oferă și un exemplu concret sau un pas următor
-- dacă întrebarea este simplă, răspunde direct fără bullets
-- dacă ai deja un răspuns clar din context, nu repeta contextul în formă lungă
-
-Stil:
-- concis, clar, prietenos, orientat spre ajutor
-- ton calm și încurajator
-- evită formulările vagi, repetitive sau defensive
-- folosește exemple scurte când explici concepte
-- preferă propoziții scurte și concrete
-- evită paragrafe lungi atunci când nu sunt necesare
-- folosește română corectă, cu diacritice și structură logică
-
-Format strict de răspuns:
-1. `Răspuns` - 1 paragraf scurt cu concluzia directă
-2. `Din curs` - 0 până la 2 bullets cu informații din contextul relevant, doar dacă aduc valoare
-3. `Următorul pas` - 0 sau 1 bullet cu ce poate face administratorul mai departe, doar dacă e util
-4. `Clarificare` - doar dacă este absolut necesar, o singură întrebare scurtă
-
-Dacă întrebarea trebuie tratată foarte rapid, folosește și regula următoare:
-" . ($ultraShort ? "- răspunde în maximum 2-3 propoziții\n- folosește maximum 1 bullet dacă e absolut necesar\n- nu adăuga exemple multiple, liste lungi sau explicații extinse\n- pentru cursuri, dă doar numele și ideea principală\n- dacă trebuie clarificat ceva, pune o singură întrebare foarte scurtă\n" : '') . "
-
-" . ($quizMode ? "Mod QUIZ:
-- generează doar întrebări bazate strict pe contextul primit
-- evită dublurile și întrebările ambigue
-- răspunde în JSON valid
-- folosește câmpurile question, options, correct și source_chunk_id
-" : '') . "
-
-" . ($evaluationMode ? "Mod EVALUATION:
-- compară răspunsul doar cu contextul primit
-- returnează JSON valid cu score, correct, missing_points și explanation
-- nu inventa puncte lipsă și nu folosi cunoștințe externe
-" : '') . "
-
-" . ($builderDiffMode ? "Mod BUILDER_DIFF:
-- răspunde strict cu JSON valid, fără text înainte sau după JSON
-- propune doar diferențele minime necesare, nu rescrie tot cursul
-- dacă există mai multe variante bune sau lipsesc detalii pentru pasul următor, pune o singură întrebare scurtă de clarificare înainte de a continua
-- nu aplica implicit schimbări mari fără să expui mai întâi planul
-- pentru lecții, creează sau actualizează nu doar structura, ci și conținutul complet al lecției: explicații, exemple, pași și recapitulare
-- dacă utilizatorul cere o lecție nouă, livrează direct conținutul ei complet, nu doar un titlu sau un rezumat
-- dacă cererea de editare implică „dezvoltă”, „completează”, „scrie lecția”, „adauga conținut” sau „explică”, atunci trebuie să propui operații de tip `create_lesson` sau `update_lesson` cu `content`, nu doar `update_module`
-- dacă un modul este creat sau modificat și utilizatorul vrea conținut educațional, include și lecțiile lui, chiar dacă trebuie să le generezi de la zero
-- nu returna doar module fără lecții atunci când cererea vizibil cere conținut de învățare
-- `content` pentru lecții este obligatoriu și trebuie să fie nenul, explicit și suficient de detaliat; dacă nu poți scrie conținut bun încă, cere clarificare în loc să trimiți lecții goale
-- nu folosi câmpuri alternative în loc de `content`; dacă ai doar rezumat, transformă-l într-o lecție completă înainte de a răspunde
-- pentru lecții, poți genera conținut bogat în HTML și poți folosi cunoștințe publice / resurse web relevante atunci când utilizatorul cere conținut din web sau când este nevoie pentru o lecție mai bună
-- dacă folosești resurse web, include în JSON un câmp `sources` la nivel de operație sau lecție, cu maximum 3 linkuri relevante și scurte
-- folosește structura:
-{
-  \"summary\": \"...\",
-  \"needs_confirmation\": true,
-  \"clarification_question\": \"...\",
-  \"course_updates\": {
-    \"title\": \"...\",
-    \"description\": \"...\",
-    \"short_description\": \"...\"
-  },
-  \"operations\": [
-    {
-      \"op\": \"update_module\",
-      \"module_id\": 123,
-      \"title\": \"...\",
-      \"description\": \"...\"
-    },
-    {
-      \"op\": \"create_lesson\",
-      \"module_id\": 123,
-      \"title\": \"...\",
-      \"content\": \"...\",
-      \"sources\": [\"https://...\"]
-    },
-    {
-      \"op\": \"reorderModules\",
-      \"module_ids\": [123, 456]
-    }
-  ]
-}
-- op-urile suportate sunt: create_module, update_module, delete_module, create_lesson, update_lesson, delete_lesson, reorderModules, reorderLessons, moveLesson
-- dacă există un modul sau o lecție potrivită în context, preferă update în loc de create
-- dacă schimbarea este mică, livrează doar 1-3 operații relevante
-- dacă lipsesc ID-urile, cere clarificare scurtă în loc să inventezi
-" : '') . "
-
-Dacă întrebarea este ambiguă, alege cea mai probabilă interpretare și spune explicit presupunerea făcută.";
-        }
-
-        if ($type === 'course' && str_contains($mode, 'guided_creation')) {
             $outlineMode = str_contains($mode, ':outline');
             $jsonMode = ($this->provider === 'openai' || $this->provider === 'groq') ? 'Răspunde doar JSON valid când ai toate datele.' : '';
+
             if ($outlineMode) {
-                return "Ești Volt Course Creator, consultant Volt pentru planificarea rapidă a unui curs.
-
-Obiectiv:
-- creezi mai întâi un outline scurt și stabil, nu un curs complet
-- prioritatea este să obții structura corectă înainte de conținutul detaliat
-- dacă tema este clară, nu ceri confirmări inutile
-- dacă lipsesc detalii, folosești presupuneri simple și le notezi în `assumptions`
-- pui o singură întrebare scurtă doar când chiar lipsește o informație esențială
-- scrii în română corectă, clară și concisă
-
-Ce generezi în această etapă:
-- response_type: outline
-- titlu
-- descriere scurtă
-- stil
-- assumptions
-- 2-4 module
-- 2-3 lecții per modul, doar cu titluri și descrieri foarte scurte
-
-Exemplu de clarificare:
-{
-  \"response_type\": \"clarification\",
-  \"clarification_question\": \"Ce nivel vrei pentru curs: începător, mediu sau avansat?\"
-}
-
-Exemplu de outline bun:
-{
-  \"response_type\": \"outline\",
-  \"title\": \"Introducere în React\",
-  \"description\": \"Curs practic pentru a înțelege bazele React și construirea de componente.\",
-  \"short_description\": \"Bazele React explicate practic.\",
-  \"style\": \"practic\",
-  \"lesson_size\": \"mediu\",
-  \"assumptions\": [\"nivel: începător\", \"module: 3\", \"lecții per modul: 2\"],
-  \"modules\": [
-    {
-      \"title\": \"Fundamente React\",
-      \"description\": \"Ce este React și cum funcționează.\",
-      \"lessons\": [
-        {\"title\": \"Ce este React\", \"description\": \"Context și scop\"},
-        {\"title\": \"Primul component\", \"description\": \"Un exemplu simplu\"}
-      ]
-    }
-  ]
-}
-
-Reguli:
-- nu include conținutul complet al lecțiilor în această etapă
-- nu scrie texte lungi
-- nu inventa detalii inutile
-- dacă ai suficiente date, răspunde direct cu JSON valid
-
-{$jsonMode}
-Când generezi, răspunzi strict JSON (fără markdown / fără text extra), în schema:
-{
-  \"response_type\": \"outline\",
-  \"title\": \"...\",
-  \"description\": \"...\",
-  \"short_description\": \"...\",
-  \"style\": \"...\",
-  \"lesson_size\": \"scurt|mediu|detaliat\",
-  \"assumptions\": [\"...\"],
-  \"modules\": [
-    {
-      \"title\": \"...\",
-      \"description\": \"...\",
-      \"lessons\": [
-        { \"title\": \"...\", \"description\": \"...\" }
-      ]
-    }
-  ]
-}";
+                return VoltPromptService::buildCourseOutlinePrompt($jsonMode);
             }
-            return "Ești Volt Course Creator, consultant Volt pentru design de curs.
 
-Obiectiv:
-- NU folosi șabloane fixe.
-- Colectezi cerințele reale și abia apoi generezi structura cursului.
-- Ai acces complet să generezi module, lecții și conținutul lor.
-- Dacă tema cursului este clară, mergi direct la generare și nu mai cere confirmări inutile.
-- Dacă tema este clară, generează direct un draft complet, nu doar un schelet.
-- Ținta este un curs livrabil: module, lecții și conținutul lor, nu doar titluri și descrieri.
-- Nu produce preview, outline sau draft intermediar dacă ai suficiente informații.
-- Folosește presupuneri inteligente pentru ce lipsește: nivel, număr de module, număr de lecții, stil, durată, tip de evaluare.
-- Nu cere toate detaliile înainte să începi; tema singură este suficientă ca să produci un draft bun.
-- Scrii în limba română corectă, coerentă, cu diacritice.
-- Evită propoziții rupte, exprimări vagi și repetiții.
-
-Regulă de lucru:
-- dacă lipsesc date esențiale, pui o singură întrebare scurtă și clară per mesaj; poți întreba din nou în mesajele următoare, dacă mai lipsesc detalii;
-- dacă utilizatorul cere „alege tu”, poți continua cu presupuneri explicite;
-- dacă ai suficiente date, treci direct la generare și returnezi strict JSON valid;
-- nu transforma clarificarea într-un interviu lung;
-- pentru cursuri, preferi să generezi lecțiile complete și conținutul lor, nu doar un schelet.
-- răspunsul trebuie să includă explicit `response_type`:
-  - `clarification` când lipsește o informație esențială și ai nevoie de o singură întrebare
-  - `course` când poți livra cursul complet
-
-Exemplu de clarificare:
-{
-  \"response_type\": \"clarification\",
-  \"clarification_question\": \"Ce nivel vrei pentru curs: începător, mediu sau avansat?\"
-}
-
-Exemplu de curs complet:
-{
-  \"response_type\": \"course\",
-  \"title\": \"Introducere în React\",
-  \"description\": \"Curs practic despre componente, props, state și flux de date.\",
-  \"short_description\": \"Bazele React explicate practic.\",
-  \"style\": \"practic\",
-  \"lesson_size\": \"mediu\",
-  \"assumptions\": [\"nivel: începător\", \"module: 3\", \"lecții per modul: 2\"],
-  \"modules\": [
-    {
-      \"title\": \"Fundamente React\",
-      \"description\": \"Ce este React și cum funcționează.\",
-      \"lessons\": [
-        {
-          \"title\": \"Ce este React\",
-          \"content\": \"<p>...</p>\"
-        }
-      ]
-    }
-  ]
-}
-
-Date minime necesare înainte de JSON:
-- tema/subiectul cursului;
-- audiența și nivelul (începător/mediu/avansat);
-- număr module;
-- număr lecții per modul;
-- stilul cursului (practic/teoretic/workshop/etc.);
-- dimensiunea dorită a lecțiilor (scurt/mediu/detaliat);
-- tipul de evaluare (quiz/proiect/fără evaluare);
-- fiecare lecție trebuie să fie completă și utilizabilă direct, cu introducere, explicație, exemplu, exercițiu și recapitulare.
-- presupuneri implicite recomandate dacă lipsesc detalii:
-  - nivel: începător
-  - module: 3
-  - lecții per modul: 2
-  - stil: practic
-  - durată lecții: medie
-  - evaluare: quiz
-  - status: draft
-  - vizibilitate: public
-
-Documente atașate:
-- tratează documentele ca referință principală;
-- extrage doar informația utilă pentru cerere;
-- ține cont de dimensiune (document mare => poți sintetiza mai mult context, document mic => răspuns concentrat).
-
-Dacă utilizatorul spune \"alege tu\", poți propune valori implicite, dar le marchezi în `assumptions`.
-- În etapa de clarificare, pune exact o singură întrebare pe răspuns.
-
-{$jsonMode}
-Când generezi, răspunzi strict JSON (fără markdown / fără text extra), în schema:
-{
-  \"response_type\": \"course\",
-  \"title\": \"...\",
-  \"description\": \"...\",
-  \"short_description\": \"...\",
-  \"style\": \"...\",
-  \"lesson_size\": \"scurt|mediu|detaliat\",
-  \"assumptions\": [\"...\"],
-  \"modules\": [
-    {
-      \"title\": \"...\",
-      \"description\": \"...\",
-      \"lessons\": [
-        { \"title\": \"...\", \"content\": \"...\" }
-      ]
-    }
-  ]
-}";
+            return VoltPromptService::buildGuidedCourseCreationPrompt();
         }
 
         if ($type === 'course') {
-            // OpenAI și Groq suportă JSON mode
-            $jsonMode = ($this->provider === 'openai' || $this->provider === 'groq') ? 'IMPORTANT: Răspunde ÎNTOTDEAUNA în format JSON valid. ' : '';
-            
-            return "Ești un asistent Volt expert în crearea de cursuri educaționale în limba română. 
-Creează cursuri structurate, clare și educative.
-
-{$jsonMode}IMPORTANT: 
-- Nu folosi șabloane fixe cu număr obligatoriu de module/lecții.
-- Înainte de generare, colectezi cerințele lipsă printr-o singură întrebare scurtă și specifică.
-- Întreabă doar ce lipsește cu adevărat; nu lista mai multe întrebări în același mesaj.
-- Dacă tema este clară, generează direct cursul complet cu lecții și conținut, fără să ceri confirmări inutile.
-- Dacă lipsesc detalii, folosește presupuneri implicite și marchează-le în `assumptions`.
-- Dacă există documente atașate, folosește-le ca referință principală și extrage doar informația utilă; ia în calcul și dimensiunea documentului (fișier mare => poți include mai mult context, fișier mic => răspuns mai concentrat).
-- Dacă informațiile sunt insuficiente, NU genera JSON de curs. Pune o singură întrebare relevantă în text simplu; poți continua ulterior cu alte întrebări, una câte una.
-- Dacă utilizatorul cere explicit să propui tu valori lipsă, ai voie să faci presupuneri, dar marchezi clar ce ai presupus.
-- Fiecare lecție generată trebuie să fie completă și utilă direct: introducere, explicație clară, exemplu concret, exercițiu sau aplicație și recapitulare scurtă.
-
-Când ai suficiente informații, răspunde ÎNTOTDEAUNA în JSON valid (fără text înainte sau după JSON) în structura:
-{
-  \"title\": \"Titlul cursului\",
-  \"description\": \"Descriere detaliată\",
-  \"short_description\": \"Descriere scurtă (max 150 caractere)\",
-  \"style\": \"stilul cursului (ex: practic, academic, workshop)\",
-  \"lesson_size\": \"scurt|mediu|detaliat\",
-  \"assumptions\": [\"presupunere 1\", \"presupunere 2\"],
-  \"modules\": [
-    {
-      \"title\": \"Titlul modulului\",
-      \"description\": \"Descriere modul\",
-      \"lessons\": [
-        {
-          \"title\": \"Titlul lecției\",
-          \"content\": \"Conținut HTML util și structurat\"
+            $jsonMode = ($this->provider === 'openai' || $this->provider === 'groq') ? 'IMPORTANT: Răspunde întotdeauna în format JSON valid. ' : '';
+            return VoltPromptService::buildCourseDesignPrompt($jsonMode);
         }
-      ]
+
+        return VoltPromptService::buildTestPrompt(($this->provider === 'openai' || $this->provider === 'groq') ? 'IMPORTANT: Răspunde întotdeauna în format JSON valid. ' : '');
     }
-  ]
-}
-
-Reguli de calitate:
-- modulele și lecțiile trebuie să urmeze cerința utilizatorului, nu un număr hardcod-at.
-- conținutul trebuie să fie practic și clar, cu structură pedagogică progresivă.
-- păstrează consistență între nivel, stil și dimensiunea lecțiilor.
-- dacă documentele de referință contrazic cererea, prioritatea este cererea utilizatorului, apoi documentele.
-- fiecare lecție trebuie să fie completă și utilizabilă direct: introducere, explicație clară, exemplu concret, exercițiu sau aplicație și recapitulare scurtă.";
-        } else {
-            return "Ești un asistent Volt expert în crearea de teste educaționale în limba română. 
-Creează teste cu întrebări clare și răspunsuri corecte. 
-Folosește DOAR contextul/informațiile primite în cerere (storage intern). NU folosi web sau cunoștințe externe.
-Dacă informația este insuficientă pentru întrebări valide, răspunde cu JSON valid și include un câmp `needs_more_context` cu motivul.
-Răspunde întotdeauna în format JSON valid cu următoarea structură:
-{
-    \"title\": \"Titlul testului\",
-    \"description\": \"Descrierea testului\",
-    \"needs_more_context\": false,
-    \"questions\": [
-        {
-            \"question\": \"Întrebarea\",
-            \"type\": \"multiple_choice\",
-            \"options\": [\"Opțiunea 1\", \"Opțiunea 2\", \"Opțiunea 3\", \"Opțiunea 4\"],
-            \"correct_answer\": 0,
-            \"explanation\": \"Explicația răspunsului corect\"
-        }
-    ]
-}
-Asigură-te că JSON-ul este valid și complet.";
-        }
-    }
-
-    private function formatMessages($systemPrompt, $messages, $userPrompt)
-    {
-        $formatted = [
-            [
-                'role' => 'system',
-                'content' => $systemPrompt
-            ]
-        ];
-
-        // Adaugă istoricul mesajelor recente (mai mult context pentru tutor => răspunsuri mai coerente)
-        $isTutorPrompt = str_contains((string) $systemPrompt, 'Ești Volt, tutor Volt');
-        $recentMessages = array_slice($messages, $isTutorPrompt ? -4 : -5);
-        foreach ($recentMessages as $msg) {
-            if (isset($msg['role']) && isset($msg['content']) && $msg['role'] !== 'system') {
-                $formatted[] = [
-                    'role' => $msg['role'],
-                    'content' => $msg['content']
-                ];
-            }
-        }
-
-        // Adaugă prompt-ul curent
-        $formatted[] = [
-            'role' => 'user',
-            'content' => $userPrompt
-        ];
-
-        return $formatted;
-    }
-
-    /**
-     * Stream response from OpenAI/Groq API
-     */
     public function streamOpenAIResponse($messages, $type, $teacherId = null, $courseId = null, &$fullResponse = null, $mode = '')
     {
         if ($fullResponse === null) {
@@ -2261,7 +2019,7 @@ Asigură-te că JSON-ul este valid și complet.";
             $tutorTimeout = max(30, (int) env('AI_TUTOR_TIMEOUT', 120));
             $connectTimeout = max(5, (int) env('AI_CONNECT_TIMEOUT', 15));
             $effectiveTimeout = $isGuidedCreation ? $guidedTimeout : ($isTutorMode ? $tutorTimeout : $defaultTimeout);
-            $guidedMaxTokens = max(500, (int) env('AI_GUIDED_MAX_TOKENS', 1100));
+            $guidedMaxTokens = max(500, (int) env('AI_GUIDED_MAX_TOKENS', 8192));
             $effectiveModel = $this->model;
             if ($isGuidedCreation) {
                 if ($this->provider === 'groq') {
@@ -2403,12 +2161,7 @@ Asigură-te că JSON-ul este valid și complet.";
                 $errorDetails = $errorResponse ?: (substr($responseBody, 0, 500) ?: 'No error details available');
                 
                 // Check if it's a model not found error (404)
-                $isModelNotFound = ($httpCode === 404 && (
-                    strpos(strtolower($errorDetails), 'model') !== false && 
-                    (strpos(strtolower($errorDetails), 'does not exist') !== false || 
-                     strpos(strtolower($errorDetails), 'not found') !== false ||
-                     strpos(strtolower($errorDetails), 'no access') !== false)
-                ));
+                $isModelNotFound = $this->isModelUnavailableError($httpCode, $errorDetails);
                 
                 // Check if it's a rate limit/quota error
                 $isRateLimit = $this->isRateLimitError($httpCode, $errorDetails);
@@ -3012,14 +2765,14 @@ Asigură-te că JSON-ul este valid și complet.";
                                 'lesson_title' => $lessonData['title']
                             ]);
                             throw new \Exception('Lecția "' . ($lessonData['title'] ?? 'fără titlu') . '" nu are conținut.');
-                        } elseif ($lessonLines < self::MIN_LESSON_LINES) {
+                        } elseif ($lessonLines < $this->getMinLessonLines()) {
                             Log::warning('Lesson content is too short by lines rule', [
                                 'module_id' => $module->id,
                                 'lesson_title' => $lessonData['title'],
                                 'content_lines' => $lessonLines,
-                                'required_min_lines' => self::MIN_LESSON_LINES
+                                'required_min_lines' => $this->getMinLessonLines()
                             ]);
-                            throw new \Exception('Lecția "' . ($lessonData['title'] ?? 'fără titlu') . '" trebuie să aibă minimum ' . self::MIN_LESSON_LINES . ' de rânduri.');
+                            throw new \Exception('Lecția "' . ($lessonData['title'] ?? 'fără titlu') . '" trebuie să aibă minimum ' . $this->getMinLessonLines() . ' de rânduri.');
                         }
 
                         $this->ensureLessonHasMinimumLines((string) ($lessonData['title'] ?? ''), $lessonContent);
@@ -3088,7 +2841,14 @@ Asigură-te că JSON-ul este valid și complet.";
         }
 
         Log::info('Parsed course JSON candidate', ['modules_count' => count($data['modules'] ?? [])]);
-        return $this->validateAndNormalizeCourseData($data);
+        $validation = $this->validateAndNormalizeCourseData($data);
+        if (!($validation['ok'] ?? false)) {
+            Log::info('Parsed course JSON rejected', ['reasons' => $validation['reasons'] ?? []]);
+
+            return null;
+        }
+
+        return $validation['data'];
     }
 
     /**
@@ -3311,27 +3071,39 @@ Asigură-te că JSON-ul este valid și complet.";
             return trim((string) $line) !== '';
         });
 
-        return count($nonEmptyLines);
+        $lineCount = count($nonEmptyLines);
+
+        // If AI returns dense paragraphs, approximate useful "lines"
+        // by counting sentence-like chunks too.
+        $sentenceChunks = preg_split('/(?<=[\.\!\?])\s+|[;\n]+/u', trim($plain)) ?: [];
+        $sentenceCount = count(array_filter($sentenceChunks, static function ($chunk) {
+            return mb_strlen(trim((string) $chunk)) >= 20;
+        }));
+
+        return max($lineCount, $sentenceCount);
     }
 
     private function ensureLessonHasMinimumLines(string $lessonTitle, string $lessonContent): void
     {
         $lineCount = $this->countLessonContentLines($lessonContent);
-        if ($lineCount < self::MIN_LESSON_LINES) {
+        if ($lineCount < $this->getMinLessonLines()) {
             throw new \RuntimeException(
-                'Lecția "' . ($lessonTitle !== '' ? $lessonTitle : 'fără titlu') . '" trebuie să aibă minimum ' . self::MIN_LESSON_LINES . ' rânduri de conținut util.'
+                'Lecția "' . ($lessonTitle !== '' ? $lessonTitle : 'fără titlu') . '" trebuie să aibă minimum ' . $this->getMinLessonLines() . ' rânduri de conținut util.'
             );
         }
     }
 
     /**
-     * Validate and normalize course data
+     * Validate and normalize course data.
+     *
+     * @return array{ok: true, data: array}|array{ok: false, reasons: string[]}
      */
-    private function validateAndNormalizeCourseData($data)
+    private function validateAndNormalizeCourseData($data): array
     {
         if (!is_array($data)) {
             Log::warning('Course data is not an array');
-            return null;
+
+            return ['ok' => false, 'reasons' => ['Răspunsul nu este un obiect JSON de curs.']];
         }
 
         $responseType = strtolower(trim((string) ($data['response_type'] ?? 'course')));
@@ -3339,7 +3111,8 @@ Asigură-te că JSON-ul este valid și complet.";
             Log::warning('Course schema rejected due to response type', [
                 'response_type' => $responseType,
             ]);
-            return null;
+
+            return ['ok' => false, 'reasons' => ['response_type trebuie să fie "course" (primit: "' . ($data['response_type'] ?? 'lipsă') . '").']];
         }
 
         $title = trim((string) ($data['title'] ?? ''));
@@ -3351,21 +3124,24 @@ Asigură-te că JSON-ul este valid și complet.";
                 'has_title' => $title !== '',
                 'has_description' => $description !== '',
             ]);
-            return null;
+
+            return ['ok' => false, 'reasons' => ['Lipsesc title sau description (ambele obligatorii).']];
         }
 
         if (!isset($data['modules']) || !is_array($data['modules']) || empty($data['modules'])) {
             Log::warning('No modules found in parsed data');
-            return null;
+
+            return ['ok' => false, 'reasons' => ['Lipsește modules sau este gol.']];
         }
 
         $modulesCount = count($data['modules']);
         if ($modulesCount < 2) {
             Log::warning('Insufficient modules', [
                 'required' => 2,
-                'found' => $modulesCount
+                'found' => $modulesCount,
             ]);
-            return null;
+
+            return ['ok' => false, 'reasons' => ['Sunt necesare minimum 2 module (ai trimis ' . $modulesCount . ').']];
         }
 
         $normalizedModules = [];
@@ -3374,7 +3150,8 @@ Asigură-te că JSON-ul este valid și complet.";
                 Log::warning('Invalid module shape', [
                     'module_index' => $moduleIndex,
                 ]);
-                return null;
+
+                return ['ok' => false, 'reasons' => ['Modul la index ' . $moduleIndex . ' nu are formă validă.']];
             }
 
             $moduleTitle = trim((string) ($module['title'] ?? ''));
@@ -3382,7 +3159,8 @@ Asigură-te că JSON-ul este valid și complet.";
                 Log::warning('Invalid module title', [
                     'module_index' => $moduleIndex,
                 ]);
-                return null;
+
+                return ['ok' => false, 'reasons' => ['Modulul de la index ' . $moduleIndex . ' nu are title.']];
             }
 
             $normalizedModule = [
@@ -3396,7 +3174,8 @@ Asigură-te că JSON-ul este valid și complet.";
                     'module_title' => $moduleTitle,
                     'module_index' => $moduleIndex,
                 ]);
-                return null;
+
+                return ['ok' => false, 'reasons' => ['Modulul "' . $moduleTitle . '" nu are lecții în array-ul lessons.']];
             }
 
             foreach ($module['lessons'] as $lessonIndex => $lesson) {
@@ -3406,7 +3185,8 @@ Asigură-te că JSON-ul este valid și complet.";
                         'module_index' => $moduleIndex,
                         'lesson_index' => $lessonIndex,
                     ]);
-                    return null;
+
+                    return ['ok' => false, 'reasons' => ['Lecția de la index ' . $lessonIndex . ' în modulul "' . $moduleTitle . '" nu are formă validă.']];
                 }
 
                 $lessonTitle = trim((string) ($lesson['title'] ?? ''));
@@ -3416,7 +3196,8 @@ Asigură-te că JSON-ul este valid și complet.";
                         'module_index' => $moduleIndex,
                         'lesson_index' => $lessonIndex,
                     ]);
-                    return null;
+
+                    return ['ok' => false, 'reasons' => ['O lecție din modulul "' . $moduleTitle . '" nu are title.']];
                 }
 
                 $lessonContent = trim((string) ($lesson['content'] ?? ''));
@@ -3426,20 +3207,22 @@ Asigură-te că JSON-ul este valid și complet.";
                         'lesson_title' => $lessonTitle,
                         'lesson_index' => $lessonIndex,
                     ]);
-                    return null;
+
+                    return ['ok' => false, 'reasons' => ['Lecția "' . $lessonTitle . '" (modul "' . $moduleTitle . '") are content gol.']];
                 }
 
                 $lineCount = $this->countLessonContentLines($lessonContent);
-                if ($lineCount < self::MIN_LESSON_LINES) {
+                if ($lineCount < $this->getMinLessonLines()) {
                     Log::warning('Invalid lesson content: too few lines', [
                         'module_title' => $moduleTitle,
                         'lesson_title' => $lessonTitle,
-                        'required_min_lines' => self::MIN_LESSON_LINES,
+                        'required_min_lines' => $this->getMinLessonLines(),
                         'found_lines' => $lineCount,
                     ]);
-                    throw new \RuntimeException(
-                        'Lec?ia "' . $lessonTitle . '" are doar ' . $lineCount . ' randuri. Minimul este ' . self::MIN_LESSON_LINES . '.'
-                    );
+
+                    return ['ok' => false, 'reasons' => [
+                        'Lecția "' . $lessonTitle . '" are doar ' . $lineCount . ' rânduri de conținut util; minimul este ' . $this->getMinLessonLines() . '. Folosește mai multe paragrafe <p>, liste <li> sau <br> ca să se numără rânduri separate.',
+                    ]];
                 }
 
                 $normalizedModule['lessons'][] = [
@@ -3453,9 +3236,10 @@ Asigură-te că JSON-ul este valid și complet.";
                 Log::warning('Module has insufficient lessons', [
                     'module_title' => $moduleTitle,
                     'required' => 2,
-                    'found' => $lessonsCount
+                    'found' => $lessonsCount,
                 ]);
-                return null;
+
+                return ['ok' => false, 'reasons' => ['Modulul "' . $moduleTitle . '" trebuie să aibă minimum 2 lecții (ai ' . $lessonsCount . ').']];
             }
 
             $normalizedModules[] = $normalizedModule;
@@ -3463,23 +3247,28 @@ Asigură-te că JSON-ul este valid și complet.";
 
         if (empty($normalizedModules)) {
             Log::warning('No valid modules with lessons found after normalization');
-            return null;
+
+            return ['ok' => false, 'reasons' => ['Nu s-au putut normaliza modulele.']];
         }
 
         if (count($normalizedModules) < 2) {
             Log::warning('Final validation failed: insufficient modules', [
                 'required' => 2,
-                'found' => count($normalizedModules)
+                'found' => count($normalizedModules),
             ]);
-            return null;
+
+            return ['ok' => false, 'reasons' => ['După normalizare sunt sub 2 module valide.']];
         }
 
         return [
-            'response_type' => $responseType,
-            'title' => $title,
-            'description' => $description,
-            'short_description' => $shortDescription !== '' ? $shortDescription : substr($description, 0, 150),
-            'modules' => $normalizedModules,
+            'ok' => true,
+            'data' => [
+                'response_type' => $responseType,
+                'title' => $title,
+                'description' => $description,
+                'short_description' => $shortDescription !== '' ? $shortDescription : substr($description, 0, 150),
+                'modules' => $normalizedModules,
+            ],
         ];
     }
 
@@ -3530,5 +3319,3 @@ Asigură-te că JSON-ul este valid și complet.";
         return false;
     }
 }
-
-

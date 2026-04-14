@@ -1,4 +1,5 @@
 import React from 'react';
+import { getDashboardActivityActionLabel } from '../../utils/activityLogLabels';
 
 const ActivityFeed = ({ activities, loading }) => {
 	if (loading) {
@@ -104,7 +105,7 @@ const ActivityFeed = ({ activities, loading }) => {
 									{activity.actor || 'Sistem'}
 								</span>
 								<span className="admin-activity-action">
-									{activity.action || 'acțiune efectuată'}
+									{getDashboardActivityActionLabel(activity)}
 								</span>
 							</div>
 							<div className="admin-activity-description">

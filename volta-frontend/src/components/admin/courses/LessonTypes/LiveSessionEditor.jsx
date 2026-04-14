@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
+import { buildLiveSessionAgendaPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
  * Live Session Editor - Conform defacut.md secțiunea 5.4
@@ -24,37 +25,11 @@ const LiveSessionEditor = ({ lesson, onUpdate }) => {
 
 		setAiGenerating(true);
 		try {
-			const prompt = `Generează o agendă pentru sesiune live.
-
-Titlu: ${lesson.title}
-${lesson.description ? `Descriere: ${lesson.description}` : ''}
-${lesson.duration_minutes ? `Durată: ${lesson.duration_minutes} minute` : ''}
-
-Generează o agendă detaliată cu:
-- Introducere
-- Puncte principale de discutat
-- Activități interactive
-- Q&A session
-- Concluzie
-
-Răspunde în format JSON:
-{
-  "agenda": [
-    {
-      "time": "00:00",
-      "title": "Introducere",
-      "duration_minutes": 5,
-      "description": "Descriere activitate..."
-    },
-    {
-      "time": "05:00",
-      "title": "Punct principal 1",
-      "duration_minutes": 15,
-      "description": "Descriere activitate..."
-    }
-  ],
-  "total_duration_minutes": 60
-}`;
+			const prompt = buildLiveSessionAgendaPrompt({
+				title: lesson.title,
+				description: lesson.description,
+				durationMinutes: lesson.duration_minutes,
+			});
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(

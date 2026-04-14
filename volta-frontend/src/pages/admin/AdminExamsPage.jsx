@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,7 +6,15 @@ import { downloadSimpleExcel, statisticsExcelFilename } from '../../utils/statis
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
 
-const SECTIONS = ['Setari', 'Intrebari', 'Acces', 'Statistica'];
+/** Id-uri stabile pentru logică; etichete cu diacritice în UI. */
+const EXAM_BUILDER_SECTIONS = [
+  { id: 'settings', label: 'Setări' },
+  { id: 'questions', label: 'Întrebări' },
+  { id: 'access', label: 'Acces' },
+  { id: 'statistics', label: 'Statistici' },
+];
+const DEFAULT_EXAM_SECTION = EXAM_BUILDER_SECTIONS[0].id;
+
 const FILTERS = [
   { value: 'all', label: 'Toate' },
   { value: 'draft', label: 'Draft' },
@@ -47,19 +55,26 @@ const localDateTime = (value) => {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 };
 const typeLabel = (type) => ({
-  open_text: 'Raspuns deschis',
-  short_answer: 'Raspuns scurt',
+  open_text: 'Răspuns deschis',
+  short_answer: 'Răspuns scurt',
   essay: 'Eseu',
-  multiple_choice: 'Grila',
-  single_choice: 'Alegere unica',
-  true_false: 'Adevarat / fals',
+  multiple_choice: 'Grilă',
+  single_choice: 'Alegere unică',
+  true_false: 'Adevărat / fals',
 }[type] || type);
+
+function examStatusLabelRo(status) {
+  const s = String(status || 'draft').toLowerCase();
+  if (s === 'published') return 'Publicat';
+  if (s === 'archived') return 'Arhivat';
+  return 'Draft';
+}
 
 export default function AdminExamsPage() {
   const { success: toastSuccess, error: toastError } = useToast();
   const { canMutateInAdminArea } = useAuth();
   const [viewMode, setViewMode] = useState('list');
-  const [activeSection, setActiveSection] = useState(SECTIONS[0]);
+  const [activeSection, setActiveSection] = useState(DEFAULT_EXAM_SECTION);
   const [published, setPublished] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +181,7 @@ export default function AdminExamsPage() {
     } catch (e) {
       console.error('Failed to load exams:', e);
       setItems([]);
-      setError('Nu s-a putut incarca lista de examene.');
+      setError('Nu s-a putut încărca lista de examene.');
     } finally {
       setLoading(false);
     }
@@ -176,18 +191,18 @@ export default function AdminExamsPage() {
   useEffect(() => { if (!canMutateInAdminArea && viewMode !== 'list') setViewMode('list'); }, [canMutateInAdminArea, viewMode]);
 
   const handleRefreshStatistics = useCallback(async (notify = false) => {
-    if (viewMode !== 'create' || activeSection !== 'Statistica') return;
+    if (viewMode !== 'create' || activeSection !== 'statistics') return;
     if (!activeExamDraft.id) { setStatisticsRows([]); setStatisticsQuestionRows([]); return; }
     try {
       setStatisticsLoading(true);
       const [resultsData, questionData] = await Promise.all([adminService.getExamResults(activeExamDraft.id), adminService.getExamQuestionAnalytics(activeExamDraft.id)]);
       setStatisticsRows(Array.isArray(resultsData) ? resultsData : []);
       setStatisticsQuestionRows(Array.isArray(questionData) ? questionData : []);
-      if (notify) toastSuccess('Statistica a fost actualizata.');
+      if (notify) toastSuccess('Statisticile au fost actualizate.');
     } catch (e) {
       console.error('Failed to refresh statistics:', e);
       setStatisticsRows([]); setStatisticsQuestionRows([]);
-      if (notify) toastError('Nu s-a putut actualiza statistica.');
+      if (notify) toastError('Nu s-au putut actualiza statisticile.');
     } finally { setStatisticsLoading(false); }
   }, [activeExamDraft.id, activeSection, viewMode, toastSuccess, toastError]);
 
@@ -205,7 +220,7 @@ export default function AdminExamsPage() {
       setActiveExamDraft({ id: createdExam?.id || null, title, description: createDescription.trim(), course_id: null });
       setExamSettings({ ...DEFAULT_SETTINGS, title, description: createDescription.trim() });
       setExamAccess({ mode: 'all_students', selectedStudents: [] });
-      setPublished(false); setShowCreateModal(false); setViewMode('create'); setActiveSection(SECTIONS[0]);
+      setPublished(false); setShowCreateModal(false); setViewMode('create'); setActiveSection(DEFAULT_EXAM_SECTION);
     } catch (e) {
       console.error('Failed to create exam:', e);
       setCreateError(e?.response?.data?.message || 'Nu s-a putut crea examenul.');
@@ -273,7 +288,11 @@ export default function AdminExamsPage() {
     setPublished(String(item?.status || 'draft').toLowerCase() === 'published');
     setSaveState({ loading: false, message: '', type: '' });
     setViewMode('create');
-    setActiveSection(options.initialSection && SECTIONS.includes(options.initialSection) ? options.initialSection : SECTIONS[0]);
+    setActiveSection(
+      options.initialSection && EXAM_BUILDER_SECTIONS.some((s) => s.id === options.initialSection)
+        ? options.initialSection
+        : DEFAULT_EXAM_SECTION,
+    );
   };
 
   const handleOpenStudentsModal = async () => {
@@ -377,7 +396,18 @@ export default function AdminExamsPage() {
   const handleConfirmContentSelection = async () => { setContentConfirmLoading(true); try { const ok = await handleSaveExam(); if (ok) setShowContentModal(false); } finally { setContentConfirmLoading(false); } };
 
   const exportStatistics = () => {
-    downloadSimpleExcel(statisticsExcelFilename(`examen-${activeExamDraft.id || 'export'}`), 'Statistica examen', ['Data sustinerii', 'Nume complet', 'Email', 'Status', 'Scor'], filteredStatisticsRows.map((row) => [row.completed_at ? new Date(row.completed_at).toLocaleDateString('ro-RO') : '-', row.user?.name || '-', row.user?.email || '-', row.status || '-', row.percentage != null ? `${row.percentage}%` : '-']));
+    downloadSimpleExcel(
+      statisticsExcelFilename(`examen-${activeExamDraft.id || 'export'}`),
+      'Statistici examen',
+      ['Data susținerii', 'Nume complet', 'Email', 'Status', 'Scor'],
+      filteredStatisticsRows.map((row) => [
+        row.completed_at ? new Date(row.completed_at).toLocaleDateString('ro-RO') : '-',
+        row.user?.name || '-',
+        row.user?.email || '-',
+        row.status || '-',
+        row.percentage != null ? `${row.percentage}%` : '-',
+      ]),
+    );
   };
   const listView = (
     <div className="admin-tests-page admin-exams-modern-page admin-exams-page">
@@ -386,11 +416,21 @@ export default function AdminExamsPage() {
           <h1>Examene</h1>
           <p className="admin-tests-header-lead">Builder pentru examene: selecție întrebări, acces și statistici. Verificarea manuală este în Content → Verificare manuală.</p>
         </div>
-        {canMutateInAdminArea ? (
-          <div className="admin-tests-header-actions">
-            <button type="button" className="admin-tests-primary-btn" onClick={handleOpenCreateModal}>+ Creeaza examen</button>
-          </div>
-        ) : null}
+        <div className="admin-tests-header-actions">
+          <button
+            type="button"
+            className="admin-exams-list-refresh-btn"
+            onClick={() => loadExams()}
+            disabled={loading}
+          >
+            {loading ? 'Se încarcă…' : 'Reîmprospătează lista'}
+          </button>
+          {canMutateInAdminArea ? (
+            <button type="button" className="admin-tests-primary-btn" onClick={handleOpenCreateModal}>
+              + Creează examen
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {!loading && !error && items.length > 0 ? (
@@ -404,7 +444,13 @@ export default function AdminExamsPage() {
 
       <div className="admin-exams-modern-toolbar">
         <div className="admin-tests-search admin-exams-modern-search">
-          <input type="search" placeholder="Cauta dupa titlu sau curs..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input
+            type="search"
+            placeholder="Caută după titlu sau curs…"
+            aria-label="Caută examene"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className="admin-exams-modern-filter-chips">
           {FILTERS.map((filter) => (
@@ -416,30 +462,56 @@ export default function AdminExamsPage() {
         </div>
       </div>
 
-      {loading ? <div className="admin-tests-empty">Se incarca examenele...</div> : error ? <div className="admin-tests-empty">{error}</div> : filteredItems.length === 0 ? <div className="admin-tests-empty">{items.length === 0 ? 'Nu exista examene inca. Creeaza primul examen.' : 'Nu exista examene pentru filtrele curente.'}</div> : (
+      {loading ? (
+        <div className="admin-exams-modern-skeleton-grid" aria-busy="true" aria-label="Se încarcă examenele">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="admin-exams-list-skeleton-card" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="admin-tests-empty">{error}</div>
+      ) : filteredItems.length === 0 ? (
+        <div className="admin-tests-empty admin-exams-modern-empty">
+          <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {items.length === 0 ? 'Niciun examen încă' : 'Niciun rezultat'}
+          </p>
+          <p className="admin-exams-list-empty-hint" style={{ marginTop: '0.5rem' }}>
+            {items.length === 0
+              ? 'Creează primul examen sau verifică mai târziu.'
+              : 'Schimbă filtrul sau termenii de căutare.'}
+          </p>
+        </div>
+      ) : (
         <div className="admin-tests-grid admin-exams-modern-grid">
           {filteredItems.map((item) => {
             const status = String(item?.status || 'draft').toLowerCase();
             const busy = listActionId === item.id;
             return (
-              <article key={item.id} className="admin-tests-card admin-exams-modern-card">
-                <div className="admin-tests-card-head"><h3>{item.title || 'Examen fara titlu'}</h3><span className={`status ${status}`}>{item.status || 'draft'}</span></div>
-                <p>{item.description || 'Fara descriere.'}</p>
-                <div className="admin-tests-meta">
-                  <span>Intrebari: {item.questions_count ?? 0}</span>
-                  <span>Prag: {Number(item.passing_score ?? 0)}%</span>
-                  <span>Incercari: {item.max_attempts ?? '-'}</span>
-                  <span>{item.course_title ? `Curs: ${item.course_title}` : 'Examen independent'}</span>
+              <article key={item.id} className={`admin-tests-card admin-exams-modern-card admin-exams-modern-card--${status}`}>
+                <div className="admin-tests-card-head">
+                  <h3>{item.title || 'Examen fără titlu'}</h3>
+                  <span className={`status status-ro ${status}`}>{examStatusLabelRo(item.status)}</span>
+                </div>
+                <p className="admin-exams-modern-card-desc">{item.description || 'Fără descriere.'}</p>
+                <div className="admin-tests-meta admin-exams-modern-meta-row">
+                  <span className="admin-exams-modern-meta-chip">{item.questions_count ?? 0} întrebări</span>
+                  <span className="admin-exams-modern-meta-chip">Prag {Number(item.passing_score ?? 0)}%</span>
+                  <span className="admin-exams-modern-meta-chip">
+                    {item.max_attempts != null ? `${item.max_attempts} încercări` : 'Încercări: —'}
+                  </span>
+                  <span className="admin-exams-modern-meta-chip">
+                    {item.course_title ? item.course_title : 'Examen independent'}
+                  </span>
                 </div>
                 {canMutateInAdminArea ? (
                   <div className="admin-exams-modern-card-actions">
                     <div className="admin-tests-actions-primary"><button type="button" className="is-wide" disabled={busy} onClick={() => handleOpenExistingExam(item)}>Deschide builder-ul</button></div>
                     <div className="admin-tests-actions-grid">
-                      <button type="button" disabled={busy || duplicatingExamId === item.id} onClick={() => handleDuplicateExam(item)}>{duplicatingExamId === item.id ? 'Se duplica...' : 'Duplica'}</button>
-                      {status !== 'published' ? <button type="button" className="is-emphasis" disabled={busy} onClick={() => patchExamListStatus(item, 'published')}>Publica</button> : <button type="button" disabled={busy} onClick={() => patchExamListStatus(item, 'archived')}>Arhiveaza</button>}
-                      {status === 'archived' ? <button type="button" disabled={busy} onClick={() => patchExamListStatus(item, 'draft')}>In draft</button> : null}
+                      <button type="button" disabled={busy || duplicatingExamId === item.id} onClick={() => handleDuplicateExam(item)}>{duplicatingExamId === item.id ? 'Se duplică…' : 'Duplică'}</button>
+                      {status !== 'published' ? <button type="button" className="is-emphasis" disabled={busy} onClick={() => patchExamListStatus(item, 'published')}>Publică</button> : <button type="button" disabled={busy} onClick={() => patchExamListStatus(item, 'archived')}>Arhivează</button>}
+                      {status === 'archived' ? <button type="button" disabled={busy} onClick={() => patchExamListStatus(item, 'draft')}>În draft</button> : null}
                     </div>
-                    <div className="admin-tests-actions-grid"><button type="button" disabled={busy} onClick={() => setDeleteConfirmExam(item)}>Sterge</button></div>
+                    <div className="admin-tests-actions-grid"><button type="button" disabled={busy} onClick={() => setDeleteConfirmExam(item)}>Șterge</button></div>
                   </div>
                 ) : null}
               </article>
@@ -450,15 +522,240 @@ export default function AdminExamsPage() {
     </div>
   );
 
-  const sectionBody = activeSection === 'Setari' ? (
-    <div className="admin-exams-modern-section"><div className="admin-tests-modal"><div className="admin-tests-modal-grid"><label>Titlu<input type="text" value={examSettings.title} onChange={(e) => setExamSettings((prev) => ({ ...prev, title: e.target.value }))} /></label><label>Descriere<textarea rows={4} value={examSettings.description} onChange={(e) => setExamSettings((prev) => ({ ...prev, description: e.target.value }))} /></label><label>Instructiuni pentru elev<textarea rows={5} value={examSettings.instructions} onChange={(e) => setExamSettings((prev) => ({ ...prev, instructions: e.target.value }))} /></label><label>Coperta<div className="admin-exams-modern-cover-row"><input type="file" accept="image/*" onChange={(e) => handleUploadCover(e.target.files?.[0])} /><small>{examSettings.coverName || 'Nu exista coperta incarcata.'}</small></div></label><label>Prag de promovare<input type="number" min={0} max={100} value={examSettings.passingScore} onChange={(e) => setExamSettings((prev) => ({ ...prev, passingScore: Number(e.target.value || 0) }))} /></label><label>Numar maxim de incercari<input type="number" min={1} max={20} value={examSettings.attempts} onChange={(e) => setExamSettings((prev) => ({ ...prev, attempts: Number(e.target.value || 1) }))} /></label><label>Timp limita in minute<input type="number" min={1} max={300} placeholder="Gol = fara limita" value={examSettings.timeLimitEnabled ? examSettings.timeLimitMinutes : ''} onChange={(e) => setExamSettings((prev) => ({ ...prev, timeLimitEnabled: Boolean(e.target.value), timeLimitMinutes: Math.max(1, Number(e.target.value || 1)) }))} /></label><label>Deadline<select value={examSettings.deadlineType} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineType: e.target.value }))}><option value="none">Fara termen</option><option value="fixed">Data fixa</option><option value="relative">X zile de la inscriere</option></select></label>{examSettings.deadlineType === 'fixed' ? <label>Data si ora limita<input type="datetime-local" value={examSettings.deadlineAt} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineAt: e.target.value }))} /></label> : null}{examSettings.deadlineType === 'relative' ? <label>Zile disponibile<input type="number" min={1} max={365} value={examSettings.deadlineDays} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineDays: Math.max(1, Number(e.target.value || 1)) }))} /></label> : null}<label>Navigare intre intrebari<select value={examSettings.navigationMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, navigationMode: e.target.value }))}><option value="sequential">Secventiala</option><option value="free">Libera</option></select></label><label>Review manual<select value={manualReviewState.reviewMode} onChange={(e) => setManualReviewState((prev) => ({ ...prev, reviewMode: e.target.value }))}><option value="after_complete">Dupa finalizare</option><option value="partial">Partial</option></select></label></div><div className="admin-exams-modern-checks"><label><input type="checkbox" checked={examSettings.shuffleQuestions} onChange={(e) => setExamSettings((prev) => ({ ...prev, shuffleQuestions: e.target.checked }))} /> Amesteca intrebarile</label><label><input type="checkbox" checked={examSettings.manualReview} onChange={(e) => setExamSettings((prev) => ({ ...prev, manualReview: e.target.checked }))} /> Necesita verificare manuala</label><label><input type="checkbox" checked={examSettings.showFeedbackInstant} onChange={(e) => setExamSettings((prev) => ({ ...prev, showFeedbackInstant: e.target.checked }))} /> Arata rezultatul imediat</label><label><input type="checkbox" checked={examSettings.showCorrectAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showCorrectAnswers: e.target.checked }))} /> Arata raspunsurile corecte</label></div></div></div>
-  ) : activeSection === 'Intrebari' ? (
-    <div className="admin-exams-modern-section"><div className="admin-tests-modal"><div className="admin-exams-modern-split-head"><div><h3>Selectie intrebari</h3><p>Alegi sursa intrebarilor separat si salvezi configuratia examenului.</p></div><button type="button" className="confirm" onClick={handleOpenContentModal}>Selecteaza intrebari</button></div><div className="admin-tests-modal-grid"><label>Mod de selectie<select value={examSettings.selectionMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, selectionMode: e.target.value }))}><option value="folders">Foldere</option><option value="tags">Tag-uri</option></select></label><label>Numar de intrebari in examen<input type="number" min={1} max={200} value={examSettings.questionCount} onChange={(e) => setExamSettings((prev) => ({ ...prev, questionCount: Math.max(1, Number(e.target.value || 1)) }))} /></label><label className="admin-exams-modern-inline-check"><span>Include intrebarile marcate cu stea</span><input type="checkbox" checked={examSettings.includeStarred} onChange={(e) => setExamSettings((prev) => ({ ...prev, includeStarred: e.target.checked }))} /></label></div><div className="admin-exams-modern-summary-grid"><div><span className="admin-exams-modern-summary-label">Selectie</span><strong>{examSettings.selectionMode === 'folders' ? `${examSettings.selectedFolderIds.length} foldere` : `${examSettings.selectedTags.length} tag-uri`}</strong></div><div><span className="admin-exams-modern-summary-label">Volum examen</span><strong>{Number(examSettings.questionCount || 0)} intrebari</strong></div><div><span className="admin-exams-modern-summary-label">Intrebari cu stea</span><strong>{examSettings.includeStarred ? selectedFoldersStarred : 0}</strong></div><div><span className="admin-exams-modern-summary-label">Banca activa</span><strong>{selectedBank?.title || 'Nu este selectata'}</strong></div></div></div></div>
-  ) : activeSection === 'Acces' ? (
-    <div className="admin-exams-modern-section"><div className="admin-tests-modal"><div className="admin-exams-modern-split-head"><div><h3>Acces examen</h3><p>Controlezi daca examenul este deschis tuturor sau doar unei liste de elevi.</p></div>{examAccess.mode === 'selected_students' ? <button type="button" className="confirm" onClick={handleOpenStudentsModal}>Alege elevii</button> : null}</div><div className="admin-tests-modal-grid"><label>Mod acces<select value={examAccess.mode} onChange={(e) => setExamAccess((prev) => ({ ...prev, mode: e.target.value }))}><option value="all_students">Toti elevii</option><option value="selected_students">Doar elevii selectati</option></select></label><label>Rezumat acces<input type="text" readOnly value={examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi selectati` : 'Acces general'} /></label></div>{examAccess.mode === 'selected_students' ? <div className="admin-exams-modern-student-chips">{selectedStudentsPreview.length > 0 ? selectedStudentsPreview.map((student) => <span key={student.id} className="admin-exams-modern-student-chip">{student.name}</span>) : <span className="admin-exams-modern-empty-note">Nu ai incarcat inca lista elevilor pentru acest examen.</span>}{examAccess.selectedStudents.length > selectedStudentsPreview.length ? <span className="admin-exams-modern-student-chip is-muted">+{examAccess.selectedStudents.length - selectedStudentsPreview.length} inca</span> : null}</div> : null}</div></div>
-  ) : (
-    <div className="admin-exams-statistics"><div className="admin-exams-statistics-head"><h2>Statistica</h2><p>Rezultate pe elevi si analiza pe intrebari pentru examenul curent.</p><button type="button" className="admin-exams-section-refresh-btn" onClick={() => handleRefreshStatistics(true)} disabled={statisticsLoading || !activeExamDraft.id}>{statisticsLoading ? 'Se incarca...' : 'Actualizeaza'}</button></div>{!activeExamDraft.id ? <div className="admin-exams-statistics-empty">Salveaza sau deschide un examen pentru a vedea statisticile.</div> : <><div className="admin-exams-statistics-tabs"><button type="button" className={statisticsTab === 'students' ? 'is-active' : ''} onClick={() => setStatisticsTab('students')}>Elevi</button><button type="button" className={statisticsTab === 'questions' ? 'is-active' : ''} onClick={() => setStatisticsTab('questions')}>Intrebari</button></div>{statisticsTab === 'students' ? <><div className="admin-exams-statistics-filters"><select value={statisticsStatusFilter} onChange={(e) => setStatisticsStatusFilter(e.target.value)}><option value="all">Toate statusurile</option><option value="pending">In asteptare</option><option value="approved">Aprobat</option><option value="rejected">Respins</option><option value="completed">Finalizat</option></select><input type="date" value={statisticsDateFrom} onChange={(e) => setStatisticsDateFrom(e.target.value)} /><input type="date" value={statisticsDateTo} onChange={(e) => setStatisticsDateTo(e.target.value)} /><button type="button" onClick={exportStatistics}>Export Excel</button></div>{filteredStatisticsRows.length === 0 ? <div className="admin-exams-statistics-empty">Nu exista rezultate pentru filtrele actuale.</div> : <div className="admin-exams-statistics-table-wrap"><table className="admin-exams-statistics-table"><thead><tr><th>Elev</th><th>Email</th><th>Status</th><th>Scor</th><th>Finalizat</th></tr></thead><tbody>{filteredStatisticsRows.map((row) => <tr key={row.id}><td>{row.user?.name || '-'}</td><td>{row.user?.email || '-'}</td><td>{row.status || '-'}</td><td>{row.percentage != null ? `${row.percentage}%` : '-'}</td><td>{row.completed_at ? new Date(row.completed_at).toLocaleString('ro-RO') : '-'}</td></tr>)}</tbody></table></div>}</> : statisticsQuestionRows.length === 0 ? <div className="admin-exams-statistics-empty">Nu exista analize pe intrebari.</div> : <div className="admin-exams-question-analytics-list">{statisticsQuestionRows.map((question, index) => <article key={question.question_id || index} className="admin-exams-question-analytics-card"><div className="admin-exams-question-analytics-head"><h4>{question.question_text || `Intrebarea ${index + 1}`}</h4><span>{typeLabel(question.question_type || question.type || 'multiple_choice')}</span></div><div className="admin-exams-question-analytics-metrics"><span>Rata corect: {question.correct_rate != null ? `${Math.round(question.correct_rate)}%` : '-'}</span><span>Incercari: {question.attempts_count ?? 0}</span><span>Scor mediu: {question.average_score != null ? Number(question.average_score).toFixed(2) : '-'}</span></div></article>)}</div>}</>}</div>
-  );
+  const sectionBody = activeSection === 'settings' ? (
+    <div className="admin-exams-modern-section admin-exams-builder-form-root">
+      <div className="admin-exams-builder-panel">
+        <section className="admin-exams-builder-card">
+          <h3 className="admin-exams-builder-card-title">Identitate & conținut</h3>
+          <p className="admin-exams-builder-card-lead">Titlul și mesajele pe care le vede elevul înainte de a începe.</p>
+          <div className="admin-exams-builder-field-grid">
+            <label className="admin-exams-builder-field-span2">
+              Titlu examen
+              <input type="text" value={examSettings.title} onChange={(e) => setExamSettings((prev) => ({ ...prev, title: e.target.value }))} />
+            </label>
+            <label className="admin-exams-builder-field-span2">
+              Descriere
+              <textarea rows={3} value={examSettings.description} onChange={(e) => setExamSettings((prev) => ({ ...prev, description: e.target.value }))} />
+            </label>
+            <label className="admin-exams-builder-field-span2">
+              Instrucțiuni pentru elev
+              <textarea rows={4} value={examSettings.instructions} onChange={(e) => setExamSettings((prev) => ({ ...prev, instructions: e.target.value }))} />
+            </label>
+            <label className="admin-exams-builder-field-span2">
+              Copertă (imagine)
+              <div className="admin-exams-modern-cover-row">
+                <input type="file" accept="image/*" onChange={(e) => handleUploadCover(e.target.files?.[0])} />
+                <small>{examSettings.coverName || 'Nicio copertă încărcată.'}</small>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section className="admin-exams-builder-card">
+          <h3 className="admin-exams-builder-card-title">Notare, timp și încercări</h3>
+          <p className="admin-exams-builder-card-lead">Pragul de promovare, reluările și limita de timp pentru întreg examenul.</p>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Prag de promovare (%)
+              <input type="number" min={0} max={100} value={examSettings.passingScore} onChange={(e) => setExamSettings((prev) => ({ ...prev, passingScore: Number(e.target.value || 0) }))} />
+            </label>
+            <label>
+              Număr maxim de încercări
+              <input type="number" min={1} max={20} value={examSettings.attempts} onChange={(e) => setExamSettings((prev) => ({ ...prev, attempts: Number(e.target.value || 1) }))} />
+            </label>
+            <label className="admin-exams-builder-field-span2 admin-exams-builder-toggle-row">
+              <input
+                type="checkbox"
+                checked={examSettings.timeLimitEnabled}
+                onChange={(e) => setExamSettings((prev) => ({ ...prev, timeLimitEnabled: e.target.checked }))}
+              />
+              <span>Activează limită de timp pentru întreg examenul</span>
+            </label>
+            {examSettings.timeLimitEnabled ? (
+              <label>
+                Durată (minute)
+                <input
+                  type="number"
+                  min={1}
+                  max={300}
+                  value={examSettings.timeLimitMinutes}
+                  onChange={(e) => setExamSettings((prev) => ({ ...prev, timeLimitMinutes: Math.max(1, Number(e.target.value || 1)) }))}
+                />
+              </label>
+            ) : null}
+            <label>
+              Termen limită
+              <select value={examSettings.deadlineType} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineType: e.target.value }))}>
+                <option value="none">Fără termen</option>
+                <option value="fixed">Dată fixă</option>
+                <option value="relative">Zile de la începere</option>
+              </select>
+            </label>
+            {examSettings.deadlineType === 'fixed' ? (
+              <label>
+                Dată și oră limită
+                <input type="datetime-local" value={examSettings.deadlineAt} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineAt: e.target.value }))} />
+              </label>
+            ) : null}
+            {examSettings.deadlineType === 'relative' ? (
+              <label>
+                Zile disponibile
+                <input type="number" min={1} max={365} value={examSettings.deadlineDays} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineDays: Math.max(1, Number(e.target.value || 1)) }))} />
+              </label>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="admin-exams-builder-card">
+          <h3 className="admin-exams-builder-card-title">Comportament în timpul examenului</h3>
+          <p className="admin-exams-builder-card-lead">Navigare între întrebări și modul de revizuire manuală.</p>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Navigare între întrebări
+              <select value={examSettings.navigationMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, navigationMode: e.target.value }))}>
+                <option value="sequential">Secvențială (una câte una)</option>
+                <option value="free">Liberă (salt între întrebări)</option>
+              </select>
+            </label>
+            <label>
+              Revizuire manuală
+              <select value={manualReviewState.reviewMode} onChange={(e) => setManualReviewState((prev) => ({ ...prev, reviewMode: e.target.value }))}>
+                <option value="after_complete">După finalizare</option>
+                <option value="partial">Parțial</option>
+              </select>
+            </label>
+          </div>
+          <div className="admin-exams-builder-checks">
+            <label>
+              <input type="checkbox" checked={examSettings.shuffleQuestions} onChange={(e) => setExamSettings((prev) => ({ ...prev, shuffleQuestions: e.target.checked }))} />
+              Amestecă întrebările la fiecare încercare
+            </label>
+            <label>
+              <input type="checkbox" checked={examSettings.manualReview} onChange={(e) => setExamSettings((prev) => ({ ...prev, manualReview: e.target.checked }))} />
+              Necesită verificare manuală
+            </label>
+            <label>
+              <input type="checkbox" checked={examSettings.showFeedbackInstant} onChange={(e) => setExamSettings((prev) => ({ ...prev, showFeedbackInstant: e.target.checked }))} />
+              Afișează rezultatul imediat după trimitere
+            </label>
+            <label>
+              <input type="checkbox" checked={examSettings.showCorrectAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showCorrectAnswers: e.target.checked }))} />
+              Afișează răspunsurile corecte (unde e cazul)
+            </label>
+          </div>
+        </section>
+      </div>
+    </div>
+  ) : activeSection === 'questions' ? (
+    <div className="admin-exams-modern-section admin-exams-builder-form-root">
+      <div className="admin-exams-builder-panel">
+        <section className="admin-exams-builder-card">
+          <div className="admin-exams-builder-card-head">
+            <div>
+              <h3 className="admin-exams-builder-card-title">Întrebări în examen</h3>
+              <p className="admin-exams-builder-card-lead">Alegi sursa din banca de întrebări, apoi salvezi examenul. Poți deschide selectorul ori de câte ori ai nevoie.</p>
+            </div>
+            <button type="button" className="admin-exams-builder-primary-outline" onClick={handleOpenContentModal}>
+              Deschide selectorul
+            </button>
+          </div>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Mod de selecție
+              <select value={examSettings.selectionMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, selectionMode: e.target.value }))}>
+                <option value="folders">Foldere</option>
+                <option value="tags">Etichete (tag-uri)</option>
+              </select>
+            </label>
+            <label>
+              Număr de întrebări în examen
+              <input type="number" min={1} max={200} value={examSettings.questionCount} onChange={(e) => setExamSettings((prev) => ({ ...prev, questionCount: Math.max(1, Number(e.target.value || 1)) }))} />
+            </label>
+            <label className="admin-exams-builder-toggle-row admin-exams-builder-field-span2">
+              <input type="checkbox" checked={examSettings.includeStarred} onChange={(e) => setExamSettings((prev) => ({ ...prev, includeStarred: e.target.checked }))} />
+              <span>Include întrebările marcate cu stea din folderele alese</span>
+            </label>
+          </div>
+          <div className="admin-exams-builder-summary-inline" aria-label="Rezumat selecție">
+            <div>
+              <span className="admin-exams-modern-summary-label">Selecție</span>
+              <strong>{examSettings.selectionMode === 'folders' ? `${examSettings.selectedFolderIds.length} foldere` : `${examSettings.selectedTags.length} etichete`}</strong>
+            </div>
+            <div>
+              <span className="admin-exams-modern-summary-label">În examen</span>
+              <strong>{Number(examSettings.questionCount || 0)} întrebări</strong>
+            </div>
+            <div>
+              <span className="admin-exams-modern-summary-label">Cu stea (estimare)</span>
+              <strong>{examSettings.includeStarred ? selectedFoldersStarred : 0}</strong>
+            </div>
+            <div>
+              <span className="admin-exams-modern-summary-label">Bancă activă</span>
+              <strong>{selectedBank?.title || '—'}</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  ) : activeSection === 'access' ? (
+    <div className="admin-exams-modern-section admin-exams-builder-form-root">
+      <div className="admin-exams-builder-panel">
+        <section className="admin-exams-builder-card">
+          <div className="admin-exams-builder-card-head">
+            <div>
+              <h3 className="admin-exams-builder-card-title">Acces la examen</h3>
+              <p className="admin-exams-builder-card-lead">Poți deschide examenul tuturor elevilor sau doar unei liste pe care o alegi.</p>
+            </div>
+            {examAccess.mode === 'selected_students' ? (
+              <button type="button" className="admin-exams-builder-primary-outline" onClick={handleOpenStudentsModal}>
+                Alege elevii
+              </button>
+            ) : null}
+          </div>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Mod acces
+              <select value={examAccess.mode} onChange={(e) => setExamAccess((prev) => ({ ...prev, mode: e.target.value }))}>
+                <option value="all_students">Toți elevii</option>
+                <option value="selected_students">Doar elevii selectați</option>
+              </select>
+            </label>
+            <label>
+              Rezumat
+              <input
+                type="text"
+                readOnly
+                value={examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi selectați` : 'Acces general'}
+              />
+            </label>
+          </div>
+          {examAccess.mode === 'selected_students' ? (
+            <div className="admin-exams-modern-student-chips admin-exams-builder-student-chips">
+              {selectedStudentsPreview.length > 0 ? (
+                selectedStudentsPreview.map((student) => (
+                  <span key={student.id} className="admin-exams-modern-student-chip">
+                    {student.name}
+                  </span>
+                ))
+              ) : (
+                <span className="admin-exams-modern-empty-note">Nicio selecție încă — apasă „Alege elevii”.</span>
+              )}
+              {examAccess.selectedStudents.length > selectedStudentsPreview.length ? (
+                <span className="admin-exams-modern-student-chip is-muted">
+                  +{examAccess.selectedStudents.length - selectedStudentsPreview.length} în plus
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      </div>
+    </div>
+  ) : activeSection === 'statistics' ? (
+    <div className="admin-exams-modern-section admin-exams-builder-form-root">
+      <div className="admin-exams-builder-panel">
+        <div className="admin-exams-statistics admin-exams-builder-statistics-card">
+          <div className="admin-exams-statistics-head"><h2>Statistici</h2><p>Rezultate pe elevi și analiză pe întrebări pentru examenul curent.</p><button type="button" className="admin-exams-section-refresh-btn" onClick={() => handleRefreshStatistics(true)} disabled={statisticsLoading || !activeExamDraft.id}>{statisticsLoading ? 'Se încarcă…' : 'Actualizează'}</button></div>{!activeExamDraft.id ? <div className="admin-exams-statistics-empty">Salveaza sau deschide un examen pentru a vedea statisticile.</div> : <><div className="admin-exams-statistics-tabs"><button type="button" className={statisticsTab === 'students' ? 'is-active' : ''} onClick={() => setStatisticsTab('students')}>Elevi</button><button type="button" className={statisticsTab === 'questions' ? 'is-active' : ''} onClick={() => setStatisticsTab('questions')}>Intrebari</button></div>{statisticsTab === 'students' ? <><div className="admin-exams-statistics-filters"><select value={statisticsStatusFilter} onChange={(e) => setStatisticsStatusFilter(e.target.value)}><option value="all">Toate statusurile</option><option value="pending">In asteptare</option><option value="approved">Aprobat</option><option value="rejected">Respins</option><option value="completed">Finalizat</option></select><input type="date" value={statisticsDateFrom} onChange={(e) => setStatisticsDateFrom(e.target.value)} /><input type="date" value={statisticsDateTo} onChange={(e) => setStatisticsDateTo(e.target.value)} /><button type="button" onClick={exportStatistics}>Export Excel</button></div>{filteredStatisticsRows.length === 0 ? <div className="admin-exams-statistics-empty">Nu exista rezultate pentru filtrele actuale.</div> : <div className="admin-exams-statistics-table-wrap"><table className="admin-exams-statistics-table"><thead><tr><th>Elev</th><th>Email</th><th>Status</th><th>Scor</th><th>Finalizat</th></tr></thead><tbody>{filteredStatisticsRows.map((row) => <tr key={row.id}><td>{row.user?.name || '-'}</td><td>{row.user?.email || '-'}</td><td>{row.status || '-'}</td><td>{row.percentage != null ? `${row.percentage}%` : '-'}</td><td>{row.completed_at ? new Date(row.completed_at).toLocaleString('ro-RO') : '-'}</td></tr>)}</tbody></table></div>}</> : statisticsQuestionRows.length === 0 ? <div className="admin-exams-statistics-empty">Nu exista analize pe intrebari.</div> : <div className="admin-exams-question-analytics-list">{statisticsQuestionRows.map((question, index) => <article key={question.question_id || index} className="admin-exams-question-analytics-card"><div className="admin-exams-question-analytics-head"><h4>{question.question_text || `Intrebarea ${index + 1}`}</h4><span>{typeLabel(question.question_type || question.type || 'multiple_choice')}</span></div><div className="admin-exams-question-analytics-metrics"><span>Rata corect: {question.correct_rate != null ? `${Math.round(question.correct_rate)}%` : '-'}</span><span>Incercari: {question.attempts_count ?? 0}</span><span>Scor mediu: {question.average_score != null ? Number(question.average_score).toFixed(2) : '-'}</span></div></article>)}</div>}</>}</div></div></div>
+  ) : null;
 
   const createView = (
     <div className="admin-tests-page admin-exams-modern-page admin-exams-page">
@@ -521,41 +818,43 @@ export default function AdminExamsPage() {
 
         <nav className="admin-exams-builder-tabs-rail" aria-label="Secțiuni builder examen">
           <div className="admin-exams-builder-tabs">
-            {SECTIONS.map((section) => (
+            {EXAM_BUILDER_SECTIONS.map((section, idx) => (
               <button
-                key={section}
+                key={section.id}
                 type="button"
-                className={activeSection === section ? 'is-active' : ''}
-                onClick={() => setActiveSection(section)}
+                className={activeSection === section.id ? 'is-active' : ''}
+                onClick={() => setActiveSection(section.id)}
               >
-                {section}
+                <span className="admin-exams-builder-tab-num" aria-hidden>
+                  {idx + 1}
+                </span>
+                {section.label}
               </button>
             ))}
           </div>
         </nav>
 
-        <section className="admin-exams-builder-summary" aria-label="Rezumat rapid examen">
-          <div className="admin-exams-modern-summary-grid">
-            <div>
+        <section className="admin-exams-builder-summary admin-exams-builder-strip" aria-label="Rezumat rapid examen">
+          <div className="admin-exams-builder-strip-inner">
+            <span className="admin-exams-builder-strip-item">
               <span className="admin-exams-modern-summary-label">Status</span>
               <strong>{published ? 'Publicat' : 'Draft'}</strong>
-            </div>
-            <div>
-              <span className="admin-exams-modern-summary-label">Conținut</span>
-              <strong>{Number(examSettings.questionCount || 0)} întrebări</strong>
-            </div>
-            <div>
+            </span>
+            <span className="admin-exams-builder-strip-sep" aria-hidden />
+            <span className="admin-exams-builder-strip-item">
+              <span className="admin-exams-modern-summary-label">Întrebări</span>
+              <strong>{Number(examSettings.questionCount || 0)}</strong>
+            </span>
+            <span className="admin-exams-builder-strip-sep" aria-hidden />
+            <span className="admin-exams-builder-strip-item">
               <span className="admin-exams-modern-summary-label">Acces</span>
-              <strong>
-                {examAccess.mode === 'selected_students'
-                  ? `${examAccess.selectedStudents.length} elevi`
-                  : 'Toți elevii'}
-              </strong>
-            </div>
-            <div>
+              <strong>{examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi` : 'Toți'}</strong>
+            </span>
+            <span className="admin-exams-builder-strip-sep" aria-hidden />
+            <span className="admin-exams-builder-strip-item">
               <span className="admin-exams-modern-summary-label">Review</span>
-              <strong>{examSettings.manualReview ? 'Manual activ' : 'Automat'}</strong>
-            </div>
+              <strong>{examSettings.manualReview ? 'Manual' : 'Auto'}</strong>
+            </span>
           </div>
           {saveState.message ? (
             <p className={`admin-exams-save-message is-${saveState.type}`}>{saveState.message}</p>

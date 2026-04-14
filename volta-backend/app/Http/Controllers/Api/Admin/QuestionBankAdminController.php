@@ -9,6 +9,7 @@ use App\Models\Tag;
 use App\Models\Course;
 use App\Models\Test;
 use App\Services\TestService;
+use App\Services\VoltPromptService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -730,7 +731,11 @@ class QuestionBankAdminController extends Controller
                     'type_hint' => $typeHint,
                 ]);
 
-                $deterministicFallback = $this->buildDeterministicFallbackReviewQuestion($courseContent, $difficulty);
+                $deterministicFallback = $this->buildUniqueDeterministicFallbackReviewQuestion(
+                    $courseContent,
+                    $difficulty,
+                    $usedQuestions
+                );
                 Log::warning('Using deterministic fallback review question', [
                     'content_preview' => mb_substr((string) ($deterministicFallback['content'] ?? ''), 0, 160),
                     'difficulty' => $difficulty,
@@ -758,62 +763,14 @@ class QuestionBankAdminController extends Controller
         array $usedQuestions = [],
         string $extraInstructions = ''
     ): string {
-        $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
-        if (empty($typeList)) {
-            $typeList = ['multiple_choice', 'true_false'];
-        }
-
-        $prompt = "Ești Volt Question Generator. Generezi exact o întrebare bună, bazată strict pe curs.\n\n";
-        $prompt .= "Contract de răspuns:\n";
-        $prompt .= "- răspunde strict JSON valid\n";
-        $prompt .= "- include `response_type` cu valoarea `question`\n";
-        $prompt .= "- nu folosi markdown și nu adăuga text extra\n";
-        $prompt .= "- o singură întrebare per răspuns\n";
-        $prompt .= "- dacă nu ai context suficient, simplifică întrebarea sau cere clarificare scurtă\n\n";
-        $prompt .= "Reguli de calitate:\n";
-        $prompt .= "- folosește doar informații din curs\n";
-        $prompt .= "- nu inventa detalii\n";
-        $prompt .= "- evită întrebările ambigue, prea generale sau cu mai multe idei\n";
-        $prompt .= "- întrebarea trebuie să testeze un concept important, nu un detaliu minor\n";
-        $prompt .= "- variantele greșite trebuie să fie plauzibile, dar clar greșite\n";
-        $prompt .= "- toate variantele trebuie să fie la același nivel de specificitate\n";
-        $prompt .= "- nu repeta și nu reformula întrebările deja folosite\n\n";
-        $prompt .= "Setări:\n";
-        $prompt .= "- difficulty: {$difficulty}\n";
-        $prompt .= "- allowed_types: " . implode(', ', $typeList) . "\n";
-        $prompt .= "- create exactly 1 question\n\n";
-        if (!empty($usedQuestions)) {
-            $prompt .= "Întrebări deja folosite sau respinse:\n";
-            foreach ($usedQuestions as $index => $usedQuestion) {
-                $prompt .= ($index + 1) . '. ' . $usedQuestion . "\n";
-            }
-            $prompt .= "\n";
-        }
-        if (trim($extraInstructions) !== '') {
-            $prompt .= "Instrucțiuni suplimentare:\n";
-            $prompt .= trim($extraInstructions) . "\n\n";
-        }
-        $prompt .= "Conținut curs:\n{$courseContent}\n\n";
-        $prompt .= "Schema JSON așteptată:\n";
-        $prompt .= "{\n";
-        $prompt .= '  "response_type": "question",\n';
-        $prompt .= '  "content": "Întrebarea",\n';
-        $prompt .= '  "type": "multiple_choice|true_false",\n';
-        $prompt .= '  "answers": [\n';
-        $prompt .= '    {"text": "Răspuns 1", "is_correct": true},\n';
-        $prompt .= '    {"text": "Răspuns 2", "is_correct": false},\n';
-        $prompt .= '    {"text": "Răspuns 3", "is_correct": false},\n';
-        $prompt .= '    {"text": "Răspuns 4", "is_correct": false}\n';
-        $prompt .= '  ],\n';
-        $prompt .= '  "points": 1,\n';
-        $prompt .= '  "explanation": "Explicația răspunsului corect",\n';
-        $prompt .= '  "difficulty": "easy|medium|hard",\n';
-        $prompt .= '  "tags": ["tag1", "tag2"]\n';
-        $prompt .= "}\n";
-
-        return $prompt;
+        return VoltPromptService::buildQuestionGenerationPrompt(
+            $courseContent,
+            $difficulty,
+            $questionTypes,
+            $usedQuestions,
+            $extraInstructions
+        );
     }
-
     /**
      * Keep only questions that look structurally strong enough for manual review.
      */
@@ -934,36 +891,8 @@ class QuestionBankAdminController extends Controller
      */
     private function buildFallbackReviewPrompt(string $courseContent, string $difficulty, string $typeHint): string
     {
-        return
-            "Ești Volt Question Generator. Generezi exact o singură întrebare simplă, de calitate, pentru aprobare manuală.\n\n" .
-            "Reguli:\n" .
-            "- folosește doar informațiile din curs\n" .
-            "- nu inventa detalii\n" .
-            "- întrebare clară, directă, cu un singur concept\n" .
-            "- 4 variante de răspuns, exact 1 corectă\n" .
-            "- răspunsurile greșite trebuie să fie plauzibile, dar clar greșite\n" .
-            "- returnează strict JSON valid\n\n" .
-            "Dificultate: {$difficulty}\n" .
-            "Tipuri permise: {$typeHint}\n" .
-            "Conținut curs:\n{$courseContent}\n\n" .
-            "Format exact:\n" .
-            "{\n" .
-            '  "response_type": "question",\n' .
-            '  "content": "Întrebare",\n' .
-            '  "type": "multiple_choice",\n' .
-            '  "answers": [\n' .
-            '    {"text": "Răspuns 1", "is_correct": true},\n' .
-            '    {"text": "Răspuns 2", "is_correct": false},\n' .
-            '    {"text": "Răspuns 3", "is_correct": false},\n' .
-            '    {"text": "Răspuns 4", "is_correct": false}\n' .
-            '  ],\n' .
-            '  "points": 1,\n' .
-            '  "explanation": "Explicație",\n' .
-            '  "difficulty": "easy|medium|hard",\n' .
-            '  "tags": ["tag1"]\n' .
-            "}\n";
+        return VoltPromptService::buildFallbackReviewPrompt($courseContent, $difficulty, $typeHint);
     }
-
     /**
      * Build a deterministic valid fallback question so the flow never returns empty.
      */
@@ -1004,6 +933,33 @@ class QuestionBankAdminController extends Controller
             'difficulty' => in_array($difficulty, ['easy', 'medium', 'hard'], true) ? $difficulty : 'medium',
             'tags' => ['ai_fallback'],
         ];
+    }
+
+    /**
+     * Pick a deterministic fallback question that avoids already used/rejected duplicates.
+     */
+    private function buildUniqueDeterministicFallbackReviewQuestion(
+        string $courseContent,
+        string $difficulty,
+        array $usedQuestions = []
+    ): array {
+        $usedQuestions = array_values(array_filter(array_map('strval', $usedQuestions)));
+        $startIndex = count($usedQuestions);
+        $variantsCount = 4;
+
+        for ($offset = 0; $offset < $variantsCount; $offset++) {
+            $candidate = $this->buildDeterministicFallbackReviewQuestion(
+                $courseContent,
+                $difficulty,
+                $startIndex + $offset
+            );
+
+            if (!$this->isAiQuestionTooSimilarToBlockedQuestions($candidate, $usedQuestions)) {
+                return $candidate;
+            }
+        }
+
+        return $this->buildDeterministicFallbackReviewQuestion($courseContent, $difficulty, $startIndex);
     }
 
     /**
@@ -1104,7 +1060,7 @@ class QuestionBankAdminController extends Controller
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'Ești Volt Question Generator. Generezi exact o întrebare bună, bazată strict pe curs. Răspunde strict JSON valid, include response_type=question, fără markdown și fără text extra.'
+                        'content' => VoltPromptService::buildQuestionSystemPrompt()
                     ],
                     [
                         'role' => 'user',
@@ -1372,5 +1328,4 @@ class QuestionBankAdminController extends Controller
         return $formatted;
     }
 }
-
 

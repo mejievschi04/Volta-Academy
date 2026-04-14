@@ -100,9 +100,8 @@ class ActivityLogAdminController extends Controller
         }
 
         $query->orderBy($sortBy, $sortDir);
-        if ($sortBy === 'action') {
-            $query->orderBy('id', 'desc');
-        }
+        // Stable order when many rows share the same timestamp
+        $query->orderBy('id', $sortDir);
 
         $logs = $query->paginate($perPage);
 

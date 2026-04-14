@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
 import { openaiService } from '../../../services/openaiService';
 import { useToast } from '../../../contexts/ToastContext';
+import { buildCourseCreationPromptFromBrief } from '../../../utils/voltAiPrompts';
 import './AIChat.css';
 
 const AICourseChat = ({
@@ -32,6 +33,17 @@ const AICourseChat = ({
 	const [attachedDocuments, setAttachedDocuments] = useState([]);
 	const [attachmentUploading, setAttachmentUploading] = useState(false);
 	const [currentCourseId, setCurrentCourseId] = useState(initialCourseId); // Track current course ID
+	const [guidedBrief, setGuidedBrief] = useState({
+		topic: '',
+		courseTitle: '',
+		description: '',
+		targetAudience: '',
+		level: 'incepator',
+		style: 'practic',
+		modulesCount: '3',
+		lessonsPerModule: '2',
+		lessonSize: 'mediu',
+	});
 	const messagesEndRef = useRef(null);
 	const chatContainerRef = useRef(null);
 	const attachmentInputRef = useRef(null);
@@ -132,6 +144,51 @@ const AICourseChat = ({
 		return `\n\nDocumente atașate de administrator (folosește-le ca sursă principală; selectează informația utilă în funcție de temă, stil și dimensiunea documentelor):\n${parts.join('\n\n---\n\n')}`;
 	};
 
+	const updateGuidedBriefField = (field, value) => {
+		setGuidedBrief((prev) => ({
+			...prev,
+			[field]: value,
+		}));
+	};
+
+	const getGuidedBriefPayload = () => {
+		if (mode !== 'create') return null;
+
+		const normalizeText = (value) => String(value || '').trim();
+		const toBoundedInt = (value, fallback, min, max) => {
+			const parsed = Number.parseInt(String(value || ''), 10);
+			if (!Number.isFinite(parsed)) return fallback;
+			return Math.min(max, Math.max(min, parsed));
+		};
+
+		const topic = normalizeText(guidedBrief.topic);
+		const courseTitle = normalizeText(guidedBrief.courseTitle);
+		const description = normalizeText(guidedBrief.description);
+		const targetAudience = normalizeText(guidedBrief.targetAudience);
+		const level = normalizeText(guidedBrief.level) || 'incepator';
+		const style = normalizeText(guidedBrief.style) || 'practic';
+		const lessonSize = normalizeText(guidedBrief.lessonSize) || 'mediu';
+		const modulesCount = toBoundedInt(guidedBrief.modulesCount, 3, 2, 12);
+		const lessonsPerModule = toBoundedInt(guidedBrief.lessonsPerModule, 2, 2, 8);
+
+		if (!topic && !courseTitle && !description) {
+			return null;
+		}
+
+		return {
+			topic,
+			course_title: courseTitle,
+			description,
+			target_audience: targetAudience,
+			level,
+			style,
+			modules_count: modulesCount,
+			lessons_per_module: lessonsPerModule,
+			lesson_size: lessonSize,
+			language: 'ro',
+		};
+	};
+
 	const handleAttachmentClick = () => {
 		attachmentInputRef.current?.click();
 	};
@@ -201,10 +258,14 @@ const AICourseChat = ({
 	};
 
 	const submitPrompt = async (promptText) => {
-		if (!promptText?.trim() || isGenerating) return;
+		if (isGenerating) return;
+
+		const briefPayload = getGuidedBriefPayload();
+		const basePrompt = buildCourseCreationPromptFromBrief(briefPayload, promptText);
+		if (!basePrompt?.trim()) return;
 
 		const attachmentNote = buildAttachmentNote(attachedDocuments);
-		const promptWithAttachments = `${promptText.trim()}${attachmentNote}`;
+		const promptWithAttachments = `${basePrompt.trim()}${attachmentNote}`;
 		const userMessage = { role: 'user', content: promptWithAttachments };
 		setMessages(prev => [...prev, userMessage]);
 		setInput('');
@@ -334,6 +395,7 @@ const AICourseChat = ({
 						courseId: currentCourseId,
 						initialCourseId: currentCourseId,
 						attachments: attachedDocuments,
+						guided_brief: briefPayload,
 					}
 				);
 
@@ -530,6 +592,15 @@ const AICourseChat = ({
 		});
 	};
 
+	const canSend = mode === 'create'
+		? Boolean(
+			input.trim() ||
+			String(guidedBrief.topic || '').trim() ||
+			String(guidedBrief.courseTitle || '').trim() ||
+			String(guidedBrief.description || '').trim()
+		)
+		: Boolean(input.trim());
+
 
 	return (
 		<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}`}>
@@ -548,6 +619,102 @@ const AICourseChat = ({
 					</button>
 				)}
 			</div>
+			{mode === 'create' && (
+				<div className="ai-chat-guided-brief">
+					<div className="ai-chat-guided-brief-grid">
+						<input
+							type="text"
+							className="ai-chat-guided-brief-input"
+							placeholder="Tema cursului (ex: React Native avansat)"
+							value={guidedBrief.topic}
+							onChange={(e) => updateGuidedBriefField('topic', e.target.value)}
+							disabled={isGenerating}
+						/>
+						<input
+							type="text"
+							className="ai-chat-guided-brief-input"
+							placeholder="Titlu curs (opțional)"
+							value={guidedBrief.courseTitle}
+							onChange={(e) => updateGuidedBriefField('courseTitle', e.target.value)}
+							disabled={isGenerating}
+						/>
+						<input
+							type="text"
+							className="ai-chat-guided-brief-input"
+							placeholder="Public țintă (ex: începători cu JS)"
+							value={guidedBrief.targetAudience}
+							onChange={(e) => updateGuidedBriefField('targetAudience', e.target.value)}
+							disabled={isGenerating}
+						/>
+						<div className="ai-chat-guided-brief-row">
+							<label>Nivel</label>
+							<select
+								value={guidedBrief.level}
+								onChange={(e) => updateGuidedBriefField('level', e.target.value)}
+								disabled={isGenerating}
+							>
+								<option value="incepator">Începător</option>
+								<option value="mediu">Mediu</option>
+								<option value="avansat">Avansat</option>
+							</select>
+						</div>
+						<div className="ai-chat-guided-brief-row">
+							<label>Stil</label>
+							<select
+								value={guidedBrief.style}
+								onChange={(e) => updateGuidedBriefField('style', e.target.value)}
+								disabled={isGenerating}
+							>
+								<option value="practic">Practic</option>
+								<option value="teoretic">Teoretic</option>
+								<option value="mixt">Mixt</option>
+							</select>
+						</div>
+						<div className="ai-chat-guided-brief-row">
+							<label>Dimensiune lecții</label>
+							<select
+								value={guidedBrief.lessonSize}
+								onChange={(e) => updateGuidedBriefField('lessonSize', e.target.value)}
+								disabled={isGenerating}
+							>
+								<option value="scurt">Scurtă</option>
+								<option value="mediu">Medie</option>
+								<option value="lung">Lungă</option>
+							</select>
+						</div>
+						<div className="ai-chat-guided-brief-row">
+							<label>Nr. module</label>
+							<input
+								type="number"
+								min={2}
+								max={12}
+								value={guidedBrief.modulesCount}
+								onChange={(e) => updateGuidedBriefField('modulesCount', e.target.value)}
+								disabled={isGenerating}
+							/>
+						</div>
+						<div className="ai-chat-guided-brief-row">
+							<label>Lecții / modul</label>
+							<input
+								type="number"
+								min={2}
+								max={8}
+								value={guidedBrief.lessonsPerModule}
+								onChange={(e) => updateGuidedBriefField('lessonsPerModule', e.target.value)}
+								disabled={isGenerating}
+							/>
+						</div>
+					</div>
+					<textarea
+						className="ai-chat-guided-brief-textarea"
+						placeholder="Descriere curs (opțional). Dacă lași gol, Volt o generează."
+						value={guidedBrief.description}
+						onChange={(e) => updateGuidedBriefField('description', e.target.value)}
+						disabled={isGenerating}
+						rows={3}
+					/>
+				</div>
+			)}
 
 			<div className="ai-chat-messages" ref={chatContainerRef}>
 				{messages.map((message, index) => (
@@ -687,7 +854,7 @@ const AICourseChat = ({
 				<button
 					type="submit"
 					className="ai-chat-btn ai-chat-btn-send"
-					disabled={!input.trim() || isGenerating}
+					disabled={!canSend || isGenerating}
 				>
 					{isGenerating ? '⏳' : '➤'}
 				</button>

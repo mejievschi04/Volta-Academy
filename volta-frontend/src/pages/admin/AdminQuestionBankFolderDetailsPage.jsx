@@ -123,6 +123,12 @@ const AdminQuestionBankFolderDetailsPage = () => {
   };
 
   const trimQuestionText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const normalizeQuestionText = (value) =>
+    trimQuestionText(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9ăâîșşțţ\s]+/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
   const toggleSelect = (questionId) => {
     setSelectedIds((prev) => (prev.includes(questionId) ? prev.filter((idv) => idv !== questionId) : [...prev, questionId]));
@@ -287,8 +293,28 @@ const AdminQuestionBankFolderDetailsPage = () => {
       const blockedQuestions = shouldApprove
         ? nextApproved
         : [...aiApprovedQuestions, aiCurrentDraftQuestion].filter(Boolean);
-      const draft = await fetchAiDraftQuestion(nextApproved, blockedQuestions, aiSelectedCourseId);
-      if (!draft) {
+      const usedNormalized = new Set(
+        blockedQuestions
+          .map((q) => normalizeQuestionText(q?.content || q?.question || q?.text || ''))
+          .filter(Boolean)
+      );
+      let draft = null;
+      let candidate = null;
+      let content = '';
+      const maxAttempts = 4;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        draft = await fetchAiDraftQuestion(nextApproved, blockedQuestions, aiSelectedCourseId);
+        candidate = Array.isArray(draft) ? draft[0] : null;
+        content = trimQuestionText(candidate?.content || candidate?.question || '');
+        const normalized = normalizeQuestionText(content);
+        if (!candidate || !content || !normalized || usedNormalized.has(normalized)) {
+          continue;
+        }
+        break;
+      }
+
+      if (!draft || !candidate || !content) {
         throw new Error('Volt nu a returnat următoarea întrebare.');
       }
       setAiApprovedQuestions(nextApproved);
@@ -319,11 +345,24 @@ const AdminQuestionBankFolderDetailsPage = () => {
       setAiGeneratedPreviews([]);
       const generatedQuestions = [];
       const generatedPreviews = [];
+      const usedNormalized = new Set();
 
       for (let index = 0; index < targetCount; index += 1) {
-        const draft = await fetchAiDraftQuestion(generatedQuestions, generatedQuestions, effectiveCourseId, false);
-        const candidate = Array.isArray(draft) ? draft[0] : null;
-        const content = trimQuestionText(candidate?.content || candidate?.question || '');
+        let candidate = null;
+        let content = '';
+        const maxAttempts = 5;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const draft = await fetchAiDraftQuestion(generatedQuestions, generatedQuestions, effectiveCourseId, false);
+          candidate = Array.isArray(draft) ? draft[0] : null;
+          content = trimQuestionText(candidate?.content || candidate?.question || '');
+          const normalized = normalizeQuestionText(content);
+          if (!candidate || !content || !normalized || usedNormalized.has(normalized)) {
+            candidate = null;
+            continue;
+          }
+          usedNormalized.add(normalized);
+          break;
+        }
 
         if (!candidate || !content) {
           throw new Error('Volt nu a returnat nicio întrebare.');

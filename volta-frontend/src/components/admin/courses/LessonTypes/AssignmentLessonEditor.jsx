@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
+import { buildAssignmentLessonPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
  * Assignment / Practice Lesson Editor - Conform defacut.md secțiunea 5.3
@@ -23,34 +24,11 @@ const AssignmentLessonEditor = ({ lesson, onUpdate }) => {
 
 		setAiGenerating(true);
 		try {
-			const prompt = `Generează exerciții practice pentru lecție.
-
-Obiectiv: ${lesson.objective}
-${lesson.constraints ? `Constrângeri: ${lesson.constraints}` : ''}
-${lesson.content ? `Context: ${lesson.content.substring(0, 500)}` : ''}
-
-Generează 3-5 exerciții practice cu:
-- Descrierea sarcinii
-- Instrucțiuni clare
-- Criterii de evaluare
-- Feedback automat pentru fiecare exercițiu
-
-Răspunde în format JSON:
-{
-  "exercises": [
-    {
-      "title": "Titlu exercițiu",
-      "description": "Descrierea sarcinii...",
-      "instructions": ["Pasul 1", "Pasul 2", "Pasul 3"],
-      "evaluation_criteria": ["Criteriu 1", "Criteriu 2"],
-      "auto_feedback": "Feedback automat pentru răspunsuri corecte/greșite",
-      "scoring": {
-        "max_points": 10,
-        "points_per_criteria": [5, 5]
-      }
-    }
-  ]
-}`;
+			const prompt = buildAssignmentLessonPrompt({
+				objective: lesson.objective,
+				constraints: lesson.constraints,
+				content: lesson.content ? lesson.content.substring(0, 500) : '',
+			});
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
+import { buildVideoLessonPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
  * Video Lesson Editor - Conform defacut.md secțiunea 5.1
@@ -59,36 +60,10 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 		setAiProcessing(true);
 		try {
 			// Generate Volt processing prompt
-			const prompt = `Procesează acest video pentru lecție: "${lesson.title || 'Lecție video'}".
-
-${lesson.description ? `Descriere: ${lesson.description}` : ''}
-
-Generează:
-1. Transcription completă (textul din video)
-2. Chapters (capitole cu timestamp-uri)
-3. Highlights (puncte importante)
-4. Summary (rezumat al conținutului)
-5. Volt Assistant context (context pentru Volt Assistant)
-6. Quiz Base (întrebări de bază pentru quiz)
-
-Răspunde în format JSON:
-{
-  "transcription": "text complet...",
-  "chapters": [
-    {"timestamp": "00:00", "title": "Introducere", "description": "..."},
-    {"timestamp": "05:30", "title": "Concepte principale", "description": "..."}
-  ],
-  "highlights": [
-    {"text": "Punct important 1", "timestamp": "02:15"},
-    {"text": "Punct important 2", "timestamp": "08:45"}
-  ],
-  "summary": "Rezumat al conținutului...",
-  "tutorContext": "context pentru Volt Assistant...",
-  "quizBase": [
-    {"question": "Întrebare 1?", "type": "multiple_choice", "options": ["A", "B", "C"], "correct": 0},
-    {"question": "Întrebare 2?", "type": "true_false", "correct": true}
-  ]
-}`;
+			const prompt = buildVideoLessonPrompt({
+				title: lesson.title,
+				description: lesson.description,
+			});
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(

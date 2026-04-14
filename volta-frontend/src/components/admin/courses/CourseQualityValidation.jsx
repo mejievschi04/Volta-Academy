@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { openaiService } from '../../../services/openaiService';
 import { useToast } from '../../../contexts/ToastContext';
+import { buildCourseQualityValidationPrompt } from '../../../utils/voltAiPrompts';
 
 /**
  * Course Quality Validation - Conform defacut.md secțiunea 8
@@ -45,77 +46,7 @@ const CourseQualityValidation = ({ courseData, onValidationComplete }) => {
 				}))
 			};
 
-			const prompt = `Validează calitatea acestui curs și calculează un readiness score.
-
-Curs: ${courseInfo.title}
-${courseInfo.description ? `Descriere: ${courseInfo.description}` : ''}
-Nivel: ${courseInfo.level || 'nespecificat'}
-
-Structură:
-${JSON.stringify(courseInfo.modules, null, 2)}
-
-Analizează:
-1. **Lesson length**: Verifică dacă lecțiile sunt prea lungi (>10 min pentru mobile-ready)
-2. **Content gaps**: Identifică goluri în conținut, lecții lipsă, module incomplete
-3. **Difficulty spikes**: Detectează salturi bruște de dificultate între lecții/module
-4. **Engagement risk**: Evaluează riscul de pierdere a atenției (lecții prea lungi, lipsă varietate, etc.)
-
-Calculează un **Readiness Score** (0-100) bazat pe:
-- Completitudinea conținutului (30%)
-- Balanța dificultății (25%)
-- Mobile-ready compliance (20%)
-- Engagement potential (25%)
-
-Răspunde în format JSON:
-{
-  "readiness_score": 75,
-  "checks": {
-    "lesson_length": {
-      "status": "warning",
-      "issues": [
-        {
-          "lesson": "Lecție 1",
-          "duration": 15,
-          "issue": "Lecție depășește 10 minute (mobile-ready)"
-        }
-      ],
-      "passed": false
-    },
-    "content_gaps": {
-      "status": "error",
-      "issues": [
-        {
-          "type": "missing_lesson",
-          "module": "Modul 1",
-          "description": "Lipsește lecție de introducere"
-        }
-      ],
-      "passed": false
-    },
-    "difficulty_spikes": {
-      "status": "warning",
-      "issues": [
-        {
-          "from": "Lecție 1",
-          "to": "Lecție 2",
-          "spike": "Salt de dificultate de la ușor la avansat"
-        }
-      ],
-      "passed": true
-    },
-    "engagement_risk": {
-      "status": "ok",
-      "issues": [],
-      "passed": true
-    }
-  },
-  "fix_suggestions": [
-    "Împarte lecția 1 în 2 lecții mai scurte",
-    "Adaugă lecție de introducere în Modul 1",
-    "Adaugă lecție intermediară între Lecție 1 și Lecție 2"
-  ],
-  "summary": "Cursul este aproape gata, dar necesită câteva ajustări pentru a fi optim..."
-}`;
+			const prompt = buildCourseQualityValidationPrompt(courseInfo);
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(

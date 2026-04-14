@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
+import { buildAssessmentAnalysisPrompt, buildAssessmentGenerationPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
  * Volt assessment generator - Conform defacut.md secțiunea 6
@@ -28,44 +29,13 @@ const AIAssessmentGenerator = ({ courseData, lessonData, moduleData, assessmentT
 				type: assessmentType // 'lesson_quiz', 'module_test', 'final_exam'
 			};
 
-			const prompt = `Generează întrebări pentru ${assessmentType === 'lesson_quiz' ? 'quiz de lecție' : assessmentType === 'module_test' ? 'test de modul' : 'examen final'}.
-
-Context:
-- Curs: ${context.course}
-- ${context.module ? `Modul: ${context.module}` : ''}
-- ${context.lesson ? `Lecție: ${context.lesson}` : ''}
-${context.content ? `Conținut: ${context.content}` : ''}
-
-Generează întrebări variate cu:
-- Multiple choice (majoritatea)
-- True/False (câteva)
-- Difficulty balancing (ușor, mediu, dificil)
-- Fără anti-pattern-uri (nu întrebări ambigue, nu răspunsuri evidente)
-
-Răspunde în format JSON:
-{
-  "questions": [
-    {
-      "type": "multiple_choice",
-      "content": "Întrebare...",
-      "answers": [
-        {"text": "Răspuns 1", "is_correct": true},
-        {"text": "Răspuns 2", "is_correct": false},
-        {"text": "Răspuns 3", "is_correct": false},
-        {"text": "Răspuns 4", "is_correct": false}
-      ],
-      "difficulty": "medium",
-      "points": 10,
-      "explanation": "Explicație pentru răspuns corect"
-    }
-  ],
-  "difficulty_distribution": {
-    "easy": 2,
-    "medium": 5,
-    "hard": 3
-  },
-  "anti_patterns_detected": []
-}`;
+			const prompt = buildAssessmentGenerationPrompt({
+				assessmentType,
+				course: context.course,
+				module: context.module,
+				lesson: context.lesson,
+				content: context.content,
+			});
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(
@@ -117,35 +87,7 @@ Răspunde în format JSON:
 
 		setGenerating(true);
 		try {
-			const prompt = `Analizează balanța dificultății pentru aceste întrebări și detectează anti-pattern-uri.
-
-Întrebări:
-${JSON.stringify(questions, null, 2)}
-
-Analizează:
-1. Distribuția dificultății (ușor/mediu/dificil)
-2. Anti-pattern-uri (întrebări ambigue, răspunsuri evidente, întrebări prea ușoare/dificile)
-3. Sugestii de îmbunătățire
-
-Răspunde în format JSON:
-{
-  "difficulty_distribution": {
-    "easy": 3,
-    "medium": 5,
-    "hard": 2
-  },
-  "anti_patterns": [
-    {
-      "question_index": 0,
-      "type": "ambiguous",
-      "description": "Întrebarea este ambiguă..."
-    }
-  ],
-  "suggestions": [
-    "Adaugă mai multe întrebări dificile",
-    "Clarifică întrebarea 3"
-  ]
-}`;
+			const prompt = buildAssessmentAnalysisPrompt(questions);
 
 			let fullResponse = '';
 			await openaiService.streamCourseGeneration(
