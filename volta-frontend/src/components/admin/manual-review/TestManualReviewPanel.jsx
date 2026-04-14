@@ -60,6 +60,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 	const [reviewFeedback, setReviewFeedback] = useState({});
 	const [overallFeedback, setOverallFeedback] = useState('');
 	const [reviewSubmitting, setReviewSubmitting] = useState(false);
+	const [clearing, setClearing] = useState(false);
 
 	const loadPendingReviews = useCallback(async () => {
 		setPendingLoading(true);
@@ -139,6 +140,23 @@ export default function TestManualReviewPanel({ embedded = false }) {
 
 	const reviewModalQuestions = reviewTarget ? getManualQuestionsForResult(reviewTarget) : [];
 
+	const handleClearPending = async () => {
+		if (!canMutateInAdminArea || clearing) return;
+		const ok = window.confirm('Sigur vrei să golești coada? Vor fi curățate intrările expirate/eronate/neverificate mai vechi.');
+		if (!ok) return;
+		setClearing(true);
+		try {
+			const result = await adminService.clearPendingTestReviews(30);
+			showSuccess(result?.message || 'Coada a fost curățată.');
+			await loadPendingReviews();
+		} catch (e) {
+			console.error('Clear pending test reviews failed:', e);
+			showError(e?.response?.data?.message || e?.response?.data?.error || 'Nu s-a putut goli coada.');
+		} finally {
+			setClearing(false);
+		}
+	};
+
 	const rootClass = embedded ? 'admin-tests-pending-embedded' : 'admin-tests-pending-page admin-container';
 
 	return (
@@ -152,10 +170,20 @@ export default function TestManualReviewPanel({ embedded = false }) {
 					type="button"
 					className="admin-tests-pending-refresh"
 					onClick={() => loadPendingReviews()}
-					disabled={pendingLoading}
+					disabled={pendingLoading || clearing}
 				>
 					{pendingLoading ? 'Se încarcă…' : 'Reîmprospătează'}
 				</button>
+				{canMutateInAdminArea ? (
+					<button
+						type="button"
+						className="admin-tests-pending-refresh"
+						onClick={handleClearPending}
+						disabled={pendingLoading || clearing}
+					>
+						{clearing ? 'Se golește…' : 'Golire'}
+					</button>
+				) : null}
 			</header>
 
 			<section className="admin-tests-pending-section" aria-label="Coadă verificări">

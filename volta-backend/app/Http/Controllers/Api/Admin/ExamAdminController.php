@@ -823,6 +823,84 @@ class ExamAdminController extends Controller
         return response()->json($results);
     }
 
+    /**
+     * Clear stale/invalid pending manual reviews.
+     */
+    public function clearPendingReviews(Request $request)
+    {
+        $validated = $request->validate([
+            'older_than_days' => 'nullable|integer|min:0|max:3650',
+        ]);
+
+        $olderThanDays = (int) ($validated['older_than_days'] ?? 30);
+        $cutoff = now()->subDays($olderThanDays);
+        $manualTypes = ['short_answer', 'essay', 'open_text'];
+
+        $query = ExamResult::with([
+            'exam.questions',
+        ])
+            ->where('needs_manual_review', true)
+            ->whereNull('reviewed_at');
+
+        if (auth()->user()->isInstructor()) {
+            $uid = (int) auth()->id();
+            $query->whereHas('exam', function ($q) use ($uid) {
+                $q->where(function ($q2) use ($uid) {
+                    $q2->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
+                    if (Schema::hasColumn('exams', 'created_by')) {
+                        $q2->orWhere(function ($q3) use ($uid) {
+                            $q3->whereNull('course_id')->where('created_by', $uid);
+                        });
+                    }
+                });
+            });
+        }
+
+        $rows = $query->get();
+        $toClearIds = [];
+
+        foreach ($rows as $row) {
+            $isExpired = $row->completed_at && $row->completed_at->lt($cutoff);
+            $questions = $row->exam?->questions ?? collect();
+            $hasManualQuestions = $questions->contains(function ($q) use ($manualTypes) {
+                return in_array((string) ($q->question_type ?? ''), $manualTypes, true);
+            });
+            $hasErrorLikeState = !$row->exam || !$hasManualQuestions;
+
+            if ($isExpired || $hasErrorLikeState) {
+                $toClearIds[] = $row->id;
+            }
+        }
+
+        if (empty($toClearIds)) {
+            return response()->json([
+                'message' => 'Nu au fost găsite lucrări expirate/eronate pentru golire.',
+                'cleared_count' => 0,
+            ]);
+        }
+
+        $meta = [
+            '_meta' => [
+                'cleanup' => true,
+                'reason' => 'auto_clear_pending_reviews',
+                'cleaned_at' => now()->toIso8601String(),
+                'cleaned_by' => Auth::id(),
+            ],
+        ];
+
+        ExamResult::whereIn('id', $toClearIds)->update([
+            'needs_manual_review' => false,
+            'reviewed_at' => now(),
+            'reviewed_by' => Auth::id(),
+            'manual_review_scores' => $meta,
+        ]);
+
+        return response()->json([
+            'message' => 'Coada de verificări a fost curățată.',
+            'cleared_count' => count($toClearIds),
+        ]);
+    }
+
     public function submitManualReview(Request $request, $resultId)
     {
         $validated = $request->validate([

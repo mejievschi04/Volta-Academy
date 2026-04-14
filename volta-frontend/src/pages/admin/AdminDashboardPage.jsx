@@ -25,6 +25,7 @@ const AdminDashboardPage = () => {
 		{ value: '14d', label: 'Ultimele 14 zile' },
 		{ value: '30d', label: 'Ultimele 30 zile' },
 		{ value: '90d', label: 'Ultimele 90 zile' },
+		{ value: 'all', label: 'Full time' },
 	];
 
 	useEffect(() => {

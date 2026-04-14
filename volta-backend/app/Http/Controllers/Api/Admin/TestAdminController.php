@@ -543,6 +543,88 @@ class TestAdminController extends Controller
     }
 
     /**
+     * Clear stale/invalid pending manual reviews.
+     */
+    public function clearPendingReviews(Request $request)
+    {
+        $validated = $request->validate([
+            'older_than_days' => 'nullable|integer|min:0|max:3650',
+        ]);
+
+        $olderThanDays = (int) ($validated['older_than_days'] ?? 30);
+        $cutoff = now()->subDays($olderThanDays);
+
+        $query = TestResult::with([
+            'test' => fn($q) => $q->with(['questions', 'questionBank.questions']),
+        ])
+            ->where(function ($q) {
+                $q->where('status', 'pending_review')
+                    ->orWhere('needs_manual_review', true);
+            })
+            ->whereNull('reviewed_at');
+
+        if (auth()->user()->isInstructor()) {
+            $query->whereHas('test', fn($q) => $q->where('created_by', auth()->id()));
+        }
+
+        $rows = $query->get();
+        $manualTypes = ['short_answer', 'essay', 'open_text'];
+        $toClearIds = [];
+
+        foreach ($rows as $row) {
+            $isExpired = $row->completed_at && $row->completed_at->lt($cutoff);
+            $hasInvalidState = ($row->status !== 'pending_review') && (bool) $row->needs_manual_review;
+
+            $questions = collect();
+            if ($row->test) {
+                if ($row->test->question_source === 'bank' && $row->test->questionBank) {
+                    $questions = $row->test->questionBank->questions ?? collect();
+                } else {
+                    $questions = $row->test->questions ?? collect();
+                }
+            }
+
+            $hasManualQuestions = $questions->contains(function ($q) use ($manualTypes) {
+                return in_array((string) ($q->type ?? ''), $manualTypes, true);
+            });
+            $hasErrorLikeState = !$row->test || !$hasManualQuestions;
+
+            if ($isExpired || $hasInvalidState || $hasErrorLikeState) {
+                $toClearIds[] = $row->id;
+            }
+        }
+
+        if (empty($toClearIds)) {
+            return response()->json([
+                'message' => 'Nu au fost găsite încercări expirate/eronate pentru golire.',
+                'cleared_count' => 0,
+            ]);
+        }
+
+        $meta = [
+            '_meta' => [
+                'cleanup' => true,
+                'reason' => 'auto_clear_pending_reviews',
+                'cleaned_at' => now()->toIso8601String(),
+                'cleaned_by' => Auth::id(),
+            ],
+        ];
+
+        TestResult::whereIn('id', $toClearIds)->update([
+            'needs_manual_review' => false,
+            'status' => 'completed',
+            'reviewed_at' => now(),
+            'reviewed_by' => Auth::id(),
+            'manual_review_scores' => $meta,
+        ]);
+
+        return response()->json([
+            'message' => 'Coada de verificări a fost curățată.',
+            'cleared_count' => count($toClearIds),
+        ]);
+    }
+
+    /**
      * Submit manual review for a test result
      */
     public function submitManualReview(Request $request, $resultId)

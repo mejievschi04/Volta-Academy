@@ -60,12 +60,6 @@ export default function AdminTestsPage() {
     });
   }, [tests, query]);
 
-  const openCreateModal = () => {
-    setEditingTest(null);
-    setForm(EMPTY_FORM);
-    setShowModal(true);
-  };
-
   const openEditModal = (item) => {
     setEditingTest(item);
     setForm({
@@ -103,13 +97,13 @@ export default function AdminTestsPage() {
         time_limit_minutes: form.time_limit_minutes === '' ? null : Number(form.time_limit_minutes),
       };
 
-      if (editingTest?.id) {
-        await adminService.updateTest(editingTest.id, payload);
-        showSuccess('Test actualizat.');
-      } else {
-        await adminService.createTest(payload);
-        showSuccess('Test creat.');
+      if (!editingTest?.id) {
+        showError('Crearea testelor din această pagină este dezactivată. Poți doar edita teste existente.');
+        return;
       }
+
+      await adminService.updateTest(editingTest.id, payload);
+      showSuccess('Test actualizat.');
 
       setShowModal(false);
       await loadTests();
@@ -176,13 +170,7 @@ export default function AdminTestsPage() {
             Publică când e gata sau lasă testul în draft pentru editări ulterioare. Verificarea manuală este în Content → Verificare manuală.
           </p>
         </div>
-        <div className="admin-tests-header-actions">
-          {canMutateInAdminArea ? (
-            <button type="button" className="admin-tests-primary-btn" onClick={openCreateModal}>
-              + Creeaza test
-            </button>
-          ) : null}
-        </div>
+        <div className="admin-tests-header-actions" />
       </header>
 
       <div className="admin-tests-search">
@@ -281,7 +269,7 @@ export default function AdminTestsPage() {
       {showModal ? (
         <div className="admin-tests-modal-overlay" role="presentation" onClick={closeModal}>
           <div className="admin-tests-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingTest ? 'Editare test' : 'Creare test'}</h3>
+            <h3>Editare test</h3>
             <label>
               Titlu
               <input

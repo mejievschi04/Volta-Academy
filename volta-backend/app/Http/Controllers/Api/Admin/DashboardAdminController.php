@@ -167,10 +167,16 @@ class DashboardAdminController extends Controller
                     'start' => $now->copy()->startOfYear(),
                     'end' => $now->copy()->endOfYear(),
                 ];
+            case 'all':
+            case 'full_time':
+                return [
+                    'start' => Carbon::parse('2020-01-01')->startOfDay(),
+                    'end' => $now->copy()->endOfDay(),
+                ];
             default:
                 return [
-                    'start' => Carbon::parse('2020-01-01'),
-                    'end' => $now,
+                    'start' => Carbon::parse('2020-01-01')->startOfDay(),
+                    'end' => $now->copy()->endOfDay(),
                 ];
         }
     }

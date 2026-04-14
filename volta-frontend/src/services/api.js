@@ -1053,6 +1053,13 @@ export const adminService = {
     return response.data;
   },
 
+  clearPendingTestReviews: async (olderThanDays = 30) => {
+    const response = await api.post('/admin/tests/pending-reviews/clear', {
+      older_than_days: olderThanDays,
+    });
+    return response.data;
+  },
+
   submitTestManualReview: async (resultId, reviewScores, overallFeedback = '') => {
     const response = await api.post(`/admin/test-results/${resultId}/manual-review`, {
       manual_review_scores: reviewScores,
@@ -1063,6 +1070,13 @@ export const adminService = {
 
   getPendingExamReviews: async () => {
     const response = await api.get('/admin/exams/pending-reviews');
+    return response.data;
+  },
+
+  clearPendingExamReviews: async (olderThanDays = 30) => {
+    const response = await api.post('/admin/exams/pending-reviews/clear', {
+      older_than_days: olderThanDays,
+    });
     return response.data;
   },
 

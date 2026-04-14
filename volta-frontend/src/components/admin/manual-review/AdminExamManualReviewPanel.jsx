@@ -67,6 +67,7 @@ export default function AdminExamManualReviewPanel() {
 	const [manualReviewFeedback, setManualReviewFeedback] = useState({});
 	const [manualReviewOverallFeedback, setManualReviewOverallFeedback] = useState('');
 	const [manualReviewSubmitting, setManualReviewSubmitting] = useState(false);
+	const [clearing, setClearing] = useState(false);
 
 	const manualReviewSortedQuestions = useMemo(() => sortQs(manualReviewTarget?.exam?.questions), [manualReviewTarget]);
 
@@ -136,6 +137,23 @@ export default function AdminExamManualReviewPanel() {
 		}
 	};
 
+	const handleClearPending = async () => {
+		if (!canMutateInAdminArea || clearing) return;
+		const ok = window.confirm('Sigur vrei să golești coada? Vor fi curățate lucrările expirate/eronate/neverificate mai vechi.');
+		if (!ok) return;
+		setClearing(true);
+		try {
+			const result = await adminService.clearPendingExamReviews(30);
+			toastSuccess(result?.message || 'Coada a fost curățată.');
+			await loadPending();
+		} catch (e) {
+			console.error('Clear pending exam reviews failed:', e);
+			toastError(e?.response?.data?.message || e?.response?.data?.error || 'Nu s-a putut goli coada.');
+		} finally {
+			setClearing(false);
+		}
+	};
+
 	return (
 		<div className="admin-exams-manual-review admin-tests-pending-embedded">
 			<div className="admin-exams-manual-review-head admin-exams-manual-review-head--toolbar">
@@ -146,6 +164,16 @@ export default function AdminExamManualReviewPanel() {
 				<button type="button" className="admin-exams-section-refresh-btn" onClick={() => loadPending()} disabled={loading}>
 					{loading ? 'Se încarcă…' : 'Reîmprospătează'}
 				</button>
+				{canMutateInAdminArea ? (
+					<button
+						type="button"
+						className="admin-exams-section-refresh-btn"
+						onClick={handleClearPending}
+						disabled={loading || clearing}
+					>
+						{clearing ? 'Se golește…' : 'Golire'}
+					</button>
+				) : null}
 			</div>
 
 			<section className="admin-tests-pending-section" aria-label="Coadă examene">
