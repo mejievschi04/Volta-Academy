@@ -539,30 +539,31 @@ class QuestionAdminController extends Controller
 
     private function callAi(string $prompt): string
     {
-        $provider = env('AI_PROVIDER', 'groq');
+        $provider = (string) config('ai.provider', 'groq');
         if ($provider === 'groq') {
-            $apiKey = env('GROQ_API_KEY');
-            $apiUrl = env('GROQ_API_URL', 'https://api.groq.com/openai/v1');
-            $model = env('GROQ_MODEL', 'llama-3.1-8b-instant');
+            $apiKey = (string) config('ai.groq.api_key', '');
+            $apiUrl = (string) config('ai.groq.api_url', 'https://api.groq.com/openai/v1');
+            $model = (string) config('ai.groq.model', 'llama-3.1-8b-instant');
         } else {
-            $apiKey = env('OPENAI_API_KEY');
-            $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
-            $model = env('OPENAI_MODEL', 'gpt-4o-mini');
+            $apiKey = (string) config('ai.openai.api_key', '');
+            $apiUrl = (string) config('ai.openai.api_url', 'https://api.openai.com/v1');
+            $model = (string) config('ai.openai.model', 'gpt-4o-mini');
         }
 
         $requiresApiKey = true;
         if ($requiresApiKey && !$apiKey) {
-            if ($provider === 'groq' && env('OPENAI_API_KEY')) {
+            $openaiKey = (string) config('ai.openai.api_key', '');
+            if ($provider === 'groq' && $openaiKey !== '') {
                 $provider = 'openai';
-                $apiKey = env('OPENAI_API_KEY');
-                $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
-                $model = env('OPENAI_MODEL', 'gpt-4o-mini');
+                $apiKey = $openaiKey;
+                $apiUrl = (string) config('ai.openai.api_url', 'https://api.openai.com/v1');
+                $model = (string) config('ai.openai.model', 'gpt-4o-mini');
             } else {
                 throw new \Exception('AI API key not configured for provider: ' . $provider);
             }
         }
 
-        $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
+        $verify = (bool) config('ai.verify_ssl', true);
         $headers = [
             'Content-Type' => 'application/json',
         ];

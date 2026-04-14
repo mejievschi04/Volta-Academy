@@ -1017,32 +1017,36 @@ class QuestionBankAdminController extends Controller
     private function callAI(string $prompt, int $maxTokens = 1200): string
     {
         // Use HTTP client to call AI API
-        $provider = env('AI_PROVIDER', 'groq');
+        $provider = (string) config('ai.provider', 'groq');
         if ($provider === 'groq') {
-            $apiKey = env('GROQ_API_KEY');
-            $apiUrl = env('GROQ_API_URL', 'https://api.groq.com/openai/v1');
-            $model = env('GROQ_CREATOR_QUALITY_MODEL', env('GROQ_CREATOR_MODEL', env('GROQ_MODEL', 'llama-3.1-8b-instant')));
+            $apiKey = (string) config('ai.groq.api_key', '');
+            $apiUrl = (string) config('ai.groq.api_url', 'https://api.groq.com/openai/v1');
+            $model = (string) (config('ai.groq.creator_quality_model')
+                ?: config('ai.groq.creator_model')
+                ?: config('ai.groq.model', 'llama-3.1-8b-instant'));
         } else {
-            $apiKey = env('OPENAI_API_KEY');
-            $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
-            $model = env('OPENAI_CREATOR_QUALITY_MODEL', env('OPENAI_CREATOR_MODEL', env('OPENAI_MODEL', 'gpt-4o-mini')));
+            $apiKey = (string) config('ai.openai.api_key', '');
+            $apiUrl = (string) config('ai.openai.api_url', 'https://api.openai.com/v1');
+            $model = (string) (config('ai.openai.creator_quality_model')
+                ?: config('ai.openai.creator_model')
+                ?: config('ai.openai.model', 'gpt-4o-mini'));
         }
 
         $requiresApiKey = true;
         if ($requiresApiKey && !$apiKey) {
-            if ($provider === 'groq' && env('OPENAI_API_KEY')) {
-                Log::info('GROQ key missing in env; falling back to OpenAI provider for this request');
+            $openaiKey = (string) config('ai.openai.api_key', '');
+            if ($provider === 'groq' && $openaiKey !== '') {
+                Log::info('GROQ key missing; falling back to OpenAI provider for this request');
                 $provider = 'openai';
-                $apiKey = env('OPENAI_API_KEY');
-                $apiUrl = env('OPENAI_API_URL', 'https://api.openai.com/v1');
-                $model = env('OPENAI_MODEL', 'gpt-4o-mini');
+                $apiKey = $openaiKey;
+                $apiUrl = (string) config('ai.openai.api_url', 'https://api.openai.com/v1');
+                $model = (string) config('ai.openai.model', 'gpt-4o-mini');
             } else {
                 throw new \Exception('AI API key not configured for provider: ' . $provider);
             }
         }
 
-        // Allow disabling SSL verification for local/dev via AI_VERIFY_SSL env var
-        $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
+        $verify = (bool) config('ai.verify_ssl', true);
 
         // Helper to perform a request with a specific model
         $attemptRequest = function(string $modelToUse) use ($apiUrl, $apiKey, $prompt, $verify, $maxTokens) {
@@ -1114,7 +1118,9 @@ class QuestionBankAdminController extends Controller
             $shouldTryFallback = ($response->status() === 404) || str_contains(strtolower($providerMessage ?? ''), 'model') || $providerCode === 'model_not_found';
 
             if ($shouldTryFallback) {
-                $fallbackEnv = $provider === 'groq' ? env('GROQ_FALLBACK_MODELS') : env('OPENAI_FALLBACK_MODELS');
+                $fallbackEnv = $provider === 'groq'
+                    ? (string) config('ai.groq.fallback_models', '')
+                    : (string) config('ai.openai.fallback_models', '');
                 $fallbacks = array_filter(array_map('trim', explode(',', (string)$fallbackEnv)));
 
                 foreach ($fallbacks as $fallbackModel) {
