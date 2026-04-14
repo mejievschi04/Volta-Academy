@@ -22,10 +22,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('api-messages', function (Request $request) {
-            $key = $request->user()?->id ?? $request->ip();
+        // Citiri mesagerie (polling): buget mare, separat de mutații ca să nu se „fure” între ele.
+        RateLimiter::for('api-messages-read', function (Request $request) {
+            $key = (string) ($request->user()?->id ?? $request->ip());
 
-            return Limit::perMinute(360)->by((string) $key);
+            return Limit::perMinute((int) config('messages.read_per_minute', 2000))->by($key);
+        });
+
+        RateLimiter::for('api-messages-write', function (Request $request) {
+            $key = (string) ($request->user()?->id ?? $request->ip());
+
+            return Limit::perMinute((int) config('messages.write_per_minute', 180))->by($key);
         });
 
         if (config('database.default') === 'sqlite') {

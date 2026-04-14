@@ -40,6 +40,8 @@ const MessagesPage = () => {
 	const pollingIntervalRef = useRef(null);
 	const conversationsPollingRef = useRef(null);
 	const lastMessageIdRef = useRef(null);
+	const messagesPollBackoffUntilRef = useRef(0);
+	const conversationsPollBackoffUntilRef = useRef(0);
 
 	// Detect mobile viewport
 	useEffect(() => {
@@ -80,24 +82,20 @@ const MessagesPage = () => {
 		scrollToBottom();
 	}, [messages]);
 
-	// Polling pentru mesaje noi în conversația activă
+	// Polling pentru mesaje noi în conversația activă (fără messages.length în deps — evită resetări repetate ale intervalului)
 	useEffect(() => {
-		if (!selectedConversation || !user) return;
+		if (!selectedConversation?.id || !user?.id) return;
 
-		// Setăm ultimul mesaj ID când se schimbă conversația
-		if (messages.length > 0) {
-			lastMessageIdRef.current = messages[messages.length - 1].id;
-		} else {
-			lastMessageIdRef.current = null;
-		}
+		const conversationId = selectedConversation.id;
 
 		// Funcție pentru a verifica mesaje noi
 		const checkNewMessages = async () => {
 			// Nu face polling dacă pagina nu este activă
 			if (document.hidden) return;
+			if (Date.now() < messagesPollBackoffUntilRef.current) return;
 
 			try {
-				const data = await messagesService.getMessages(selectedConversation.id);
+				const data = await messagesService.getMessages(conversationId);
 				
 				if (Array.isArray(data) && data.length > 0) {
 					const lastMessage = data[data.length - 1];
@@ -119,7 +117,7 @@ const MessagesPage = () => {
 						
 						// Actualizează conversația cu ultimul mesaj
 						setConversations(prev => prev.map(conv => 
-							conv.id === selectedConversation.id
+							conv.id === conversationId
 								? {
 									...conv,
 									lastMessage: {
@@ -140,19 +138,22 @@ const MessagesPage = () => {
 					}
 				}
 		} catch (err) {
+			if (err?.response?.status === 429) {
+				messagesPollBackoffUntilRef.current = Date.now() + 120000;
+			}
 			logger.error('Error polling messages:', err);
 			}
 		};
 
-		// Polling mesaje active (4s) — evită 429 față de limita globală API când rulează și lista conversații
-		pollingIntervalRef.current = setInterval(checkNewMessages, 4000);
+		// Polling mesaje active (6s) + backoff la 429
+		pollingIntervalRef.current = setInterval(checkNewMessages, 6000);
 
 		return () => {
 			if (pollingIntervalRef.current) {
 				clearInterval(pollingIntervalRef.current);
 			}
 		};
-	}, [selectedConversation, messages.length, user]);
+	}, [selectedConversation?.id, user?.id]);
 
 	// Polling pentru actualizarea conversațiilor (ultimul mesaj, contor necitite)
 	useEffect(() => {
@@ -161,6 +162,7 @@ const MessagesPage = () => {
 		const updateConversations = async () => {
 			// Nu face polling dacă pagina nu este activă
 			if (document.hidden) return;
+			if (Date.now() < conversationsPollBackoffUntilRef.current) return;
 
 			try {
 				const data = await messagesService.getConversations();
@@ -190,19 +192,23 @@ const MessagesPage = () => {
 						}
 					}
 		} catch (err) {
+			if (err?.response?.status === 429) {
+				conversationsPollBackoffUntilRef.current = Date.now() + 120000;
+				messagesPollBackoffUntilRef.current = Date.now() + 120000;
+			}
 			logger.error('Error polling conversations:', err);
 			}
 		};
 
-		// Lista conversații (10s) — suficient pentru preview necitite fără a agresa rate limit
-		conversationsPollingRef.current = setInterval(updateConversations, 10000);
+		// Lista conversații (15s) + backoff la 429
+		conversationsPollingRef.current = setInterval(updateConversations, 15000);
 
 		return () => {
 			if (conversationsPollingRef.current) {
 				clearInterval(conversationsPollingRef.current);
 			}
 		};
-	}, [user, selectedConversation?.id]);
+	}, [user?.id, selectedConversation?.id]);
 
 	const scrollToBottom = () => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
