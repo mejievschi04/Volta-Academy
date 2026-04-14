@@ -348,11 +348,11 @@ function Layout({ children }) {
 			const total = await messagesService.getUnreadCount();
 			setMessagesUnreadCount(Number.isFinite(Number(total)) ? Math.max(0, Number(total)) : 0);
 			unreadPollingFailuresRef.current = 0;
-		} catch {
+		} catch (err) {
+			const status = err?.response?.status;
 			unreadPollingFailuresRef.current += 1;
-			if (unreadPollingFailuresRef.current >= 3) {
-				// If backend is temporarily overloaded, pause polling briefly.
-				unreadPollingCooldownUntilRef.current = Date.now() + 60000;
+			if (status === 429 || unreadPollingFailuresRef.current >= 3) {
+				unreadPollingCooldownUntilRef.current = Date.now() + (status === 429 ? 120000 : 60000);
 				unreadPollingFailuresRef.current = 0;
 			}
 		} finally {
@@ -375,7 +375,7 @@ function Layout({ children }) {
 
 			if (!document.hidden) {
 				loadMessagesUnreadCount();
-				intervalId = window.setInterval(loadMessagesUnreadCount, 15000);
+				intervalId = window.setInterval(loadMessagesUnreadCount, 30000);
 			}
 		};
 

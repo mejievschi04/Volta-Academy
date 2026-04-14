@@ -144,8 +144,8 @@ const MessagesPage = () => {
 			}
 		};
 
-		// Polling la fiecare 2 secunde
-		pollingIntervalRef.current = setInterval(checkNewMessages, 2000);
+		// Polling mesaje active (4s) — evită 429 față de limita globală API când rulează și lista conversații
+		pollingIntervalRef.current = setInterval(checkNewMessages, 4000);
 
 		return () => {
 			if (pollingIntervalRef.current) {
@@ -194,8 +194,8 @@ const MessagesPage = () => {
 			}
 		};
 
-		// Polling la fiecare 5 secunde pentru conversații
-		conversationsPollingRef.current = setInterval(updateConversations, 5000);
+		// Lista conversații (10s) — suficient pentru preview necitite fără a agresa rate limit
+		conversationsPollingRef.current = setInterval(updateConversations, 10000);
 
 		return () => {
 			if (conversationsPollingRef.current) {

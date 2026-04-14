@@ -89,6 +89,24 @@ Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'l
 Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth:sanctum');
 Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'throttle:60,1']);
 
+// Mesagerie: polling mai des decât restul API-ului — limită dedicată (evită 429 la 60/min global).
+Route::middleware(['auth:sanctum', 'throttle:api-messages'])->group(function () {
+    Route::get('/messages/unread-count', [\App\Http\Controllers\Api\MessageController::class, 'getUnreadCount']);
+    Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
+    Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
+    Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
+    Route::patch('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'updateConversation']);
+    Route::post('/messages/conversations/{id}/leave', [\App\Http\Controllers\Api\MessageController::class, 'leaveGroup']);
+    Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
+    Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
+    Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
+    Route::get('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'getParticipants']);
+    Route::post('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'addParticipants']);
+    Route::patch('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'updateParticipantGroupRole']);
+    Route::delete('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'removeParticipant']);
+    Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
+});
+
 // Protected routes (require authentication) with rate limiting
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -135,22 +153,6 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration']);
     Route::post('/events/{id}/mark-attendance', [EventController::class, 'markAttendance']);
     Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched']);
-    
-    // Messages
-    Route::get('/messages/unread-count', [\App\Http\Controllers\Api\MessageController::class, 'getUnreadCount']);
-    Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
-    Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
-    Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
-    Route::patch('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'updateConversation']);
-    Route::post('/messages/conversations/{id}/leave', [\App\Http\Controllers\Api\MessageController::class, 'leaveGroup']);
-    Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
-    Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
-    Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
-    Route::get('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'getParticipants']);
-    Route::post('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'addParticipants']);
-    Route::patch('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'updateParticipantGroupRole']);
-    Route::delete('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'removeParticipant']);
-    Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
 
     // Admin AI Assistant
     Route::post('/ai/extract-document', [\App\Http\Controllers\AIController::class, 'extractDocumentContext']);
