@@ -301,6 +301,56 @@ export const examResultsService = {
   },
 };
 
+export const libraryService = {
+  listItems: async (params = {}) => {
+    const response = await api.get('/library/items', { params });
+    return response.data;
+  },
+
+  getItem: async (id) => {
+    const response = await api.get(`/library/items/${id}`);
+    return response.data;
+  },
+
+  uploadItem: async ({ file, title, description, cover }) => {
+    await ensureApiCsrfCookie();
+    const formData = new FormData();
+    formData.append('file', file);
+    if (title) formData.append('title', title);
+    if (description) formData.append('description', description);
+    if (cover instanceof Blob) {
+      formData.append('cover', cover, 'cover.jpg');
+    }
+    const response = await api.post('/library/items', formData);
+    return response.data;
+  },
+
+  deleteItem: async (id) => {
+    const response = await api.delete(`/library/items/${id}`);
+    return response.data;
+  },
+
+  /** Descarcă fișierul (blob); folosește numele din antet sau fallbackName. */
+  downloadItemBlob: async (id, fallbackName = 'document') => {
+    const response = await api.get(`/library/items/${id}/download`, {
+      responseType: 'blob',
+    });
+    let name = fallbackName;
+    const cd = response.headers['content-disposition'];
+    if (cd && typeof cd === 'string') {
+      const utf8 = /filename\*=UTF-8''([^;\s]+)/i.exec(cd);
+      const plain = /filename="([^"]+)"/i.exec(cd);
+      try {
+        if (utf8?.[1]) name = decodeURIComponent(utf8[1]);
+        else if (plain?.[1]) name = plain[1];
+      } catch {
+        /* păstrăm fallbackName */
+      }
+    }
+    return { blob: response.data, filename: name };
+  },
+};
+
 
 export const authService = {
   register: async (name, email, password) => {
@@ -377,7 +427,12 @@ export const adminService = {
     logger.warn('adminService.getCourses: Unexpected response format, returning empty array');
     return [];
   },
-  
+
+  reorderCoursesList: async (courseIds) => {
+    const response = await api.post('/admin/courses/reorder', { course_ids: courseIds });
+    return response.data;
+  },
+
   getCourse: async (id) => {
     const response = await api.get(`/admin/courses/${id}`);
     return response.data;
@@ -741,6 +796,25 @@ export const adminService = {
     return response.data;
   },
 
+  reorderCourseMaps: async (mapIds) => {
+    const response = await api.post('/admin/course-maps/reorder', { map_ids: mapIds });
+    return response.data;
+  },
+
+  uploadCourseMapCover: async (mapId, file) => {
+    const formData = new FormData();
+    formData.append('cover', file);
+    const response = await api.post(`/admin/course-maps/${mapId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteCourseMapCover: async (mapId) => {
+    const response = await api.delete(`/admin/course-maps/${mapId}/cover`);
+    return response.data;
+  },
+
   // Question Banks
   getQuestionBanks: async (params = {}) => {
     const response = await api.get('/admin/question-banks', { params });
@@ -933,6 +1007,19 @@ export const adminService = {
     return response.data;
   },
 
+  reorderTeams: async (teamIds) => {
+    const response = await api.post('/admin/teams/reorder', { team_ids: teamIds });
+    return response.data;
+  },
+
+  attachCoursesToTeamMember: async (teamId, userId, courseIds, options = {}) => {
+    const response = await api.post(`/admin/teams/${teamId}/users/${userId}/courses/attach`, {
+      course_ids: courseIds,
+      ...options,
+    });
+    return response.data;
+  },
+
   // Users
   getUsers: async (params = {}) => {
     const response = await api.get('/admin/users', { params });
@@ -1031,6 +1118,29 @@ export const adminService = {
   // Course Teams
   attachTeamsToCourse: async (courseId, teamIds) => {
     const response = await api.post(`/admin/courses/${courseId}/teams`, { team_ids: teamIds });
+    return response.data;
+  },
+
+  getAssignableTeamsForCourse: async (courseId) => {
+    const response = await api.get(`/admin/courses/${courseId}/assignable-teams`);
+    return response.data;
+  },
+
+  getAssignableLearnersForCourse: async (courseId, params = {}) => {
+    const response = await api.get(`/admin/courses/${courseId}/assignable-learners`, { params });
+    return response.data;
+  },
+
+  attachLearnersToCourse: async (courseId, userIds, options = {}) => {
+    const response = await api.post(`/admin/courses/${courseId}/learners`, {
+      user_ids: userIds,
+      ...options,
+    });
+    return response.data;
+  },
+
+  detachLearnerFromCourse: async (courseId, userId) => {
+    const response = await api.delete(`/admin/courses/${courseId}/learners/${userId}`);
     return response.data;
   },
 

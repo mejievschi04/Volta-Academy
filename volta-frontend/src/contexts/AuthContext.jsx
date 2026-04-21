@@ -65,6 +65,14 @@ export const AuthProvider = ({ children }) => {
 		return false;
 	}, [user]);
 
+	/** Admin în preview „student” sau instructor: poate deschide builder / editează curs, fără a depinde de canMutateInAdminArea. */
+	const canEditCoursesAsStaff = useMemo(() => {
+		if (!user) return false;
+		const ar = user.actualRole ?? user.role ?? 'student';
+		if (ar === 'analyst') return false;
+		return ar === 'admin' || ar === 'instructor';
+	}, [user]);
+
 	useEffect(() => {
 		checkAuth();
 	}, []);
@@ -120,6 +128,7 @@ export const AuthProvider = ({ children }) => {
 				adminViewMode,
 				setAdminViewMode,
 				canMutateInAdminArea,
+				canEditCoursesAsStaff,
 			}}
 		>
 			{children}

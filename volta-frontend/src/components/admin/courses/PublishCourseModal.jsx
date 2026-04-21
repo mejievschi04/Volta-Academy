@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
+import { teamAccentNeutral } from '../../../utils/teamAccent';
 
 const PublishCourseModal = ({ open, onClose, courseId, onPublished, validationReport, onValidate }) => {
 	const [teams, setTeams] = useState([]);
@@ -144,6 +145,11 @@ const PublishCourseModal = ({ open, onClose, courseId, onPublished, validationRe
 											type="checkbox"
 											checked={selectedTeamIds.includes(t.id)}
 											onChange={() => toggleTeam(t.id)}
+										/>
+										<span
+											className="publish-course-team-swatch"
+											style={{ background: teamAccentNeutral(t) }}
+											aria-hidden
 										/>
 										<span>{t.name}</span>
 									</label>

@@ -4,7 +4,8 @@ import { isStaffAdminRole } from '../constants/staffRoles';
 import { useLocation } from 'react-router-dom';
 
 /** Loads admin CSS only when user is admin - reduces initial load for students.
- *  When loadOnAdminPagesOnly=true, loads on /admin/* and on /messages (admin sidebar layout).
+ *  When loadOnAdminPagesOnly=true, loads on /admin/*, /messages, and /library
+ *  pages that use the admin/staff shell.
  *  If waitForStylesBeforePaint=true, call onArmHold then onReady after the bundle loads.
  *  (Layout must not set "not ready" in an effect that runs after onReady — race → spinner infinit.) */
 export default function AdminStylesLoader({
@@ -29,8 +30,11 @@ export default function AdminStylesLoader({
 		const isStaffAdminUser = isStaffAdminRole(user?.actualRole);
 		const isAdminPage = location.pathname.startsWith('/admin');
 		const isMessagesPage = location.pathname === '/messages';
+		const isLibraryPage =
+			location.pathname === '/library' || location.pathname.startsWith('/library/items/');
+		const isLibraryAdminShellPage = isLibraryPage && user?.role !== 'student';
 		const needBundle =
-			isStaffAdminUser && (!loadOnAdminPagesOnly || isAdminPage || isMessagesPage);
+			isStaffAdminUser && (!loadOnAdminPagesOnly || isAdminPage || isMessagesPage || isLibraryAdminShellPage);
 
 		if (!waitForStylesBeforePaint) {
 			done();

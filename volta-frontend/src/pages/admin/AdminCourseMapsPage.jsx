@@ -1,13 +1,196 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from '@dnd-kit/core';
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	useSortable,
+	rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { mapFolderCardImageUrl, toImageUrl } from '../../utils/imageUrl';
+import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../../components/ui/course-showcase-card';
+import { hexToHslSpace } from '../../lib/hexToHsl';
+import { normalizeColorInputToHex } from '../../utils/color';
 
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
 ];
+
+function sortableMapId(mapId) {
+	return `admin-course-map-${mapId}`;
+}
+
+function isRealMapId(id) {
+	return id !== 'unassigned' && id != null;
+}
+
+function SortableAdminMapShowcase({
+	map,
+	index,
+	canMutate,
+	onOpenMap,
+	onEdit,
+	onDelete,
+}) {
+	const sid = sortableMapId(map.id);
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: sid,
+		disabled: !canMutate || !isRealMapId(map.id),
+	});
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		opacity: isDragging ? 0.9 : 1,
+		zIndex: isDragging ? 2 : undefined,
+	};
+	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
+	const summary = map.description || `${courseCount} cursuri`;
+	const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
+	const subtitle =
+		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
+
+	const dragHandle =
+		canMutate && isRealMapId(map.id) ? (
+			<span
+				className="course-showcase-dnd-handle"
+				{...attributes}
+				{...listeners}
+				aria-label="Trage pentru a reordona mapa"
+				title="Reordonare"
+				onClick={(e) => e.stopPropagation()}
+				onKeyDown={(e) => {
+					e.stopPropagation();
+					if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+				}}
+			>
+				<GripVertical size={14} aria-hidden />
+			</span>
+		) : null;
+
+	return (
+		<div
+			ref={setNodeRef}
+			style={style}
+			className={`admin-course-map-showcase-wrap${canMutate && isRealMapId(map.id) ? ' admin-course-map-showcase-wrap--sortable' : ''}`}
+		>
+			<CourseShowcaseCard
+				imageUrl={imageUrl}
+				title={map.name || '—'}
+				subtitle={subtitle}
+				themeHsl={hexToHslSpace(accentColor)}
+				onOpen={() => onOpenMap(map)}
+				ctaLabel="Deschide mapa"
+				topLeftSlot={dragHandle}
+				topRightSlot={
+					canMutate ? (
+						<>
+							<span
+								role="button"
+								tabIndex={0}
+								className="admin-course-map-delete-btn"
+								onClick={(e) => {
+									e.stopPropagation();
+									onDelete(map);
+								}}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										onDelete(map);
+									}
+								}}
+								aria-label="Șterge mapa"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+									<line x1="18" y1="6" x2="6" y2="18" />
+									<line x1="6" y1="6" x2="18" y2="18" />
+								</svg>
+							</span>
+							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
+								<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+									</svg>
+								</button>
+							</div>
+						</>
+					) : null
+				}
+			/>
+		</div>
+	);
+}
+
+function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDelete }) {
+	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
+	const summary = map.description || `${courseCount} cursuri`;
+	const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
+	const subtitle =
+		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
+	return (
+		<div className="admin-course-map-showcase-wrap">
+			<CourseShowcaseCard
+				imageUrl={imageUrl}
+				title={map.name || '—'}
+				subtitle={subtitle}
+				themeHsl={hexToHslSpace(accentColor)}
+				onOpen={() => onOpenMap(map)}
+				ctaLabel="Deschide mapa"
+				topRightSlot={
+					canMutate ? (
+						<>
+							<span
+								role="button"
+								tabIndex={0}
+								className="admin-course-map-delete-btn"
+								onClick={(e) => {
+									e.stopPropagation();
+									onDelete(map);
+								}}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										onDelete(map);
+									}
+								}}
+								aria-label="Șterge mapa"
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+									<line x1="18" y1="6" x2="6" y2="18" />
+									<line x1="6" y1="6" x2="18" y2="18" />
+								</svg>
+							</span>
+							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
+								<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+									</svg>
+								</button>
+							</div>
+						</>
+					) : null
+				}
+			/>
+		</div>
+	);
+}
 
 const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) => {
 	const navigate = useNavigate();
@@ -25,17 +208,34 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 	const [addCourseIds, setAddCourseIds] = useState([]);
 	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [formAccent, setFormAccent] = useState(COURSE_MAP_ACCENT_COLORS[0]);
+	const [coverBusy, setCoverBusy] = useState(false);
+	const [pendingMapCoverFile, setPendingMapCoverFile] = useState(null);
+	const [pendingMapCoverPreviewUrl, setPendingMapCoverPreviewUrl] = useState(null);
+	const mapColorInputRef = useRef(null);
+	const mapCoverInputRef = useRef(null);
+	const [orderedMaps, setOrderedMaps] = useState([]);
+	const openMapColorPicker = () => mapColorInputRef.current?.click();
+	const openMapCoverPicker = () => mapCoverInputRef.current?.click();
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+	);
 
 	const fetchMaps = useCallback(async () => {
 		try {
 			setLoading(true);
-			const res = await adminService.getCourseMaps({ search: searchQuery || undefined, per_page: 100 });
+			const res = await adminService.getCourseMaps({ search: searchQuery || undefined, per_page: 200 });
 			const list = res?.data ?? (Array.isArray(res) ? res : []);
-			setMaps(Array.isArray(list) ? list : []);
+			const arr = Array.isArray(list) ? list : [];
+			setMaps(arr);
+			setOrderedMaps(arr.filter((m) => m && isRealMapId(m.id)));
 		} catch (err) {
 			console.error('Error fetching course maps:', err);
 			showToast('Nu s-au putut încărca mapele de curs', 'error');
 			setMaps([]);
+			setOrderedMaps([]);
 		} finally {
 			setLoading(false);
 		}
@@ -52,6 +252,16 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [autoOpenCreate, canMutateInAdminArea]);
 
+	useEffect(() => {
+		if (!pendingMapCoverFile) {
+			setPendingMapCoverPreviewUrl(null);
+			return undefined;
+		}
+		const url = URL.createObjectURL(pendingMapCoverFile);
+		setPendingMapCoverPreviewUrl(url);
+		return () => URL.revokeObjectURL(url);
+	}, [pendingMapCoverFile]);
+
 	const fetchCourses = useCallback(async () => {
 		try {
 			const data = await adminService.getCourses({ per_page: 500 });
@@ -61,10 +271,21 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 		}
 	}, []);
 
+	const closeCreateModal = useCallback(() => {
+		setShowCreateModal(false);
+		setPendingMapCoverFile(null);
+		setPendingMapCoverPreviewUrl(null);
+		setCoverBusy(false);
+	}, []);
+
 	const openCreate = () => {
 		setEditingMap(null);
 		setFormName('');
 		setFormDescription('');
+		setFormAccent(COURSE_MAP_ACCENT_COLORS[0]);
+		setPendingMapCoverFile(null);
+		setPendingMapCoverPreviewUrl(null);
+		setCoverBusy(false);
 		setShowCreateModal(true);
 	};
 
@@ -74,6 +295,10 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 			setEditingMap(full);
 			setFormName(full.name || '');
 			setFormDescription(full.description || '');
+			setFormAccent(full.accent_color || COURSE_MAP_ACCENT_COLORS[0]);
+			setPendingMapCoverFile(null);
+			setPendingMapCoverPreviewUrl(null);
+			setCoverBusy(false);
 			setAddCourseIds([]);
 			fetchCourses();
 			setShowCreateModal(true);
@@ -88,20 +313,40 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 			showToast('Numele mapei este obligatoriu', 'error');
 			return;
 		}
+		const normalizedAccent = normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]);
+		const payload = { name, description: formDescription || null, accent_color: normalizedAccent };
 		try {
 			if (editingMap) {
-				await adminService.updateCourseMap(editingMap.id, { name, description: formDescription || null });
+				await adminService.updateCourseMap(editingMap.id, payload);
 				showToast('Mapa a fost actualizată', 'success');
 			} else {
-				await adminService.createCourseMap({ name, description: formDescription || null });
+				const created = await adminService.createCourseMap(payload);
+				const createdId = created?.id ?? created?.data?.id ?? null;
+				if (pendingMapCoverFile && createdId) {
+					try {
+						await adminService.uploadCourseMapCover(createdId, pendingMapCoverFile);
+					} catch (coverErr) {
+						console.warn('Map created but cover upload failed', coverErr);
+						showToast('Mapa a fost creată, dar coperta nu s-a încărcat', 'error');
+					}
+				}
 				showToast('Mapa a fost creată', 'success');
 			}
-			setShowCreateModal(false);
+			closeCreateModal();
 			fetchMaps();
 		} catch (err) {
 			showToast(err?.response?.data?.message || 'Eroare la salvare', 'error');
 		}
 	};
+
+	const coverPreviewSrc =
+		pendingMapCoverPreviewUrl ||
+		(editingMap ? toImageUrl(editingMap.cover_image_url) || editingMap.cover_image_url : null);
+	const coverPreviewLabel = pendingMapCoverFile
+		? 'Previzualizare nouă'
+		: editingMap?.cover_image_url
+			? 'Copertă curentă'
+			: 'Fără copertă';
 
 	const deleteMap = async (map) => {
 		if (!map) return;
@@ -174,7 +419,29 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 			onOpenMap(map);
 			return;
 		}
-		navigate(`/admin/content?tab=courses&course_map_id=${map.id}`);
+		navigate(`/admin/maps/${map.id}`);
+	};
+
+	const mapsDndEnabled = canMutateInAdminArea && !searchQuery.trim();
+
+	const handleMapsDragEnd = async (event) => {
+		if (!mapsDndEnabled) return;
+		const { active, over } = event;
+		if (!over || active.id === over.id) return;
+		const sortableRows = orderedMaps.filter((m) => isRealMapId(m.id));
+		const oldIndex = sortableRows.findIndex((m) => sortableMapId(m.id) === active.id);
+		const newIndex = sortableRows.findIndex((m) => sortableMapId(m.id) === over.id);
+		if (oldIndex < 0 || newIndex < 0) return;
+		const next = arrayMove(sortableRows, oldIndex, newIndex);
+		setOrderedMaps(next);
+		try {
+			await adminService.reorderCourseMaps(next.map((m) => m.id));
+			setMaps(next);
+			showToast('Ordinea mapelor a fost salvată', 'success');
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Nu s-a putut salva ordinea', 'error');
+			setOrderedMaps((Array.isArray(maps) ? maps : []).filter((m) => m && isRealMapId(m.id)));
+		}
 	};
 
 	return (
@@ -218,6 +485,10 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 				</div>
 			</div>
 
+			{searchQuery.trim() ? (
+				<p className="admin-course-maps-dnd-hint">Golirea căutării activează reordonarea cu drag and drop.</p>
+			) : null}
+
 			{loading && maps.length === 0 ? (
 				<div className="admin-courses-loading">
 					<div className="va-spinner va-spinner-lg"></div>
@@ -232,72 +503,50 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 					</button>
 					)}
 				</div>
+			) : mapsDndEnabled ? (
+				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMapsDragEnd}>
+					<SortableContext
+						items={orderedMaps.filter((m) => isRealMapId(m.id)).map((m) => sortableMapId(m.id))}
+						strategy={rectSortingStrategy}
+					>
+						<div className="admin-courses-grid admin-courses-grid-maps">
+							<div className="admin-courses-grid-container admin-courses-grid-container-maps">
+								{orderedMaps.map((map, index) => (
+									<SortableAdminMapShowcase
+										key={map.id}
+										map={map}
+										index={index}
+										canMutate={canMutateInAdminArea}
+										onOpenMap={handleOpenMapCourses}
+										onEdit={openEdit}
+										onDelete={setDeleteConfirmMap}
+									/>
+								))}
+							</div>
+						</div>
+					</SortableContext>
+				</DndContext>
 			) : (
 				<div className="admin-courses-grid admin-courses-grid-maps">
 					<div className="admin-courses-grid-container admin-courses-grid-container-maps">
-						{maps.map((map, index) => {
-							const accentColor = COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
-							const courseCount = map.courses_count ?? map.courses?.length ?? 0;
-							const summary = map.description || `${courseCount} cursuri`;
-							return (
-								<div
-									key={map.id}
-									className="admin-course-card admin-course-card-map"
-									onClick={() => handleOpenMapCourses(map)}
-									role="button"
-									tabIndex={0}
-									onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenMapCourses(map); } }}
-									style={{ cursor: 'pointer' }}
-								>
-									{canMutateInAdminArea && (
-									<span
-										role="button"
-										tabIndex={0}
-										className="admin-course-map-delete-btn"
-onClick={(e) => { e.stopPropagation(); setDeleteConfirmMap(map); }}
-																		onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDeleteConfirmMap(map); } }}
-										aria-label="Șterge mapa"
-									>
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-									</span>
-									)}
-									<div className="admin-course-map-body">
-										<div className="admin-course-map-icon-wrap" style={{ '--map-accent': accentColor }}>
-											<svg className="admin-course-map-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-												<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-												<line x1="12" y1="11" x2="12" y2="17"/>
-												<line x1="9" y1="14" x2="15" y2="14"/>
-											</svg>
-										</div>
-										<div className="admin-course-map-content">
-											<h3 className="admin-course-map-title">{map.name || '—'}</h3>
-											<p className="admin-course-map-summary">{map.description && map.description.length > 120 ? map.description.slice(0, 120) + '...' : summary}</p>
-											<div className="admin-course-map-footer">
-												<span className="admin-course-map-cta-label">Deschide</span>
-												<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-												{canMutateInAdminArea && (
-												<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
-													<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); openEdit(map); }} aria-label="Editează mapa">
-														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-													</button>
-													<button type="button" className="admin-course-map-plus-btn" onClick={(e) => { e.stopPropagation(); navigate(`/admin/courses/new?map_id=${map.id}`); }} aria-label="Creează curs în mapa">
-														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-													</button>
-												</div>
-												)}
-											</div>
-										</div>
-									</div>
-								</div>
-							);
-						})}
+						{maps.map((map, index) => (
+							<StaticAdminMapShowcase
+								key={map.id}
+								map={map}
+								index={index}
+								canMutate={canMutateInAdminArea}
+								onOpenMap={handleOpenMapCourses}
+								onEdit={openEdit}
+								onDelete={setDeleteConfirmMap}
+							/>
+						))}
 					</div>
 				</div>
 			)}
 
 			{/* Create/Edit modal – standard LMS: secțiuni clare, selector cursuri cu checkbox */}
 			{showCreateModal && canMutateInAdminArea && (
-				<div className="admin-modal-overlay" onClick={() => setShowCreateModal(false)}>
+				<div className="admin-modal-overlay" onClick={closeCreateModal}>
 					<div className={`admin-modal admin-modal-create ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
 						<div className="admin-modal-body">
@@ -323,6 +572,191 @@ onClick={(e) => { e.stopPropagation(); setDeleteConfirmMap(map); }}
 									rows={3}
 								/>
 								<p className="admin-form-hint">Cursurile din mapă vor apărea grupat pentru studenți.</p>
+							</section>
+
+							<section className="admin-form-section" aria-label="Aspect mapă">
+								<h3 className="admin-form-section-title">Aspect</h3>
+								<label className="admin-form-label">Culoare accent</label>
+								<div
+									className="admin-course-map-palette-preview"
+									role="button"
+									tabIndex={0}
+									aria-label="Deschide selectorul de culori"
+									title="Deschide selectorul de culori"
+									style={{ cursor: 'pointer' }}
+									onClick={openMapColorPicker}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											openMapColorPicker();
+										}
+									}}
+								>
+									<span
+										className="admin-course-map-palette-preview-swatch"
+										style={{ '--swatch-color': normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]) }}
+										aria-hidden="true"
+									/>
+									<span className="admin-course-map-palette-preview-label">
+										{normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0])}
+									</span>
+								</div>
+								<div className="admin-course-map-color-control">
+									<input
+										ref={mapColorInputRef}
+										type="color"
+										className="admin-course-map-color-input-native"
+										value={normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0])}
+										onChange={(e) => setFormAccent(e.target.value)}
+										aria-label="Alege culoarea accentului"
+									/>
+									<input
+										type="text"
+										className="admin-form-input admin-course-map-color-input"
+										value={formAccent}
+										onChange={(e) => setFormAccent(e.target.value)}
+										placeholder="#6366f1"
+										aria-label="Culoare accent în hex"
+									/>
+								</div>
+
+								{!editingMap ? (
+									<>
+										<div className="admin-course-map-cover-card">
+											<div className="admin-course-map-cover-thumb">
+												{coverPreviewSrc ? (
+													<img src={coverPreviewSrc} alt="" className="admin-course-map-cover-thumb-img" />
+												) : (
+													<div className="admin-course-map-cover-thumb-placeholder">
+														<span>Fără copertă</span>
+													</div>
+												)}
+											</div>
+											<div className="admin-course-map-cover-copy">
+												<div className="admin-course-map-cover-copy-head">
+													<label className="admin-form-label" htmlFor="course-map-cover-create">Copertă mapă (opțional)</label>
+													<span className="admin-course-map-cover-chip">{coverPreviewLabel}</span>
+												</div>
+												<p className="admin-form-hint" style={{ margin: 0 }}>
+													Recomandat 16:9, max. 4MB. Vezi imediat miniatura înainte de salvare.
+												</p>
+												<div className="admin-course-map-cover-actions">
+													<button
+														type="button"
+														className="admin-course-map-cover-button"
+														onClick={openMapCoverPicker}
+													>
+														Alege imaginea
+													</button>
+													{pendingMapCoverFile ? (
+														<button
+															type="button"
+															className="admin-course-map-cover-button admin-course-map-cover-button--ghost"
+															onClick={() => setPendingMapCoverFile(null)}
+														>
+															Renunță
+														</button>
+													) : null}
+												</div>
+												<input
+													ref={mapCoverInputRef}
+													id="course-map-cover-create"
+													type="file"
+													accept="image/jpeg,image/png,image/gif,image/webp"
+													onChange={(e) => {
+														const file = e.target.files?.[0];
+														e.target.value = '';
+														setPendingMapCoverFile(file || null);
+													}}
+													className="admin-course-map-cover-input"
+													hidden
+												/>
+											</div>
+										</div>
+									</>
+								) : (
+									<>
+										<div className="admin-course-map-cover-card">
+											<div className="admin-course-map-cover-thumb">
+												{coverPreviewSrc ? (
+													<img src={coverPreviewSrc} alt="" className="admin-course-map-cover-thumb-img" />
+												) : (
+													<div className="admin-course-map-cover-thumb-placeholder">
+														<span>Fără copertă</span>
+													</div>
+												)}
+											</div>
+											<div className="admin-course-map-cover-copy">
+												<div className="admin-course-map-cover-copy-head">
+													<label className="admin-form-label" htmlFor="course-map-cover">Copertă mapă</label>
+													<span className="admin-course-map-cover-chip">{coverPreviewLabel}</span>
+												</div>
+												<p className="admin-form-hint" style={{ margin: 0 }}>
+													Recomandat 16:9, max. 4MB. Schimbarea se aplică imediat după selectare.
+												</p>
+												<div className="admin-course-map-cover-actions">
+													<button
+														type="button"
+														className="admin-course-map-cover-button"
+														onClick={openMapCoverPicker}
+														disabled={coverBusy}
+													>
+														{coverBusy ? 'Se încarcă...' : 'Încarcă altă imagine'}
+													</button>
+													{editingMap?.cover_image_url ? (
+														<button
+															type="button"
+															className="admin-course-map-cover-button admin-course-map-cover-button--ghost"
+															disabled={coverBusy}
+															onClick={async () => {
+																setCoverBusy(true);
+																try {
+																	const updated = await adminService.deleteCourseMapCover(editingMap.id);
+																	setEditingMap(updated);
+																	showToast('Coperta a fost eliminată', 'success');
+																	fetchMaps();
+																} catch (err) {
+																	showToast(err?.response?.data?.message || 'Eroare', 'error');
+																} finally {
+																	setCoverBusy(false);
+																}
+															}}
+														>
+															Șterge coperta
+														</button>
+													) : null}
+												</div>
+												<input
+													ref={mapCoverInputRef}
+													id="course-map-cover"
+													type="file"
+													accept="image/jpeg,image/png,image/gif,image/webp"
+													disabled={coverBusy}
+													onChange={async (e) => {
+														const file = e.target.files?.[0];
+														e.target.value = '';
+														if (!file || !editingMap) return;
+														setPendingMapCoverFile(file);
+														setCoverBusy(true);
+														try {
+															const updated = await adminService.uploadCourseMapCover(editingMap.id, file);
+															setEditingMap(updated);
+															showToast('Coperta a fost încărcată', 'success');
+															fetchMaps();
+														} catch (err) {
+															showToast(err?.response?.data?.message || 'Eroare la încărcarea copertei', 'error');
+														} finally {
+															setCoverBusy(false);
+															setPendingMapCoverFile(null);
+														}
+													}}
+													className="admin-course-map-cover-input"
+													hidden
+												/>
+											</div>
+										</div>
+									</>
+								)}
 							</section>
 
 							{editingMap && (
@@ -388,7 +822,7 @@ onClick={(e) => { e.stopPropagation(); setDeleteConfirmMap(map); }}
 							)}
 						</div>
 						<div className="admin-modal-actions">
-							<button type="button" className="lms-btn-secondary" onClick={() => setShowCreateModal(false)}>
+							<button type="button" className="lms-btn-secondary" onClick={closeCreateModal}>
 								Anulare
 							</button>
 							<button type="button" className="lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>

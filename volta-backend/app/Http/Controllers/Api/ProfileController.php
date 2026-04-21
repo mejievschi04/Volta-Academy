@@ -183,13 +183,22 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Neautentificat'], 401);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'bio' => ['nullable', 'string', 'max:2000'],
-        ]);
+        $isStudent = ($user->role ?? '') === 'student';
 
-        $user->name = $validated['name'];
+        if ($isStudent) {
+            $validated = $request->validate([
+                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+                'bio' => ['nullable', 'string', 'max:2000'],
+            ]);
+        } else {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+                'bio' => ['nullable', 'string', 'max:2000'],
+            ]);
+            $user->name = $validated['name'];
+        }
+
         $user->email = $validated['email'];
         $bio = $validated['bio'] ?? null;
         $user->bio = is_string($bio) && $bio !== '' ? $bio : null;

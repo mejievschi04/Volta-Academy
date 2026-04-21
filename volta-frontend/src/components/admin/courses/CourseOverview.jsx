@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Pencil, Rocket, EyeOff, Eye, Trash2 } from 'lucide-react';
 
-const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
+const iconProps = { size: 18, strokeWidth: 2, 'aria-hidden': true };
+
+const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCourseEdit = false }) => {
 
 	const getStatusBadge = (status) => {
 		const badges = {
@@ -16,7 +19,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 		<div className="admin-course-overview">
 			<div className="admin-course-overview-header">
 				<div className="admin-course-overview-title">
-					<h2>Overview Curs</h2>
+					<h2>Prezentare curs</h2>
 					<div
 						className="admin-course-status-badge"
 						style={{
@@ -29,62 +32,62 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 					</div>
 				</div>
 				<div className="admin-course-overview-actions">
+					{showStaffCourseEdit && (
+						<button
+							type="button"
+							className="lms-btn-secondary admin-course-overview-action-btn"
+							onClick={() => onQuickAction('edit')}
+							title="Module, lecții și conținut (builder)"
+						>
+							<Pencil {...iconProps} />
+							<span>Editează</span>
+						</button>
+					)}
 					{!readOnly && course.status !== 'published' && (
 						<button
-							className="lms-btn-primary"
+							type="button"
+							className="lms-btn-primary admin-course-overview-action-btn"
 							onClick={() => onQuickAction('publish')}
 						>
-							✅ Publish
+							<Rocket {...iconProps} />
+							<span>Publică</span>
 						</button>
 					)}
 					{!readOnly && course.status === 'published' && (
 						<button
-							className="lms-btn-secondary"
+							type="button"
+							className="lms-btn-secondary admin-course-overview-action-btn"
 							onClick={() => onQuickAction('unpublish')}
 						>
-							👁️ Unpublish
+							<EyeOff {...iconProps} />
+							<span>Retrage publicarea</span>
 						</button>
 					)}
 					<button
-						className="lms-btn-secondary"
+						type="button"
+						className="lms-btn-secondary admin-course-overview-action-btn"
 						onClick={() => onQuickAction('preview')}
 					>
-						👁️ Preview ca Student
+						<Eye {...iconProps} />
+						<span>Previzualizare ca elev</span>
 					</button>
 					{!readOnly && (
 						<button
-							className="lms-btn-secondary va-btn-danger"
+							type="button"
+							className="lms-btn-secondary va-btn-danger admin-course-overview-action-btn"
 							onClick={() => onQuickAction('delete')}
 						>
-							🗑️ Șterge Curs
+							<Trash2 {...iconProps} />
+							<span>Șterge curs</span>
 						</button>
 					)}
 				</div>
 			</div>
 
 			<div className="admin-course-overview-grid">
-				{/* Basic Info */}
+				{/* KPI-uri */}
 				<div className="admin-course-overview-card">
-					<h3>Informații de Bază</h3>
-					<div className="admin-course-overview-info">
-						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Categorie:</span>
-							<span className="admin-course-overview-value">
-								N/A
-							</span>
-						</div>
-						<div className="admin-course-overview-info-item">
-							<span className="admin-course-overview-label">Nivel:</span>
-							<span className="admin-course-overview-value">
-								{course.level ? course.level.charAt(0).toUpperCase() + course.level.slice(1) : 'N/A'}
-							</span>
-						</div>
-					</div>
-				</div>
-
-				{/* KPIs */}
-				<div className="admin-course-overview-card">
-					<h3>KPI-uri Agregate</h3>
+					<h3>Indicatori principali</h3>
 					<div className="admin-course-overview-kpis">
 						<div className="admin-course-overview-kpi">
 							<div className="admin-course-overview-kpi-label">Înscrieri</div>
@@ -98,25 +101,10 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false }) => {
 								{course.completion_rate || 0}%
 							</div>
 						</div>
-						<div className="admin-course-overview-kpi">
-							<div className="admin-course-overview-kpi-label">Rating</div>
-							<div className="admin-course-overview-kpi-value">
-								{course.average_rating ? (
-									<>
-										⭐ {course.average_rating.toFixed(1)}
-										<span className="admin-course-overview-kpi-sub">
-											({course.rating_count || 0})
-										</span>
-									</>
-								) : (
-									'N/A'
-								)}
-							</div>
-						</div>
 					</div>
 				</div>
 
-				{/* Structure Summary */}
+				{/* Structură */}
 				<div className="admin-course-overview-card">
 					<h3>Structură</h3>
 					<div className="admin-course-overview-info">

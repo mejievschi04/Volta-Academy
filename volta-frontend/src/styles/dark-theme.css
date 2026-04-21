@@ -76,9 +76,10 @@ html[data-theme="dark"] textarea::placeholder {
 	opacity: 1 !important;
 }
 
+/* Exclude course-showcase-*: class names contain "card" (…showcase-card…) and would paint over cover */
 html[data-theme="dark"] .card,
-html[data-theme="dark"] [class*="card"],
-html[data-theme="dark"] [class*="Card"] {
+html[data-theme="dark"] [class*="card"]:not([class*="course-showcase"]):not([class*="library-book"]),
+html[data-theme="dark"] [class*="Card"]:not([class*="CourseShowcase"]) {
 	background-color: var(--bg-elevated) !important;
 }
 
@@ -147,6 +148,8 @@ html[data-theme="dark"] .student-btn-primary,
 html[data-theme="dark"] .admin-btn-ai-creator,
 html[data-theme="dark"] .student-exam-btn-primary,
 html[data-theme="dark"] .student-certificate-download-btn,
+html[data-theme="dark"] .library-btn--primary,
+html[data-theme="dark"] .library-reader-btn-primary,
 html[data-theme="dark"] .btn-primary *,
 html[data-theme="dark"] .lms-btn-primary *,
 html[data-theme="dark"] .admin-btn-create-course *,
@@ -158,6 +161,8 @@ html[data-theme="dark"] .student-btn-primary *,
 html[data-theme="dark"] .admin-btn-ai-creator *,
 html[data-theme="dark"] .student-exam-btn-primary *,
 html[data-theme="dark"] .student-certificate-download-btn *,
+html[data-theme="dark"] .library-btn--primary *,
+html[data-theme="dark"] .library-reader-btn-primary *,
 html[data-theme="dark"] .admin-team-member-action-btn-role,
 html[data-theme="dark"] .admin-team-member-action-btn-role *,
 html[data-theme="dark"] .course-detail-lesson-number,
@@ -169,7 +174,7 @@ html[data-theme="dark"] .filter-chip.active * {
 	color: var(--text-inverse) !important;
 }
 
-html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip) {
+html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab) {
 	color: var(--text-primary) !important;
 	background-color: var(--bg-elevated) !important;
 	border-color: var(--border-primary) !important;
@@ -207,7 +212,8 @@ html[data-theme="dark"] .lms-dashboard,
 html[data-theme="dark"] .course-detail-page,
 html[data-theme="dark"] .course-detail-layout,
 html[data-theme="dark"] .admin-dashboard-page,
-html[data-theme="dark"] .va-profile-container {
+html[data-theme="dark"] .va-profile-container,
+html[data-theme="dark"] .va-main:has(.library-page) {
 	background: transparent !important;
 	background-color: transparent !important;
 }

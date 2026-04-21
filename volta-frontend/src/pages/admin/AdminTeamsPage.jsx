@@ -1,10 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from '@dnd-kit/core';
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	useSortable,
+	rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+	TEAM_ACCENT_COLORS,
+	teamAccentByListIndex,
+	teamAccentByTeamId,
+} from '../../utils/teamAccent';
+import { normalizeColorInputToHex } from '../../utils/color';
+
+function SortableTeamCard({ team, index, canMutate, children }) {
+	const sortId = `team-${team.id}`;
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: sortId,
+		disabled: !canMutate,
+	});
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		opacity: isDragging ? 0.92 : 1,
+	};
+	const accent = teamAccentByListIndex(team, index);
+	return (
+		<div
+			ref={setNodeRef}
+			style={{ ...style, borderLeft: `4px solid ${accent}` }}
+			className="admin-card admin-team-card-compact admin-team-card-sortable"
+		>
+			{canMutate && (
+				<button
+					type="button"
+					className="admin-team-drag-handle"
+					{...attributes}
+					{...listeners}
+					aria-label="Trage pentru a reordona echipa"
+					title="Reordonare"
+				>
+					<span aria-hidden>⋮⋮</span>
+				</button>
+			)}
+			{children}
+		</div>
+	);
+}
 
 const AdminTeamsPage = () => {
 	const { canMutateInAdminArea } = useAuth();
@@ -21,11 +78,19 @@ const AdminTeamsPage = () => {
 	const [selectedTeam, setSelectedTeam] = useState(null);
 	const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [orderedTeams, setOrderedTeams] = useState([]);
+	const [memberCourseModal, setMemberCourseModal] = useState(null);
+	const teamColorInputRef = useRef(null);
+	const openTeamColorPicker = () => teamColorInputRef.current?.click();
 	const [formData, setFormData] = useState({
 		name: '',
-		description: '',
-		owner_id: '',
+		accent_color: TEAM_ACCENT_COLORS[0],
 	});
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+	);
 
 	useEffect(() => {
 		fetchTeams();
@@ -33,16 +98,18 @@ const AdminTeamsPage = () => {
 		fetchCourses();
 	}, []);
 
-	const fetchTeams = async () => {
+	const fetchTeams = async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
+			if (!silent) setLoading(true);
 			const data = await adminService.getTeams();
-			setTeams(data);
+			const list = Array.isArray(data) ? data : [];
+			setTeams(list);
+			setOrderedTeams([...list]);
 		} catch (err) {
 			console.error('Error fetching teams:', err);
 			setError('Nu s-au putut încărca echipele');
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	};
 
@@ -67,16 +134,20 @@ const AdminTeamsPage = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		try {
+			const payload = {
+				name: formData.name,
+				accent_color: formData.accent_color ? normalizeColorInputToHex(formData.accent_color, null) : TEAM_ACCENT_COLORS[0],
+			};
 			if (editingTeam) {
-				await adminService.updateTeam(editingTeam.id, formData);
+				await adminService.updateTeam(editingTeam.id, payload);
 			} else {
-				await adminService.createTeam(formData);
+				await adminService.createTeam(payload);
 			}
 
 			setShowModal(false);
 			setEditingTeam(null);
-			setFormData({ name: '', description: '', owner_id: '' });
-			fetchTeams();
+			setFormData({ name: '', accent_color: TEAM_ACCENT_COLORS[0] });
+			fetchTeams({ silent: true });
 			showSuccess('Echipă salvată cu succes!');
 		} catch (err) {
 			logger.error('Error saving team:', err);
@@ -88,10 +159,28 @@ const AdminTeamsPage = () => {
 		setEditingTeam(team);
 		setFormData({
 			name: team.name,
-			description: team.description || '',
-			owner_id: team.owner_id || '',
+			accent_color: team.accent_color || TEAM_ACCENT_COLORS[0],
 		});
 		setShowModal(true);
+	};
+
+	const handleTeamsDragEnd = async (event) => {
+		if (!canMutateInAdminArea) return;
+		const { active, over } = event;
+		if (!over || active.id === over.id) return;
+		const oldIndex = orderedTeams.findIndex((t) => `team-${t.id}` === active.id);
+		const newIndex = orderedTeams.findIndex((t) => `team-${t.id}` === over.id);
+		if (oldIndex < 0 || newIndex < 0) return;
+		const next = arrayMove(orderedTeams, oldIndex, newIndex);
+		setOrderedTeams(next);
+		try {
+			await adminService.reorderTeams(next.map((t) => t.id));
+			showSuccess('Ordinea echipelor a fost salvată');
+			fetchTeams({ silent: true });
+		} catch (err) {
+			showError(err?.response?.data?.message || 'Nu s-a putut salva ordinea');
+			setOrderedTeams(Array.isArray(teams) ? [...teams] : []);
+		}
 	};
 
 	const handleDeleteClick = (id) => {
@@ -104,7 +193,7 @@ const AdminTeamsPage = () => {
 		try {
 			await adminService.deleteTeam(deleteConfirmTeamId);
 			setDeleteConfirmTeamId(null);
-			fetchTeams();
+			fetchTeams({ silent: true });
 			showSuccess('Echipă ștearsă cu succes!');
 		} catch (err) {
 			logger.error('Error deleting team:', err);
@@ -119,7 +208,7 @@ const AdminTeamsPage = () => {
 			await adminService.attachUsersToTeam(selectedTeam.id, userIds);
 			setShowUsersModal(false);
 			setSelectedTeam(null);
-			fetchTeams();
+			fetchTeams({ silent: true });
 			showSuccess('Utilizatori atașați cu succes!');
 		} catch (err) {
 			logger.error('Error attaching users:', err);
@@ -132,7 +221,7 @@ const AdminTeamsPage = () => {
 			await adminService.attachCoursesToTeam(selectedTeam.id, courseIds);
 			setShowCoursesModal(false);
 			setSelectedTeam(null);
-			fetchTeams();
+			fetchTeams({ silent: true });
 			showSuccess('Cursuri atașate cu succes!');
 		} catch (err) {
 			logger.error('Error attaching courses:', err);
@@ -162,7 +251,7 @@ const AdminTeamsPage = () => {
 					className="lms-btn-primary"
 					onClick={() => {
 						setEditingTeam(null);
-						setFormData({ name: '', description: '', owner_id: '' });
+						setFormData({ name: '', accent_color: TEAM_ACCENT_COLORS[0] });
 						setShowModal(true);
 					}}
 				>
@@ -178,9 +267,11 @@ const AdminTeamsPage = () => {
 			)}
 
 			{teams.length > 0 ? (
-				<div className="admin-grid admin-teams-page-grid">
-					{teams.map((team) => (
-						<div key={team.id} className="admin-card admin-team-card-compact">
+				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTeamsDragEnd}>
+					<SortableContext items={orderedTeams.map((t) => `team-${t.id}`)} strategy={rectSortingStrategy}>
+						<div className="admin-grid admin-teams-page-grid">
+							{orderedTeams.map((team, index) => (
+								<SortableTeamCard key={team.id} team={team} index={index} canMutate={canMutateInAdminArea}>
 							<div className="admin-card-body">
 								{/* Header with icon and actions */}
 								<div className="admin-team-card-compact__header">
@@ -189,6 +280,11 @@ const AdminTeamsPage = () => {
 											👥
 										</div>
 										<div className="admin-team-card-compact__title-wrap">
+											<span
+												className="admin-team-card-title-swatch"
+												style={{ background: teamAccentByListIndex(team, index) }}
+												aria-hidden
+											/>
 											<h3 className="admin-card-title admin-team-card-compact__title">
 												{team.name}
 											</h3>
@@ -217,19 +313,6 @@ const AdminTeamsPage = () => {
 									)}
 								</div>
 								
-								{team.description && (
-									<p className="admin-card-description admin-team-card-compact__description">
-										{team.description}
-									</p>
-								)}
-
-								{team.owner && (
-									<div className="admin-card-info admin-team-card-compact__owner">
-										<span>Responsabil:</span>
-										<strong className="admin-team-card-compact__owner-name">{team.owner.name}</strong>
-									</div>
-								)}
-
 								{/* Stats */}
 								<div className="admin-team-card-compact__stats">
 									<div className="admin-team-card-compact__stat-cell">
@@ -276,9 +359,11 @@ const AdminTeamsPage = () => {
 								</div>
 								)}
 							</div>
+								</SortableTeamCard>
+							))}
 						</div>
-					))}
-				</div>
+					</SortableContext>
+				</DndContext>
 			) : (
 				<div className="lms-empty-state">
 					<div className="lms-empty-icon">👥</div>
@@ -291,7 +376,7 @@ const AdminTeamsPage = () => {
 						className="lms-btn-primary"
 						onClick={() => {
 							setEditingTeam(null);
-							setFormData({ name: '', description: '', owner_id: '' });
+							setFormData({ name: '', accent_color: TEAM_ACCENT_COLORS[0] });
 							setShowModal(true);
 						}}
 					>
@@ -310,7 +395,14 @@ const AdminTeamsPage = () => {
 				}}>
 					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="admin-team-modal-header">
-							<h2 className="admin-team-modal-title">{editingTeam ? 'Editează Echipă' : 'Adaugă Echipă Nouă'}</h2>
+							<div className="admin-team-modal-title-wrap">
+								<span
+									className="admin-team-modal-title-swatch"
+									style={{ background: formData.accent_color || TEAM_ACCENT_COLORS[0] }}
+									aria-hidden
+								/>
+								<h2 className="admin-team-modal-title">{editingTeam ? 'Editează Echipă' : 'Adaugă Echipă Nouă'}</h2>
+							</div>
 							<button
 								type="button"
 								className="admin-team-modal-close"
@@ -333,29 +425,39 @@ const AdminTeamsPage = () => {
 									/>
 								</div>
 								<div className="admin-form-group">
-									<label className="admin-form-label">Descriere</label>
-									<textarea
-										className="admin-form-input"
-										value={formData.description}
-										onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-										rows={4}
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Responsabil</label>
-									<select
-										className="admin-form-input"
-										value={formData.owner_id}
-										onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
-										required
+									<label className="admin-form-label">Culoare echipă</label>
+									<div
+										className="admin-course-map-palette-preview"
+										role="button"
+										tabIndex={0}
+										aria-label="Deschide selectorul de culori"
+										title="Deschide selectorul de culori"
+										style={{ cursor: 'pointer' }}
+										onClick={openTeamColorPicker}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												openTeamColorPicker();
+											}
+										}}
 									>
-										<option value="">Selectează responsabil</option>
-										{users.map((user) => (
-											<option key={user.id} value={user.id}>
-												{user.name} ({user.email})
-											</option>
-										))}
-									</select>
+										<span
+											className="admin-course-map-palette-preview-swatch"
+											style={{ '--swatch-color': normalizeColorInputToHex(formData.accent_color, TEAM_ACCENT_COLORS[0]) }}
+											aria-hidden="true"
+										/>
+										<span className="admin-course-map-palette-preview-label">{formData.accent_color || TEAM_ACCENT_COLORS[0]}</span>
+									</div>
+									<div className="admin-course-map-color-control">
+										<input
+											ref={teamColorInputRef}
+											type="color"
+											className="admin-course-map-color-input-native"
+											value={normalizeColorInputToHex(formData.accent_color, TEAM_ACCENT_COLORS[0])}
+											onChange={(e) => setFormData({ ...formData, accent_color: e.target.value })}
+											aria-label="Alege culoarea echipei"
+										/>
+									</div>
 								</div>
 								<div className="admin-team-modal-footer">
 									<button
@@ -385,6 +487,22 @@ const AdminTeamsPage = () => {
 						setSelectedTeam(null);
 					}}
 					onSave={handleAttachUsers}
+					onOpenMemberCourses={(u) => {
+						if (selectedTeam) setMemberCourseModal({ team: selectedTeam, user: u });
+					}}
+				/>
+			)}
+
+			{memberCourseModal && (
+				<TeamMemberAssignCoursesModal
+					team={memberCourseModal.team}
+					member={memberCourseModal.user}
+					courses={courses}
+					onClose={() => setMemberCourseModal(null)}
+					onSaved={() => {
+						fetchTeams({ silent: true });
+						setMemberCourseModal(null);
+					}}
 				/>
 			)}
 
@@ -416,7 +534,7 @@ const AdminTeamsPage = () => {
 	);
 };
 
-const TeamUsersModal = ({ team, users, onClose, onSave }) => {
+const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) => {
 	const [selectedUserIds, setSelectedUserIds] = useState(team.users?.map(u => u.id) || []);
 
 	const handleSubmit = (e) => {
@@ -432,7 +550,14 @@ const TeamUsersModal = ({ team, users, onClose, onSave }) => {
 		}}>
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
-					<h2 className="admin-team-modal-title">Gestionează Membri - {team.name}</h2>
+					<div className="admin-team-modal-title-wrap">
+						<span
+							className="admin-team-modal-title-swatch"
+							style={{ background: teamAccentByTeamId(team) }}
+							aria-hidden
+						/>
+						<h2 className="admin-team-modal-title">Gestionează Membri — {team.name}</h2>
+					</div>
 					<button
 						type="button"
 						className="admin-team-modal-close"
@@ -444,6 +569,25 @@ const TeamUsersModal = ({ team, users, onClose, onSave }) => {
 				</div>
 				<div className="admin-team-modal-body">
 					<form onSubmit={handleSubmit} className="admin-team-modal-form">
+						{team.users?.length > 0 && onOpenMemberCourses && (
+							<div className="admin-form-group">
+								<label className="admin-form-label">Membri — cursuri pe persoană</label>
+								<ul className="admin-team-member-assign-list">
+									{team.users.map((u) => (
+										<li key={u.id} className="admin-team-member-assign-row">
+											<span className="admin-team-member-assign-name">{u.name}</span>
+											<button
+												type="button"
+												className="admin-btn admin-btn-sm admin-btn-secondary"
+												onClick={() => onOpenMemberCourses(u)}
+											>
+												Cursuri
+											</button>
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
 						<div className="admin-form-group">
 							<label className="admin-form-label">Selectează Membri</label>
 							<div className="admin-team-modal-list">
@@ -490,6 +634,117 @@ const TeamUsersModal = ({ team, users, onClose, onSave }) => {
 	);
 };
 
+const TeamMemberAssignCoursesModal = ({ team, member, courses, onClose, onSaved }) => {
+	const { success: showSuccess, error: showError } = useToast();
+	const [selectedIds, setSelectedIds] = useState([]);
+	const [initialIds, setInitialIds] = useState([]);
+	const [loadingUser, setLoadingUser] = useState(true);
+	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		let cancelled = false;
+		const load = async () => {
+			setLoadingUser(true);
+			try {
+				const data = await adminService.getUser(member.id);
+				const assigned = data?.assigned_courses || data?.assignedCourses || [];
+				const ids = Array.isArray(assigned) ? assigned.map((c) => c.id) : [];
+				if (!cancelled) {
+					setInitialIds(ids);
+					setSelectedIds(ids);
+				}
+			} catch (err) {
+				logger.error('Team member courses load', err);
+				if (!cancelled) showError('Nu s-au putut încărca cursurile utilizatorului');
+				if (!cancelled) onClose();
+			} finally {
+				if (!cancelled) setLoadingUser(false);
+			}
+		};
+		load();
+		return () => { cancelled = true; };
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- încă o dată per membru
+	}, [member.id]);
+
+	const toggle = (courseId) => {
+		setSelectedIds((prev) => (prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]));
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
+		const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
+		setSaving(true);
+		try {
+			if (toAdd.length > 0) {
+				await adminService.attachCoursesToTeamMember(team.id, member.id, toAdd);
+			}
+			for (const cid of toRemove) {
+				await adminService.removeCourse(member.id, cid);
+			}
+			showSuccess('Cursurile membrului au fost actualizate');
+			onSaved();
+		} catch (err) {
+			logger.error('Team member courses save', err);
+			showError(err?.response?.data?.message || 'Eroare la salvare');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<div className="admin-team-modal-overlay" onClick={(e) => {
+			if (e.target === e.currentTarget) onClose();
+		}}>
+			<div className="admin-team-modal admin-team-modal-lg" onClick={(e) => e.stopPropagation()}>
+				<div className="admin-team-modal-header">
+					<div className="admin-team-modal-title-wrap">
+						<span
+							className="admin-team-modal-title-swatch"
+							style={{ background: teamAccentByTeamId(team) }}
+							aria-hidden
+						/>
+						<h2 className="admin-team-modal-title">Cursuri pentru {member.name} — {team.name}</h2>
+					</div>
+					<button type="button" className="admin-team-modal-close" onClick={onClose} title="Închide">×</button>
+				</div>
+				<div className="admin-team-modal-body">
+					{loadingUser ? (
+						<p className="admin-text-muted">Se încarcă…</p>
+					) : (
+						<form onSubmit={handleSubmit} className="admin-team-modal-form">
+							<div className="admin-form-group">
+								<label className="admin-form-label">Selectează cursuri atribuite acestui membru</label>
+								<div className="admin-team-modal-list">
+									{courses.map((course) => (
+										<label
+											key={course.id}
+											className={`admin-team-modal-list-item ${selectedIds.includes(course.id) ? 'selected' : ''}`}
+										>
+											<input
+												type="checkbox"
+												checked={selectedIds.includes(course.id)}
+												onChange={() => toggle(course.id)}
+											/>
+											<div className={`admin-team-modal-list-item-label ${selectedIds.includes(course.id) ? 'selected' : ''}`}>
+												{course.title}
+											</div>
+										</label>
+									))}
+								</div>
+							</div>
+							<div className="admin-team-modal-footer">
+								<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={saving}>Anulează</button>
+								<button type="submit" className="lms-btn-primary" disabled={saving}>{saving ? 'Se salvează…' : 'Salvează'}</button>
+							</div>
+						</form>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+};
+
 const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 	const [selectedCourseIds, setSelectedCourseIds] = useState(team.courses?.map(c => c.id) || []);
 
@@ -506,7 +761,14 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 		}}>
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
-					<h2 className="admin-team-modal-title">Atribuie Cursuri - {team.name}</h2>
+					<div className="admin-team-modal-title-wrap">
+						<span
+							className="admin-team-modal-title-swatch"
+							style={{ background: teamAccentByTeamId(team) }}
+							aria-hidden
+						/>
+						<h2 className="admin-team-modal-title">Atribuie Cursuri — {team.name}</h2>
+					</div>
 					<button
 						type="button"
 						className="admin-team-modal-close"
@@ -560,4 +822,3 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 };
 
 export default AdminTeamsPage;
-

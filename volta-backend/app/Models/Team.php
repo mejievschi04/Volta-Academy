@@ -13,6 +13,12 @@ class Team extends Model
         'name',
         'description',
         'owner_id',
+        'sort_order',
+        'accent_color',
+    ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
     ];
 
     public function owner()

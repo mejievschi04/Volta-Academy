@@ -53,10 +53,10 @@
 	opacity: 1 !important;
 }
 
-/* Cards and elevated surfaces */
+/* Cards and elevated surfaces — exclude course-showcase-* (substring "card" in …showcase-card…) */
 [data-theme="light"] .card,
-[data-theme="light"] [class*="card"],
-[data-theme="light"] [class*="Card"] {
+[data-theme="light"] [class*="card"]:not([class*="course-showcase"]):not([class*="library-book"]),
+[data-theme="light"] [class*="Card"]:not([class*="CourseShowcase"]) {
 	background-color: var(--bg-elevated) !important;
 }
 
@@ -133,6 +133,8 @@
 [data-theme="light"] .admin-btn-ai-creator,
 [data-theme="light"] .student-exam-btn-primary,
 [data-theme="light"] .student-certificate-download-btn,
+[data-theme="light"] .library-btn--primary,
+[data-theme="light"] .library-reader-btn-primary,
 [data-theme="light"] .btn-primary *,
 [data-theme="light"] .lms-btn-primary *,
 [data-theme="light"] .admin-btn-create-course *,
@@ -144,6 +146,8 @@
 [data-theme="light"] .admin-btn-ai-creator *,
 [data-theme="light"] .student-exam-btn-primary *,
 [data-theme="light"] .student-certificate-download-btn *,
+[data-theme="light"] .library-btn--primary *,
+[data-theme="light"] .library-reader-btn-primary *,
 [data-theme="light"] .admin-team-member-action-btn-role,
 [data-theme="light"] .admin-team-member-action-btn-role *,
 [data-theme="light"] .course-detail-lesson-number,
@@ -156,7 +160,7 @@
 }
 
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip) {
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab) {
 	color: var(--text-primary) !important; /* WCAG AAA: ~12:1 */
 	background-color: var(--bg-elevated) !important;
 	border-color: var(--border-primary) !important;

@@ -7,6 +7,7 @@ import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { toImageUrl } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
+import { teamAccentNeutral as teamAccent } from '../../utils/teamAccent';
 
 const AdminTeamMembersPage = () => {
 	const navigate = useNavigate();
@@ -298,6 +299,25 @@ const AdminTeamMembersPage = () => {
 												<div className="admin-team-member-meta-item">
 													<strong>Cursuri asignate:</strong>{' '}
 													{member.assigned_courses_count || 0}
+												</div>
+												<div className="admin-team-member-meta-item admin-team-member-meta-item--teams">
+													<strong>Echipe:</strong>
+													{Array.isArray(member.teams) && member.teams.length > 0 ? (
+														<div className="admin-users-team-chips" style={{ marginTop: 6 }}>
+															{member.teams.map((t) => (
+																<span key={t.id} className="admin-users-team-chip">
+																	<span
+																		className="admin-users-team-swatch"
+																		style={{ background: teamAccent(t) }}
+																		aria-hidden
+																	/>
+																	<span className="admin-users-team-chip-name">{t.name}</span>
+																</span>
+															))}
+														</div>
+													) : (
+														<span className="admin-team-member-meta-muted"> —</span>
+													)}
 												</div>
 												<div className="admin-team-member-meta-item">
 													<strong>Ultima autentificare:</strong>{' '}

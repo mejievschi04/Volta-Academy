@@ -4,6 +4,8 @@ import { adminService, coursesService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
+import CourseDistributionPanel from '../../components/admin/courses/CourseDistributionPanel';
+import CourseSettingsEditModal from '../../components/admin/courses/CourseSettingsEditModal';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/admin-course-detail-modern.css';
 
@@ -11,7 +13,7 @@ const AdminCourseDetailPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showToast } = useToast();
-	const { canMutateInAdminArea } = useAuth();
+	const { canMutateInAdminArea, canEditCoursesAsStaff } = useAuth();
 	const readOnly = !canMutateInAdminArea;
 	
 	const [course, setCourse] = useState(null);
@@ -19,6 +21,7 @@ const AdminCourseDetailPage = () => {
 	const [error, setError] = useState(null);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [showCourseSettingsModal, setShowCourseSettingsModal] = useState(false);
 
 	useEffect(() => {
 		if (id) {
@@ -88,6 +91,9 @@ const AdminCourseDetailPage = () => {
 					sessionStorage.setItem('studentPreviewFromAdmin', 'true');
 					navigate(`/courses/${course.id}/detail`);
 					break;
+				case 'edit':
+					navigate(`/admin/courses/${course.id}/builder`);
+					break;
 				default:
 					console.warn('Unknown action:', action);
 			}
@@ -154,28 +160,49 @@ const AdminCourseDetailPage = () => {
 		<div className="admin-course-detail-page">
 			{/* Header */}
 			<div className="admin-course-detail-header">
-				<button 
-					className="admin-course-detail-back-btn"
-					onClick={() => navigate('/admin/courses')}
-				>
-					← Înapoi
-				</button>
-				{canMutateInAdminArea && (
-				<button
-					className="lms-btn-secondary"
-					onClick={() => navigate(`/admin/courses/${id}/builder`)}
-					style={{ marginLeft: 'var(--space-3)' }}
-				>
-					🛠 Builder
-				</button>
+				<div className="admin-course-detail-header-start">
+					<button
+						type="button"
+						className="admin-course-detail-back-btn"
+						onClick={() => navigate('/admin/courses')}
+					>
+						← Înapoi
+					</button>
+					<h1 className="admin-course-detail-title">{course.title}</h1>
+				</div>
+				{!readOnly && (
+					<div className="admin-course-detail-header-actions">
+						<button
+							type="button"
+							className="lms-btn-secondary"
+							onClick={() => setShowCourseSettingsModal(true)}
+						>
+							Editează curs
+						</button>
+					</div>
 				)}
-				<h1 className="admin-course-detail-title">
-					{course.title}
-				</h1>
 			</div>
 
+			<CourseSettingsEditModal
+				open={showCourseSettingsModal}
+				onClose={() => setShowCourseSettingsModal(false)}
+				course={course}
+				onSaved={fetchCourseData}
+			/>
+
 			{/* Course Overview */}
-			<CourseOverview course={course} onQuickAction={handleQuickAction} readOnly={readOnly} />
+			<CourseOverview
+				course={course}
+				onQuickAction={handleQuickAction}
+				readOnly={readOnly}
+				showStaffCourseEdit={canEditCoursesAsStaff}
+			/>
+
+			<CourseDistributionPanel
+				course={course}
+				readOnly={readOnly}
+				onUpdated={fetchCourseData}
+			/>
 
 			<ConfirmModal
 				open={showDeleteConfirm}

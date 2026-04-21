@@ -7,6 +7,7 @@ import { toImageUrl } from '../../utils/imageUrl';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { teamAccentNeutral as teamAccent } from '../../utils/teamAccent';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -37,15 +38,7 @@ const AdminUsersPage = () => {
 	});
 
 	useEffect(() => {
-		fetchInitialData();
-	}, []);
-
-	const fetchInitialData = async () => {
-		await fetchTeams();
-	};
-
-	useEffect(() => {
-		fetchInitialData();
+		fetchTeams();
 	}, []);
 
 	useEffect(() => {
@@ -258,11 +251,6 @@ const AdminUsersPage = () => {
 		}
 	};
 
-	const getCompletionColor = (percentage) => {
-		// Use only the two colors - Cyprus Green for all progress
-		return 'var(--text-primary)';
-	};
-
 	const getRoleLabel = (role) => {
 		const roles = {
 			admin: 'Administrator',
@@ -442,9 +430,22 @@ const AdminUsersPage = () => {
 											)}
 										</td>
 										<td>
-											{Array.isArray(user.teams) && user.teams.length > 0
-												? user.teams.map(t => t?.name).filter(Boolean).join(', ')
-												: '-'}
+											{Array.isArray(user.teams) && user.teams.length > 0 ? (
+												<div className="admin-users-team-chips">
+													{user.teams.filter((t) => t?.name).map((t) => (
+														<span key={t.id} className="admin-users-team-chip" title={t.name}>
+															<span
+																className="admin-users-team-swatch"
+																style={{ background: teamAccent(t) }}
+																aria-hidden
+															/>
+															<span className="admin-users-team-chip-name">{t.name}</span>
+														</span>
+													))}
+												</div>
+											) : (
+												<span className="admin-users-table-cell-muted">—</span>
+											)}
 										</td>
 										<td>
 											{isAdmin ? (
@@ -605,16 +606,66 @@ const AdminUsersPage = () => {
 								</div>
 								<div className="admin-form-group">
 									<label className="admin-form-label">Echipă</label>
-									<select
-										className="admin-form-input"
-										value={formData.team_id}
-										onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
-									>
-										<option value="">Fără echipă</option>
-										{teams.map(team => (
-											<option key={team.id} value={team.id}>{team.name}</option>
-										))}
-									</select>
+									{editingUser ? (
+										<>
+											{Array.isArray(editingUser.teams) && editingUser.teams.length > 0 ? (
+												<div className="admin-users-team-chips admin-users-team-chips--readonly">
+													{editingUser.teams.filter((t) => t?.name).map((t) => (
+														<span key={t.id} className="admin-users-team-chip" title={t.name}>
+															<span
+																className="admin-users-team-swatch"
+																style={{ background: teamAccent(t) }}
+																aria-hidden
+															/>
+															<span className="admin-users-team-chip-name">{t.name}</span>
+														</span>
+													))}
+												</div>
+											) : (
+												<p className="admin-users-table-cell-muted" style={{ margin: 0 }}>Fără echipă</p>
+											)}
+											<p className="admin-form-hint" style={{ marginTop: 8, marginBottom: 0 }}>
+												Echipa se modifică din pagina <strong>Echipe</strong> (atașare membri).
+											</p>
+										</>
+									) : (
+										<>
+											<select
+												className="admin-form-input"
+												value={formData.team_id}
+												onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+												aria-label="Echipă la creare utilizator"
+											>
+												<option value="">Fără echipă</option>
+												{teams.map((team) => (
+													<option key={team.id} value={team.id}>{team.name}</option>
+												))}
+											</select>
+											{formData.team_id ? (
+												<div className="admin-users-team-select-preview">
+													{(() => {
+														const t = teams.find((x) => String(x.id) === String(formData.team_id));
+														if (!t) return null;
+														return (
+															<>
+																<span
+																	className="admin-users-team-swatch admin-users-team-swatch--lg"
+																	style={{ background: teamAccent(t) }}
+																	aria-hidden
+																/>
+																<span className="admin-users-team-select-preview-label">Echipă selectată: {t.name}</span>
+															</>
+														);
+													})()}
+												</div>
+											) : null}
+											<p className="admin-form-hint" style={{ marginTop: 8, marginBottom: 0 }}>
+												{formData.team_id
+													? 'Utilizatorul va fi asociat echipei alese la creare (poți lăsa gol).'
+													: 'Opțional — utilizatorul poate fi adăugat într-o echipă din pagina Echipe.'}
+											</p>
+										</>
+									)}
 								</div>
 								<div className="admin-form-group">
 									<label className="admin-form-label">Email</label>

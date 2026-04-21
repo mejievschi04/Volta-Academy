@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
 use App\Models\CourseMap;
+use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\CourseBuilderService;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class CourseAdminController extends Controller
@@ -119,8 +121,17 @@ class CourseAdminController extends Controller
                 // TODO: Add rating calculation
                 $query->orderBy('updated_at', $sortDirection);
                 break;
+            case 'list_order':
+                if (Schema::hasColumn('courses', 'list_order')) {
+                    $query->orderBy('list_order', strtolower($sortDirection) === 'desc' ? 'desc' : 'asc')
+                        ->orderBy('id', 'asc');
+                } else {
+                    $query->orderBy('updated_at', 'desc');
+                }
+                break;
             default:
                 $query->orderBy($sortBy, $sortDirection);
+                break;
         }
 
             $perPage = $request->get('per_page', 50);
@@ -143,6 +154,40 @@ class CourseAdminController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Salvează ordinea cursurilor în lista admin (drag & drop).
+     * Body: { "course_ids": [3, 1, 5, ...] } — ordinea din array = list_order 0, 1, 2, …
+     */
+    public function reorderList(Request $request)
+    {
+        if (!Schema::hasColumn('courses', 'list_order')) {
+            return response()->json(['message' => 'Coloana list_order lipsește. Rulează migrările.'], 422);
+        }
+
+        $validated = $request->validate([
+            'course_ids' => 'required|array',
+            'course_ids.*' => 'integer|exists:courses,id',
+        ]);
+
+        $ids = array_values(array_unique($validated['course_ids']));
+        $user = $request->user();
+
+        DB::transaction(function () use ($ids, $user) {
+            foreach ($ids as $index => $courseId) {
+                $course = Course::query()->find($courseId);
+                if (!$course) {
+                    continue;
+                }
+                if ($user->isInstructor() && (int) $course->teacher_id !== (int) $user->id) {
+                    abort(403, 'Acces interzis.');
+                }
+                $course->update(['list_order' => $index]);
+            }
+        });
+
+        return response()->json(['message' => 'Ordinea cursurilor a fost salvată']);
     }
 
     /**
@@ -284,6 +329,12 @@ class CourseAdminController extends Controller
                 },
                 'teacher',
                 'teams',
+                'assignedUsers' => function ($query) {
+                    $query->select('users.id', 'users.name', 'users.email', 'users.role');
+                    if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                        $query->wherePivot('enrolled', true);
+                    }
+                },
                 'courseTests.test' => function($query) {
                     $query->with('questions');
                 }
@@ -479,6 +530,15 @@ class CourseAdminController extends Controller
         $course = $this->courseBuilderService->createCourse($data, $teacher);
         $this->attachCourseToDefaultMap($course, (int) $request->user()->id);
 
+        if (Schema::hasColumn('courses', 'list_order')) {
+            $q = Course::query()->where('id', '!=', $course->id);
+            if ($request->user()->isInstructor()) {
+                $q->where('teacher_id', $request->user()->id);
+            }
+            $max = (int) $q->max('list_order');
+            $course->update(['list_order' => $max + 1]);
+        }
+
         ActivityLog::create([
             'user_id' => $request->user()?->id,
             'action' => 'telemetry.admin_course_created',
@@ -665,7 +725,190 @@ class CourseAdminController extends Controller
 
         return response()->json([
             'message' => 'Echipe atașate cu succes',
-            'course' => $course->load(['modules', 'teacher', 'teams']),
+            'course' => $course->load(['modules', 'teacher', 'teams', 'assignedUsers' => function ($q) {
+                $q->select('users.id', 'users.name', 'users.email', 'users.role');
+                if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                    $q->wherePivot('enrolled', true);
+                }
+            }]),
+        ]);
+    }
+
+    /**
+     * Liste minimă de echipe pentru bifare pe curs (admin + instructor cu acces la curs).
+     */
+    public function assignableTeams($id)
+    {
+        $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $teams = Team::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'accent_color']);
+
+        return response()->json(['teams' => $teams]);
+    }
+
+    /**
+     * Elevi disponibili pentru atribuire directă: toți studenții (admin) sau studenți din echipele deja legate de curs (instructor).
+     */
+    public function assignableLearners(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $q = User::query()->where('role', 'student');
+        if (auth()->user()->isInstructor()) {
+            $teamIds = $course->teams()->pluck('teams.id');
+            if ($teamIds->isEmpty()) {
+                return response()->json([
+                    'learners' => [],
+                    'hint' => 'Atașează mai întâi o echipă la acest curs pentru a putea atribui elevi din echipe.',
+                ]);
+            }
+            $q->whereHas('teams', fn ($q2) => $q2->whereIn('teams.id', $teamIds));
+        }
+
+        if ($request->filled('search')) {
+            $term = trim((string) $request->get('search'));
+            $like = '%'.addcslashes($term, '%_\\').'%';
+            $q->where(function ($w) use ($like) {
+                $w->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like);
+            });
+        }
+
+        $learners = $q->orderBy('name')->limit(250)->get(['id', 'name', 'email']);
+
+        return response()->json(['learners' => $learners]);
+    }
+
+    /**
+     * Atribuie cursul la elevi fără a șterge celelalte cursuri ale utilizatorului (syncWithoutDetaching pe pivot).
+     */
+    public function attachLearners(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $validated = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'exists:users,id',
+            'is_mandatory' => 'nullable|boolean',
+        ]);
+
+        $userIds = array_values(array_unique(array_map('intval', $validated['user_ids'])));
+        $isMandatory = $validated['is_mandatory'] ?? true;
+
+        if ($isMandatory) {
+            $hasRequiredTest = CourseTest::where('course_id', $course->id)
+                ->where('required', true)
+                ->exists();
+            if (! $hasRequiredTest) {
+                return response()->json([
+                    'error' => 'Cursurile obligatorii trebuie să aibă cel puțin un test obligatoriu',
+                    'message' => 'Acest curs nu are teste obligatorii. Bifează „opțional” sau adaugă un test obligatoriu.',
+                ], 422);
+            }
+        }
+
+        $teamIdsForInstructor = null;
+        if (auth()->user()->isInstructor()) {
+            $teamIdsForInstructor = $course->teams()->pluck('teams.id');
+            if ($teamIdsForInstructor->isEmpty()) {
+                return response()->json([
+                    'message' => 'Atașează mai întâi o echipă la curs înainte de a atribui elevi.',
+                ], 422);
+            }
+        }
+
+        foreach ($userIds as $userId) {
+            $user = User::find($userId);
+            if (! $user || $user->role !== 'student') {
+                return response()->json([
+                    'message' => 'Poți atribui cursul doar utilizatorilor cu rolul de elev (student).',
+                    'user_id' => $userId,
+                ], 422);
+            }
+            if ($user->isLearningActivityExempt()) {
+                return response()->json([
+                    'message' => 'Nu atribuim cursuri pentru acest tip de utilizator.',
+                    'user_id' => $userId,
+                ], 422);
+            }
+            if ($teamIdsForInstructor !== null) {
+                $inLinkedTeam = $user->teams()->whereIn('teams.id', $teamIdsForInstructor)->exists();
+                if (! $inLinkedTeam) {
+                    return response()->json([
+                        'message' => 'Elevul trebuie să fie într-o echipă la care este deja atașat acest curs.',
+                        'user_id' => $userId,
+                    ], 422);
+                }
+            }
+        }
+
+        $pivot = [
+            'is_mandatory' => $isMandatory,
+            'assigned_at' => now(),
+            'enrolled' => true,
+            'enrolled_at' => now(),
+        ];
+
+        foreach ($userIds as $userId) {
+            $user = User::findOrFail($userId);
+            $user->assignedCourses()->syncWithoutDetaching([$course->id => $pivot]);
+            Cache::forget("dashboard_user_{$user->id}_stats");
+            Cache::forget("profile_user_{$user->id}");
+        }
+
+        $course->load(['assignedUsers' => function ($q) {
+            $q->select('users.id', 'users.name', 'users.email', 'users.role');
+            if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                $q->wherePivot('enrolled', true);
+            }
+        }]);
+
+        return response()->json([
+            'message' => 'Curs atribuit elevilor cu succes',
+            'assigned_users' => $course->assignedUsers,
+        ]);
+    }
+
+    public function detachLearner($id, $userId)
+    {
+        $course = Course::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $user = User::findOrFail($userId);
+        if (! $course->assignedUsers()->where('users.id', $user->id)->exists()) {
+            return response()->json([
+                'message' => 'Acest elev nu are cursul atribuit.',
+            ], 404);
+        }
+
+        $user->assignedCourses()->detach($course->id);
+        Cache::forget("dashboard_user_{$user->id}_stats");
+        Cache::forget("profile_user_{$user->id}");
+
+        $course->load(['assignedUsers' => function ($q) {
+            $q->select('users.id', 'users.name', 'users.email', 'users.role');
+            if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                $q->wherePivot('enrolled', true);
+            }
+        }]);
+
+        return response()->json([
+            'message' => 'Atribuirea a fost eliminată',
+            'assigned_users' => $course->assignedUsers,
         ]);
     }
 

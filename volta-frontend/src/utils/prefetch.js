@@ -22,8 +22,10 @@ if (typeof requestIdleCallback !== 'undefined') {
 const routePrefetchers = [
 	{ prefix: '/courses', fn: () => import('../pages/CoursesPage') },
 	{ prefix: '/courses/map', fn: () => import('../pages/CourseMapPage') },
+	{ prefix: '/admin/maps', fn: () => import('../pages/CourseMapPage') },
 	{ prefix: '/messages', fn: () => import('../pages/MessagesPage') },
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
+	{ prefix: '/library', fn: () => import('../pages/LibraryPage') },
 	{ prefix: '/settings', fn: () => import('../pages/StudentSettingsPage') },
 	{ prefix: '/profile', fn: () => import('../pages/ProfilePage') },
 	{ prefix: '/achievements', fn: () => import('../pages/AchievementsPage') },

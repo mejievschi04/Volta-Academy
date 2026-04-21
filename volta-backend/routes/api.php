@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Admin\ActivityLogAdminController;
 use App\Http\Controllers\Api\Admin\MediaAdminController;
 use App\Http\Controllers\Api\Admin\CourseMapAdminController;
 use App\Http\Controllers\Api\Admin\StatisticsAdminController;
+use App\Http\Controllers\Api\LibraryController;
 
 /*
 | Fără StartSession / Sanctum stateful — util pe VPS dacă sesiunile DB lipsesc și tot API-ul dă 500.
@@ -145,6 +146,14 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     // Exam Results
     Route::get('/exam-results', [\App\Http\Controllers\Api\ExamResultController::class, 'index']);
     Route::get('/exam-results/{id}', [\App\Http\Controllers\Api\ExamResultController::class, 'show']);
+
+    // Bibliotecă materiale (cărți, PDF-uri etc.) — listare & descărcare toți utilizatorii autentificați
+    Route::get('/library/items', [LibraryController::class, 'index']);
+    Route::get('/library/items/{id}', [LibraryController::class, 'show']);
+    Route::post('/library/items', [LibraryController::class, 'store']);
+    Route::delete('/library/items/{id}', [LibraryController::class, 'destroy']);
+    Route::get('/library/items/{id}/download', [LibraryController::class, 'download']);
+
     Route::post('/telemetry/events', [TelemetryController::class, 'store']);
     
     // Achievements
@@ -178,6 +187,7 @@ Route::middleware([
     Route::get('/courses/insights', [CourseAdminController::class, 'insights']);
     Route::get('/courses/teachers/list', [CourseAdminController::class, 'getTeachers']);
     Route::post('/courses/bulk-actions', [CourseAdminController::class, 'bulkAction']);
+    Route::post('/courses/reorder', [CourseAdminController::class, 'reorderList']);
     // Parameterized routes
     Route::get('/courses/{id}', [CourseAdminController::class, 'show']);
     Route::post('/courses', [CourseAdminController::class, 'store']);
@@ -185,16 +195,23 @@ Route::middleware([
     Route::match(['put', 'post'], '/courses/{id}', [CourseAdminController::class, 'update']);
     Route::delete('/courses/{id}', [CourseAdminController::class, 'destroy']);
     Route::post('/courses/{id}/teams', [CourseAdminController::class, 'attachTeams']);
+    Route::get('/courses/{id}/assignable-teams', [CourseAdminController::class, 'assignableTeams']);
+    Route::get('/courses/{id}/assignable-learners', [CourseAdminController::class, 'assignableLearners']);
+    Route::post('/courses/{id}/learners', [CourseAdminController::class, 'attachLearners']);
+    Route::delete('/courses/{id}/learners/{userId}', [CourseAdminController::class, 'detachLearner']);
     Route::post('/courses/{id}/actions/{action}', [CourseAdminController::class, 'quickAction']);
     Route::post('/courses/{id}/modules/reorder', [CourseAdminController::class, 'reorderModules']);
     Route::get('/courses/{id}/preview', [CourseAdminController::class, 'preview']);
 
     // Course maps (folders to group courses)
     Route::get('/course-maps', [CourseMapAdminController::class, 'index']);
+    Route::post('/course-maps/reorder', [CourseMapAdminController::class, 'reorderMaps']);
     Route::get('/course-maps/{id}', [CourseMapAdminController::class, 'show']);
     Route::post('/course-maps', [CourseMapAdminController::class, 'store']);
     Route::put('/course-maps/{id}', [CourseMapAdminController::class, 'update']);
     Route::delete('/course-maps/{id}', [CourseMapAdminController::class, 'destroy']);
+    Route::post('/course-maps/{id}/cover', [CourseMapAdminController::class, 'uploadCover']);
+    Route::delete('/course-maps/{id}/cover', [CourseMapAdminController::class, 'deleteCover']);
     Route::post('/course-maps/{id}/courses', [CourseMapAdminController::class, 'attachCourses']);
     Route::delete('/course-maps/{id}/courses/{courseId}', [CourseMapAdminController::class, 'detachCourse']);
     Route::post('/course-maps/{id}/courses/reorder', [CourseMapAdminController::class, 'reorderCourses']);
@@ -323,11 +340,13 @@ Route::middleware([
     
     // Teams Management
     Route::get('/teams', [TeamAdminController::class, 'index']);
+    Route::post('/teams/reorder', [TeamAdminController::class, 'reorderTeams']);
     Route::get('/teams/{id}', [TeamAdminController::class, 'show']);
     Route::post('/teams', [TeamAdminController::class, 'store']);
     Route::put('/teams/{id}', [TeamAdminController::class, 'update']);
     Route::delete('/teams/{id}', [TeamAdminController::class, 'destroy']);
     Route::post('/teams/{id}/users', [TeamAdminController::class, 'attachUsers']);
+    Route::post('/teams/{id}/users/{userId}/courses/attach', [TeamAdminController::class, 'attachMemberCourses']);
     Route::post('/teams/{id}/courses', [TeamAdminController::class, 'attachCourses']);
     
     // Users Management
@@ -378,6 +397,5 @@ Route::middleware([
     Route::post('/ai/generate-course', [\App\Http\Controllers\AIController::class, 'generateCourse']);
     Route::post('/ai/generate-test', [\App\Http\Controllers\AIController::class, 'generateTest']);
 });
-
 
 

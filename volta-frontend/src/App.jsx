@@ -39,6 +39,8 @@ import './styles/exam-results-modern.css';
 import './styles/profile-modern.css';
 import './styles/lms-dashboard-enterprise.css';
 import './styles/achievements-modern.css';
+import './styles/library-page.css';
+import './styles/library-reader-page.css';
 /* Student styles - loaded after shared to ensure proper cascade */
 import './styles/student-navigation-modern.css';
 import './styles/student-components.css';
@@ -101,6 +103,8 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
 const LessonsPage = lazy(() => import('./pages/LessonsPage'));
 const LessonPage = lazy(() => import('./pages/LessonPage'));
+const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+const LibraryReaderPage = lazy(() => import('./pages/LibraryReaderPage'));
 
 // Loading component (post-login: no full-screen overlay)
 const PageLoader = () => (
@@ -163,11 +167,20 @@ function Layout({ children }) {
 	const location = useLocation();
 	const isAdminContentSubmenuChildActive = React.useCallback(
 		(child) => {
+			if (location.pathname.startsWith('/admin/maps/')) {
+				if (child.path !== '/admin/content') return false;
+				const childParams = new URLSearchParams(child.search || '');
+				if (childParams.get('tab') !== 'courses') return false;
+				const childView = childParams.get('view');
+				if (childView === 'maps') return true;
+				if (!childView && user?.actualRole === 'instructor') return true;
+				return false;
+			}
 			const childTab = child.search ? new URLSearchParams(child.search).get('tab') : null;
 			const currentTab = new URLSearchParams(location.search).get('tab');
 			return location.pathname === child.path && (!childTab || currentTab === childTab);
 		},
-		[location.pathname, location.search]
+		[location.pathname, location.search, user?.actualRole]
 	);
 	const isTrueAdminAccount = user?.actualRole === 'admin';
 	const hasStaffAdminShell = isStaffAdminRole(user?.actualRole);
@@ -180,7 +193,11 @@ function Layout({ children }) {
 	//   - If accessed from admin sidebar: use admin layout
 	//   - If accessed from user top nav: use user layout
 	const isMessagesPage = location.pathname === '/messages';
+	const isLibraryPage = location.pathname === '/library' || location.pathname.startsWith('/library/items/');
+	const isLibraryReaderPage = location.pathname.startsWith('/library/items/');
 	const isAdminPage = location.pathname.startsWith('/admin');
+	const isStaffLibraryPage = isLibraryPage && hasStaffAdminShell && user?.role !== 'student';
+	const isAdminShellPage = isAdminPage || isStaffLibraryPage;
 	
 	// Track if we came from admin context for messages page
 	const [cameFromAdmin, setCameFromAdmin] = React.useState(() => {
@@ -191,7 +208,7 @@ function Layout({ children }) {
 		return false;
 	});
 	
-	const isUserPage = !isAdminPage && !(isMessagesPage && cameFromAdmin);
+	const isUserPage = !isAdminShellPage && !(isMessagesPage && cameFromAdmin);
 	
 	// For regular users (students): always show user layout (including /messages)
 	// For admin: 
@@ -203,10 +220,10 @@ function Layout({ children }) {
 	const showUserLayout = !hasStaffAdminShell
 		? isStudent
 			? true
-			: !isAdminPage && !(isMessagesPage && cameFromAdmin)
+			: !isAdminShellPage && !(isMessagesPage && cameFromAdmin)
 		: user?.actualRole === 'admin' && user?.role === 'student'
-			? !isAdminPage
-			: !isAdminPage && !(isMessagesPage && cameFromAdmin);
+			? !isAdminShellPage
+			: !isAdminShellPage && !(isMessagesPage && cameFromAdmin);
 
 	// Overlay doar în mod admin efectiv (nu resetăm „ready” la trecere student pe același frame).
 	const requiresAdminChromePaintHold =
@@ -409,6 +426,10 @@ function Layout({ children }) {
 				sessionStorage.setItem('messagesFromAdmin', 'true');
 				sessionStorage.removeItem('studentPreviewFromAdmin');
 				setCameFromAdmin(true);
+			} else if (isLibraryPage) {
+				// Biblioteca folosește shell-ul de admin pentru staff, dar nu trebuie să forțeze contextul mesageriei.
+				sessionStorage.setItem('messagesFromAdmin', 'false');
+				setCameFromAdmin(false);
 			} else if (isMessagesPage) {
 				// We're on messages - check if we came from admin
 				const fromAdmin = sessionStorage.getItem('messagesFromAdmin') === 'true';
@@ -419,7 +440,7 @@ function Layout({ children }) {
 				setCameFromAdmin(false);
 			}
 		}
-	}, [location.pathname, hasStaffAdminShell, isAdminPage, isMessagesPage]);
+	}, [location.pathname, hasStaffAdminShell, isAdminPage, isLibraryPage, isMessagesPage]);
 
 	// Student preview mode: admin viewing as student - no admin UI, 100% student experience
 	const isStudentPreviewMode = isTrueAdminAccount && showUserLayout && sessionStorage.getItem('studentPreviewFromAdmin') === 'true';
@@ -493,6 +514,17 @@ function Layout({ children }) {
 					<path d="M8 14H8.01M12 14H12.01M16 14H16.01M8 18H8.01M12 18H12.01M16 18H16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 				</svg>
 			)
+		},
+		{
+			path: '/library',
+			label: 'Bibliotecă',
+			title: 'Materiale partajate: cărți, PDF-uri și documente',
+			icon: (
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+					<path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			),
 		},
 		{ 
 			path: '/messages', 
@@ -627,6 +659,16 @@ function Layout({ children }) {
 			)
 		},
 		{
+			path: '/library',
+			label: 'Bibliotecă',
+			icon: (
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+					<path d="M4 19.5C4 18.6716 4.67157 18 5.5 18H20M4 19.5C4 20.3284 4.67157 21 5.5 21H20M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+					<path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+			),
+		},
+		{
 			path: '/admin/settings',
 			label: 'Setări',
 			icon: (
@@ -650,6 +692,15 @@ function Layout({ children }) {
 			? adminNavItemsAll.filter((item) => !instructorHiddenAdminNavPaths.has(item.path))
 			: adminNavItemsAll;
 	const adminContentSubmenuChildren = adminNavItems.find((i) => i.children)?.children ?? [];
+
+	if (isLibraryReaderPage) {
+		return (
+			<div className="va-library-reader-shell">
+				{mustChangePassword && <ChangePasswordModal />}
+				{children}
+			</div>
+		);
+	}
 
 	return (
 		<div className={`${showUserLayout ? "va-shell va-shell-topnav" : "va-shell"} ${isStudentPreviewMode ? "student-preview-mode" : ""}`}>
@@ -1554,6 +1605,26 @@ function App() {
 										}
 									/>
 									<Route
+										path="/library"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<LibraryPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/library/items/:itemId"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<LibraryReaderPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
 										path="/exam-results"
 										element={
 											<UserRoute>
@@ -1651,6 +1722,16 @@ function App() {
 											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
 													<AdminContentPage />
+												</Suspense>
+											</AdminRoute>
+										}
+									/>
+									<Route
+										path="/admin/maps/:mapId"
+										element={
+											<AdminRoute>
+												<Suspense fallback={<PageLoader />}>
+													<CourseMapPage />
 												</Suspense>
 											</AdminRoute>
 										}

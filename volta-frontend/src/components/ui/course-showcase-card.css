@@ -1,0 +1,460 @@
+/*
+ * CourseShowcaseCard — reconstruit: flex + copertă CSS background (fără img vizibil).
+ * Dimensiuni stabile: --csc-cover-h + --csc-footer-min (lățime 253px).
+ */
+
+.course-showcase-card {
+	--theme-color: 158 58% 38%;
+	--csc-radius: 0.9rem;
+	--csc-cover-h: 165px;
+	--csc-footer-min: 192px;
+	--csc-width: min(100%, 253px);
+
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	width: var(--csc-width);
+	max-width: 100%;
+	min-width: 0;
+	margin-inline: auto;
+	align-self: center;
+	flex-shrink: 0;
+}
+
+.course-showcase-card *,
+.course-showcase-card *::before,
+.course-showcase-card *::after {
+	box-sizing: border-box;
+}
+
+.course-showcase-card__hit {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	min-height: calc(var(--csc-cover-h) + var(--csc-footer-min));
+	height: 100%;
+	border-radius: var(--csc-radius);
+	overflow: hidden;
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border: 1px solid hsl(var(--theme-color) / 0.34);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+		0 0 0 1px hsl(var(--theme-color) / 0.2),
+		0 10px 24px -14px rgba(2, 6, 23, 0.45);
+	transition:
+		transform 0.26s ease,
+		box-shadow 0.26s ease,
+		border-color 0.2s ease;
+}
+
+.course-showcase-card:hover .course-showcase-card__hit,
+.course-showcase-card:focus-within .course-showcase-card__hit {
+	transform: translateY(-2px);
+	border-color: hsl(var(--theme-color) / 0.56);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+		0 0 0 1px hsl(var(--theme-color) / 0.28),
+		0 14px 28px -14px rgba(2, 6, 23, 0.5),
+		0 0 24px -12px hsl(var(--theme-color) / 0.56);
+}
+
+.course-showcase-card__hit:focus-visible {
+	outline: none;
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+		0 0 0 2px var(--bg-elevated, #f8fafc),
+		0 0 0 4px hsl(var(--theme-color) / 0.78),
+		0 14px 28px -14px rgba(2, 6, 23, 0.5);
+}
+
+/* ——— Copertă ——— */
+.course-showcase-card__media {
+	position: relative;
+	flex: 0 0 var(--csc-cover-h);
+	width: 100%;
+	height: var(--csc-cover-h);
+	overflow: hidden;
+	background: #0f172a;
+}
+
+.course-showcase-card__cover {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	background-color: #0f172a;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	transform: scale(1);
+	transition: transform 0.42s ease;
+}
+
+.course-showcase-card:hover .course-showcase-card__cover,
+.course-showcase-card:focus-within .course-showcase-card__cover {
+	transform: scale(1.03);
+}
+
+/* Încărcare eșuată: probă invizibilă (nu e coperta vizibilă) */
+.course-showcase-card__cover-probe {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	opacity: 0;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.course-showcase-card__shade {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	background: linear-gradient(
+		to top,
+		rgba(2, 6, 23, 0.76) 0%,
+		rgba(2, 6, 23, 0.22) 44%,
+		transparent 76%
+	);
+}
+
+.course-showcase-card__tl,
+.course-showcase-card__tr {
+	position: absolute;
+	top: 0.62rem;
+	z-index: 3;
+	display: flex;
+	gap: 0.22rem;
+	pointer-events: auto;
+	padding: 0.08rem 0.12rem;
+	border-radius: 6px;
+	background: transparent;
+	border: none;
+}
+
+.course-showcase-card__tl {
+	left: 0.62rem;
+	align-items: flex-start;
+}
+
+.course-showcase-card__tr {
+	right: 0.62rem;
+	align-items: center;
+}
+
+/* ——— Corp ——— */
+.course-showcase-card__inner {
+	flex: 1 1 auto;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	align-items: stretch;
+	min-height: var(--csc-footer-min);
+	padding: 0.62rem 0.72rem 0.66rem;
+	gap: 0.16rem;
+	color: #fff;
+	text-align: left;
+	background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.92) 100%);
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.course-showcase-card__badge {
+	align-self: flex-start;
+	margin-bottom: 0.22rem;
+	padding: 0.18rem 0.52rem;
+	border-radius: 999px;
+	font-size: 0.56rem;
+	font-weight: 800;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	background: hsl(var(--theme-color) / 0.28);
+	border: 1px solid hsl(var(--theme-color) / 0.56);
+	color: #f8fafc;
+}
+
+.course-showcase-card__title {
+	margin: 0;
+	font-size: clamp(0.96rem, 1.45vw + 0.34rem, 1.16rem);
+	font-weight: 800;
+	letter-spacing: -0.028em;
+	line-height: 1.2;
+	text-shadow: 0 2px 20px rgba(0, 0, 0, 0.45);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.course-showcase-card__subtitle {
+	margin: 0.28rem 0 0;
+	font-size: 0.69rem;
+	font-weight: 500;
+	line-height: 1.42;
+	color: rgba(255, 255, 255, 0.9);
+	text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	max-height: 3.1em;
+}
+
+.course-showcase-card__cta {
+	margin-top: 0.55rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.45rem 0.58rem;
+	border-radius: 0.58rem;
+	background: hsl(var(--theme-color) / 0.28);
+	border: 1px solid hsl(var(--theme-color) / 0.52);
+	transition:
+		background 0.28s ease,
+		border-color 0.28s ease;
+}
+
+.course-showcase-card:hover .course-showcase-card__cta,
+.course-showcase-card:focus-within .course-showcase-card__cta {
+	background: hsl(var(--theme-color) / 0.42);
+	border-color: hsl(var(--theme-color) / 0.72);
+}
+
+.course-showcase-card__cta-label {
+	font-size: 0.64rem;
+	font-weight: 800;
+	letter-spacing: 0.075em;
+	text-transform: uppercase;
+	opacity: 0.98;
+}
+
+.course-showcase-card__cta-icon-wrap {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.62rem;
+	height: 1.62rem;
+	border-radius: 999px;
+	background: hsl(var(--theme-color) / 0.36);
+	border: 1px solid hsl(var(--theme-color) / 0.64);
+	transition:
+		transform 0.3s ease,
+		background 0.25s ease;
+}
+
+.course-showcase-card__cta-icon {
+	width: 0.8rem;
+	height: 0.8rem;
+	color: #fff;
+}
+
+.course-showcase-card:hover .course-showcase-card__cta-icon-wrap,
+.course-showcase-card:focus-within .course-showcase-card__cta-icon-wrap {
+	background: hsl(var(--theme-color) / 0.5);
+	transform: translateX(4px);
+}
+
+/* ——— DnD (aceleași clase ca înainte) ——— */
+.course-showcase-dnd-handle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	padding: 6px;
+	border: none;
+	background: transparent;
+	border-radius: 6px;
+	color: var(--text-secondary, #64748b);
+	cursor: grab;
+	font-size: 13px;
+	line-height: 1;
+	letter-spacing: -0.06em;
+	flex-shrink: 0;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.course-showcase-card__tl .course-showcase-dnd-handle,
+.course-showcase-card__tr .course-showcase-dnd-handle {
+	color: rgba(248, 250, 252, 0.95);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.course-showcase-dnd-handle:hover {
+	color: var(--text-primary, #0f172a);
+}
+
+.course-showcase-card__tl .course-showcase-dnd-handle:hover,
+.course-showcase-card__tr .course-showcase-dnd-handle:hover {
+	color: #fff;
+}
+
+.course-showcase-dnd-handle:active {
+	cursor: grabbing;
+}
+
+.course-showcase-dnd-handle:focus-visible {
+	outline: none;
+	box-shadow:
+		0 0 0 2px var(--bg-elevated, #f8fafc),
+		0 0 0 4px rgba(100, 116, 139, 0.75);
+	border-radius: 6px;
+}
+
+/* ——— Variante ——— */
+.course-showcase-card--compact {
+	--csc-width: min(100%, 253px);
+}
+
+.course-showcase-card--compact .course-showcase-card__inner {
+	padding: 0.78rem 0.78rem 0.74rem;
+}
+
+@media (max-width: 640px) {
+	.course-showcase-card__inner {
+		padding: 0.85rem 0.85rem 0.8rem;
+	}
+
+	.course-showcase-card:hover .course-showcase-card__hit,
+	.course-showcase-card:focus-within .course-showcase-card__hit {
+		transform: translateY(-3px);
+	}
+}
+
+/*
+ * Tema light: panel text deschis + text închis (WCAG forțează !important pe tag-uri — păstrăm !important).
+ * Controalele din __tl/__tr stau pe copertă → pill deschis, iconițe închise.
+ */
+[data-theme="light"] .course-showcase-card__shade {
+	background: linear-gradient(
+		to top,
+		rgba(15, 23, 42, 0.28) 0%,
+		rgba(15, 23, 42, 0.06) 48%,
+		transparent 78%
+	);
+}
+
+[data-theme="light"] .course-showcase-card__hit {
+	color: var(--text-primary, #0f172a) !important;
+	border-color: hsl(var(--theme-color) / 0.22) !important;
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+		0 0 0 1px hsl(var(--theme-color) / 0.12),
+		0 10px 28px -14px rgba(15, 23, 42, 0.1) !important;
+}
+
+[data-theme="light"] .course-showcase-card:hover .course-showcase-card__hit,
+[data-theme="light"] .course-showcase-card:focus-within .course-showcase-card__hit {
+	border-color: hsl(var(--theme-color) / 0.38) !important;
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+		0 0 0 1px hsl(var(--theme-color) / 0.2),
+		0 14px 32px -12px rgba(15, 23, 42, 0.12),
+		0 0 20px -10px hsl(var(--theme-color) / 0.25) !important;
+}
+
+[data-theme="light"] .course-showcase-card__hit:focus-visible {
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+		0 0 0 2px var(--bg-elevated, #fff),
+		0 0 0 4px hsl(var(--theme-color) / 0.55),
+		0 14px 28px -14px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="light"] .course-showcase-card__inner {
+	color: var(--text-primary, #0f172a) !important;
+	background: linear-gradient(180deg, var(--bg-elevated, #fff) 0%, color-mix(in srgb, var(--bg-secondary, #f1f5f9) 88%, #fff) 100%) !important;
+	border-top: 1px solid var(--border-primary, #e2e8f0) !important;
+}
+
+[data-theme="light"] .course-showcase-card__title {
+	color: var(--text-primary, #0f172a) !important;
+	text-shadow: none !important;
+}
+
+[data-theme="light"] .course-showcase-card__subtitle {
+	color: var(--text-secondary, #475569) !important;
+	text-shadow: none !important;
+}
+
+[data-theme="light"] .course-showcase-card__badge {
+	color: var(--text-primary, #0f172a) !important;
+	background: hsl(var(--theme-color) / 0.14) !important;
+	border-color: hsl(var(--theme-color) / 0.35) !important;
+}
+
+[data-theme="light"] .course-showcase-card__cta {
+	color: var(--text-primary, #0f172a) !important;
+	background: hsl(var(--theme-color) / 0.12) !important;
+	border-color: hsl(var(--theme-color) / 0.32) !important;
+}
+
+[data-theme="light"] .course-showcase-card:hover .course-showcase-card__cta,
+[data-theme="light"] .course-showcase-card:focus-within .course-showcase-card__cta {
+	background: hsl(var(--theme-color) / 0.18) !important;
+	border-color: hsl(var(--theme-color) / 0.45) !important;
+}
+
+[data-theme="light"] .course-showcase-card__cta-label {
+	color: var(--text-primary, #0f172a) !important;
+}
+
+[data-theme="light"] .course-showcase-card__cta-icon {
+	color: var(--text-primary, #0f172a) !important;
+}
+
+[data-theme="light"] .course-showcase-card__cta-icon-wrap {
+	background: hsl(var(--theme-color) / 0.2) !important;
+	border-color: hsl(var(--theme-color) / 0.42) !important;
+}
+
+[data-theme="light"] .course-showcase-card:hover .course-showcase-card__cta-icon-wrap,
+[data-theme="light"] .course-showcase-card:focus-within .course-showcase-card__cta-icon-wrap {
+	background: hsl(var(--theme-color) / 0.28) !important;
+	border-color: hsl(var(--theme-color) / 0.5) !important;
+}
+
+/* DnD pe copertă */
+[data-theme="light"] .course-showcase-card__tl .course-showcase-dnd-handle,
+[data-theme="light"] .course-showcase-card__tr .course-showcase-dnd-handle {
+	color: var(--text-primary, #0f172a) !important;
+	text-shadow: none !important;
+	background: rgba(255, 255, 255, 0.88) !important;
+	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .course-showcase-card__tl .course-showcase-dnd-handle:hover,
+[data-theme="light"] .course-showcase-card__tr .course-showcase-dnd-handle:hover {
+	color: var(--text-primary, #0f172a) !important;
+	background: #fff !important;
+}
+
+/* Butoane / ștergere pe copertă (__media), nu în panelul deschis */
+[data-theme="light"] .course-showcase-card__media button,
+[data-theme="light"] .course-showcase-card__media [role='button'] {
+	background-color: rgba(255, 255, 255, 0.9) !important;
+	background: rgba(255, 255, 255, 0.9) !important;
+	color: var(--text-primary, #0f172a) !important;
+	border-color: rgba(15, 23, 42, 0.08) !important;
+	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1) !important;
+}
+
+[data-theme="light"] .course-showcase-card__media button:hover,
+[data-theme="light"] .course-showcase-card__media [role='button']:hover {
+	background-color: #fff !important;
+	background: #fff !important;
+	color: var(--text-primary, #0f172a) !important;
+}
+
+[data-theme="light"] .course-showcase-card__media button svg,
+[data-theme="light"] .course-showcase-card__media [role='button'] svg {
+	stroke: currentColor !important;
+	color: inherit !important;
+}

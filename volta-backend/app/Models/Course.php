@@ -16,6 +16,7 @@ class Course extends Model
     use InvalidatesTutorKnowledgeCache;
 
     protected $fillable = [
+        'list_order',
         'title',
         'description',
         'category',

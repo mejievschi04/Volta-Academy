@@ -164,7 +164,9 @@
 
 /* Volt – pagini student (cursuri, evenimente, etc.) spacing consistent */
 .va-shell-topnav .va-main > .events-page,
-.va-shell-topnav .va-main > .courses-page-modern {
+.va-shell-topnav .va-main > .courses-page-modern,
+.va-shell-topnav .va-main > .library-page,
+.va-shell-topnav .va-main > .course-map-page {
 	max-width: 1400px;
 	margin-left: auto;
 	margin-right: auto;

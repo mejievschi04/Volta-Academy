@@ -51,6 +51,14 @@ export function toImageUrl(url) {
 		return trimmed;
 	}
 
+	// URL protocol-relative (ex. //cdn.example.com/... )
+	if (trimmed.startsWith('//')) {
+		if (typeof window !== 'undefined' && window.location?.protocol) {
+			return `${window.location.protocol}${trimmed}`;
+		}
+		return `https:${trimmed}`;
+	}
+
 	const origin = getStorageOrigin();
 	if (!origin) return trimmed;
 
@@ -98,4 +106,29 @@ export function courseCoverSrc(course) {
 	if (im.startsWith('/storage/')) return toImageUrl(im);
 	if (im.startsWith('storage/')) return toImageUrl(`/${im}`);
 	return toImageUrl(im);
+}
+
+/**
+ * Imagine pentru cardul unei mape în listă: coperta mapei, apoi preview API / primul curs cu copertă.
+ */
+export function mapFolderCardImageUrl(map) {
+	if (!map || typeof map !== 'object') return null;
+	const mc = map.cover_image_url;
+	if (mc != null && String(mc).trim() !== '') {
+		const u = String(mc).trim();
+		return toImageUrl(u) ?? u;
+	}
+	const pv = map.preview_image_url;
+	if (pv != null && String(pv).trim() !== '') {
+		const u2 = String(pv).trim();
+		return toImageUrl(u2) ?? u2;
+	}
+	const list = map.courses;
+	if (Array.isArray(list)) {
+		for (let i = 0; i < list.length; i += 1) {
+			const s = courseCoverSrc(list[i]);
+			if (s) return s;
+		}
+	}
+	return null;
 }

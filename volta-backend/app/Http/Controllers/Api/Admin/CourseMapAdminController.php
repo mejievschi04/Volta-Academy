@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseMap;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class CourseMapAdminController extends Controller
 {
@@ -14,7 +16,12 @@ class CourseMapAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = CourseMap::with(['createdBy:id,name,email', 'courses:id,title,status'])
+        $query = CourseMap::with([
+            'createdBy:id,name,email',
+            'courses' => function ($q) {
+                $q->orderBy('course_map_course.order');
+            },
+        ])
             ->withCount('courses');
 
         if (auth()->user()->isInstructor()) {
@@ -45,6 +52,8 @@ class CourseMapAdminController extends Controller
                         'description' => 'Cursuri neasociate unei mape.',
                         'courses_count' => $unassignedCount,
                         'is_virtual' => true,
+                        'accent_color' => '#64748b',
+                        'cover_image_url' => null,
                     ])
                 );
             }
@@ -120,6 +129,7 @@ class CourseMapAdminController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:5000',
             'order' => 'nullable|integer|min:0',
+            'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $validated['created_by'] = auth()->id();
@@ -146,6 +156,7 @@ class CourseMapAdminController extends Controller
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:5000',
             'order' => 'nullable|integer|min:0',
+            'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $map->update($validated);
@@ -231,6 +242,85 @@ class CourseMapAdminController extends Controller
 
         $map->load(['courses' => fn ($q) => $q->orderBy('course_map_course.order')]);
         $map->loadCount('courses');
+        return response()->json($map);
+    }
+
+    /**
+     * Reordonare mape (ID-uri în ordinea dorită).
+     */
+    public function reorderMaps(Request $request)
+    {
+        $validated = $request->validate([
+            'map_ids' => 'required|array',
+            'map_ids.*' => 'integer|exists:course_maps,id',
+        ]);
+
+        $mapIds = $validated['map_ids'];
+        foreach ($mapIds as $index => $mapId) {
+            $map = CourseMap::query()->find($mapId);
+            if (!$map) {
+                continue;
+            }
+            if (auth()->user()->isInstructor() && (int) $map->created_by !== (int) auth()->id()) {
+                abort(403, 'Acces interzis.');
+            }
+            $map->update(['order' => $index]);
+        }
+
+        return response()->json(['message' => 'Ordinea mape a fost salvată']);
+    }
+
+    public function uploadCover(Request $request, $id)
+    {
+        $request->validate([
+            'cover' => 'required|image|mimes:jpeg,png,gif,webp|max:4096',
+        ]);
+
+        $map = CourseMap::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $map->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $file = $request->file('cover');
+        $ext = $file->getClientOriginalExtension() ?: 'jpg';
+        $path = $file->storeAs('course-map-covers', $map->id . '_' . time() . '.' . $ext, 'public');
+
+        if ($map->cover_image_path) {
+            try {
+                Storage::disk('public')->delete($map->cover_image_path);
+            } catch (\Exception $e) {
+                Log::warning('Could not delete old course map cover: ' . $e->getMessage());
+            }
+        }
+
+        $map->cover_image_path = $path;
+        $map->save();
+        $map->load('createdBy:id,name,email');
+        $map->loadCount('courses');
+
+        return response()->json($map);
+    }
+
+    public function deleteCover($id)
+    {
+        $map = CourseMap::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $map->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        if ($map->cover_image_path) {
+            try {
+                Storage::disk('public')->delete($map->cover_image_path);
+            } catch (\Exception $e) {
+                Log::warning('Could not delete course map cover: ' . $e->getMessage());
+            }
+            $map->cover_image_path = null;
+            $map->save();
+        }
+
+        $map->load('createdBy:id,name,email');
+        $map->loadCount('courses');
+
         return response()->json($map);
     }
 }

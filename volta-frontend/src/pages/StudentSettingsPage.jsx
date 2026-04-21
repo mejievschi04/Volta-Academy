@@ -24,12 +24,17 @@ const StudentSettingsPage = () => {
 		setFieldErrors(emptyFieldErrors);
 	}, [user]);
 
+	const isStudent = user?.role === 'student';
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setFieldErrors(emptyFieldErrors);
 		setSaving(true);
 		try {
-			await profileService.updateProfile({ name: name.trim(), email: email.trim(), bio: bio.trim() || '' });
+			const payload = isStudent
+				? { email: email.trim(), bio: bio.trim() || '' }
+				: { name: name.trim(), email: email.trim(), bio: bio.trim() || '' };
+			await profileService.updateProfile(payload);
 			await checkAuth();
 			showToast('Datele au fost salvate', 'success');
 		} catch (err) {
@@ -86,9 +91,16 @@ const StudentSettingsPage = () => {
 							autoComplete="name"
 							value={name}
 							onChange={(ev) => setName(ev.target.value)}
-							disabled={saving}
+							disabled={saving || isStudent}
+							readOnly={isStudent}
 							maxLength={255}
+							aria-readonly={isStudent || undefined}
 						/>
+						{isStudent ? (
+							<p className="va-muted" style={{ marginTop: 6, fontSize: '0.875rem' }}>
+								Numele afișat este gestionat de administrator; îl poți schimba doar prin suport.
+							</p>
+						) : null}
 						{fieldErrors.name ? <p className="va-input-error">{fieldErrors.name}</p> : null}
 					</div>
 					<div className="student-settings-field">

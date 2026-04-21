@@ -14,11 +14,27 @@ class CourseMap extends Model
         'description',
         'created_by',
         'order',
+        'accent_color',
+        'cover_image_path',
     ];
 
     protected $casts = [
         'order' => 'integer',
     ];
+
+    protected $appends = [
+        'cover_image_url',
+    ];
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        $path = $this->cover_image_path ?? null;
+        if (!$path) {
+            return null;
+        }
+
+        return '/storage/' . ltrim($path, '/');
+    }
 
     public function createdBy()
     {

@@ -215,8 +215,6 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 						</button>
 					</div>
 
-					{loading && <p className="va-cal-drawer-loading">Se încarcă…</p>}
-
 					<div className="va-cal-drawer-weekdays">
 						{WEEKDAYS.map((d) => (
 							<div key={d} className="va-cal-drawer-wd">

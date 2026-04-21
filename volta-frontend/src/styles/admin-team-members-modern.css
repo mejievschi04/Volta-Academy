@@ -196,6 +196,20 @@
 	font-weight: var(--font-weight-semibold);
 }
 
+.admin-team-member-meta-item--teams {
+	grid-column: 1 / -1;
+}
+
+.admin-team-member-meta-item--teams > strong {
+	display: block;
+	margin-bottom: 2px;
+}
+
+.admin-team-member-meta-muted {
+	color: var(--text-tertiary);
+	font-weight: var(--font-weight-normal);
+}
+
 /* ============================================
    6. MEMBER ACTIONS
    ============================================ */

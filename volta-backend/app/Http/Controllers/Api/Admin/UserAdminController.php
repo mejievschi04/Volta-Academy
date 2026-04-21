@@ -23,6 +23,21 @@ class UserAdminController extends Controller
         }
     }
 
+    /** Câmpuri echipe folosite în admin (swatch, ordine); belongsToMany cere `teams.id`. */
+    private const TEAMS_ADMIN_EAGER = 'teams:id,name,accent_color,sort_order';
+
+    /** @return array<int, string> */
+    private function eagerLoadTeamsCoursesAssigned(): array
+    {
+        return [self::TEAMS_ADMIN_EAGER, 'courses', 'assignedCourses'];
+    }
+
+    /** @return array<int, string> */
+    private function eagerLoadTeamsCourses(): array
+    {
+        return [self::TEAMS_ADMIN_EAGER, 'courses'];
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
@@ -30,8 +45,8 @@ class UserAdminController extends Controller
 
         // Build query: normal users sau doar cei din coș (șterși soft)
         $query = $trashedOnly
-            ? User::onlyTrashed()->with(['teams', 'courses', 'assignedCourses'])
-            : User::with(['teams', 'courses', 'assignedCourses']);
+            ? User::onlyTrashed()->with($this->eagerLoadTeamsCoursesAssigned())
+            : User::with($this->eagerLoadTeamsCoursesAssigned());
 
         // Search filter
         if ($request->has('search') && $request->search) {
@@ -140,7 +155,7 @@ class UserAdminController extends Controller
     public function show($id)
     {
         try {
-            $user = User::with(['teams', 'courses'])->findOrFail($id);
+            $user = User::with($this->eagerLoadTeamsCoursesAssigned())->findOrFail($id);
             
             // Get courses with modules (optimized query)
             // Use try-catch to handle potential issues with column selection
@@ -325,7 +340,7 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Utilizator creat cu succes. Parola implicită: volta2025',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ], 201);
     }
 
@@ -353,7 +368,7 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Utilizator actualizat cu succes',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -384,7 +399,7 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Utilizator restabilit cu succes',
-            'user' => $user->load(['teams', 'courses', 'assignedCourses']),
+            'user' => $user->load($this->eagerLoadTeamsCoursesAssigned()),
         ]);
     }
 
@@ -410,7 +425,7 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Cererea a fost aprobată. Utilizatorul poate accesa platforma.',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -536,7 +551,7 @@ class UserAdminController extends Controller
         $perPage = $request->get('per_page', 50);
         
         // Build query for team members only
-        $query = User::with(['teams', 'courses', 'assignedCourses'])
+        $query = User::with($this->eagerLoadTeamsCoursesAssigned())
             ->whereIn('role', ['admin', 'instructor', 'analyst']);
         
         // Search filter
@@ -622,7 +637,7 @@ class UserAdminController extends Controller
         
         return response()->json([
             'message' => 'Rol și permisiuni actualizate cu succes',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -642,7 +657,7 @@ class UserAdminController extends Controller
         
         return response()->json([
             'message' => 'Utilizator activat cu succes',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -676,7 +691,7 @@ class UserAdminController extends Controller
         
         return response()->json([
             'message' => 'Utilizator suspendat cu succes',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -692,7 +707,7 @@ class UserAdminController extends Controller
         
         return response()->json([
             'message' => 'Acces resetat. Utilizatorul va trebui să schimbe parola la următoarea autentificare.',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -707,7 +722,7 @@ class UserAdminController extends Controller
         
         return response()->json([
             'message' => 'Utilizator eliminat din toate echipele',
-            'user' => $user->load(['teams', 'courses']),
+            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
