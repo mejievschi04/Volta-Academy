@@ -35,6 +35,21 @@ const AdminTopNavControls = () => {
 		loadNotifications();
 	}, [loadNotifications]);
 
+	useEffect(() => {
+		if (!location.pathname.startsWith('/admin')) return undefined;
+		const intervalId = window.setInterval(() => {
+			loadNotifications();
+		}, 30000);
+		const onVisibilityChange = () => {
+			if (!document.hidden) loadNotifications();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () => {
+			window.clearInterval(intervalId);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
+	}, [location.pathname, loadNotifications]);
+
 	const onLocalStateChange = useCallback(() => setInboxTick((t) => t + 1), []);
 
 	const primiteCount = useMemo(() => countPrimite(apiItems, 'admin'), [apiItems, inboxTick]);

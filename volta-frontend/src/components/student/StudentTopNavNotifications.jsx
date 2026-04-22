@@ -28,6 +28,20 @@ const StudentTopNavNotifications = () => {
 		load();
 	}, [load, location.pathname]);
 
+	useEffect(() => {
+		const intervalId = window.setInterval(() => {
+			load();
+		}, 30000);
+		const onVisibilityChange = () => {
+			if (!document.hidden) load();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () => {
+			window.clearInterval(intervalId);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
+	}, [load]);
+
 	const onLocalStateChange = useCallback(() => setInboxTick((t) => t + 1), []);
 
 	const primiteCount = useMemo(() => countPrimite(apiItems, 'student'), [apiItems, inboxTick]);

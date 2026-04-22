@@ -21,6 +21,7 @@ const CoursesPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
+	const [studentTab, setStudentTab] = useState('courses');
 	const fetchingRef = useRef(false);
 
 	useEffect(() => {
@@ -122,16 +123,31 @@ const CoursesPage = () => {
 		<div className={`courses-page-modern ${!isAdmin ? 'courses-page-student' : ''}`}>
 			<div className={!isAdmin ? 'courses-page-student-main' : undefined}>
 				<div className="courses-page-hero">
-					<div className="courses-page-hero-content">
+					<div className={`courses-page-hero-content${!isAdmin ? ' courses-page-hero-content--student' : ''}`}>
 						<div className="courses-page-hero-text">
-							<h1 className="courses-page-hero-title">Mape cursuri</h1>
-							{!isAdmin && (
-								<p className="courses-page-student-blurb">
-									<strong>Mapele</strong> sunt parcursurile cu lectii.{' '}
-									<strong>Examenele independente</strong> (daca apar mai jos) nu sunt legate de un curs - le deschizi direct de aici.{' '}
-									Testele dintr-un curs raman in pagina acelui curs.
-								</p>
-							)}
+							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : 'Cursuri'}</h1>
+							{!isAdmin ? (
+								<div className="courses-page-student-tabs" role="tablist" aria-label="Tip conținut">
+									<button
+										type="button"
+										role="tab"
+										aria-selected={studentTab === 'courses'}
+										className={`courses-page-student-tab ${studentTab === 'courses' ? 'is-active' : ''}`}
+										onClick={() => setStudentTab('courses')}
+									>
+										Cursuri
+									</button>
+									<button
+										type="button"
+										role="tab"
+										aria-selected={studentTab === 'exams'}
+										className={`courses-page-student-tab ${studentTab === 'exams' ? 'is-active' : ''}`}
+										onClick={() => setStudentTab('exams')}
+									>
+										Examene
+									</button>
+								</div>
+							) : null}
 						</div>
 						<div className="courses-page-search-wrapper courses-page-hero-search">
 							<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,7 +157,11 @@ const CoursesPage = () => {
 							<input
 								type="text"
 								className="courses-page-search-input"
-								placeholder="Cauta mape sau examene..."
+								placeholder={
+									!isAdmin && studentTab === 'exams'
+										? 'Cauta examene...'
+										: 'Cauta cursuri...'
+								}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 							/>
@@ -179,133 +199,110 @@ const CoursesPage = () => {
 				</div>
 
 				<div className="courses-page-content">
-					<div className="courses-page-maps-grid">
-						{filteredCourseMaps.map((map, index) => {
-							const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
-							const courseCount = map.courses_count ?? 0;
-							const descriptionLine = map.description?.trim() ? String(map.description).trim() : null;
-							const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
-							const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
-							const subtitleParts = [];
-							if (descriptionLine) subtitleParts.push(descriptionLine);
-							subtitleParts.push(`${courseCount} ${courseCount === 1 ? 'curs' : 'cursuri'}`);
-							const subtitle = subtitleParts.join(' - ');
+					{(isAdmin || studentTab === 'courses') ? (
+						<div className="courses-page-maps-grid">
+							{filteredCourseMaps.map((map, index) => {
+								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+								const courseCount = map.courses_count ?? 0;
+								const descriptionLine = map.description?.trim() ? String(map.description).trim() : null;
+								const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
+								const subtitleParts = [];
+								if (descriptionLine) subtitleParts.push(descriptionLine);
+								subtitleParts.push(`${courseCount} ${courseCount === 1 ? 'curs' : 'cursuri'}`);
+								const subtitle = subtitleParts.join(' - ');
 
-							return (
-								<article key={map.id} className="course-map-card course-map-card--showcase-wrap">
-									<CourseShowcaseCard
-										className="courses-page-map-card-showcase"
-										imageUrl={imageUrl}
-										title={map.name || 'Mapa'}
-										subtitle={subtitle}
-										themeHsl={hexToHslSpace(accentColor)}
-										onOpen={() => navigate(`/courses/map/${map.id}`)}
-										ctaLabel="Deschide mapa"
-										badge={isVirtualMap ? 'Mapa virtuala' : undefined}
-									/>
-								</article>
-							);
-						})}
+								return (
+									<article key={map.id} className="course-map-card course-map-card--showcase-wrap">
+										<CourseShowcaseCard
+											className="courses-page-map-card-showcase"
+											imageUrl={imageUrl}
+											title={map.name || 'Mapa'}
+											subtitle={subtitle}
+											progress={map.progress_percentage ?? map.progress ?? null}
+											themeHsl={hexToHslSpace(accentColor)}
+											showAccentRibbon
+											onOpen={() => navigate(`/courses/map/${map.id}`)}
+											ctaLabel="Deschide mapa"
+										/>
+									</article>
+								);
+							})}
 
-						{filteredCourseMaps.length === 0 ? (
-							<div className="courses-page-empty">
-								<div className="courses-page-empty-icon">
-									<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-										<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-										<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-									</svg>
-								</div>
-								<h3 className="courses-page-empty-title">
-									{searchQuery ? 'Nu am gasit mape' : 'Nu exista mape disponibile'}
-								</h3>
-								<p className="courses-page-empty-text">
-									{searchQuery
-										? 'Incearca un alt termen de cautare.'
-										: 'Cursurile sunt afisate in interiorul mapelor.'}
-								</p>
-								{searchQuery ? (
-									<button
-										className="courses-page-btn courses-page-btn-secondary"
-										onClick={() => setSearchQuery('')}
-									>
-										Goleste cautarea
-									</button>
-								) : (
-									isAdmin && (
+							{filteredCourseMaps.length === 0 ? (
+								<div className="courses-page-empty">
+									<div className="courses-page-empty-icon">
+										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+											<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+											<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+										</svg>
+									</div>
+									<h3 className="courses-page-empty-title">
+										{searchQuery ? 'Nu am gasit mape' : 'Nu exista mape disponibile'}
+									</h3>
+									<p className="courses-page-empty-text">
+										{searchQuery
+											? 'Incearca un alt termen de cautare.'
+											: 'Cursurile sunt afisate in interiorul mapelor.'}
+									</p>
+									{searchQuery ? (
 										<button
-											className="courses-page-btn courses-page-btn-primary"
-											onClick={() => navigate('/admin/content?tab=course-maps')}
+											className="courses-page-btn courses-page-btn-secondary"
+											onClick={() => setSearchQuery('')}
 										>
-											<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-												<path d="M12 5v14M5 12h14" />
-											</svg>
-											<span>Creeaza prima mapa</span>
+											Goleste cautarea
 										</button>
-									)
-								)}
-							</div>
-						) : null}
-					</div>
+									) : (
+										isAdmin && (
+											<button
+												className="courses-page-btn courses-page-btn-primary"
+												onClick={() => navigate('/admin/content?tab=course-maps')}
+											>
+												<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+													<path d="M12 5v14M5 12h14" />
+												</svg>
+												<span>Creeaza prima mapa</span>
+											</button>
+										)
+									)}
+								</div>
+							) : null}
+						</div>
+					) : null}
 
-					{!isAdmin && filteredStandaloneExams.length > 0 ? (
-						<section className="courses-page-exams-section" aria-labelledby="courses-page-exams-heading">
-							<div className="courses-page-exams-section-head">
-								<h2 id="courses-page-exams-heading" className="courses-page-exams-heading">
-									Examene independente
-								</h2>
-								<p className="courses-page-exams-intro">
-									Fara legatura cu mapele de mai sus - acces direct la evaluare.
-								</p>
-							</div>
-							<div className="courses-page-exams-grid">
+					{!isAdmin && studentTab === 'exams' ? (
+						<section className="courses-page-exams-section" aria-label="Examene independente">
+							<div className="courses-page-exams-grid courses-page-maps-grid">
 								{filteredStandaloneExams.map((ex, index) => {
 									const accentColor = COURSE_MAP_ACCENT_COLORS[(index + 3) % COURSE_MAP_ACCENT_COLORS.length];
+									const subtitleParts = [];
+									if (ex.description?.trim()) subtitleParts.push(String(ex.description).trim());
+									if (ex.passing_score != null) subtitleParts.push(`Prag ${ex.passing_score}%`);
+									const subtitle = subtitleParts.join(' - ') || 'Examen independent';
 									return (
-										<article
-											key={ex.id}
-											className="course-standalone-exam-card"
-											onClick={() => navigate(`/exams/${ex.id}`)}
-											role="button"
-											tabIndex={0}
-											onKeyDown={(e) => {
-												if (e.key === 'Enter' || e.key === ' ') {
-													e.preventDefault();
-													navigate(`/exams/${ex.id}`);
-												}
-											}}
-										>
-											<div className="course-standalone-exam-card-body">
-												<div
-													className="course-standalone-exam-card-icon-wrap"
-													style={{ '--map-accent': accentColor }}
-												>
-													<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-														<polyline points="14 2 14 8 20 8" />
-														<line x1="9" y1="15" x2="15" y2="15" />
-													</svg>
-												</div>
-												<div className="course-standalone-exam-card-content">
-													<h3 className="course-standalone-exam-card-title">{ex.title || 'Examen'}</h3>
-													{ex.description ? (
-														<p className="course-standalone-exam-card-summary">{ex.description}</p>
-													) : (
-														<p className="course-standalone-exam-card-summary muted">
-															{ex.passing_score != null ? `Punctaj minim: ${ex.passing_score}%` : 'Examen'}
-														</p>
-													)}
-													<div className="course-standalone-exam-card-footer">
-														<span className="course-standalone-exam-card-cta">Incepe examenul</span>
-														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-															<path d="M5 12h14M12 5l7 7-7 7" />
-														</svg>
-													</div>
-												</div>
-											</div>
+										<article key={ex.id} className="course-map-card course-map-card--showcase-wrap">
+											<CourseShowcaseCard
+												className="courses-page-map-card-showcase"
+												imageUrl={COURSE_SHOWCASE_FALLBACK_IMAGE}
+												title={ex.title || 'Examen'}
+												subtitle={subtitle}
+												themeHsl={hexToHslSpace(accentColor)}
+												onOpen={() => navigate(`/exams/${ex.id}`)}
+												ctaLabel="Deschide examenul"
+											/>
 										</article>
 									);
 								})}
 							</div>
+							{filteredStandaloneExams.length === 0 ? (
+								<div className="courses-page-empty">
+									<h3 className="courses-page-empty-title">
+										{searchQuery ? 'Nu am gasit examene' : 'Nu exista examene disponibile'}
+									</h3>
+									<p className="courses-page-empty-text">
+										{searchQuery ? 'Incearca un alt termen de cautare.' : 'Examenele independente vor apărea aici.'}
+									</p>
+								</div>
+							) : null}
 						</section>
 					) : null}
 				</div>

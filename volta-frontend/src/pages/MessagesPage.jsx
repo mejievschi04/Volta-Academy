@@ -37,11 +37,13 @@ const MessagesPage = () => {
 	const [leavingGroup, setLeavingGroup] = useState(false);
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 	const messagesEndRef = useRef(null);
+	const messagesContainerRef = useRef(null);
 	const pollingIntervalRef = useRef(null);
 	const conversationsPollingRef = useRef(null);
 	const lastMessageIdRef = useRef(null);
 	const messagesPollBackoffUntilRef = useRef(0);
 	const conversationsPollBackoffUntilRef = useRef(0);
+	const shouldAutoScrollRef = useRef(true);
 
 	// Detect mobile viewport
 	useEffect(() => {
@@ -79,8 +81,15 @@ const MessagesPage = () => {
 	}, [selectedConversation]);
 
 	useEffect(() => {
-		scrollToBottom();
+		if (shouldAutoScrollRef.current) {
+			scrollToBottom();
+		}
 	}, [messages]);
+
+	useEffect(() => {
+		// La schimbarea conversației vrem să pornim din nou din partea de jos
+		shouldAutoScrollRef.current = true;
+	}, [selectedConversation?.id]);
 
 	// Polling pentru mesaje noi în conversația activă (fără messages.length în deps — evită resetări repetate ale intervalului)
 	useEffect(() => {
@@ -106,13 +115,9 @@ const MessagesPage = () => {
 						setMessages(data);
 						lastMessageIdRef.current = lastMessage.id;
 						
-						// Scroll la final dacă utilizatorul este în jos
-						const messagesContainer = document.querySelector('.messages-chat-messages');
-						if (messagesContainer) {
-							const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 100;
-							if (isNearBottom) {
-								setTimeout(() => scrollToBottom(), 100);
-							}
+						// Scroll la final doar dacă utilizatorul era deja aproape de bottom
+						if (shouldAutoScrollRef.current) {
+							setTimeout(() => scrollToBottom(), 100);
 						}
 						
 						// Actualizează conversația cu ultimul mesaj
@@ -210,8 +215,15 @@ const MessagesPage = () => {
 		};
 	}, [user?.id, selectedConversation?.id]);
 
-	const scrollToBottom = () => {
-		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+	const scrollToBottom = (behavior = 'smooth') => {
+		messagesEndRef.current?.scrollIntoView({ behavior });
+	};
+
+	const handleMessagesScroll = () => {
+		const container = messagesContainerRef.current;
+		if (!container) return;
+		const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+		shouldAutoScrollRef.current = distanceFromBottom < 100;
 	};
 
 	const fetchConversations = async () => {
@@ -944,7 +956,11 @@ const MessagesPage = () => {
 							</div>
 
 							{/* Messages List */}
-							<div className="messages-chat-messages">
+							<div
+								ref={messagesContainerRef}
+								className="messages-chat-messages"
+								onScroll={handleMessagesScroll}
+							>
 								{messages.length > 0 ? (
 									messages.map((message) => {
 										const isOwn = message.sender_id === user?.id;
