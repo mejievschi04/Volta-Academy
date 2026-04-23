@@ -15,6 +15,7 @@ use App\Services\TestQuestionSelectionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -85,7 +86,7 @@ class ExamController extends Controller
         }
 
         return response()->json([
-            'message' => 'Examenul nu este Г®ncДѓ publicat.',
+            'message' => 'Examenul nu este încă publicat.',
             'unpublished' => true,
         ], 403);
     }
@@ -481,7 +482,7 @@ class ExamController extends Controller
     }
 
     /**
-     * Catalog examene legacy fДѓrДѓ curs (published, vizibile pentru elevul curent).
+     * Catalog examene legacy fără curs (published, vizibile pentru elevul curent).
      */
     public function learnerStandaloneExams(Request $request): JsonResponse
     {
@@ -535,10 +536,10 @@ class ExamController extends Controller
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
 
         /*
-         * Seed-ul determinДѓ ordinea/subsetul Г®ntrebДѓrilor (randomizare, bancДѓ).
-         * - Rezultat existent + fДѓrДѓ new_attempt: folosim acelaИ™i numДѓr de Г®ncercare ca la ultimul rezultat,
-         *   ca lista Г®ntrebДѓrilor sДѓ coincidДѓ cu rДѓspunsurile salvate (altfel вЂћnu mergeвЂќ la reГ®ncДѓrcare).
-         * - ГЋncercare nouДѓ (new_attempt=1): folosim urmДѓtorul numДѓr (currentAttempt + 1).
+         * Seed-ul determină ordinea/subsetul întrebărilor (randomizare, bancă).
+         * - Rezultat existent + fără new_attempt: folosim același număr de încercare ca la ultimul rezultat,
+         *   ca lista întrebărilor să coincidă cu răspunsurile salvate (altfel „nu merge” la reîncărcare).
+         * - Încercare nouă (new_attempt=1): folosim următorul număr (currentAttempt + 1).
          */
         $attemptNumberForSeed = ($latestResult && !$forNewAttempt)
             ? max(1, (int) $latestResult->attempt_number)
@@ -546,43 +547,13 @@ class ExamController extends Controller
 
         // Get questions (supports bank + optional rule-based selection)
         $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
-        
-        // Transform questions (optionally randomize answers deterministically)
-        $transformedQuestions = $questions->map(function($question) use ($test, $user, $attemptNumberForSeed) {
-            $questionType = $question->type ?? 'multiple_choice';
-            $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $attemptNumberForSeed);
-            $answers = $resolved['answers'];
-            $correctAnswerIndex = $resolved['correct_index'];
-            $matching = null;
-            $ordering = null;
 
-            if ($questionType === 'matching') {
-                $matching = $this->buildMatchingQuestionData($question, $test, $user, $attemptNumberForSeed);
-            } elseif ($questionType === 'ordering') {
-                $ordering = $this->buildOrderingQuestionData($question, $test, $user, $attemptNumberForSeed);
-            }
+        $fullWire = $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
+        $showSolutions = $latestResult && ! $forNewAttempt;
+        $transformedQuestions = $showSolutions
+            ? $fullWire
+            : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
 
-            return [
-                'id' => $question->id,
-                'text' => $question->content,
-                'type' => $questionType,
-                'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
-                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
-                    ? array_map(function($ans) {
-                        if (!is_array($ans)) {
-                            return $ans;
-                        }
-                        return $ans['text'] ?? $ans['answer_text'] ?? $ans['content'] ?? '';
-                    }, $answers)
-                    : [],
-                'answerIndex' => $correctAnswerIndex,
-                'points' => $question->points ?? 1,
-                'explanation' => $question->explanation ?? null,
-                'matching' => $matching,
-                'ordering' => $ordering,
-            ];
-        });
-        
         $basePassingScore = (int) ($test->passing_score ?? 70);
 
         // Resolve CourseTest: use course_id when provided (test can be attached to multiple courses)
@@ -644,7 +615,106 @@ class ExamController extends Controller
     {
         return $this->questionSelectionService->selectForAttempt($test, (int) $user->id, $attemptNumber);
     }
-    
+
+    /** Elimină chei folosite la corectare din payload-ul trimis elevului în timpul testului. */
+    protected function stripWireQuestionSolutionKeys(array $q): array
+    {
+        $q['answerIndex'] = null;
+        if (isset($q['matching']) && is_array($q['matching'])) {
+            $m = $q['matching'];
+            unset($m['correctMap']);
+            $q['matching'] = $m;
+        }
+        if (isset($q['ordering']) && is_array($q['ordering'])) {
+            $o = $q['ordering'];
+            unset($o['correctOrder']);
+            $q['ordering'] = $o;
+        }
+
+        return $q;
+    }
+
+    /** O întrebare Test (JSON) în formatul folosit de frontend. */
+    protected function mapTestQuestionToStudentWire(Test $test, $question, $user, int $attemptNumber): array
+    {
+        $questionType = $question->type ?? 'multiple_choice';
+        $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $attemptNumber);
+        $answers = $resolved['answers'];
+        $correctAnswerIndex = $resolved['correct_index'];
+        $matching = null;
+        $ordering = null;
+
+        if ($questionType === 'matching') {
+            $matching = $this->buildMatchingQuestionData($question, $test, $user, $attemptNumber);
+        } elseif ($questionType === 'ordering') {
+            $ordering = $this->buildOrderingQuestionData($question, $test, $user, $attemptNumber);
+        }
+
+        return [
+            'id' => $question->id,
+            'text' => $question->content,
+            'type' => $questionType,
+            'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
+            'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+                ? array_map(function ($ans) {
+                    if (! is_array($ans)) {
+                        return $ans;
+                    }
+
+                    return $ans['text'] ?? $ans['answer_text'] ?? $ans['content'] ?? '';
+                }, $answers)
+                : [],
+            'answerIndex' => $correctAnswerIndex,
+            'points' => $question->points ?? 1,
+            'explanation' => $question->explanation ?? null,
+            'matching' => $matching,
+            'ordering' => $ordering,
+        ];
+    }
+
+    protected function transformTestQuestionsWire($questions, Test $test, $user, int $attemptNumber): Collection
+    {
+        return collect($questions)->map(fn ($question) => $this->mapTestQuestionToStudentWire($test, $question, $user, $attemptNumber));
+    }
+
+    protected function transformLegacyExamQuestionsWire(Exam $exam, $user, int $attemptNumber): Collection
+    {
+        return $exam->questions->map(function ($question) use ($user, $attemptNumber) {
+            $answers = $question->answers;
+            $correctAnswerIndex = null;
+            $questionType = $question->question_type ?? 'multiple_choice';
+            $matching = null;
+            $ordering = null;
+
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+                foreach ($answers as $idx => $answer) {
+                    if ($answer->is_correct) {
+                        $correctAnswerIndex = $idx;
+                        break;
+                    }
+                }
+            } elseif ($questionType === 'matching') {
+                $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumber);
+            } elseif ($questionType === 'ordering') {
+                $ordering = $this->buildOrderingQuestionData($question, null, $user, $attemptNumber);
+            }
+
+            return [
+                'id' => $question->id,
+                'text' => $question->question_text,
+                'type' => $questionType,
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+                    ? $answers->pluck('answer_text')->toArray()
+                    : [],
+                'answerIndex' => $correctAnswerIndex,
+                'points' => $question->points ?? 1,
+                'explanation' => $question->explanation ?? null,
+                'matching' => $matching,
+                'ordering' => $ordering,
+            ];
+        });
+    }
+
     /**
      * Handle legacy Exam model
      */
@@ -671,7 +741,7 @@ class ExamController extends Controller
         if (!$accessCheck) {
             $message = empty($exam->course_id)
                 ? 'Nu ai acces la acest examen.'
-                : 'Testul nu este disponibil. CompleteazДѓ lecИ›iile/modulele anterioare.';
+                : 'Testul nu este disponibil. Completează lecțiile/modulele anterioare.';
 
             return response()->json([
                 'message' => $message,
@@ -697,43 +767,17 @@ class ExamController extends Controller
         // Check if user has passed
         $hasPassed = $latestResult && $latestResult->passed;
 
-        // Transform questions
-        $attemptNumberForSeed = ($latestResult ? max(1, (int) $latestResult->attempt_number) : max(1, $currentAttempt + 1));
+        $req = request();
+        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
+        $attemptNumberForSeed = ($latestResult && ! $forNewAttempt)
+            ? max(1, (int) $latestResult->attempt_number)
+            : max(1, $currentAttempt + 1);
 
-        $questions = $exam->questions->map(function($question) use ($user, $attemptNumberForSeed) {
-            $answers = $question->answers;
-            $correctAnswerIndex = null;
-            $questionType = $question->question_type ?? 'multiple_choice';
-            $matching = null;
-            $ordering = null;
-
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
-                foreach ($answers as $idx => $answer) {
-                    if ($answer->is_correct) {
-                        $correctAnswerIndex = $idx;
-                        break;
-                    }
-                }
-            } elseif ($questionType === 'matching') {
-                $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumberForSeed);
-            } elseif ($questionType === 'ordering') {
-                $ordering = $this->buildOrderingQuestionData($question, null, $user, $attemptNumberForSeed);
-            }
-
-            return [
-                'id' => $question->id,
-                'text' => $question->question_text,
-                'type' => $questionType,
-                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
-                    ? $answers->pluck('answer_text')->toArray()
-                    : [],
-                'answerIndex' => $correctAnswerIndex,
-                'points' => $question->points ?? 1,
-                'explanation' => $question->explanation ?? null,
-                'matching' => $matching,
-                'ordering' => $ordering,
-            ];
-        });
+        $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed);
+        $showSolutions = $latestResult && ! $forNewAttempt;
+        $questions = $showSolutions
+            ? $fullWire
+            : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
 
         return response()->json([
             'id' => $exam->id,
@@ -787,6 +831,9 @@ class ExamController extends Controller
         
         if ($test) {
             $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+            if ($courseId === null && $request->input('course_id') !== null && $request->input('course_id') !== '') {
+                $courseId = (int) $request->input('course_id');
+            }
 
             return $this->submitTest($request, $test, $user, $courseId);
         }
@@ -825,7 +872,7 @@ class ExamController extends Controller
             
             if ($trackLearning && $test->max_attempts && $nextAttempt > $test->max_attempts) {
                 return response()->json([
-                    'message' => "Ai atins limita de {$test->max_attempts} Г®ncercДѓri pentru acest test.",
+                    'message' => "Ai atins limita de {$test->max_attempts} încercări pentru acest test.",
                     'max_attempts_reached' => true,
                 ], 403);
             }
@@ -835,7 +882,7 @@ class ExamController extends Controller
 
             if ($questions->isEmpty()) {
                 return response()->json([
-                    'message' => 'Testul nu are Г®ntrebДѓri disponibile.',
+                    'message' => 'Testul nu are întrebări disponibile.',
                 ], 400);
             }
 
@@ -850,7 +897,7 @@ class ExamController extends Controller
                 }
             }
             
-            // Calculate score and count correct answers (for statistics: X din Y Г®ntrebДѓri)
+            // Calculate score and count correct answers (for statistics: X din Y întrebări)
         $score = 0;
         $totalPoints = 0;
         $correctAnswersCount = 0;
@@ -1006,7 +1053,11 @@ class ExamController extends Controller
                     $request
                 );
             }
-            
+
+            $reviewQuestions = $this->transformTestQuestionsWire($questions, $test, $user, $nextAttempt)
+                ->values()
+                ->all();
+
             return response()->json([
                 'message' => 'Test trimis cu succes',
                 'result' => [
@@ -1025,6 +1076,7 @@ class ExamController extends Controller
                     'status' => $testResult?->status ?? ($needsManualReview ? 'pending_review' : 'completed'),
                     'completed_at' => $testResult?->completed_at,
                     'answers' => $testResult && is_array($testResult->answers) ? $testResult->answers : (is_array($answers) ? $answers : []),
+                    'review_questions' => $reviewQuestions,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -1084,7 +1136,7 @@ class ExamController extends Controller
 
         if ($trackLearning && $exam->max_attempts && $nextAttempt > $exam->max_attempts) {
             return response()->json([
-                'message' => "Ai atins limita de {$exam->max_attempts} Г®ncercДѓri pentru acest test.",
+                'message' => "Ai atins limita de {$exam->max_attempts} încercări pentru acest test.",
                 'max_attempts_reached' => true,
             ], 403);
         }
@@ -1095,6 +1147,11 @@ class ExamController extends Controller
             ? (bool) $settings['manual_review']
             : true;
         $manualReviewMode = (string) ($settings['manual_review_mode'] ?? 'after_complete');
+
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $hasManualQuestions = $exam->questions->contains(function ($q) use ($autoGradableTypes) {
+            return ! in_array((string) ($q->question_type ?? 'multiple_choice'), $autoGradableTypes, true);
+        });
 
         // Calculate score
         $score = 0;
@@ -1143,7 +1200,7 @@ class ExamController extends Controller
             }
         }
 
-        $needsManualReview = false;
+        $needsManualReview = $manualReviewEnabled && $hasManualQuestions;
 
         $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
         $passingScore = $exam->passing_score ?? 70;
@@ -1201,6 +1258,10 @@ class ExamController extends Controller
             }
         }
 
+        $reviewQuestions = $this->transformLegacyExamQuestionsWire($exam, $user, $nextAttempt)
+            ->values()
+            ->all();
+
         return response()->json([
             'message' => 'Test trimis cu succes',
             'result' => [
@@ -1220,12 +1281,14 @@ class ExamController extends Controller
                 'has_manual_questions' => $hasManualQuestions,
                 'completed_at' => $examResult?->completed_at,
                 'status' => $needsManualReview ? 'pending_review' : 'completed',
+                'answers' => is_array($answers) ? $answers : [],
+                'review_questions' => $reviewQuestions,
             ],
         ]);
     }
 
     /**
-     * Payload JSON foloseИ™te adesea chei string pentru id-uri Г®ntrebДѓri.
+     * Payload JSON folosește adesea chei string pentru id-uri întrebări.
      */
     protected function answerValueForQuestion(array $answers, int $questionId): mixed
     {

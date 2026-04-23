@@ -189,53 +189,17 @@ class QuizController extends Controller
         ];
     }
 
-    public function show($courseId)
+    /**
+     * Wire format for course quiz (frontend). $withSolutions: include answerIndex / correctMap / correctOrder.
+     */
+    protected function examQuestionsToQuizWire(Exam $exam, bool $withSolutions): array
     {
-        $course = Course::findOrFail($courseId);
-        
-        // Load exam for this course
-        $exam = Exam::with(['questions.answers' => function($query) {
-            $query->orderBy('order');
-        }])->where('course_id', $courseId)->first();
-        
-        if (!$exam) {
-            return response()->json([
-                'error' => 'Nu există test disponibil pentru acest curs'
-            ], 404);
-        }
-        
-        // Check if user has already completed this exam
-        $user = Auth::user();
-        $existingResults = [];
-        $currentAttempt = 0;
-        $canRetake = true;
-        $latestResult = null;
-        
-        if ($user) {
-            $existingResults = ExamResult::where('exam_id', $exam->id)
-                ->where('user_id', $user->id)
-                ->orderBy('attempt_number', 'desc')
-                ->get();
-            
-            if ($existingResults->count() > 0) {
-                $latestResult = $existingResults->first();
-                $currentAttempt = $latestResult->attempt_number;
-                
-                // Check if user can retake (if max_attempts is set and reached)
-                if ($exam->max_attempts !== null && $currentAttempt >= $exam->max_attempts) {
-                    $canRetake = false;
-                }
-            }
-        }
-        
-        // Transform exam structure to match frontend expectations
-        $questions = $exam->questions->map(function($question, $index) {
+        return $exam->questions->map(function ($question) {
             $answers = $question->answers;
             $correctAnswerIndex = null;
             $matching = null;
             $ordering = null;
-            
-            // Find correct answer index (only for multiple choice)
+
             if ($question->question_type === 'multiple_choice' || $question->question_type === 'single_choice' || $question->question_type === 'true_false') {
                 foreach ($answers as $idx => $answer) {
                     if ($answer->is_correct) {
@@ -248,7 +212,7 @@ class QuizController extends Controller
             } elseif ($question->question_type === 'ordering') {
                 $ordering = $this->buildOrderingQuestionData($question);
             }
-            
+
             return [
                 'id' => $question->id,
                 'text' => $question->question_text,
@@ -261,15 +225,69 @@ class QuizController extends Controller
                 'matching' => $matching,
                 'ordering' => $ordering,
             ];
-        });
-        
+        })->values()->map(function (array $row) use ($withSolutions) {
+            if ($withSolutions) {
+                return $row;
+            }
+            $row['answerIndex'] = null;
+            if (is_array($row['matching'] ?? null)) {
+                unset($row['matching']['correctMap']);
+            }
+            if (is_array($row['ordering'] ?? null)) {
+                unset($row['ordering']['correctOrder']);
+            }
+
+            return $row;
+        })->all();
+    }
+
+    public function show($courseId)
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['message' => 'Autentificare necesară.'], 401);
+        }
+
+        $course = Course::findOrFail($courseId);
+
+        // Load exam for this course
+        $exam = Exam::with(['questions.answers' => function ($query) {
+            $query->orderBy('order');
+        }])->where('course_id', $courseId)->first();
+
+        if (! $exam) {
+            return response()->json([
+                'error' => 'Nu există test disponibil pentru acest curs',
+            ], 404);
+        }
+
+        $existingResults = ExamResult::where('exam_id', $exam->id)
+            ->where('user_id', $user->id)
+            ->orderBy('attempt_number', 'desc')
+            ->get();
+
+        $currentAttempt = 0;
+        $canRetake = true;
+        $latestResult = null;
+
+        if ($existingResults->count() > 0) {
+            $latestResult = $existingResults->first();
+            $currentAttempt = $latestResult->attempt_number;
+
+            if ($exam->max_attempts !== null && $currentAttempt >= $exam->max_attempts) {
+                $canRetake = false;
+            }
+        }
+
+        $questionsWire = $this->examQuestionsToQuizWire($exam, $latestResult !== null);
+
         return response()->json([
             'id' => $exam->id,
             'title' => $exam->title,
             'courseId' => $course->id,
             'maxScore' => $exam->max_score,
             'maxAttempts' => $exam->max_attempts,
-            'questions' => $questions,
+            'questions' => $questionsWire,
             'hasResult' => $latestResult !== null,
             'currentAttempt' => $currentAttempt,
             'canRetake' => $canRetake,
@@ -287,31 +305,35 @@ class QuizController extends Controller
 
     public function submit(Request $request, $courseId)
     {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['message' => 'Autentificare necesară.'], 401);
+        }
+
         $course = Course::with('modules')->findOrFail($courseId);
         $answers = $request->input('answers', []);
-        
+
         // Load exam with questions and answers
-        $exam = Exam::with(['questions.answers' => function($query) {
+        $exam = Exam::with(['questions.answers' => function ($query) {
             $query->orderBy('order');
         }])->where('course_id', $courseId)->first();
-        
-        if (!$exam) {
+
+        if (! $exam) {
             return response()->json([
-                'error' => 'Nu există test disponibil pentru acest curs'
+                'error' => 'Nu există test disponibil pentru acest curs',
             ], 404);
         }
-        
+
         // Check if user can submit (check attempt limits)
-        $user = Auth::user();
-        $trackLearning = $user && ! $user->isLearningActivityExempt();
-        if ($user && $trackLearning) {
+        $trackLearning = ! $user->isLearningActivityExempt();
+        if ($trackLearning) {
             $existingResults = ExamResult::where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
                 ->get();
-            
+
             $currentAttempt = $existingResults->count() > 0 ? $existingResults->max('attempt_number') : 0;
             $nextAttempt = $currentAttempt + 1;
-            
+
             // Check if max attempts reached
             if ($exam->max_attempts !== null && $nextAttempt > $exam->max_attempts) {
                 return response()->json([
@@ -372,7 +394,7 @@ class QuizController extends Controller
         $passed = $percentage >= 50;
         
         // Save quiz result to database
-        if ($user && $trackLearning) {
+        if ($trackLearning) {
             $existingResults = ExamResult::where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
                 ->get();
@@ -488,6 +510,7 @@ class QuizController extends Controller
             'maxScore' => $exam->max_score,
             'passed' => $passed,
             'percentage' => $percentage,
+            'review_questions' => $this->examQuestionsToQuizWire($exam, true),
         ]);
     }
 

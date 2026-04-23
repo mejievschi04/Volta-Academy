@@ -180,9 +180,14 @@ const ExamPage = () => {
 
 			const resultData = await examService.submitExam(examId, answers, courseId || null);
 			const submittedResult = resultData.result;
+			const reviewQs = Array.isArray(submittedResult?.review_questions) ? submittedResult.review_questions : null;
 			setResult(submittedResult);
+			if (reviewQs && reviewQs.length > 0) {
+				setExam((prev) => (prev ? { ...prev, questions: reviewQs } : prev));
+			}
 			if (submittedResult?.answers && typeof submittedResult.answers === 'object') {
-				setAnswers((prev) => ({ ...prev, ...normalizeAnswersFromApi(submittedResult.answers, exam?.questions || []) }));
+				const questionList = reviewQs?.length ? reviewQs : exam?.questions || [];
+				setAnswers((prev) => ({ ...prev, ...normalizeAnswersFromApi(submittedResult.answers, questionList) }));
 			}
 			setSubmitted(true);
 			try {

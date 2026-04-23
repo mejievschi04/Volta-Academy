@@ -164,6 +164,18 @@ export const courseProgressService = {
   
 };
 
+/** Notițe personale per lecție (JSON), sincronizate pe server pentru utilizatorul autentificat */
+export const lessonNotesService = {
+  getNotes: async (lessonId) => {
+    const response = await api.get(`/lessons/${lessonId}/notes`);
+    return response.data;
+  },
+  saveNotes: async (lessonId, notes) => {
+    const response = await api.put(`/lessons/${lessonId}/notes`, { notes });
+    return response.data;
+  },
+};
+
 export const examService = {
   /** Examene legacy fără curs (published, vizibile pentru utilizatorul curent) */
   listStandaloneExams: async () => {

@@ -136,6 +136,9 @@ const QuizPage = () => {
 			}
 			const resultData = await quizService.submitQuiz(courseId, answers);
 			setResult(resultData);
+			if (Array.isArray(resultData.review_questions) && resultData.review_questions.length > 0) {
+				setQuiz((prev) => (prev ? { ...prev, questions: resultData.review_questions } : prev));
+			}
 			setSubmitted(true);
 		} catch (err) {
 			console.error('Error submitting quiz:', err);

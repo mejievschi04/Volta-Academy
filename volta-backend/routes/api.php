@@ -57,8 +57,6 @@ Route::middleware('throttle:120,1')->group(function () {
     Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{id}', [EventController::class, 'show']);
-    Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
-    Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
     Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
     Route::get('/builder-media/{courseId}/{mediaId}', [CourseBuilderController::class, 'serveMediaFilePublic']);
 });
@@ -133,7 +131,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     Route::put('/lessons/{lessonId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'updateLessonProgress']);
     Route::get('/modules/{moduleId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkModuleAccess']);
     Route::get('/lessons/{lessonId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkLessonAccess']);
+    Route::get('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'show']);
+    Route::put('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'update']);
     Route::get('/exams/{examId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkExamAccess']);
+
+    // Quiz curs (legacy Exam per course): autentificat — nu expune chei fără control în API public
+    Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
+    Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
     
     // Course maps (student: list and show map with published courses)
     Route::get('/course-maps', [\App\Http\Controllers\Api\CourseMapController::class, 'index']);

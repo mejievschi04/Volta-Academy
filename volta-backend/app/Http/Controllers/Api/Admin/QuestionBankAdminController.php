@@ -8,7 +8,7 @@ use App\Models\Question;
 use App\Models\Tag;
 use App\Models\Course;
 use App\Models\Test;
-use App\Services\TestService;
+use App\Services\TestBuilderService;
 use App\Services\VoltPromptService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,11 +24,11 @@ use Illuminate\Support\Str;
  */
 class QuestionBankAdminController extends Controller
 {
-    protected TestService $testService;
+    protected TestBuilderService $testBuilderService;
 
-    public function __construct(TestService $testService)
+    public function __construct(TestBuilderService $testBuilderService)
     {
-        $this->testService = $testService;
+        $this->testBuilderService = $testBuilderService;
     }
 
     /**
@@ -133,7 +133,7 @@ class QuestionBankAdminController extends Controller
         ]);
 
         $creator = Auth::user();
-        $bank = $this->testService->createQuestionBank($validated, $creator);
+        $bank = $this->testBuilderService->createQuestionBank($validated, $creator);
         $this->syncFolderTags($bank, $validated['tags'] ?? []);
 
         return response()->json([
@@ -217,7 +217,7 @@ class QuestionBankAdminController extends Controller
             'questions.*.explanation' => 'nullable|string',
         ]);
 
-        $this->testService->addQuestionsToBank($bank, $validated['questions']);
+        $this->testBuilderService->addQuestionsToBank($bank, $validated['questions']);
 
         return response()->json([
             'message' => 'Questions added successfully',
@@ -274,7 +274,7 @@ class QuestionBankAdminController extends Controller
             'metadata' => 'nullable|array',
         ]);
 
-        $this->testService->addQuestionsToBank($bank, [$validated]);
+        $this->testBuilderService->addQuestionsToBank($bank, [$validated]);
 
         return response()->json([
             'message' => 'Question added successfully',
@@ -414,7 +414,7 @@ class QuestionBankAdminController extends Controller
         }
 
         // Add questions to bank
-        $this->testService->addQuestionsToBank($bank, $questions);
+        $this->testBuilderService->addQuestionsToBank($bank, $questions);
 
         return response()->json([
             'message' => 'Questions generated successfully',
@@ -463,7 +463,7 @@ class QuestionBankAdminController extends Controller
         }
 
         // Add questions to bank
-        $this->testService->addQuestionsToBank($bank, $questions);
+        $this->testBuilderService->addQuestionsToBank($bank, $questions);
 
         return response()->json([
             'message' => 'Questions generated successfully',

@@ -20,6 +20,20 @@ class StatisticsAdminController extends Controller
         }
     }
 
+    private function hasColumn(string $table, string $column): bool
+    {
+        return Schema::hasTable($table) && Schema::hasColumn($table, $column);
+    }
+
+    private function selectOrNull(string $table, string $column, ?string $alias = null, string $fallback = 'NULL'): mixed
+    {
+        if ($this->hasColumn($table, $column)) {
+            return $table . '.' . $column . ($alias ? ' as ' . $alias : '');
+        }
+
+        return DB::raw($fallback . ' as ' . ($alias ?: $column));
+    }
+
     /**
      * Date detaliate pentru hub-ul Statistică: cursuri, elevi, înscrieri, teste, timp pe lecții.
      */
@@ -63,32 +77,49 @@ class StatisticsAdminController extends Controller
 
         $enrollments = [];
         if (Schema::hasTable('course_user')) {
+            $courseUserHasEnrolled = $this->hasColumn('course_user', 'enrolled');
+            $courseUserHasEnrolledAt = $this->hasColumn('course_user', 'enrolled_at');
+            $courseUserHasCompletedAt = $this->hasColumn('course_user', 'completed_at');
+            $courseUserHasUpdatedAt = $this->hasColumn('course_user', 'updated_at');
             $query = DB::table('course_user')
                 ->join('users', 'users.id', '=', 'course_user.user_id')
                 ->where('users.role', 'student')
-                ->where('course_user.enrolled', true)
                 ->select(
                     'course_user.user_id',
                     'course_user.course_id',
-                    'course_user.progress_percentage',
-                    'course_user.completed_at',
-                    'course_user.enrolled_at',
-                    'course_user.updated_at'
+                    $this->selectOrNull('course_user', 'progress_percentage', null, '0'),
+                    $this->selectOrNull('course_user', 'completed_at'),
+                    $this->selectOrNull('course_user', 'enrolled_at'),
+                    $this->selectOrNull('course_user', 'updated_at')
                 );
+            if ($courseUserHasEnrolled) {
+                $query->where('course_user.enrolled', true);
+            }
             if ($courseId) {
                 $query->where('course_user.course_id', (int) $courseId);
             }
             if ($userId) {
                 $query->where('course_user.user_id', (int) $userId);
             }
-            if ($from && $to) {
+            if ($from && $to && ($courseUserHasEnrolledAt || $courseUserHasUpdatedAt || $courseUserHasCompletedAt)) {
                 $query->where(function ($q) use ($from, $to) {
-                    $q->whereBetween('course_user.enrolled_at', [$from, $to])
-                        ->orWhereBetween('course_user.updated_at', [$from, $to])
-                        ->orWhere(function ($q2) use ($from, $to) {
+                    $added = false;
+                    if ($this->hasColumn('course_user', 'enrolled_at')) {
+                        $q->whereBetween('course_user.enrolled_at', [$from, $to]);
+                        $added = true;
+                    }
+                    if ($this->hasColumn('course_user', 'updated_at')) {
+                        $method = $added ? 'orWhereBetween' : 'whereBetween';
+                        $q->{$method}('course_user.updated_at', [$from, $to]);
+                        $added = true;
+                    }
+                    if ($this->hasColumn('course_user', 'completed_at')) {
+                        $method = $added ? 'orWhere' : 'where';
+                        $q->{$method}(function ($q2) use ($from, $to) {
                             $q2->whereNotNull('course_user.completed_at')
                                 ->whereBetween('course_user.completed_at', [$from, $to]);
                         });
+                    }
                 });
             }
 
@@ -114,40 +145,54 @@ class StatisticsAdminController extends Controller
 
         $testResults = [];
         if (Schema::hasTable('test_results')) {
+            $hasTestsTable = Schema::hasTable('tests');
+            $hasCourseTestTable = Schema::hasTable('course_test');
+            $hasTestIdColumn = $this->hasColumn('test_results', 'test_id');
+            $testCompletedColumn = $this->hasColumn('test_results', 'completed_at')
+                ? 'completed_at'
+                : ($this->hasColumn('test_results', 'created_at') ? 'created_at' : null);
+
             $query = DB::table('test_results')
                 ->join('users', 'users.id', '=', 'test_results.user_id')
-                ->leftJoin('tests', 'tests.id', '=', 'test_results.test_id')
-                ->leftJoin('course_test', 'course_test.test_id', '=', 'tests.id')
-                ->where('users.role', 'student')
-                ->whereNotNull('test_results.completed_at');
+                ->where('users.role', 'student');
+
+            if ($hasTestsTable && $hasTestIdColumn) {
+                $query->leftJoin('tests', 'tests.id', '=', 'test_results.test_id');
+            }
+            if ($hasCourseTestTable && $hasTestIdColumn) {
+                $query->leftJoin('course_test', 'course_test.test_id', '=', 'test_results.test_id');
+            }
+            if ($testCompletedColumn) {
+                $query->whereNotNull('test_results.' . $testCompletedColumn);
+            }
 
             if ($userId) {
                 $query->where('test_results.user_id', (int) $userId);
             }
-            if ($courseId) {
+            if ($courseId && $hasCourseTestTable && $hasTestIdColumn) {
                 $query->where('course_test.course_id', (int) $courseId);
             }
-            if ($from && $to) {
-                $query->whereBetween('test_results.completed_at', [$from, $to]);
+            if ($from && $to && $testCompletedColumn) {
+                $query->whereBetween('test_results.' . $testCompletedColumn, [$from, $to]);
             }
 
             $results = $query
                 ->select(
                     'test_results.id',
                     'test_results.user_id',
-                    'test_results.test_id',
-                    'test_results.passed',
-                    'test_results.percentage',
-                    'test_results.score',
-                    'test_results.max_score',
-                    'test_results.correct_answers_count',
-                    'test_results.total_questions',
-                    'test_results.completed_at',
-                    'test_results.attempt_number',
-                    'tests.title as test_title',
-                    'course_test.course_id as course_id'
+                    $hasTestIdColumn ? 'test_results.test_id' : DB::raw('NULL as test_id'),
+                    $this->selectOrNull('test_results', 'passed', null, '0'),
+                    $this->selectOrNull('test_results', 'percentage', null, '0'),
+                    $this->selectOrNull('test_results', 'score', null, '0'),
+                    $this->selectOrNull('test_results', 'max_score'),
+                    $this->selectOrNull('test_results', 'correct_answers_count'),
+                    $this->selectOrNull('test_results', 'total_questions'),
+                    $testCompletedColumn ? 'test_results.' . $testCompletedColumn . ' as completed_at' : DB::raw('NULL as completed_at'),
+                    $this->selectOrNull('test_results', 'attempt_number', null, '1'),
+                    ($hasTestsTable && $hasTestIdColumn) ? 'tests.title as test_title' : DB::raw('NULL as test_title'),
+                    ($hasCourseTestTable && $hasTestIdColumn) ? 'course_test.course_id as course_id' : DB::raw('NULL as course_id')
                 )
-                ->orderBy('test_results.completed_at', 'desc')
+                ->when($testCompletedColumn, fn ($q) => $q->orderBy('test_results.' . $testCompletedColumn, 'desc'))
                 ->get()
                 ->map(function ($r) use ($testCourseMap) {
                     return [
@@ -161,7 +206,7 @@ class StatisticsAdminController extends Controller
                         'max_score' => $r->max_score,
                         'correct_answers_count' => $r->correct_answers_count ?? null,
                         'total_questions' => $r->total_questions ?? null,
-                        'completed_at' => Carbon::parse($r->completed_at)->toIso8601String(),
+                        'completed_at' => $r->completed_at ? Carbon::parse($r->completed_at)->toIso8601String() : null,
                         'attempt_number' => $r->attempt_number,
                     ];
                 })->all();
@@ -170,39 +215,53 @@ class StatisticsAdminController extends Controller
         }
 
         if (Schema::hasTable('exam_results')) {
+            $hasExamsTable = Schema::hasTable('exams');
+            $hasExamIdColumn = $this->hasColumn('exam_results', 'exam_id');
+            $examCompletedColumn = $this->hasColumn('exam_results', 'completed_at')
+                ? 'completed_at'
+                : ($this->hasColumn('exam_results', 'created_at') ? 'created_at' : null);
+            $examMaxScoreSelect = $this->hasColumn('exam_results', 'total_points')
+                ? 'exam_results.total_points as max_score'
+                : $this->selectOrNull('exam_results', 'max_score');
+
             $query = DB::table('exam_results')
                 ->join('users', 'users.id', '=', 'exam_results.user_id')
-                ->leftJoin('exams', 'exams.id', '=', 'exam_results.exam_id')
-                ->where('users.role', 'student')
-                ->whereNotNull('exam_results.completed_at');
+                ->where('users.role', 'student');
+
+            if ($hasExamsTable && $hasExamIdColumn) {
+                $query->leftJoin('exams', 'exams.id', '=', 'exam_results.exam_id');
+            }
+            if ($examCompletedColumn) {
+                $query->whereNotNull('exam_results.' . $examCompletedColumn);
+            }
 
             if ($userId) {
                 $query->where('exam_results.user_id', (int) $userId);
             }
-            if ($courseId) {
+            if ($courseId && $hasExamsTable && $hasExamIdColumn && $this->hasColumn('exams', 'course_id')) {
                 $query->where('exams.course_id', (int) $courseId);
             }
-            if ($from && $to) {
-                $query->whereBetween('exam_results.completed_at', [$from, $to]);
+            if ($from && $to && $examCompletedColumn) {
+                $query->whereBetween('exam_results.' . $examCompletedColumn, [$from, $to]);
             }
 
             $results = $query
                 ->select(
                     'exam_results.id',
                     'exam_results.user_id',
-                    'exam_results.exam_id as test_id',
-                    'exam_results.passed',
-                    'exam_results.percentage',
-                    'exam_results.score',
-                    'exam_results.total_points as max_score',
+                    $hasExamIdColumn ? 'exam_results.exam_id as test_id' : DB::raw('NULL as test_id'),
+                    $this->selectOrNull('exam_results', 'passed', null, '0'),
+                    $this->selectOrNull('exam_results', 'percentage', null, '0'),
+                    $this->selectOrNull('exam_results', 'score', null, '0'),
+                    $examMaxScoreSelect,
                     DB::raw('NULL as correct_answers_count'),
                     DB::raw('NULL as total_questions'),
-                    'exam_results.completed_at',
-                    'exam_results.attempt_number',
-                    'exams.title as test_title',
-                    'exams.course_id as course_id'
+                    $examCompletedColumn ? 'exam_results.' . $examCompletedColumn . ' as completed_at' : DB::raw('NULL as completed_at'),
+                    $this->selectOrNull('exam_results', 'attempt_number', null, '1'),
+                    ($hasExamsTable && $hasExamIdColumn) ? 'exams.title as test_title' : DB::raw('NULL as test_title'),
+                    ($hasExamsTable && $hasExamIdColumn && $this->hasColumn('exams', 'course_id')) ? 'exams.course_id as course_id' : DB::raw('NULL as course_id')
                 )
-                ->orderBy('exam_results.completed_at', 'desc')
+                ->when($examCompletedColumn, fn ($q) => $q->orderBy('exam_results.' . $examCompletedColumn, 'desc'))
                 ->get()
                 ->map(function ($r) {
                     return [
@@ -216,7 +275,7 @@ class StatisticsAdminController extends Controller
                         'max_score' => $r->max_score,
                         'correct_answers_count' => null,
                         'total_questions' => null,
-                        'completed_at' => Carbon::parse($r->completed_at)->toIso8601String(),
+                        'completed_at' => $r->completed_at ? Carbon::parse($r->completed_at)->toIso8601String() : null,
                         'attempt_number' => $r->attempt_number,
                     ];
                 })->all();
@@ -294,23 +353,46 @@ class StatisticsAdminController extends Controller
      */
     private function getLearningAggregatesByUserCourse(): array
     {
-        if (!Schema::hasTable('lesson_progress') || !Schema::hasTable('lessons') || !Schema::hasTable('modules')) {
+        if (!Schema::hasTable('lesson_progress') || !Schema::hasTable('lessons')) {
             return [];
         }
 
-        $rows = DB::table('lesson_progress as lp')
+        $lessonHasCourseId = $this->hasColumn('lessons', 'course_id');
+        $lessonHasModuleId = $this->hasColumn('lessons', 'module_id');
+        $moduleHasCourseId = Schema::hasTable('modules') && $this->hasColumn('modules', 'course_id');
+
+        if (! $lessonHasCourseId && ! ($lessonHasModuleId && $moduleHasCourseId)) {
+            return [];
+        }
+
+        $courseExpr = $lessonHasCourseId && $lessonHasModuleId && $moduleHasCourseId
+            ? 'COALESCE(l.course_id, m.course_id)'
+            : ($lessonHasCourseId ? 'l.course_id' : 'm.course_id');
+        $timeExpr = $this->hasColumn('lesson_progress', 'time_spent_seconds')
+            ? 'COALESCE(SUM(lp.time_spent_seconds), 0)'
+            : '0';
+        $completedExpr = $this->hasColumn('lesson_progress', 'completed')
+            ? 'SUM(CASE WHEN lp.completed THEN 1 ELSE 0 END)'
+            : '0';
+
+        $query = DB::table('lesson_progress as lp')
             ->join('users', 'users.id', '=', 'lp.user_id')
             ->where('users.role', 'student')
-            ->join('lessons as l', 'l.id', '=', 'lp.lesson_id')
-            ->leftJoin('modules as m', 'm.id', '=', 'l.module_id')
+            ->join('lessons as l', 'l.id', '=', 'lp.lesson_id');
+
+        if ($lessonHasModuleId && $moduleHasCourseId) {
+            $query->leftJoin('modules as m', 'm.id', '=', 'l.module_id');
+        }
+
+        $rows = $query
             ->select(
                 'lp.user_id',
-                DB::raw('COALESCE(l.course_id, m.course_id) as course_id'),
-                DB::raw('COALESCE(SUM(lp.time_spent_seconds), 0) as time_spent_seconds'),
-                DB::raw('SUM(CASE WHEN lp.completed THEN 1 ELSE 0 END) as lessons_completed')
+                DB::raw($courseExpr . ' as course_id'),
+                DB::raw($timeExpr . ' as time_spent_seconds'),
+                DB::raw($completedExpr . ' as lessons_completed')
             )
-            ->whereRaw('COALESCE(l.course_id, m.course_id) IS NOT NULL')
-            ->groupBy('lp.user_id', DB::raw('COALESCE(l.course_id, m.course_id)'))
+            ->whereRaw($courseExpr . ' IS NOT NULL')
+            ->groupBy('lp.user_id', DB::raw($courseExpr))
             ->get();
 
         $out = [];

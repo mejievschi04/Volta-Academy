@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { lessonNotesService } from '../../services/api';
 import './NoteTakingSystem.css';
 
 /**
@@ -26,34 +27,57 @@ const NoteTakingSystem = ({
 	const [showAddNote, setShowAddNote] = useState(false);
 	const [newNoteContent, setNewNoteContent] = useState('');
 	const notesContainerRef = useRef(null);
-	
-	// Load notes from localStorage
-	useEffect(() => {
-		if (lessonId) {
+
+	const loadNotesForLesson = useCallback(async () => {
+		if (!lessonId) return;
+		try {
+			const data = await lessonNotesService.getNotes(lessonId);
+			if (Array.isArray(data?.notes) && data.notes.length > 0) {
+				setNotes(data.notes);
+				return;
+			}
+		} catch {
+			/* offline sau fără acces — folosim local */
+		}
+		try {
 			const savedNotes = localStorage.getItem(`notes_${lessonId}`);
 			if (savedNotes) {
-				try {
-					setNotes(JSON.parse(savedNotes));
-				} catch (err) {
-					console.error('Error loading notes:', err);
-				}
+				const parsed = JSON.parse(savedNotes);
+				if (Array.isArray(parsed)) setNotes(parsed);
 			}
+		} catch (err) {
+			console.error('Error loading notes:', err);
 		}
 	}, [lessonId]);
-	
-	// Save notes to localStorage
+
 	useEffect(() => {
-		if (lessonId && notes.length >= 0) {
+		if (!lessonId) {
+			setNotes([]);
+			return;
+		}
+		setNotes([]);
+		loadNotesForLesson();
+	}, [lessonId, loadNotesForLesson]);
+
+	// Copie locală pentru offline / fallback
+	useEffect(() => {
+		if (!lessonId) return;
+		try {
 			localStorage.setItem(`notes_${lessonId}`, JSON.stringify(notes));
+		} catch {
+			/* quota */
 		}
 	}, [notes, lessonId]);
-	
-	// Auto-save notes
+
 	const { saveStatus } = useAutoSave(
 		{ lessonId, notes },
 		async (data) => {
-			// In a real implementation, this would save to backend
-			// For now, we're using localStorage
+			if (!data.lessonId) return;
+			try {
+				await lessonNotesService.saveNotes(data.lessonId, data.notes);
+			} catch (e) {
+				console.error('Failed to save lesson notes to server:', e);
+			}
 		},
 		2000
 	);

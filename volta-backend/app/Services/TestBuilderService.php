@@ -268,10 +268,10 @@ class TestBuilderService
             Question::create([
                 'test_id' => null,
                 'question_bank_id' => $bank->id,
-                'type' => $questionData['type'] ?? 'multiple_choice',
+                'type' => $this->normalizeQuestionType($questionData['type'] ?? 'multiple_choice'),
                 'content' => $questionData['content'],
                 'answers' => $questionData['answers'] ?? [],
-                'points' => $questionData['points'] ?? 1,
+                'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
                 'order' => $questionData['order'] ?? $index,
                 'explanation' => $questionData['explanation'] ?? null,
                 'metadata' => $questionData['metadata'] ?? null,

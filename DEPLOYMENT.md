@@ -118,6 +118,10 @@ server {
 
     # API - /api și /storage către backend
     location /api {
+        client_max_body_size 550m;
+        proxy_request_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

@@ -83,7 +83,7 @@ class CourseController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Nu s-au putut Г®ncДѓrca cursurile',
+                'error' => 'Nu s-au putut încărca cursurile',
                 'message' => $e->getMessage(),
             ], 500);
         }
@@ -121,7 +121,7 @@ class CourseController extends Controller
             $user = $request->user();
             $showDraftLinkedTests = $user && in_array($user->role ?? '', ['admin', 'instructor'], true);
 
-            // Teste la nivel de lecИ›ie (course_test scope=lesson) вЂ” structura studentului
+            // Teste la nivel de lecție (course_test scope=lesson) — structura studentului
             $lessonScopeRows = CourseTest::where('course_id', $course->id)
                 ->where('scope', 'lesson')
                 ->with(['test' => function ($q) {
@@ -287,7 +287,7 @@ class CourseController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Nu s-a putut Г®ncДѓrca cursul',
+                'error' => 'Nu s-a putut încărca cursul',
                 'message' => $e->getMessage(),
             ], 500);
         }
@@ -312,7 +312,7 @@ class CourseController extends Controller
         // Check if test is passed
         $exam = \App\Models\Exam::where('course_id', $course->id)->first();
         if (!$exam) {
-            return response()->json(['error' => 'Nu existДѓ test pentru acest curs'], 404);
+            return response()->json(['error' => 'Nu există test pentru acest curs'], 404);
         }
 
         $latestResult = \App\Models\ExamResult::where('exam_id', $exam->id)

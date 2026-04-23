@@ -110,15 +110,15 @@ class CourseAdminController extends Controller
                 $query->orderBy('enrollments_count', $sortDirection);
                 break;
             case 'revenue':
-                // TODO: Add revenue calculation
+                // Fără coloană venituri: sortare stabilă până la modul plăți
                 $query->orderBy('updated_at', $sortDirection);
                 break;
             case 'completion_rate':
-                // TODO: Add completion rate calculation
+                // Fără agregat progres în listă: sortare stabilă (filtru per curs rămâne în UI)
                 $query->orderBy('updated_at', $sortDirection);
                 break;
             case 'rating':
-                // TODO: Add rating calculation
+                // Fără recenzii în DB: sortare stabilă
                 $query->orderBy('updated_at', $sortDirection);
                 break;
             case 'list_order':

@@ -115,6 +115,7 @@ class DashboardAdminController extends Controller
                 'recent_activities' => $recentActivities,
                 'alerts' => $alerts,
                 'notifications' => array_values($notifications),
+                'integrations' => $this->getIntegrationsMeta(),
             ]);
         } catch (\Exception $e) {
             \Log::error('Admin Dashboard Error: ' . $e->getMessage(), [
@@ -180,6 +181,43 @@ class DashboardAdminController extends Controller
                     'end' => $now->copy()->endOfDay(),
                 ];
         }
+    }
+
+    /**
+     * Rezultate test/examen fără reviewed_at care necesită verificare manuală.
+     */
+    private function countPendingManualReviews(): int
+    {
+        $n = 0;
+        if (Schema::hasTable('test_results')) {
+            $n += (int) DB::table('test_results')
+                ->whereNull('reviewed_at')
+                ->where(function ($w) {
+                    $w->where('needs_manual_review', true);
+                    if (Schema::hasColumn('test_results', 'status')) {
+                        $w->orWhere('status', 'pending_review');
+                    }
+                })
+                ->count();
+        }
+        if (Schema::hasTable('exam_results') && Schema::hasColumn('exam_results', 'needs_manual_review')) {
+            $n += (int) DB::table('exam_results')
+                ->whereNull('reviewed_at')
+                ->where('needs_manual_review', true)
+                ->count();
+        }
+
+        return $n;
+    }
+
+    /** Capabilități opționale (tabele lipsă = valori 0 până la integrare). */
+    private function getIntegrationsMeta(): array
+    {
+        return [
+            'payments' => Schema::hasTable('payments'),
+            'tickets' => Schema::hasTable('support_tickets') || Schema::hasTable('tickets'),
+            'course_reviews' => Schema::hasTable('course_reviews') || Schema::hasTable('reviews'),
+        ];
     }
 
     private function calculateKPIs($dateRange)
@@ -318,10 +356,10 @@ class DashboardAdminController extends Controller
             ? round((($newEnrollments - $previousEnrollments) / $previousEnrollments) * 100, 1)
             : 0;
 
-        // Revenue (mock - you'll need to implement actual payment tracking)
-        $revenueGross = 0; // TODO: Calculate from payments table
-        $revenueNet = 0; // TODO: Calculate from payments table minus fees
-        $revenueTrend = 0; // TODO: Calculate trend
+        // Venituri: rămân 0 până există tabel `payments` (sau similar); vezi `integrations.payments` în răspunsul dashboard.
+        $revenueGross = 0;
+        $revenueNet = 0;
+        $revenueTrend = 0;
 
         // Completion Rate
         $totalEnrollments = 0;
@@ -396,8 +434,8 @@ class DashboardAdminController extends Controller
         }
         $engagementTrend = round($engagement - $previousAvgProgress, 1);
 
-        // Issues/Tickets (mock - implement actual ticket system)
-        $issues = 0; // TODO: Count from tickets/issues table
+        // „Issues” = lucrări de verificare manuală în așteptare (test + examen legacy)
+        $issues = $this->countPendingManualReviews();
         $issuesTrend = 0;
 
         $studentIds = User::where('role', 'student')->pluck('id');
@@ -533,7 +571,7 @@ class DashboardAdminController extends Controller
                     ->count();
             }
 
-            $revenue = 0; // TODO: Calculate from payments
+            $revenue = 0; // Integrare plăți: vezi `integrations.payments`
 
             $users = User::where('role', 'student')
                 ->whereBetween('created_at', [$date, $dateEnd])
@@ -646,7 +684,7 @@ class DashboardAdminController extends Controller
                     'id' => $course->id,
                     'title' => $course->title,
                     'enrollments' => $enrollments,
-                    'revenue' => 0, // TODO: Calculate from payments
+                    'revenue' => 0, // Fără modul plăți; vezi `integrations.payments`
                     'completion_rate' => $completionRate,
                 ];
             })
@@ -703,7 +741,7 @@ class DashboardAdminController extends Controller
                     'id' => $course->id,
                     'title' => $course->title,
                     'completion_rate' => $completionRate,
-                    'rating' => 0, // TODO: Calculate from reviews
+                    'rating' => 0, // Fără modul recenzii; vezi `integrations.course_reviews`
                     'dropoff_rate' => $dropoffRate,
                 ];
             })

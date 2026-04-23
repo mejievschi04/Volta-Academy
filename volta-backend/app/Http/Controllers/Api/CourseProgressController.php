@@ -202,7 +202,7 @@ class CourseProgressController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Nu s-a putut Р вЂњР’В®ncР вЂќРЎвЂњrca progresul cursului',
+                'error' => 'Nu s-a putut încărca progresul cursului',
                 'message' => $e->getMessage(),
             ], 500);
         }
@@ -330,12 +330,12 @@ class CourseProgressController extends Controller
 
             $this->progressService->calculateCourseProgress($user, $course);
 
-            // AceeaР ВРІвЂћСћi regulР вЂќРЎвЂњ ca isCourseComplete: toate lecР ВРІР‚С”iile + toate testele publicate din course_test
+            // Aceleași reguli ca isCourseComplete: toate lecțiile + toate testele publicate din course_test
             if (!$this->progressService->isCourseComplete($user, $course)) {
                 $nextTest = $this->progressService->getNextIncompleteTest($user, $course);
 
                 return response()->json([
-                    'message' => 'Trebuie sР вЂќРЎвЂњ finalizezi toate lecР ВРІР‚С”iile Р ВРІвЂћСћi sР вЂќРЎвЂњ promovezi testele cursului Р вЂњР’В®nainte de finalizare.',
+                    'message' => 'Trebuie să finalizezi toate lecțiile și să promovezi testele cursului înainte de finalizare.',
                     'next_test_id' => $nextTest?->id,
                 ], 409);
             }
@@ -513,7 +513,7 @@ class CourseProgressController extends Controller
 
         if (!$course) {
             return response()->json([
-                'message' => 'LecИ›ia nu aparИ›ine unui curs',
+                'message' => 'Lecția nu aparține unui curs',
             ], 400);
         }
 
@@ -562,7 +562,7 @@ class CourseProgressController extends Controller
             }
             if (!$courseId) {
                 return response()->json([
-                    'message' => 'Pentru acest test specificР вЂќРЎвЂњ cursul: ?course_id=...',
+                    'message' => 'Pentru acest test specifică cursul în query (?course_id=...).',
                     'unlocked' => false,
                     'is_required' => false,
                 ], 422);
