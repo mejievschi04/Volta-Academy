@@ -1,5 +1,8 @@
 import { PDFDocument } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist';
+import { configurePdfWorker } from './pdfWorker';
+
+configurePdfWorker();
 
 export async function getPdfPageCount(file) {
 	if (!file || file.type !== 'application/pdf') {

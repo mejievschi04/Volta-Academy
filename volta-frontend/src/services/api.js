@@ -129,6 +129,11 @@ export const courseProgressService = {
     const response = await api.get(`/courses/${courseId}/progress`);
     return response.data;
   },
+
+  enrollCourse: async (courseId) => {
+    const response = await api.post(`/courses/${courseId}/enroll`);
+    return response.data;
+  },
   
   completeLesson: async (lessonId) => {
     const response = await api.post(`/lessons/${lessonId}/complete`);
@@ -321,7 +326,9 @@ export const libraryService = {
     if (cover instanceof Blob) {
       formData.append('cover', cover, 'cover.jpg');
     }
-    const response = await api.post('/library/items', formData);
+    const response = await api.post('/library/items', formData, {
+      timeout: parseInt(import.meta.env.VITE_UPLOAD_TIMEOUT || "600000"),
+    });
     return response.data;
   },
 

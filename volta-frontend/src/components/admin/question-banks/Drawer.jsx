@@ -19,11 +19,51 @@ const normalizeAnswers = (answers) => {
   });
 };
 
+const normalizeMatchingPairs = (answers) => {
+  if (!Array.isArray(answers)) return [];
+  return answers
+    .map((answer, index) => {
+      if (typeof answer === 'string' && answer.includes('|')) {
+        const [leftRaw, rightRaw] = answer.split('|');
+        return { left: (leftRaw || '').trim(), right: (rightRaw || '').trim(), order: index };
+      }
+      if (!answer || typeof answer !== 'object') {
+        return { left: '', right: '', order: index };
+      }
+      return {
+        left: answer.left ?? answer.text ?? answer.question ?? '',
+        right: answer.right ?? answer.answer_text ?? answer.content ?? '',
+        order: typeof answer.order === 'number' ? answer.order : index,
+      };
+    })
+    .filter((pair) => pair.left || pair.right);
+};
+
+const normalizeOrderingItems = (answers) => {
+  if (!Array.isArray(answers)) return [];
+  return answers
+    .map((answer, index) => {
+      if (typeof answer === 'string') {
+        return { text: answer, order: index };
+      }
+      if (!answer || typeof answer !== 'object') {
+        return { text: '', order: index };
+      }
+      return {
+        text: answer.text ?? answer.answer_text ?? answer.content ?? answer.label ?? '',
+        order: typeof answer.order === 'number' ? answer.order : index,
+      };
+    })
+    .filter((item) => item.text);
+};
+
 const Drawer = ({ open, question, onClose, onEdit }) => {
   if (!open || !question) return null;
 
   const tags = question?.tags || question?.metadata?.tags || [];
   const answers = normalizeAnswers(question?.answers);
+  const matchingPairs = normalizeMatchingPairs(question?.answers);
+  const orderingItems = normalizeOrderingItems(question?.answers);
   const hasAnswers = answers.length > 0;
 
   return (
@@ -36,7 +76,31 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
           </button>
         </header>
         <p>{stripHtml(question?.content)}</p>
-        {hasAnswers && (
+        {question?.type === 'matching' && matchingPairs.length > 0 ? (
+          <div className="qb-drawer-answers">
+            <h4>Perechi</h4>
+            <ul className="qb-drawer-answer-list">
+              {matchingPairs.map((pair, index) => (
+                <li key={`${question.id}-pair-${index}`} className="qb-drawer-answer-item">
+                  <span className="qb-drawer-answer-marker">{index + 1}</span>
+                  <span className="qb-drawer-answer-text">{pair.left || '—'} → {pair.right || '—'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : question?.type === 'ordering' && orderingItems.length > 0 ? (
+          <div className="qb-drawer-answers">
+            <h4>Ordine corectă</h4>
+            <ul className="qb-drawer-answer-list">
+              {orderingItems.map((item, index) => (
+                <li key={`${question.id}-order-${index}`} className="qb-drawer-answer-item">
+                  <span className="qb-drawer-answer-marker">{index + 1}</span>
+                  <span className="qb-drawer-answer-text">{item.text || '—'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : hasAnswers && (
           <div className="qb-drawer-answers">
             <h4>Răspunsuri</h4>
             <ul className="qb-drawer-answer-list">

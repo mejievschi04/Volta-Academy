@@ -407,7 +407,7 @@ class ExamResultController extends Controller
                             
                             // Determine if user's answer is correct
                             $isUserAnswerCorrect = false;
-                            if ($normalizedUserAnswer !== null && $question->type !== 'short_answer') {
+                            if ($normalizedUserAnswer !== null) {
                                 $isUserAnswerCorrect = ($normalizedUserAnswer === $correctAnswerIndex);
                             }
                             

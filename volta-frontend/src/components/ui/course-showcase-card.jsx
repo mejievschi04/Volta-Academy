@@ -21,23 +21,6 @@ function cssUrl(value) {
 	return `url(${JSON.stringify(String(value))})`;
 }
 
-/**
- * Card tip „destination”: bandă copertă + panel text întunecat, accent din `themeHsl`.
- *
- * @typedef {Object} CourseShowcaseCardProps
- * @property {string} imageUrl
- * @property {string} title
- * @property {string} subtitle
- * @property {string} themeHsl
- * @property {() => void} onOpen
- * @property {string} [ctaLabel]
- * @property {string} [badge]
- * @property {React.ReactNode} [topLeftSlot]
- * @property {React.ReactNode} [topRightSlot]
- * @property {string} [className]
- * @property {'default' | 'compact'} [density]
- */
-
 const CourseShowcaseCard = React.forwardRef(
 	(
 		{
@@ -48,9 +31,10 @@ const CourseShowcaseCard = React.forwardRef(
 			themeHsl,
 			onOpen,
 			ctaLabel = 'Deschide',
-			badge,
+			progress,
 			topLeftSlot,
 			topRightSlot,
+			showAccentRibbon = false,
 			density = 'default',
 			style,
 			...rest
@@ -65,7 +49,9 @@ const CourseShowcaseCard = React.forwardRef(
 		}, [resolved]);
 
 		const showUrl = resolved && !coverBroken ? resolved : COURSE_SHOWCASE_FALLBACK_IMAGE;
-		const aria = `Deschide: ${title}`;
+		const normalizedProgress = Number.isFinite(Number(progress))
+			? Math.min(100, Math.max(0, Number(progress)))
+			: null;
 
 		return (
 			<div
@@ -75,13 +61,16 @@ const CourseShowcaseCard = React.forwardRef(
 					density === 'compact' && 'course-showcase-card--compact',
 					className
 				)}
+				tabIndex={0}
+				role="group"
+				aria-label={title}
 				style={{ ...style, '--theme-color': themeHsl }}
 				{...rest}
 			>
 				<div
+					className="course-showcase-card__hit va-card-shell va-card-shell--interactive"
 					role="button"
 					tabIndex={0}
-					className="course-showcase-card__hit"
 					onClick={onOpen}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
@@ -89,9 +78,10 @@ const CourseShowcaseCard = React.forwardRef(
 							onOpen();
 						}
 					}}
-					aria-label={aria}
+					aria-label={ctaLabel}
 				>
-					<div className="course-showcase-card__media">
+					{showAccentRibbon ? <span className="course-showcase-card__accent-ribbon" aria-hidden /> : null}
+					<div className="course-showcase-card__media va-card-media-16x9">
 						<div
 							className="course-showcase-card__cover"
 							style={{ backgroundImage: cssUrl(showUrl) }}
@@ -107,20 +97,25 @@ const CourseShowcaseCard = React.forwardRef(
 							/>
 						) : null}
 						<div className="course-showcase-card__shade" aria-hidden />
-						{topLeftSlot ? <div className="course-showcase-card__tl">{topLeftSlot}</div> : null}
-						{topRightSlot ? <div className="course-showcase-card__tr">{topRightSlot}</div> : null}
 					</div>
-					<div className="course-showcase-card__inner">
-						{badge ? <span className="course-showcase-card__badge">{badge}</span> : null}
-						<h3 className="course-showcase-card__title">{title}</h3>
-						<p className="course-showcase-card__subtitle">{subtitle}</p>
-						<div className="course-showcase-card__cta">
-							<span className="course-showcase-card__cta-label">{ctaLabel}</span>
-							<span className="course-showcase-card__cta-icon-wrap" aria-hidden>
-								<ArrowRight className="course-showcase-card__cta-icon" />
-							</span>
+					<div className="course-showcase-card__inner va-card-content">
+						<h3 className="course-showcase-card__title va-card-title">{title}</h3>
+						<p className="course-showcase-card__subtitle va-card-subtitle">{subtitle}</p>
+						{normalizedProgress !== null ? (
+							<div className="course-showcase-card__progress va-card-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={normalizedProgress}>
+								<div className="course-showcase-card__progress-track va-card-progress-track">
+									<div className="course-showcase-card__progress-fill va-card-progress-fill" style={{ width: `${normalizedProgress}%` }} />
+								</div>
+								<span className="course-showcase-card__progress-value va-card-progress-value">{normalizedProgress}%</span>
+							</div>
+						) : null}
+						<div className="course-showcase-card__footer va-card-footer">
+							<span className="course-showcase-card__cta-label va-card-cta-label">{ctaLabel}</span>
+							<ArrowRight className="course-showcase-card__cta-icon va-card-cta-icon" aria-hidden />
 						</div>
 					</div>
+					{topLeftSlot ? <div className="course-showcase-card__tl">{topLeftSlot}</div> : null}
+					{topRightSlot ? <div className="course-showcase-card__tr">{topRightSlot}</div> : null}
 				</div>
 			</div>
 		);

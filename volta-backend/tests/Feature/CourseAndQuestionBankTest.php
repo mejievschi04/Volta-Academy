@@ -123,4 +123,37 @@ class CourseAndQuestionBankTest extends TestCase
             'points' => 2,
         ]);
     }
+
+    public function test_admin_cannot_add_unsupported_questions_to_bank(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin.question-bank-long-answer@example.com',
+            'role' => 'admin',
+        ]);
+
+        $bank = QuestionBank::create([
+            'title' => 'Bancă restricționată',
+            'description' => 'Nu mai acceptă tipuri nepermise',
+            'status' => 'draft',
+            'created_by' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->postJson("/api/admin/question-banks/{$bank->id}/questions", [
+            'type' => 'unsupported_type',
+            'content' => 'Ce tip de întrebare nu este acceptat?',
+            'answers' => [
+                ['text' => 'Răspuns liber', 'is_correct' => true],
+            ],
+            'points' => 1,
+            'order' => 1,
+        ]);
+
+        $response->assertStatus(422);
+
+        $this->assertDatabaseMissing('questions', [
+            'question_bank_id' => $bank->id,
+            'type' => 'unsupported_type',
+        ]);
+    }
 }

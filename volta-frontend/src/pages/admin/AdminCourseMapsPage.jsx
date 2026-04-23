@@ -67,7 +67,7 @@ function SortableAdminMapShowcase({
 	const dragHandle =
 		canMutate && isRealMapId(map.id) ? (
 			<span
-				className="course-showcase-dnd-handle"
+				className="course-showcase-dnd-handle va-card-icon-btn"
 				{...attributes}
 				{...listeners}
 				aria-label="Trage pentru a reordona mapa"
@@ -93,16 +93,25 @@ function SortableAdminMapShowcase({
 				title={map.name || '—'}
 				subtitle={subtitle}
 				themeHsl={hexToHslSpace(accentColor)}
+				showAccentRibbon
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topLeftSlot={dragHandle}
 				topRightSlot={
 					canMutate ? (
 						<>
+							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
+								<button type="button" className="admin-course-map-edit-btn va-card-icon-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+									</svg>
+								</button>
+							</div>
 							<span
 								role="button"
 								tabIndex={0}
-								className="admin-course-map-delete-btn"
+								className="admin-course-map-delete-btn va-card-icon-btn va-card-icon-btn--danger"
 								onClick={(e) => {
 									e.stopPropagation();
 									onDelete(map);
@@ -120,14 +129,6 @@ function SortableAdminMapShowcase({
 									<line x1="6" y1="6" x2="18" y2="18" />
 								</svg>
 							</span>
-							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
-								<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-									</svg>
-								</button>
-							</div>
 						</>
 					) : null
 				}
@@ -150,15 +151,24 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 				title={map.name || '—'}
 				subtitle={subtitle}
 				themeHsl={hexToHslSpace(accentColor)}
+				showAccentRibbon
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topRightSlot={
 					canMutate ? (
 						<>
+							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
+								<button type="button" className="admin-course-map-edit-btn va-card-icon-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+									</svg>
+								</button>
+							</div>
 							<span
 								role="button"
 								tabIndex={0}
-								className="admin-course-map-delete-btn"
+								className="admin-course-map-delete-btn va-card-icon-btn va-card-icon-btn--danger"
 								onClick={(e) => {
 									e.stopPropagation();
 									onDelete(map);
@@ -176,14 +186,6 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 									<line x1="6" y1="6" x2="18" y2="18" />
 								</svg>
 							</span>
-							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
-								<button type="button" className="admin-course-map-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-									</svg>
-								</button>
-							</div>
 						</>
 					) : null
 				}
@@ -192,7 +194,7 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 	);
 }
 
-const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) => {
+const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, headerActions = null }) => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
 	const { canMutateInAdminArea } = useAuth();
@@ -456,6 +458,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false }) =>
 					</div>
 					{canMutateInAdminArea && (
 					<div className="admin-courses-header-actions">
+						{headerActions}
 						<button type="button" className="admin-btn-create-course" onClick={openCreate}>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>

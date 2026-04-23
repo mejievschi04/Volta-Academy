@@ -2,12 +2,10 @@
  * Extrage textul din PDF păstrând stiluri (bold, italic, mărime font, paragrafe/liniuțe).
  * Folosește pdfjs-dist (Mozilla PDF.js).
  */
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { getDocument } from 'pdfjs-dist';
+import { configurePdfWorker } from './pdfWorker';
 
-if (typeof window !== 'undefined' && pdfjsWorker) {
-	GlobalWorkerOptions.workerSrc = pdfjsWorker;
-}
+configurePdfWorker();
 
 function escapeHtml(text) {
 	if (typeof text !== 'string') return '';

@@ -1,13 +1,37 @@
 import path from 'node:path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const pdfWorkerPath = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
+
+function pdfJsWorkerAssetPlugin() {
+  return {
+    name: 'volta-pdfjs-worker-asset',
+    configureServer(server) {
+      server.middlewares.use('/assets/pdf.worker.js', (req, res) => {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache');
+        fs.createReadStream(pdfWorkerPath).pipe(res);
+      });
+    },
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'assets/pdf.worker.js',
+        source: fs.readFileSync(pdfWorkerPath),
+      });
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), pdfJsWorkerAssetPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

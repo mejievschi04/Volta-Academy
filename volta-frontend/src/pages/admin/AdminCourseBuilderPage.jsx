@@ -29,27 +29,70 @@ const INLINE_TEST_DEFAULT = {
 
 const INLINE_QUESTION_TYPES = [
 	{ id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
-	{ id: 'single_choice', label: 'Răspuns unic', short: '1' },
 	{ id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
-	{ id: 'short_answer', label: 'Răspuns scurt', short: 'TXT' },
-	{ id: 'essay', label: 'Eseu', short: 'ESEU' },
+	{ id: 'matching', label: 'Potrivire', short: '↔' },
+	{ id: 'ordering', label: 'Ordonare', short: '1-4' },
 ];
 
-const getDefaultAnswersByType = (type) => {
-	if (type === 'multiple_choice' || type === 'single_choice') {
+const normalizeInlineQuestionType = (type) => {
+	if (type === 'single_choice') return 'multiple_choice';
+	return INLINE_QUESTION_TYPES.some((t) => t.id === type) ? type : 'multiple_choice';
+};
+
+const getDefaultAnswersByType = (rawType) => {
+	const type = normalizeInlineQuestionType(rawType);
+	if (type === 'multiple_choice') {
 		return [{ text: 'Răspuns A', is_correct: true }, { text: 'Răspuns B', is_correct: false }];
 	}
 	if (type === 'true_false') {
 		return [{ text: 'Adevărat', is_correct: true }, { text: 'Fals', is_correct: false }];
 	}
+	if (type === 'matching') {
+		return [
+			{ left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true, order: 0 },
+			{ left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true, order: 1 },
+		];
+	}
+	if (type === 'ordering') {
+		return [
+			{ text: 'Pasul 1', is_correct: true, order: 0 },
+			{ text: 'Pasul 2', is_correct: true, order: 1 },
+		];
+	}
 	return [];
 };
 
 /** Wizard / API vechi pot folosi answer_text; builder-ul folosește `text` în stare. */
-const normalizeBuilderAnswer = (a) => {
-	if (!a || typeof a !== 'object') return { text: '', is_correct: false };
-	const text = a.text ?? a.answer_text ?? a.content ?? '';
-	return { ...a, text };
+const normalizeBuilderAnswer = (a, rawType = 'multiple_choice', index = 0) => {
+	const type = normalizeInlineQuestionType(rawType);
+	const obj = a && typeof a === 'object' ? a : {};
+
+	if (type === 'matching') {
+		const left = obj.left ?? obj.text ?? obj.question ?? '';
+		const right = obj.right ?? obj.answer_text ?? obj.content ?? '';
+		return {
+			...obj,
+			left: typeof left === 'string' ? left : String(left ?? ''),
+			right: typeof right === 'string' ? right : String(right ?? ''),
+			text: typeof left === 'string' ? left : String(left ?? ''),
+			answer_text: typeof right === 'string' ? right : String(right ?? ''),
+			is_correct: true,
+			order: typeof obj.order === 'number' ? obj.order : index,
+		};
+	}
+
+	if (type === 'ordering') {
+		const text = obj.text ?? obj.answer_text ?? obj.content ?? obj.label ?? '';
+		return {
+			...obj,
+			text: typeof text === 'string' ? text : String(text ?? ''),
+			is_correct: true,
+			order: typeof obj.order === 'number' ? obj.order : index,
+		};
+	}
+
+	const text = obj.text ?? obj.answer_text ?? obj.content ?? '';
+	return { ...obj, text: typeof text === 'string' ? text : String(text ?? '') };
 };
 
 const normalizeBuilderQuestion = (q) => {
@@ -63,15 +106,40 @@ const normalizeBuilderQuestion = (q) => {
 	return {
 		...q,
 		id,
-		answers: Array.isArray(q.answers) ? q.answers.map(normalizeBuilderAnswer) : [],
+		type: normalizeInlineQuestionType(q.type),
+		answers: Array.isArray(q.answers) ? q.answers.map((a, idx) => normalizeBuilderAnswer(a, q.type, idx)) : [],
 	};
 };
 
-/** Payload stabil pentru PUT /admin/questions — text + is_correct + order (fără resturi din spread). */
-const serializeAnswersForQuestionApi = (answers) => {
+/** Payload stabil pentru PUT /admin/questions — normalizează structura pentru tipuri suportate. */
+const serializeAnswersForQuestionApi = (rawType, answers) => {
+	const type = normalizeInlineQuestionType(rawType);
 	if (!Array.isArray(answers)) return [];
 	return answers.map((a, idx) => {
 		const raw = a && typeof a === 'object' ? a : {};
+
+		if (type === 'matching') {
+			const left = raw.left ?? raw.text ?? raw.question ?? '';
+			const right = raw.right ?? raw.answer_text ?? raw.content ?? '';
+			return {
+				left: typeof left === 'string' ? left : String(left ?? ''),
+				right: typeof right === 'string' ? right : String(right ?? ''),
+				text: typeof left === 'string' ? left : String(left ?? ''),
+				answer_text: typeof right === 'string' ? right : String(right ?? ''),
+				is_correct: true,
+				order: idx,
+			};
+		}
+
+		if (type === 'ordering') {
+			const text = raw.text ?? raw.answer_text ?? raw.content ?? raw.label ?? '';
+			return {
+				text: typeof text === 'string' ? text : String(text ?? ''),
+				is_correct: true,
+				order: idx,
+			};
+		}
+
 		const text = raw.text ?? raw.answer_text ?? raw.content ?? '';
 		return {
 			text: typeof text === 'string' ? text : String(text ?? ''),
@@ -127,6 +195,7 @@ const AdminCourseBuilderPage = () => {
 	const [inlineTestTab, setInlineTestTab] = useState('questions');
 	const [inlineTest, setInlineTest] = useState({ ...INLINE_TEST_DEFAULT });
 	const [inlineQuestions, setInlineQuestions] = useState([]);
+	const inlineQuestionsByIdRef = useRef(new Map());
 	const [inlineTestSaving, setInlineTestSaving] = useState(false);
 	const [inlinePublishLoading, setInlinePublishLoading] = useState(false);
 	const [addingQuestion, setAddingQuestion] = useState(false);
@@ -140,6 +209,15 @@ const AdminCourseBuilderPage = () => {
 	const [editingModuleTitle, setEditingModuleTitle] = useState('');
 	const lessonTitleRef = useRef(null);
 	const quickAddRef = useRef(null);
+
+	useEffect(() => {
+		const m = new Map();
+		for (const q of inlineQuestions) {
+			const id = Number(q?.id);
+			if (Number.isFinite(id)) m.set(id, q);
+		}
+		inlineQuestionsByIdRef.current = m;
+	}, [inlineQuestions]);
 	const questionTypeMenuRef = useRef(null);
 	const contentSaveTimeoutRef = useRef(null);
 	const pendingContentRef = useRef(null);
@@ -923,7 +1001,8 @@ const AdminCourseBuilderPage = () => {
 			if (!pendingPatch || Object.keys(pendingPatch).length === 0) return;
 			const snapshot = { ...pendingPatch };
 			if (Array.isArray(snapshot.answers)) {
-				snapshot.answers = serializeAnswersForQuestionApi(snapshot.answers);
+				const curType = snapshot.type ?? inlineQuestionsByIdRef.current.get(qid)?.type ?? 'multiple_choice';
+				snapshot.answers = serializeAnswersForQuestionApi(curType, snapshot.answers);
 			}
 			delete inlineQuestionPendingRef.current[qid];
 			try {
@@ -965,7 +1044,8 @@ const AdminCourseBuilderPage = () => {
 				if (!pendingPatch || Object.keys(pendingPatch).length === 0) continue;
 				const snapshot = { ...pendingPatch };
 				if (Array.isArray(snapshot.answers)) {
-					snapshot.answers = serializeAnswersForQuestionApi(snapshot.answers);
+					const curType = snapshot.type ?? inlineQuestionsByIdRef.current.get(questionId)?.type ?? 'multiple_choice';
+					snapshot.answers = serializeAnswersForQuestionApi(curType, snapshot.answers);
 				}
 				delete inlineQuestionPendingRef.current[questionId];
 				try {
@@ -993,7 +1073,8 @@ const AdminCourseBuilderPage = () => {
 	const handleInlineQuestionBlur = async (questionId, patch) => {
 		const qid = Number(questionId);
 		if (!Number.isFinite(qid)) return;
-		const payload = patch?.answers ? { ...patch, answers: serializeAnswersForQuestionApi(patch.answers) } : patch;
+		const curType = patch?.type ?? inlineQuestionsByIdRef.current.get(qid)?.type ?? 'multiple_choice';
+		const payload = patch?.answers ? { ...patch, type: curType, answers: serializeAnswersForQuestionApi(curType, patch.answers) } : patch;
 		try {
 			await queueInlineQuestionPatchSave(qid, payload, true);
 		} catch (err) {
@@ -1017,7 +1098,7 @@ const AdminCourseBuilderPage = () => {
 	};
 
 	const handleAddDefaultInlineQuestion = async () => {
-		await handleAddInlineQuestion('short_answer');
+		await handleAddInlineQuestion('multiple_choice');
 	};
 
 	const handleInlineQuestionTypeChange = async (questionId, nextType) => {
@@ -1027,17 +1108,18 @@ const AdminCourseBuilderPage = () => {
 			setOpenQuestionTypePickerId(null);
 			return;
 		}
-		if (q.type === nextType) {
+		const normalizedNextType = normalizeInlineQuestionType(nextType);
+		if (normalizeInlineQuestionType(q.type) === normalizedNextType) {
 			setOpenQuestionTypePickerId(null);
 			return;
 		}
-		const nextAnswers = getDefaultAnswersByType(nextType);
+		const nextAnswers = getDefaultAnswersByType(normalizedNextType);
 		setInlineQuestions((prev) => prev.map((row) => (Number(row.id) === id ? {
 			...row,
-			type: nextType,
+			type: normalizedNextType,
 			answers: nextAnswers,
 		} : row)));
-		await queueInlineQuestionPatchSave(id, { type: nextType, answers: nextAnswers }, true);
+		await queueInlineQuestionPatchSave(id, { type: normalizedNextType, answers: nextAnswers }, true);
 		setOpenQuestionTypePickerId(null);
 	};
 
@@ -1070,6 +1152,10 @@ const AdminCourseBuilderPage = () => {
 	};
 
 	const handleInlineAnswerCorrectToggle = (questionId, answerIndex, singleChoice = false) => {
+		const qid = Number(questionId);
+		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
+		if (qType === 'matching' || qType === 'ordering') return;
+
 		updateInlineAnswers(
 			questionId,
 			(currentAnswers) => currentAnswers.map((ans, idx) => ({
@@ -1081,11 +1167,89 @@ const AdminCourseBuilderPage = () => {
 	};
 
 	const handleInlineAddAnswer = (questionId) => {
+		const qid = Number(questionId);
+		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
+		if (qType === 'matching') {
+			updateInlineAnswers(
+				questionId,
+				(currentAnswers) => {
+					const next = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
+					const idx = next.length;
+					next.push({
+						left: `Element ${idx + 1}`,
+						right: `Răspuns ${idx + 1}`,
+						text: `Element ${idx + 1}`,
+						answer_text: `Răspuns ${idx + 1}`,
+						is_correct: true,
+						order: idx,
+					});
+					return next.map((a, i) => ({ ...a, order: i }));
+				},
+				'immediate'
+			);
+			return;
+		}
+		if (qType === 'ordering') {
+			updateInlineAnswers(
+				questionId,
+				(currentAnswers) => {
+					const next = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
+					next.push({ text: `Pasul ${next.length + 1}`, is_correct: true, order: next.length });
+					return next.map((a, i) => ({ ...a, order: i, is_correct: true }));
+				},
+				'immediate'
+			);
+			return;
+		}
 		updateInlineAnswers(questionId, (currentAnswers) => [...currentAnswers, { text: 'Răspuns nou', is_correct: false }], 'immediate');
 	};
 
 	const handleInlineRemoveAnswer = (questionId, answerIndex) => {
+		const qid = Number(questionId);
+		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
+		if (qType === 'matching' || qType === 'ordering') {
+			updateInlineAnswers(
+				questionId,
+				(currentAnswers) => {
+					const next = (Array.isArray(currentAnswers) ? currentAnswers : []).filter((_, idx) => idx !== answerIndex);
+					return next.map((a, i) => ({ ...a, order: i, is_correct: qType === 'ordering' ? true : (a.is_correct ?? true) }));
+				},
+				'immediate'
+			);
+			return;
+		}
 		updateInlineAnswers(questionId, (currentAnswers) => currentAnswers.filter((_, idx) => idx !== answerIndex), 'immediate');
+	};
+
+	const handleInlineMatchingPairChange = (questionId, answerIndex, side, value) => {
+		updateInlineAnswers(
+			questionId,
+			(currentAnswers) =>
+				(currentAnswers || []).map((ans, idx) => {
+					if (idx !== answerIndex) return ans;
+					if (side === 'left') {
+						return { ...ans, left: value, text: value };
+					}
+					return { ...ans, right: value, answer_text: value };
+				}),
+			'debounced'
+		);
+	};
+
+	const handleInlineOrderingMove = (questionId, answerIndex, direction) => {
+		updateInlineAnswers(
+			questionId,
+			(currentAnswers) => {
+				const list = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
+				const nextIndex = direction === 'up' ? answerIndex - 1 : answerIndex + 1;
+				if (nextIndex < 0 || nextIndex >= list.length) return list;
+				const tmp = list[answerIndex];
+				list[answerIndex] = list[nextIndex];
+				list[nextIndex] = tmp;
+				return list.map((a, i) => ({ ...a, order: i, is_correct: true }));
+			},
+			'immediate'
+		);
 	};
 
 	const handleSaveInlineTestNow = async () => {
@@ -2114,7 +2278,9 @@ const AdminCourseBuilderPage = () => {
 													<p className="admin-course-builder-test-empty">Nu ai încă întrebări. Apasă pe butonul de adăugare de mai jos.</p>
 												) : (
 													<ul className="admin-course-builder-test-question-list">
-														{inlineQuestions.map((question, idx) => (
+														{inlineQuestions.map((question, idx) => {
+															const qType = normalizeInlineQuestionType(question.type || 'multiple_choice');
+															return (
 															<li
 																key={question.id}
 																className={`admin-course-builder-test-question-item ${expandedQuestionId === question.id ? 'is-expanded' : 'is-collapsed'}`}
@@ -2126,7 +2292,7 @@ const AdminCourseBuilderPage = () => {
 																			className="admin-course-builder-test-question-badge admin-course-builder-test-question-badge-btn"
 																			onClick={() => handleToggleQuestionTypePicker(question.id)}
 																		>
-																			{`Î${idx + 1}: ${INLINE_QUESTION_TYPES.find((t) => t.id === (question.type || 'short_answer'))?.label || 'Întrebare'}`}
+																			{`Î${idx + 1}: ${INLINE_QUESTION_TYPES.find((t) => t.id === qType)?.label || 'Întrebare'}`}
 																		</button>
 																	</div>
 																	<div className="admin-course-builder-test-question-top-actions">
@@ -2174,18 +2340,18 @@ const AdminCourseBuilderPage = () => {
 																			rows={2}
 																		/>
 
-																		{(question.type === 'multiple_choice' || question.type === 'single_choice' || question.type === 'true_false') && (
+																		{(qType === 'multiple_choice' || qType === 'true_false') && (
 																			<div className="admin-course-builder-test-question-answers">
 																				<p>Răspunsuri:</p>
 																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
 																					<div key={`${question.id}-answer-${answerIdx}`} className="admin-course-builder-test-answer-row">
 																						<input
-																							type={question.type === 'true_false' || question.type === 'single_choice' ? 'radio' : 'checkbox'}
+																							type={qType === 'true_false' ? 'radio' : 'checkbox'}
 																							checked={!!answer.is_correct}
 																							onChange={() => handleInlineAnswerCorrectToggle(
 																								question.id,
 																								answerIdx,
-																								question.type === 'true_false' || question.type === 'single_choice'
+																								qType === 'true_false'
 																							)}
 																						/>
 																						<input
@@ -2194,14 +2360,14 @@ const AdminCourseBuilderPage = () => {
 																							onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
 																							placeholder="Introduce răspuns"
 																						/>
-																						{question.type !== 'true_false' && (
+																						{qType !== 'true_false' && (
 																							<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
 																								×
 																							</button>
 																						)}
 																					</div>
 																				))}
-																				{question.type !== 'true_false' && (
+																				{qType !== 'true_false' && (
 																					<button
 																						type="button"
 																						className="admin-btn admin-btn-secondary"
@@ -2212,10 +2378,76 @@ const AdminCourseBuilderPage = () => {
 																				)}
 																			</div>
 																		)}
+
+																		{qType === 'matching' && (
+																			<div className="admin-course-builder-test-question-answers">
+																				<p>Perechi:</p>
+																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+																					<div key={`${question.id}-pair-${answerIdx}`} className="admin-course-builder-test-answer-row">
+																						<input
+																							type="text"
+																							value={answer.left ?? answer.text ?? ''}
+																							onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
+																							placeholder="Element stânga"
+																						/>
+																						<input
+																							type="text"
+																							value={answer.right ?? answer.answer_text ?? ''}
+																							onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
+																							placeholder="Element dreapta"
+																						/>
+																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
+																							×
+																						</button>
+																					</div>
+																				))}
+																				<button
+																					type="button"
+																					className="admin-btn admin-btn-secondary"
+																					onClick={() => handleInlineAddAnswer(question.id)}
+																				>
+																					+ Adaugă pereche
+																				</button>
+																			</div>
+																		)}
+
+																		{qType === 'ordering' && (
+																			<div className="admin-course-builder-test-question-answers">
+																				<p>Elemente (ordinea corectă):</p>
+																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+																					<div key={`${question.id}-ord-${answerIdx}`} className="admin-course-builder-test-answer-row">
+																						<span style={{ minWidth: '2rem', fontWeight: 700 }}>{answerIdx + 1}.</span>
+																						<input
+																							type="text"
+																							value={answer.text ?? answer.answer_text ?? ''}
+																							onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
+																							placeholder="Element"
+																						/>
+																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'up')} disabled={answerIdx === 0}>
+																							↑
+																						</button>
+																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'down')} disabled={answerIdx === (question.answers?.length || 0) - 1}>
+																							↓
+																						</button>
+																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
+																							×
+																						</button>
+																					</div>
+																				))}
+																				<button
+																					type="button"
+																					className="admin-btn admin-btn-secondary"
+																					onClick={() => handleInlineAddAnswer(question.id)}
+																				>
+																					+ Adaugă element
+																				</button>
+																			</div>
+																		)}
 																	</>
 																)}
 															</li>
-														))}
+															);
+														})}
 													</ul>
 												)}
 												<div className="admin-course-builder-test-add-bottom">
@@ -2502,4 +2734,3 @@ const AdminCourseBuilderPage = () => {
 };
 
 export default AdminCourseBuilderPage;
-

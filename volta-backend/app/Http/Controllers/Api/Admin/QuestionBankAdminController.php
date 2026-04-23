@@ -124,7 +124,7 @@ class QuestionBankAdminController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
             'questions' => 'nullable|array',
-            'questions.*.type' => 'required|string',
+            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
             'questions.*.content' => 'required|string',
             'questions.*.answers' => 'required|array',
             'questions.*.points' => 'nullable|integer|min:1',
@@ -209,7 +209,7 @@ class QuestionBankAdminController extends Controller
 
         $validated = $request->validate([
             'questions' => 'required|array',
-            'questions.*.type' => 'required|string',
+            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
             'questions.*.content' => 'required|string',
             'questions.*.answers' => 'required|array',
             'questions.*.points' => 'nullable|integer|min:1',
@@ -265,7 +265,7 @@ class QuestionBankAdminController extends Controller
         $bank = QuestionBank::findOrFail($id);
 
         $validated = $request->validate([
-            'type' => 'required|string',
+            'type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
             'content' => 'required|string',
             'answers' => 'required|array',
             'points' => 'nullable|integer|min:1',
@@ -292,7 +292,7 @@ class QuestionBankAdminController extends Controller
             ->findOrFail($questionId);
 
         $validated = $request->validate([
-            'type' => 'sometimes|required|string',
+            'type' => 'sometimes|required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
             'content' => 'sometimes|required|string',
             'answers' => 'sometimes|required|array',
             'points' => 'nullable|integer|min:1',
@@ -1255,7 +1255,7 @@ class QuestionBankAdminController extends Controller
         foreach ($questions as $index => $question) {
             $answers = [];
             $qType = (string) ($question['type'] ?? 'multiple_choice');
-            if (!in_array($qType, ['multiple_choice', 'true_false', 'short_answer'], true)) {
+            if (!in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'], true)) {
                 $qType = 'multiple_choice';
             }
             
@@ -1297,16 +1297,6 @@ class QuestionBankAdminController extends Controller
                 ];
             }
 
-            if ($qType === 'short_answer') {
-                $answerText = trim((string) ($question['expected_answer'] ?? ''));
-                if ($answerText === '' && !empty($answers)) {
-                    $answerText = trim((string) ($answers[0]['text'] ?? ''));
-                }
-                $answers = $answerText !== '' ? [
-                    ['text' => $answerText, 'is_correct' => true],
-                ] : [];
-            }
-
             $rawTags = is_array($question['tags'] ?? null) ? $question['tags'] : [];
             $tags = array_values(array_unique(array_filter(array_map(function ($tag) {
                 return trim((string) $tag);
@@ -1334,4 +1324,3 @@ class QuestionBankAdminController extends Controller
         return $formatted;
     }
 }
-

@@ -65,12 +65,15 @@ class LibraryController extends Controller
             abort(403, 'Doar administratorii și instructorii pot încărca în bibliotecă.');
         }
 
+        $maxUploadKb = max(1024, (int) config('volta.library_upload_max_kb', 524288));
+
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:5000',
-            'file' => 'required|file|max:51200',
+            // Laravel's `max` validator uses KB.
+            'file' => 'required|file|max:' . $maxUploadKb,
             /** Copertă opțională (ex. prima pagină generată în browser ca JPEG). */
-            'cover' => 'nullable|file|mimes:jpeg,jpg,png,webp|max:5120',
+            'cover' => 'nullable|file|mimes:jpeg,jpg,png,webp|max:10240',
         ]);
 
         $file = $request->file('file');

@@ -304,6 +304,9 @@ server {
     listen 80;
     server_name academy.volta.md www.academy.volta.md;
 
+    # Upload-uri mari pentru biblioteca. Trebuie sa fie peste limita Laravel/PHP.
+    client_max_body_size 550m;
+
     # API și fișiere Laravel (/api și /storage)
     location /api {
         proxy_pass http://127.0.0.1:8000;
@@ -439,4 +442,3 @@ docker compose exec backend chown -R www-data:www-data storage bootstrap/cache
 - [ ] Certbot rulat, SSL activ pe `https://academy.volta.md`
 
 După ce ai parcurs pașii de mai sus, aplicația Volta Academy ar trebui să fie accesibilă public, în producție, la `https://academy.volta.md`.
-

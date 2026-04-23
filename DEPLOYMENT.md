@@ -113,6 +113,9 @@ server {
     listen 80;
     server_name academy.volta.md www.academy.volta.md;
 
+    # Upload-uri mari pentru biblioteca. Trebuie sa fie peste limita Laravel/PHP.
+    client_max_body_size 550m;
+
     # API - /api și /storage către backend
     location /api {
         proxy_pass http://127.0.0.1:8000;

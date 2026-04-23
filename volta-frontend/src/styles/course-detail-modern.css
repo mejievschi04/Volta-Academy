@@ -521,16 +521,31 @@
 	align-items: center;
 	gap: var(--space-2);
 	padding: var(--space-3) var(--space-4);
-	background: var(--bg-secondary);
-	border-radius: var(--radius-lg);
+	border-radius: 4px;
 	border: 1px solid var(--border-primary);
-	color: var(--text-primary);
 	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.course-detail-test svg {
-	color: var(--color-primary);
+.course-detail-test:hover {
+	border-color: color-mix(in srgb, var(--color-brand-primary) 60%, var(--border-primary));
+	box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.course-detail-test-title {
+	flex: 1;
+	min-width: 0;
+}
+
+.course-detail-test-action {
+	opacity: 0.95;
 	flex-shrink: 0;
+}
+
+[data-theme="dark"] .course-detail-test {
+	background: var(--bg-elevated);
 }
 
 /* Sidebar Styles */

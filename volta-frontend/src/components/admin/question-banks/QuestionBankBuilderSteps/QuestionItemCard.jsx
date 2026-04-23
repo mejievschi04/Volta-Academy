@@ -1,5 +1,12 @@
 import React from 'react';
 
+const QUESTION_TYPE_LABELS = {
+	multiple_choice: 'Răspuns multiplu',
+	true_false: 'Adevărat/Fals',
+	matching: 'Potrivire',
+	ordering: 'Ordonare',
+};
+
 const QuestionItemCard = ({
 	question,
 	index,
@@ -20,7 +27,7 @@ const QuestionItemCard = ({
 					#{index + 1}: {question.content || question.text || 'Fără conținut'}
 				</div>
 				<div className="admin-question-item-meta">
-					{question.points || 1} puncte • {question.type === 'true_false' ? 'Adevărat/Fals' : question.type === 'short_answer' ? 'Răspuns scurt' : 'Răspuns multiplu'}
+					{question.points || 1} puncte • {QUESTION_TYPE_LABELS[question.type] || 'Răspuns multiplu'}
 				</div>
 			</div>
 			<div className="admin-question-item-actions">

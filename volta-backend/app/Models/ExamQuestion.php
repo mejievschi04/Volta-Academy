@@ -22,10 +22,10 @@ class ExamQuestion extends Model
         'payload' => 'array',
     ];
 
-    /** Questions that require manual grading (short_answer, essay) */
+    /** Questions are auto-graded in the current flow. */
     public function requiresManualGrading(): bool
     {
-        return in_array($this->question_type, ['short_answer', 'essay', 'open_text'], true);
+        return false;
     }
 
     public function exam()

@@ -1,10 +1,81 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
 import ConfirmModal from '../../../../components/common/ConfirmModal';
 import Modal from '../../../../components/common/Modal';
 import QuestionItemCard from './QuestionItemCard';
 import AIGenerateQuestionsModal from './AIGenerateQuestionsModal';
+
+const QUESTION_TYPE_OPTIONS = [
+	{ value: 'multiple_choice', label: 'Răspuns multiplu' },
+	{ value: 'true_false', label: 'Adevărat/Fals' },
+	{ value: 'matching', label: 'Potrivire' },
+	{ value: 'ordering', label: 'Ordonare' },
+];
+
+const getQuestionTypeDefaults = (type) => {
+	if (type === 'true_false') {
+		return [
+			{ text: 'Adevărat', is_correct: true },
+			{ text: 'Fals', is_correct: false },
+		];
+	}
+
+	if (type === 'matching') {
+		return [
+			{ left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true },
+			{ left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true },
+		];
+	}
+
+	if (type === 'ordering') {
+		return [
+			{ text: 'Pasul 1', is_correct: true, order: 0 },
+			{ text: 'Pasul 2', is_correct: true, order: 1 },
+		];
+	}
+
+	return [
+		{ text: 'Răspuns A', is_correct: true },
+		{ text: 'Răspuns B', is_correct: false },
+	];
+};
+
+const normalizeQuestionAnswers = (type, answers) => {
+	const list = Array.isArray(answers) ? answers : [];
+
+	if (type === 'matching') {
+		return list.map((answer, index) => ({
+			left: answer?.left ?? answer?.text ?? '',
+			right: answer?.right ?? answer?.answer_text ?? '',
+			text: answer?.left ?? answer?.text ?? '',
+			answer_text: answer?.right ?? answer?.answer_text ?? '',
+			is_correct: true,
+			order: typeof answer?.order === 'number' ? answer.order : index,
+		}));
+	}
+
+	if (type === 'ordering') {
+		return list.map((answer, index) => ({
+			text: answer?.text ?? answer?.answer_text ?? '',
+			is_correct: true,
+			order: typeof answer?.order === 'number' ? answer.order : index,
+		}));
+	}
+
+	if (type === 'true_false') {
+		return list.slice(0, 2).map((answer, index) => ({
+			text: answer?.text ?? (index === 0 ? 'Adevărat' : 'Fals'),
+			is_correct: index === 0 ? !!answer?.is_correct : !!answer?.is_correct,
+		}));
+	}
+
+	return list.map((answer, index) => ({
+		text: answer?.text ?? '',
+		is_correct: !!answer?.is_correct,
+		order: typeof answer?.order === 'number' ? answer.order : index,
+	}));
+};
 
 const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const { showToast } = useToast();
@@ -13,7 +84,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const [questionForm, setQuestionForm] = useState({
 		type: 'multiple_choice',
 		content: '',
-		answers: [],
+		answers: getQuestionTypeDefaults('multiple_choice'),
 		points: 1,
 		explanation: '',
 		metadata: {
@@ -154,14 +225,20 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 	const addAnswer = () => {
 		setQuestionFormErrors((prev) => ({ ...prev, answers: '', correct: '' }));
+		const currentType = questionForm.type;
+		const defaults = getQuestionTypeDefaults(currentType);
+		const nextDefault = defaults[questionForm.answers.length] || defaults[0] || { text: '', is_correct: false };
 		setQuestionForm(prev => ({
 			...prev,
-			answers: [...prev.answers, { text: '', is_correct: false }],
+			answers: [...prev.answers, { ...nextDefault, order: prev.answers.length }],
 		}));
 	};
 
 	const updateAnswer = (index, field, value) => {
 		if (field === 'is_correct' && value) setQuestionFormErrors((prev) => ({ ...prev, correct: '' }));
+		if (field === 'text' || field === 'left' || field === 'right') {
+			setQuestionFormErrors((prev) => ({ ...prev, answers: '' }));
+		}
 		setQuestionForm(prev => ({
 			...prev,
 			answers: prev.answers.map((ans, i) => 
@@ -194,19 +271,36 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			return;
 		}
 
-		if (questionForm.type === 'multiple_choice' && !questionForm.answers.some(a => a.is_correct)) {
+		if (questionForm.type === 'multiple_choice' && !questionForm.answers.some((a) => a.is_correct)) {
 			setQuestionFormErrors((prev) => ({ ...prev, correct: 'Selectează cel puțin un răspuns corect' }));
 			return;
+		}
+
+		if (questionForm.type === 'matching') {
+			const hasEmptyPair = questionForm.answers.some((answer) => !String(answer.left || '').trim() || !String(answer.right || '').trim());
+			if (hasEmptyPair) {
+				setQuestionFormErrors((prev) => ({ ...prev, answers: 'Completează toate perechile' }));
+				return;
+			}
+		}
+
+		if (questionForm.type === 'ordering') {
+			const hasEmptyItem = questionForm.answers.some((answer) => !String(answer.text || '').trim());
+			if (hasEmptyItem) {
+				setQuestionFormErrors((prev) => ({ ...prev, answers: 'Completează toate elementele de ordonat' }));
+				return;
+			}
 		}
 
 		try {
 			const metaDifficulty = questionForm.metadata?.difficulty || '';
 			const metaTags = Array.isArray(questionForm.metadata?.tags) ? questionForm.metadata.tags : [];
+			const normalizedAnswers = normalizeQuestionAnswers(questionForm.type, questionForm.answers);
 
 			const questionData = {
 				type: questionForm.type,
 				content: questionForm.content.trim(),
-				answers: questionForm.answers,
+				answers: normalizedAnswers,
 				points: questionForm.points || 1,
 				explanation: questionForm.explanation || '',
 				metadata: {
@@ -244,7 +338,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			setQuestionForm({
 				type: 'multiple_choice',
 				content: '',
-				answers: [],
+				answers: getQuestionTypeDefaults('multiple_choice'),
 				points: 1,
 				explanation: '',
 				metadata: {
@@ -303,7 +397,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			setQuestionForm({
 				type: question.type || 'multiple_choice',
 				content: question.content || question.text || '',
-				answers: question.answers || [],
+				answers: normalizeQuestionAnswers(question.type || 'multiple_choice', question.answers || []),
 				points: question.points || 1,
 				explanation: question.explanation || '',
 				metadata: {
@@ -319,9 +413,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		const question = data.questions?.[index];
 		if (!question || duplicateLoading) return;
 
-		const answers = Array.isArray(question.answers)
-			? question.answers.map((a) => ({ text: a.text || '', is_correct: !!a.is_correct }))
-			: [];
+		const answers = normalizeQuestionAnswers(question.type || 'multiple_choice', question.answers || []);
 		const meta = question.metadata || {};
 		const tags = Array.isArray(meta.tags)
 			? [...meta.tags]
@@ -614,23 +706,20 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							className="admin-form-select"
 							value={questionForm.type}
 							onChange={(e) => {
+								const nextType = e.target.value;
 								setQuestionForm({
 									...questionForm,
-									type: e.target.value,
-									answers: e.target.value === 'true_false' 
-										? [
-											{ text: 'Adevărat', is_correct: true },
-											{ text: 'Fals', is_correct: false },
-										]
-										: questionForm.answers,
+									type: nextType,
+									answers: getQuestionTypeDefaults(nextType),
 								});
 							}}
 						>
 							<option value="multiple_choice">Răspuns multiplu</option>
 							<option value="true_false">Adevărat/Fals</option>
-							<option value="short_answer">Răspuns scurt</option>
+							<option value="matching">Potrivire</option>
+							<option value="ordering">Ordonare</option>
 						</select>
-						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Adevărat/Fals = două opțiuni; Răspuns scurt = răspuns în text liber.</p>
+						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Adevărat/Fals = două opțiuni; Potrivire = perechi; Ordonare = elemente mutate în ordine.</p>
 					</div>
 
 					<div className="admin-form-group">
@@ -663,48 +752,140 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 					{questionForm.type !== 'short_answer' && (
 						<div className="admin-form-group">
-							<label className="admin-form-label">Răspunsuri</label>
-							<div className="admin-answer-list">
-								{questionForm.answers.map((answer, index) => (
-									<div key={index} className="admin-answer-item">
-										<input
-											type={questionForm.type === 'multiple_choice' ? 'checkbox' : 'radio'}
-											className="admin-answer-checkbox"
-											checked={answer.is_correct}
-											onChange={(e) => {
-												if (questionForm.type === 'multiple_choice') {
-													updateAnswer(index, 'is_correct', e.target.checked);
-												} else {
-													questionForm.answers.forEach((_, i) => {
-														updateAnswer(i, 'is_correct', i === index);
-													});
-												}
-											}}
-										/>
-										<input
-											type="text"
-											className="admin-form-input"
-											value={answer.text}
-											onChange={(e) => updateAnswer(index, 'text', e.target.value)}
-											placeholder={`Răspuns ${index + 1}`}
-										/>
-										<button
-											type="button"
-											className="lms-btn-secondary lms-btn-sm va-btn-danger"
-											onClick={() => removeAnswer(index)}
-										>
-											🗑️
-										</button>
-									</div>
-								))}
-							</div>
-							<button
-								type="button"
-								className="lms-btn-secondary lms-btn-sm"
-								onClick={addAnswer}
-							>
-								+ Adaugă Răspuns
-							</button>
+							<label className="admin-form-label">
+								{questionForm.type === 'matching' ? 'Perechi' : questionForm.type === 'ordering' ? 'Elemente' : 'Răspunsuri'}
+							</label>
+
+							{questionForm.type === 'matching' ? (
+								<div className="admin-answer-list">
+									{questionForm.answers.map((answer, index) => (
+										<div key={index} className="admin-answer-item">
+											<input
+												type="text"
+												className="admin-form-input"
+												value={answer.left || ''}
+												onChange={(e) => updateAnswer(index, 'left', e.target.value)}
+												placeholder={`Element stânga ${index + 1}`}
+											/>
+											<input
+												type="text"
+												className="admin-form-input"
+												value={answer.right || ''}
+												onChange={(e) => updateAnswer(index, 'right', e.target.value)}
+												placeholder={`Element dreapta ${index + 1}`}
+											/>
+											<button
+												type="button"
+												className="lms-btn-secondary lms-btn-sm va-btn-danger"
+												onClick={() => removeAnswer(index)}
+											>
+												🗑️
+											</button>
+										</div>
+									))}
+								</div>
+							) : questionForm.type === 'ordering' ? (
+								<div className="admin-answer-list">
+									{questionForm.answers.map((answer, index) => (
+										<div key={index} className="admin-answer-item">
+											<input
+												type="text"
+												className="admin-form-input"
+												value={answer.text || ''}
+												onChange={(e) => updateAnswer(index, 'text', e.target.value)}
+												placeholder={`Element ${index + 1}`}
+											/>
+											<div style={{ display: 'flex', gap: '0.5rem' }}>
+												<button
+													type="button"
+													className="lms-btn-secondary lms-btn-sm"
+													onClick={() => {
+														const list = [...questionForm.answers];
+														if (index === 0) return;
+														const tmp = list[index];
+														list[index] = list[index - 1];
+														list[index - 1] = tmp;
+														setQuestionForm({ ...questionForm, answers: list.map((item, idx) => ({ ...item, order: idx })) });
+													}}
+													disabled={index === 0}
+												>
+													↑
+												</button>
+												<button
+													type="button"
+													className="lms-btn-secondary lms-btn-sm"
+													onClick={() => {
+														const list = [...questionForm.answers];
+														if (index === list.length - 1) return;
+														const tmp = list[index];
+														list[index] = list[index + 1];
+														list[index + 1] = tmp;
+														setQuestionForm({ ...questionForm, answers: list.map((item, idx) => ({ ...item, order: idx })) });
+													}}
+													disabled={index === questionForm.answers.length - 1}
+												>
+													↓
+												</button>
+												<button
+													type="button"
+													className="lms-btn-secondary lms-btn-sm va-btn-danger"
+													onClick={() => removeAnswer(index)}
+												>
+													🗑️
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="admin-answer-list">
+									{questionForm.answers.map((answer, index) => (
+										<div key={index} className="admin-answer-item">
+											<input
+												type={questionForm.type === 'multiple_choice' ? 'checkbox' : 'radio'}
+												className="admin-answer-checkbox"
+												checked={answer.is_correct}
+												onChange={(e) => {
+													if (questionForm.type === 'multiple_choice') {
+														updateAnswer(index, 'is_correct', e.target.checked);
+													} else {
+														questionForm.answers.forEach((_, i) => {
+															updateAnswer(i, 'is_correct', i === index);
+														});
+													}
+												}}
+											/>
+											<input
+												type="text"
+												className="admin-form-input"
+												value={answer.text || ''}
+												onChange={(e) => updateAnswer(index, 'text', e.target.value)}
+												placeholder={`Răspuns ${index + 1}`}
+												disabled={questionForm.type === 'true_false'}
+											/>
+											{questionForm.type !== 'true_false' && (
+												<button
+													type="button"
+													className="lms-btn-secondary lms-btn-sm va-btn-danger"
+													onClick={() => removeAnswer(index)}
+												>
+													🗑️
+												</button>
+											)}
+										</div>
+									))}
+								</div>
+							)}
+
+							{questionForm.type !== 'true_false' && (
+								<button
+									type="button"
+									className="lms-btn-secondary lms-btn-sm"
+									onClick={addAnswer}
+								>
+									+ Adaugă {questionForm.type === 'matching' ? 'Pereche' : 'Răspuns'}
+								</button>
+							)}
 							{(questionFormErrors.answers || questionFormErrors.correct) && (
 								<p className="admin-form-error-inline" role="alert">
 									{questionFormErrors.answers || questionFormErrors.correct}
@@ -793,15 +974,15 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<button
 								type="button"
 								className="lms-btn-secondary"
-								onClick={() => {
-									setEditingQuestion(null);
-									setQuestionForm({
-										type: 'multiple_choice',
-										content: '',
-										answers: [],
-										points: 1,
-										explanation: '',
-										metadata: {
+							onClick={() => {
+								setEditingQuestion(null);
+								setQuestionForm({
+									type: 'multiple_choice',
+									content: '',
+									answers: getQuestionTypeDefaults('multiple_choice'),
+									points: 1,
+									explanation: '',
+									metadata: {
 											difficulty: '',
 											tags: [],
 										},
@@ -913,6 +1094,25 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									<span className="qb-student-preview-short-label">Răspuns scurt (elevul scrie aici)</span>
 									<div className="qb-student-preview-short-placeholder" />
 								</div>
+							) : previewQuestion.type === 'matching' ? (
+								<div className="qb-student-preview-matching">
+									{(previewQuestion.answers || []).map((ans, i) => (
+										<div key={i} className="qb-student-preview-matching-row">
+											<span className="qb-student-preview-matching-left">{ans.left || ans.text || '—'}</span>
+											<span className="qb-student-preview-matching-arrow">↔</span>
+											<span className="qb-student-preview-matching-right">{ans.right || ans.answer_text || '—'}</span>
+										</div>
+									))}
+								</div>
+							) : previewQuestion.type === 'ordering' ? (
+								<ol className="qb-student-preview-ordering">
+									{(previewQuestion.answers || []).map((ans, i) => (
+										<li key={i} className="qb-student-preview-ordering-item">
+											<span className="qb-student-preview-ordering-index">{i + 1}</span>
+											<span>{ans.text || ans.answer_text || '—'}</span>
+										</li>
+									))}
+								</ol>
 							) : (
 								<ul className="qb-student-preview-options" role="list">
 									{(previewQuestion.answers || []).map((ans, i) => (

@@ -21,6 +21,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # PHP-FPM listen pe 9000
 RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/8.2/fpm/pool.d/www.conf
 
+# Upload limits (library PDFs, backups, etc.)
+# Note: `max` validator in Laravel is in KB; keep these in sync with app validation and nginx `client_max_body_size`.
+RUN printf "upload_max_filesize=512M\npost_max_size=550M\nmax_execution_time=600\nmax_input_time=600\nmemory_limit=768M\n" \
+    > /etc/php/8.2/fpm/conf.d/99-uploads.ini \
+    && printf "upload_max_filesize=512M\npost_max_size=550M\nmax_execution_time=600\nmax_input_time=600\nmemory_limit=768M\n" \
+    > /etc/php/8.2/cli/conf.d/99-uploads.ini
+
 WORKDIR /var/www/html
 COPY . .
 

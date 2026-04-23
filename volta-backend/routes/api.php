@@ -127,6 +127,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     
     // Course Progress
     Route::get('/courses/{courseId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'getCourseProgress']);
+    Route::post('/courses/{courseId}/enroll', [\App\Http\Controllers\Api\CourseProgressController::class, 'enrollCourse']);
     Route::post('/courses/{courseId}/finish', [\App\Http\Controllers\Api\CourseProgressController::class, 'finishCourse']);
     Route::post('/lessons/{lessonId}/complete', [\App\Http\Controllers\Api\CourseProgressController::class, 'completeLesson']);
     Route::put('/lessons/{lessonId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'updateLessonProgress']);
@@ -397,5 +398,4 @@ Route::middleware([
     Route::post('/ai/generate-course', [\App\Http\Controllers\AIController::class, 'generateCourse']);
     Route::post('/ai/generate-test', [\App\Http\Controllers\AIController::class, 'generateTest']);
 });
-
 

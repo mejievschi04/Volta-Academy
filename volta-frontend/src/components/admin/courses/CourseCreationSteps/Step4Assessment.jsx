@@ -20,8 +20,8 @@ import './Step4Assessment.css';
 /**
  * Step 4 — Quiz Builder (instructiuni.md)
  * Quiz settings: passing score, time limit, attempts.
- * Question editor: inline creation, drag reorder, answer options. Types: single_choice, multiple_choice, true_false, short_answer, essay, matching, ordering.
- * Scoring: auto grading for choice/true_false; manual for short_answer, essay.
+ * Question editor: inline creation, drag reorder, answer options. Types: single_choice, multiple_choice, true_false, matching, ordering.
+ * Scoring: auto grading for structured question types.
  * Google Forms style, live preview.
  */
 
@@ -29,8 +29,6 @@ const QUESTION_TYPES = [
 	{ id: 'single_choice', label: 'Răspuns unic', icon: '○', autoGrade: true },
 	{ id: 'multiple_choice', label: 'Răspuns multiplu', icon: '☑', autoGrade: true },
 	{ id: 'true_false', label: 'Adevărat / Fals', icon: '✓✗', autoGrade: true },
-	{ id: 'short_answer', label: 'Răspuns scurt', icon: '▢', autoGrade: false },
-	{ id: 'essay', label: 'Eseu', icon: '📝', autoGrade: false },
 	{ id: 'matching', label: 'Potrivire perechi', icon: '↔', autoGrade: true },
 	{ id: 'ordering', label: 'Ordonare', icon: '🔢', autoGrade: true },
 ];
@@ -48,7 +46,7 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 		id: `q-${question.id}`,
 	});
 	const style = { transform: CSS.Transform.toString(transform), transition };
-	const needsManualGrading = ['short_answer', 'essay'].includes(question.question_type || '');
+	const needsManualGrading = false;
 
 	return (
 		<div ref={setNodeRef} style={style} className={`step4-question-card ${isDragging ? 'step4-dragging' : ''}`}>
@@ -193,9 +191,6 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 					</div>
 				)}
 
-				{(question.question_type === 'short_answer' || question.question_type === 'essay') && (
-					<p className="step4-hint-manual">Răspunsul va fi notat manual de instructor.</p>
-				)}
 			</div>
 		</div>
 	);
@@ -348,9 +343,6 @@ function QuizPreview({ assessment }) {
 									<label key={j}><input type={q.question_type === 'single_choice' ? 'radio' : 'checkbox'} name={`preview-${q.id}`} disabled /> {a.answer_text || '—'}</label>
 								))}
 							</div>
-						)}
-						{['short_answer', 'essay'].includes(q.question_type) && (
-							<div className="step4-preview-options"><input type="text" placeholder="Răspuns..." disabled className="step4-preview-input" /></div>
 						)}
 					</div>
 				))}

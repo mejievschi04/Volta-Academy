@@ -26,6 +26,11 @@ const ExamResultsPage = () => {
 		});
 		return list;
 	}, [results, filterStatus, sortBy]);
+	const passedCount = useMemo(() => results.filter((r) => r.passed).length, [results]);
+	const failedCount = useMemo(() => results.filter((r) => !r.passed).length, [results]);
+	const manualReviewCount = useMemo(() => results.filter((r) => r.needs_manual_review && !r.reviewed_at).length, [results]);
+	const headerResult = selectedResult || filteredAndSortedResults[0] || results[0] || null;
+	const headerAccent = headerResult?.passed ? '#22c55e' : '#5b72ff';
 
 	const fetchResults = async () => {
 		try {
@@ -83,11 +88,6 @@ const ExamResultsPage = () => {
 		if (question.is_correct !== undefined) {
 			return question.is_correct;
 		}
-		// Fallback to old calculation
-		if (['open_text', 'short_answer', 'essay'].includes(getQuestionType(question))) {
-			return null; // Răspuns deschis – notare manuală
-		}
-		
 		const userAnswer = getUserAnswer(question);
 		const normalizedUserAnswer = normalizeAnswerIndex(userAnswer);
 		if (userAnswer === null) return false;
@@ -128,13 +128,55 @@ const ExamResultsPage = () => {
 
 	return (
 		<div className="exam-results-page">
-			<div className="exam-results-page-header">
-				<h1 className="exam-results-page-title">
-					Rezultate Teste
-				</h1>
-				<p className="exam-results-page-subtitle">
-					Vezi toate testele completate și răspunsurile tale
-				</p>
+			<div
+				className="exam-results-page-header exam-results-page-header--hero"
+				style={{
+					'--exam-results-accent': headerAccent,
+					'--exam-results-cover': headerResult?.exam?.settings?.cover_url
+						? `url("${headerResult.exam.settings.cover_url}")`
+						: 'none',
+				}}
+			>
+				<div className="exam-results-page-header-visual" aria-hidden="true">
+					<div className="exam-results-page-header-visual-inner">
+						<span className="exam-results-page-header-visual-kicker">Rezultate</span>
+						<span className="exam-results-page-header-visual-icon">{headerResult?.passed ? '✓' : '📝'}</span>
+						<span className="exam-results-page-header-visual-title">
+							{headerResult?.exam?.title || 'Teste completate'}
+						</span>
+						<span className="exam-results-page-header-visual-subtitle">
+							{headerResult?.exam?.course?.title || 'Alege un test din listă'}
+						</span>
+					</div>
+				</div>
+				<div className="exam-results-page-header-main">
+					<div className="exam-results-page-header-copy">
+						<h1 className="exam-results-page-title">
+							Rezultate Teste
+						</h1>
+						<p className="exam-results-page-subtitle">
+							Vezi testele completate, scorul și răspunsurile într-un layout mai aerisit.
+						</p>
+					</div>
+					<div className="exam-results-page-header-stats">
+						<div className="exam-results-page-header-stat">
+							<strong>{results.length}</strong>
+							<span>Total</span>
+						</div>
+						<div className="exam-results-page-header-stat is-success">
+							<strong>{passedCount}</strong>
+							<span>Promovate</span>
+						</div>
+						<div className="exam-results-page-header-stat is-danger">
+							<strong>{failedCount}</strong>
+							<span>Nepromovate</span>
+						</div>
+						<div className="exam-results-page-header-stat is-warning">
+							<strong>{manualReviewCount}</strong>
+							<span>În review</span>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			{error && (
@@ -298,10 +340,8 @@ const ExamResultsPage = () => {
 									{selectedResult.exam.questions.map((question, index) => {
 										const userAnswer = getUserAnswer(question);
 										const normalizedUserAnswer = normalizeAnswerIndex(userAnswer);
-										const isOpenText = ['open_text', 'short_answer', 'essay'].includes(getQuestionType(question));
-										const isCorrect = !isOpenText ? isCorrectAnswer(question) : null;
-										const manualScore = getManualReviewScore(question.id);
-										const manualFeedback = getManualReviewFeedback(question.id);
+										const hasOptions = Array.isArray(question.answers) && question.answers.length > 0;
+										const isCorrect = hasOptions ? isCorrectAnswer(question) : null;
 										const maxPoints = question.points || 1;
 										const correctAnswerIndex = question.correct_answer_index ?? question.answers?.findIndex(a => a.is_correct) ?? -1;
 
@@ -319,40 +359,12 @@ const ExamResultsPage = () => {
 															{isCorrect ? '✓ Corect' : '✗ Incorect'}
 														</div>
 													)}
-													{isOpenText && manualScore !== null && (
-														<div className="exam-result-question-status">
-															{manualScore} / {maxPoints} puncte
-														</div>
-													)}
 												</div>
 												<div className="exam-result-question-text">
 													{question.question_text || question.content}
 												</div>
 
-												{isOpenText ? (
-													<div>
-														<div className="exam-result-answer-label-text">
-															Răspunsul tău:
-														</div>
-														<div className={`exam-result-open-text-answer ${!userAnswer ? 'empty' : ''}`}>
-															{userAnswer || <em>Fără răspuns</em>}
-														</div>
-														{manualScore !== null ? (
-															<div className="exam-result-manual-review">
-																✓ Evaluat manual: {manualScore} / {maxPoints} puncte
-															</div>
-														) : (
-															<div className="exam-result-manual-review pending">
-																⏳ În așteptarea evaluării manuale
-															</div>
-														)}
-														{manualFeedback ? (
-															<div className="exam-result-manual-review">
-																<strong>Feedback:</strong> {manualFeedback}
-															</div>
-														) : null}
-													</div>
-												) : (
+												{hasOptions ? (
 													<div>
 														<div className="exam-result-answer-label-text">
 															Răspunsurile tale:
@@ -389,9 +401,9 @@ const ExamResultsPage = () => {
 																				Răspuns corect
 																			</span>
 																		)}
-																	</div>
-																);
-															})}
+																</div>
+															);
+														})}
 														</div>
 														{/* Show correct answer if user's answer was wrong */}
 														{isCorrect === false && correctAnswerIndex >= 0 && question.answers && question.answers[correctAnswerIndex] && (
@@ -407,6 +419,10 @@ const ExamResultsPage = () => {
 																</span>
 															</div>
 														)}
+													</div>
+												) : (
+													<div className="exam-result-open-text-answer empty">
+														Fără opțiuni afișabile
 													</div>
 												)}
 											</div>

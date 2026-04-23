@@ -4,7 +4,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import '../../../pages/admin/AdminTestsPendingReviewsPage.css';
 
-const MANUAL_QUESTION_TYPES = ['short_answer', 'essay', 'open_text'];
+const MANUAL_QUESTION_TYPES = [];
 
 function getTestQuestionsList(test) {
 	if (!test) return [];

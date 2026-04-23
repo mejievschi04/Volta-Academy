@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
+import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 
 /** Ciornă răspunsuri în sessionStorage — supraviețuiește navigării înapoi la curs (nu la trimitere). */
 function buildExamDraftKey(userId, courseId, examId) {
@@ -257,6 +258,31 @@ const ExamPage = () => {
 		return Number.isNaN(parsed) ? null : parsed;
 	}, []);
 
+	const normalizeSequenceAnswer = useCallback((value) => {
+		if (!Array.isArray(value)) return null;
+		return value.map((item) => String(item));
+	}, []);
+
+	const isQuestionCorrect = useCallback((question, answerValue) => {
+		if (!question) return false;
+		if (question.type === 'matching' && question.matching?.correctMap) {
+			const userSeq = normalizeSequenceAnswer(answerValue);
+			const correctSeq = normalizeSequenceAnswer(question.matching.correctMap);
+			return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
+		}
+		if (question.type === 'ordering' && question.ordering?.correctOrder) {
+			const userSeq = normalizeSequenceAnswer(answerValue);
+			const correctSeq = normalizeSequenceAnswer(question.ordering.correctOrder);
+			return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
+		}
+		if (Array.isArray(question.options) && question.options.length > 0) {
+			const userAnswer = normalizeAnswerIndex(answerValue);
+			const correctIndex = normalizeAnswerIndex(question.answerIndex);
+			return userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
+		}
+		return false;
+	}, [normalizeAnswerIndex, normalizeSequenceAnswer]);
+
 	// Handle answer change
 	const handleAnswerChange = useCallback((questionId, answer) => {
 		setAnswers(prev => ({
@@ -293,12 +319,7 @@ const ExamPage = () => {
 		if (!result || !exam) return null;
 
 		const totalQuestions = exam.questions.length;
-		const correctAnswers = exam.questions.filter(q => {
-			if (['open_text', 'short_answer', 'essay'].includes(q.type || '')) return false;
-			const userAnswer = normalizeAnswerIndex(visibleAnswers[q.id]);
-			const correctIndex = normalizeAnswerIndex(q.answerIndex);
-			return userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
-		}).length;
+		const correctAnswers = exam.questions.filter((q) => isQuestionCorrect(q, visibleAnswers[q.id])).length;
 		const incorrectAnswers = totalQuestions - correctAnswers;
 
 		return {
@@ -314,6 +335,13 @@ const ExamPage = () => {
 	const isSequentialNavigation = (exam?.navigation_mode || 'sequential') !== 'free';
 	const canShowInstantResults = Boolean(submitted && result && (( !needsManualReview && exam?.show_feedback_instant) || showsPartialManualReview));
 	const canShowCorrectAnswers = Boolean(canShowInstantResults && exam?.show_correct_answers);
+	const examCoverUrl = exam?.settings?.cover_url || exam?.cover_url || '';
+	const examCoverName = exam?.settings?.cover_name || exam?.cover_name || exam?.title || 'Examen';
+	const examAccent = exam?.course?.card_color || exam?.course?.accent_color || '#5b72ff';
+	const totalExamPoints = useMemo(() => {
+		if (!exam?.questions?.length) return 0;
+		return exam.questions.reduce((sum, q) => sum + (q.points || 1), 0);
+	}, [exam]);
 	const visibleQuestions = useMemo(() => {
 		if (!exam?.questions) return [];
 		if (!isSequentialNavigation || submitted) return exam.questions;
@@ -324,11 +352,10 @@ const ExamPage = () => {
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
 			const question = exam.questions.find(q => q.id === questionId);
-			if (['open_text', 'short_answer', 'essay'].includes(question.type || '')) return 'pending';
-			const userAnswer = normalizeAnswerIndex(visibleAnswers[questionId]);
-			const correctIndex = normalizeAnswerIndex(question.answerIndex);
-			const isCorrect = userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
-			return isCorrect ? 'completed' : 'incorrect';
+			if (!Array.isArray(question?.options) || question.options.length === 0) {
+				return (question?.type === 'matching' || question?.type === 'ordering') ? (isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect') : 'pending';
+			}
+			return isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect';
 		}
 			const isAnswered = answers[questionId] !== undefined;
 		const isCurrent = index === currentQuestionIndex;
@@ -395,7 +422,23 @@ const ExamPage = () => {
 
 			{/* Header */}
 			<div className="student-exam-header">
-				<div className="student-exam-header-main">
+				<div
+					className="student-exam-header-main"
+					style={{ '--student-exam-accent': examAccent, '--student-exam-cover-image': examCoverUrl ? `url("${examCoverUrl}")` : 'none' }}
+				>
+					<div className="student-exam-header-visual" aria-hidden="true">
+						<div className="student-exam-header-visual-inner">
+							{!examCoverUrl && (
+								<>
+									<span className="student-exam-header-visual-kicker">Evaluare</span>
+									<span className="student-exam-header-visual-icon">📝</span>
+									<span className="student-exam-header-visual-label">
+										{courseId ? 'Test din curs' : 'Examen independent'}
+									</span>
+								</>
+							)}
+						</div>
+					</div>
 					<div className="student-exam-header-info">
 						<h1 className="student-exam-title">{exam.title}</h1>
 						{exam.description && (
@@ -511,8 +554,10 @@ const ExamPage = () => {
 					<div className="student-exam-questions">
 					{visibleQuestions.map((q, idx) => {
 						const actualIndex = isSequentialNavigation && !submitted ? currentQuestionIndex : idx;
-						const isOpenText = ['open_text', 'short_answer', 'essay'].includes(q.type || '');
-						const isFlagged = flaggedQuestions.has(q.id);
+							const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+							const hasMatching = q.type === 'matching' && q.matching;
+							const hasOrdering = q.type === 'ordering' && q.ordering;
+							const isFlagged = flaggedQuestions.has(q.id);
 
 						return (
 							<div
@@ -541,15 +586,14 @@ const ExamPage = () => {
 									</div>
 								</div>
 
-								{isOpenText ? (
-									<textarea
-										className="student-exam-answer-textarea"
-										value={answers[q.id] || ''}
-										onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-										placeholder="Scrie răspunsul tău aici..."
-										rows={6}
+								{hasMatching || hasOrdering ? (
+									<StructuredQuestionRenderer
+										question={q}
+										value={answers[q.id]}
+										onChange={(next) => handleAnswerChange(q.id, next)}
+										disabled={submitted}
 									/>
-								) : (
+								) : hasOptions ? (
 									<div className="student-exam-answer-options">
 										{q.options.map((opt, i) => {
 											const isSelected = answers[q.id] === i;
@@ -569,6 +613,12 @@ const ExamPage = () => {
 												</label>
 											);
 										})}
+									</div>
+								) : (
+									<div className="student-exam-answer-options">
+										<span className="student-exam-answer-option default">
+											<span>Tip de întrebare fără opțiuni afișabile</span>
+										</span>
 									</div>
 								)}
 
@@ -667,22 +717,49 @@ const ExamPage = () => {
 							const userAnswer = visibleAnswers[q.id];
 							const userAnswerIndex = normalizeAnswerIndex(userAnswer);
 							const correctIndex = normalizeAnswerIndex(q.answerIndex);
-							const isOpenText = ['open_text', 'short_answer', 'essay'].includes(q.type || '');
-							const isCorrect = !isOpenText
-								&& userAnswerIndex !== null
-								&& correctIndex !== null
-								&& userAnswerIndex === correctIndex;
+							const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+							const hasMatching = q.type === 'matching' && q.matching;
+							const hasOrdering = q.type === 'ordering' && q.ordering;
+							const isStructured = Boolean(hasMatching || hasOrdering);
+							const isCorrect = isQuestionCorrect(q, userAnswer);
+							const matchingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
+							const orderingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
 
 							return (
 								<div key={q.id} className={`student-exam-feedback-item ${isCorrect ? 'correct' : 'incorrect'}`}>
 									<div className="student-exam-feedback-item-header">
 										<span className="student-exam-feedback-item-number">{idx + 1}</span>
 										<span className="student-exam-feedback-item-status">
-											{isOpenText ? '⏳ În evaluare manuală' : (isCorrect ? '✓ Corect' : '✗ Incorect')}
+											{isStructured ? (isCorrect ? '✓ Corect' : '✗ Incorect') : (hasOptions ? (isCorrect ? '✓ Corect' : '✗ Incorect') : 'Tip fără opțiuni')}
 										</span>
 									</div>
 									<div className="student-exam-feedback-item-question">{q.text}</div>
-									{!['open_text', 'short_answer', 'essay'].includes(q.type || '') && (
+									{hasMatching && q.matching && (
+										<div className="student-exam-feedback-item-answers">
+											{q.matching.leftItems?.map((left, pairIndex) => {
+												const userChoice = matchingUserValues[pairIndex] ?? null;
+												const correctChoice = q.matching.correctMap?.[pairIndex];
+												const selectedItem = q.matching.rightItems?.find((opt) => String(opt.id) === String(userChoice));
+												const correctItem = q.matching.rightItems?.find((opt) => String(opt.id) === String(correctChoice));
+												return (
+													<div key={left.id} className="student-exam-feedback-item-answer">
+														<div><strong>{left.text}</strong></div>
+														<div>Răspunsul tău: {selectedItem?.text || '—'}</div>
+														{canShowCorrectAnswers && !isCorrect && <div>Răspuns corect: {correctItem?.text || '—'}</div>}
+													</div>
+												);
+											})}
+										</div>
+									)}
+									{hasOrdering && q.ordering && (
+										<div className="student-exam-feedback-item-answers">
+											<div>Ordinea ta: {orderingUserValues.map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ')}</div>
+											{canShowCorrectAnswers && !isCorrect && (
+												<div>Ordinea corectă: {(q.ordering.correctOrder || []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ')}</div>
+											)}
+										</div>
+									)}
+									{hasOptions && (
 										<div className="student-exam-feedback-item-answers">
 											{userAnswerIndex !== null && q.options?.[userAnswerIndex] != null && (
 												<div className="student-exam-feedback-item-user">
@@ -694,11 +771,6 @@ const ExamPage = () => {
 													<strong>Răspuns corect:</strong> {q.options[correctIndex]}
 												</div>
 											)}
-										</div>
-									)}
-									{['open_text', 'short_answer', 'essay'].includes(q.type || '') && userAnswer != null && String(userAnswer).trim() !== '' && (
-										<div className="student-exam-feedback-item-user">
-											<strong>Răspunsul tău:</strong> {userAnswer}
 										</div>
 									)}
 									{canShowCorrectAnswers && q.explanation && (

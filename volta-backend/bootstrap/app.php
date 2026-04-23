@@ -43,6 +43,17 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // Pe VPS: pune VOLTA_EXPOSE_API_ERRORS=true temporar în .env ca răspunsul JSON la 500 să conțină mesajul excepției (fără APP_DEBUG complet).
+        // JSON response when upload exceeds PHP `post_max_size` (the request doesn't reach controllers).
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, \Illuminate\Http\Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Fisierul incarcat este prea mare pentru server (limita de upload).',
+            ], 413);
+        });
+
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if (! $request->is('api/*')) {
                 return null;

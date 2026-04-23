@@ -80,14 +80,14 @@ const CourseDetailPage = () => {
 
 	const handleEnroll = async () => {
 		try {
-			// TODO: Implement enrollment API call
-			showToast('Te-ai înscris la curs cu succes!', 'success');
+			const response = await courseProgressService.enrollCourse(courseId);
 			setIsEnrolled(true);
-			// Refresh course data
-			fetchCourseData();
+			setProgress(response?.progress || null);
+			showToast(response?.message || 'Te-ai inscris la curs cu succes!', 'success');
 		} catch (err) {
 			console.error('Error enrolling:', err);
-			showToast('Eroare la înscrierea la curs', 'error');
+			const message = err?.response?.data?.message || err?.message || 'Eroare la inscrierea la curs';
+			showToast(message, 'error');
 		}
 	};
 
@@ -343,11 +343,14 @@ const CourseDetailPage = () => {
 										{moduleTests.length > 0 && (
 											<div className="course-detail-tests">
 												{moduleTests.map((ct) => (
-													<div key={ct.id || ct.test_id} className="course-detail-test">
+													<div key={ct.id || ct.test_id} className="course-detail-test va-card-shell va-card-shell--interactive">
 														<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 															<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"/>
 														</svg>
-														<span>{ct.test?.title || 'Test'}</span>
+														<span className="course-detail-test-title">{ct.test?.title || 'Test'}</span>
+														<svg className="course-detail-test-action" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+															<path d="M5 12h14M12 5l7 7-7 7" />
+														</svg>
 													</div>
 												))}
 											</div>
@@ -369,11 +372,14 @@ const CourseDetailPage = () => {
 										</div>
 										<div className="course-detail-tests">
 											{course.exams.filter((e) => !e.module_id).map((exam) => (
-												<div key={exam.id} className="course-detail-test">
+												<div key={exam.id} className="course-detail-test va-card-shell va-card-shell--interactive">
 													<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 														<path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"/>
 													</svg>
-													<span>{exam.title || 'Test'}</span>
+													<span className="course-detail-test-title">{exam.title || 'Test'}</span>
+													<svg className="course-detail-test-action" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+														<path d="M5 12h14M12 5l7 7-7 7" />
+													</svg>
 												</div>
 											))}
 										</div>

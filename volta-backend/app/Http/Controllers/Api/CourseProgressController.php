@@ -23,6 +23,12 @@ class CourseProgressController extends Controller
         $this->progressService = $progressService;
     }
 
+    private function canSelfEnroll(Course $course): bool
+    {
+        return ($course->access_type ?? 'free') === 'free'
+            && in_array($course->enrollment_type ?? 'open', ['open'], true);
+    }
+
     /**
      * Get user's progress for a course
      */
@@ -46,8 +52,8 @@ class CourseProgressController extends Controller
                 ->where('enrolled', true)
                 ->first();
 
-            // If not enrolled, auto-enroll the user (all courses are free)
-            if (!$enrollment && ! $isLearningExempt) {
+            // If not enrolled, auto-enroll the user only for open/free courses
+            if (!$enrollment && ! $isLearningExempt && $this->canSelfEnroll($course)) {
                 \DB::table('course_user')->updateOrInsert(
                     [
                         'user_id' => $user->id,
@@ -203,6 +209,106 @@ class CourseProgressController extends Controller
     }
 
     /**
+     * Enroll the current user in a course.
+     * Free/open courses can be joined directly; paid/invite-only courses
+     * must already have an assignment row.
+     */
+    public function enrollCourse($courseId)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Utilizator neautentificat',
+                ], 401);
+            }
+
+            if ($user->isLearningActivityExempt()) {
+                return response()->json([
+                    'message' => 'Acest rol nu necesita inscriere in curs.',
+                    'enrolled' => false,
+                ]);
+            }
+
+            $course = Course::findOrFail($courseId);
+
+            $existing = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->where('enrolled', true)
+                ->first();
+
+            if (!$existing) {
+                if (!$this->canSelfEnroll($course)) {
+                    return response()->json([
+                        'message' => 'Cursul nu permite inscriere libera.',
+                    ], 403);
+                }
+
+                DB::table('course_user')->updateOrInsert(
+                    [
+                        'user_id' => $user->id,
+                        'course_id' => $course->id,
+                    ],
+                    [
+                        'enrolled' => true,
+                        'enrolled_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+
+            try {
+                $this->progressService->calculateCourseProgress($user, $course);
+            } catch (\Exception $e) {
+                \Log::warning('Error calculating course progress after enrollment', [
+                    'course_id' => $courseId,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $accessStatus = $this->progressService->getUserAccessStatus($user, $course);
+            $accessStatus['progress_percentage'] = $accessStatus['course_progress'] ?? 0;
+
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'enrolled_course',
+                'model_type' => 'Course',
+                'model_id' => $course->id,
+                'description' => "{$user->name} s-a inscris la cursul \"{$course->title}\"",
+                'new_values' => [
+                    'course_id' => $course->id,
+                    'course_title' => $course->title,
+                    'enrolled_at' => now()->toDateTimeString(),
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
+            \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+
+            return response()->json([
+                'message' => 'Te-ai inscris la curs cu succes.',
+                'enrolled' => true,
+                'progress' => $accessStatus,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in CourseProgressController::enrollCourse', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Nu s-a putut inscrie in curs',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Student: after the last lesson, mark course finished when no required test remains (or course already complete).
      */
     public function finishCourse($courseId)
@@ -335,7 +441,7 @@ class CourseProgressController extends Controller
             ->where('enrolled', true)
             ->first();
 
-        if (!$enrollment && $course->access_type === 'free') {
+        if (!$enrollment && $this->canSelfEnroll($course)) {
             \DB::table('course_user')->updateOrInsert(
                 [
                     'user_id' => $user->id,

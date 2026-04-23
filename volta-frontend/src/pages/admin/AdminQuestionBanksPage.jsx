@@ -21,9 +21,6 @@ const QUESTION_TYPE_LABELS = {
   multiple_choice: 'Grilă',
   single_choice: 'Alegere unică',
   true_false: 'A/F',
-  short_answer: 'Răspuns scurt',
-  essay: 'Eseu',
-  open_text: 'Deschis',
   matching: 'Asocieri',
   ordering: 'Ordonare',
 };
@@ -308,7 +305,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
   return (
     <div className={`qb-page qb-page-v2 ${embedded ? 'qb-page-embedded' : ''}`}>
       <div className="qb-shell">
-        <header className="qb-page-hero">
+        <header className="qb-page-hero va-card-shell">
           <div className="qb-page-hero-text">
             <p className="qb-page-eyebrow">Conținut reutilizabil</p>
             <h1>Întrebări</h1>
@@ -326,11 +323,11 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
         </header>
 
         <div className="qb-kpis" role="group" aria-label="Rezumat">
-          <div className="qb-kpi">
+          <div className="qb-kpi va-card-shell">
             <span className="qb-kpi-value">{loading && hubTab === 'folders' ? '…' : folders.length}</span>
             <span className="qb-kpi-label">Foldere</span>
           </div>
-          <div className="qb-kpi">
+          <div className="qb-kpi va-card-shell">
             <span className="qb-kpi-value">{hubTab === 'catalog' ? (catalogLoading ? '…' : catalogTotal) : '—'}</span>
             <span className="qb-kpi-label">
               În catalog
@@ -338,7 +335,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
             </span>
           </div>
           {hubTab === 'catalog' && canMutateInAdminArea ? (
-            <div className={`qb-kpi ${selectedQuestionIds.length ? 'qb-kpi--accent' : ''}`}>
+            <div className={`qb-kpi va-card-shell ${selectedQuestionIds.length ? 'qb-kpi--accent' : ''}`}>
               <span className="qb-kpi-value">{selectedQuestionIds.length}</span>
               <span className="qb-kpi-label">Selectate pentru folder nou</span>
             </div>
@@ -368,7 +365,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
 
         {hubTab === 'folders' ? (
           <>
-            <div className="qb-search-card">
+            <div className="qb-search-card va-card-shell">
               <label className="qb-sr-only" htmlFor="qb-folder-search">
                 Caută foldere
               </label>
@@ -425,7 +422,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
               </div>
             </div>
 
-            <div className="qb-search-card">
+            <div className="qb-search-card va-card-shell">
               <label className="qb-sr-only" htmlFor="qb-catalog-search">
                 Caută în catalog
               </label>
@@ -439,7 +436,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
             </div>
 
             {canMutateInAdminArea ? (
-              <div className="qb-catalog-toolbar">
+              <div className="qb-catalog-toolbar va-card-shell">
                 <p className="qb-catalog-toolbar-hint">
                   Bifează întrebările din teste fără folder, apoi le poți muta într-un folder existent sau crea unul nou.
                   Selecția se păstrează la schimbarea paginii.
@@ -488,7 +485,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
               </div>
             ) : (
               <>
-                <div className="qb-catalog-table-wrap">
+                <div className="qb-catalog-table-wrap va-card-shell">
                   <table className="qb-catalog-table">
                     <thead>
                       <tr>

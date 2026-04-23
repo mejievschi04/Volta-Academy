@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Exam;
 use App\Models\Module;
 use App\Models\User;
 use App\Models\Event;
@@ -912,47 +913,62 @@ class DashboardAdminController extends Controller
         }
 
         // Recent test completions
-        if (Schema::hasTable('test_results') || Schema::hasTable('exam_results')) {
+        foreach ($this->getRecentResultSources() as $source) {
+            if (!Schema::hasTable($source['table']) || !Schema::hasColumn($source['table'], $source['id_column'])) {
+                continue;
+            }
+
             try {
-                $tableName = Schema::hasTable('test_results') ? 'test_results' : 'exam_results';
-                $recentTestResults = DB::table($tableName)
-                    ->join('users', 'users.id', '=', $tableName . '.user_id')
+                $recentResults = DB::table($source['table'])
+                    ->join('users', 'users.id', '=', $source['table'] . '.user_id')
                     ->where('users.role', 'student')
-                    ->where(function ($query) use ($tableName) {
-                        if (Schema::hasColumn($tableName, 'completed_at')) {
-                            $query->whereNotNull($tableName . '.completed_at');
+                    ->where(function ($query) use ($source) {
+                        if (Schema::hasColumn($source['table'], 'completed_at')) {
+                            $query->whereNotNull($source['table'] . '.completed_at');
                         }
-                        $query->orWhereNotNull($tableName . '.created_at');
+                        $query->orWhereNotNull($source['table'] . '.created_at');
                     })
-                    ->orderByRaw('COALESCE(' . $tableName . '.completed_at, ' . $tableName . '.created_at) DESC')
-                    ->select($tableName . '.*')
+                    ->orderByRaw('COALESCE(' . $source['table'] . '.completed_at, ' . $source['table'] . '.created_at) DESC')
+                    ->select(
+                        $source['table'] . '.id as result_id',
+                        $source['table'] . '.user_id',
+                        $source['table'] . '.' . $source['id_column'] . ' as entity_id',
+                        $source['table'] . '.passed',
+                        $source['table'] . '.score',
+                        $source['table'] . '.max_score',
+                        $source['table'] . '.percentage',
+                        $source['table'] . '.completed_at',
+                        $source['table'] . '.created_at'
+                    )
                     ->take(15)
                     ->get();
 
-                foreach ($recentTestResults as $testResult) {
-                    $test = Test::find($testResult->test_id ?? $testResult->exam_id ?? null);
-                    $user = User::find($testResult->user_id);
+                foreach ($recentResults as $result) {
+                    $user = User::find($result->user_id);
+                    $entity = $source['model']::find($result->entity_id);
 
-                    if ($test && $user && $user->role === 'student') {
-                        $passed = isset($testResult->passed) ? (bool)$testResult->passed : false;
-                        $passedText = $passed ? 'a trecut' : 'a eșuat';
-                        $scoreText = '';
-                        
-                        if (isset($testResult->max_score) && $testResult->max_score > 0 && isset($testResult->score) && $testResult->score !== null) {
-                            $scoreText = " ({$testResult->score}/{$testResult->max_score})";
-                        } elseif (isset($testResult->score) && $testResult->score !== null) {
-                            $scoreText = " ({$testResult->score})";
-                        }
-                        
-                        $activityDate = $testResult->completed_at ?? $testResult->created_at ?? now();
-                        
-                        $activities[] = [
-                            'id' => 'test_' . ($testResult->id ?? uniqid()),
-                            'type' => 'exam_submitted',
-                            'description' => "{$user->name} {$passedText} testul \"{$test->title}\"{$scoreText}",
-                            'created_at' => is_string($activityDate) ? $activityDate : (is_object($activityDate) ? $activityDate->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s')),
-                        ];
+                    if (!$entity || !$user || $user->role !== 'student') {
+                        continue;
                     }
+
+                    $passed = isset($result->passed) ? (bool) $result->passed : false;
+                    $passedText = $passed ? 'a trecut' : 'a eșuat';
+                    $scoreText = '';
+
+                    if (isset($result->max_score) && $result->max_score > 0 && isset($result->score) && $result->score !== null) {
+                        $scoreText = " ({$result->score}/{$result->max_score})";
+                    } elseif (isset($result->score) && $result->score !== null) {
+                        $scoreText = " ({$result->score})";
+                    }
+
+                    $activityDate = $result->completed_at ?? $result->created_at ?? now();
+
+                    $activities[] = [
+                        'id' => $source['prefix'] . '_' . ($result->result_id ?? uniqid()),
+                        'type' => 'exam_submitted',
+                        'description' => "{$user->name} {$passedText} {$source['label']} \"{$entity->title}\"{$scoreText}",
+                        'created_at' => is_string($activityDate) ? $activityDate : (is_object($activityDate) ? $activityDate->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s')),
+                    ];
                 }
             } catch (\Exception $e) {
                 \Log::warning('Error fetching test results for dashboard: ' . $e->getMessage());
@@ -1026,17 +1042,42 @@ class DashboardAdminController extends Controller
      */
     private function getAvgTestCompletionPercentage()
     {
-        if (!Schema::hasTable('test_results')) {
-            return 0;
+        $percentages = $this->getUnifiedResultPercentages();
+
+        return $percentages->isNotEmpty()
+            ? round((float) $percentages->avg(), 1)
+            : 0;
+    }
+
+    private function getRecentResultSources(): array
+    {
+        return [
+            ['table' => 'test_results', 'id_column' => 'test_id', 'model' => Test::class, 'label' => 'testul', 'prefix' => 'test'],
+            ['table' => 'exam_results', 'id_column' => 'exam_id', 'model' => Exam::class, 'label' => 'examenul', 'prefix' => 'exam'],
+        ];
+    }
+
+    private function getUnifiedResultPercentages()
+    {
+        $percentages = collect();
+
+        foreach ($this->getRecentResultSources() as $source) {
+            if (!Schema::hasTable($source['table']) || !Schema::hasColumn($source['table'], $source['id_column']) || !Schema::hasColumn($source['table'], 'percentage')) {
+                continue;
+            }
+
+            $rows = DB::table($source['table'])
+                ->join('users', 'users.id', '=', $source['table'] . '.user_id')
+                ->where('users.role', 'student')
+                ->whereNotNull($source['table'] . '.percentage')
+                ->pluck($source['table'] . '.percentage');
+
+            foreach ($rows as $percentage) {
+                $percentages->push((float) $percentage);
+            }
         }
 
-        $avg = DB::table('test_results')
-            ->join('users', 'users.id', '=', 'test_results.user_id')
-            ->where('users.role', 'student')
-            ->whereNotNull('test_results.percentage')
-            ->avg('test_results.percentage');
-
-        return $avg !== null ? round((float) $avg, 1) : 0;
+        return $percentages;
     }
 
     /**

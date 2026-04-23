@@ -132,7 +132,7 @@ class TestBuilderService
             Question::create([
                 'test_id' => $test->id,
                 'question_bank_id' => null,
-                'type' => $questionData['type'] ?? 'multiple_choice',
+                'type' => $this->normalizeQuestionType($questionData['type'] ?? 'multiple_choice'),
                 'content' => $questionData['content'],
                 'answers' => $questionData['answers'] ?? [],
                 'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
@@ -297,6 +297,7 @@ class TestBuilderService
                 $newQuestion = $question->replicate();
                 $newQuestion->test_id = $newTest->id;
                 $newQuestion->question_bank_id = null;
+                $newQuestion->type = $this->normalizeQuestionType($newQuestion->type ?? 'multiple_choice');
                 $newQuestion->save();
             }
         } else {
@@ -390,5 +391,13 @@ class TestBuilderService
         }
 
         return $normalized;
+    }
+
+    protected function normalizeQuestionType(?string $type): string
+    {
+        $type = strtolower(trim((string) $type));
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+
+        return in_array($type, $allowed, true) ? $type : 'multiple_choice';
     }
 }

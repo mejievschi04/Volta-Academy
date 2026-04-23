@@ -62,29 +62,39 @@ const AdminContentPage = () => {
 					</div>
 				</div>
 			)}
-			{activeTab === 'courses' && view === 'maps' && canMutateInAdminArea && (
-				<div className="admin-content-page-actions" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-					<div className="admin-courses-create-wrap" ref={createMenuRef}>
-						<button className="admin-courses-create-btn" onClick={() => setShowCreateMenu((prev) => !prev)}>
-							+ Creează curs
-						</button>
-						{showCreateMenu && (
-							<div className="admin-courses-create-menu">
-								<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
-									Curs nou
-								</button>
-								<button onClick={() => { setShowCreateMenu(false); setShowVoltCourseChat(true); }}>
-									Curs cu Volt
-								</button>
-							</div>
-						)}
-					</div>
-				</div>
-			)}
 			<div className="admin-content-tab-panel" role="tabpanel">
 				{activeTab === 'courses' && (
 					view === 'maps'
-						? <AdminCourseMapsPage embedded autoOpenCreate={shouldOpenNewMap} />
+						? (
+							<AdminCourseMapsPage
+								embedded
+								autoOpenCreate={shouldOpenNewMap}
+								headerActions={canMutateInAdminArea ? (
+									<div className="admin-courses-create-wrap" ref={createMenuRef}>
+										<button
+											type="button"
+											className="admin-btn-create-course"
+											onClick={() => setShowCreateMenu((prev) => !prev)}
+										>
+											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+												<path d="M12 5V19M5 12H19" strokeLinecap="round" />
+											</svg>
+											Creează curs
+										</button>
+										{showCreateMenu && (
+											<div className="admin-courses-create-menu">
+												<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
+													Curs nou
+												</button>
+												<button onClick={() => { setShowCreateMenu(false); setShowVoltCourseChat(true); }}>
+													Curs cu Volt
+												</button>
+											</div>
+										)}
+									</div>
+								) : null}
+							/>
+						)
 						: <AdminCoursesPage embedded />
 				)}
 				{activeTab === 'tests' && <AdminTestsPage />}

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildVideoLessonPrompt } from '../../../../utils/voltAiPrompts';
 
 /**
- * Video Lesson Editor - Conform defacut.md secțiunea 5.1
+ * Video Lesson Editor - Conform defacut.md secИ›iunea 5.1
  * Features:
  * - Upload video
  * - Volt auto: transcription, chapters, highlights, summary
@@ -31,20 +31,33 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 
 		setUploading(true);
 		try {
-			// TODO: Implement actual video upload to backend
-			// For now, just update the video URL
-			const videoUrl = URL.createObjectURL(file);
-			onUpdate({ video_url: videoUrl, video_file: file });
-			
-			// Auto-trigger Volt processing after upload
-			if (file) {
-				setTimeout(() => {
-					handleProcessVideoVolt(file);
-				}, 1000);
+			if (!courseId) {
+				const localPreviewUrl = URL.createObjectURL(file);
+				onUpdate({ video_url: localPreviewUrl, video_file: file });
+				showToast('Preview local creat. Salveaza cursul pentru incarcare pe server.', 'info');
+				return;
 			}
+
+			const formData = new FormData();
+			formData.append('file', file);
+			formData.append('type', 'video');
+
+			const uploaded = await adminService.builderUploadContentFile(courseId, formData);
+			const videoUrl = uploaded?.serve_url || uploaded?.url || URL.createObjectURL(file);
+			onUpdate({
+				video_url: videoUrl,
+				video_file: file,
+				video_media_asset_id: uploaded?.media_asset_id || null,
+				video_path: uploaded?.path || null,
+				video_filename: uploaded?.filename || file.name,
+				video_mime_type: uploaded?.mime_type || file.type || 'video/mp4',
+			});
+
+			showToast('Video-ul a fost incarcat cu succes.', 'success');
+			await handleProcessVideoVolt(file);
 		} catch (error) {
 			console.error('Error uploading video:', error);
-			showToast('Eroare la încărcarea video-ului', 'error');
+			showToast('Eroare la Г®ncДѓrcarea video-ului', 'error');
 		} finally {
 			setUploading(false);
 		}
@@ -53,7 +66,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 	// Process video with Volt (transcription, chapters, highlights, summary)
 	const handleProcessVideoVolt = async (videoFile) => {
 		if (!videoFile && !lesson.video_url) {
-			showToast('Te rugăm să încarci mai întâi un video', 'info');
+			showToast('Te rugДѓm sДѓ Г®ncarci mai Г®ntГўi un video', 'info');
 			return;
 		}
 
@@ -98,11 +111,11 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 				});
 			} catch (e) {
 				console.error('Error parsing Volt response:', e);
-				showToast('Eroare la procesarea răspunsului Volt. Vezi consola pentru detalii.', 'error');
+				showToast('Eroare la procesarea rДѓspunsului Volt. Vezi consola pentru detalii.', 'error');
 			}
 		} catch (error) {
 			console.error('Error processing video with Volt:', error);
-			showToast('Eroare la procesarea video-ului cu Volt: ' + (error.message || 'Eroare necunoscută'), 'error');
+			showToast('Eroare la procesarea video-ului cu Volt: ' + (error.message || 'Eroare necunoscutДѓ'), 'error');
 		} finally {
 			setAiProcessing(false);
 		}
@@ -113,7 +126,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 			{/* Video Upload */}
 			<div className="admin-form-group">
 				<label className="admin-form-label">
-					Video Lecție <span className="admin-form-required">*</span>
+					Video LecИ›ie <span className="admin-form-required">*</span>
 				</label>
 				<div className="video-upload-container">
 					{lesson.video_url ? (
@@ -122,9 +135,16 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 							<button
 								type="button"
 								className="admin-btn admin-btn-secondary"
-								onClick={() => onUpdate({ video_url: null, video_file: null })}
+								onClick={() => onUpdate({
+									video_url: null,
+									video_file: null,
+									video_media_asset_id: null,
+									video_path: null,
+									video_filename: null,
+									video_mime_type: null,
+								})}
 							>
-								Șterge Video
+								Иterge Video
 							</button>
 						</div>
 					) : (
@@ -137,9 +157,9 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 								disabled={uploading}
 							/>
 							<div className="video-upload-placeholder">
-								<span className="video-upload-icon">🎥</span>
+								<span className="video-upload-icon">рџЋҐ</span>
 								<span className="video-upload-text">
-									{uploading ? 'Se încarcă...' : 'Click pentru a încărca video'}
+									{uploading ? 'Se Г®ncarcДѓ...' : 'Click pentru a Г®ncДѓrca video'}
 								</span>
 								<span className="video-upload-hint">MP4, WebM, MOV (max 500MB)</span>
 							</div>
@@ -157,10 +177,10 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 						onClick={() => handleProcessVideoVolt()}
 						disabled={aiProcessing}
 					>
-						{aiProcessing ? '⏳ Procesează cu Volt...' : '🤖 Procesează video cu Volt'}
+						{aiProcessing ? 'вЏі ProceseazДѓ cu Volt...' : 'рџ¤– ProceseazДѓ video cu Volt'}
 					</button>
 					<p className="admin-form-hint">
-						Volt Assistant va genera: transcriere, capitole, highlights, rezumat, context pentru Volt Assistant și întrebări quiz
+						Volt Assistant va genera: transcriere, capitole, highlights, rezumat, context pentru Volt Assistant И™i Г®ntrebДѓri quiz
 					</p>
 				</div>
 			)}
@@ -169,13 +189,13 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 			{aiResults.transcription && (
 				<div className="ai-results-panel">
 					<div className="ai-results-header">
-						<h4>✨ Rezultate Volt</h4>
+						<h4>вњЁ Rezultate Volt</h4>
 					</div>
 
 					{/* Transcription */}
 					{aiResults.transcription && (
 						<div className="ai-result-section">
-							<h5>📝 Transcriere</h5>
+							<h5>рџ“ќ Transcriere</h5>
 							<textarea
 								className="admin-form-textarea"
 								value={aiResults.transcription}
@@ -191,7 +211,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					{/* Chapters */}
 					{aiResults.chapters && (
 						<div className="ai-result-section">
-							<h5>📑 Capitole</h5>
+							<h5>рџ“‘ Capitole</h5>
 							<div className="chapters-list">
 								{aiResults.chapters.map((chapter, idx) => (
 									<div key={idx} className="chapter-item">
@@ -209,7 +229,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					{/* Highlights */}
 					{aiResults.highlights && (
 						<div className="ai-result-section">
-							<h5>⭐ Highlights</h5>
+							<h5>в­ђ Highlights</h5>
 							<ul className="highlights-list">
 								{aiResults.highlights.map((highlight, idx) => (
 									<li key={idx}>
@@ -224,7 +244,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					{/* Summary */}
 					{aiResults.summary && (
 						<div className="ai-result-section">
-							<h5>📄 Rezumat</h5>
+							<h5>рџ“„ Rezumat</h5>
 							<textarea
 								className="admin-form-textarea"
 								value={aiResults.summary}
@@ -240,7 +260,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					{/* Volt Assistant context */}
 					{aiResults.tutorContext && (
 						<div className="ai-result-section">
-							<h5>⚡ Context Volt Assistant</h5>
+							<h5>вљЎ Context Volt Assistant</h5>
 							<textarea
 								className="admin-form-textarea"
 								value={aiResults.tutorContext}
@@ -257,7 +277,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					{/* Quiz Base */}
 					{aiResults.quizBase && (
 						<div className="ai-result-section">
-							<h5>❓ Quiz Base</h5>
+							<h5>вќ“ Quiz Base</h5>
 							<div className="quiz-base-list">
 								{aiResults.quizBase.map((question, idx) => (
 									<div key={idx} className="quiz-question-item">
@@ -266,7 +286,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 											<ul>
 												{question.options.map((opt, optIdx) => (
 													<li key={optIdx}>
-														{opt} {optIdx === question.correct ? '✓' : ''}
+														{opt} {optIdx === question.correct ? 'вњ“' : ''}
 													</li>
 												))}
 											</ul>
@@ -278,10 +298,10 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 								type="button"
 								className="admin-btn admin-btn-secondary"
 								onClick={() => {
-									showToast('Funcționalitatea de creare quiz va fi implementată în curând', 'info');
+									showToast('FuncИ›ionalitatea de creare quiz va fi implementatДѓ Г®n curГўnd', 'info');
 								}}
 							>
-								Crează Quiz din Întrebări
+								CreazДѓ Quiz din ГЋntrebДѓri
 							</button>
 						</div>
 					)}
@@ -291,7 +311,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 			{/* Mobile-ready validation */}
 			{lesson.duration_minutes && lesson.duration_minutes > 10 && (
 				<div className="admin-form-warning">
-					⚠️ Lecția depășește 10 minute ({lesson.duration_minutes} min). Pentru mobile-ready, recomandăm lecții sub 10 minute.
+					вљ пёЏ LecИ›ia depДѓИ™eИ™te 10 minute ({lesson.duration_minutes} min). Pentru mobile-ready, recomandДѓm lecИ›ii sub 10 minute.
 				</div>
 			)}
 		</div>
@@ -299,5 +319,6 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 };
 
 export default VideoLessonEditor;
+
 
 

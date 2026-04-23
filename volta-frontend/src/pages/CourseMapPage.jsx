@@ -56,7 +56,9 @@ function CourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {
 				imageUrl={imageUrl}
 				title={course.title}
 				subtitle={courseMapCourseSubtitle(course, fmtDur)}
+				progress={course.progress_percentage ?? 0}
 				themeHsl={themeHsl}
+				showAccentRibbon
 				onOpen={() => onNavigateCourse(course.id)}
 				ctaLabel="Începe"
 			/>
@@ -101,7 +103,9 @@ function SortableCourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHs
 				imageUrl={imageUrl}
 				title={course.title}
 				subtitle={courseMapCourseSubtitle(course, fmtDur)}
+				progress={course.progress_percentage ?? 0}
 				themeHsl={themeHsl}
+				showAccentRibbon
 				onOpen={() => onNavigateCourse(course.id)}
 				ctaLabel="Deschide"
 				topLeftSlot={dragHandle}

@@ -2,12 +2,10 @@
  * Randare prima pagină PDF → JPEG în browser (pdfjs-dist).
  * Evită dependența de Ghostscript / Imagick pe server.
  */
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { getDocument } from 'pdfjs-dist';
+import { configurePdfWorker } from './pdfWorker';
 
-if (typeof window !== 'undefined' && pdfjsWorker) {
-	GlobalWorkerOptions.workerSrc = pdfjsWorker;
-}
+configurePdfWorker();
 
 const MAX_EDGE = 1200;
 

@@ -114,41 +114,133 @@ class StatisticsAdminController extends Controller
 
         $testResults = [];
         if (Schema::hasTable('test_results')) {
-            $columns = ['id', 'user_id', 'test_id', 'passed', 'percentage', 'score', 'max_score', 'completed_at', 'attempt_number'];
-            if (Schema::hasColumn('test_results', 'correct_answers_count')) {
-                $columns[] = 'correct_answers_count';
-            }
-            if (Schema::hasColumn('test_results', 'total_questions')) {
-                $columns[] = 'total_questions';
-            }
-            $query = TestResult::with('test:id,title')
-                ->select($columns)
-                ->whereNotNull('completed_at')
-                ->whereHas('user', fn ($q) => $q->where('role', 'student'));
+            $query = DB::table('test_results')
+                ->join('users', 'users.id', '=', 'test_results.user_id')
+                ->leftJoin('tests', 'tests.id', '=', 'test_results.test_id')
+                ->leftJoin('course_test', 'course_test.test_id', '=', 'tests.id')
+                ->where('users.role', 'student')
+                ->whereNotNull('test_results.completed_at');
+
             if ($userId) {
-                $query->where('user_id', (int) $userId);
+                $query->where('test_results.user_id', (int) $userId);
+            }
+            if ($courseId) {
+                $query->where('course_test.course_id', (int) $courseId);
             }
             if ($from && $to) {
-                $query->whereBetween('completed_at', [$from, $to]);
+                $query->whereBetween('test_results.completed_at', [$from, $to]);
             }
-            $results = $query->orderBy('completed_at', 'desc')->get();
-            $testResults = $results->map(function ($r) use ($testCourseMap) {
-                return [
-                    'user_id' => $r->user_id,
-                    'test_id' => $r->test_id,
-                    'course_id' => $testCourseMap[(int) $r->test_id] ?? null,
-                    'test_title' => $r->test?->title,
-                    'passed' => (bool) $r->passed,
-                    'percentage' => $r->percentage !== null ? round((float) $r->percentage, 1) : null,
-                    'score' => $r->score,
-                    'max_score' => $r->max_score,
-                    'correct_answers_count' => $r->correct_answers_count ?? null,
-                    'total_questions' => $r->total_questions ?? null,
-                    'completed_at' => $r->completed_at?->toIso8601String(),
-                    'attempt_number' => $r->attempt_number,
-                ];
-            })->all();
+
+            $results = $query
+                ->select(
+                    'test_results.id',
+                    'test_results.user_id',
+                    'test_results.test_id',
+                    'test_results.passed',
+                    'test_results.percentage',
+                    'test_results.score',
+                    'test_results.max_score',
+                    'test_results.correct_answers_count',
+                    'test_results.total_questions',
+                    'test_results.completed_at',
+                    'test_results.attempt_number',
+                    'tests.title as test_title',
+                    'course_test.course_id as course_id'
+                )
+                ->orderBy('test_results.completed_at', 'desc')
+                ->get()
+                ->map(function ($r) use ($testCourseMap) {
+                    return [
+                        'user_id' => $r->user_id,
+                        'test_id' => $r->test_id,
+                        'course_id' => $r->course_id ?? $testCourseMap[(int) $r->test_id] ?? null,
+                        'test_title' => $r->test_title,
+                        'passed' => (bool) $r->passed,
+                        'percentage' => $r->percentage !== null ? round((float) $r->percentage, 1) : null,
+                        'score' => $r->score,
+                        'max_score' => $r->max_score,
+                        'correct_answers_count' => $r->correct_answers_count ?? null,
+                        'total_questions' => $r->total_questions ?? null,
+                        'completed_at' => Carbon::parse($r->completed_at)->toIso8601String(),
+                        'attempt_number' => $r->attempt_number,
+                    ];
+                })->all();
+
+            $testResults = array_merge($testResults, $results);
         }
+
+        if (Schema::hasTable('exam_results')) {
+            $query = DB::table('exam_results')
+                ->join('users', 'users.id', '=', 'exam_results.user_id')
+                ->leftJoin('exams', 'exams.id', '=', 'exam_results.exam_id')
+                ->where('users.role', 'student')
+                ->whereNotNull('exam_results.completed_at');
+
+            if ($userId) {
+                $query->where('exam_results.user_id', (int) $userId);
+            }
+            if ($courseId) {
+                $query->where('exams.course_id', (int) $courseId);
+            }
+            if ($from && $to) {
+                $query->whereBetween('exam_results.completed_at', [$from, $to]);
+            }
+
+            $results = $query
+                ->select(
+                    'exam_results.id',
+                    'exam_results.user_id',
+                    'exam_results.exam_id as test_id',
+                    'exam_results.passed',
+                    'exam_results.percentage',
+                    'exam_results.score',
+                    'exam_results.total_points as max_score',
+                    DB::raw('NULL as correct_answers_count'),
+                    DB::raw('NULL as total_questions'),
+                    'exam_results.completed_at',
+                    'exam_results.attempt_number',
+                    'exams.title as test_title',
+                    'exams.course_id as course_id'
+                )
+                ->orderBy('exam_results.completed_at', 'desc')
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'user_id' => $r->user_id,
+                        'test_id' => $r->test_id,
+                        'course_id' => $r->course_id ?? null,
+                        'test_title' => $r->test_title,
+                        'passed' => (bool) $r->passed,
+                        'percentage' => $r->percentage !== null ? round((float) $r->percentage, 1) : null,
+                        'score' => $r->score,
+                        'max_score' => $r->max_score,
+                        'correct_answers_count' => null,
+                        'total_questions' => null,
+                        'completed_at' => Carbon::parse($r->completed_at)->toIso8601String(),
+                        'attempt_number' => $r->attempt_number,
+                    ];
+                })->all();
+
+            $testResults = array_merge($testResults, $results);
+        }
+
+        usort($testResults, function ($a, $b) {
+            return strtotime($b['completed_at'] ?? '') <=> strtotime($a['completed_at'] ?? '');
+        });
+
+        $testResults = collect($testResults)
+            ->unique(function (array $row) {
+                return implode('|', [
+                    $row['user_id'] ?? '',
+                    $row['test_id'] ?? '',
+                    $row['attempt_number'] ?? '',
+                    $row['percentage'] ?? '',
+                    $row['score'] ?? '',
+                    $row['completed_at'] ?? '',
+                ]);
+            })
+            ->values()
+            ->all();
 
         $activityUserIds = collect($enrollments)->pluck('user_id')
             ->merge(collect($testResults)->pluck('user_id'))

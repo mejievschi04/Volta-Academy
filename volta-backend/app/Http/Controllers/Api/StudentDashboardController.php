@@ -252,19 +252,17 @@ class StudentDashboardController extends Controller
      */
     private function calculateTestCompletionPercentage($user)
     {
-        if (!Schema::hasTable('test_results')) {
+        $percentages = $this->getUnifiedResultRows($user->id)
+            ->pluck('percentage')
+            ->filter(fn ($percentage) => $percentage !== null);
+        if ($percentages->isEmpty()) {
             return [
                 'value' => 0,
                 'formatted' => '0%',
             ];
         }
 
-        $avgPercentage = DB::table('test_results')
-            ->where('user_id', $user->id)
-            ->whereNotNull('percentage')
-            ->avg('percentage');
-
-        $value = $avgPercentage !== null ? round((float) $avgPercentage, 1) : 0;
+        $value = round((float) $percentages->avg(), 1);
 
         return [
             'value' => $value,
@@ -359,11 +357,7 @@ class StudentDashboardController extends Controller
                     
                     if ($isUnlocked) {
                         // Check if test has been passed
-                        $hasPassed = DB::table('test_results')
-                            ->where('user_id', $user->id)
-                            ->where('test_id', $test->id)
-                            ->where('percentage', '>=', $courseTest->passing_score ?? 70)
-                            ->exists();
+                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (int) ($courseTest->passing_score ?? 70));
 
                         if (!$hasPassed) {
                             $pendingExams[] = [
@@ -402,11 +396,7 @@ class StudentDashboardController extends Controller
                     
                     if ($isUnlocked) {
                         // Check if test has been passed
-                        $hasPassed = DB::table('test_results')
-                            ->where('user_id', $user->id)
-                            ->where('test_id', $test->id)
-                            ->where('percentage', '>=', $courseTest->passing_score ?? 70)
-                            ->exists();
+                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (int) ($courseTest->passing_score ?? 70));
 
                         if (!$hasPassed) {
                             $pendingExams[] = [
@@ -471,15 +461,105 @@ class StudentDashboardController extends Controller
      */
     private function getTotalExamsPassed($user)
     {
-        if (!Schema::hasTable('exam_results') || !Schema::hasTable('exams')) {
-            return 0;
-        }
-
-        return DB::table('exam_results')
-            ->join('exams', 'exam_results.exam_id', '=', 'exams.id')
-            ->where('exam_results.user_id', $user->id)
-            ->whereColumn('exam_results.score', '>=', DB::raw('exams.passing_score'))
+        return $this->getUnifiedResultRows($user->id)
+            ->filter(function (array $row) {
+                return (bool) ($row['passed'] ?? false);
+            })
             ->count();
     }
-}
 
+    /**
+     * Get unified test/exam result rows for a user from both tables.
+     */
+    private function getUnifiedResultRows(int $userId, ?int $testId = null)
+    {
+        $results = collect();
+
+        foreach ($this->getResultTableDefinitions() as $definition) {
+            $table = $definition['table'];
+            $idColumn = $definition['id_column'];
+
+            if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'percentage') || !Schema::hasColumn($table, $idColumn)) {
+                continue;
+            }
+
+            $query = DB::table($table)
+                ->where($table . '.user_id', $userId)
+                ->whereNotNull($table . '.percentage')
+                ->select([
+                    $table . '.id as result_id',
+                    $table . '.user_id',
+                    $table . '.' . $idColumn . ' as test_id',
+                    $table . '.percentage',
+                    $table . '.passed',
+                    $table . '.score',
+                    $table . '.completed_at',
+                    $table . '.created_at',
+                ]);
+
+            if ($testId !== null) {
+                $query->where($table . '.' . $idColumn, $testId);
+            }
+
+            if (Schema::hasColumn($table, 'attempt_number')) {
+                $query->addSelect($table . '.attempt_number');
+            } else {
+                $query->addSelect(DB::raw('NULL as attempt_number'));
+            }
+
+            foreach ($query->get() as $row) {
+                $completedAt = $row->completed_at ? Carbon::parse($row->completed_at)->toIso8601String() : null;
+                $createdAt = $row->created_at ? Carbon::parse($row->created_at)->toIso8601String() : null;
+                $dedupeKey = implode('|', [
+                    $row->user_id,
+                    $row->test_id,
+                    $row->attempt_number ?? '',
+                    (string) $row->percentage,
+                    (string) ($row->passed ? 1 : 0),
+                    (string) ($row->score ?? ''),
+                    $completedAt ?? '',
+                    $createdAt ?? '',
+                ]);
+
+                $results->push([
+                    'result_id' => $row->result_id,
+                    'user_id' => (int) $row->user_id,
+                    'test_id' => (int) $row->test_id,
+                    'percentage' => $row->percentage !== null ? (float) $row->percentage : null,
+                    'passed' => (bool) $row->passed,
+                    'score' => $row->score !== null ? (float) $row->score : null,
+                    'completed_at' => $completedAt,
+                    'created_at' => $createdAt,
+                    'attempt_number' => $row->attempt_number !== null ? (int) $row->attempt_number : null,
+                    'dedupe_key' => $dedupeKey,
+                ]);
+            }
+        }
+
+        return $results
+            ->unique('dedupe_key')
+            ->values();
+    }
+
+    /**
+     * Check if the student has a passing result for a given test in either results table.
+     */
+    private function hasPassingTestResult(int $userId, int $testId, int $passingScore): bool
+    {
+        return $this->getUnifiedResultRows($userId, $testId)
+            ->contains(function (array $row) use ($passingScore) {
+                return (bool) ($row['passed'] ?? false) || ((float) ($row['percentage'] ?? 0) >= $passingScore);
+            });
+    }
+
+    /**
+     * Result table definitions used across dashboard metrics.
+     */
+    private function getResultTableDefinitions(): array
+    {
+        return [
+            ['table' => 'test_results', 'id_column' => 'test_id'],
+            ['table' => 'exam_results', 'id_column' => 'exam_id'],
+        ];
+    }
+}

@@ -202,6 +202,175 @@ class ExamController extends Controller
         );
     }
 
+    protected function normalizeArrayLike(mixed $value): ?array
+    {
+        if ($value instanceof \Illuminate\Support\Collection) {
+            return $value->all();
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    protected function normalizedSequenceValue(mixed $value): ?array
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+
+        return array_values(array_map(static function ($item) {
+            if (is_scalar($item) || $item === null) {
+                return (string) $item;
+            }
+            return json_encode($item);
+        }, $value));
+    }
+
+    protected function shuffleBySeed(array $items, string $seedBase): array
+    {
+        $indexed = [];
+        foreach ($items as $idx => $item) {
+            $label = is_array($item)
+                ? (string) ($item['text'] ?? $item['answer_text'] ?? $item['content'] ?? $item['label'] ?? $item['left'] ?? $item['right'] ?? '')
+                : (string) $item;
+            $indexed[] = [
+                'key' => hash('sha1', $seedBase . ":{$idx}:" . $label),
+                'item' => $item,
+            ];
+        }
+
+        usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
+
+        return array_values(array_map(fn ($entry) => $entry['item'], $indexed));
+    }
+
+    protected function buildMatchingQuestionData($question, ?Test $test, $user, int $attemptNumber): array
+    {
+        $payload = $this->normalizeArrayLike($question->payload ?? null) ?? [];
+        $pairs = [];
+        if (is_array($payload['pairs'] ?? null)) {
+            $pairs = array_values($payload['pairs']);
+        } else {
+            $answers = $this->normalizeArrayLike($question->answers ?? null) ?? [];
+            foreach ($answers as $answer) {
+                if (!is_array($answer)) {
+                    continue;
+                }
+                if (array_key_exists('left', $answer) || array_key_exists('right', $answer)) {
+                    $pairs[] = $answer;
+                } elseif (array_key_exists('pair', $answer) && is_array($answer['pair'])) {
+                    $pairs[] = $answer['pair'];
+                }
+            }
+        }
+        $leftItems = [];
+        $rightItems = [];
+
+        foreach ($pairs as $index => $pair) {
+            if (is_string($pair) && str_contains($pair, '|')) {
+                [$leftRaw, $rightRaw] = array_pad(explode('|', $pair, 2), 2, '');
+                $pair = ['left' => trim($leftRaw), 'right' => trim($rightRaw)];
+            }
+
+            if (!is_array($pair)) {
+                continue;
+            }
+            $leftText = trim((string) ($pair['left'] ?? $pair['question'] ?? $pair['prompt'] ?? $pair['text'] ?? ''));
+            $rightText = trim((string) ($pair['right'] ?? $pair['answer'] ?? $pair['value'] ?? $pair['content'] ?? ''));
+            if ($leftText === '' || $rightText === '') {
+                continue;
+            }
+            $leftItems[] = [
+                'id' => (string) $index,
+                'text' => $leftText,
+            ];
+            $rightItems[] = [
+                'id' => (string) $index,
+                'text' => $rightText,
+            ];
+        }
+
+        $seedBase = $test
+            ? $this->buildSelectionSeedBase($test, (int) $user->id, $attemptNumber) . ":q{$question->id}:matching"
+            : "exam:{$question->id}:{$attemptNumber}:matching";
+
+        return [
+            'leftItems' => $leftItems,
+            'rightItems' => $this->shuffleBySeed($rightItems, $seedBase),
+            'correctMap' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $rightItems)),
+        ];
+    }
+
+    protected function buildOrderingQuestionData($question, ?Test $test, $user, int $attemptNumber): array
+    {
+        $payload = $this->normalizeArrayLike($question->payload ?? null) ?? [];
+        $items = [];
+        if (is_array($payload['items'] ?? null)) {
+            $items = array_values($payload['items']);
+        } else {
+            $answers = $this->normalizeArrayLike($question->answers ?? null) ?? [];
+            foreach ($answers as $answer) {
+                if (is_array($answer)) {
+                    $text = trim((string) ($answer['text'] ?? $answer['answer_text'] ?? $answer['content'] ?? $answer['label'] ?? ''));
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+                    continue;
+                }
+
+                if (is_scalar($answer) || $answer === null) {
+                    $text = trim((string) $answer);
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+                }
+            }
+        }
+        $normalized = [];
+
+        foreach ($items as $index => $item) {
+            $text = is_array($item)
+                ? (string) ($item['text'] ?? $item['label'] ?? $item['content'] ?? '')
+                : (string) $item;
+            if (trim($text) === '') {
+                continue;
+            }
+            $normalized[] = [
+                'id' => (string) $index,
+                'text' => $text,
+            ];
+        }
+
+        $seedBase = $test
+            ? $this->buildSelectionSeedBase($test, (int) $user->id, $attemptNumber) . ":q{$question->id}:ordering"
+            : "exam:{$question->id}:{$attemptNumber}:ordering";
+
+        return [
+            'items' => $this->shuffleBySeed($normalized, $seedBase),
+            'correctOrder' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $normalized)),
+        ];
+    }
+
+    protected function isSequenceAnswerCorrect(mixed $userAnswer, array $correctSequence): bool
+    {
+        $normalized = $this->normalizedSequenceValue($userAnswer);
+        if ($normalized === null) {
+            return false;
+        }
+
+        return $normalized === array_values(array_map('strval', $correctSequence));
+    }
+
     protected function buildSelectionSeedBase(Test $test, int $userId, int $attemptNumber): string
     {
         $selection = is_array($test->question_selection) ? $test->question_selection : [];
@@ -380,16 +549,25 @@ class ExamController extends Controller
         
         // Transform questions (optionally randomize answers deterministically)
         $transformedQuestions = $questions->map(function($question) use ($test, $user, $attemptNumberForSeed) {
+            $questionType = $question->type ?? 'multiple_choice';
             $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $attemptNumberForSeed);
             $answers = $resolved['answers'];
             $correctAnswerIndex = $resolved['correct_index'];
+            $matching = null;
+            $ordering = null;
+
+            if ($questionType === 'matching') {
+                $matching = $this->buildMatchingQuestionData($question, $test, $user, $attemptNumberForSeed);
+            } elseif ($questionType === 'ordering') {
+                $ordering = $this->buildOrderingQuestionData($question, $test, $user, $attemptNumberForSeed);
+            }
 
             return [
                 'id' => $question->id,
                 'text' => $question->content,
-                'type' => $question->type ?? 'multiple_choice',
+                'type' => $questionType,
                 'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
-                'options' => in_array($question->type ?? '', ['multiple_choice', 'single_choice', 'true_false'], true)
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
                     ? array_map(function($ans) {
                         if (!is_array($ans)) {
                             return $ans;
@@ -400,6 +578,8 @@ class ExamController extends Controller
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
+                'matching' => $matching,
+                'ordering' => $ordering,
             ];
         });
         
@@ -518,29 +698,40 @@ class ExamController extends Controller
         $hasPassed = $latestResult && $latestResult->passed;
 
         // Transform questions
-        $questions = $exam->questions->map(function($question) {
+        $attemptNumberForSeed = ($latestResult ? max(1, (int) $latestResult->attempt_number) : max(1, $currentAttempt + 1));
+
+        $questions = $exam->questions->map(function($question) use ($user, $attemptNumberForSeed) {
             $answers = $question->answers;
             $correctAnswerIndex = null;
+            $questionType = $question->question_type ?? 'multiple_choice';
+            $matching = null;
+            $ordering = null;
 
-            if (in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
                 foreach ($answers as $idx => $answer) {
                     if ($answer->is_correct) {
                         $correctAnswerIndex = $idx;
                         break;
                     }
                 }
+            } elseif ($questionType === 'matching') {
+                $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumberForSeed);
+            } elseif ($questionType === 'ordering') {
+                $ordering = $this->buildOrderingQuestionData($question, null, $user, $attemptNumberForSeed);
             }
 
             return [
                 'id' => $question->id,
                 'text' => $question->question_text,
-                'type' => $question->question_type ?? 'multiple_choice',
-                'options' => in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)
+                'type' => $questionType,
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
+                'matching' => $matching,
+                'ordering' => $ordering,
             ];
         });
 
@@ -660,30 +851,50 @@ class ExamController extends Controller
             }
             
             // Calculate score and count correct answers (for statistics: X din Y Г®ntrebДѓri)
-            $score = 0;
-            $totalPoints = 0;
-            $correctAnswersCount = 0;
-            $needsManualReview = false;
-            $totalQuestions = $questions->count();
+        $score = 0;
+        $totalPoints = 0;
+        $correctAnswersCount = 0;
+        $needsManualReview = false;
+        $totalQuestions = $questions->count();
 
-            foreach ($questions as $question) {
-                $points = $question->points ?? 1;
-                $totalPoints += $points;
+        foreach ($questions as $question) {
+            $points = $question->points ?? 1;
+            $totalPoints += $points;
 
-                if (in_array($question->type ?? '', ['open_text', 'short_answer', 'essay'], true)) {
-                    $needsManualReview = true;
-                } else {
-                    // Multiple choice / true_false: same answer order as exam payload (incl. randomize_answers)
-                    $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $nextAttempt);
-                    $correctAnswerIndex = $resolved['correct_index'];
+            $questionType = $question->type ?? '';
 
-                    $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
-                    if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
-                        $score += $points;
-                        $correctAnswersCount++;
-                    }
+            if ($questionType === 'matching') {
+                $structured = $this->buildMatchingQuestionData($question, $test, $user, $nextAttempt);
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
+                    $score += $points;
+                    $correctAnswersCount++;
+                }
+                continue;
+            }
+
+            if ($questionType === 'ordering') {
+                $structured = $this->buildOrderingQuestionData($question, $test, $user, $nextAttempt);
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctOrder'] ?? [])) {
+                    $score += $points;
+                    $correctAnswersCount++;
+                }
+                continue;
+            }
+
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+                // Automatically graded questions only.
+                $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $nextAttempt);
+                $correctAnswerIndex = $resolved['correct_index'];
+
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
+                    $score += $points;
+                    $correctAnswersCount++;
                 }
             }
+        }
             
             $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
 
@@ -889,15 +1100,32 @@ class ExamController extends Controller
         $score = 0;
         $totalPoints = 0;
         $needsManualReview = false;
-        $hasManualQuestions = false;
+        $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
         foreach ($exam->questions as $question) {
             $totalPoints += $question->points ?? 1;
 
-            if (in_array($question->question_type ?? '', ['open_text', 'short_answer', 'essay'], true)) {
-                $hasManualQuestions = true;
-            } else {
-                // Multiple choice
+            $questionType = $question->question_type ?? 'multiple_choice';
+
+            if ($questionType === 'matching') {
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                $structured = $this->buildMatchingQuestionData($question, null, $user, $nextAttempt);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
+                    $score += $question->points ?? 1;
+                }
+                continue;
+            }
+
+            if ($questionType === 'ordering') {
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                $structured = $this->buildOrderingQuestionData($question, null, $user, $nextAttempt);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctOrder'] ?? [])) {
+                    $score += $question->points ?? 1;
+                }
+                continue;
+            }
+
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
                 $questionAnswers = $question->answers->values();
                 $correctAnswerIndex = null;
 
@@ -915,7 +1143,7 @@ class ExamController extends Controller
             }
         }
 
-        $needsManualReview = $manualReviewEnabled && $hasManualQuestions;
+        $needsManualReview = false;
 
         $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
         $passingScore = $exam->passing_score ?? 70;

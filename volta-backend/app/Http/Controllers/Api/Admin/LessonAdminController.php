@@ -96,8 +96,14 @@ class LessonAdminController extends Controller
             'content' => 'nullable|string',
             'description' => 'nullable|string',
             'type' => 'nullable|string|max:50',
+            'video_url' => 'nullable|string',
+            'resources' => 'nullable|array',
+            'attachments' => 'nullable|array',
             'duration_minutes' => 'nullable|integer|min:0',
             'order' => 'nullable|integer|min:0',
+            'is_preview' => 'nullable|boolean',
+            'is_locked' => 'nullable|boolean',
+            'unlock_after_lesson_id' => 'nullable|exists:lessons,id',
         ]);
 
         $updateData = array_filter([
@@ -106,8 +112,14 @@ class LessonAdminController extends Controller
             'title' => $validated['title'] ?? null,
             'content' => $validated['content'] ?? $validated['description'] ?? null,
             'type' => $validated['type'] ?? null,
+            'video_url' => $validated['video_url'] ?? null,
+            'resources' => $validated['resources'] ?? null,
+            'attachments' => $validated['attachments'] ?? null,
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'order' => $validated['order'] ?? null,
+            'is_preview' => $validated['is_preview'] ?? null,
+            'is_locked' => $validated['is_locked'] ?? null,
+            'unlock_after_lesson_id' => $validated['unlock_after_lesson_id'] ?? null,
         ], fn ($v) => $v !== null);
         $lesson = $this->courseBuilderService->updateLesson($lesson, $updateData);
 
@@ -165,4 +177,3 @@ class LessonAdminController extends Controller
         ]);
     }
 }
-

@@ -521,7 +521,7 @@ class TestAdminController extends Controller
     }
 
     /**
-     * Get test results pending manual review (short_answer, essay, etc.)
+     * Get test results pending manual review.
      */
     public function getPendingReviews(Request $request)
     {
@@ -568,7 +568,7 @@ class TestAdminController extends Controller
         }
 
         $rows = $query->get();
-        $manualTypes = ['short_answer', 'essay', 'open_text'];
+        $manualTypes = [];
         $toClearIds = [];
 
         foreach ($rows as $row) {
@@ -667,7 +667,7 @@ class TestAdminController extends Controller
             $question = $questions->firstWhere('id', $qid);
             if (!$question) continue;
 
-            $manualTypes = ['short_answer', 'essay', 'open_text'];
+            $manualTypes = [];
             if (!in_array($question->type ?? '', $manualTypes, true)) {
                 continue;
             }

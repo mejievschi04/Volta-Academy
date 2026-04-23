@@ -1387,12 +1387,12 @@
 .qb-folder-card {
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-primary);
-	border-radius: 14px;
+	border-radius: 4px;
 	padding: 14px;
 	display: grid;
 	gap: 8px;
 	min-height: 128px;
-	align-content: space-between;
+	align-content: start;
 	text-decoration: none;
 	color: var(--text-primary);
 	transition: background-color 0.2s ease, border-color 0.2s ease;
@@ -1401,6 +1401,10 @@
 .qb-folder-card:hover {
 	background: color-mix(in srgb, var(--color-primary) 14%, var(--bg-elevated));
 	border-color: var(--color-primary-hover);
+}
+
+.qb-folder-card-footer {
+	margin-top: auto;
 }
 
 @media (max-width: 1200px) {
@@ -1439,6 +1443,11 @@
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
+}
+
+.qb-folder-card .qb-folder-tags {
+	max-height: 32px;
+	overflow: hidden;
 }
 
 .qb-tag {

@@ -39,6 +39,14 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 				content: lessonData.content,
 				title: lessonData.title,
 				description: lessonData.description,
+				type: lessonData.type || lessonData.content_type || 'text',
+				video_url: lessonData.video_url || null,
+				resources: lessonData.resources || [],
+				attachments: lessonData.attachments || [],
+				duration_minutes: lessonData.duration_minutes || null,
+				is_preview: lessonData.is_preview || false,
+				is_locked: lessonData.is_locked || false,
+				unlock_after_lesson_id: lessonData.unlock_after_lesson_id || null,
 			});
 		} catch (err) {
 			console.error('Auto-save error:', err);

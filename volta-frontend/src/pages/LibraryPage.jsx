@@ -18,7 +18,7 @@ function formatBytes(n) {
 }
 
 const ALLOWED_FILES_HINT =
-	'PDF, EPUB, MOBI, DOC, DOCX, TXT, ZIP — max. ~50 MB per fișier. Pentru PDF, coperta primei pagini se face automat în browser (nu e nevoie de Ghostscript pe server).';
+	'PDF, EPUB, MOBI, DOC, DOCX, TXT, ZIP — max. ~512 MB per fișier. Pentru PDF, coperta primei pagini se face automat în browser (nu e nevoie de Ghostscript pe server).';
 
 function isPdfItem(item) {
 	const mimeType = String(item?.mime_type || '').toLowerCase();
@@ -201,7 +201,14 @@ const LibraryPage = () => {
 			await load(1);
 		} catch (err) {
 			logger.error('Library upload', err);
-			showError(err.response?.data?.message || 'Încărcarea a eșuat.');
+			const status = err?.response?.status;
+			if (status === 413) {
+				showError(
+					'Fișierul este prea mare pentru limita de upload a serverului. Încearcă un fișier mai mic sau mărește limita de upload pe server.',
+				);
+			} else {
+				showError(err.response?.data?.message || 'Încărcarea a eșuat.');
+			}
 		} finally {
 			setUploading(false);
 		}

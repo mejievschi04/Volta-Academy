@@ -177,7 +177,7 @@ class ExamBankQuestionSyncService
     protected function mapQuestionType(?string $type): string
     {
         $t = strtolower((string) $type);
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'short_answer', 'essay', 'open_text', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
         if (in_array($t, $allowed, true)) {
             return $t;
         }
@@ -187,20 +187,28 @@ class ExamBankQuestionSyncService
 
     protected function createExamQuestionFromBank(Exam $exam, Question $q, int $order): ExamQuestion
     {
+        $questionType = $this->mapQuestionType($q->type);
+        $payload = ['source_question_id' => $q->id, 'source_bank_id' => $q->question_bank_id];
+        if ($questionType === 'matching') {
+            $payload['pairs'] = $this->extractMatchingPairs($q);
+        } elseif ($questionType === 'ordering') {
+            $payload['items'] = $this->extractOrderingItems($q);
+        }
+
         return ExamQuestion::create([
             'exam_id' => $exam->id,
             'question_text' => $q->content ?? '',
-            'question_type' => $this->mapQuestionType($q->type),
+            'question_type' => $questionType,
             'points' => (int) ($q->points ?? 1),
             'order' => $order,
-            'payload' => ['source_question_id' => $q->id, 'source_bank_id' => $q->question_bank_id],
+            'payload' => $payload,
         ]);
     }
 
     protected function createAnswersFromBank(ExamQuestion $examQ, Question $q): void
     {
-        $type = $examQ->question_type;
-        if (in_array($type, ['short_answer', 'essay', 'open_text'], true)) {
+        $questionType = $this->mapQuestionType($q->type);
+        if (in_array($questionType, ['matching', 'ordering'], true)) {
             return;
         }
 
@@ -217,5 +225,52 @@ class ExamBankQuestionSyncService
                 'order' => (int) ($item['order'] ?? $idx),
             ]);
         }
+    }
+
+    protected function extractMatchingPairs(Question $q): array
+    {
+        $answers = is_array($q->answers) ? $q->answers : [];
+        $pairs = [];
+
+        foreach ($answers as $item) {
+            if (is_string($item) && str_contains($item, '|')) {
+                [$leftRaw, $rightRaw] = array_pad(explode('|', $item, 2), 2, '');
+                $item = ['left' => trim($leftRaw), 'right' => trim($rightRaw)];
+            }
+
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $left = trim((string) ($item['left'] ?? $item['text'] ?? $item['question'] ?? $item['prompt'] ?? ''));
+            $right = trim((string) ($item['right'] ?? $item['answer_text'] ?? $item['answer'] ?? $item['content'] ?? ''));
+            if ($left === '' || $right === '') {
+                continue;
+            }
+
+            $pairs[] = ['left' => $left, 'right' => $right];
+        }
+
+        return $pairs;
+    }
+
+    protected function extractOrderingItems(Question $q): array
+    {
+        $answers = is_array($q->answers) ? $q->answers : [];
+        $items = [];
+
+        foreach ($answers as $item) {
+            if (is_array($item)) {
+                $text = trim((string) ($item['text'] ?? $item['answer_text'] ?? $item['content'] ?? $item['label'] ?? $item['item'] ?? ''));
+            } else {
+                $text = trim((string) $item);
+            }
+
+            if ($text !== '') {
+                $items[] = $text;
+            }
+        }
+
+        return $items;
     }
 }

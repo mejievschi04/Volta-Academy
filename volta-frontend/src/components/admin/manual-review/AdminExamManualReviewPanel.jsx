@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import '../../../pages/admin/AdminExamsPage.css';
 import '../../../pages/admin/AdminTestsPendingReviewsPage.css';
 
-const MANUAL_TYPES = ['open_text', 'short_answer', 'essay'];
+const MANUAL_TYPES = [];
 const AUTO_TYPES = ['multiple_choice', 'single_choice', 'true_false'];
 
 const qType = (q) => String(q?.question_type || q?.type || 'multiple_choice');
@@ -36,12 +36,11 @@ const answerText = (value) => {
 };
 const typeLabel = (type) =>
 	({
-		open_text: 'Raspuns deschis',
-		short_answer: 'Raspuns scurt',
-		essay: 'Eseu',
 		multiple_choice: 'Grila',
 		single_choice: 'Alegere unica',
 		true_false: 'Adevarat / fals',
+		matching: 'Asocieri',
+		ordering: 'Ordonare',
 	}[type] || type);
 
 function formatCompletedAt(iso) {

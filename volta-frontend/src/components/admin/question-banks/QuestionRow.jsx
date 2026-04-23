@@ -6,8 +6,6 @@ const QUESTION_TYPE_LABELS = {
   single_choice: 'Răspuns unic',
   multiple_choice: 'Răspuns multiplu',
   true_false: 'Adevărat/Fals',
-  short_answer: 'Răspuns scurt',
-  essay: 'Eseu',
   matching: 'Potrivire',
   ordering: 'Ordonare',
   fill_in_blank: 'Completare spații',

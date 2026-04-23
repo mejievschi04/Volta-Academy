@@ -55,7 +55,7 @@ function SortableAdminCourseCard({
 	const imageUrl = coverSrc || COURSE_SHOWCASE_FALLBACK_IMAGE;
 	const dragHandle = canMutate ? (
 		<span
-			className="course-showcase-dnd-handle"
+			className="course-showcase-dnd-handle va-card-icon-btn"
 			{...attributes}
 			{...listeners}
 			aria-label="Trage pentru a reordona cursul"
@@ -89,7 +89,7 @@ function SortableAdminCourseCard({
 					canEditCourse ? (
 						<button
 							type="button"
-							className="admin-courses-showcase-edit-btn"
+							className="admin-courses-showcase-edit-btn va-card-icon-btn"
 							onClick={(e) => {
 								e.stopPropagation();
 								onEdit();
@@ -125,7 +125,7 @@ function StaticAdminCourseCard({ course, coverSrc, accentHsl, statusLabel, canEd
 					canEditCourse ? (
 						<button
 							type="button"
-							className="admin-courses-showcase-edit-btn"
+							className="admin-courses-showcase-edit-btn va-card-icon-btn"
 							onClick={(e) => {
 								e.stopPropagation();
 								onEdit();

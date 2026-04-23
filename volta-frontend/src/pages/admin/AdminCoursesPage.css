@@ -120,14 +120,20 @@
 
 .admin-courses-clean-card--showcase-wrap {
   width: 100%;
-  max-width: min(100%, 253px);
+  max-width: min(100%, 360px);
   height: 100%;
-  min-height: calc(165px + 192px);
+  min-height: 212px;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow: visible;
+}
+
+.admin-courses-clean-card--showcase-wrap {
+  --csc-image-w: 41%;
+  --csc-min-height: 212px;
+  --csc-width: min(100%, 360px);
 }
 
 .admin-courses-clean-card--showcase-wrap .course-showcase-card {
@@ -153,27 +159,22 @@
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
+  width: auto;
+  min-width: 32px;
   min-height: 30px;
   padding: 0.28rem 0.55rem 0.28rem 0.42rem;
   margin: 0;
-  border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.62);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #f8fafc;
   font-family: inherit;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
     color 0.18s ease,
-    box-shadow 0.18s ease,
     transform 0.15s ease;
 }
 
@@ -191,10 +192,6 @@
 }
 
 .admin-courses-showcase-edit-btn:hover {
-  background: rgba(15, 23, 42, 0.82);
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
 }
 
@@ -356,11 +353,8 @@
 
 /* Tema light: text și icon negru, pill deschis (contrast pe copertă) */
 [data-theme='light'] .admin-courses-showcase-edit-btn {
-  background: rgba(255, 255, 255, 0.94) !important;
-  border-color: rgba(15, 23, 42, 0.18) !important;
-  box-shadow:
-    0 2px 12px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  background: #fff !important;
+  border-color: rgba(15, 23, 42, 0.2) !important;
 }
 
 [data-theme='light'] .admin-courses-showcase-edit-btn,
@@ -374,7 +368,5 @@
 }
 
 [data-theme='light'] .admin-courses-showcase-edit-btn:hover {
-  background: #fff !important;
-  border-color: rgba(15, 23, 42, 0.28) !important;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14), inset 0 1px 0 #fff;
+  border-color: rgba(15, 23, 42, 0.32) !important;
 }

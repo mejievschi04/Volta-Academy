@@ -158,7 +158,7 @@ class ExamAdminController extends Controller
             'settings' => 'nullable|array',
             'questions' => 'nullable|array',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,short_answer,essay,matching,ordering,open_text',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
@@ -333,7 +333,7 @@ class ExamAdminController extends Controller
             'questions' => 'nullable|array',
             'questions.*.id' => 'nullable|exists:exam_questions,id',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,short_answer,essay,matching,ordering,open_text',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
@@ -834,7 +834,7 @@ class ExamAdminController extends Controller
 
         $olderThanDays = (int) ($validated['older_than_days'] ?? 30);
         $cutoff = now()->subDays($olderThanDays);
-        $manualTypes = ['short_answer', 'essay', 'open_text'];
+        $manualTypes = [];
 
         $query = ExamResult::with([
             'exam.questions',

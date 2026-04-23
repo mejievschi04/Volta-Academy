@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { quizService } from '../services/api';
+import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 
 const QuizPage = () => {
 	const { courseId } = useParams();
@@ -187,7 +188,7 @@ const QuizPage = () => {
 		if (!result || !quiz) return null;
 
 		const totalQuestions = quiz.questions.length;
-		const correctAnswers = quiz.questions.filter(q => visibleAnswers[q.id] === q.answerIndex).length;
+		const correctAnswers = quiz.questions.filter((q) => isQuestionCorrect(q, visibleAnswers[q.id])).length;
 		const incorrectAnswers = totalQuestions - correctAnswers;
 		const percentage = result.percentage || 0;
 
@@ -203,7 +204,8 @@ const QuizPage = () => {
 	// Get question status for sidebar
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (saved || submitted) {
-			const isCorrect = visibleAnswers[questionId] === quiz.questions.find(q => q.id === questionId)?.answerIndex;
+			const question = quiz.questions.find(q => q.id === questionId);
+			const isCorrect = isQuestionCorrect(question, visibleAnswers[questionId]);
 			return isCorrect ? 'completed' : 'incorrect';
 		}
 		const isAnswered = answers[questionId] !== undefined;
@@ -512,8 +514,11 @@ const QuizPage = () => {
 						<div className="va-card-body va-stack" style={{ padding: '2.5rem' }}>
 							{quiz.questions && quiz.questions.length > 0 ? (
 								quiz.questions.map((q, idx) => {
-									const isOpenText = q.type === 'open_text';
-									const isCorrect = !isOpenText && visibleAnswers[q.id] === q.answerIndex;
+									const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+									const hasMatching = q.type === 'matching' && q.matching;
+									const hasOrdering = q.type === 'ordering' && q.ordering;
+									const isStructured = Boolean(hasMatching || hasOrdering);
+									const isCorrect = isQuestionCorrect(q, visibleAnswers[q.id]);
 									const showResult = (submitted || saved) && result;
 									const isFlagged = flaggedQuestions.has(q.id);
 									const points = q.points || 1;
@@ -640,41 +645,20 @@ const QuizPage = () => {
 													</div>
 												</div>
 											</div>
-											{isOpenText ? (
-												<div className="va-form-group" style={{ marginTop: '1.5rem' }}>
-													<textarea
-														className="va-form-input"
-														value={typeof visibleAnswers[q.id] === 'string' ? visibleAnswers[q.id] : ''}
-														onChange={(e) => {
+											{isStructured ? (
+												<div style={{ marginTop: '1.5rem' }}>
+													<StructuredQuestionRenderer
+														question={q}
+														value={visibleAnswers[q.id]}
+														onChange={(next) => {
 															if (!saved && !submitted) {
-																handleAnswerChange(q.id, e.target.value);
+																handleAnswerChange(q.id, next);
 															}
 														}}
-														placeholder="Scrie răspunsul tău aici..."
 														disabled={saved || submitted}
-														rows={6}
-														style={{
-															width: '100%',
-															minHeight: '150px',
-															resize: 'vertical',
-															fontFamily: 'inherit',
-														}}
 													/>
-													{showResult && (
-														<div style={{
-															marginTop: '1rem',
-															padding: '1rem',
-															background: 'rgba(255, 238, 0, 0.1)',
-															border: '1px solid rgba(255, 238, 0, 0.3)',
-															borderRadius: '8px',
-															color: '#ffee00',
-															fontSize: '0.9rem',
-														}}>
-															📝 Această întrebare necesită verificare manuală. Răspunsul tău va fi evaluat de către administrator.
-														</div>
-													)}
 												</div>
-											) : (
+											) : hasOptions ? (
 												<>
 													<div className="va-answer-options" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
 														{q.options && q.options.map((opt, i) => {
@@ -769,10 +753,24 @@ const QuizPage = () => {
 																	{showResult && isSelected && !isCorrectOption && (
 																		<span style={{ color: '#ff6b6b', fontSize: '1.2rem' }}>✗</span>
 																	)}
-																</label>
-															);
-														})}
+															</label>
+														);
+													})}
+												</div>
+												</>
+											) : (
+												<div className="va-form-group" style={{ marginTop: '1.5rem' }}>
+													<div style={{
+														padding: '1rem 1.25rem',
+														background: 'rgba(255,255,255,0.04)',
+														border: '1px solid rgba(255,238,0,0.15)',
+														borderRadius: '12px',
+														color: 'var(--va-text-muted)',
+													}}>
+														Fără opțiuni afișabile pentru această întrebare.
 													</div>
+												</div>
+											)}
 													{showResult && (
 														<div className={`va-answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
 															<div className="va-feedback-header">
@@ -817,8 +815,6 @@ const QuizPage = () => {
 															)}
 														</div>
 													)}
-												</>
-											)}
 										</div>
 									);
 								})
@@ -903,9 +899,9 @@ const QuizPage = () => {
 								</h3>
 								<div style={{ display: 'grid', gap: '1rem' }}>
 									{quiz.questions.map((q, idx) => {
-										const isCorrect = visibleAnswers[q.id] === q.answerIndex;
+										const isStructured = q.type === 'matching' || q.type === 'ordering';
+										const isCorrect = isQuestionCorrect(q, visibleAnswers[q.id]);
 										const userAnswer = visibleAnswers[q.id];
-										const correctAnswer = q.answerIndex;
 										
 										return (
 											<div key={q.id} style={{
@@ -947,7 +943,60 @@ const QuizPage = () => {
 													</div>
 												</div>
 												<div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-													<div style={{
+													{isStructured && q.matching && (
+														<div style={{
+															padding: '0.75rem 1rem',
+															background: 'rgba(255,255,255,0.05)',
+															border: '1px solid rgba(255,238,0,0.15)',
+															borderRadius: '12px'
+														}}>
+															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+																Potrivire
+															</div>
+															<div style={{ display: 'grid', gap: '0.5rem' }}>
+																{q.matching.leftItems?.map((left, pairIndex) => {
+																	const userChoice = Array.isArray(userAnswer) ? userAnswer[pairIndex] : null;
+																	const correctChoice = q.matching.correctMap?.[pairIndex];
+																	const selectedItem = q.matching.rightItems?.find((opt) => String(opt.id) === String(userChoice));
+																	const correctItem = q.matching.rightItems?.find((opt) => String(opt.id) === String(correctChoice));
+																	return (
+																		<div key={left.id} style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
+																			<strong>{left.text}</strong>
+																			<div style={{ marginTop: '0.25rem' }}>
+																				Răspunsul tău: {selectedItem?.text || '—'}
+																			</div>
+																			{!isCorrect && (
+																				<div style={{ marginTop: '0.15rem', color: '#4ade80' }}>
+																					Răspuns corect: {correctItem?.text || '—'}
+																				</div>
+																			)}
+																		</div>
+																	);
+																})}
+															</div>
+														</div>
+													)}
+													{isStructured && q.ordering && (
+														<div style={{
+															padding: '0.75rem 1rem',
+															background: 'rgba(255,255,255,0.05)',
+															border: '1px solid rgba(255,238,0,0.15)',
+															borderRadius: '12px'
+														}}>
+															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+																Ordonare
+															</div>
+															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
+																Ordinea ta: {(Array.isArray(userAnswer) ? userAnswer : []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
+															</div>
+															{!isCorrect && (
+																<div style={{ color: '#4ade80', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+																	Ordinea corectă: {(q.ordering.correctOrder || []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
+																</div>
+															)}
+														</div>
+													)}
+													{!isStructured && (<div style={{
 														padding: '0.75rem 1rem',
 														background: 'rgba(74, 222, 128, 0.1)',
 														border: '1px solid rgba(74, 222, 128, 0.2)',
@@ -957,10 +1006,10 @@ const QuizPage = () => {
 															✓ Răspuns corect
 														</div>
 														<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
-															{q.options?.[correctAnswer]}
+															{q.options?.[q.answerIndex]}
 														</div>
-													</div>
-													{!isCorrect && userAnswer !== undefined && (
+													</div>)}
+													{!isStructured && !isCorrect && userAnswer !== undefined && (
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,107,107,0.1)',
@@ -975,7 +1024,23 @@ const QuizPage = () => {
 															</div>
 														</div>
 													)}
-													{q.explanation && (
+													{!isStructured && q.explanation && (
+														<div style={{
+															padding: '0.75rem 1rem',
+															background: 'rgba(255,255,255,0.05)',
+															border: '1px solid rgba(255,238,0,0.15)',
+															borderRadius: '12px',
+															marginTop: '0.5rem'
+														}}>
+															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+																💡 Explicație
+															</div>
+															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+																{q.explanation}
+															</div>
+														</div>
+													)}
+													{isStructured && q.explanation && (
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,255,255,0.05)',
@@ -1121,6 +1186,29 @@ const QuizPage = () => {
 			</main>
 		</div>
 	);
+};
+
+const normalizeSequenceAnswer = (value) => {
+	if (!Array.isArray(value)) return null;
+	return value.map((item) => String(item));
+};
+
+const isQuestionCorrect = (question, answerValue) => {
+	if (!question) return false;
+	if (question.type === 'matching' && question.matching?.correctMap) {
+		const userSeq = normalizeSequenceAnswer(answerValue);
+		const correctSeq = normalizeSequenceAnswer(question.matching.correctMap);
+		return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
+	}
+	if (question.type === 'ordering' && question.ordering?.correctOrder) {
+		const userSeq = normalizeSequenceAnswer(answerValue);
+		const correctSeq = normalizeSequenceAnswer(question.ordering.correctOrder);
+		return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
+	}
+	if (Array.isArray(question.options) && question.options.length > 0) {
+		return answerValue === question.answerIndex;
+	}
+	return false;
 };
 
 export default QuizPage;

@@ -1,7 +1,12 @@
 import React from 'react';
 
 const getQuestionTypeLabel = (type) => {
-	const labels = { multiple_choice: 'Răspuns multiplu', true_false: 'Adevărat/Fals', short_answer: 'Răspuns scurt' };
+	const labels = {
+		multiple_choice: 'Răspuns multiplu',
+		true_false: 'Adevărat/Fals',
+		matching: 'Potrivire',
+		ordering: 'Ordonare',
+	};
 	return labels[type] || type || 'Răspuns multiplu';
 };
 
