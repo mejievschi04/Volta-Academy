@@ -25,6 +25,16 @@ $statefulList = array_filter(array_map('trim', explode(',', $statefulBase)));
 /** Host (+ opțional port) din APP_URL / FRONTEND_URL — mereu unite la listă, ca să nu lipsească domeniul producției dacă SANCTUM_* e incomplet. */
 $hostsFromEnvUrls = function (?string $raw): array {
     $out = [];
+    $wwwVariants = function (string $host): array {
+        if ($host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+            return [];
+        }
+
+        return str_starts_with($host, 'www.')
+            ? [substr($host, 4)]
+            : ['www.'.$host];
+    };
+
     if (! is_string($raw) || $raw === '') {
         return $out;
     }
@@ -38,10 +48,18 @@ $hostsFromEnvUrls = function (?string $raw): array {
         if (! is_string($host) || $host === '') {
             continue;
         }
+
         $out[] = $host;
+        foreach ($wwwVariants($host) as $variantHost) {
+            $out[] = $variantHost;
+        }
+
         $port = parse_url($forParse, PHP_URL_PORT);
         if ($port) {
             $out[] = $host.':'.$port;
+            foreach ($wwwVariants($host) as $variantHost) {
+                $out[] = $variantHost.':'.$port;
+            }
         }
     }
 
