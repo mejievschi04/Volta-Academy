@@ -22,8 +22,7 @@ import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { mapFolderCardImageUrl, toImageUrl } from '../../utils/imageUrl';
-import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../../components/ui/course-showcase-card';
-import { hexToHslSpace } from '../../lib/hexToHsl';
+import CourseMapFolderTile from '../../components/ui/CourseMapFolderTile';
 import { normalizeColorInputToHex } from '../../utils/color';
 
 const COURSE_MAP_ACCENT_COLORS = [
@@ -60,7 +59,6 @@ function SortableAdminMapShowcase({
 	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
 	const summary = map.description || `${courseCount} cursuri`;
-	const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
 	const subtitle =
 		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
 
@@ -88,12 +86,12 @@ function SortableAdminMapShowcase({
 			style={style}
 			className={`admin-course-map-showcase-wrap${canMutate && isRealMapId(map.id) ? ' admin-course-map-showcase-wrap--sortable' : ''}`}
 		>
-			<CourseShowcaseCard
-				imageUrl={imageUrl}
+			<CourseMapFolderTile
 				title={map.name || '—'}
 				subtitle={subtitle}
-				themeHsl={hexToHslSpace(accentColor)}
-				showAccentRibbon
+				count={courseCount}
+				color={accentColor}
+				imageUrl={mapFolderCardImageUrl(map)}
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topLeftSlot={dragHandle}
@@ -141,17 +139,16 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
 	const summary = map.description || `${courseCount} cursuri`;
-	const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
 	const subtitle =
 		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
 	return (
 		<div className="admin-course-map-showcase-wrap">
-			<CourseShowcaseCard
-				imageUrl={imageUrl}
+			<CourseMapFolderTile
 				title={map.name || '—'}
 				subtitle={subtitle}
-				themeHsl={hexToHslSpace(accentColor)}
-				showAccentRibbon
+				count={courseCount}
+				color={accentColor}
+				imageUrl={mapFolderCardImageUrl(map)}
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topRightSlot={

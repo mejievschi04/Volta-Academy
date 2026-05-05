@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { courseMapsService, adminService, examService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { mapFolderCardImageUrl } from '../utils/imageUrl';
 import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-card';
+import CourseMapFolderTile from '../components/ui/CourseMapFolderTile';
+import { mapFolderCardImageUrl } from '../utils/imageUrl';
 import { hexToHslSpace } from '../lib/hexToHsl';
 import './CoursesPage.css';
 
@@ -205,7 +206,6 @@ const CoursesPage = () => {
 								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 								const courseCount = map.courses_count ?? 0;
 								const descriptionLine = map.description?.trim() ? String(map.description).trim() : null;
-								const imageUrl = mapFolderCardImageUrl(map) || COURSE_SHOWCASE_FALLBACK_IMAGE;
 								const subtitleParts = [];
 								if (descriptionLine) subtitleParts.push(descriptionLine);
 								subtitleParts.push(`${courseCount} ${courseCount === 1 ? 'curs' : 'cursuri'}`);
@@ -213,14 +213,14 @@ const CoursesPage = () => {
 
 								return (
 									<article key={map.id} className="course-map-card course-map-card--showcase-wrap">
-										<CourseShowcaseCard
+										<CourseMapFolderTile
 											className="courses-page-map-card-showcase"
-											imageUrl={imageUrl}
 											title={map.name || 'Mapa'}
 											subtitle={subtitle}
+											count={courseCount}
+											color={accentColor}
+											imageUrl={mapFolderCardImageUrl(map)}
 											progress={map.progress_percentage ?? map.progress ?? null}
-											themeHsl={hexToHslSpace(accentColor)}
-											showAccentRibbon
 											onOpen={() => navigate(`/courses/map/${map.id}`)}
 											ctaLabel="Deschide mapa"
 										/>

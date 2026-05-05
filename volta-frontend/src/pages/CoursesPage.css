@@ -498,19 +498,19 @@
 /* Grid mape cursuri — aliniat la admin (admin-courses-grid-container-maps) */
 .courses-page-maps-grid {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
-	gap: var(--space-6);
+	grid-template-columns: repeat(3, minmax(280px, 1fr));
+	gap: var(--space-8);
 	align-items: stretch;
-	justify-items: stretch;
+	justify-items: center;
 	width: 100%;
 	box-sizing: border-box;
 	margin-top: var(--space-8);
 }
 
 .courses-page-student .courses-page-maps-grid {
-	grid-template-columns: repeat(5, minmax(0, 1fr));
-	gap: var(--space-6);
-	justify-items: stretch;
+	grid-template-columns: repeat(3, minmax(280px, 1fr));
+	gap: var(--space-8);
+	justify-items: center;
 	align-items: stretch;
 }
 
@@ -708,13 +708,13 @@
 	box-shadow: none;
 	padding: 0;
 	cursor: default;
-	min-height: 212px;
+	min-height: 382px;
 	height: 100%;
 	overflow: visible;
 	transition: none;
 	display: flex;
 	flex-direction: column;
-	align-items: stretch;
+	align-items: center;
 	width: 100%;
 	max-width: 100%;
 	margin-inline: 0;
@@ -730,17 +730,9 @@
 	box-shadow: none;
 }
 
-.course-map-card--showcase-wrap {
-	--csc-image-w: 41%;
-	--csc-min-height: 212px;
-	--csc-width: 100%;
-}
-
-.course-map-card--showcase-wrap .course-showcase-card {
-	flex: 1;
-	min-height: 0;
+.course-map-card--showcase-wrap .course-map-folder-tile {
 	width: 100%;
-	max-width: 100%;
+	max-width: 390px;
 	height: 100%;
 }
 
@@ -768,10 +760,10 @@
 		grid-template-columns: repeat(2, 1fr);
 	}
 	.courses-page-maps-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(260px, 1fr));
 	}
 	.courses-page-student .courses-page-maps-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(260px, 1fr));
 	}
 }
 

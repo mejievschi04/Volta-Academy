@@ -1637,9 +1637,9 @@
 .admin-course-map-showcase-wrap {
 	position: relative;
 	width: 100%;
-	max-width: min(100%, 360px);
+	max-width: min(100%, 390px);
 	height: 100%;
-	min-height: 212px;
+	min-height: 382px;
 	margin-inline: auto;
 	overflow: visible;
 	transition: none;
@@ -1647,12 +1647,9 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	--csc-image-w: 41%;
-	--csc-min-height: 212px;
-	--csc-width: min(100%, 360px);
 }
 
-.admin-course-map-showcase-wrap .course-showcase-card {
+.admin-course-map-showcase-wrap .course-map-folder-tile {
 	flex: 1;
 	min-height: 0;
 	width: 100%;
@@ -1739,13 +1736,14 @@
 
 /* Grid mape admin – 5 pe linie (desktop), apoi 2, apoi 1 */
 .admin-courses-grid-container-maps {
-	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(280px, 1fr));
 	justify-items: center;
 	align-items: stretch;
+	gap: var(--space-8, 32px);
 }
 @media (max-width: 1350px) {
 	.admin-courses-grid-container-maps {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(2, minmax(260px, 1fr));
 	}
 }
 @media (max-width: 640px) {
