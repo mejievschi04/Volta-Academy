@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { ensureApiCsrfCookie } from '../api';
 import { authService } from '../services/api';
 
 export const AuthContext = createContext(null);
@@ -74,7 +75,14 @@ export const AuthProvider = ({ children }) => {
 	}, [user]);
 
 	useEffect(() => {
-		checkAuth();
+		(async () => {
+			try {
+				await ensureApiCsrfCookie();
+			} catch {
+				/* rețea / backend indisponibil */
+			}
+			await checkAuth();
+		})();
 	}, []);
 
 	const checkAuth = async () => {

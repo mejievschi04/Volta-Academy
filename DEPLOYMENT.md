@@ -56,7 +56,7 @@ nano .env  # sau vim
 | `DB_PASSWORD` | Parolă PostgreSQL | Parolă puternică |
 | `APP_URL` | URL aplicație | `https://academy.volta.md` |
 | `FRONTEND_URL` | URL frontend (CORS) | `https://academy.volta.md` |
-| `VITE_API_URL` | URL API pentru frontend | `https://academy.volta.md/api` |
+| `VITE_API_URL` | URL API pentru frontend (build Vite) | `/api` (același domeniu) sau URL absolut dacă API e separat |
 
 ### Generare APP_KEY
 
@@ -205,6 +205,19 @@ $COMPOSE exec -T postgres psql -U volta_user -d volta_academy < backup_20250204.
    ```
 
 3. **Dockerfile-ul folosește** mirror Alpine alternativ (`alpine.global.ssl.fastly.net`). Fă `git pull` și rebuild.
+
+### `419 CSRF token mismatch` (după migrare pe VPS)
+
+1. **Același domeniu pentru SPA și API** — recomandat: Nginx servește frontend + `location /api` pe același host. La build frontend: `VITE_API_URL=/api` (nu URL absolut cu alt host decât dacă e intenționat).
+2. **`.env` backend** (apoi `docker compose exec backend php artisan config:clear`):
+   - `APP_URL=https://academy.volta.md` (HTTPS, fără slash final)
+   - `FRONTEND_URL=https://academy.volta.md` (același origin ca în bara browserului — cu sau fără `www`, dar **consistent**)
+   - `SESSION_SECURE_COOKIE=true` pe HTTPS (sau lasă gol — se deduce din `APP_URL`)
+   - `SESSION_DOMAIN=` **gol** (nu seta `academy.volta.md` fix dacă accesezi și `www.`)
+   - `SESSION_SAME_SITE=lax` (același site; subdomenii diferite → `none` + `Secure`)
+3. **Cookie-uri vechi** — șterge cookie-urile pentru domeniu sau testează în fereastră privată (după schimbare `APP_KEY` e obligatoriu).
+4. **Verificare** — `GET https://DITAU-DOMENIU/api/health` arată `session_secure`, `sanctum_stateful`. La login, în DevTools → Application → Cookies trebuie `XSRF-TOKEN` și sesiunea Laravel.
+5. **Rebuild frontend** dacă ai schimbat `VITE_API_URL`: `docker compose build --no-cache frontend && docker compose up -d frontend`
 
 ### `/api/auth/login` sau `/api/auth/me` returnează 500
 1. **Test fără sesiune:** deschide `https://DITAU-DOMENIU/api/health` — dacă e **200** cu `"database":"connected"`, PHP și DB merg; problema e aproape sigur la **sesiuni** sau la codul de login. Dacă **500**, verifică `DB_*` în container și logurile.

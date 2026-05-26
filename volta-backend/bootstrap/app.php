@@ -16,14 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // În spatele Nginx / Docker, X-Forwarded-Proto și IP corect pentru HTTPS, rate limit, sesiuni.
         $middleware->trustProxies(at: '*');
 
-        // Sanctum: sesiune cookie pentru SPA + Bearer token pentru mobil
-        // Enable sessions for API routes (needed for authentication)
-        // Order matters: StartSession must come early, after CORS
+        // Sanctum SPA: sesiune + CSRF doar pentru request-uri stateful (fără StartSession duplicat).
         $middleware->api(prepend: [
             \App\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SecurityHeaders::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Session\Middleware\StartSession::class,
+            \App\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
         // AuthenticateSession can cause issues with API routes, so we'll handle auth differently
         // $middleware->api(append: [

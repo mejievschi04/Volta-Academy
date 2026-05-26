@@ -43,11 +43,15 @@ Route::get('/health', function () {
         'ok' => true,
         'database' => 'connected',
         'session_driver' => config('session.driver'),
+        'session_secure' => config('session.secure'),
+        'session_same_site' => config('session.same_site'),
+        'session_domain' => config('session.domain'),
+        'app_url' => config('app.url'),
+        'sanctum_stateful' => config('sanctum.stateful'),
         'cache_store' => config('cache.default'),
     ]);
 })->withoutMiddleware([
-    \Illuminate\Session\Middleware\StartSession::class,
-    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+    \App\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
 ]);
 
 // Public routes – throttle to prevent abuse (e.g. scraping, DoS)

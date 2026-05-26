@@ -169,7 +169,14 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE', false), // Set to false for localhost, true for HTTPS
+    'secure' => (function () {
+        $secure = env('SESSION_SECURE_COOKIE');
+        if ($secure !== null && $secure !== '') {
+            return filter_var($secure, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_SCHEME) === 'https';
+    })(),
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +206,7 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', null), // null allows cookies between different localhost ports
+    'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*
     |--------------------------------------------------------------------------
