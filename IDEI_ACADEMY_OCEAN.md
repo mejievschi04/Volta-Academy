@@ -12,7 +12,7 @@ Idei utile de la AcademyOcean, prioritizate și cu efort estimat. Ce **ai deja**
 | Certificate la finalizare | ✅ Blade templates (premium, modern, classic, course) | Poți adăuga editor de șablon / variante (ca „choose template or design your own”). |
 | AI pentru quiz | ✅ Generare întrebări din conținut curs sau text (QuestionBankAdminController) | De extins: mai multe tipuri, dificultate, feedback. |
 | AI asistent | ✅ AITutor (chat, context curs/lecție, progres, greșeli) | Lipsește: răspunsuri 24/7 din „baza de cunoștințe” (search + RAG). |
-| Echipe / learning paths | ✅ Teams, CourseTest, progresie, ProgressionRules | Poți adăuga „learning path” explicit per echipă (ordine cursuri + automate). |
+| Echipe / learning paths | ✅ Teams, CourseTest, progres elev | Poți adăuga „learning path” explicit per echipă (ordine cursuri + automate). |
 | Rapoarte / statistici | ✅ AdminStatisticsPage, AdminAnalyticsPage, CourseInsights, dropoff | Poți adăuga „insights” text (sugestii AI) peste date. |
 
 ---

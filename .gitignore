@@ -38,6 +38,7 @@ lerna-debug.log*
 .env.*.local
 .env.backup
 .env.production
+deploy.env
 
 # Dependencies
 node_modules/

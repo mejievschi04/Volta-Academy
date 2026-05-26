@@ -2,10 +2,6 @@
    ADMIN COURSE DETAIL PAGE - Modern Styling
    ============================================ */
 
-.admin-course-detail-progression {
-	margin-top: var(--space-6);
-}
-
 .admin-course-detail-page {
 	padding: var(--space-6);
 	max-width: 1400px;

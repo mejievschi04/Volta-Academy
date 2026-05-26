@@ -29,8 +29,6 @@ class Course extends Model
         'reward_points',
         // Settings stored as JSON for modularity
         'settings',
-        // Progression rules (JSON for quick access, detailed rules in progression_rules table)
-        'progression_rules',
         // Legacy fields (kept for backward compatibility, will be migrated to settings)
         'short_description',
         'access_type',
@@ -60,7 +58,6 @@ class Course extends Model
 
     protected $casts = [
         'settings' => 'array',
-        'progression_rules' => 'array',
         'objectives' => 'array',
         'requirements' => 'array',
         'meta_keywords' => 'array',
@@ -133,13 +130,6 @@ class Course extends Model
      */
     public function courseTests() {
         return $this->hasMany(CourseTest::class);
-    }
-
-    /**
-     * Get progression rules for this course (from progression_rules table)
-     */
-    public function progressionRules() {
-        return $this->hasMany(ProgressionRule::class)->where('active', true)->orderBy('priority');
     }
 
     /**

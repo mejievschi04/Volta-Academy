@@ -9,10 +9,9 @@ Scriptul verifică aplicația (API backend) din perspectiva unui LMS și raporte
 - **Auth:** login cu credențiale greșite returnează 401/422, `/auth/me` fără sesiune returnează 401.
 - **API public:** `GET /courses`, `GET /events` returnează listă.
 - **Admin:** rutele `/admin/*` cer autentificare (401/403 fără token/sesiune).
-- **Admin (cu auth):** listă cursuri, structură builder (module, lecții), listă teste, listă bănci întrebări, reguli progresie.
+- **Admin (cu auth):** listă cursuri, structură builder (module, lecții), listă teste, listă bănci întrebări.
 - **Model curs (LMS):** cursuri au titlu și câmp status/publicare.
 - **Content blocks (LMS):** blocuri de conținut au câmp `type`.
-- **Progresie:** endpoint reguli progresie pentru curs.
 - **Integritate date:** lecții au `id` și `title` (eșantion).
 - **Flux student:** dashboard, progress curs răspund.
 - **Examene/Teste:** există listă exams sau tests; test are endpoint pentru întrebări.

@@ -7,7 +7,6 @@ import CourseOverview from '../../components/admin/courses/CourseOverview';
 import CourseDistributionPanel from '../../components/admin/courses/CourseDistributionPanel';
 import CourseSettingsEditModal from '../../components/admin/courses/CourseSettingsEditModal';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
-import ProgressionRulesManager from '../../components/admin/courses/ProgressionRulesManager';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/admin-course-detail-modern.css';
 
@@ -222,12 +221,6 @@ const AdminCourseDetailPage = () => {
 				readOnly={readOnly}
 				onUpdated={fetchCourseData}
 			/>
-
-			{!readOnly && (
-				<section className="admin-course-overview admin-course-detail-progression">
-					<ProgressionRulesManager courseId={course.id} />
-				</section>
-			)}
 
 			<PublishCourseModal
 				open={publishModalOpen}

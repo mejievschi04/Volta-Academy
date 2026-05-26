@@ -158,17 +158,6 @@ async function runAdminChecksAuthenticated() {
 			: fail('Admin: listă bănci întrebări', `HTTP ${banksRes.status}`)
 	);
 
-	// Reguli progresie (dacă există curs)
-	if (courses.length > 0) {
-		const progRes = await request('GET', `admin/courses/${courses[0].id}/progression-rules`);
-		results.push(
-			progRes.ok && Array.isArray(progRes.data)
-				? pass('Admin: reguli progresie curs', '')
-				: progRes.status === 404
-					? pass('Admin: reguli progresie (endpoint există)', '404 = fără reguli')
-					: fail('Admin: reguli progresie', `HTTP ${progRes.status}`)
-		);
-	}
 	return results;
 }
 
@@ -276,23 +265,6 @@ async function runContentBlocksChecks() {
 	return results;
 }
 
-async function runProgressionAndAccessChecks() {
-	const results = [];
-	const coursesRes = await request('GET', 'admin/courses');
-	if (!coursesRes.ok) return results;
-	const courses = Array.isArray(coursesRes.data) ? coursesRes.data : coursesRes.data?.data ?? [];
-	if (courses.length === 0) return results;
-	const progRes = await request('GET', `admin/courses/${courses[0].id}/progression-rules`);
-	results.push(
-		progRes.ok && Array.isArray(progRes.data)
-			? pass('LMS: reguli progresie returnează array')
-			: progRes.status === 404 || (progRes.ok && Array.isArray(progRes.data))
-				? pass('LMS: endpoint progresie disponibil', '')
-				: fail('LMS: progresie', `HTTP ${progRes.status}`)
-	);
-	return results;
-}
-
 async function runAll() {
 	const start = Date.now();
 	const report = {
@@ -324,7 +296,6 @@ async function runAll() {
 		report.groups.push({ name: 'Admin (autentificat)', results: await runAdminChecksAuthenticated() });
 		report.groups.push({ name: 'Model curs (LMS)', results: await runCourseModelChecks() });
 		report.groups.push({ name: 'Content blocks (LMS)', results: await runContentBlocksChecks() });
-		report.groups.push({ name: 'Progresie & acces (LMS)', results: await runProgressionAndAccessChecks() });
 		report.groups.push({ name: 'Integritate date LMS', results: await runLmsDataIntegrityChecks() });
 		report.groups.push({ name: 'Flux student', results: await runStudentFlowChecks() });
 		report.groups.push({ name: 'Examene / Teste', results: await runExamFlowChecks() });

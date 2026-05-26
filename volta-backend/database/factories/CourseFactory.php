@@ -54,10 +54,6 @@ class CourseFactory extends Factory
                     ],
                 ];
             }
-            
-            if (Schema::hasColumn('courses', 'progression_rules')) {
-                $definition['progression_rules'] = [];
-            }
         }
 
         return $definition;

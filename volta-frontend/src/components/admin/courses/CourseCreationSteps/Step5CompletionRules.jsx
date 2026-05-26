@@ -26,7 +26,7 @@ const Step5CompletionRules = ({ data, onUpdate }) => {
 				<div className="step5-cr-section">
 					<label className="step5-cr-label">Lecții obligatorii</label>
 					<p className="step5-cr-hint">
-						Toate lecțiile sunt considerate obligatorii pentru finalizare (secvențial sau conform regulilor de progresie).
+						Toate lecțiile sunt considerate obligatorii pentru finalizare.
 					</p>
 					<label className="step5-cr-checkbox">
 						<input

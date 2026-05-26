@@ -337,14 +337,6 @@ Route::middleware([
     Route::post('/question-banks/{id}/generate-from-course', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromCourse']);
     Route::post('/question-banks/{id}/generate-from-text', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromText']);
     
-    // Progression Rules Management
-    Route::get('/courses/{courseId}/progression-rules', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'index']);
-    Route::post('/courses/{courseId}/progression-rules', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'store']);
-    Route::put('/courses/{courseId}/progression-rules/{ruleId}', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'update']);
-    Route::delete('/courses/{courseId}/progression-rules/{ruleId}', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'destroy']);
-    Route::post('/courses/{courseId}/progression-rules/{ruleId}/toggle', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'toggle']);
-    Route::post('/courses/{courseId}/progression-rules/reorder', [\App\Http\Controllers\Api\Admin\ProgressionRulesController::class, 'reorder']);
-    
     // Events Management
     Route::get('/events', [EventAdminController::class, 'index']);
     Route::get('/events/insights', [EventAdminController::class, 'insights']);

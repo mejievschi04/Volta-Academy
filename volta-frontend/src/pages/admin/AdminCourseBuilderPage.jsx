@@ -11,7 +11,6 @@ import '../../styles/admin-course-builder.css';
 import { useAuth } from '../../contexts/AuthContext';
 import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
-import ProgressionRulesManager from '../../components/admin/courses/ProgressionRulesManager';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
 
@@ -47,8 +46,6 @@ const AdminCourseBuilderPage = () => {
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
 	const [publishModalOpen, setPublishModalOpen] = useState(false);
 	const [publishValidationReport, setPublishValidationReport] = useState(null);
-	const [builderWorkspaceTab, setBuilderWorkspaceTab] = useState('content');
-	const [validateLoading, setValidateLoading] = useState(false);
 	const [showVoltAssistant, setShowVoltAssistant] = useState(false);
 
 	const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
@@ -137,41 +134,6 @@ const AdminCourseBuilderPage = () => {
 		if (!selectedLessonId) return null;
 		return allLessons.find((lessonItem) => lessonItem.id === selectedLessonId) || null;
 	}, [allLessons, selectedLessonId]);
-
-	const progressionStructureOptions = useMemo(() => {
-		const testsMap = new Map();
-		for (const row of courseAttachedTests) {
-			const testId = row.test_id ?? row.test?.id;
-			if (!testId) continue;
-			if (!testsMap.has(testId)) {
-				testsMap.set(testId, {
-					id: testId,
-					title: row.test?.title || row.title || `Test #${testId}`,
-				});
-			}
-		}
-		return {
-			lessons: allLessons.map((lessonItem) => ({
-				id: lessonItem.id,
-				title: lessonItem.title || `Lecție ${lessonItem.id}`,
-				moduleTitle: lessonItem.__moduleTitle || null,
-			})),
-			modules: modules.map((moduleItem) => ({
-				id: moduleItem.id,
-				title: moduleItem.title || `Modul ${moduleItem.id}`,
-			})),
-			tests: [...testsMap.values()],
-		};
-	}, [allLessons, modules, courseAttachedTests]);
-
-	const handleBuilderWorkspaceTab = (tab) => {
-		if (tab === builderWorkspaceTab) return;
-		if (tab === 'progression') {
-			flushPendingLessonContentSave();
-			setShowTestCreator(false);
-		}
-		setBuilderWorkspaceTab(tab);
-	};
 
 	const getModuleAttachedTests = useCallback((moduleId) => (
 		courseAttachedTests
@@ -802,19 +764,6 @@ const AdminCourseBuilderPage = () => {
 		setPublishModalOpen(false);
 		setPublishValidationReport(null);
 		await fetchStructure(true);
-	};
-
-	const handleValidateFromWorkflow = async () => {
-		if (!course?.id || validateLoading) return;
-		setValidateLoading(true);
-		try {
-			await handleValidateForPublish();
-			showToast('Validare finalizată. Verifică rezultatul mai jos.', 'success');
-		} catch {
-			// handleValidateForPublish already toasts errors
-		} finally {
-			setValidateLoading(false);
-		}
 	};
 
 	const handleCourseStatusAction = async (action) => {
@@ -1730,74 +1679,8 @@ const AdminCourseBuilderPage = () => {
 				)}
 
 				<div className="admin-course-builder-workspace admin-course-builder-workspace-clean">
-					<nav className="admin-course-builder-workspace-tabs" aria-label="Mod builder">
-						<button
-							type="button"
-							className={`admin-course-builder-workspace-tab ${builderWorkspaceTab === 'content' ? 'is-active' : ''}`}
-							onClick={() => handleBuilderWorkspaceTab('content')}
-						>
-							Conținut
-						</button>
-						<button
-							type="button"
-							className={`admin-course-builder-workspace-tab ${builderWorkspaceTab === 'progression' ? 'is-active' : ''}`}
-							onClick={() => handleBuilderWorkspaceTab('progression')}
-						>
-							Reguli progres
-						</button>
-					</nav>
 					<div className="admin-course-builder-workspace-content">
-						{builderWorkspaceTab === 'progression' ? (
-							<div className="admin-course-builder-progression-workspace">
-								<section className="admin-course-builder-workflow">
-									<h2 className="admin-course-builder-workflow-title">Workflow</h2>
-									<p className="admin-course-builder-workflow-hint">
-										Verifică cursul înainte de publicare. Erorile de validare apar mai jos; remediază conținutul sau regulile, apoi publică din meniul din stânga.
-									</p>
-									<div className="admin-course-builder-workflow-actions">
-										<button
-											type="button"
-											className="admin-btn admin-btn-secondary"
-											onClick={handleValidateFromWorkflow}
-											disabled={validateLoading || courseActionLoading}
-										>
-											{validateLoading ? 'Se verifică…' : 'Verifică acum'}
-										</button>
-										{course?.status !== 'published' && (
-											<button
-												type="button"
-												className="admin-btn admin-btn-primary"
-												onClick={() => handleCourseStatusAction('publish')}
-												disabled={courseActionLoading}
-											>
-												Publică curs
-											</button>
-										)}
-									</div>
-									{publishValidationReport && (
-										<div
-											className={`admin-course-builder-validation-report ${publishValidationReport.ok ? 'is-ok' : 'is-error'}`}
-											role="status"
-										>
-											{publishValidationReport.ok ? (
-												<p>Cursul este valid și poate fi publicat.</p>
-											) : (
-												<ul>
-													{(publishValidationReport.errors || []).map((err, idx) => (
-														<li key={idx}>{typeof err === 'string' ? err : err?.message || JSON.stringify(err)}</li>
-													))}
-												</ul>
-											)}
-										</div>
-									)}
-								</section>
-								<ProgressionRulesManager
-									courseId={courseId}
-									variant="builder"
-									structureOptions={progressionStructureOptions}
-								/>
-							</div>
-						) : showTestCreator ? (
+						{showTestCreator ? (
 							<InlineTestEditorShell
 								editor={{
 									...testEditor,

@@ -783,39 +783,6 @@ export const adminService = {
     return response.data;
   },
 
-  // Progression Rules
-  getProgressionRules: async (courseId) => {
-    const response = await api.get(`/admin/courses/${courseId}/progression-rules`);
-    return response.data;
-  },
-  
-  createProgressionRule: async (courseId, ruleData) => {
-    const response = await api.post(`/admin/courses/${courseId}/progression-rules`, ruleData);
-    return response.data;
-  },
-  
-  updateProgressionRule: async (courseId, ruleId, ruleData) => {
-    const response = await api.put(`/admin/courses/${courseId}/progression-rules/${ruleId}`, ruleData);
-    return response.data;
-  },
-  
-  deleteProgressionRule: async (courseId, ruleId) => {
-    const response = await api.delete(`/admin/courses/${courseId}/progression-rules/${ruleId}`);
-    return response.data;
-  },
-
-  toggleProgressionRule: async (courseId, ruleId) => {
-    const response = await api.post(`/admin/courses/${courseId}/progression-rules/${ruleId}/toggle`);
-    return response.data;
-  },
-
-  reorderProgressionRules: async (courseId, ruleIds) => {
-    const response = await api.post(`/admin/courses/${courseId}/progression-rules/reorder`, {
-      rule_ids: ruleIds,
-    });
-    return response.data;
-  },
-
   // Course maps (folders to group courses)
   getCourseMaps: async (params = {}) => {
     const response = await api.get('/admin/course-maps', { params });

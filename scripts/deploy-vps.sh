@@ -32,7 +32,7 @@ if [ -z "${APP_KEY:-}" ]; then
   exit 1
 fi
 
-if [ -d .git ]; then
+if [ "${DEPLOY_SKIP_GIT:-0}" != "1" ] && [ -d .git ]; then
   echo ">>> git pull"
   git pull origin main || git pull origin master
 fi

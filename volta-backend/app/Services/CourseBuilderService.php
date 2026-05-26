@@ -364,19 +364,12 @@ class CourseBuilderService
 
         $structure = $this->getBuilderStructure($courseId);
 
-        // Ensure snapshot is fully serializable (arrays only)
-        $progressionRules = [];
-        if (Schema::hasTable('progression_rules')) {
-            $progressionRules = DB::table('progression_rules')->where('course_id', $courseId)->get()->toArray();
-        }
-
         $snapshot = [
             'course' => $course->fresh()->toArray(),
             'modules' => collect($structure['modules'] ?? [])->map(fn ($m) => is_object($m) ? $m->toArray() : $m)->all(),
             'lessons' => collect($structure['lessons'] ?? [])->map(fn ($l) => is_object($l) ? $l->toArray() : $l)->all(),
             'content_blocks' => collect($structure['content_blocks'] ?? [])->map(fn ($b) => is_object($b) ? $b->toArray() : $b)->all(),
             'course_tests' => CourseTest::where('course_id', $courseId)->get()->toArray(),
-            'progression_rules' => $progressionRules,
             'captured_at' => now()->toISOString(),
         ];
 
@@ -423,7 +416,6 @@ class CourseBuilderService
         $lessonsData = is_array($snapshot['lessons'] ?? null) ? $snapshot['lessons'] : [];
         $blocksData = is_array($snapshot['content_blocks'] ?? null) ? $snapshot['content_blocks'] : [];
         $courseTestsData = is_array($snapshot['course_tests'] ?? null) ? $snapshot['course_tests'] : [];
-        $progressionRulesData = is_array($snapshot['progression_rules'] ?? null) ? $snapshot['progression_rules'] : [];
 
         return DB::transaction(function () use (
             $sourceCourse,
@@ -434,8 +426,7 @@ class CourseBuilderService
             $modulesData,
             $lessonsData,
             $blocksData,
-            $courseTestsData,
-            $progressionRulesData
+            $courseTestsData
         ) {
             // Create a new course based on snapshot fields (but safe defaults for visibility)
             $newCourse = $sourceCourse->replicate();
@@ -567,16 +558,6 @@ class CourseBuilderService
                 ]);
             }
 
-            // Restore progression rules (best-effort)
-            if (DB::getSchemaBuilder()->hasTable('progression_rules')) {
-                foreach ($progressionRulesData as $r) {
-                    $arr = is_array($r) ? $r : (array)$r;
-                    unset($arr['id'], $arr['created_at'], $arr['updated_at']);
-                    $arr['course_id'] = $newCourse->id;
-                    DB::table('progression_rules')->insert($arr);
-                }
-            }
-
             // Create an initial version snapshot for the restored course (draft)
             $this->createCourseVersionSnapshot($newCourse->id, $actor, 'draft');
 
@@ -617,9 +598,6 @@ class CourseBuilderService
         }
         if (Schema::hasColumn($table, 'settings')) {
             $createData['settings'] = $settings;
-        }
-        if (Schema::hasColumn($table, 'progression_rules')) {
-            $createData['progression_rules'] = $data['progression_rules'] ?? [];
         }
         if (Schema::hasColumn($table, 'short_description')) {
             $createData['short_description'] = $data['short_description'] ?? null;
@@ -743,11 +721,6 @@ class CourseBuilderService
         }
         if (array_key_exists('enrollment_type', $data)) {
             $updateData['enrollment_type'] = $data['enrollment_type'];
-        }
-
-        // Update progression rules if provided
-        if (isset($data['progression_rules'])) {
-            $updateData['progression_rules'] = $data['progression_rules'];
         }
 
         // Handle image upload
@@ -958,19 +931,6 @@ class CourseBuilderService
                 ->where('scope_id', $module->id)
                 ->delete();
 
-            if (Schema::hasTable('progression_rules')) {
-                DB::table('progression_rules')
-                    ->where('course_id', $module->course_id)
-                    ->where(function ($query) use ($module) {
-                        $query->where(function ($q) use ($module) {
-                            $q->where('target_type', 'module')->where('target_id', $module->id);
-                        })->orWhere(function ($q) use ($module) {
-                            $q->where('condition_type', 'module')->where('condition_id', $module->id);
-                        });
-                    })
-                    ->delete();
-            }
-
             $deleted = $module->delete();
 
             $remainingIds = Module::where('course_id', $module->course_id)
@@ -1000,19 +960,6 @@ class CourseBuilderService
             Lesson::where('course_id', $lesson->course_id)
                 ->where('unlock_after_lesson_id', $lesson->id)
                 ->update(['unlock_after_lesson_id' => null]);
-
-            if (Schema::hasTable('progression_rules')) {
-                DB::table('progression_rules')
-                    ->where('course_id', $lesson->course_id)
-                    ->where(function ($query) use ($lesson) {
-                        $query->where(function ($q) use ($lesson) {
-                            $q->where('target_type', 'lesson')->where('target_id', $lesson->id);
-                        })->orWhere(function ($q) use ($lesson) {
-                            $q->where('condition_type', 'lesson')->where('condition_id', $lesson->id);
-                        });
-                    })
-                    ->delete();
-            }
 
             $moduleId = $lesson->module_id;
             $courseId = $lesson->course_id;
@@ -1079,9 +1026,6 @@ class CourseBuilderService
 
             // Delete course-test links
             CourseTest::where('course_id', $course->id)->delete();
-
-            // Delete progression rules
-            $course->progressionRules()->delete();
 
             // Delete course
             $course->delete();
