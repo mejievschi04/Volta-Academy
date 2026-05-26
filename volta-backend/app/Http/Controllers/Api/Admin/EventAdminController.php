@@ -181,7 +181,7 @@ class EventAdminController extends Controller
         $validated['status'] = 'published';
 
         if (!isset($validated['timezone'])) {
-            $validated['timezone'] = 'Europe/Bucharest';
+            $validated['timezone'] = 'Europe/Chisinau';
         }
         if (!isset($validated['currency'])) {
             $validated['currency'] = 'RON';

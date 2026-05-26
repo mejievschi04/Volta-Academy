@@ -496,6 +496,61 @@
 	min-height: 100%;
 }
 
+.admin-course-map-visibility-fieldset {
+	margin: 14px 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.admin-course-map-visibility-fieldset > .admin-form-label {
+	display: block;
+	margin-bottom: 8px;
+}
+
+.admin-course-map-visibility-options {
+	display: grid;
+	gap: 8px;
+}
+
+.admin-course-map-visibility-option {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--border-primary);
+	border-radius: 10px;
+	background: var(--bg-secondary);
+	cursor: pointer;
+	transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.admin-course-map-visibility-option:has(input:checked) {
+	border-color: color-mix(in srgb, var(--color-primary, #ffee00) 45%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-primary, #ffee00) 8%, var(--bg-secondary));
+}
+
+.admin-course-map-visibility-option input {
+	margin-top: 3px;
+	flex-shrink: 0;
+}
+
+.admin-course-map-visibility-option span {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.admin-course-map-visibility-option strong {
+	font-size: 0.88rem;
+	color: var(--text-primary);
+}
+
+.admin-course-map-visibility-option small {
+	font-size: 0.78rem;
+	color: var(--text-secondary);
+	line-height: 1.35;
+}
+
 .admin-course-map-modal .admin-course-map-style-section {
 	display: grid;
 	gap: 10px;

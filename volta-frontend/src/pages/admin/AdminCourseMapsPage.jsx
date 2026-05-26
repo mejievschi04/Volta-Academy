@@ -183,7 +183,8 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, headerActions = null }) => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
-	const { canMutateInAdminArea } = useAuth();
+	const { canMutateInAdminArea, user } = useAuth();
+	const isAdmin = (user?.actualRole ?? user?.role) === 'admin';
 	const [maps, setMaps] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
@@ -197,6 +198,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formAccent, setFormAccent] = useState(COURSE_MAP_ACCENT_COLORS[0]);
+	const [formVisibility, setFormVisibility] = useState('public');
 	const [coverBusy, setCoverBusy] = useState(false);
 	const [pendingMapCoverFile, setPendingMapCoverFile] = useState(null);
 	const [pendingMapCoverPreviewUrl, setPendingMapCoverPreviewUrl] = useState(null);
@@ -275,6 +277,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		setFormName('');
 		setFormDescription('');
 		setFormAccent(COURSE_MAP_ACCENT_COLORS[0]);
+		setFormVisibility('public');
 		setPendingMapCoverFile(null);
 		setPendingMapCoverPreviewUrl(null);
 		setCoverBusy(false);
@@ -307,6 +310,9 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		}
 		const normalizedAccent = normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]);
 		const payload = { name, description: formDescription || null, accent_color: normalizedAccent };
+		if (!editingMap && isAdmin) {
+			payload.visibility = formVisibility === 'private' ? 'private' : 'public';
+		}
 		try {
 			if (editingMap) {
 				await adminService.updateCourseMap(editingMap.id, payload);
@@ -560,6 +566,39 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 									rows={3}
 								/>
 								<p className="admin-form-hint">Cursurile din mapă vor apărea grupat pentru studenți.</p>
+								{!editingMap && isAdmin ? (
+									<fieldset className="admin-course-map-visibility-fieldset">
+										<legend className="admin-form-label">Vizibilitate</legend>
+										<div className="admin-course-map-visibility-options">
+											<label className="admin-course-map-visibility-option">
+												<input
+													type="radio"
+													name="course-map-visibility"
+													value="public"
+													checked={formVisibility === 'public'}
+													onChange={() => setFormVisibility('public')}
+												/>
+												<span>
+													<strong>Publică</strong>
+													<small>Vizibilă studenților în lista de mape</small>
+												</span>
+											</label>
+											<label className="admin-course-map-visibility-option">
+												<input
+													type="radio"
+													name="course-map-visibility"
+													value="private"
+													checked={formVisibility === 'private'}
+													onChange={() => setFormVisibility('private')}
+												/>
+												<span>
+													<strong>Privată</strong>
+													<small>Doar în zona admin; studenții nu o văd</small>
+												</span>
+											</label>
+										</div>
+									</fieldset>
+								) : null}
 							</section>
 
 							<section className="admin-form-section admin-course-map-style-section" aria-label="Aspect mapă">

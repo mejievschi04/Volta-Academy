@@ -12,6 +12,7 @@ class CourseMap extends Model
     protected $fillable = [
         'name',
         'description',
+        'visibility',
         'created_by',
         'order',
         'accent_color',

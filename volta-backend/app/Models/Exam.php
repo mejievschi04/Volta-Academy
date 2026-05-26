@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafeJsonArray;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -33,8 +34,8 @@ class Exam extends Model
     ];
 
     protected $casts = [
-        'question_types' => 'array',
-        'settings' => 'array',
+        'question_types' => SafeJsonArray::class,
+        'settings' => SafeJsonArray::class,
         'is_required' => 'boolean',
         'unlock_after_completion' => 'boolean',
         'average_score' => 'decimal:2',

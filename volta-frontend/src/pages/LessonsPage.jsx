@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { getNextLessonIdAfter } from '../utils/lessonOrder';
+import { getNextLessonIdAfter, getPreviousLessonIdBefore } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
@@ -339,7 +339,8 @@ const LessonsPage = () => {
 			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
 			if (!markers.length) return;
 
-			const viewportBottom = window.innerHeight;
+			const footerOffset = window.innerWidth <= 768 ? 72 : 0;
+			const viewportBottom = window.innerHeight - footerOffset;
 			const seen = [];
 
 			markers.forEach((marker) => {
@@ -371,8 +372,17 @@ const LessonsPage = () => {
 			}
 		};
 
-		window.addEventListener('scroll', throttledScroll, { passive: true });
-		
+		const scrollRoot =
+			contentRef.current?.closest('.va-shell-main') ||
+			contentRef.current?.closest('.va-main');
+
+		const onScroll = () => throttledScroll();
+		if (scrollRoot) {
+			scrollRoot.addEventListener('scroll', onScroll, { passive: true });
+		}
+		window.addEventListener('scroll', onScroll, { passive: true });
+		window.addEventListener('resize', onScroll, { passive: true });
+
 		const checkInitial = setTimeout(() => {
 			checkCompletion();
 		}, 500);
@@ -382,7 +392,11 @@ const LessonsPage = () => {
 		}
 
 		return () => {
-			window.removeEventListener('scroll', throttledScroll);
+			if (scrollRoot) {
+				scrollRoot.removeEventListener('scroll', onScroll);
+			}
+			window.removeEventListener('scroll', onScroll);
+			window.removeEventListener('resize', onScroll);
 			clearTimeout(checkInitial);
 		};
 	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, reachedMilestones]);
@@ -393,20 +407,19 @@ const LessonsPage = () => {
 			if (!ok) return;
 		}
 
-		let foundCurrent = false;
-		for (const module of modules) {
-			const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-			for (const lesson of sortedLessons) {
-				if (foundCurrent) {
-					handleLessonClick(lesson.id);
-					return;
-				}
-				if (Number(lesson.id) === Number(selectedLessonId)) {
-					foundCurrent = true;
-				}
-			}
+		const nextId = getNextLessonIdAfter(modules, selectedLessonId);
+		if (nextId != null && !Number.isNaN(nextId)) {
+			handleLessonClick(nextId);
+			return;
 		}
 		navigate(`/courses/${courseId}`);
+	};
+
+	const handlePreviousLesson = () => {
+		const prevId = getPreviousLessonIdBefore(modules, selectedLessonId);
+		if (prevId != null && !Number.isNaN(prevId)) {
+			handleLessonClick(prevId);
+		}
 	};
 
 	const handleFinalizeCourse = async () => {
@@ -488,8 +501,12 @@ const LessonsPage = () => {
 	}
 
 	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+	const hasMultipleLessons = totalLessons > 1;
 	const nextLessonTarget = selectedLessonId ? getNextLessonIdAfter(modules, selectedLessonId) : undefined;
+	const previousLessonTarget = selectedLessonId ? getPreviousLessonIdBefore(modules, selectedLessonId) : undefined;
 	const isLastLessonInCourse = nextLessonTarget === null;
+	const hasPreviousLesson = previousLessonTarget != null && !Number.isNaN(previousLessonTarget);
+	const hasNextLesson = typeof nextLessonTarget === 'number' && !Number.isNaN(nextLessonTarget);
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
@@ -759,31 +776,72 @@ const LessonsPage = () => {
 							})()}
 						</div>
 
-						{/* Lesson Actions */}
-						<div className="lessons-page-lesson-actions">
-							<button
-								className="lessons-page-btn lessons-page-btn-secondary"
-								type="button"
-								disabled={finalizingCourse || isCompleting}
-								onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNextLesson}
-								style={{ background: '#FFEE00', color: '#000', borderColor: '#FFEE00' }}
-							>
-								{isLastLessonInCourse ? (
-									finalizingCourse ? (
+						<div
+							className={[
+								'lessons-page-lesson-actions',
+								hasMultipleLessons ? 'lessons-page-lesson-actions--nav' : '',
+							]
+								.filter(Boolean)
+								.join(' ')}
+						>
+							{hasMultipleLessons ? (
+								<>
+									<button
+										type="button"
+										className="lessons-page-nav-btn lessons-page-nav-btn--prev"
+										disabled={!hasPreviousLesson || isCompleting || finalizingCourse}
+										onClick={handlePreviousLesson}
+										aria-label="Lecția anterioară"
+										title="Lecția anterioară"
+									>
+										<ArrowLeft size={22} weight="bold" aria-hidden />
+									</button>
+									{isLastLessonInCourse ? (
+										<button
+											className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta lessons-page-lesson-cta--finalize"
+											type="button"
+											disabled={finalizingCourse || isCompleting}
+											onClick={handleFinalizeCourse}
+										>
+											{finalizingCourse ? (
+												<span>Se procesează…</span>
+											) : (
+												<>
+													<Check size={16} weight="bold" aria-hidden />
+													<span>Finalizează</span>
+												</>
+											)}
+										</button>
+									) : (
+										<button
+											type="button"
+											className="lessons-page-nav-btn lessons-page-nav-btn--next"
+											disabled={!hasNextLesson || isCompleting || finalizingCourse}
+											onClick={handleNextLesson}
+											aria-label="Lecția următoare"
+											title="Lecția următoare"
+										>
+											<ArrowRight size={22} weight="bold" aria-hidden />
+										</button>
+									)}
+								</>
+							) : (
+								<button
+									className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta"
+									type="button"
+									disabled={finalizingCourse || isCompleting}
+									onClick={handleFinalizeCourse}
+								>
+									{finalizingCourse ? (
 										<span>Se procesează…</span>
 									) : (
 										<>
 											<Check size={16} weight="bold" aria-hidden />
 											<span>Finalizează</span>
 										</>
-									)
-								) : (
-									<>
-										<span>Următoarea lecție</span>
-										<ArrowRight size={16} weight="bold" aria-hidden />
-									</>
-								)}
-							</button>
+									)}
+								</button>
+							)}
 						</div>
 					</div>
 				) : (

@@ -138,7 +138,8 @@ const LessonPage = () => {
 			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
 			if (!markers.length) return;
 
-			const viewportBottom = window.innerHeight;
+			const footerOffset = window.innerWidth <= 768 ? 72 : 0;
+			const viewportBottom = window.innerHeight - footerOffset;
 			const seen = [];
 
 			markers.forEach((marker) => {
@@ -171,20 +172,31 @@ const LessonPage = () => {
 			}
 		};
 
-		window.addEventListener('scroll', throttledScroll, { passive: true });
-		
-		// Check on initial load (for short content)
+		const scrollRoot =
+			contentRef.current?.closest('.va-shell-main') ||
+			contentRef.current?.closest('.va-main');
+
+		const onScroll = () => throttledScroll();
+		if (scrollRoot) {
+			scrollRoot.addEventListener('scroll', onScroll, { passive: true });
+		}
+		window.addEventListener('scroll', onScroll, { passive: true });
+		window.addEventListener('resize', onScroll, { passive: true });
+
 		const checkInitial = setTimeout(() => {
 			checkCompletion();
 		}, 500);
 
-		// Also check when content changes
 		if (contentRef.current) {
 			checkCompletion();
 		}
 
 		return () => {
-			window.removeEventListener('scroll', throttledScroll);
+			if (scrollRoot) {
+				scrollRoot.removeEventListener('scroll', onScroll);
+			}
+			window.removeEventListener('scroll', onScroll);
+			window.removeEventListener('resize', onScroll);
 			clearTimeout(checkInitial);
 		};
 	}, [lesson, isCompleted, isCompleting, reachedMilestones]);
@@ -409,7 +421,6 @@ const LessonPage = () => {
 						})()}
 					</div>
 
-					{/* Actions */}
 					<div className="lesson-page-actions">
 						{isCompleted && (
 							<div className="lesson-page-completed-badge">

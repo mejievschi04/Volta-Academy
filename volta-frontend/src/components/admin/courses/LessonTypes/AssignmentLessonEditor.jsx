@@ -3,6 +3,7 @@ import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildAssignmentLessonPrompt } from '../../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../../utils/voltAvailability';
 
 /**
  * Assignment / Practice Lesson Editor - Conform defacut.md secțiunea 5.3
@@ -102,7 +103,7 @@ const AssignmentLessonEditor = ({ lesson, onUpdate }) => {
 				<button
 					type="button"
 					className="admin-btn admin-btn-primary"
-					onClick={handleGenerateExercises}
+					onClick={() => runVoltAction(showToast, handleGenerateExercises)}
 					disabled={aiGenerating || !lesson.objective}
 				>
 					{aiGenerating ? '⏳ Generează exerciții...' : '🤖 Generează exerciții cu Volt'}

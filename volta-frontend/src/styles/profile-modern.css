@@ -882,30 +882,84 @@
 
 @media (max-width: 768px) {
 	.va-profile-container {
-		padding: var(--space-4);
+		overflow-x: clip;
+		padding: var(--space-3) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+		box-sizing: border-box;
 	}
 
 	.va-profile-cover {
 		height: 100px;
 	}
 
+	.va-profile-header {
+		margin-bottom: var(--space-5);
+	}
+
 	.va-profile-info {
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		padding-top: calc(var(--space-6) - 60px);
+		padding: var(--space-4);
+		min-height: 0;
+		gap: var(--space-4);
+	}
+
+	.va-profile-avatar-wrap {
+		width: 100%;
 	}
 
 	.va-profile-details {
+		width: 100%;
+		max-width: 100%;
+		align-items: center;
 		text-align: center;
 	}
 
+	.va-profile-name {
+		width: 100%;
+		word-break: normal;
+		overflow-wrap: break-word;
+	}
+
 	.va-profile-stats {
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-3);
 	}
 
 	.va-profile-badges-list {
 		grid-template-columns: 1fr;
+	}
+
+	.va-profile-section .lms-btn-primary,
+	.va-profile-section .lms-btn-secondary,
+	.va-profile-back-button .lms-btn-secondary {
+		min-height: 48px;
+		width: 100%;
+		justify-content: center;
+	}
+
+	.student-settings-page {
+		width: 100%;
+		padding: var(--space-3) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom, 0));
+	}
+
+	.student-settings-header {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.student-settings-save-btn,
+	.student-settings-form-grid input,
+	.student-settings-form-grid select,
+	.student-settings-form-grid textarea,
+	.student-settings-theme-control .va-theme-segment-btn {
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.student-settings-save-btn {
+		width: 100%;
+		min-height: 48px;
 	}
 }
 

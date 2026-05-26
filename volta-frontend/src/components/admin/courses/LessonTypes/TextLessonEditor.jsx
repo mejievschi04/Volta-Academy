@@ -3,6 +3,7 @@ import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildTextLessonDifficultyPrompt, buildTextLessonTransformPrompt } from '../../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../../utils/voltAvailability';
 
 /**
  * Text Lesson Editor - Conform defacut.md secțiunea 5.2
@@ -132,7 +133,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleVoltTransform('rewrite')}
+						onClick={() => runVoltAction(showToast, () => handleVoltTransform('rewrite'))}
 						disabled={aiProcessing || !lesson.content}
 						title="Reformulează textul cu Volt"
 					>
@@ -141,7 +142,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleVoltTransform('simplify')}
+						onClick={() => runVoltAction(showToast, () => handleVoltTransform('simplify'))}
 						disabled={aiProcessing || !lesson.content}
 						title="Simplifică textul cu Volt"
 					>
@@ -150,7 +151,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={() => handleVoltTransform('expand')}
+						onClick={() => runVoltAction(showToast, () => handleVoltTransform('expand'))}
 						disabled={aiProcessing || !lesson.content}
 						title="Extinde textul cu Volt"
 					>
@@ -159,7 +160,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 					<button
 						type="button"
 						className="admin-btn admin-btn-sm admin-btn-secondary"
-						onClick={handleCalculateDifficulty}
+						onClick={() => runVoltAction(showToast, handleCalculateDifficulty)}
 						disabled={aiProcessing || !lesson.content}
 						title="Calculează dificultatea cu Volt"
 					>

@@ -27,6 +27,10 @@ class CourseMapController extends Controller
         $defaultMapIds = $this->defaultMapIds();
 
         $query = CourseMap::query()
+            ->when(
+                Schema::hasColumn('course_maps', 'visibility'),
+                fn ($q) => $q->where(fn ($inner) => $inner->where('visibility', 'public')->orWhereNull('visibility'))
+            )
             ->whereHas('courses', function ($q) {
                 $q->where('status', 'published');
             })
@@ -87,6 +91,13 @@ class CourseMapController extends Controller
                     ->with(['teacher:id,name', 'modules:id,course_id,estimated_duration_minutes']);
             },
         ])->findOrFail($id);
+
+        if (
+            Schema::hasColumn('course_maps', 'visibility')
+            && ($map->visibility ?? 'public') === 'private'
+        ) {
+            abort(404, 'Mapă negăsită.');
+        }
 
         $user = $request->user();
         $courseIds = $map->courses->pluck('id')->toArray();

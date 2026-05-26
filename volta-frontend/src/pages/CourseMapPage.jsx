@@ -255,7 +255,7 @@ const CourseMapPage = () => {
 	};
 
 	return (
-		<div className="course-map-page">
+		<div className={`course-map-page${!isAdmin ? ' course-map-page--student' : ''}`}>
 			<header className="course-map-page-header course-map-page-header--branded" style={headerStyle}>
 				<div className="course-map-page-header-inner">
 					<div className="course-map-page-header-top">

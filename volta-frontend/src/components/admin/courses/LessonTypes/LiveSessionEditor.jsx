@@ -3,6 +3,7 @@ import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildLiveSessionAgendaPrompt } from '../../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../../utils/voltAvailability';
 
 /**
  * Live Session Editor - Conform defacut.md secțiunea 5.4
@@ -113,7 +114,7 @@ const LiveSessionEditor = ({ lesson, onUpdate }) => {
 				<button
 					type="button"
 					className="admin-btn admin-btn-primary"
-					onClick={handleGenerateAgenda}
+					onClick={() => runVoltAction(showToast, handleGenerateAgenda)}
 					disabled={aiGenerating || !lesson.title}
 				>
 					{aiGenerating ? '⏳ Generează agendă...' : '🤖 Generează agendă cu Volt'}

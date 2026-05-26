@@ -13,6 +13,7 @@ import InlineTestEditorShell from '../../components/admin/courses/InlineTestEdit
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
+import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 
@@ -1741,18 +1742,22 @@ const AdminCourseBuilderPage = () => {
 
 			<button
 				type="button"
-				className="admin-course-builder-volt-fab"
-				onClick={() => setShowVoltAssistant(true)}
-				title="Deschide Volt pentru acest curs"
-				aria-label="Deschide Volt pentru acest curs"
+				className="admin-course-builder-volt-fab admin-course-builder-volt-fab--soon"
+				onClick={() => notifyVoltComingSoon(showToast)}
+				title="Volt va fi disponibil în curând"
+				aria-label="Volt — va fi disponibil în curând"
 			>
+				<span className="admin-course-builder-volt-fab-glow" aria-hidden="true" />
 				<span className="admin-course-builder-volt-fab-label" aria-hidden="true">
-					<Lightning size={18} weight="bold" className="admin-course-builder-volt-fab-icon" />
+					<Lightning size={20} weight="fill" className="admin-course-builder-volt-fab-icon" />
 				</span>
-				<span className="admin-course-builder-volt-fab-text">Volt</span>
+				<span className="admin-course-builder-volt-fab-copy">
+					<span className="admin-course-builder-volt-fab-text">Volt</span>
+					<span className="admin-course-builder-volt-fab-badge">În curând</span>
+				</span>
 			</button>
 
-			{showVoltAssistant && (
+			{false && showVoltAssistant && (
 				<div className="ai-chat-modal-overlay" onClick={() => setShowVoltAssistant(false)}>
 					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
 						<AICourseChat

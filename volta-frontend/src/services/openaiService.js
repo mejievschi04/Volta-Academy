@@ -1,4 +1,5 @@
 import api, { ensureApiCsrfCookie } from '../api.js';
+import { assertVoltEnabled } from '../utils/voltAvailability.js';
 
 function getCookie(name) {
 	const cookieString = typeof document !== 'undefined' ? document.cookie : '';
@@ -64,6 +65,7 @@ export const openaiService = {
 	 * @returns {Promise} Stream response
 	 */
 	generateCourse: async (prompt, messages = []) => {
+		assertVoltEnabled();
 		try {
 			const response = await api.post('/admin/ai/generate-course', {
 				prompt,
@@ -86,6 +88,7 @@ export const openaiService = {
 	 * @returns {Promise} Stream response
 	 */
 	generateTest: async (prompt, messages = [], courseId = null) => {
+		assertVoltEnabled();
 		try {
 			const response = await api.post('/admin/ai/generate-test', {
 				prompt,
@@ -109,6 +112,7 @@ export const openaiService = {
 	 * @returns {Promise} Full response
 	 */
 	streamCourseGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null, extraPayload = {}) => {
+		assertVoltEnabled();
 		try {
 			const token = localStorage.getItem('token');
 			console.log('Starting course generation request...', { courseId });
@@ -249,6 +253,7 @@ export const openaiService = {
 	 * Returns a normalized payload with text and preview.
 	 */
 	extractDocumentContext: async (file) => {
+		assertVoltEnabled();
 		try {
 			const token = localStorage.getItem('token');
 			const formData = new FormData();
@@ -285,6 +290,7 @@ export const openaiService = {
 	 * @returns {Promise} Full response
 	 */
 	streamTestGeneration: async (prompt, messages = [], courseId = null, onChunk = null, onData = null, extraPayload = {}) => {
+		assertVoltEnabled();
 		try {
 			const token = localStorage.getItem('token');
 			console.log('Starting test generation request...');

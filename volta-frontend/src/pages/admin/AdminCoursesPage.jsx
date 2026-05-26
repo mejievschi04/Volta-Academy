@@ -21,6 +21,7 @@ import { DragGripIcon } from '../../components/common/DragGripIcon';
 import { adminService } from '../../services/api';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
+import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 import { courseCoverSrc } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -334,7 +335,7 @@ const AdminCoursesPage = () => {
 								<button type="button" onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
 									Curs nou
 								</button>
-								<button type="button" onClick={() => { setShowCreateMenu(false); setShowAiCourseChat(true); }}>
+								<button type="button" onClick={() => { setShowCreateMenu(false); notifyVoltComingSoon(showToast); }}>
 									Curs cu Volt
 								</button>
 							</div>

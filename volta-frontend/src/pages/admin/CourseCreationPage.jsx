@@ -4,6 +4,7 @@ import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
+import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 import './CourseCreationPage.css';
 
 const CourseCreationPage = () => {
@@ -126,7 +127,7 @@ const CourseCreationPage = () => {
 							className={`course-creation-mode-card${creationMode === 'volt' ? ' is-active' : ''}`}
 							onClick={() => {
 								setCreationMode('volt');
-								setShowAiCourseChat(true);
+								notifyVoltComingSoon(showToast);
 							}}
 							disabled={loading}
 						>
@@ -178,7 +179,7 @@ const CourseCreationPage = () => {
 						<button
 							type={creationMode === 'volt' ? 'button' : 'submit'}
 							className="course-creation-simple-btn-primary"
-							onClick={creationMode === 'volt' ? () => setShowAiCourseChat(true) : undefined}
+							onClick={creationMode === 'volt' ? () => notifyVoltComingSoon(showToast) : undefined}
 							disabled={loading}
 						>
 							{loading ? 'Se creează...' : creationMode === 'volt' ? 'Deschide Volt' : 'Creează curs'}

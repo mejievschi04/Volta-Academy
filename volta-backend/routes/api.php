@@ -292,6 +292,7 @@ Route::middleware([
     Route::get('/exams/{id}/results', [ExamAdminController::class, 'results']);
     Route::get('/exams/{id}/question-analytics', [ExamAdminController::class, 'questionAnalytics']);
     Route::post('/exams', [ExamAdminController::class, 'store']);
+    Route::patch('/exams/{id}/status', [ExamAdminController::class, 'patchStatus']);
     Route::put('/exams/{id}', [ExamAdminController::class, 'update']);
     Route::post('/exams/{id}/cover', [ExamAdminController::class, 'uploadCover']);
     Route::post('/exams/{id}/duplicate', [ExamAdminController::class, 'duplicate']);

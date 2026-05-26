@@ -166,22 +166,36 @@
 	box-sizing: border-box;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
+	.library-reader-page {
+		overflow-x: clip;
+		min-height: 100dvh;
+	}
+
 	.library-reader-stage {
-		padding: 0.35rem;
+		padding: var(--space-2);
+		padding-bottom: env(safe-area-inset-bottom, 0);
 	}
 
 	.library-reader-floating-actions {
-		top: 0.6rem;
-		right: 0.6rem;
-		left: 0.6rem;
+		top: calc(56px + var(--space-2));
+		right: var(--space-3);
+		left: var(--space-3);
 		justify-content: space-between;
 		border-radius: 18px;
+		gap: var(--space-2);
+	}
+
+	.library-reader-floating-actions button,
+	.library-reader-floating-actions a {
+		min-height: 44px;
+		min-width: 44px;
 	}
 
 	.library-reader-frame,
 	.library-reader-loading--embedded,
 	.library-reader-empty-state--embedded {
-		min-height: calc(100vh - 0.7rem);
+		min-height: calc(100dvh - 56px - 1rem);
+		border-radius: var(--radius-lg);
 	}
 }

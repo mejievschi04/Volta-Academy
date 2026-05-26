@@ -6,6 +6,7 @@ import VideoLessonEditor from './LessonTypes/VideoLessonEditor';
 import TextLessonEditor from './LessonTypes/TextLessonEditor';
 import AssignmentLessonEditor from './LessonTypes/AssignmentLessonEditor';
 import LiveSessionEditor from './LessonTypes/LiveSessionEditor';
+import { notifyVoltComingSoon } from '../../../utils/voltAvailability';
 import './LessonEditModal.css';
 
 /**
@@ -262,7 +263,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 									type="button"
 									className="admin-btn admin-btn-sm admin-btn-secondary"
 									onClick={() => {
-										showToast('Funcția de generare quiz cu Volt va fi disponibilă în curând', 'info');
+										notifyVoltComingSoon(showToast);
 									}}
 									title="Generează întrebări quiz cu Volt"
 								>

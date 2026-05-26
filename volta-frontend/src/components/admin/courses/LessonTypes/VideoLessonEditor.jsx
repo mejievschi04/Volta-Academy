@@ -3,6 +3,7 @@ import { openaiService } from '../../../../services/openaiService';
 import { adminService } from '../../../../services/api';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildVideoLessonPrompt } from '../../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../../utils/voltAvailability';
 
 /**
  * Video Lesson Editor - Conform defacut.md secțiunea 5.1
@@ -174,7 +175,7 @@ const VideoLessonEditor = ({ lesson, onUpdate, courseId }) => {
 					<button
 						type="button"
 						className="admin-btn admin-btn-primary"
-						onClick={() => handleProcessVideoVolt()}
+						onClick={() => runVoltAction(showToast, () => handleProcessVideoVolt())}
 						disabled={aiProcessing}
 					>
 						{aiProcessing ? '⏳ Procesează cu Volt...' : '🤖 Procesează video cu Volt'}

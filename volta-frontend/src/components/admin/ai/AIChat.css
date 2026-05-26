@@ -9,6 +9,22 @@
 	overflow: hidden;
 }
 
+.ai-chat-volt-unavailable {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem 1.5rem;
+	text-align: center;
+}
+
+.ai-chat-volt-unavailable p {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var(--text-secondary);
+	line-height: 1.5;
+}
+
 .ai-chat-container-create {
 	border: 1px solid var(--border-primary, var(--border-secondary));
 	box-shadow: 0 16px 36px -26px rgba(15, 23, 42, 0.55);

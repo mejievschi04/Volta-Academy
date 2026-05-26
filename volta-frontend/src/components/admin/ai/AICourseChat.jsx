@@ -3,6 +3,7 @@ import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
 import { openaiService } from '../../../services/openaiService';
 import { useToast } from '../../../contexts/ToastContext';
 import { buildCourseCreationPromptFromBrief } from '../../../utils/voltAiPrompts';
+import { isVoltEnabled, notifyVoltComingSoon, VOLT_COMING_SOON_MESSAGE } from '../../../utils/voltAvailability';
 import './AIChat.css';
 
 const AICourseChat = ({
@@ -259,6 +260,10 @@ const AICourseChat = ({
 
 	const submitPrompt = async (promptText) => {
 		if (isGenerating) return;
+		if (!isVoltEnabled()) {
+			notifyVoltComingSoon(showToast);
+			return;
+		}
 
 		const briefPayload = getGuidedBriefPayload();
 		const basePrompt = buildCourseCreationPromptFromBrief(briefPayload, promptText);
@@ -601,6 +606,26 @@ const AICourseChat = ({
 		)
 		: Boolean(input.trim());
 
+
+	if (!isVoltEnabled()) {
+		return (
+			<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}`}>
+				<div className="ai-chat-header">
+					<div className="ai-chat-header-title-wrap">
+						<h2>{title}</h2>
+					</div>
+					{onClose && (
+						<button type="button" className="ai-chat-close" onClick={onClose}>
+							×
+						</button>
+					)}
+				</div>
+				<div className="ai-chat-volt-unavailable">
+					<p>{VOLT_COMING_SOON_MESSAGE}</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}`}>

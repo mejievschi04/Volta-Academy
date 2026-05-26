@@ -1563,3 +1563,153 @@
 	background: var(--bg-elevated);
 	border-color: var(--border-primary);
 }
+
+/* ============================================
+   STUDENT MOBILE — /courses (Pas 1)
+   ============================================ */
+
+@media (max-width: 768px) {
+	.courses-page-modern.courses-page-student {
+		overflow-x: clip;
+		min-height: 100dvh;
+		padding-bottom: env(safe-area-inset-bottom, 0);
+	}
+
+	.courses-page-student-main {
+		min-width: 0;
+	}
+
+	.courses-page-student .courses-page-hero {
+		padding: var(--space-5) var(--space-4) var(--space-4);
+		border-bottom: 1px solid var(--border-primary);
+	}
+
+	.courses-page-student .courses-page-hero-content--student {
+		row-gap: var(--space-4);
+	}
+
+	.courses-page-student .courses-page-hero-title {
+		text-align: center;
+		margin-bottom: 0;
+		font-size: clamp(1.75rem, 6vw, 2.25rem);
+	}
+
+	.courses-page-student .courses-page-hero-text {
+		align-items: center;
+		width: 100%;
+	}
+
+	.courses-page-student-tabs {
+		width: 100%;
+		max-width: 100%;
+		display: flex;
+		padding: 4px;
+	}
+
+	.courses-page-student-tab {
+		flex: 1 1 0;
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.55rem 0.75rem;
+		font-size: var(--font-size-sm);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.courses-page-student .courses-page-hero-search {
+		align-self: stretch;
+		min-width: 0;
+	}
+
+	.courses-page-student .courses-page-search-wrapper {
+		min-width: 0;
+		max-width: none;
+		width: 100%;
+		min-height: 48px;
+		padding-right: var(--space-2);
+	}
+
+	.courses-page-student .courses-page-search-input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+
+	.courses-page-student .courses-page-search-clear {
+		width: 44px;
+		height: 44px;
+		flex-shrink: 0;
+	}
+
+	.courses-page-student .courses-page-content {
+		padding: var(--space-4) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom, 0));
+	}
+
+	.courses-page-student .courses-page-maps-grid,
+	.courses-page-student .courses-page-exams-grid {
+		grid-template-columns: 1fr;
+		gap: var(--space-6);
+		margin-top: var(--space-4);
+		justify-items: stretch;
+		width: 100%;
+	}
+
+	.courses-page-student .course-map-showcase-tile {
+		--course-map-tile-hit-height: 380px;
+		height: auto;
+		min-height: 0;
+		max-height: none;
+		width: 100%;
+	}
+
+	.courses-page-student .course-map-showcase-tile .course-map-folder-tile {
+		width: 100%;
+		max-width: none;
+	}
+
+	.courses-page-student .courses-page-exams-section {
+		padding: 0;
+		border-top: none;
+		max-width: none;
+	}
+
+	.courses-page-student .courses-page-empty {
+		padding: var(--space-10) var(--space-3);
+		text-align: center;
+	}
+
+	.courses-page-student .courses-page-btn {
+		min-height: 48px;
+		width: 100%;
+		max-width: 320px;
+		justify-content: center;
+	}
+
+	.courses-page-student .course-map-folder-tile__hit {
+		touch-action: manipulation;
+	}
+
+	.courses-page-student .course-map-folder-tile__hit:active {
+		transform: scale(0.985);
+	}
+}
+
+@media (max-width: 480px) {
+	.courses-page-student .courses-page-hero {
+		padding: var(--space-4) var(--space-3) var(--space-4);
+	}
+
+	.courses-page-student .courses-page-content {
+		padding-left: var(--space-3);
+		padding-right: var(--space-3);
+	}
+
+	.courses-page-student .course-map-showcase-tile {
+		--course-map-tile-hit-height: 360px;
+	}
+
+	.courses-page-student-tab {
+		font-size: var(--font-size-xs);
+		padding-inline: 0.5rem;
+	}
+}

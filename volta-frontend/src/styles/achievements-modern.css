@@ -487,23 +487,52 @@
 
 @media (max-width: 768px) {
 	.student-achievements-page {
-		padding: var(--space-2) var(--space-4);
+		overflow-x: clip;
+		padding: var(--space-4) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom, 0));
+	}
+
+	.student-achievements-header h1 {
+		font-size: clamp(1.35rem, 5vw, 1.75rem);
 	}
 
 	.student-certificates-grid {
 		grid-template-columns: 1fr;
+		gap: var(--space-4);
 	}
 
 	.student-badges-grid {
-		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-3);
 	}
 
 	.student-achievements-stats {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-3);
+	}
+
+	.student-achievements-stat-card,
+	.student-certificate-card,
+	.student-badge-card {
+		min-height: 44px;
 	}
 
 	.certificate-preview-content {
-		transform: scale(0.85);
+		transform: scale(0.72);
+	}
+
+	.certificate-preview-modal {
+		width: min(100vw - var(--space-4), 100%);
+		margin: var(--space-2);
+	}
+}
+
+@media (max-width: 480px) {
+	.student-badges-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.student-achievements-stats {
+		grid-template-columns: 1fr;
 	}
 }
 

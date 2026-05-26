@@ -348,26 +348,24 @@
 		left: 0 !important;
 	}
 
-	/* Logo in topnav - same size as text (admin + student) */
-	.va-shell-topnav .va-topnav .va-logo-text,
-	.va-shell-topnav .va-topnav .va-logo-icon-img,
-	.admin-topnav .va-logo-text,
-	.admin-topnav .va-logo-icon-img,
-	.modern-topnav .va-logo-text,
-	.modern-topnav .va-logo-icon-img {
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		width: 40px !important;
-		height: 40px !important;
-		flex-shrink: 0 !important;
+	/* Logo doar în meniul deschis (drawer), nu în topnav pe mobil */
+	.va-shell-topnav .modern-topnav-left > .va-logo-text,
+	.va-shell-topnav .va-topnav-brand > .va-logo-text,
+	.admin-topnav .modern-topnav-left > .va-logo-text {
+		display: none !important;
 	}
 
-	.modern-topnav .va-logo-icon-img,
-	.va-topnav .va-logo-icon-img {
-		width: 40px !important;
-		height: 40px !important;
-		object-fit: contain !important;
+	/* Titlu pagină lângă hamburger când meniul e închis */
+	.modern-topnav-left,
+	.va-topnav-brand {
+		justify-content: flex-start !important;
+		padding-left: 52px !important;
+	}
+
+	.va-topnav-page-title {
+		text-align: left !important;
+		flex: 1 !important;
+		min-width: 0 !important;
 	}
 
 	/* Page title next to logo - no flex so logo+title stay centered */
@@ -390,11 +388,11 @@
 		display: none !important;
 	}
 
-	/* Logo always visible in topnav */
-	.va-logo-text,
-	.modern-sidebar-logo,
-	.va-logo-icon-img {
-		display: flex !important;
+	/* Logo vizibil în sidebar (drawer), nu forțat în topnav */
+	.student-sidebar.open .sidebar-mobile-header-logo,
+	.modern-sidebar.open .modern-sidebar-logo,
+	.modern-sidebar.open .va-logo-icon-img {
+		display: block !important;
 		visibility: visible !important;
 		opacity: 1 !important;
 	}
@@ -448,35 +446,80 @@
 		-webkit-overflow-scrolling: touch !important;
 	}
 
-	/* Student sidebar - brand compact, mai sus ca să încapă tot meniul */
-	.student-sidebar .modern-sidebar-brand,
-	.student-sidebar .va-sidebar-brand {
-		padding: calc(56px + var(--space-2)) var(--space-3) var(--space-3) !important;
-		margin-top: 0 !important;
-		justify-content: center !important;
-		gap: var(--space-2) !important;
-		min-height: auto !important;
+	/* Student drawer — header + nav list */
+	.student-sidebar .sidebar-mobile-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		flex-shrink: 0;
+		padding: max(env(safe-area-inset-top, 0px), var(--space-3)) var(--space-4) var(--space-3);
+		border-bottom: 1px solid var(--border-primary);
 	}
 
-	.student-sidebar .modern-sidebar-logo,
-	.student-sidebar .va-logo-text {
-		width: 40px !important;
-		height: 40px !important;
-		min-width: 40px !important;
-		min-height: 40px !important;
+	.student-sidebar .sidebar-mobile-close {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0;
+		border: none;
+		border-radius: var(--radius-md);
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		cursor: pointer;
+		flex-shrink: 0;
 	}
 
-	.student-sidebar .va-logo-icon-img {
-		width: 40px !important;
-		height: 40px !important;
-		object-fit: contain !important;
+	.student-sidebar .sidebar-mobile-close:active {
+		background: var(--bg-elevated);
+		transform: scale(0.98);
+	}
+
+	.student-sidebar .sidebar-mobile-header-brand {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		min-width: 0;
+		flex: 1;
+	}
+
+	.student-sidebar .sidebar-mobile-header-logo {
+		width: 36px;
+		height: 36px;
+		object-fit: contain;
+		flex-shrink: 0;
 	}
 
 	.student-sidebar .modern-sidebar-brand-text {
-		font-size: 1.1rem !important;
-		font-weight: var(--font-weight-bold) !important;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
+		color: var(--text-primary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
+	.student-sidebar .sidebar-mobile-footer {
+		flex-shrink: 0;
+		margin-top: auto;
+		padding: var(--space-3) var(--space-4);
+		padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+		border-top: 1px solid var(--border-primary);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.student-sidebar .sidebar-mobile-footer-switch {
+		width: 100%;
+	}
+
+	.student-sidebar .sidebar-mobile-footer .sidebar-mobile-logout-btn {
+		width: 100%;
+	}
 
 	.modern-sidebar.open .modern-nav-item-label,
 	.va-sidebar.open .va-nav-label,
@@ -494,29 +537,29 @@
 		margin-top: 0 !important;
 	}
 
-	/* Student sidebar nav items - mai compacte */
+	/* Student sidebar nav — listă simplă, lizibilă */
 	.student-sidebar .modern-nav-item,
 	.student-sidebar .va-nav-btn {
-		margin-bottom: var(--space-2) !important;
-		padding: var(--space-2) var(--space-3) !important;
-		min-height: 44px !important;
-		border-radius: var(--radius-xl) !important;
+		margin-bottom: 2px !important;
+		padding: var(--space-3) var(--space-3) !important;
+		min-height: 48px !important;
+		border-radius: var(--radius-lg) !important;
 		align-items: center !important;
 		justify-content: flex-start !important;
 		gap: var(--space-3) !important;
 		text-align: left !important;
-		background: var(--bg-secondary) !important;
-		border: 1px solid var(--border-primary) !important;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+		background: transparent !important;
+		border: none !important;
+		box-shadow: none !important;
 		font-weight: var(--font-weight-medium) !important;
-		transition: all var(--transition-base) !important;
+		color: var(--text-secondary) !important;
+		transition: background-color var(--transition-base), color var(--transition-base) !important;
 	}
 
 	.student-sidebar .modern-nav-item:hover,
 	.student-sidebar .va-nav-btn:hover {
-		background: var(--bg-elevated) !important;
-		border-color: var(--color-primary) !important;
-		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.2) !important;
+		background: var(--bg-secondary) !important;
+		color: var(--text-primary) !important;
 	}
 
 	.student-sidebar .modern-nav-item.active,
@@ -524,9 +567,8 @@
 	.student-sidebar .va-nav-btn.active,
 	.student-sidebar .va-nav-btn.is-active {
 		background: var(--color-primary-alpha-15) !important;
-		border-color: var(--color-primary) !important;
-		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.25) !important;
 		color: var(--color-primary) !important;
+		font-weight: var(--font-weight-semibold) !important;
 	}
 
 	.student-sidebar .modern-nav-item:last-child,
@@ -1319,35 +1361,53 @@
 	   Centered, well-arranged, modern design
 	   ============================================ */
 
-	/* Global text alignment for student pages on mobile - Center all text */
-	.va-shell-main-topnav h1,
-	.va-shell-main-topnav h2,
-	.va-shell-main-topnav h3,
-	.va-shell-main-topnav h4,
-	.va-shell-main-topnav h5,
-	.va-shell-main-topnav h6,
-	.va-shell-main-topnav p,
-	.va-shell-main-topnav span:not(.student-quick-stat-value):not(.student-global-progress-stat-value),
-	.va-shell-main-topnav div:not(.student-quick-stat):not(.student-global-progress-stat),
+	/* Titluri centrate doar pe paginile de overview (nu lecții/mesaje/bibliotecă) */
 	.va-shell-main-topnav .student-dashboard-title,
 	.va-shell-main-topnav .student-dashboard-subtitle,
 	.va-shell-main-topnav .student-dashboard-welcome,
 	.va-shell-main-topnav .courses-header h1,
 	.va-shell-main-topnav .events-header h1,
-	.va-shell-main-topnav .va-profile-name,
-	.va-shell-main-topnav .va-profile-role,
-	.va-shell-main-topnav .va-profile-bio,
 	.va-shell-main-topnav .page-title,
 	.va-shell-main-topnav .page-subtitle {
 		text-align: center !important;
 	}
 
-	/* Center all text in student pages containers (exam-results: left-aligned) */
+	/* Conținut lizibil: aliniat stânga implicit */
+	.va-shell-main-topnav .va-main,
+	.va-shell-main-topnav main {
+		text-align: left;
+	}
+
+	/* Topnav dreapta — iconițe compacte */
+	.va-shell-topnav .modern-topnav-right {
+		gap: var(--space-2) !important;
+		flex-shrink: 0 !important;
+	}
+
+	.va-shell-topnav .admin-topnav-calendar-btn,
+	.va-shell-topnav .admin-topnav-notification-btn {
+		width: 40px !important;
+		height: 40px !important;
+		min-width: 40px !important;
+		min-height: 40px !important;
+	}
+
+	/* Centrare doar pe pagini overview */
 	.student-dashboard-page,
 	.courses-page,
 	.events-page,
 	.va-profile-container {
 		text-align: center !important;
+	}
+
+	.messages-page,
+	.library-page,
+	.library-reader-page,
+	.lessons-page,
+	.lesson-page,
+	.student-exam-page,
+	.exam-results-page {
+		text-align: left !important;
 	}
 
 	/* Center course cards, event cards content (exam results: left-aligned) */
@@ -2577,23 +2637,35 @@
 
 	.va-profile-info {
 		display: flex !important;
-		flex-direction: row !important;
+		flex-direction: column !important;
 		align-items: center !important;
-		gap: var(--space-5) !important;
+		gap: var(--space-4) !important;
 		margin-top: 0 !important;
 		padding: 0 !important;
 		min-height: 0 !important;
+		width: 100%;
+		text-align: center;
+	}
+
+	.va-profile-avatar-wrap {
+		width: 100%;
+		align-items: center;
 	}
 
 	.va-profile-avatar {
-		width: 72px !important;
-		height: 72px !important;
+		width: 96px !important;
+		height: 96px !important;
 		flex-shrink: 0 !important;
 	}
 
+	.va-profile-avatar-img {
+		width: 96px !important;
+		height: 96px !important;
+	}
+
 	.va-profile-avatar-inner {
-		width: 72px !important;
-		height: 72px !important;
+		width: 96px !important;
+		height: 96px !important;
 		font-size: var(--font-size-2xl) !important;
 		font-weight: var(--font-weight-bold) !important;
 		color: var(--text-inverse) !important;
@@ -2601,14 +2673,29 @@
 		box-shadow: var(--shadow-md) !important;
 	}
 
+	.va-profile-avatar-actions {
+		width: 100%;
+		justify-content: center;
+		gap: var(--space-2);
+	}
+
+	.va-profile-avatar-btn {
+		min-height: 40px;
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--font-size-sm);
+	}
+
 	.va-profile-details {
-		flex: 1;
+		flex: none;
+		width: 100%;
+		max-width: 100%;
 		padding: 0;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		align-items: flex-start;
+		align-items: center;
+		text-align: center;
 	}
 
 	.va-profile-name {
@@ -2618,7 +2705,22 @@
 		color: var(--text-primary) !important;
 		line-height: 1.25 !important;
 		letter-spacing: -0.02em;
-		word-break: break-word;
+		width: 100%;
+		max-width: 100%;
+		word-break: normal;
+		overflow-wrap: break-word;
+		hyphens: none;
+		text-align: center;
+	}
+
+	.va-profile-activity-cta {
+		margin-bottom: var(--space-5);
+	}
+
+	.va-profile-activity-cta .lms-btn-secondary {
+		width: 100%;
+		min-height: 48px;
+		justify-content: center;
 	}
 
 	.va-profile-role {
@@ -3764,6 +3866,46 @@
 	.courses-page-modern .courses-page-card-thumbnail {
 		height: 200px !important;
 	}
+
+	/* Student /courses — mape folder (nu carduri admin vechi) */
+	.courses-page-modern.courses-page-student {
+		text-align: left !important;
+	}
+
+	.courses-page-modern.courses-page-student .courses-page-hero-title {
+		text-align: center !important;
+	}
+
+	.courses-page-modern.courses-page-student .course-map-folder-tile__title,
+	.courses-page-modern.courses-page-student .course-map-folder-tile__subtitle,
+	.courses-page-modern.courses-page-student .course-map-folder-tile__meta {
+		text-align: left !important;
+	}
+
+	.courses-page-modern.courses-page-student .courses-page-empty-title,
+	.courses-page-modern.courses-page-student .courses-page-empty-text {
+		text-align: center !important;
+	}
+
+	/* Mapă curs — /courses/map/:mapId */
+	.course-map-page--student {
+		text-align: left !important;
+	}
+
+	.course-map-page--student .course-map-page-title,
+	.course-map-page--student .course-map-page-description {
+		text-align: center !important;
+	}
+
+	.course-map-page--student .course-showcase-card__title,
+	.course-map-page--student .course-showcase-card__subtitle,
+	.course-map-page--student .course-showcase-card__footer {
+		text-align: left !important;
+	}
+
+	.course-map-page--student .course-map-page-empty {
+		text-align: center !important;
+	}
 }
 
 @media (max-width: 480px) {
@@ -3857,10 +3999,10 @@
 
 	.lessons-page-sidebar-toggle {
 		top: calc(56px + var(--space-2)) !important;
-		padding: var(--space-2) var(--space-3) !important;
-		font-size: var(--font-size-xs) !important;
-		min-height: 38px;
-		gap: var(--space-1) !important;
+		padding: var(--space-2) var(--space-4) !important;
+		font-size: var(--font-size-sm) !important;
+		min-height: 44px !important;
+		gap: var(--space-2) !important;
 	}
 
 	.lessons-page-sidebar-toggle svg {
@@ -3869,16 +4011,16 @@
 	}
 
 	.lessons-page-sidebar-back-btn {
-		min-height: 38px;
-		padding: var(--space-2) var(--space-3) !important;
-		font-size: var(--font-size-xs) !important;
+		min-height: 44px !important;
+		padding: var(--space-2) var(--space-4) !important;
+		font-size: var(--font-size-sm) !important;
 	}
 
 	.lessons-page-sidebar-close-btn {
-		width: 38px !important;
-		height: 38px !important;
-		min-width: 38px !important;
-		min-height: 38px !important;
+		width: 44px !important;
+		height: 44px !important;
+		min-width: 44px !important;
+		min-height: 44px !important;
 	}
 
 	/* Sidebar module header - mai mic pe mobile */
@@ -3956,24 +4098,9 @@
 		padding: var(--space-3);
 	}
 
-	.lessons-page-lesson-actions .lessons-page-btn,
+	.lessons-page-lesson-viewer .lessons-page-lesson-cta,
 	.lesson-page-btn {
-		min-height: 44px;
-	}
-
-	.lessons-page-lesson-actions .lessons-page-btn-secondary {
-		background: var(--color-primary) !important;
-		color: var(--text-inverse) !important;
-		border-color: var(--color-primary) !important;
-		padding: var(--space-2) var(--space-4) !important;
-		font-size: var(--font-size-xs) !important;
-		min-height: 40px !important;
-	}
-
-	.lessons-page-lesson-actions .lessons-page-btn-secondary:hover {
-		background: var(--color-primary-hover) !important;
-		color: var(--text-inverse) !important;
-		border-color: var(--color-primary-hover) !important;
+		min-height: 48px;
 	}
 
 	.lesson-page-header {
@@ -4000,10 +4127,10 @@
 	}
 
 	.lessons-page-sidebar-toggle {
-		padding: var(--space-1) var(--space-2) !important;
-		font-size: 0.75rem !important;
-		min-height: 34px;
-		left: var(--space-2) !important;
+		padding: var(--space-2) var(--space-3) !important;
+		font-size: var(--font-size-sm) !important;
+		min-height: 44px !important;
+		left: var(--space-3) !important;
 	}
 
 	.lessons-page-sidebar-toggle svg {
@@ -4467,13 +4594,26 @@
 	}
 
 	.student-exam-page {
-		padding: var(--space-4);
+		padding: var(--space-4) !important;
+		overflow-x: clip !important;
 	}
 
+	.student-exam-page .student-exam-title {
+		text-align: left !important;
+	}
+
+	.student-exam-page .student-exam-nav-item,
+	.student-exam-page .student-exam-answer-option,
+	.student-exam-page .student-exam-btn,
 	.student-exam-page .lms-btn-primary,
 	.student-exam-page .lms-btn-secondary,
 	.student-exam-page button {
 		min-height: 44px;
+	}
+
+	.student-exam-page .student-exam-btn-primary {
+		min-height: 48px !important;
+		width: 100% !important;
 	}
 
 	.va-profile-back-button .lms-btn-secondary {
@@ -5188,6 +5328,46 @@
 	.exam-results-empty {
 		text-align: center;
 		padding: var(--space-8) var(--space-4);
+	}
+
+	/* Pas 5 — restul paginilor student */
+	.library-page {
+		text-align: left !important;
+	}
+
+	.student-settings-page,
+	.student-achievements-page,
+	.va-student-activity-page {
+		text-align: left !important;
+	}
+
+	.va-completed-courses-cards {
+		text-align: left !important;
+	}
+
+	.va-completed-course-card-actions .lms-btn-secondary,
+	.va-completed-course-card-actions .lms-btn-primary {
+		width: 100%;
+		min-height: 48px;
+		justify-content: center;
+	}
+
+	.va-student-activity-filters {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-3);
+	}
+
+	.va-student-activity-filters select,
+	.va-student-activity-filters button {
+		width: 100%;
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.messages-conversation-item {
+		min-height: 56px;
+		padding: var(--space-3) var(--space-4);
 	}
 }
 

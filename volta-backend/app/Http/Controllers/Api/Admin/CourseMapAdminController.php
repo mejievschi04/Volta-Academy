@@ -129,12 +129,16 @@ class CourseMapAdminController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:5000',
+            'visibility' => 'nullable|in:public,private',
             'order' => 'nullable|integer|min:0',
             'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $validated['created_by'] = auth()->id();
         $validated['order'] = $validated['order'] ?? 0;
+        $validated['visibility'] = auth()->user()->isAdmin()
+            ? ($validated['visibility'] ?? 'public')
+            : 'public';
 
         $map = CourseMap::create($validated);
         $map->load('createdBy:id,name,email');

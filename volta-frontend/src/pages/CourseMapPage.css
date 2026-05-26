@@ -496,18 +496,139 @@
 	--csc-width: min(100%, 360px);
 }
 
-@media (max-width: 640px) {
+/* ============================================
+   MOBILE — Pas 2: Mapă curs
+   ============================================ */
+
+@media (max-width: 768px) {
+	.course-map-page {
+		overflow-x: clip;
+		min-height: 100dvh;
+		padding-bottom: env(safe-area-inset-bottom, 0);
+	}
+
+	.course-map-page-header {
+		padding: var(--space-4) var(--space-4) var(--space-5);
+	}
+
+	.course-map-page-header-inner {
+		max-width: none;
+	}
+
 	.course-map-page-header-top {
 		flex-direction: column;
 		align-items: stretch;
+		gap: var(--space-3);
 	}
 
 	.course-map-page-back {
 		align-self: flex-start;
+		min-height: 44px;
+		padding: 0 0.9rem 0 0.65rem;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.course-map-page-title {
+		font-size: clamp(1.35rem, 5vw, 1.75rem);
+		line-height: 1.25;
+	}
+
+	.course-map-page-description {
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+	}
+
+	.course-map-page-content {
+		padding: var(--space-4) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom, 0));
+		max-width: none;
 	}
 
 	.course-map-page-grid {
 		grid-template-columns: 1fr;
+		gap: var(--space-5);
+		justify-items: stretch;
+		width: 100%;
+	}
+
+	.course-map-course-card--showcase-wrap {
+		max-width: none;
+		width: 100%;
+		min-height: 0;
+		margin-inline: 0;
+	}
+
+	.course-map-course-card--showcase-wrap .course-showcase-card {
+		width: 100%;
+		max-width: none;
+		--csc-width: 100%;
+	}
+
+	.course-map-course-card--showcase-wrap .course-showcase-card__hit {
+		min-height: 260px;
+		touch-action: manipulation;
+	}
+
+	.course-map-course-card--showcase-wrap .course-showcase-card__hit:active {
+		transform: scale(0.99);
+	}
+
+	.course-map-page-empty {
+		padding: var(--space-10) var(--space-3);
+	}
+
+	.course-map-page-btn {
+		min-height: 48px;
+		width: 100%;
+		max-width: 320px;
+		justify-content: center;
+	}
+
+	.course-map-page-dnd-hint {
+		font-size: var(--font-size-sm);
+		padding: var(--space-3);
+	}
+}
+
+@media (max-width: 480px) {
+	.course-map-page-header {
+		padding: var(--space-3) var(--space-3) var(--space-4);
+	}
+
+	.course-map-page-content {
+		padding-left: var(--space-3);
+		padding-right: var(--space-3);
+	}
+
+	.course-map-page-grid {
+		gap: var(--space-4);
+	}
+
+	.course-map-course-card--showcase-wrap .course-showcase-card__hit {
+		min-height: 248px;
+	}
+}
+
+/* Student: titlu centrat, layout curat */
+@media (max-width: 768px) {
+	.course-map-page--student .course-map-page-title-block {
+		text-align: center;
+	}
+
+	.course-map-page--student .course-map-page-title-row {
+		justify-content: center;
+	}
+
+	.course-map-page--student .course-map-page-title {
+		width: 100%;
+		text-align: center;
+	}
+
+	.course-map-page--student .course-map-page-description {
+		text-align: center;
+	}
+
+	.course-map-page--student .course-map-page-back {
+		align-self: center;
 	}
 }
 

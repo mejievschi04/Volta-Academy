@@ -193,3 +193,19 @@
 .course-showcase-card--compact .course-showcase-card__hit {
 	min-height: 256px;
 }
+
+@media (max-width: 768px) {
+	.course-map-page-grid .course-showcase-card__hit {
+		min-height: 260px;
+	}
+
+	.course-map-page-grid .course-showcase-card__title {
+		font-size: 1.05rem;
+	}
+
+	.course-map-page-grid .course-showcase-card__cta-label {
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+	}
+}

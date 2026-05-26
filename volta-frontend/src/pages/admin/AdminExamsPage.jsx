@@ -317,7 +317,7 @@ export default function AdminExamsPage() {
     if (!item?.id || !canMutateInAdminArea) return;
     setListActionId(item.id);
     try {
-      await adminService.updateExam(item.id, { status, title: item.title || 'Examen' });
+      await adminService.patchExamStatus(item.id, status);
       setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, status } : row)));
       toastSuccess(status === 'published' ? 'Examen publicat.' : status === 'archived' ? 'Examen arhivat.' : 'Examen mutat in draft.');
     } catch (e) {

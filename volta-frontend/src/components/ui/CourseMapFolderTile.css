@@ -241,13 +241,37 @@
 	pointer-events: auto;
 }
 
+@media (max-width: 768px) {
+	.courses-page-student .course-map-folder-tile {
+		max-width: none;
+		width: 100%;
+	}
+
+	.courses-page-student .course-map-folder-tile__hit {
+		--course-map-tile-hit-height: 380px;
+		width: 100%;
+	}
+
+	.courses-page-student .course-map-folder-tile__visual {
+		width: min(100%, 300px);
+	}
+}
+
 @media (max-width: 640px) {
 	.course-map-folder-tile {
 		max-width: 330px;
 	}
 
+	.courses-page-student .course-map-folder-tile {
+		max-width: none;
+	}
+
 	.course-map-folder-tile__hit {
 		--course-map-tile-hit-height: 398px;
+	}
+
+	.courses-page-student .course-map-folder-tile__hit {
+		--course-map-tile-hit-height: 360px;
 	}
 
 	.course-map-folder-tile__stage {

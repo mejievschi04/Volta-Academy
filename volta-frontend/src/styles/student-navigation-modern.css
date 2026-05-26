@@ -633,39 +633,102 @@
 	-webkit-overflow-scrolling: touch;
 }
 
-/* Legacy pages + Exam page - scrollable content, scrollbar hidden */
+/* Legacy pages - scrollable content, scrollbar hidden */
 .va-shell-topnav .lesson-detail-page,
-.va-shell-topnav .course-detail-page,
-.va-shell-topnav .student-exam-page {
+.va-shell-topnav .course-detail-page {
 	padding-top: var(--space-4);
 	height: 100%;
 	overflow-y: auto;
 	overflow-x: hidden;
 	max-width: 1600px;
 	margin: 0 auto;
-	scrollbar-width: none; /* Firefox */
-	-ms-overflow-style: none; /* IE, Edge */
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 }
 .va-shell-topnav .lesson-detail-page::-webkit-scrollbar,
-.va-shell-topnav .course-detail-page::-webkit-scrollbar,
-.va-shell-topnav .student-exam-page::-webkit-scrollbar {
-	display: none; /* Chrome, Safari, Opera */
+.va-shell-topnav .course-detail-page::-webkit-scrollbar {
+	display: none;
 }
 
-/* Pagina test - elimină bara neagră: full viewport height, fără gap jos */
-.va-shell-topnav:has(.student-exam-page) .va-shell-main,
-.va-shell-topnav:has(.student-exam-page) .va-main {
-	height: 100vh !important;
-	min-height: 100vh !important;
-	padding-top: 64px !important;
-	padding-bottom: 0 !important;
-	box-sizing: border-box !important;
+/* Pagina test — desktop: body scroll, footer fix în shell (ca pe mobile) */
+@media (min-width: 769px) {
+	.va-shell-topnav:has(.student-exam-page--desktop) .va-shell-main,
+	.va-shell-topnav:has(.student-exam-page--desktop) .va-main {
+		display: flex !important;
+		flex-direction: column !important;
+		height: 100dvh !important;
+		max-height: 100dvh !important;
+		min-height: 0 !important;
+		padding-top: 64px !important;
+		padding-bottom: 0 !important;
+		box-sizing: border-box !important;
+		overflow: hidden !important;
+	}
+
+	.va-shell-topnav:has(.student-exam-page--desktop) .student-exam-page {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		width: 100%;
+		max-width: 1600px;
+		margin: 0 auto;
+		min-height: 0;
+		max-height: 100%;
+		overflow: hidden;
+		box-sizing: border-box;
+	}
+
+	.va-shell-topnav:has(.student-exam-page--desktop) .student-exam-body {
+		flex: 1 1 0;
+		min-height: 0;
+		overflow-x: clip;
+		overflow-y: auto;
+	}
+
+	.va-shell-topnav:has(.student-exam-page--desktop) .student-exam-footer {
+		flex-shrink: 0;
+	}
 }
-.va-shell-topnav:has(.student-exam-page) .student-exam-page {
-	padding-top: var(--space-4);
-	height: 100%;
-	min-height: 100%;
-	box-sizing: border-box;
+
+/* Pagina test — mobile: body scroll, footer fix în shell */
+@media (max-width: 768px) {
+	.va-shell-topnav:has(.student-exam-page) .va-shell-main,
+	.va-shell-topnav:has(.student-exam-page) .va-main {
+		display: flex !important;
+		flex-direction: column !important;
+		height: 100dvh !important;
+		max-height: 100dvh !important;
+		min-height: 0 !important;
+		padding-top: 64px !important;
+		padding-bottom: 0 !important;
+		box-sizing: border-box !important;
+		overflow: hidden !important;
+	}
+
+	.va-shell-topnav:has(.student-exam-page) .student-exam-page {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		width: 100%;
+		max-width: 1600px;
+		margin: 0 auto;
+		min-height: 0;
+		max-height: 100%;
+		overflow: hidden;
+		box-sizing: border-box;
+	}
+
+	.va-shell-topnav:has(.student-exam-page) .student-exam-body {
+		flex: 1 1 0;
+		min-height: 0;
+		overflow-x: clip;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.va-shell-topnav:has(.student-exam-page) .student-exam-footer {
+		flex-shrink: 0;
+	}
 }
 
 
@@ -689,72 +752,82 @@
 		visibility: visible !important;
 	}
 
-	.va-shell-topnav .modern-topnav-left .va-logo-text,
-	.va-shell-topnav .va-topnav-brand .va-logo-text {
-		display: flex !important;
-		visibility: visible !important;
-		opacity: 1 !important;
-	}
-
-	.va-shell-topnav .modern-topnav-left .va-logo-icon-img,
-	.va-shell-topnav .va-topnav-brand .va-logo-icon-img {
-		display: block !important;
-		visibility: visible !important;
-		opacity: 1 !important;
-		width: 32px !important;
-		height: 32px !important;
+	/* Logo doar în drawer (.sidebar-mobile-header), nu în topnav */
+	.va-shell-topnav .modern-topnav-left > .va-logo-text,
+	.va-shell-topnav .va-topnav-brand > .va-logo-text {
+		display: none !important;
 	}
 
 	.va-shell-topnav .va-shell-main {
 		padding-top: 56px !important; /* Mobile topnav height */
 	}
 
-	/* Messages page - mobile topnav 56px, 100dvh pentru înălțime dinamică */
-	.va-shell-topnav .messages-page {
-		top: 56px !important;
-		height: calc(100vh - 56px) !important;
-		height: calc(100dvh - 56px) !important;
+	/* Messages page - mobile topnav 56px, full viewport */
+	.va-shell-topnav:has(.messages-page) .va-shell-main,
+	.va-shell-topnav:has(.messages-page) .va-main {
+		height: 100dvh !important;
+		min-height: 100dvh !important;
+		padding-top: 56px !important;
+		padding-bottom: 0 !important;
+		box-sizing: border-box !important;
+		overflow: hidden !important;
 	}
 
-	/* Pagina test pe mobile - topnav 56px, full height */
+	.va-shell-topnav .messages-page {
+		position: fixed !important;
+		top: 56px !important;
+		left: 0 !important;
+		right: 0 !important;
+		bottom: 0 !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		height: auto !important;
+		min-height: 0 !important;
+		margin: 0 !important;
+		border-left: none !important;
+	}
+
+	/* Pagina test pe mobile — 100dvh cu padding topnav (box-sizing) */
 	.va-shell-topnav:has(.student-exam-page) .va-shell-main,
 	.va-shell-topnav:has(.student-exam-page) .va-main {
-		height: 100vh !important;
-		min-height: 100vh !important;
+		height: 100dvh !important;
+		max-height: 100dvh !important;
 		padding-top: 56px !important;
-		box-sizing: border-box !important;
 	}
 
-	.va-shell-topnav .modern-topnav-nav,
-	.va-shell-topnav .va-topnav-nav {
-		gap: var(--space-1);
-		display: flex !important;
-		visibility: visible !important;
+	.va-shell-topnav:has(.student-exam-page) .student-exam-page {
+		padding: 0 !important;
 	}
 
-	.va-shell-topnav .modern-topnav-item,
-	.va-shell-topnav .va-topnav-btn {
-		padding: var(--space-2) var(--space-2);
-		font-size: var(--font-size-xs);
-		display: flex !important;
-		visibility: visible !important;
+	.va-shell-topnav:has(.student-exam-page) .student-exam-body {
+		padding: var(--space-3) var(--space-4) !important;
 	}
 
-	.va-shell-topnav .modern-topnav-item-label,
-	.va-shell-topnav .va-topnav-label {
-		display: none; /* Hide labels on mobile */
+	.va-shell-topnav:has(.student-exam-page) .student-exam-footer {
+		padding-left: var(--space-4) !important;
+		padding-right: var(--space-4) !important;
 	}
 
-	.va-shell-topnav .modern-topnav-item-icon,
-	.va-shell-topnav .va-topnav-icon {
-		width: 20px;
-		height: 20px;
-		display: block !important;
-		visibility: visible !important;
+	/* Nav principal e în drawer; topnav = hamburger + titlu + acțiuni */
+	.va-shell-topnav .modern-topnav-nav.desktop-only,
+	.va-shell-topnav .va-topnav-nav.desktop-only {
+		display: none !important;
+	}
+
+	.va-shell-topnav .modern-topnav-right {
+		gap: var(--space-2);
 	}
 
 	/* Courses page - padding redus pe mobile, fără suprapunere */
 	.va-shell-topnav .courses-page-modern {
 		padding: var(--space-2) var(--space-4) var(--space-6) !important;
+	}
+
+	.va-shell-topnav .exam-results-page {
+		padding: var(--space-3) var(--space-4) var(--space-6) !important;
+	}
+
+	.va-shell-topnav .va-profile-container {
+		padding: var(--space-3) var(--space-4) var(--space-6) !important;
 	}
 }

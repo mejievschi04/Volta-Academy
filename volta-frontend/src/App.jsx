@@ -34,6 +34,7 @@ import {
 	House,
 	ListBullets,
 	SignOut,
+	X,
 	SquaresFour,
 	Users,
 	UsersThree,
@@ -579,6 +580,21 @@ function Layout({ children }) {
 		},
 	];
 
+	const mobileTopnavTitle = React.useMemo(() => {
+		const pathname = location.pathname;
+		const navMatch = navItems.find((item) => {
+			if (item.path === '/courses') {
+				return pathname === '/courses' || pathname.startsWith('/courses/map');
+			}
+			return pathname === item.path || pathname.startsWith(`${item.path}/`);
+		});
+		if (navMatch) return navMatch.label;
+		if (pathname.startsWith('/lessons') || /\/lesson(s)?(\/|$)/.test(pathname)) return 'Lecții';
+		if (pathname.startsWith('/exams/')) return 'Test';
+		if (pathname.startsWith('/achievements')) return 'Realizări';
+		return 'Volta Academy';
+	}, [location.pathname]);
+
 	/* Admin: același flux ca Pro — conținut & evenimente sus, apoi oameni, activitate, mesagerie, analize, setări */
 	const adminNavItemsAll = [
 		{
@@ -910,24 +926,9 @@ function Layout({ children }) {
 								document.body
 							)}
 
-						{/* Mobile Toggle Controls in Sidebar - positioned after nav - only on mobile */}
-						{isMobile && (
-						<div className="sidebar-mobile-controls">
-							{/* Theme Toggle */}
-							<div className="sidebar-mobile-control-item">
-								<span className="sidebar-mobile-control-icon">
-									<CalendarDots size={20} weight="duotone" aria-hidden />
-								</span>
-								{isSidebarExpanded && (
-									<div className="sidebar-mobile-control-content">
-										<span className="sidebar-mobile-control-label">Temă</span>
-										<span className="sidebar-mobile-control-value">Deschis</span>
-									</div>
-								)}
-							</div>
-
-							{/* View Switcher */}
-							{isSidebarExpanded && (
+						{/* View switcher mobil (tema e în Setări) */}
+						{isMobile && isSidebarExpanded && (
+							<div className="sidebar-mobile-controls">
 								<div className="sidebar-mobile-control-item sidebar-mobile-control-item--view-switch">
 									<div className="sidebar-mobile-control-content sidebar-mobile-control-content--view-switch">
 										<AdminViewSwitcher
@@ -937,8 +938,7 @@ function Layout({ children }) {
 										/>
 									</div>
 								</div>
-							)}
-						</div>
+							</div>
 						)}
 
 						{/* Mobile Logout Button - positioned at bottom - only on mobile */}
@@ -969,14 +969,16 @@ function Layout({ children }) {
 							>
 								<ListBullets size={24} weight="bold" aria-hidden />
 							</button>
-							<span className="va-logo-text">
-								<img 
-									src={logoShort} 
-									alt="Volta Academy" 
-									className="va-logo-icon-img"
-									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-								/>
-							</span>
+							{!isMobile && (
+								<span className="va-logo-text">
+									<img
+										src={logoShort}
+										alt="Volta Academy"
+										className="va-logo-icon-img"
+										style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+									/>
+								</span>
+							)}
 							{adminTopnavContext && (
 								<div className="admin-topnav-page-context desktop-only">
 									<button
@@ -1057,30 +1059,27 @@ function Layout({ children }) {
 						/>
 					)}
 
-					{/* Student Sidebar - Mobile (same structure as admin) */}
+					{/* Student Sidebar — mobil (drawer) */}
 					<aside className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
-						<div className="modern-sidebar-brand va-sidebar-brand">
+						<div className="sidebar-mobile-header">
 							<button
 								type="button"
-								className="modern-sidebar-logo-toggle va-sidebar-logo-toggle"
-								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-								title={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
-								aria-expanded={isSidebarExpanded}
-								aria-label={isSidebarExpanded ? 'Închide meniul' : 'Deschide meniul'}
+								className="sidebar-mobile-close"
+								onClick={() => setIsSidebarExpanded(false)}
+								title="Închide meniul"
+								aria-label="Închide meniul"
 							>
-								<span className="modern-sidebar-logo va-logo-text">
-									<img 
-										src={logoShort} 
-										alt="" 
-										aria-hidden="true"
-										className="va-logo-icon-img"
-										style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-									/>
-								</span>
+								<X size={22} weight="bold" aria-hidden />
 							</button>
-							{isSidebarExpanded && (
+							<div className="sidebar-mobile-header-brand">
+								<img
+									src={logoShort}
+									alt=""
+									aria-hidden="true"
+									className="va-logo-icon-img sidebar-mobile-header-logo"
+								/>
 								<span className="modern-sidebar-brand-text">Volta Academy</span>
-							)}
+							</div>
 						</div>
 
 						<nav className="modern-nav va-sidebar-nav">
@@ -1090,7 +1089,6 @@ function Layout({ children }) {
 										key={item.path}
 										to={item.path}
 										title={item.title || item.label}
-										data-tooltip={!isSidebarExpanded ? item.label : undefined}
 										className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
 										end={item.path === '/courses'}
 										onMouseEnter={() => prefetchRoute(item.path)}
@@ -1101,55 +1099,36 @@ function Layout({ children }) {
 										}}
 									>
 										<span className="modern-nav-item-icon va-nav-icon">{item.icon}</span>
-										<span className="modern-nav-item-label va-nav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
+										<span className="modern-nav-item-label va-nav-label">{item.label}</span>
+										{item.path === '/messages' ? renderMessagesNavBadge() : null}
 									</NavLink>
 								))}
 							</div>
 						</nav>
 
-						{/* Mobile Toggle Controls in Sidebar - positioned after nav - only on mobile */}
-						{isMobile && (
-						<div className="sidebar-mobile-controls">
-							{/* Theme Toggle */}
-							<div className="sidebar-mobile-control-item">
-								<span className="sidebar-mobile-control-icon">
-									<CalendarDots size={20} weight="duotone" aria-hidden />
-								</span>
-								{isSidebarExpanded && (
-									<div className="sidebar-mobile-control-content">
-										<span className="sidebar-mobile-control-label">Temă</span>
-										<span className="sidebar-mobile-control-value">Deschis</span>
-									</div>
-								)}
-							</div>
-
-							{/* View Switcher (only for admins, hidden in student preview mode) */}
-							{isTrueAdminAccount && !isStudentPreviewMode && isSidebarExpanded && (
-								<div className="sidebar-mobile-control-item sidebar-mobile-control-item--view-switch">
-									<div className="sidebar-mobile-control-content sidebar-mobile-control-content--view-switch">
+						{(user || (isTrueAdminAccount && !isStudentPreviewMode)) && (
+							<div className="sidebar-mobile-footer">
+								{isTrueAdminAccount && !isStudentPreviewMode && (
+									<div className="sidebar-mobile-footer-switch">
 										<AdminViewSwitcher
 											isStudentView={isUserPage}
 											onSwitch={handleAdminViewSwitch}
 											variant="sidebar"
 										/>
 									</div>
-								</div>
-							)}
-						</div>
-						)}
-
-						{/* Mobile Logout Button - positioned at bottom - only on mobile */}
-						{isMobile && user && (
-							<div className="sidebar-mobile-logout">
-								<button
-									onClick={logout}
-									className="sidebar-mobile-logout-btn"
-									title="Deconectare"
-									aria-label="Deconectare"
-								>
-									<SignOut size={18} weight="bold" aria-hidden />
-									{isSidebarExpanded && <span className="sidebar-mobile-logout-label">Deconectare</span>}
-								</button>
+								)}
+								{user && (
+									<button
+										type="button"
+										onClick={logout}
+										className="sidebar-mobile-logout-btn"
+										title="Deconectare"
+										aria-label="Deconectare"
+									>
+										<SignOut size={18} weight="bold" aria-hidden />
+										<span className="sidebar-mobile-logout-label">Deconectare</span>
+									</button>
+								)}
 							</div>
 						)}
 					</aside>
@@ -1165,17 +1144,18 @@ function Layout({ children }) {
 							>
 								<ListBullets size={24} weight="bold" aria-hidden />
 							</button>
-							<span className="va-logo-text">
-								<img 
-									src={logoShort} 
-									alt="Volta Academy" 
-									className="va-logo-icon-img"
-									style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-								/>
-							</span>
-							{/* Volta Academy text - shown when sidebar is closed on mobile (same as admin) */}
+							{!isMobile && (
+								<span className="va-logo-text">
+									<img
+										src={logoShort}
+										alt="Volta Academy"
+										className="va-logo-icon-img"
+										style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+									/>
+								</span>
+							)}
 							{isMobile && !isSidebarExpanded && (
-								<span className="va-topnav-page-title">Volta Academy</span>
+								<span className="va-topnav-page-title">{mobileTopnavTitle}</span>
 							)}
 						</div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { useToast } from '../../../../contexts/ToastContext';
 import { buildAssessmentAnalysisPrompt, buildAssessmentGenerationPrompt } from '../../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../../utils/voltAvailability';
 
 /**
  * Volt assessment generator - Conform defacut.md secțiunea 6
@@ -127,7 +128,7 @@ const AIAssessmentGenerator = ({ courseData, lessonData, moduleData, assessmentT
 				<button
 					type="button"
 					className="admin-btn admin-btn-primary"
-					onClick={handleGenerateQuestions}
+					onClick={() => runVoltAction(showToast, handleGenerateQuestions)}
 					disabled={generating}
 				>
 					{generating ? '⏳ Generează întrebări...' : '🤖 Generează întrebări cu Volt'}

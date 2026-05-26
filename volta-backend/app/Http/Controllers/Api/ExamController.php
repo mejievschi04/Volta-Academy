@@ -596,38 +596,84 @@ class ExamController extends Controller
      */
     public function show(Request $request, $examId)
     {
-        $user = Auth::user();
-        $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+        try {
+            $user = Auth::user();
+            $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+            $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
 
-        // Try to find as Test first (new system)
-        $test = Test::with([
-            'questions' => function($query) {
-                $query->orderBy('order');
-            },
-            'questionBank.questions' => function($query) {
-                $query->orderBy('order');
+            if ($resolved['test']) {
+                return $this->handleTest($resolved['test'], $user, $courseId, $request);
             }
-        ])->find($examId);
 
-        if ($test) {
-            // Handle Test model
-            return $this->handleTest($test, $user, $courseId, $request);
+            if ($resolved['exam']) {
+                return $this->handleExam($resolved['exam'], $user);
+            }
+
+            return response()->json(['message' => 'Examen negăsit'], 404);
+        } catch (\Throwable $e) {
+            \Log::error('ExamController::show failed', [
+                'exam_id' => $examId,
+                'course_id' => $request->query('course_id'),
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Nu am putut încărca examenul.',
+            ], 500);
         }
-        
-        // Fallback to legacy Exam model
+    }
+
+    /**
+     * tests și exams au ID-uri independente — același număr poate exista în ambele tabele.
+     */
+    protected function resolveExamShowModel(int $id, ?int $courseId): array
+    {
         $exam = Exam::with([
             'course:id,title',
             'module:id,title,course_id',
             'lesson:id,title,module_id',
-            'questions' => function($query) {
+            'questions' => function ($query) {
                 $query->orderBy('order');
             },
-            'questions.answers' => function($query) {
+            'questions.answers' => function ($query) {
                 $query->orderBy('order');
+            },
+        ])->find($id);
+
+        $test = Test::with([
+            'questions' => function ($query) {
+                $query->orderBy('order');
+            },
+            'questionBank.questions' => function ($query) {
+                $query->orderBy('order');
+            },
+        ])->find($id);
+
+        if ($test && $exam) {
+            if ($courseId) {
+                if (CourseTest::where('test_id', $test->id)->where('course_id', $courseId)->exists()) {
+                    return ['test' => $test, 'exam' => null];
+                }
+                if ((int) ($exam->course_id ?? 0) === $courseId) {
+                    return ['test' => null, 'exam' => $exam];
+                }
+            } elseif ($exam->course_id === null) {
+                return ['test' => null, 'exam' => $exam];
             }
-        ])->findOrFail($examId);
-        
-        return $this->handleExam($exam, $user);
+
+            return ['test' => $test, 'exam' => null];
+        }
+
+        if ($test) {
+            return ['test' => $test, 'exam' => null];
+        }
+
+        if ($exam) {
+            return ['test' => null, 'exam' => $exam];
+        }
+
+        return ['test' => null, 'exam' => null];
     }
 
     /**
@@ -894,8 +940,11 @@ class ExamController extends Controller
     {
         return $exam->questions->map(function ($question) use ($user, $attemptNumber) {
             $answers = $question->answers;
+            $answersCollection = $answers instanceof \Illuminate\Support\Collection
+                ? $answers
+                : collect(is_array($answers) ? $answers : []);
             $questionType = $question->question_type ?? 'multiple_choice';
-            $answerRows = $answers instanceof \Illuminate\Support\Collection ? $answers->values()->all() : (array) $answers;
+            $answerRows = $answersCollection->values()->all();
             $correctIndices = [];
             if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
                 foreach ($answerRows as $idx => $answer) {
@@ -924,7 +973,7 @@ class ExamController extends Controller
                 'text' => $question->question_text,
                 'type' => $questionType,
                 'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
-                    ? $answers->pluck('answer_text')->toArray()
+                    ? $answersCollection->pluck('answer_text')->values()->all()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
                 'answerIndices' => $questionType === 'multiple_choice' ? $correctIndices : null,
@@ -1043,30 +1092,23 @@ class ExamController extends Controller
     public function submit(Request $request, $examId)
     {
         $user = Auth::user();
-        
-        // Try to find as Test first (new system)
-        $test = Test::with([
-            'questions',
-            'questionBank.questions'
-        ])->find($examId);
-        
-        if ($test) {
-            $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
-            if ($courseId === null && $request->input('course_id') !== null && $request->input('course_id') !== '') {
-                $courseId = (int) $request->input('course_id');
-            }
 
-            return $this->submitTest($request, $test, $user, $courseId);
+        $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
+        if ($courseId === null && $request->input('course_id') !== null && $request->input('course_id') !== '') {
+            $courseId = (int) $request->input('course_id');
         }
-        
-        // Fallback to legacy Exam model
-        $exam = Exam::with([
-            'course',
-            'module',
-            'questions.answers'
-        ])->findOrFail($examId);
-        
-        return $this->submitExam($request, $exam, $user);
+
+        $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
+
+        if ($resolved['test']) {
+            return $this->submitTest($request, $resolved['test'], $user, $courseId);
+        }
+
+        if ($resolved['exam']) {
+            return $this->submitExam($request, $resolved['exam'], $user);
+        }
+
+        return response()->json(['message' => 'Examen negăsit'], 404);
     }
     
     /**

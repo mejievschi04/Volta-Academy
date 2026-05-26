@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\QueryException;
 
 class ExamAdminController extends Controller
 {
@@ -316,6 +317,44 @@ class ExamAdminController extends Controller
         ], 201);
     }
 
+    /**
+     * Actualizare rapidă doar status (listă admin) — fără reîncărcare întrebări.
+     */
+    public function patchStatus(Request $request, $id)
+    {
+        $exam = Exam::with('course')->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:draft,published,archived',
+        ]);
+
+        try {
+            $exam->update(['status' => $validated['status']]);
+        } catch (QueryException $e) {
+            \Log::error('Exam patchStatus failed', [
+                'exam_id' => $exam->id,
+                'status' => $validated['status'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Statusul examenului nu a putut fi salvat. Verifică migrările bazei de date (status archived).',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Status actualizat',
+            'exam' => [
+                'id' => $exam->id,
+                'title' => $exam->title,
+                'status' => $exam->status,
+                'course_id' => $exam->course_id,
+                'course_title' => $exam->course?->title,
+            ],
+        ]);
+    }
+
     public function update(Request $request, $id)
     {
         $exam = Exam::with('course')->findOrFail($id);
@@ -395,7 +434,18 @@ class ExamAdminController extends Controller
             $updateData['settings'] = $validated['settings'];
         }
         
-        $exam->update($updateData);
+        try {
+            $exam->update($updateData);
+        } catch (QueryException $e) {
+            \Log::error('Exam update failed', [
+                'exam_id' => $exam->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Examenul nu a putut fi actualizat: ' . $e->getMessage(),
+            ], 422);
+        }
 
         // Update questions and answers if provided
         if (isset($validated['questions'])) {

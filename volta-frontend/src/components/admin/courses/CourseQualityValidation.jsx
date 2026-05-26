@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { openaiService } from '../../../services/openaiService';
 import { useToast } from '../../../contexts/ToastContext';
 import { buildCourseQualityValidationPrompt } from '../../../utils/voltAiPrompts';
+import { runVoltAction } from '../../../utils/voltAvailability';
 
 /**
  * Course Quality Validation - Conform defacut.md secțiunea 8
@@ -114,7 +115,7 @@ const CourseQualityValidation = ({ courseData, onValidationComplete }) => {
 				<button
 					type="button"
 					className="admin-btn admin-btn-primary"
-					onClick={handleValidate}
+					onClick={() => runVoltAction(showToast, handleValidate)}
 					disabled={validating}
 				>
 					{validating ? '⏳ Validează...' : '🤖 Rulează validare Volt'}

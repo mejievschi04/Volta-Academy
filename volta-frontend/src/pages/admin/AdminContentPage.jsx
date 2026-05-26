@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus } from '@phosphor-icons/react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
+import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 import AdminCoursesPage from './AdminCoursesPage';
 import AdminCourseMapsPage from './AdminCourseMapsPage';
 import AdminQuestionBanksPage from './AdminQuestionBanksPage';
@@ -12,6 +14,7 @@ import AdminManualReviewPage from './AdminManualReviewPage';
 
 const AdminContentPage = () => {
 	const { user, canMutateInAdminArea } = useAuth();
+	const { showToast } = useToast();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -96,7 +99,7 @@ const AdminContentPage = () => {
 												<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
 													Curs nou
 												</button>
-												<button onClick={() => { setShowCreateMenu(false); setShowVoltCourseChat(true); }}>
+												<button onClick={() => { setShowCreateMenu(false); notifyVoltComingSoon(showToast); }}>
 													Curs cu Volt
 												</button>
 											</div>

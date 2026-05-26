@@ -1,5 +1,6 @@
 import api, { ensureApiCsrfCookie } from '../api.js';
 import { logger } from '../utils/logger';
+import { assertVoltEnabled } from '../utils/voltAvailability.js';
 
 // Categories are no longer supported
 
@@ -518,7 +519,7 @@ export const adminService = {
   },
   
   generateCourseStructure: async (courseInfo) => {
-    // Call Volt generation service for course structure
+    assertVoltEnabled();
     const response = await api.post('/admin/ai/generate-course-structure', courseInfo);
     return response.data;
   },
@@ -655,6 +656,11 @@ export const adminService = {
    */
   updateExam: async (id, examData) => {
     const response = await api.put(`/admin/exams/${id}`, examData);
+    return response.data;
+  },
+
+  patchExamStatus: async (id, status) => {
+    const response = await api.patch(`/admin/exams/${id}/status`, { status });
     return response.data;
   },
 
@@ -906,6 +912,7 @@ export const adminService = {
   },
 
   previewQuestionsWithVolt: async (bankId, payload = {}) => {
+    assertVoltEnabled();
     const response = await api.post(`/admin/question-banks/${bankId}/ai/preview`, payload, {
       timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
     });
@@ -913,6 +920,7 @@ export const adminService = {
   },
 
   improveQuestionWithVolt: async (questionId, instruction = '') => {
+    assertVoltEnabled();
     const response = await api.post(
       `/admin/questions/${questionId}/improve`,
       {
@@ -926,11 +934,13 @@ export const adminService = {
   },
 
   autoTagQuestionWithVolt: async (questionId) => {
+    assertVoltEnabled();
     const response = await api.post(`/admin/questions/${questionId}/auto-tag`);
     return response.data;
   },
 
   generateQuestionsFromCourse: async (bankId, courseId, options = {}) => {
+    assertVoltEnabled();
     const response = await api.post(`/admin/question-banks/${bankId}/generate-from-course`, {
       course_id: courseId,
       ...options

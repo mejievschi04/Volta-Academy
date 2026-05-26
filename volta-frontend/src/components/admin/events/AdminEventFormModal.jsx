@@ -3,7 +3,7 @@ import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
 import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
 
-const DEFAULT_TIMEZONE = 'Europe/Bucharest';
+const DEFAULT_TIMEZONE = 'Europe/Chisinau';
 const DEFAULT_DURATION_MINUTES = 60;
 const TIME_24H_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 

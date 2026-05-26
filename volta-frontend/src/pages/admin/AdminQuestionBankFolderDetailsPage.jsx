@@ -22,6 +22,7 @@ import QuestionRow from '../../components/admin/question-banks/QuestionRow';
 import Tag from '../../components/admin/question-banks/Tag';
 import QuestionBuilderEditor from '../../components/admin/question-banks/QuestionBuilderEditor';
 import AIGenerateQuestionsModal from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModal';
+import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import { useAuth } from '../../contexts/AuthContext';
 import './AdminQuestionBanksPage.css';
 
@@ -289,6 +290,10 @@ const AdminQuestionBankFolderDetailsPage = () => {
   };
 
   const handleOpenAIModal = () => {
+    if (!isVoltEnabled()) {
+      notifyVoltComingSoon(showToast);
+      return;
+    }
     setAiOptions({
       numberOfQuestions: 10,
       difficulty: 'medium',
