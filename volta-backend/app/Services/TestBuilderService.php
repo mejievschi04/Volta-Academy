@@ -134,7 +134,7 @@ class TestBuilderService
                 'question_bank_id' => null,
                 'type' => $this->normalizeQuestionType($questionData['type'] ?? 'multiple_choice'),
                 'content' => $questionData['content'],
-                'answers' => $questionData['answers'] ?? [],
+                'answers' => $this->normalizeAnswersForType($questionData['type'] ?? 'multiple_choice', $questionData['answers'] ?? []),
                 'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
                 'order' => $questionData['order'] ?? $index,
                 'explanation' => $questionData['explanation'] ?? null,
@@ -157,6 +157,10 @@ class TestBuilderService
             if ($usageCount > 0) {
                 throw new \Exception('Cannot modify questions of a published test that is linked to courses. Create a new version instead.');
             }
+        }
+
+        if (isset($data['answers']) && is_array($data['answers'])) {
+            $data['answers'] = $this->normalizeAnswersForType($data['type'] ?? $question->type ?? 'multiple_choice', $data['answers']);
         }
 
         $question->update($data);
@@ -270,7 +274,7 @@ class TestBuilderService
                 'question_bank_id' => $bank->id,
                 'type' => $this->normalizeQuestionType($questionData['type'] ?? 'multiple_choice'),
                 'content' => $questionData['content'],
-                'answers' => $questionData['answers'] ?? [],
+                'answers' => $this->normalizeAnswersForType($questionData['type'] ?? 'multiple_choice', $questionData['answers'] ?? []),
                 'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
                 'order' => $questionData['order'] ?? $index,
                 'explanation' => $questionData['explanation'] ?? null,
@@ -399,5 +403,51 @@ class TestBuilderService
         $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
         return in_array($type, $allowed, true) ? $type : 'multiple_choice';
+    }
+
+    protected function normalizeAnswersForType(?string $questionType, array $answers): array
+    {
+        $type = $this->normalizeQuestionType($questionType);
+        $normalized = [];
+
+        foreach (array_values($answers) as $idx => $item) {
+            $row = is_array($item) ? $item : [];
+
+            if ($type === 'matching') {
+                $left = $row['left'] ?? $row['text'] ?? $row['question'] ?? '';
+                $right = $row['right'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+                $left = is_string($left) ? $left : (string) $left;
+                $right = is_string($right) ? $right : (string) $right;
+
+                $normalized[] = [
+                    'left' => $left,
+                    'right' => $right,
+                    'text' => $left,
+                    'answer_text' => $right,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            if ($type === 'ordering') {
+                $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? $row['label'] ?? '';
+                $normalized[] = [
+                    'text' => is_string($text) ? $text : (string) $text,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+            $normalized[] = [
+                'text' => is_string($text) ? $text : (string) $text,
+                'is_correct' => filter_var($row['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'order' => isset($row['order']) ? (int) $row['order'] : $idx,
+            ];
+        }
+
+        return $normalized;
     }
 }

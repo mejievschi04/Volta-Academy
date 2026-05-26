@@ -8,11 +8,13 @@ use App\Models\Exam;
 use App\Models\Module;
 use App\Models\User;
 use App\Models\Event;
+use App\Models\Lesson;
 use App\Models\Team;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Notification;
 use App\Models\ActivityLog;
+use App\Support\StudentSessionLogger;
 use App\Models\Question;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -51,6 +53,12 @@ class DashboardAdminController extends Controller
 
             // Alerts
             $alerts = $this->getAlerts();
+            if ($request->user()) {
+                $alerts = \App\Http\Controllers\Api\Admin\AdminAlertController::filterDismissed(
+                    $alerts,
+                    (int) $request->user()->id
+                );
+            }
 
             // Stored notifications for current user (admin)
             $storedNotifications = [];
@@ -72,9 +80,8 @@ class DashboardAdminController extends Controller
                     ->all();
             }
 
-            // Notifications = stored + critical alerts
-            $criticalAlerts = array_filter($alerts, fn($a) => ($a['severity'] ?? '') === 'critical');
-            $notifications = array_merge($storedNotifications, $criticalAlerts);
+            // Notifications = stored + dashboard alerts (warning/info)
+            $notifications = array_merge($storedNotifications, $alerts);
             usort($notifications, fn($a, $b) => strtotime($b['created_at'] ?? 0) - strtotime($a['created_at'] ?? 0));
 
             // Average test completion percentage across all students
@@ -94,7 +101,7 @@ class DashboardAdminController extends Controller
             );
 
             $hourlyActivity = Cache::remember(
-                'dashboard:hourly_activity:' . $dateRange['start']->format('YmdHi') . ':' . $dateRange['end']->format('YmdHi'),
+                'dashboard:hourly_sessions:v5:' . $dateRange['start']->format('YmdHi') . ':' . $dateRange['end']->format('YmdHi'),
                 300,
                 fn () => $this->getHourlyActivity($dateRange)
             );
@@ -214,10 +221,15 @@ class DashboardAdminController extends Controller
     private function getIntegrationsMeta(): array
     {
         return [
-            'payments' => Schema::hasTable('payments'),
+            'payments' => $this->paymentsModuleEnabled(),
             'tickets' => Schema::hasTable('support_tickets') || Schema::hasTable('tickets'),
             'course_reviews' => Schema::hasTable('course_reviews') || Schema::hasTable('reviews'),
         ];
+    }
+
+    private function paymentsModuleEnabled(): bool
+    {
+        return Schema::hasTable('payments');
     }
 
     private function calculateKPIs($dateRange)
@@ -356,11 +368,6 @@ class DashboardAdminController extends Controller
             ? round((($newEnrollments - $previousEnrollments) / $previousEnrollments) * 100, 1)
             : 0;
 
-        // Venituri: rămân 0 până există tabel `payments` (sau similar); vezi `integrations.payments` în răspunsul dashboard.
-        $revenueGross = 0;
-        $revenueNet = 0;
-        $revenueTrend = 0;
-
         // Completion Rate
         $totalEnrollments = 0;
         $completedEnrollments = 0;
@@ -439,27 +446,34 @@ class DashboardAdminController extends Controller
         $issuesTrend = 0;
 
         $studentIds = User::where('role', 'student')->pluck('id');
-        $learningSecondsPeriod = 0;
+        $focusLogsPeriod = collect();
         if ($studentIds->isNotEmpty()) {
-            $learningSecondsPeriod = ActivityLog::where('action', 'telemetry.learner_focus_seconds')
+            $focusLogsPeriod = ActivityLog::where('action', 'telemetry.learner_focus_seconds')
                 ->whereBetween('created_at', [$start, $end])
                 ->whereIn('user_id', $studentIds)
-                ->get(['new_values'])
-                ->sum(fn ($log) => (int) (($log->new_values ?? [])['seconds'] ?? 0));
+                ->get(['new_values']);
         }
 
-        $learningSecondsAllTime = 0;
+        $learningSessionsPeriod = $focusLogsPeriod->count();
+        $learningSecondsPeriod = $focusLogsPeriod->sum(
+            fn ($log) => (int) (($log->new_values ?? [])['seconds'] ?? 0)
+        );
+
+        $avgMinutesPeriod = $learningSessionsPeriod > 0
+            ? round(($learningSecondsPeriod / 60) / $learningSessionsPeriod, 1)
+            : 0.0;
+
+        $avgMinutesAllTime = 0.0;
         if (Schema::hasTable('lesson_progress')) {
-            $learningSecondsAllTime = (int) DB::table('lesson_progress')
+            $avgSecondsAllTime = (float) DB::table('lesson_progress')
                 ->join('users', 'users.id', '=', 'lesson_progress.user_id')
                 ->where('users.role', 'student')
-                ->sum('lesson_progress.time_spent_seconds');
+                ->where('lesson_progress.time_spent_seconds', '>', 0)
+                ->avg('lesson_progress.time_spent_seconds');
+            $avgMinutesAllTime = round($avgSecondsAllTime / 60, 1);
         }
 
-        $learningHoursPeriod = round($learningSecondsPeriod / 3600, 1);
-        $learningHoursAll = round($learningSecondsAllTime / 3600, 1);
-
-        return [
+        $kpis = [
             'total_users' => [
                 'value' => (string)$totalUsers, // Return as string directly, no formatting
                 'trend' => $totalUsersTrend >= 0 ? 'up' : 'down',
@@ -484,18 +498,6 @@ class DashboardAdminController extends Controller
                 'trendValue' => abs($enrollmentsTrend) . '%',
                 'color' => '#10b981',
             ],
-            'revenue_gross' => [
-                'value' => $revenueGross, // Return as number for frontend formatting
-                'trend' => $revenueTrend >= 0 ? 'up' : 'down',
-                'trendValue' => abs($revenueTrend) . '%',
-                'color' => '#f59e0b',
-            ],
-            'revenue_net' => [
-                'value' => $revenueNet, // Return as number for frontend formatting
-                'trend' => $revenueTrend >= 0 ? 'up' : 'down',
-                'trendValue' => abs($revenueTrend) . '%',
-                'color' => '#8b5cf6',
-            ],
             'completion_rate' => [
                 'value' => $completionRate . '%',
                 'trend' => $completionTrend >= 0 ? 'up' : 'down',
@@ -514,16 +516,17 @@ class DashboardAdminController extends Controller
                 'trendValue' => abs($issuesTrend),
                 'color' => '#f97316',
             ],
-            'learning_hours' => [
-                'value' => (string) $learningHoursPeriod,
-                'label' => 'Ore învățare (perioadă)',
+            'avg_learning_minutes' => [
+                'value' => (string) $avgMinutesPeriod,
+                'label' => 'Medie minute / sesiune (perioadă)',
+                'sessions_count' => $learningSessionsPeriod,
                 'trend' => 'up',
                 'trendValue' => '0%',
                 'color' => '#0ea5e9',
             ],
-            'learning_hours_total' => [
-                'value' => (string) $learningHoursAll,
-                'label' => 'Ore învățare (total înregistrat)',
+            'avg_learning_minutes_total' => [
+                'value' => (string) $avgMinutesAllTime,
+                'label' => 'Medie minute / lecție (total)',
                 'trend' => 'up',
                 'trendValue' => '0%',
                 'color' => '#0284c7',
@@ -537,17 +540,35 @@ class DashboardAdminController extends Controller
                 'color' => '#22c55e',
             ],
         ];
+
+        if ($this->paymentsModuleEnabled()) {
+            // Placeholder until payment aggregates are wired; keys appear only when module exists.
+            $kpis['revenue_gross'] = [
+                'value' => 0,
+                'trend' => 'up',
+                'trendValue' => '0%',
+                'color' => '#f59e0b',
+            ];
+            $kpis['revenue_net'] = [
+                'value' => 0,
+                'trend' => 'up',
+                'trendValue' => '0%',
+                'color' => '#8b5cf6',
+            ];
+        }
+
+        return $kpis;
     }
 
     private function getChartData($dateRange)
     {
         $start = $dateRange['start'];
         $end = $dateRange['end'];
-        $days = $start->diffInDays($end);
+        $days = max(1, (int) ceil($start->diffInDays($end)));
         $dataPoints = min($days, 30); // Max 30 data points
 
         $chartData = [];
-        $interval = max(0.0001, $days / $dataPoints);
+        $interval = max(0.0001, $days / max(1, $dataPoints));
 
         $studentIdsForChart = User::where('role', 'student')->pluck('id');
         $focusLogs = $studentIdsForChart->isEmpty()
@@ -560,6 +581,9 @@ class DashboardAdminController extends Controller
         for ($i = 0; $i <= $dataPoints; $i++) {
             $date = $start->copy()->addDays($i * $interval);
             $dateEnd = $date->copy()->addDays($interval);
+            if ($dateEnd->greaterThan($end)) {
+                $dateEnd = $end->copy();
+            }
 
             $enrollments = 0;
             if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled_at')) {
@@ -571,54 +595,93 @@ class DashboardAdminController extends Controller
                     ->count();
             }
 
-            $revenue = 0; // Integrare plăți: vezi `integrations.payments`
-
-            $users = User::where('role', 'student')
+            $newUsers = User::where('role', 'student')
                 ->whereBetween('created_at', [$date, $dateEnd])
                 ->count();
+
+            $totalUsers = User::where('role', 'student')
+                ->where('created_at', '<=', $dateEnd)
+                ->count();
+
+            $usersWithCourseActivity = collect([]);
+            if (Schema::hasTable('course_user')) {
+                $activityQuery = DB::table('course_user')
+                    ->join('users', 'users.id', '=', 'course_user.user_id')
+                    ->where('users.role', 'student')
+                    ->where(function ($q) use ($date, $dateEnd) {
+                        $q->whereBetween('course_user.updated_at', [$date, $dateEnd]);
+                        if (Schema::hasColumn('course_user', 'enrolled_at')) {
+                            $q->orWhereBetween('course_user.enrolled_at', [$date, $dateEnd]);
+                        }
+                        if (Schema::hasColumn('course_user', 'completed_at')) {
+                            $q->orWhereBetween('course_user.completed_at', [$date, $dateEnd]);
+                        }
+                    });
+
+                $usersWithCourseActivity = $activityQuery->distinct()->pluck('course_user.user_id');
+            }
+
+            $usersUpdated = DB::table('users')
+                ->where('role', 'student')
+                ->whereBetween('users.updated_at', [$date, $dateEnd])
+                ->pluck('id');
+
+            $activeUsers = $usersWithCourseActivity->merge($usersUpdated)->unique()->count();
 
             $learningSeconds = $focusLogs
                 ->filter(fn ($log) => $log->created_at >= $date && $log->created_at < $dateEnd)
                 ->sum(fn ($log) => (int) (($log->new_values ?? [])['seconds'] ?? 0));
 
-            $chartData[] = [
+            $point = [
                 'date' => $date->format('Y-m-d'),
                 'enrollments' => $enrollments,
-                'revenue' => $revenue,
-                'users' => $users,
+                'users' => $totalUsers,
+                'total_users' => $totalUsers,
+                'new_users' => $newUsers,
+                'active_users' => $activeUsers,
                 'learning_minutes' => (int) round($learningSeconds / 60),
                 'learning_hours' => round($learningSeconds / 3600, 2),
             ];
+            if ($this->paymentsModuleEnabled()) {
+                $point['revenue'] = 0;
+            }
+            $chartData[] = $point;
         }
 
         return $chartData;
     }
 
     /**
-     * Distribuție pe ore a zilei (ora locală server) pentru timpul de focus învățare în perioadă.
+     * Distribuție pe orele zilei (00–23): sesiuni = deschideri de platformă (session_started).
      *
-     * @return array<int, array{hour:int, lessons:int, users:int}>
+     * @return array<int, array{hour:int, sessions:int, visits:int, users:int}>
      */
     private function getHourlyActivity(array $dateRange): array
     {
         $start = $dateRange['start'];
         $end = $dateRange['end'];
 
-        $secondsByHour = array_fill(0, 24, 0);
+        $sessionsByHour = array_fill(0, 24, 0);
         $usersByHour = array_fill(0, 24, []);
 
+        if (! Schema::hasTable('activity_logs')) {
+            return $this->emptyHourlySessionsBuckets();
+        }
+
         $studentIds = User::where('role', 'student')->pluck('id');
-        $logs = $studentIds->isEmpty()
-            ? collect()
-            : ActivityLog::where('action', 'telemetry.learner_focus_seconds')
-                ->whereBetween('created_at', [$start, $end])
-                ->whereIn('user_id', $studentIds)
-                ->get(['created_at', 'new_values', 'user_id']);
+        if ($studentIds->isEmpty()) {
+            return $this->emptyHourlySessionsBuckets();
+        }
+
+        $logs = ActivityLog::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->whereIn('user_id', $studentIds)
+            ->where('action', StudentSessionLogger::ACTION)
+            ->get(['created_at', 'user_id']);
 
         foreach ($logs as $log) {
             $h = (int) $log->created_at->format('G');
-            $sec = (int) (($log->new_values ?? [])['seconds'] ?? 0);
-            $secondsByHour[$h] += $sec;
+            $sessionsByHour[$h]++;
             if ($log->user_id) {
                 $usersByHour[$h][$log->user_id] = true;
             }
@@ -626,11 +689,26 @@ class DashboardAdminController extends Controller
 
         $out = [];
         for ($h = 0; $h < 24; $h++) {
+            $count = $sessionsByHour[$h];
             $out[] = [
                 'hour' => $h,
-                'lessons' => (int) max(0, round($secondsByHour[$h] / 60)),
+                'sessions' => $count,
+                'visits' => $count,
                 'users' => count($usersByHour[$h]),
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{hour:int, sessions:int, visits:int, users:int}>
+     */
+    private function emptyHourlySessionsBuckets(): array
+    {
+        $out = [];
+        for ($h = 0; $h < 24; $h++) {
+            $out[] = ['hour' => $h, 'sessions' => 0, 'visits' => 0, 'users' => 0];
         }
 
         return $out;
@@ -680,13 +758,17 @@ class DashboardAdminController extends Controller
                     ? round(($completed / $totalEnrollments) * 100, 1)
                     : 0;
 
-                return [
+                $row = [
                     'id' => $course->id,
                     'title' => $course->title,
                     'enrollments' => $enrollments,
-                    'revenue' => 0, // Fără modul plăți; vezi `integrations.payments`
                     'completion_rate' => $completionRate,
                 ];
+                if ($this->paymentsModuleEnabled()) {
+                    $row['revenue'] = 0;
+                }
+
+                return $row;
             })
             ->sortByDesc('enrollments')
             ->take(5)
@@ -1017,7 +1099,7 @@ class DashboardAdminController extends Controller
         if (Schema::hasTable('activity_logs')) {
             try {
                 $recentLearnerActivity = ActivityLog::with('user:id,name,role')
-                    ->whereIn('action', ['completed_lesson', 'telemetry.learner_focus_seconds'])
+                    ->whereIn('action', ['completed_lesson', 'telemetry.learner_focus_seconds', 'enrolled_course'])
                     ->whereHas('user', fn ($q) => $q->where('role', 'student'))
                     ->latest('created_at')
                     ->take(20)
@@ -1030,6 +1112,17 @@ class DashboardAdminController extends Controller
                     }
 
                     $newValues = is_array($log->new_values) ? $log->new_values : [];
+
+                    if ($log->action === 'enrolled_course') {
+                        $courseTitle = $newValues['course_title'] ?? 'un curs';
+                        $activities[] = [
+                            'id' => 'enroll_' . $log->id,
+                            'type' => 'enrollment',
+                            'description' => "{$user->name} s-a înscris la cursul \"{$courseTitle}\"",
+                            'created_at' => optional($log->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
+                        ];
+                        continue;
+                    }
 
                     if ($log->action === 'completed_lesson') {
                         $lessonTitle = $newValues['lesson_title'] ?? 'o lecție';
@@ -1223,6 +1316,19 @@ class DashboardAdminController extends Controller
             ->count();
 
         return round(($completed / $total) * 100, 1);
+    }
+
+    /**
+     * Computed dashboard alerts, minus those dismissed by this user.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function filteredAlertsForUser($user): array
+    {
+        $userId = is_object($user) ? (int) $user->id : (int) $user;
+        $alerts = $this->getAlerts();
+
+        return AdminAlertController::filterDismissed($alerts, $userId);
     }
 
     private function getAlerts()

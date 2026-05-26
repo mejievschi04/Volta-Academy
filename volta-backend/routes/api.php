@@ -57,7 +57,6 @@ Route::middleware('throttle:120,1')->group(function () {
     Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{id}', [EventController::class, 'show']);
-    Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
     Route::get('/builder-media/{courseId}/{mediaId}', [CourseBuilderController::class, 'serveMediaFilePublic']);
 });
 
@@ -101,6 +100,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-messages-read'])->group(functio
 Route::middleware(['auth:sanctum', 'throttle:api-messages-write'])->group(function () {
     Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
     Route::patch('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'updateConversation']);
+    Route::delete('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'destroyConversation']);
     Route::post('/messages/conversations/{id}/leave', [\App\Http\Controllers\Api\MessageController::class, 'leaveGroup']);
     Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
     Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
@@ -110,7 +110,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-messages-write'])->group(functi
 });
 
 // Protected routes (require authentication) with rate limiting
-Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 requests per minute per user
+Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/profile', [ProfileController::class, 'index']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -122,11 +122,19 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () { // 60 
     
     // Student Dashboard
     Route::get('/student/dashboard', [\App\Http\Controllers\Api\StudentDashboardController::class, 'index']);
+    Route::get('/student/activity', [\App\Http\Controllers\Api\StudentActivityController::class, 'index']);
+
+    // In-app notifications (persisted)
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::patch('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
     
     // Course Progress
     Route::get('/courses/{courseId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'getCourseProgress']);
     Route::post('/courses/{courseId}/enroll', [\App\Http\Controllers\Api\CourseProgressController::class, 'enrollCourse']);
     Route::post('/courses/{courseId}/finish', [\App\Http\Controllers\Api\CourseProgressController::class, 'finishCourse']);
+    Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
     Route::post('/lessons/{lessonId}/complete', [\App\Http\Controllers\Api\CourseProgressController::class, 'completeLesson']);
     Route::put('/lessons/{lessonId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'updateLessonProgress']);
     Route::get('/modules/{moduleId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkModuleAccess']);
@@ -185,7 +193,8 @@ Route::middleware([
 ])->prefix('admin')->group(function () { // admin | analyst (citire) | instructor (doar conținut)
     // Admin Dashboard
     Route::get('/dashboard', [DashboardAdminController::class, 'index']);
-    
+    Route::post('/alerts/dismiss', [\App\Http\Controllers\Api\Admin\AdminAlertController::class, 'dismiss']);
+
     // Courses Management
     Route::get('/courses', [CourseAdminController::class, 'index']);
     // Specific routes must come before parameterized routes
@@ -342,6 +351,7 @@ Route::middleware([
     Route::put('/events/{id}', [EventAdminController::class, 'update']);
     Route::delete('/events/{id}', [EventAdminController::class, 'destroy']);
     Route::post('/events/{id}/actions/{action}', [EventAdminController::class, 'quickAction']);
+    Route::put('/events/{id}/participants/{userId}/attendance', [EventAdminController::class, 'updateParticipantAttendance']);
     
     // Teams Management
     Route::get('/teams', [TeamAdminController::class, 'index']);

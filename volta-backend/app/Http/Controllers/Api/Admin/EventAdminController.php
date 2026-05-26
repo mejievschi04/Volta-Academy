@@ -290,6 +290,54 @@ class EventAdminController extends Controller
     }
 
     /**
+     * Admin marchează / elimină prezența unui participant înscris.
+     */
+    public function updateParticipantAttendance(Request $request, $id, $userId)
+    {
+        $event = Event::findOrFail($id);
+        $this->ensureCanManageEvent($event);
+
+        $validated = $request->validate([
+            'attended' => 'required|boolean',
+        ]);
+
+        if (! Schema::hasTable('event_user')) {
+            return response()->json(['message' => 'Înregistrările nu sunt disponibile'], 400);
+        }
+
+        $registration = DB::table('event_user')
+            ->where('event_id', $event->id)
+            ->where('user_id', $userId)
+            ->where('registered', true)
+            ->first();
+
+        if (! $registration) {
+            return response()->json(['message' => 'Utilizatorul nu este înscris la acest eveniment'], 404);
+        }
+
+        $attended = (bool) $validated['attended'];
+        DB::table('event_user')
+            ->where('event_id', $event->id)
+            ->where('user_id', $userId)
+            ->update([
+                'attended' => $attended,
+                'attended_at' => $attended ? now() : null,
+                'updated_at' => now(),
+            ]);
+
+        $event->updateKPIs();
+        $event->refresh();
+        $event->load(['registeredUsers']);
+
+        return response()->json([
+            'message' => $attended ? 'Prezență marcată' : 'Prezență eliminată',
+            'registrations_count' => $event->registrations_count,
+            'attendance_count' => $event->attendance_count,
+            'registered_users' => $event->registeredUsers,
+        ]);
+    }
+
+    /**
      * Quick actions: publish, unpublish, cancel, complete
      */
     public function quickAction(Request $request, $id, $action)

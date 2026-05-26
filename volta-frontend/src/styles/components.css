@@ -100,19 +100,77 @@
 	cursor: not-allowed;
 }
 
-/* Danger Button - Red Accent */
+/* Delete / danger — roșu consistent (text, icon, modal, toolbar) */
 .btn-danger,
-.va-btn-danger {
-	background-color: transparent;
-	color: var(--color-error);
-	border: 1px solid var(--color-error);
+.va-btn-danger,
+.admin-btn-danger,
+.qb-delete-btn,
+.messages-chat-actions-btn,
+.admin-content-card__action.is-danger {
+	color: #991b1b !important;
+	background-color: rgba(239, 68, 68, 0.12) !important;
+	border-color: rgba(220, 38, 38, 0.45) !important;
 }
 
 .btn-danger:hover:not(:disabled),
-.va-btn-danger:hover:not(:disabled) {
-	background-color: rgba(239, 68, 68, 0.15);
-	border-color: var(--color-error);
-	color: var(--color-error);
+.va-btn-danger:hover:not(:disabled),
+.admin-btn-danger:hover:not(:disabled),
+.qb-delete-btn:hover:not(:disabled),
+.messages-chat-actions-btn:hover:not(:disabled),
+.admin-content-card__action.is-danger:hover:not(:disabled) {
+	color: #991b1b !important;
+	background-color: rgba(239, 68, 68, 0.18) !important;
+	border-color: rgba(220, 38, 38, 0.55) !important;
+}
+
+/* Când e combinat cu secondary, nu moșteni gri */
+.lms-btn-secondary.va-btn-danger,
+.lms-btn-secondary.btn-danger,
+button.lms-btn-secondary.va-btn-danger {
+	color: #991b1b !important;
+	background-color: rgba(239, 68, 68, 0.12) !important;
+	border-color: rgba(220, 38, 38, 0.45) !important;
+}
+
+.lms-btn-secondary.va-btn-danger:hover:not(:disabled),
+.lms-btn-secondary.btn-danger:hover:not(:disabled) {
+	color: #991b1b !important;
+	background-color: rgba(239, 68, 68, 0.18) !important;
+	border-color: rgba(220, 38, 38, 0.55) !important;
+}
+
+html[data-theme='dark'] .btn-danger,
+html[data-theme='dark'] .va-btn-danger,
+html[data-theme='dark'] .admin-btn-danger,
+html[data-theme='dark'] .qb-delete-btn,
+html[data-theme='dark'] .messages-chat-actions-btn,
+html[data-theme='dark'] .admin-content-card__action.is-danger,
+html[data-theme='dark'] .lms-btn-secondary.va-btn-danger,
+html[data-theme='dark'] .lms-btn-secondary.btn-danger {
+	color: #fecaca !important;
+	background-color: rgba(239, 68, 68, 0.14) !important;
+	border-color: rgba(248, 113, 113, 0.45) !important;
+}
+
+html[data-theme='dark'] .btn-danger:hover:not(:disabled),
+html[data-theme='dark'] .va-btn-danger:hover:not(:disabled),
+html[data-theme='dark'] .admin-btn-danger:hover:not(:disabled),
+html[data-theme='dark'] .qb-delete-btn:hover:not(:disabled),
+html[data-theme='dark'] .messages-chat-actions-btn:hover:not(:disabled),
+html[data-theme='dark'] .admin-content-card__action.is-danger:hover:not(:disabled),
+html[data-theme='dark'] .lms-btn-secondary.va-btn-danger:hover:not(:disabled),
+html[data-theme='dark'] .lms-btn-secondary.btn-danger:hover:not(:disabled) {
+	color: #fee2e2 !important;
+	background-color: rgba(239, 68, 68, 0.22) !important;
+	border-color: rgba(248, 113, 113, 0.55) !important;
+}
+
+.qb-delete-btn svg,
+.va-btn-danger svg,
+.admin-btn-danger svg,
+.messages-chat-actions-btn svg {
+	color: currentColor !important;
+	stroke: currentColor !important;
 }
 
 /* ============================================

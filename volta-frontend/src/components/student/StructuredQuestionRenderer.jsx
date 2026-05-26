@@ -17,6 +17,7 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DragGripIcon } from '../common/DragGripIcon';
 
 const sequenceToStrings = (value) => {
 	if (!Array.isArray(value)) return null;
@@ -58,7 +59,7 @@ function SortableOrderItem({ id, text, disabled }) {
 					cursor: disabled ? 'default' : 'grab',
 				}}
 			>
-				⋮⋮
+				<DragGripIcon size={16} />
 			</button>
 			<span style={{ flex: 1, color: 'var(--va-text, #fff)' }}>{text}</span>
 		</div>

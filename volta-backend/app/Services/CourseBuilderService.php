@@ -926,7 +926,18 @@ class CourseBuilderService
      */
     public function updateLesson(Lesson $lesson, array $data): Lesson
     {
+        if (array_key_exists('content', $data)) {
+            $incoming = $data['content'];
+            $isEmpty = $incoming === null || (is_string($incoming) && trim($incoming) === '');
+            $hasStoredContent = is_string($lesson->content) && trim($lesson->content) !== '';
+            $hasBlocks = $lesson->contentBlocks()->exists();
+            if ($isEmpty && $hasStoredContent && $hasBlocks) {
+                unset($data['content']);
+            }
+        }
+
         $lesson->update($data);
+
         return $lesson->fresh();
     }
 

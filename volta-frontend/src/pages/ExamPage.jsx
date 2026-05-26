@@ -7,6 +7,16 @@ import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
+import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
+import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
+import {
+	coerceChoiceAnswerForQuestion,
+	getCorrectChoiceIndices,
+	isChoiceAnswered,
+	isMultiSelectChoiceQuestion,
+	areChoiceAnswersEqual,
+	normalizeMultiChoiceIndices,
+} from '../utils/examChoiceQuestions';
 
 /** Ciornă răspunsuri în sessionStorage — supraviețuiește navigării înapoi la curs (nu la trimitere). */
 function buildExamDraftKey(userId, courseId, examId) {
@@ -26,11 +36,15 @@ function restoreExamDraftAnswers(rawJson, questions) {
 	const next = {};
 	for (const q of questions || []) {
 		const id = q.id;
+		let raw;
 		if (Object.prototype.hasOwnProperty.call(restored, id)) {
-			next[id] = restored[id];
+			raw = restored[id];
 		} else if (Object.prototype.hasOwnProperty.call(restored, String(id))) {
-			next[id] = restored[String(id)];
+			raw = restored[String(id)];
+		} else {
+			continue;
 		}
+		next[id] = coerceChoiceAnswerForQuestion(q, raw);
 	}
 	return next;
 }
@@ -41,11 +55,15 @@ function normalizeAnswersFromApi(raw, questions) {
 	const next = {};
 	for (const q of questions || []) {
 		const id = q.id;
+		let value;
 		if (Object.prototype.hasOwnProperty.call(raw, id)) {
-			next[id] = raw[id];
+			value = raw[id];
 		} else if (Object.prototype.hasOwnProperty.call(raw, String(id))) {
-			next[id] = raw[String(id)];
+			value = raw[String(id)];
+		} else {
+			continue;
 		}
+		next[id] = coerceChoiceAnswerForQuestion(q, value);
 	}
 	return next;
 }
@@ -70,6 +88,20 @@ const ExamPage = () => {
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [congratsCourseTitle, setCongratsCourseTitle] = useState('');
 	const timerIntervalRef = useRef(null);
+	const userIdRef = useRef(user?.id);
+	userIdRef.current = user?.id;
+	const examFetchInFlightRef = useRef(false);
+	const examFetchKeyRef = useRef(null);
+	const testTelemetry = useTestAttemptTelemetry({
+		enabled: Boolean(user?.id),
+		userId: user?.id,
+		entityId: examId,
+		courseId,
+		testId: exam?.test_id ?? exam?.testId ?? null,
+		modelType: 'exam',
+	});
+	const testTelemetryRef = useRef(testTelemetry);
+	testTelemetryRef.current = testTelemetry;
 	const reviewAnswers = useMemo(() => {
 		if (!submitted || !result || !result.answers || typeof result.answers !== 'object') return null;
 		return normalizeAnswersFromApi(result.answers, exam?.questions || []);
@@ -77,7 +109,13 @@ const ExamPage = () => {
 	const visibleAnswers = reviewAnswers || answers;
 
 	const fetchExamData = useCallback(async ({ forceFreshAttempt = false } = {}) => {
-		const draftKey = buildExamDraftKey(user?.id, courseId, examId);
+		const draftKey = buildExamDraftKey(userIdRef.current, courseId, examId);
+		const fetchKey = `${examId}:${courseId ?? ''}:${forceFreshAttempt ? '1' : '0'}`;
+		if (examFetchInFlightRef.current && examFetchKeyRef.current === fetchKey) {
+			return;
+		}
+		examFetchInFlightRef.current = true;
+		examFetchKeyRef.current = fetchKey;
 		try {
 			setLoading(true);
 			if (forceFreshAttempt) {
@@ -94,7 +132,9 @@ const ExamPage = () => {
 				setResult(data.latest_result);
 				setSubmitted(true);
 				setAnswers({});
+				void testTelemetryRef.current.trackResultViewed(data.latest_result);
 			} else {
+				testTelemetryRef.current.resetSession();
 				setResult(null);
 				setSubmitted(false);
 				let draftAnswers = {};
@@ -109,6 +149,11 @@ const ExamPage = () => {
 					}
 				}
 				setAnswers(draftAnswers);
+				void testTelemetryRef.current.trackStarted({
+					attempt_number: data.current_attempt ?? null,
+					question_count: data.questions?.length ?? 0,
+					test_id: data.test_id ?? data.testId ?? null,
+				});
 			}
 
 			if (data.time_limit_minutes && (!data.latest_result || forceFreshAttempt)) {
@@ -129,12 +174,13 @@ const ExamPage = () => {
 			setError(errorMessage || 'Testul nu a fost găsit');
 		} finally {
 			setLoading(false);
+			examFetchInFlightRef.current = false;
 		}
-	}, [examId, courseId, user?.id]);
+	}, [examId, courseId]);
 
 	useEffect(() => {
 		fetchExamData();
-	}, [fetchExamData]);
+	}, [examId, courseId, fetchExamData]);
 
 	// Persistă răspunsurile în timp real ca să nu se piardă la ieșire din pagină / refresh (până la trimitere).
 	useEffect(() => {
@@ -146,6 +192,11 @@ const ExamPage = () => {
 			/* quota / private mode */
 		}
 	}, [exam, submitted, answers, user?.id, courseId, examId]);
+
+	useEffect(() => {
+		if (!exam || submitted) return;
+		testTelemetryRef.current.trackAnswerSaved(answers, exam.questions?.length ?? 0);
+	}, [exam, submitted, answers]);
 
 	// Timer countdown
 	useEffect(() => {
@@ -190,6 +241,7 @@ const ExamPage = () => {
 				setAnswers((prev) => ({ ...prev, ...normalizeAnswersFromApi(submittedResult.answers, questionList) }));
 			}
 			setSubmitted(true);
+			void testTelemetryRef.current.trackSubmitted(submittedResult);
 			try {
 				sessionStorage.removeItem(buildExamDraftKey(user?.id, courseId, examId));
 			} catch {
@@ -246,6 +298,9 @@ const ExamPage = () => {
 			return;
 		}
 		setShowCourseCongrats(false);
+		await testTelemetryRef.current.trackRetakeStarted({
+			remaining_attempts: exam?.remaining_attempts ?? null,
+		});
 		await fetchExamData({ forceFreshAttempt: true });
 	}, [exam, fetchExamData, showWarning]);
 
@@ -262,6 +317,41 @@ const ExamPage = () => {
 		const parsed = Number(value);
 		return Number.isNaN(parsed) ? null : parsed;
 	}, []);
+
+	const normalizeComparableAnswer = useCallback((value) => {
+		if (value === null || value === undefined) return '';
+		if (typeof value === 'object') {
+			const text = value.text ?? value.answer_text ?? value.content ?? value.label ?? value.value ?? '';
+			return String(text).trim().replace(/\s+/g, ' ').toLowerCase();
+		}
+		return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+	}, []);
+
+	const resolveOptionIndex = useCallback((answerValue, options = []) => {
+		if (!Array.isArray(options) || options.length === 0 || answerValue === null || answerValue === undefined || answerValue === '') {
+			return null;
+		}
+		const numericIndex = normalizeAnswerIndex(answerValue);
+		if (numericIndex !== null && options[numericIndex] !== undefined) {
+			return numericIndex;
+		}
+		if (typeof answerValue === 'object') {
+			for (const key of ['index', 'answerIndex', 'answer_index', 'selectedIndex', 'selected_index']) {
+				const nestedIndex = normalizeAnswerIndex(answerValue[key]);
+				if (nestedIndex !== null && options[nestedIndex] !== undefined) {
+					return nestedIndex;
+				}
+			}
+			for (const key of ['text', 'answer_text', 'content', 'label', 'value']) {
+				const resolved = resolveOptionIndex(answerValue[key], options);
+				if (resolved !== null) return resolved;
+			}
+		}
+		const needle = normalizeComparableAnswer(answerValue);
+		if (!needle) return null;
+		const foundIndex = options.findIndex((option) => normalizeComparableAnswer(option) === needle);
+		return foundIndex >= 0 ? foundIndex : null;
+	}, [normalizeAnswerIndex, normalizeComparableAnswer]);
 
 	const normalizeSequenceAnswer = useCallback((value) => {
 		if (!Array.isArray(value)) return null;
@@ -281,12 +371,16 @@ const ExamPage = () => {
 			return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
 		}
 		if (Array.isArray(question.options) && question.options.length > 0) {
-			const userAnswer = normalizeAnswerIndex(answerValue);
-			const correctIndex = normalizeAnswerIndex(question.answerIndex);
-			return userAnswer !== null && correctIndex !== null && userAnswer === correctIndex;
+			const correctIndices = getCorrectChoiceIndices(question);
+			if (correctIndices.length === 0) return false;
+			if (isMultiSelectChoiceQuestion(question)) {
+				return areChoiceAnswersEqual(question, answerValue, correctIndices);
+			}
+			const userAnswer = resolveOptionIndex(answerValue, question.options);
+			return userAnswer !== null && userAnswer === correctIndices[0];
 		}
 		return false;
-	}, [normalizeAnswerIndex, normalizeSequenceAnswer]);
+	}, [normalizeSequenceAnswer, resolveOptionIndex]);
 
 	// Handle answer change
 	const handleAnswerChange = useCallback((questionId, answer) => {
@@ -323,9 +417,17 @@ const ExamPage = () => {
 	const performanceMetrics = useMemo(() => {
 		if (!result || !exam) return null;
 
-		const totalQuestions = exam.questions.length;
-		const correctAnswers = exam.questions.filter((q) => isQuestionCorrect(q, visibleAnswers[q.id])).length;
-		const incorrectAnswers = totalQuestions - correctAnswers;
+		const officialTotal = Number(result.total_questions);
+		const officialCorrect = Number(result.correct_answers_count);
+		const hasOfficialQuestionStats = Number.isFinite(officialTotal)
+			&& officialTotal >= 0
+			&& Number.isFinite(officialCorrect)
+			&& officialCorrect >= 0;
+		const totalQuestions = hasOfficialQuestionStats ? officialTotal : exam.questions.length;
+		const correctAnswers = hasOfficialQuestionStats
+			? Math.min(officialCorrect, totalQuestions)
+			: exam.questions.filter((q) => isQuestionCorrect(q, visibleAnswers[q.id])).length;
+		const incorrectAnswers = Math.max(0, totalQuestions - correctAnswers);
 
 		return {
 			totalQuestions,
@@ -334,7 +436,7 @@ const ExamPage = () => {
 			percentage: result.percentage || 0,
 			passed: result.passed || false,
 		};
-	}, [result, exam, visibleAnswers, normalizeAnswerIndex]);
+	}, [result, exam, visibleAnswers, isQuestionCorrect]);
 	const needsManualReview = Boolean(result?.needs_manual_review || result?.status === 'pending_review');
 	const showsPartialManualReview = Boolean(needsManualReview && exam?.manual_review_mode === 'partial');
 	const isSequentialNavigation = (exam?.navigation_mode || 'sequential') !== 'free';
@@ -362,12 +464,13 @@ const ExamPage = () => {
 			}
 			return isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect';
 		}
-			const isAnswered = answers[questionId] !== undefined;
+			const question = exam.questions.find((q) => q.id === questionId);
+			const isAnswered = question ? isChoiceAnswered(question, answers[questionId]) : answers[questionId] !== undefined;
 		const isCurrent = index === currentQuestionIndex;
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, submitted, result, exam, normalizeAnswerIndex, visibleAnswers]);
+	}, [answers, currentQuestionIndex, submitted, result, exam, isQuestionCorrect, visibleAnswers]);
 
 	if (loading) {
 		return (
@@ -412,21 +515,8 @@ const ExamPage = () => {
 				</Link>
 			)}
 
-			<p className="student-exam-context-note" role="note">
-				<span className="student-exam-context-badge">Evaluare</span>
-				{courseId ? (
-					<>
-						Această pagină este un <strong>examen sau test</strong> din curs, nu întregul parcurs. După trimitere poți continua lecțiile din meniul stânga.
-					</>
-				) : (
-					<>
-						<strong>Examen independent</strong> — nu este legat de un curs anume. Testele din interiorul unui curs rămân pe pagina acelui curs.
-					</>
-				)}
-			</p>
-
 			{/* Header */}
-			<div className="student-exam-header">
+			<div className="student-exam-header student-exam-header-compact">
 				<div
 					className="student-exam-header-main"
 					style={{ '--student-exam-accent': examAccent, '--student-exam-cover-image': examCoverUrl ? `url("${examCoverUrl}")` : 'none' }}
@@ -458,55 +548,52 @@ const ExamPage = () => {
 					)}
 				</div>
 
-				{/* Instructions & Passing Criteria */}
-				<div className="student-exam-instructions">
-					<div className="student-exam-instructions-section">
-						<h3 className="student-exam-instructions-title">📋 Instrucțiuni</h3>
-						{exam.instructions ? (
-							<p className="student-exam-custom-instructions">{exam.instructions}</p>
-						) : null}
-						<ul className="student-exam-instructions-list">
-							<li>Citește cu atenție fiecare întrebare înainte de a răspunde</li>
-							<li>Poți marca întrebări pentru revizie folosind butonul 🚩</li>
-							{exam.time_limit_minutes && (
-								<li>Ai la dispoziție {exam.time_limit_minutes} minute pentru a completa testul</li>
-							)}
-							{exam.max_attempts && (
-								<li>Ai {exam.max_attempts} {exam.max_attempts === 1 ? 'încercare' : 'încercări'} disponibile</li>
-							)}
-							{exam.deadline_at && (
-								<li>Termen limita: {new Date(exam.deadline_at).toLocaleString('ro-RO')}</li>
-							)}
-							{isSequentialNavigation && (
-								<li>Parcurgerea este secventiala, cate o intrebare pe rand</li>
-							)}
-							{exam.is_required && (
-								<li className="student-exam-instructions-warning">
-									⚠️ Acest test este obligatoriu. Progresul tău va fi blocat până când îl promovezi.
-								</li>
-							)}
-						</ul>
-					</div>
-					<div className="student-exam-instructions-section">
-						<h3 className="student-exam-instructions-title">✅ Criterii de trecere</h3>
+				<details className="student-exam-instructions-panel">
+					<summary className="student-exam-instructions-summary">Instrucțiuni și criterii de trecere</summary>
+					<div className="student-exam-instructions">
+						<div className="student-exam-instructions-section">
+							{exam.instructions ? (
+								<p className="student-exam-custom-instructions">{exam.instructions}</p>
+							) : null}
+							<ul className="student-exam-instructions-list">
+								<li>Citește cu atenție fiecare întrebare înainte de a răspunde</li>
+								<li>La întrebările cu răspuns multiplu poți bifa mai multe variante</li>
+								<li>Poți marca întrebări pentru revizie cu butonul de steag</li>
+								{exam.time_limit_minutes && (
+									<li>Ai la dispoziție {exam.time_limit_minutes} minute pentru a completa testul</li>
+								)}
+								{exam.max_attempts && (
+									<li>Ai {exam.max_attempts} {exam.max_attempts === 1 ? 'încercare' : 'încercări'} disponibile</li>
+								)}
+								{exam.deadline_at && (
+									<li>Termen limită: {new Date(exam.deadline_at).toLocaleString('ro-RO')}</li>
+								)}
+								{isSequentialNavigation && (
+									<li>Parcurgerea este secvențială, câte o întrebare pe rând</li>
+								)}
+								{exam.is_required && (
+									<li className="student-exam-instructions-warning">
+										Acest test este obligatoriu. Progresul tău va fi blocat până când îl promovezi.
+									</li>
+								)}
+							</ul>
+						</div>
 						<div className="student-exam-passing-criteria">
 							<div className="student-exam-passing-criteria-item">
-								<span className="student-exam-passing-criteria-label">Punctaj minim:</span>
+								<span className="student-exam-passing-criteria-label">Punctaj minim</span>
 								<span className="student-exam-passing-criteria-value">{exam.passing_score}%</span>
 							</div>
 							<div className="student-exam-passing-criteria-item">
-								<span className="student-exam-passing-criteria-label">Întrebări totale:</span>
+								<span className="student-exam-passing-criteria-label">Întrebări</span>
 								<span className="student-exam-passing-criteria-value">{exam.questions.length}</span>
 							</div>
 							<div className="student-exam-passing-criteria-item">
-								<span className="student-exam-passing-criteria-label">Puncte totale:</span>
-								<span className="student-exam-passing-criteria-value">
-									{exam.questions.reduce((sum, q) => sum + (q.points || 1), 0)}
-								</span>
+								<span className="student-exam-passing-criteria-label">Puncte</span>
+								<span className="student-exam-passing-criteria-value">{totalExamPoints}</span>
 							</div>
 						</div>
 					</div>
-				</div>
+				</details>
 
 				{/* Timer */}
 				{timeRemaining !== null && !submitted && (
@@ -599,26 +686,12 @@ const ExamPage = () => {
 										disabled={submitted}
 									/>
 								) : hasOptions ? (
-									<div className="student-exam-answer-options">
-										{q.options.map((opt, i) => {
-											const isSelected = answers[q.id] === i;
-
-											return (
-												<label
-													key={i}
-													className={`student-exam-answer-option ${isSelected ? 'selected' : 'default'}`}
-												>
-													<input
-														type="radio"
-														name={q.id}
-														checked={isSelected}
-														onChange={() => handleAnswerChange(q.id, i)}
-													/>
-													<span>{opt}</span>
-												</label>
-											);
-										})}
-									</div>
+									<ChoiceQuestionOptions
+										question={q}
+										value={answers[q.id]}
+										onChange={(next) => handleAnswerChange(q.id, next)}
+										disabled={submitted}
+									/>
 								) : (
 									<div className="student-exam-answer-options">
 										<span className="student-exam-answer-option default">
@@ -720,8 +793,13 @@ const ExamPage = () => {
 					<div className="student-exam-final-feedback">
 						{exam.questions.map((q, idx) => {
 							const userAnswer = visibleAnswers[q.id];
-							const userAnswerIndex = normalizeAnswerIndex(userAnswer);
-							const correctIndex = normalizeAnswerIndex(q.answerIndex);
+							const userAnswerIndices = isMultiSelectChoiceQuestion(q)
+								? normalizeMultiChoiceIndices(userAnswer)
+								: (() => {
+									const idx = resolveOptionIndex(userAnswer, q.options);
+									return idx !== null ? [idx] : [];
+								})();
+							const correctIndices = getCorrectChoiceIndices(q);
 							const hasOptions = Array.isArray(q.options) && q.options.length > 0;
 							const hasMatching = q.type === 'matching' && q.matching;
 							const hasOrdering = q.type === 'ordering' && q.ordering;
@@ -766,14 +844,16 @@ const ExamPage = () => {
 									)}
 									{hasOptions && (
 										<div className="student-exam-feedback-item-answers">
-											{userAnswerIndex !== null && q.options?.[userAnswerIndex] != null && (
+											{userAnswerIndices.length > 0 && (
 												<div className="student-exam-feedback-item-user">
-													<strong>Răspunsul tău:</strong> {q.options[userAnswerIndex]}
+													<strong>Răspunsul tău:</strong>{' '}
+													{userAnswerIndices.map((i) => q.options?.[i]).filter(Boolean).join('; ') || '—'}
 												</div>
 											)}
-											{canShowCorrectAnswers && !isCorrect && correctIndex !== null && q.options?.[correctIndex] != null && (
+											{canShowCorrectAnswers && !isCorrect && correctIndices.length > 0 && (
 												<div className="student-exam-feedback-item-correct">
-													<strong>Răspuns corect:</strong> {q.options[correctIndex]}
+													<strong>Răspuns corect:</strong>{' '}
+													{correctIndices.map((i) => q.options?.[i]).filter(Boolean).join('; ')}
 												</div>
 											)}
 										</div>
@@ -809,12 +889,12 @@ const ExamPage = () => {
 			)}
 
 			{/* Actions */}
-			<div className="student-exam-actions">
+			<div className="student-exam-actions student-exam-actions-sticky">
 				{!submitted && (
 					<button
 						onClick={handleSubmit}
 						className="student-exam-btn student-exam-btn-primary"
-						disabled={Object.keys(answers).length === 0}
+						disabled={!exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}
 					>
 						Trimite testul
 					</button>

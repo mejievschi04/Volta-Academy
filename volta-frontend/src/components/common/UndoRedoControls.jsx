@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowCounterClockwise, ArrowClockwise } from '@phosphor-icons/react';
 
 /**
  * Undo/Redo Controls Component - Conform defacut.md secțiunea 11
@@ -14,10 +15,7 @@ const UndoRedoControls = ({ onUndo, onRedo, canUndo, canRedo, className = '' }) 
 				disabled={!canUndo}
 				title="Undo (Ctrl+Z)"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-					<path d="M3 7v6h6" />
-					<path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
-				</svg>
+				<ArrowCounterClockwise size={16} weight="bold" aria-hidden />
 				<span>Undo</span>
 			</button>
 			<button
@@ -27,10 +25,7 @@ const UndoRedoControls = ({ onUndo, onRedo, canUndo, canRedo, className = '' }) 
 				disabled={!canRedo}
 				title="Redo (Ctrl+Shift+Z)"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-					<path d="M21 7v6h-6" />
-					<path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13" />
-				</svg>
+				<ArrowClockwise size={16} weight="bold" aria-hidden />
 				<span>Redo</span>
 			</button>
 		</div>

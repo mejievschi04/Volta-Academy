@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import './Step3Content.css';
+import { DragGripIcon } from '../../../common/DragGripIcon';
 import { toImageUrl } from '../../../../utils/imageUrl';
 
 /**
@@ -58,7 +59,9 @@ function SortableBlockItem({ block, index, isSelected, onSelect, onDelete, typeI
 			style={style}
 			className={`step3-block-list-item ${isSelected ? 'selected' : ''} ${isDragging ? 'step3-dragging' : ''}`}
 		>
-			<button type="button" className="step3-drag-handle" {...attributes} {...listeners} aria-label="Reordonare bloc">⋮⋮</button>
+			<button type="button" className="step3-drag-handle" {...attributes} {...listeners} aria-label="Reordonare bloc">
+				<DragGripIcon size={14} />
+			</button>
 			<button
 				type="button"
 				className="step3-block-list-content"

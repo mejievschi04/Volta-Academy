@@ -55,7 +55,17 @@
 
 /* Cards and elevated surfaces — exclude course-showcase-* (substring "card" in …showcase-card…) */
 [data-theme="light"] .card,
-[data-theme="light"] [class*="card"]:not([class*="course-showcase"]):not([class*="library-book"]),
+[data-theme="light"] .courses-page-maps-grid .course-map-showcase-tile,
+[data-theme="light"] .course-map-showcase-tile,
+[data-theme="light"] .courses-page-map-tile-showcase,
+[data-theme="light"] .courses-page-map-tile-showcase .course-map-folder-tile__hit {
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+[data-theme="light"] [class*="card"]:not([class*="course-showcase"]):not([class*="course-map-card--showcase"]):not([class*="library-book"]):not([class*="content-card__"]):not([class*="test-questions-card"]),
 [data-theme="light"] [class*="Card"]:not([class*="CourseShowcase"]) {
 	background-color: var(--bg-elevated) !important;
 }
@@ -160,7 +170,7 @@
 }
 
 /* Buttons - ensure text contrast */
-[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab) {
+[data-theme="light"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab):not(.admin-course-builder-test-question-badge-btn):not(.admin-content-card__action):not(.qb-star-btn):not(.qb-actions-btn):not(.qb-delete-btn):not(.qb-drawer-close):not(.admin-course-builder-test-order-btn.is-delete) {
 	color: var(--text-primary) !important; /* WCAG AAA: ~12:1 */
 	background-color: var(--bg-elevated) !important;
 	border-color: var(--border-primary) !important;

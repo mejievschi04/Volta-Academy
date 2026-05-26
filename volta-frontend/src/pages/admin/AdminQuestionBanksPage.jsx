@@ -1,5 +1,17 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  Archive,
+  FolderPlus,
+  Folders,
+  ListChecks,
+  MoveRight,
+  Plus,
+  RefreshCcw,
+  Search,
+  X,
+} from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
@@ -7,33 +19,59 @@ import FolderCard from '../../components/admin/question-banks/FolderCard';
 import { useAuth } from '../../contexts/AuthContext';
 import './AdminQuestionBanksPage.css';
 
-function stripHtmlPreview(raw, maxLen = 140) {
+function stripHtmlPreview(raw, maxLen = 160) {
   if (raw == null || raw === '') return '';
   const plain = String(raw)
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (plain.length <= maxLen) return plain;
-  return `${plain.slice(0, maxLen)}…`;
+  return `${plain.slice(0, maxLen)}...`;
 }
 
 const QUESTION_TYPE_LABELS = {
-  multiple_choice: 'Grilă',
-  single_choice: 'Alegere unică',
-  true_false: 'A/F',
-  matching: 'Asocieri',
+  multiple_choice: 'Răspuns multiplu',
+  single_choice: 'Răspuns unic',
+  true_false: 'Adevărat/Fals',
+  matching: 'Potrivire',
   ordering: 'Ordonare',
+  fill_in_blank: 'Completare',
+  open: 'Deschis',
 };
 
 function typeLabel(type) {
   const t = String(type || '').trim();
-  return QUESTION_TYPE_LABELS[t] || t || '—';
+  return QUESTION_TYPE_LABELS[t] || t || '-';
 }
 
-/** Întrebări puse direct pe test, încă fără folder — pot fi mutate într-o bancă nouă. */
 function isOrphanTestQuestion(row) {
   if (!row || row.question_bank_id != null) return false;
   return row.test_id != null;
+}
+
+function getQuestionOrigin(row) {
+  const usage = row?.usage || {};
+  const source = usage.source;
+  const bank = row?.question_bank || row?.questionBank;
+  const testMeta = Array.isArray(usage.tests) && usage.tests[0] ? usage.tests[0] : null;
+
+  if (source === 'bank' && bank?.id) {
+    return {
+      kind: 'bank',
+      label: bank.title || `Banca #${bank.id}`,
+      href: `/admin/question-banks/${bank.id}`,
+    };
+  }
+
+  if (source === 'direct' && testMeta) {
+    return {
+      kind: 'test',
+      label: testMeta.title || `Test #${testMeta.id}`,
+      href: '/admin/content?tab=tests',
+    };
+  }
+
+  return null;
 }
 
 const AdminQuestionBanksPage = ({ embedded = false }) => {
@@ -64,26 +102,29 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
   const [moveToExistingLoading, setMoveToExistingLoading] = useState(false);
   const catalogSelectAllRef = useRef(null);
 
-  const loadFolders = async () => {
+  const fetchFolders = useCallback(async (query = '') => {
     setLoading(true);
     try {
-      const data = await adminService.getQuestionBanks(search.trim() ? { search: search.trim() } : {});
+      const normalizedQuery = String(query || '').trim();
+      const data = await adminService.getQuestionBanks(normalizedQuery ? { search: normalizedQuery } : {});
       setFolders(Array.isArray(data) ? data : []);
     } catch {
       error('Nu am putut încărca folderele.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [error]);
+
+  const loadFolders = useCallback(() => fetchFolders(search), [fetchFolders, search]);
 
   useEffect(() => {
-    loadFolders();
-  }, []);
+    fetchFolders('');
+  }, [fetchFolders]);
 
   useEffect(() => {
-    const id = setTimeout(loadFolders, 250);
+    const id = setTimeout(() => fetchFolders(search), 250);
     return () => clearTimeout(id);
-  }, [search]);
+  }, [fetchFolders, search]);
 
   useEffect(() => {
     const id = setTimeout(() => setCatalogSearch(catalogSearchInput), 300);
@@ -120,7 +161,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     return () => {
       cancelled = true;
     };
-  }, [hubTab, catalogSearch, catalogPage, catalogPerPage, catalogScope, catalogTick]);
+  }, [hubTab, catalogSearch, catalogPage, catalogPerPage, catalogScope, catalogTick, error]);
 
   useEffect(() => {
     setSelectedQuestionIds([]);
@@ -130,11 +171,16 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     if (hubTab !== 'catalog') setSelectedQuestionIds([]);
   }, [hubTab]);
 
-  const catalogRows = Array.isArray(catalogResponse?.data) ? catalogResponse.data : [];
+  const catalogRows = useMemo(
+    () => (Array.isArray(catalogResponse?.data) ? catalogResponse.data : []),
+    [catalogResponse]
+  );
   const catalogLastPage = Math.max(1, Number(catalogResponse?.last_page) || 1);
   const catalogTotalRaw = catalogResponse?.total;
   const catalogTotal =
     catalogTotalRaw != null && Number.isFinite(Number(catalogTotalRaw)) ? Number(catalogTotalRaw) : 0;
+  const totalFolderQuestions = folders.reduce((sum, folder) => sum + (Number(folder?.questions_count) || 0), 0);
+  const totalStarredQuestions = folders.reduce((sum, folder) => sum + (Number(folder?.starred_questions_count) || 0), 0);
 
   const normalizedTags = useMemo(
     () =>
@@ -196,7 +242,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
       ...prev,
       title:
         prev.title.trim() ||
-        `Întrebări din teste · ${new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+        `Întrebări din teste - ${new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })}`,
     }));
     setCreateFromSelectionOpen(true);
   };
@@ -267,7 +313,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     try {
       await adminService.moveQuestionsToFolderBulk(selectedQuestionIds, Number(moveTargetBankId));
       const targetFolder = moveTargetFolders.find((folder) => String(folder.id) === String(moveTargetBankId));
-      success(`Au fost mutate ${selectedQuestionIds.length} întrebări în folderul existent${targetFolder?.title ? `: ${targetFolder.title}` : ''}.`);
+      success(`Au fost mutate ${selectedQuestionIds.length} întrebări${targetFolder?.title ? ` în ${targetFolder.title}` : ''}.`);
       setMoveToExistingOpen(false);
       setSelectedQuestionIds([]);
       setCatalogTick((t) => t + 1);
@@ -302,328 +348,335 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
     }
   };
 
-  return (
-    <div className={`qb-page qb-page-v2 ${embedded ? 'qb-page-embedded' : ''}`}>
-      <div className="qb-shell">
-        <header className="qb-page-hero va-card-shell">
-          <div className="qb-page-hero-text">
-            <p className="qb-page-eyebrow">Conținut reutilizabil</p>
-            <h1>Întrebări</h1>
-            <p className="qb-page-lead">
-              Foldere (bănci) pentru material reutilizabil și catalog complet — inclusiv întrebări puse direct pe{' '}
-              <strong>teste</strong>. Poți crea un folder nou și muta acolo întrebările din teste care nu sunt încă într-o
-              mapă.
-            </p>
-          </div>
-          {canMutateInAdminArea && hubTab === 'folders' ? (
-            <button type="button" className="lms-btn-primary qb-hero-cta" onClick={() => setCreateOpen(true)}>
-              + Folder nou
-            </button>
-          ) : null}
-        </header>
-
-        <div className="qb-kpis" role="group" aria-label="Rezumat">
-          <div className="qb-kpi va-card-shell">
-            <span className="qb-kpi-value">{loading && hubTab === 'folders' ? '…' : folders.length}</span>
-            <span className="qb-kpi-label">Foldere</span>
-          </div>
-          <div className="qb-kpi va-card-shell">
-            <span className="qb-kpi-value">{hubTab === 'catalog' ? (catalogLoading ? '…' : catalogTotal) : '—'}</span>
-            <span className="qb-kpi-label">
-              În catalog
-              {hubTab === 'catalog' && catalogScope === 'test_no_folder' ? ' · doar din teste, fără folder' : ''}
-            </span>
-          </div>
-          {hubTab === 'catalog' && canMutateInAdminArea ? (
-            <div className={`qb-kpi va-card-shell ${selectedQuestionIds.length ? 'qb-kpi--accent' : ''}`}>
-              <span className="qb-kpi-value">{selectedQuestionIds.length}</span>
-              <span className="qb-kpi-label">Selectate pentru folder nou</span>
-            </div>
-          ) : null}
+  const renderFolderContent = () => (
+    <>
+      <div className="qb-panel-header">
+        <div className="qb-search-field">
+          <Search size={18} aria-hidden />
+          <label className="qb-sr-only" htmlFor="qb-folder-search">
+            Caută foldere
+          </label>
+          <input
+            id="qb-folder-search"
+            className="admin-form-input qb-search-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Caută folder"
+          />
         </div>
-
-        <div className="qb-hub-tabs qb-hub-tabs--v2" role="tablist" aria-label="Vizualizare întrebări">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={hubTab === 'folders'}
-            className={`qb-hub-tab ${hubTab === 'folders' ? 'is-active' : ''}`}
-            onClick={() => setHubTab('folders')}
-          >
-            Foldere
+        {canMutateInAdminArea ? (
+          <button type="button" className="lms-btn-primary qb-action-button" onClick={() => setCreateOpen(true)}>
+            <FolderPlus size={18} aria-hidden />
+            Folder nou
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={hubTab === 'catalog'}
-            className={`qb-hub-tab ${hubTab === 'catalog' ? 'is-active' : ''}`}
-            onClick={() => setHubTab('catalog')}
-          >
-            Catalog întrebări
-          </button>
-        </div>
+        ) : null}
+      </div>
 
-        {hubTab === 'folders' ? (
-          <>
-            <div className="qb-search-card va-card-shell">
-              <label className="qb-sr-only" htmlFor="qb-folder-search">
-                Caută foldere
-              </label>
-              <input
-                id="qb-folder-search"
-                className="admin-form-input qb-search-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Caută foldere după nume..."
-              />
-            </div>
-
-            <section className="qb-folder-list" aria-label="Lista folderelor">
-              {loading ? (
-                <div className="qb-catalog-loading qb-catalog-loading--inline">
-                  <span className="qb-spinner" aria-hidden />
-                  Se încarcă folderele...
-                </div>
-              ) : folders.length ? (
-                folders.map((folder) => <FolderCard key={folder.id} folder={folder} />)
-              ) : (
-                <div className="qb-empty">
-                  <div className="qb-empty-icon" aria-hidden>
-                    📂
-                  </div>
-                  <p className="qb-empty-title">Niciun folder nu se potrivește</p>
-                  <p className="qb-empty-hint">Creează un folder gol sau adună întrebări din catalog (din teste, fără folder).</p>
-                </div>
-              )}
-            </section>
-          </>
+      <section className="qb-folder-list" aria-label="Lista folderelor">
+        {loading ? (
+          <div className="qb-catalog-loading qb-catalog-loading--inline">
+            <span className="qb-spinner" aria-hidden />
+            Se încarcă folderele...
+          </div>
+        ) : folders.length ? (
+          folders.map((folder) => <FolderCard key={folder.id} folder={folder} />)
         ) : (
-          <>
-            <div className="qb-catalog-intro">
-              <p className="qb-catalog-lead">
-                Vezi întrebările din <strong>foldere</strong> și pe cele lipite direct de un <strong>test</strong>. Pentru
-                editare în contextul cursului, deschide builder-ul și testul din bara laterală.
-              </p>
-              <div className="qb-catalog-scope" role="group" aria-label="Filtru catalog">
-                <button
-                  type="button"
-                  className={`qb-scope-chip ${catalogScope === 'all' ? 'is-active' : ''}`}
-                  onClick={() => setCatalogScope('all')}
-                >
-                  Toate
-                </button>
-                <button
-                  type="button"
-                  className={`qb-scope-chip ${catalogScope === 'test_no_folder' ? 'is-active' : ''}`}
-                  onClick={() => setCatalogScope('test_no_folder')}
-                >
-                  Din teste, fără folder
-                </button>
-              </div>
-            </div>
+          <div className="qb-empty">
+            <Archive size={30} aria-hidden />
+            <p className="qb-empty-title">Nu există foldere pentru filtrul curent</p>
+            <p className="qb-empty-hint">Creează un folder sau mută întrebări din catalog.</p>
+          </div>
+        )}
+      </section>
+    </>
+  );
 
-            <div className="qb-search-card va-card-shell">
-              <label className="qb-sr-only" htmlFor="qb-catalog-search">
-                Caută în catalog
-              </label>
-              <input
-                id="qb-catalog-search"
-                className="admin-form-input qb-search-input"
-                value={catalogSearchInput}
-                onChange={(e) => setCatalogSearchInput(e.target.value)}
-                placeholder="Caută în textul întrebării..."
-              />
-            </div>
+  const renderCatalogContent = () => (
+    <>
+      <div className="qb-catalog-topbar">
+        <div className="qb-search-field">
+          <Search size={18} aria-hidden />
+          <label className="qb-sr-only" htmlFor="qb-catalog-search">
+            Caută în catalog
+          </label>
+          <input
+            id="qb-catalog-search"
+            className="admin-form-input qb-search-input"
+            value={catalogSearchInput}
+            onChange={(e) => setCatalogSearchInput(e.target.value)}
+            placeholder="Caută întrebare"
+          />
+        </div>
+        <div className="qb-catalog-scope" role="group" aria-label="Filtru catalog">
+          <button
+            type="button"
+            className={`qb-scope-chip ${catalogScope === 'all' ? 'is-active' : ''}`}
+            onClick={() => setCatalogScope('all')}
+          >
+            Toate
+          </button>
+          <button
+            type="button"
+            className={`qb-scope-chip ${catalogScope === 'test_no_folder' ? 'is-active' : ''}`}
+            onClick={() => setCatalogScope('test_no_folder')}
+          >
+            Din teste fără folder
+          </button>
+        </div>
+      </div>
 
+      {canMutateInAdminArea ? (
+        <div className={`qb-selection-bar ${selectedQuestionIds.length ? 'is-active' : ''}`}>
+          <div className="qb-selection-main">
+            <strong>{selectedQuestionIds.length}</strong>
+            <span>selectate</span>
+          </div>
+          <div className="qb-catalog-toolbar-actions">
+            <button
+              type="button"
+              className="lms-btn-secondary qb-action-button"
+              disabled={selectedQuestionIds.length === 0}
+              onClick={() => setSelectedQuestionIds([])}
+            >
+              <X size={16} aria-hidden />
+              Golește
+            </button>
+            <button
+              type="button"
+              className="lms-btn-primary qb-action-button"
+              disabled={selectedQuestionIds.length === 0}
+              onClick={openCreateFromSelectionModal}
+            >
+              <Plus size={16} aria-hidden />
+              Folder din selecție
+            </button>
+            <button
+              type="button"
+              className="lms-btn-secondary qb-action-button"
+              disabled={selectedQuestionIds.length === 0 || moveTargetFolders.length === 0}
+              onClick={openMoveToExistingModal}
+            >
+              <MoveRight size={16} aria-hidden />
+              Mută în folder
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {catalogLoading ? (
+        <div className="qb-catalog-loading">
+          <span className="qb-spinner" aria-hidden />
+          Se încarcă catalogul...
+        </div>
+      ) : catalogRows.length === 0 ? (
+        <div className="qb-empty qb-empty--soft">
+          <ListChecks size={30} aria-hidden />
+          <p className="qb-empty-title">Nicio întrebare găsită</p>
+          <p className="qb-empty-hint">Schimbă filtrul sau termenul de căutare.</p>
+        </div>
+      ) : (
+        <>
+          <div className="qb-catalog-list" role="list" aria-label="Catalog întrebări">
             {canMutateInAdminArea ? (
-              <div className="qb-catalog-toolbar va-card-shell">
-                <p className="qb-catalog-toolbar-hint">
-                  Bifează întrebările din teste fără folder, apoi le poți muta într-un folder existent sau crea unul nou.
-                  Selecția se păstrează la schimbarea paginii.
-                </p>
-                <div className="qb-catalog-toolbar-actions">
-                  <button
-                    type="button"
-                    className="lms-btn-secondary"
-                    disabled={selectedQuestionIds.length === 0}
-                    onClick={() => setSelectedQuestionIds([])}
-                  >
-                    Golește selecția
-                  </button>
-                  <button
-                    type="button"
-                    className="lms-btn-primary"
-                    disabled={selectedQuestionIds.length === 0}
-                    onClick={openCreateFromSelectionModal}
-                  >
-                    Folder nou din selecție ({selectedQuestionIds.length})
-                  </button>
-                  <button
-                    type="button"
-                    className="lms-btn-secondary"
-                    disabled={selectedQuestionIds.length === 0 || moveTargetFolders.length === 0}
-                    onClick={openMoveToExistingModal}
-                  >
-                    Adaugă în folder existent
-                  </button>
-                </div>
+              <div className="qb-catalog-select-all">
+                <label className="qb-checkbox-label">
+                  <input
+                    ref={catalogSelectAllRef}
+                    type="checkbox"
+                    checked={
+                      selectableRowsOnPage.length > 0 &&
+                      selectableRowsOnPage.every((r) => selectedQuestionIds.includes(r.id))
+                    }
+                    onChange={toggleSelectAllOnPage}
+                    disabled={selectableRowsOnPage.length === 0}
+                  />
+                  Selectează întrebările mutabile de pe pagină
+                </label>
+                <span>{selectableRowsOnPage.length} disponibile</span>
               </div>
             ) : null}
 
-            {catalogLoading ? (
-              <div className="qb-catalog-loading">
-                <span className="qb-spinner" aria-hidden />
-                Se încarcă catalogul...
-              </div>
-            ) : catalogRows.length === 0 ? (
-              <div className="qb-empty qb-empty--soft">
-                <div className="qb-empty-icon" aria-hidden>
-                  📋
-                </div>
-                <p className="qb-empty-title">Nicio întrebare</p>
-                <p className="qb-empty-hint">Încearcă alt filtru sau alt termen de căutare.</p>
-              </div>
-            ) : (
-              <>
-                <div className="qb-catalog-table-wrap va-card-shell">
-                  <table className="qb-catalog-table">
-                    <thead>
-                      <tr>
-                        {canMutateInAdminArea ? (
-                          <th className="qb-col-check" scope="col">
-                            <input
-                              ref={catalogSelectAllRef}
-                              type="checkbox"
-                              checked={
-                                selectableRowsOnPage.length > 0 &&
-                                selectableRowsOnPage.every((r) => selectedQuestionIds.includes(r.id))
-                              }
-                              onChange={toggleSelectAllOnPage}
-                              disabled={selectableRowsOnPage.length === 0}
-                              aria-label="Selectează pe pagină întrebările din teste fără folder"
-                            />
-                          </th>
-                        ) : null}
-                        <th scope="col">Întrebare</th>
-                        <th scope="col">Tip</th>
-                        <th scope="col">Puncte</th>
-                        <th scope="col">Proveniență</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {catalogRows.map((row) => {
-                        const usage = row.usage || {};
-                        const src = usage.source;
-                        const bank = row.question_bank || row.questionBank;
-                        const testMeta = Array.isArray(usage.tests) && usage.tests[0] ? usage.tests[0] : null;
-                        const orphan = isOrphanTestQuestion(row);
-                        return (
-                          <tr key={row.id} className={orphan && selectedQuestionIds.includes(row.id) ? 'is-selected' : ''}>
-                            {canMutateInAdminArea ? (
-                              <td className="qb-col-check">
-                                {orphan ? (
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedQuestionIds.includes(row.id)}
-                                    onChange={() => toggleQuestionSelected(row.id)}
-                                    aria-label={`Selectează întrebarea #${row.id}`}
-                                  />
-                                ) : (
-                                  <span className="qb-check-placeholder" title="Doar întrebările din teste fără folder">
-                                    —
-                                  </span>
-                                )}
-                              </td>
-                            ) : null}
-                            <td className="qb-catalog-cell-preview">{stripHtmlPreview(row.content)}</td>
-                            <td>
-                              <span className="qb-type-pill">{typeLabel(row.type)}</span>
-                            </td>
-                            <td className="qb-catalog-points">{row.points ?? '—'}</td>
-                            <td className="qb-catalog-cell-origin">
-                              {src === 'bank' && bank?.id ? (
-                                <Link to={`/admin/question-banks/${bank.id}`} className="qb-catalog-link">
-                                  Folder: {bank.title || `Banca #${bank.id}`}
-                                </Link>
-                              ) : src === 'direct' && testMeta ? (
-                                <span className="qb-catalog-origin-test">
-                                  Test: <strong>{testMeta.title || `Test #${testMeta.id}`}</strong>
-                                  <Link to="/admin/content?tab=tests" className="qb-catalog-link qb-catalog-link-inline">
-                                    → Teste
-                                  </Link>
-                                </span>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="qb-catalog-pagination">
-                  <span className="qb-catalog-page-meta">
-                    Pagină {catalogPage} / {catalogLastPage}
-                    {catalogTotal > 0 ? ` · ${catalogTotal} întrebări` : ''}
-                  </span>
-                  <div className="qb-catalog-pagination-actions">
-                    <label className="qb-catalog-per-page">
-                      Pe pagină
-                      <select
-                        className="admin-form-input"
-                        value={catalogPerPage}
-                        onChange={(e) => {
-                          setCatalogPerPage(Number(e.target.value));
-                          setCatalogPage(1);
-                        }}
-                      >
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      className="lms-btn-secondary"
-                      disabled={catalogPage <= 1}
-                      onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
-                    >
-                      Anterior
-                    </button>
-                    <button
-                      type="button"
-                      className="lms-btn-secondary"
-                      disabled={catalogPage >= catalogLastPage}
-                      onClick={() => setCatalogPage((p) => p + 1)}
-                    >
-                      Următor
-                    </button>
+            {catalogRows.map((row) => {
+              const origin = getQuestionOrigin(row);
+              const orphan = isOrphanTestQuestion(row);
+              const selected = selectedQuestionIds.includes(row.id);
+
+              return (
+                <article
+                  key={row.id}
+                  className={`qb-catalog-row ${orphan ? 'is-movable' : ''} ${selected ? 'is-selected' : ''}`}
+                  role="listitem"
+                >
+                  {canMutateInAdminArea ? (
+                    <div className="qb-catalog-check">
+                      {orphan ? (
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleQuestionSelected(row.id)}
+                          aria-label={`Selectează întrebarea #${row.id}`}
+                        />
+                      ) : (
+                        <span className="qb-check-placeholder" title="Doar întrebările din teste fără folder pot fi mutate">
+                          -
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="qb-catalog-content">
+                    <p className="qb-catalog-question">{stripHtmlPreview(row.content)}</p>
+                    <div className="qb-catalog-meta">
+                      <span className="qb-type-pill">{typeLabel(row.type)}</span>
+                      <span>{row.points ?? '-'} puncte</span>
+                      {origin ? (
+                        <Link to={origin.href} className="qb-catalog-link">
+                          {origin.kind === 'bank' ? 'Folder' : 'Test'}: {origin.label}
+                        </Link>
+                      ) : (
+                        <span>Fără proveniență</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
-          </>
-        )}
+
+                  {origin?.href ? (
+                    <Link to={origin.href} className="qb-row-open" aria-label="Deschide sursa">
+                      <ArrowRight size={18} aria-hidden />
+                    </Link>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="qb-catalog-pagination">
+            <span className="qb-catalog-page-meta">
+              Pagina {catalogPage} din {catalogLastPage}
+              {catalogTotal > 0 ? ` - ${catalogTotal} întrebări` : ''}
+            </span>
+            <div className="qb-catalog-pagination-actions">
+              <label className="qb-catalog-per-page">
+                Pe pagină
+                <select
+                  className="admin-form-input"
+                  value={catalogPerPage}
+                  onChange={(e) => {
+                    setCatalogPerPage(Number(e.target.value));
+                    setCatalogPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="lms-btn-secondary"
+                disabled={catalogPage <= 1}
+                onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                className="lms-btn-secondary"
+                disabled={catalogPage >= catalogLastPage}
+                onClick={() => setCatalogPage((p) => p + 1)}
+              >
+                Următor
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <div className={`qb-page qb-page-v2 ${embedded ? 'qb-page-embedded' : ''}`}>
+      <div className="qb-shell">
+        <header className="qb-page-hero">
+          <div className="qb-page-hero-text">
+            <p className="qb-page-eyebrow">Bibliotecă evaluare</p>
+            <h1>Întrebări</h1>
+            <p className="qb-page-lead">
+              Organizează întrebările în foldere reutilizabile și curăță rapid întrebările rămase direct în teste.
+            </p>
+          </div>
+          <div className="qb-hero-actions">
+            <button
+              type="button"
+              className={`qb-tab-button ${hubTab === 'folders' ? 'is-active' : ''}`}
+              onClick={() => setHubTab('folders')}
+            >
+              <Folders size={18} aria-hidden />
+              Foldere
+            </button>
+            <button
+              type="button"
+              className={`qb-tab-button ${hubTab === 'catalog' ? 'is-active' : ''}`}
+              onClick={() => setHubTab('catalog')}
+            >
+              <ListChecks size={18} aria-hidden />
+              Catalog
+            </button>
+          </div>
+        </header>
+
+        <section className="qb-overview-grid" aria-label="Rezumat întrebări">
+          <div className="qb-overview-item">
+            <Folders size={18} aria-hidden />
+            <div>
+              <strong>{loading ? '...' : folders.length}</strong>
+              <span>foldere</span>
+            </div>
+          </div>
+          <div className="qb-overview-item">
+            <Archive size={18} aria-hidden />
+            <div>
+              <strong>{loading ? '...' : totalFolderQuestions}</strong>
+              <span>întrebări în foldere</span>
+            </div>
+          </div>
+          <div className="qb-overview-item">
+            <ListChecks size={18} aria-hidden />
+            <div>
+              <strong>{hubTab === 'catalog' ? (catalogLoading ? '...' : catalogTotal) : totalStarredQuestions}</strong>
+              <span>{hubTab === 'catalog' ? 'în catalog' : 'marcate cu stea'}</span>
+            </div>
+          </div>
+          <button type="button" className="qb-overview-refresh" onClick={hubTab === 'folders' ? loadFolders : () => setCatalogTick((t) => t + 1)}>
+            <RefreshCcw size={18} aria-hidden />
+            Actualizează
+          </button>
+        </section>
+
+        <main className="qb-workspace">
+          {hubTab === 'folders' ? renderFolderContent() : renderCatalogContent()}
+        </main>
 
         <Modal isOpen={createOpen && canMutateInAdminArea} onClose={() => !createLoading && setCreateOpen(false)}>
           <div className="qb-modal">
             <h3>Folder nou</h3>
-            <label>Nume</label>
+            <label htmlFor="qb-new-folder-title">Nume</label>
             <input
+              id="qb-new-folder-title"
               className="admin-form-input"
               value={createForm.title}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
             />
-            <label>Descriere</label>
+            <label htmlFor="qb-new-folder-description">Descriere</label>
             <textarea
+              id="qb-new-folder-description"
               className="admin-form-input"
               rows={3}
               value={createForm.description}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
             />
-            <label>Tag-uri (separate prin virgulă)</label>
+            <label htmlFor="qb-new-folder-tags">Tag-uri separate prin virgulă</label>
             <input
+              id="qb-new-folder-tags"
               className="admin-form-input"
               value={createForm.tagsText}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, tagsText: e.target.value }))}
@@ -644,11 +697,9 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
           onClose={() => !createFromSelectionLoading && setCreateFromSelectionOpen(false)}
         >
           <div className="qb-modal qb-modal-from-selection">
-            <h3>Folder nou din selecție</h3>
+            <h3>Folder din selecție</h3>
             <p className="qb-modal-warning">
-              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în noul folder. Ele nu vor mai fi
-              atașate direct testului — dacă testul trebuie să le folosească în continuare, treci-l pe sursă „din bancă” și
-              alege acest folder.
+              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în folderul nou.
             </p>
             <label htmlFor="qb-from-sel-title">Nume folder</label>
             <input
@@ -665,7 +716,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
               value={createFromSelectionForm.description}
               onChange={(e) => setCreateFromSelectionForm((prev) => ({ ...prev, description: e.target.value }))}
             />
-            <label htmlFor="qb-from-sel-tags">Tag-uri (separate prin virgulă)</label>
+            <label htmlFor="qb-from-sel-tags">Tag-uri separate prin virgulă</label>
             <input
               id="qb-from-sel-tags"
               className="admin-form-input"
@@ -682,7 +733,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
                 Anulează
               </button>
               <button type="button" className="lms-btn-primary" onClick={createFolderFromSelection} disabled={createFromSelectionLoading}>
-                {createFromSelectionLoading ? 'Se creează...' : 'Creează folder și mută'}
+                {createFromSelectionLoading ? 'Se creează...' : 'Creează și mută'}
               </button>
             </div>
           </div>
@@ -693,12 +744,11 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
           onClose={() => !moveToExistingLoading && setMoveToExistingOpen(false)}
         >
           <div className="qb-modal qb-modal-from-selection">
-            <h3>Adaugă în folder existent</h3>
+            <h3>Mută în folder</h3>
             <p className="qb-modal-warning">
-              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în folderul ales. După mutare, ele nu
-              vor mai rămâne atașate direct testului.
+              Vor fi mutate <strong>{selectedQuestionIds.length}</strong> întrebări în folderul ales.
             </p>
-            <label htmlFor="qb-move-target-folder">Folder existent</label>
+            <label htmlFor="qb-move-target-folder">Folder</label>
             <select
               id="qb-move-target-folder"
               className="admin-form-input"
@@ -726,7 +776,7 @@ const AdminQuestionBanksPage = ({ embedded = false }) => {
                 onClick={moveSelectionToExistingFolder}
                 disabled={moveToExistingLoading || moveTargetFolders.length === 0}
               >
-                {moveToExistingLoading ? 'Se mută...' : 'Mută în folder'}
+                {moveToExistingLoading ? 'Se mută...' : 'Mută'}
               </button>
             </div>
           </div>

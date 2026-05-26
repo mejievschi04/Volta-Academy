@@ -12,6 +12,10 @@ export const ACTION_LABELS_RO = {
 	completed_course: 'Finalizare curs',
 	completed_lesson: 'Finalizare lecție',
 	completed_exam: 'Finalizare test (notă)',
+	enrolled_course: 'Înscriere la curs',
+	logged_in: 'Autentificare',
+	session_started: 'Sesiune platformă (deschidere app)',
+	logged_out: 'Deconectare',
 	'telemetry.admin_course_created': 'Creare curs (administrator)',
 	'telemetry.admin_course_version_published': 'Publicare versiune curs',
 	'telemetry.admin_test_created': 'Creare test (administrator)',
@@ -95,6 +99,12 @@ export function getFriendlyLogLine(log) {
 		return desc;
 	}
 
+	if (action === 'logged_in') {
+		return `${name} s-a autentificat în platformă.`;
+	}
+	if (action === 'logged_out') {
+		return `${name} s-a deconectat.`;
+	}
 	if (action === 'completed_course') {
 		const title = nv.course_title || 'cursul';
 		return `${name} a finalizat cursul „${title}”.`;

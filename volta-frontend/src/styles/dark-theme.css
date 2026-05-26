@@ -78,7 +78,7 @@ html[data-theme="dark"] textarea::placeholder {
 
 /* Exclude course-showcase-*: class names contain "card" (…showcase-card…) and would paint over cover */
 html[data-theme="dark"] .card,
-html[data-theme="dark"] [class*="card"]:not([class*="course-showcase"]):not([class*="library-book"]),
+html[data-theme="dark"] [class*="card"]:not([class*="course-showcase"]):not([class*="course-map-card--showcase"]):not([class*="library-book"]):not([class*="content-card__"]):not([class*="test-questions-card"]),
 html[data-theme="dark"] [class*="Card"]:not([class*="CourseShowcase"]) {
 	background-color: var(--bg-elevated) !important;
 }
@@ -174,7 +174,14 @@ html[data-theme="dark"] .filter-chip.active * {
 	color: var(--text-inverse) !important;
 }
 
-html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab) {
+html[data-theme="dark"] .admin-content-card__primary,
+html[data-theme="dark"] .admin-content-card__primary:hover:not(:disabled) {
+	color: #000000 !important;
+	background-color: rgb(255, 238, 0) !important;
+	border-color: rgba(0, 0, 0, 0.14) !important;
+}
+
+html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab):not(.admin-course-builder-quick-add-btn):not(.admin-course-builder-sidebar-toggle):not(.admin-course-builder-test-question-badge-btn):not(.admin-content-card__action):not(.qb-star-btn):not(.qb-actions-btn):not(.qb-delete-btn):not(.qb-drawer-close):not(.admin-course-builder-test-order-btn.is-delete) {
 	color: var(--text-primary) !important;
 	background-color: var(--bg-elevated) !important;
 	border-color: var(--border-primary) !important;
@@ -204,6 +211,16 @@ html[data-theme="dark"] .va-shell-main,
 html[data-theme="dark"] .admin-container,
 html[data-theme="dark"] .qb-page,
 html[data-theme="dark"] .course-map-page,
+html[data-theme="dark"] .courses-page-maps-grid .course-map-showcase-tile,
+html[data-theme="dark"] .course-map-showcase-tile,
+html[data-theme="dark"] .courses-page-map-tile-showcase,
+html[data-theme="dark"] .courses-page-map-tile-showcase .course-map-folder-tile__hit {
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
 html[data-theme="dark"] .courses-page-modern,
 html[data-theme="dark"] .lesson-page-modern,
 html[data-theme="dark"] .lessons-page-modern,
@@ -246,6 +263,26 @@ html[data-theme="dark"] .messages-page {
 html[data-theme="dark"] .messages-chat-header {
 	background-color: var(--bg-primary) !important;
 	border-bottom-color: var(--border-primary);
+}
+
+/* Butoane icon mesagerie — contrast vizibil pe fundal închis */
+html[data-theme="dark"] .messages-new-conversation-btn,
+html[data-theme="dark"] .messages-chat-back-btn {
+	background-color: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	border-color: var(--border-primary) !important;
+}
+
+html[data-theme="dark"] .messages-new-conversation-btn:hover,
+html[data-theme="dark"] .messages-chat-back-btn:hover {
+	background-color: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .messages-new-conversation-btn svg,
+html[data-theme="dark"] .messages-chat-back-btn svg,
+html[data-theme="dark"] .messages-modal-close svg {
+	color: var(--text-primary) !important;
 }
 
 /* Avatare cu inițiale: nu text alb (override la span global din tema dark) */
@@ -302,7 +339,6 @@ html[data-theme="dark"] .modern-nav-item.is-active svg *,
 html[data-theme="dark"] .va-nav-btn.active svg *,
 html[data-theme="dark"] .va-nav-btn.is-active svg * {
 	stroke: currentColor !important;
-	fill: none !important;
 }
 
 html[data-theme="dark"] .modern-nav-subitem.active,

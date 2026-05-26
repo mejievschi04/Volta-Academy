@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseMap;
+use App\Support\CourseMapBuckets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -23,6 +24,8 @@ class CourseMapController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $defaultMapIds = $this->defaultMapIds();
+
         $query = CourseMap::query()
             ->whereHas('courses', function ($q) {
                 $q->where('status', 'published');
@@ -33,7 +36,9 @@ class CourseMapController extends Controller
             ->orderBy('order')
             ->orderBy('name');
 
-        $mapsCollection = $query->get();
+        $mapsCollection = $query->get()->reject(
+            fn (CourseMap $map) => in_array((int) $map->id, $defaultMapIds, true)
+        );
         $mapIds = $mapsCollection->pluck('id')->all();
         $hasCoverCol = Schema::hasColumn('course_maps', 'cover_image_path');
         $previewByMapId = $hasCoverCol ? $this->firstPublishedCourseCoverByMapIds($mapIds) : [];
@@ -59,9 +64,7 @@ class CourseMapController extends Controller
             return $row;
         })->values();
 
-        // Mapa virtuală „Fără mapă” nu e listată aici — doar în zona admin (/admin/course-maps?include_virtual=1).
-
-        return response()->json(['data' => $maps]);
+        return response()->json(['data' => $maps->values()]);
     }
 
     /**
@@ -73,7 +76,7 @@ class CourseMapController extends Controller
             return response()->json(['error' => 'Mapă negăsită'], 404);
         }
 
-        if ((string) $id === 'unassigned') {
+        if ($this->isDefaultStudentMapId($id)) {
             abort(404, 'Mapă negăsită.');
         }
 
@@ -87,37 +90,9 @@ class CourseMapController extends Controller
 
         $user = $request->user();
         $courseIds = $map->courses->pluck('id')->toArray();
+        $progress = $this->progressByCourseIds($user, $courseIds);
 
-        $progress = [];
-        if ($user && !empty($courseIds)) {
-            $rows = DB::table('course_user')
-                ->where('user_id', $user->id)
-                ->whereIn('course_id', $courseIds)
-                ->select('course_id', 'progress_percentage', 'completed_at')
-                ->get();
-            foreach ($rows as $row) {
-                $progress[$row->course_id] = [
-                    'progress_percentage' => (int) $row->progress_percentage,
-                    'completed_at' => $row->completed_at,
-                ];
-            }
-        }
-
-        $courses = $map->courses->map(function ($course) use ($progress) {
-            $p = $progress[$course->id] ?? ['progress_percentage' => 0, 'completed_at' => null];
-            $durationMinutes = $this->courseDurationMinutes($course);
-            return [
-                'id' => $course->id,
-                'title' => $course->title,
-                'short_description' => $course->short_description,
-                'image_url' => $course->image_url ?? $course->image,
-                'estimated_duration_minutes' => $durationMinutes,
-                'views_count' => 0,
-                'progress_percentage' => $p['progress_percentage'],
-                'completed_at' => $p['completed_at'],
-                'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
-            ];
-        })->values();
+        $courses = $this->mapPublishedCoursesPayload($map->courses, $progress);
 
         $payload = [
             'id' => $map->id,
@@ -133,6 +108,78 @@ class CourseMapController extends Controller
         }
 
         return response()->json($payload);
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function defaultMapIds(): array
+    {
+        return CourseMapBuckets::defaultMapIds();
+    }
+
+    private function isDefaultStudentMapId(mixed $id): bool
+    {
+        if ((string) $id === 'unassigned') {
+            return true;
+        }
+
+        if (!is_numeric($id)) {
+            return false;
+        }
+
+        return in_array((int) $id, $this->defaultMapIds(), true);
+    }
+
+    /**
+     * @param  array<int>  $courseIds
+     * @return array<int, array{progress_percentage: int, completed_at: mixed}>
+     */
+    private function progressByCourseIds($user, array $courseIds): array
+    {
+        $progress = [];
+        if (!$user || $courseIds === []) {
+            return $progress;
+        }
+
+        $rows = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->whereIn('course_id', $courseIds)
+            ->select('course_id', 'progress_percentage', 'completed_at')
+            ->get();
+
+        foreach ($rows as $row) {
+            $progress[$row->course_id] = [
+                'progress_percentage' => (int) $row->progress_percentage,
+                'completed_at' => $row->completed_at,
+            ];
+        }
+
+        return $progress;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Course>  $courses
+     * @param  array<int, array{progress_percentage: int, completed_at: mixed}>  $progress
+     */
+    private function mapPublishedCoursesPayload($courses, array $progress)
+    {
+        return $courses->map(function ($course) use ($progress) {
+            $p = $progress[$course->id] ?? ['progress_percentage' => 0, 'completed_at' => null];
+            $durationMinutes = $this->courseDurationMinutes($course);
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'short_description' => $course->short_description,
+                'image_url' => $course->image_url ?? $course->image,
+                'estimated_duration_minutes' => $durationMinutes,
+                'views_count' => \App\Support\CourseViews::countForCourse($course),
+                'progress_percentage' => $p['progress_percentage'],
+                'completed_at' => $p['completed_at'],
+                'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
+            ];
+        })->values();
     }
 
     /**

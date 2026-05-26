@@ -69,7 +69,12 @@ class ActivityLogAdminController extends Controller
         if ($actionScope && $actionScope !== 'all') {
             match ($actionScope) {
                 'elev_progres' => $query->where(function ($q) {
-                    $q->whereIn('action', ['completed_course', 'completed_exam', 'completed_lesson'])
+                    $q->whereIn('action', [
+                        'completed_course',
+                        'completed_exam',
+                        'completed_lesson',
+                        'enrolled_course',
+                    ])
                         ->orWhereIn('action', ['telemetry.learner_attempt_submitted', 'telemetry.learner_focus_seconds']);
                 }),
                 'telemetry' => $query->where('action', 'like', 'telemetry.%'),
@@ -79,6 +84,7 @@ class ActivityLogAdminController extends Controller
                         ->orWhere('action', 'like', 'builder.%');
                 }),
                 'legacy' => $query->where('action', 'not like', 'telemetry.%'),
+                'auth' => $query->whereIn('action', ['logged_in', 'logged_out']),
                 default => null,
             };
         }
@@ -126,6 +132,7 @@ class ActivityLogAdminController extends Controller
                     ['id' => 'learner', 'label' => 'Elevi / învățare'],
                     ['id' => 'admin_ops', 'label' => 'Admin & builder'],
                     ['id' => 'legacy', 'label' => 'Fără telemetrie'],
+                    ['id' => 'auth', 'label' => 'Autentificare (login / logout)'],
                 ],
             ],
         ]);

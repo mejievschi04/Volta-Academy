@@ -78,7 +78,7 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, cl
 		...(frontImage ? { '--rb-folder-front-image': `url("${frontImage}")` } : {}),
 	};
 
-	const folderClassName = `rb-folder ${open ? 'open' : ''}`.trim();
+	const folderClassName = `rb-folder ${open ? 'open' : ''} ${frontImage ? 'rb-folder--has-cover' : ''}`.trim();
 	const scaleStyle = { transform: `scale(${size})` };
 	const wrapperClassName = ['rb-folder-wrap', className].filter(Boolean).join(' ');
 
@@ -104,8 +104,14 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, cl
 							{item}
 						</div>
 					))}
-					<div className={frontImage ? 'rb-folder__front rb-folder__front--image' : 'rb-folder__front'} />
-					<div className={frontImage ? 'rb-folder__front rb-folder__front--image right' : 'rb-folder__front right'} />
+					{frontImage ? (
+						<div className="rb-folder__front rb-folder__front--image rb-folder__front--lid" aria-hidden />
+					) : (
+						<>
+							<div className="rb-folder__front" />
+							<div className="rb-folder__front right" />
+						</>
+					)}
 				</div>
 			</div>
 		</div>

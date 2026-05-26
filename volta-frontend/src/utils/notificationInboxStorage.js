@@ -1,3 +1,5 @@
+import { notificationsService, parseStoredNotificationId, adminService } from '../services/api';
+
 const KEYS = {
 	student: 'va_notif_inbox_student',
 	admin: 'va_notif_inbox_admin',
@@ -54,6 +56,13 @@ function migrateLegacyStudentDismissed() {
 	}
 }
 
+/** Notificare salvată în DB (vs. calculate: next-lesson-, pending-exam-). */
+export function isPersistedNotification(notif) {
+	if (!notif) return false;
+	if (notif.stored === true) return true;
+	return parseStoredNotificationId(notif.id) != null;
+}
+
 export function snapshotForStorage(notif, variant) {
 	const id = String(notif.id);
 	const readAt = new Date().toISOString();
@@ -84,25 +93,49 @@ export function snapshotForStorage(notif, variant) {
 	};
 }
 
-export function markNotificationRead(variant, notif) {
+export async function markNotificationRead(variant, notif) {
 	if (variant === 'student') migrateLegacyStudentDismissed();
 	const state = loadRaw(variant);
 	const id = String(notif.id);
 	const snap = snapshotForStorage(notif, variant);
 	state.read[id] = snap;
 	saveRaw(variant, state);
+
+	const storedId = parseStoredNotificationId(notif.id);
+	if (storedId != null) {
+		try {
+			await notificationsService.markRead(storedId);
+		} catch (err) {
+			console.warn('notificationsService.markRead failed:', err);
+		}
+	} else if (variant === 'admin' && String(notif.id).startsWith('alert_')) {
+		try {
+			await adminService.dismissDashboardAlert(String(notif.id));
+		} catch (err) {
+			console.warn('dismissDashboardAlert failed:', err);
+		}
+	}
 }
 
-/** Marchează toate notificările din Primite ca citite (o singură scriere în localStorage). */
-export function markAllPrimiteAsRead(variant, apiList) {
+/** Marchează toate notificările din Primite ca citite. */
+export async function markAllPrimiteAsRead(variant, apiList) {
 	if (variant === 'student') migrateLegacyStudentDismissed();
 	const primite = getPrimiteFromApi(apiList, variant);
 	if (primite.length === 0) return;
+
 	const state = loadRaw(variant);
 	for (const notif of primite) {
 		state.read[String(notif.id)] = snapshotForStorage(notif, variant);
 	}
 	saveRaw(variant, state);
+
+	if (primite.some((n) => isPersistedNotification(n))) {
+		try {
+			await notificationsService.markAllRead();
+		} catch (err) {
+			console.warn('notificationsService.markAllRead failed:', err);
+		}
+	}
 }
 
 /** Șterge tot istoricul; ID-urile trec în removed ca să nu reapară în Primite. */

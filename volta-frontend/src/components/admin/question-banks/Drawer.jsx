@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import Tag from './Tag';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -71,8 +72,8 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
       <aside className="qb-drawer" onClick={(e) => e.stopPropagation()}>
         <header className="qb-drawer-header">
           <h3>Detalii întrebare</h3>
-          <button type="button" onClick={onClose}>
-            ×
+          <button type="button" className="qb-drawer-close" onClick={onClose} aria-label="Închide">
+            <X size={18} aria-hidden />
           </button>
         </header>
         <p>{stripHtml(question?.content)}</p>
@@ -83,7 +84,9 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
               {matchingPairs.map((pair, index) => (
                 <li key={`${question.id}-pair-${index}`} className="qb-drawer-answer-item">
                   <span className="qb-drawer-answer-marker">{index + 1}</span>
-                  <span className="qb-drawer-answer-text">{pair.left || '—'} → {pair.right || '—'}</span>
+                  <span className="qb-drawer-answer-text">
+                    {pair.left || '-'} către {pair.right || '-'}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -95,7 +98,7 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
               {orderingItems.map((item, index) => (
                 <li key={`${question.id}-order-${index}`} className="qb-drawer-answer-item">
                   <span className="qb-drawer-answer-marker">{index + 1}</span>
-                  <span className="qb-drawer-answer-text">{item.text || '—'}</span>
+                  <span className="qb-drawer-answer-text">{item.text || '-'}</span>
                 </li>
               ))}
             </ul>
@@ -106,15 +109,15 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
             <ul className="qb-drawer-answer-list">
               {answers.map((answer, index) => (
                 <li key={`${question.id}-answer-${index}`} className={`qb-drawer-answer-item ${answer.is_correct ? 'is-correct' : ''}`}>
-                  <span className="qb-drawer-answer-marker">{answer.is_correct ? '✓' : index + 1}</span>
-                  <span className="qb-drawer-answer-text">{answer.text || '—'}</span>
+                  <span className="qb-drawer-answer-marker">{answer.is_correct ? 'OK' : index + 1}</span>
+                  <span className="qb-drawer-answer-text">{answer.text || '-'}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
         <div className="qb-drawer-tags">
-          {Array.isArray(tags) && tags.map((tag) => <Tag key={`${question.id}-${tag}`}>{tag}</Tag>)}
+          {Array.isArray(tags) && tags.map((tag) => <Tag key={`${question.id}-${tag?.id || tag?.name || tag}`}>{tag?.name || tag}</Tag>)}
         </div>
         {typeof onEdit === 'function' && (
           <div className="qb-modal-actions">

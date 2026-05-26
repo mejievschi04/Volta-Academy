@@ -550,7 +550,11 @@ class CourseBuilderController extends Controller
         }
 
         try {
-            $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished($course, $teamIds);
+            $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished(
+                $course,
+                $teamIds,
+                broadcastAllStudentsIfNoTargets: count($teamIds) === 0
+            );
         } catch (\Throwable $e) {
             \Log::warning('CourseBuilderController::publish - notifyCoursePublished failed', [
                 'course_id' => $courseId,

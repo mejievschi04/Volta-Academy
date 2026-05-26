@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import MediaUploader from '../../media/MediaUploader';
 import MediaLibraryModal from '../../media/MediaLibraryModal';
 import { toImageUrl } from '../../../../utils/imageUrl';
+import { DragGripIcon } from '../../../common/DragGripIcon';
 
 const SortableGalleryItem = ({ item, index, onRemove }) => {
 	const stableId = item.id || `gallery-img-${index}`;
@@ -55,7 +56,7 @@ const SortableGalleryItem = ({ item, index, onRemove }) => {
 				}}
 				title="Trage pentru reordonare"
 			>
-				⋮⋮
+				<DragGripIcon size={12} />
 			</div>
 			<button
 				type="button"

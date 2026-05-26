@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { LightbulbFilament } from '@phosphor-icons/react';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
 import LiquidEther from './backgrounds/LiquidEther';
 import './SplashScreen.css';
@@ -69,16 +70,7 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 					{/* Bec - doar lampa dispare după ce se aprinde (#FFEE00) */}
 					{(phase === 'bulb' || phase === 'bulb-on' || phase === 'logo') && (
 						<div className={`splash-bulb-container ${phase}`}>
-							<svg className="splash-bulb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-								<path d="M9 18h6"/>
-								<path d="M10 22h4"/>
-								<path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
-								<path d="M12 2v2"/>
-								<path d="M4.93 4.93l1.41 1.41"/>
-								<path d="M2 12h2"/>
-								<path d="M19.07 4.93l-1.41 1.41"/>
-								<path d="M20 12h2"/>
-							</svg>
+							<LightbulbFilament className="splash-bulb-icon" size={44} weight="duotone" aria-hidden="true" />
 						</div>
 					)}
 

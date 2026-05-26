@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { adminService, eventsService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminEventFormModal from './events/AdminEventFormModal';
+import AdminEventDetailModal from './events/AdminEventDetailModal';
+import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
 import './AdminCalendarDrawer.css';
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum'];
@@ -58,6 +60,9 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 	const [showModal, setShowModal] = useState(false);
 	const [editingEvent, setEditingEvent] = useState(null);
 	const [prefill, setPrefill] = useState(null);
+	const [viewingEventId, setViewingEventId] = useState(null);
+
+	useScrollResetOnOpen(open || showModal || viewingEventId != null);
 
 	const loadEvents = useCallback(async () => {
 		try {
@@ -129,7 +134,17 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 
 	const handleEventChipClick = (e, event) => {
 		e.stopPropagation();
+		if (!event?.id) return;
+		if (isStudentVariant) {
+			handleStudentChipClick(e, event);
+			return;
+		}
+		setViewingEventId(event.id);
+	};
+
+	const handleEditFromDetail = (event) => {
 		if (!allowAdminCalendarEdit) return;
+		setViewingEventId(null);
 		setEditingEvent(event);
 		setPrefill(null);
 		setShowModal(true);
@@ -263,14 +278,7 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 												type="button"
 												className="va-cal-drawer-chip"
 												title={ev.title}
-												disabled={!allowAdminCalendarEdit && !isStudentVariant}
-												onClick={
-													isStudentVariant
-														? (evClick) => handleStudentChipClick(evClick, ev)
-														: allowAdminCalendarEdit
-															? (evClick) => handleEventChipClick(evClick, ev)
-															: undefined
-												}
+												onClick={(evClick) => handleEventChipClick(evClick, ev)}
 											>
 												{ev.title}
 											</button>
@@ -289,6 +297,16 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 					<p className="va-cal-drawer-hint">Cont analist: poți vedea calendarul; crearea evenimentelor este dezactivată.</p>
 				)}
 			</aside>
+
+			{!isStudentVariant && (
+				<AdminEventDetailModal
+					open={viewingEventId != null}
+					eventId={viewingEventId}
+					onClose={() => setViewingEventId(null)}
+					onEdit={allowAdminCalendarEdit ? handleEditFromDetail : undefined}
+					readOnly={!allowAdminCalendarEdit}
+				/>
+			)}
 
 			{showModal && allowAdminCalendarEdit && (
 				<AdminEventFormModal

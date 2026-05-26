@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookOpenText, Books, Plus, Star } from '@phosphor-icons/react';
 import { courseCoverSrc } from '../../../utils/imageUrl';
 
 const CourseListItem = React.memo(({
@@ -59,7 +60,9 @@ const CourseListItem = React.memo(({
 					{coverSrc ? (
 						<img src={coverSrc} alt={course.title} loading="lazy" decoding="async" />
 					) : (
-						<div className="admin-course-thumbnail-placeholder">📚</div>
+						<div className="admin-course-thumbnail-placeholder">
+							<Books size={20} weight="duotone" aria-hidden />
+						</div>
 					)}
 				</div>
 				<div className="admin-course-table-info" onClick={() => navigate(`/admin/courses/${course.id}`)}>
@@ -77,7 +80,11 @@ const CourseListItem = React.memo(({
 						</div>
 					</div>
 					<div className="admin-course-table-meta">
-						{course.modules_count !== undefined && <span>📖 {course.modules_count} module</span>}
+						{course.modules_count !== undefined && (
+							<span>
+								<BookOpenText size={14} weight="duotone" aria-hidden /> {course.modules_count} module
+							</span>
+						)}
 					</div>
 				</div>
 				<div className="admin-course-table-metrics">
@@ -88,7 +95,13 @@ const CourseListItem = React.memo(({
 					<div className="admin-course-table-metric">
 						<div className="admin-course-metric-label">Rating</div>
 						<div className="admin-course-metric-value">
-							{course.rating ? `⭐ ${course.rating.toFixed(1)}` : 'N/A'}
+							{course.rating ? (
+								<>
+									<Star size={14} weight="fill" aria-hidden /> {course.rating.toFixed(1)}
+								</>
+							) : (
+								'N/A'
+							)}
 						</div>
 					</div>
 				</div>
@@ -122,7 +135,7 @@ const CourseListItem = React.memo(({
 					<img src={coverSrc} alt={course.title} loading="lazy" decoding="async" />
 				) : (
 					<div className="admin-course-card-thumbnail-placeholder">
-						📚
+						<Books size={24} weight="duotone" aria-hidden />
 					</div>
 				)}
 				{statusBadge && (
@@ -154,7 +167,7 @@ const CourseListItem = React.memo(({
 				title="Deschide curs"
 				aria-label="Deschide curs"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+				<Plus size={16} weight="bold" aria-hidden />
 			</div>
 		</div>
 	);

@@ -287,20 +287,8 @@ class QuestionAdminController extends Controller
         }
 
         if (array_key_exists('answers', $validated) && is_array($validated['answers'])) {
-            $normalized = [];
-            foreach (array_values($validated['answers']) as $idx => $item) {
-                if (! is_array($item)) {
-                    $normalized[] = ['text' => '', 'is_correct' => false, 'order' => $idx];
-                    continue;
-                }
-                $text = $item['text'] ?? $item['answer_text'] ?? $item['content'] ?? '';
-                $normalized[] = [
-                    'text' => is_string($text) ? $text : (string) $text,
-                    'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'order' => isset($item['order']) ? (int) $item['order'] : $idx,
-                ];
-            }
-            $validated['answers'] = $normalized;
+            $questionType = (string) ($validated['type'] ?? $question->type ?? 'multiple_choice');
+            $validated['answers'] = $this->normalizeAnswersForType($questionType, $validated['answers']);
         }
 
         try {
@@ -437,6 +425,52 @@ class QuestionAdminController extends Controller
                 Question::where('id', $q->id)->update(['points' => $points]);
             }
         });
+    }
+
+    private function normalizeAnswersForType(string $questionType, array $answers): array
+    {
+        $type = strtolower(trim($questionType));
+        $normalized = [];
+
+        foreach (array_values($answers) as $idx => $item) {
+            $row = is_array($item) ? $item : [];
+
+            if ($type === 'matching') {
+                $left = $row['left'] ?? $row['text'] ?? $row['question'] ?? '';
+                $right = $row['right'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+                $left = is_string($left) ? $left : (string) $left;
+                $right = is_string($right) ? $right : (string) $right;
+
+                $normalized[] = [
+                    'left' => $left,
+                    'right' => $right,
+                    'text' => $left,
+                    'answer_text' => $right,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            if ($type === 'ordering') {
+                $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? $row['label'] ?? '';
+                $normalized[] = [
+                    'text' => is_string($text) ? $text : (string) $text,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+            $normalized[] = [
+                'text' => is_string($text) ? $text : (string) $text,
+                'is_correct' => filter_var($row['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'order' => isset($row['order']) ? (int) $row['order'] : $idx,
+            ];
+        }
+
+        return $normalized;
     }
 
     public function improveWithAi(Request $request, int $id)

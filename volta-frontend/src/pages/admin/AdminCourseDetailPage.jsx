@@ -6,6 +6,8 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
 import CourseDistributionPanel from '../../components/admin/courses/CourseDistributionPanel';
 import CourseSettingsEditModal from '../../components/admin/courses/CourseSettingsEditModal';
+import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import ProgressionRulesManager from '../../components/admin/courses/ProgressionRulesManager';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/admin-course-detail-modern.css';
 
@@ -22,6 +24,8 @@ const AdminCourseDetailPage = () => {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [showCourseSettingsModal, setShowCourseSettingsModal] = useState(false);
+	const [publishModalOpen, setPublishModalOpen] = useState(false);
+	const [publishValidationReport, setPublishValidationReport] = useState(null);
 
 	useEffect(() => {
 		if (id) {
@@ -68,15 +72,31 @@ const AdminCourseDetailPage = () => {
 		}
 	};
 
+	const handleValidateForPublish = async () => {
+		if (!course?.id) return;
+		const report = await adminService.builderValidateCourse(course.id);
+		setPublishValidationReport(report);
+		return report;
+	};
+
+	const handleOpenPublishModal = async () => {
+		setPublishValidationReport(null);
+		setPublishModalOpen(true);
+		try {
+			await handleValidateForPublish();
+		} catch (err) {
+			console.error('Course validation failed:', err);
+			showToast(err?.response?.data?.message || 'Nu am putut valida cursul.', 'error');
+		}
+	};
+
 	const handleQuickAction = async (action) => {
 		if (!course) return;
 
 		try {
 			switch (action) {
 				case 'publish':
-					await adminService.updateCourse(course.id, { status: 'published' });
-					showToast('Cursul a fost publicat cu succes', 'success');
-					fetchCourseData();
+					await handleOpenPublishModal();
 					break;
 				case 'unpublish':
 					await adminService.updateCourse(course.id, { status: 'draft' });
@@ -87,9 +107,8 @@ const AdminCourseDetailPage = () => {
 					setShowDeleteConfirm(true);
 					break;
 				case 'preview':
-					// Navigate to student course detail page - full student experience
 					sessionStorage.setItem('studentPreviewFromAdmin', 'true');
-					navigate(`/courses/${course.id}/detail`);
+					navigate(`/courses/${course.id}`);
 					break;
 				case 'edit':
 					navigate(`/admin/courses/${course.id}/builder`);
@@ -202,6 +221,29 @@ const AdminCourseDetailPage = () => {
 				course={course}
 				readOnly={readOnly}
 				onUpdated={fetchCourseData}
+			/>
+
+			{!readOnly && (
+				<section className="admin-course-overview admin-course-detail-progression">
+					<ProgressionRulesManager courseId={course.id} />
+				</section>
+			)}
+
+			<PublishCourseModal
+				open={publishModalOpen}
+				onClose={() => {
+					setPublishModalOpen(false);
+					setPublishValidationReport(null);
+				}}
+				courseId={course.id}
+				validationReport={publishValidationReport}
+				onValidate={handleValidateForPublish}
+				onPublished={() => {
+					showToast('Cursul a fost publicat cu succes', 'success');
+					setPublishModalOpen(false);
+					setPublishValidationReport(null);
+					fetchCourseData();
+				}}
 			/>
 
 			<ConfirmModal

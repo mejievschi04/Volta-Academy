@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import './Step4Assessment.css';
+import { DragGripIcon } from '../../../common/DragGripIcon';
 
 /**
  * Step 4 — Quiz Builder (instructiuni.md)
@@ -51,7 +52,9 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 	return (
 		<div ref={setNodeRef} style={style} className={`step4-question-card ${isDragging ? 'step4-dragging' : ''}`}>
 			<div className="step4-question-card-header">
-				<button type="button" className="step4-drag-handle" {...attributes} {...listeners} aria-label="Reordonare întrebare">⋮⋮</button>
+				<button type="button" className="step4-drag-handle" {...attributes} {...listeners} aria-label="Reordonare întrebare">
+					<DragGripIcon size={14} />
+				</button>
 				<span className="step4-question-number">{index + 1}</span>
 				<span className="step4-question-type-badge">{typeInfo?.icon} {typeInfo?.label}</span>
 				{needsManualGrading && <span className="step4-manual-badge">Notare manuală</span>}

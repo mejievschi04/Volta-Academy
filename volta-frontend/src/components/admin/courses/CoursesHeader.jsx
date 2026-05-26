@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Funnel, GridFour, List, Plus, Trash, X } from '@phosphor-icons/react';
 
 const CoursesHeader = ({
 	searchQuery,
@@ -41,7 +42,7 @@ const CoursesHeader = ({
 							disabled={loading}
 							type="button"
 						>
-							<span>+</span>
+							<Plus size={16} weight="bold" aria-hidden />
 							CreeazДѓ curs
 						</button>
 					</div>
@@ -63,7 +64,7 @@ const CoursesHeader = ({
 								onClick={() => onSearchChange('')}
 								aria-label="GoleИ™te cДѓutarea"
 							>
-								Г—
+								<X size={14} weight="bold" aria-hidden />
 							</button>
 						)}
 					</div>
@@ -78,9 +79,7 @@ const CoursesHeader = ({
 									title="Vizualizare Grid"
 									aria-label="Vizualizare grilДѓ"
 								>
-									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-										<path d="M0 0h6v6H0V0zm7 0h9v6H7V0zM0 7h6v9H0V7zm7 0h9v9H7V7z"/>
-									</svg>
+									<GridFour size={12} weight="fill" aria-hidden />
 								</button>
 								<button
 									className={`admin-view-mode-btn ${viewMode === 'list' || viewMode === 'table' ? 'active' : ''}`}
@@ -88,9 +87,7 @@ const CoursesHeader = ({
 									title="Vizualizare ListДѓ"
 									aria-label="Vizualizare listДѓ"
 								>
-									<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-										<path d="M0 2h16v2H0V2zm0 5h16v2H0V7zm0 5h16v2H0v-2z"/>
-									</svg>
+									<List size={12} weight="bold" aria-hidden />
 								</button>
 							</div>
 						)}
@@ -100,9 +97,7 @@ const CoursesHeader = ({
 							onClick={() => setShowFilters(!showFilters)}
 							aria-label="Comutare filtre"
 						>
-							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-								<path d="M2 3h12v1H2V3zm2 4h8v1H4V7zm3 4h2v1H7v-1z"/>
-							</svg>
+							<Funnel size={16} weight="bold" aria-hidden />
 							Filtre
 							{filters.activeCount > 0 && (
 								<span className="admin-filter-badge">{filters.activeCount}</span>
@@ -163,7 +158,7 @@ const CoursesHeader = ({
 							className="lms-btn-secondary lms-btn-sm va-btn-danger"
 							onClick={() => onBulkAction('delete')}
 						>
-							рџ—‘пёЏ Иterge
+							<Trash size={14} weight="bold" aria-hidden /> Șterge
 						</button>
 					</div>
 				</div>

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
 use App\Models\CourseMap;
+use App\Support\CourseMapBuckets;
 use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
@@ -290,24 +291,7 @@ class CourseAdminController extends Controller
 
     private function attachCourseToDefaultMap(Course $course, int $ownerUserId): void
     {
-        $map = CourseMap::firstOrCreate(
-            [
-                'name' => 'Cursuri fara mapa',
-                'created_by' => $ownerUserId,
-            ],
-            [
-                'description' => 'Cursuri create recent, neorganizate inca intr-o mapa finala.',
-                'order' => 0,
-            ]
-        );
-
-        $alreadyAttached = $map->courses()->where('courses.id', $course->id)->exists();
-        if ($alreadyAttached) {
-            return;
-        }
-
-        $nextOrder = ((int) $map->courses()->max('course_map_course.order')) + 1;
-        $map->courses()->attach($course->id, ['order' => $nextOrder]);
+        CourseMapBuckets::attachCourseToDefaultMap($course, $ownerUserId);
     }
 
     public function show($id)
@@ -660,6 +644,7 @@ class CourseAdminController extends Controller
 
         if ($course->status === 'published' && $previousStatus !== 'published') {
             $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+            $this->notifyStudentsCoursePublished($course, $previousStatus);
         }
 
         return response()->json([
@@ -923,7 +908,10 @@ class CourseAdminController extends Controller
         switch ($action) {
             case 'publish':
                 if (Schema::hasColumn('courses', 'status')) {
+                    $previousStatus = $course->status;
                     $course->update(['status' => 'published']);
+                    $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+                    $this->notifyStudentsCoursePublished($course->fresh(), $previousStatus);
                 }
                 break;
             case 'unpublish':
@@ -979,7 +967,10 @@ class CourseAdminController extends Controller
                     switch ($validated['action']) {
                         case 'publish':
                             if (Schema::hasColumn('courses', 'status')) {
+                                $previousStatus = $course->status;
                                 $course->update(['status' => 'published']);
+                                $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+                                $this->notifyStudentsCoursePublished($course->fresh(), $previousStatus);
                                 $updated++;
                             }
                             break;
@@ -1169,6 +1160,22 @@ class CourseAdminController extends Controller
             return response()->json([
                 'error' => 'Error fetching insights: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function notifyStudentsCoursePublished(Course $course, ?string $previousStatus): void
+    {
+        if (($previousStatus ?? '') === 'published' || ($course->status ?? '') !== 'published') {
+            return;
+        }
+
+        try {
+            app(\App\Services\NotificationService::class)->notifyCoursePublished($course, [], false);
+        } catch (\Throwable $e) {
+            \Log::warning('CourseAdminController: notifyCoursePublished failed', [
+                'course_id' => $course->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

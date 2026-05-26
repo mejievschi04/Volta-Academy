@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CourseMap;
 use App\Models\Course;
+use App\Support\CourseMapBuckets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +40,7 @@ class CourseMapAdminController extends Controller
         $maps = $query->orderBy('order')->orderBy('name')->paginate($request->get('per_page', 20));
 
         if ($request->boolean('include_virtual')) {
-            $unassignedQuery = Course::query()->whereDoesntHave('courseMaps');
+            $unassignedQuery = CourseMapBuckets::defaultBucketQuery(publishedOnly: false);
             if (auth()->user()->isInstructor()) {
                 $unassignedQuery->where('teacher_id', auth()->id());
             }
@@ -84,8 +85,7 @@ class CourseMapAdminController extends Controller
 
     private function showUnassignedMap()
     {
-        $query = Course::query()
-            ->whereDoesntHave('courseMaps')
+        $query = CourseMapBuckets::defaultBucketQuery(publishedOnly: false)
             ->with(['teacher:id,name', 'modules:id,course_id,estimated_duration_minutes'])
             ->orderBy('title');
 
@@ -105,7 +105,7 @@ class CourseMapAdminController extends Controller
                 'short_description' => $course->short_description,
                 'image_url' => $course->image_url ?? $course->image,
                 'estimated_duration_minutes' => $durationMinutes,
-                'views_count' => 0,
+                'views_count' => \App\Support\CourseViews::countForCourse($course),
                 'progress_percentage' => 0,
                 'completed_at' => null,
                 'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
@@ -117,6 +117,7 @@ class CourseMapAdminController extends Controller
             'name' => 'Fără mapă',
             'description' => 'Cursuri neasociate unei mape.',
             'courses' => $courses,
+            'is_virtual' => true,
         ]);
     }
 
@@ -197,9 +198,13 @@ class CourseMapAdminController extends Controller
             $courseIds = array_values(array_intersect($courseIds, $allowed));
         }
 
+        $targetIsDefaultMap = CourseMapBuckets::isDefaultMapId((int) $map->id);
         $maxOrder = $map->courses()->max('course_map_course.order') ?? 0;
         foreach ($courseIds as $i => $courseId) {
             $map->courses()->syncWithoutDetaching([$courseId => ['order' => $maxOrder + $i + 1]]);
+            if (! $targetIsDefaultMap) {
+                CourseMapBuckets::detachCourseFromDefaultMaps((int) $courseId);
+            }
         }
 
         $map->load(['courses' => fn ($q) => $q->orderBy('course_map_course.order')]);
@@ -217,6 +222,13 @@ class CourseMapAdminController extends Controller
             abort(403, 'Acces interzis.');
         }
         $map->courses()->detach($courseId);
+
+        $course = Course::find($courseId);
+        if ($course && ! CourseMapBuckets::isDefaultMapId((int) $map->id)) {
+            $ownerId = (int) ($course->teacher_id ?: auth()->id());
+            CourseMapBuckets::attachCourseToDefaultMap($course, $ownerId);
+        }
+
         return response()->json(null, 204);
     }
 

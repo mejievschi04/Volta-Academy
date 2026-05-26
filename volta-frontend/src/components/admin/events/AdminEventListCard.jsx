@@ -1,4 +1,5 @@
 import React from 'react';
+import EventDescriptionExpandable from '../../common/EventDescriptionExpandable';
 import './AdminEventListCard.css';
 
 const TYPE_LABELS = {
@@ -11,12 +12,11 @@ const ACCESS_LABELS = {
 	course_included: 'Inclus în curs',
 };
 
-function previewDescription(event) {
+function eventDescriptionText(event) {
+	const main = event.description && String(event.description).trim();
+	if (main) return main;
 	const short = event.short_description && String(event.short_description).trim();
-	if (short) return short;
-	if (!event.description) return null;
-	const d = event.description;
-	return d.length > 140 ? `${d.slice(0, 140)}…` : d;
+	return short || null;
 }
 
 function locationLine(event) {
@@ -34,11 +34,16 @@ export default function AdminEventListCard({
 	event,
 	formatDate,
 	calculateDuration,
+	onView,
 	onEdit,
 	onDelete,
 	readOnly = false,
 }) {
-	const desc = previewDescription(event);
+	const desc = eventDescriptionText(event);
+	const shortOnly =
+		event.short_description &&
+		String(event.short_description).trim() &&
+		!String(event.description || '').trim();
 	const place = locationLine(event);
 	const typeLabel = TYPE_LABELS[event.type] || event.type;
 	const accessLabel =
@@ -77,7 +82,14 @@ export default function AdminEventListCard({
 								<li title={event.instructor.name}>{event.instructor.name}</li>
 							) : null}
 						</ul>
-						{desc ? <p className="aev-card__blurb">{desc}</p> : null}
+						{desc ? (
+							<EventDescriptionExpandable
+								text={desc}
+								className="aev-card__desc"
+								textClassName="aev-card__blurb"
+								clampLines={shortOnly ? 2 : 3}
+							/>
+						) : null}
 					</div>
 				</header>
 
@@ -105,8 +117,19 @@ export default function AdminEventListCard({
 					) : null}
 				</div>
 
-				{readOnly ? null : (
-					<div className="aev-card__actions-bar" role="toolbar" aria-label={`Acțiuni: ${event.title}`}>
+				<div className="aev-card__actions-bar" role="toolbar" aria-label={`Acțiuni: ${event.title}`}>
+					{onView ? (
+						<button
+							type="button"
+							className="admin-btn admin-btn-sm admin-btn-secondary"
+							aria-label="Vezi detalii eveniment"
+							onClick={() => onView(event)}
+						>
+							Detalii
+						</button>
+					) : null}
+					{readOnly ? null : (
+						<>
 						<button
 							type="button"
 							className="admin-btn admin-btn-sm admin-btn-secondary"
@@ -126,8 +149,9 @@ export default function AdminEventListCard({
 						>
 							Șterge
 						</button>
-					</div>
-				)}
+						</>
+					)}
+				</div>
 			</div>
 		</article>
 	);

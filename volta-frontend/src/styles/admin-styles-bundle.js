@@ -8,6 +8,7 @@ import './admin-team-members-modern.css';
 import './admin-common-modern.css';
 import './admin-components-modern.css';
 import './admin-navigation-modern.css';
+import './admin-view-switcher.css';
 import './admin-creator-split.css';
 import './admin-lesson-creator.css';
 import './admin-course-builder.css';

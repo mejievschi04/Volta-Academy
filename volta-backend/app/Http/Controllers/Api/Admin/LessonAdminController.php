@@ -43,7 +43,8 @@ class LessonAdminController extends Controller
 
     public function show($id)
     {
-        $lesson = Lesson::with(['course', 'module'])->findOrFail($id);
+        $lesson = Lesson::with(['course', 'module', 'contentBlocks' => fn ($q) => $q->orderBy('order')])
+            ->findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $lesson->course->teacher_id !== (int) auth()->id()) {
             abort(403, 'Acces interzis.');
         }

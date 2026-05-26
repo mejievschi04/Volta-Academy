@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { filterPublishedCourseTests } from '../../utils/testVisibility';
 import { useNavigate } from 'react-router-dom';
 
 const buildRenderableModules = (course) => {
@@ -87,7 +88,7 @@ const CourseStructure = ({ course, progress, onLessonClick, onExamClick }) => {
 					const moduleProgress = getModuleProgress(module.id);
 					const isExpanded = expandedModules[module.id];
 					const moduleLessons = module.lessons || [];
-					const moduleExams = module.exams || [];
+					const moduleExams = filterPublishedCourseTests(module.exams || []);
 
 					return (
 						<div key={module.id} className="student-course-structure-module">

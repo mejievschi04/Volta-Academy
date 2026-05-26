@@ -415,14 +415,12 @@ class QuizController extends Controller
                 'needs_manual_review' => false,
             ]);
             
-            // Log activity: user completed exam
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'action' => 'completed_exam',
-                'model_type' => 'Exam',
-                'model_id' => $exam->id,
-                'description' => "{$user->name} a finalizat testul \"{$exam->title}\" pentru cursul \"{$course->title}\" cu scorul {$score}/{$totalPoints} ({$percentage}%)",
-                'new_values' => [
+            \App\Support\StudentActivityLogger::logCompletedExamIfFirstPass(
+                $user,
+                'Exam',
+                $exam->id,
+                "{$user->name} a finalizat testul \"{$exam->title}\" pentru cursul \"{$course->title}\" cu scorul {$score}/{$totalPoints} ({$percentage}%)",
+                [
                     'exam_id' => $exam->id,
                     'exam_title' => $exam->title,
                     'course_id' => $course->id,
@@ -432,10 +430,8 @@ class QuizController extends Controller
                     'percentage' => $percentage,
                     'passed' => $passed,
                     'attempt_number' => $nextAttempt,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+                ]
+            );
             
             // Update course progress if exam is passed
             // Course is completed when exam is passed (modules don't need individual completion)
@@ -481,22 +477,10 @@ class QuizController extends Controller
                         ]);
                 }
                 
-                // Log activity: user completed course
-                ActivityLog::create([
-                    'user_id' => $user->id,
-                    'action' => 'completed_course',
-                    'model_type' => 'Course',
-                    'model_id' => $course->id,
-                    'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
-                    'new_values' => [
-                        'course_id' => $course->id,
-                        'course_title' => $course->title,
-                        'progress_percentage' => 100,
-                        'completed_at' => now()->toDateTimeString(),
-                    ],
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ]);
+                $wasAlreadyCompleted = \App\Support\StudentActivityLogger::courseWasAlreadyCompleted($user->id, $course->id);
+                if (! $wasAlreadyCompleted && \App\Support\StudentActivityLogger::logCompletedCourseIfFirst($user, $course)) {
+                    app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
+                }
                 
                 // Invalidate cache for dashboard and profile
                 Cache::forget("dashboard_user_{$user->id}_stats");

@@ -83,12 +83,6 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	overflow: hidden;
 }
 
-.modern-auth-liquid-ether {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-}
-
 .modern-auth-gradient {
 	position: absolute;
 	top: -50%;

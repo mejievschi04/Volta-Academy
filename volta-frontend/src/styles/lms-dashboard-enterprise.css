@@ -850,14 +850,14 @@
 	background-color: var(--btn-secondary-hover);
 }
 
-/* Light theme - grey background for better visibility */
-[data-theme="light"] .lms-btn-secondary {
+/* Light theme - grey background for better visibility (nu suprascrie ștergere) */
+[data-theme="light"] .lms-btn-secondary:not(.va-btn-danger):not(.btn-danger) {
 	background-color: var(--bg-tertiary);
 	color: var(--text-primary);
 	border: 1px solid var(--border-secondary);
 }
 
-[data-theme="light"] .lms-btn-secondary:hover {
+[data-theme="light"] .lms-btn-secondary:not(.va-btn-danger):not(.btn-danger):hover {
 	background-color: var(--bg-secondary);
 	border-color: var(--border-secondary);
 	color: var(--text-primary);

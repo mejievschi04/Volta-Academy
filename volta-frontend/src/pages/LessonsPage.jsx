@@ -1,5 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+	ArrowLeft,
+	ArrowRight,
+	CaretDown,
+	Check,
+	FileText,
+	List,
+	NotePencil,
+	WarningCircle,
+	X,
+} from '@phosphor-icons/react';
 import { coursesService, courseProgressService, lessonsService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -8,9 +19,17 @@ import CourseCongratulationsModal from '../components/student/CourseCongratulati
 import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
+import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
+import { isLessonMarkedComplete } from '../utils/lessonProgress';
+import { scrollAppToTop } from '../utils/scrollToTop';
+import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonsPage.css';
 
 const LESSON_MILESTONES = [25, 50, 75, 100];
+
+const renderTestStatusIcon = (passed) => (
+	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
+);
 
 const normalizeCourseModules = (courseData) => {
 	const sortedModules = [...(courseData?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -113,6 +132,18 @@ const LessonsPage = () => {
 		}
 	}, [selectedLessonId, courseId]);
 
+	// ?lesson= nu schimbă pathname — ScrollToTop global nu rulează; resetăm manual
+	useLayoutEffect(() => {
+		if (!selectedLessonId || currentLessonLoading) return;
+		scrollAppToTop({ behavior: 'instant' });
+	}, [selectedLessonId, currentLessonLoading]);
+
+	useEffect(() => {
+		if (selectedLessonId && progress) {
+			setIsCompleted(isLessonMarkedComplete(progress, selectedLessonId));
+		}
+	}, [progress, selectedLessonId]);
+
 	const lessonReadyForTracking =
 		Boolean(
 			user?.id &&
@@ -159,16 +190,10 @@ const LessonsPage = () => {
 	const loadLesson = async (lessonId) => {
 		try {
 			setCurrentLessonLoading(true);
-			const lessonData = await lessonsService.getById(lessonId);
+			const lessonData = normalizeLessonFromApi(await lessonsService.getById(lessonId));
 			setCurrentLesson(lessonData);
 			
-			// Check if lesson is completed
-			if (user?.id && progress?.lessons) {
-				const lessonProgress = progress.lessons.find(l => l.lesson_id === parseInt(lessonId));
-				setIsCompleted(lessonProgress?.completed || false);
-			} else {
-				setIsCompleted(false);
-			}
+			setIsCompleted(user?.id ? isLessonMarkedComplete(progress, lessonId) : false);
 			
 			// Update URL without navigation
 			window.history.replaceState({}, '', `/courses/${courseId}?lesson=${lessonId}`);
@@ -183,7 +208,7 @@ const LessonsPage = () => {
 	const handleLessonClick = (lessonId) => {
 		setSelectedLessonId(lessonId);
 		setSidebarOpen(false); // Close sidebar on mobile when selecting lesson
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		scrollAppToTop({ behavior: 'instant' });
 	};
 
 	const toggleModule = (moduleId) => {
@@ -196,15 +221,39 @@ const LessonsPage = () => {
 		setExpandedModules(newExpanded);
 	};
 
-	const getLessonProgress = (lessonId) => {
-		if (!progress || !progress.lessons) return null;
-		return progress.lessons.find(l => l.lesson_id === lessonId);
-	};
+	const refreshCourseProgress = useCallback(async () => {
+		if (!user?.id || !courseId) return null;
+		try {
+			const progressData = await courseProgressService.getCourseProgress(courseId);
+			setProgress(progressData);
+			return progressData;
+		} catch {
+			return null;
+		}
+	}, [courseId, user?.id]);
 
-	const isLessonCompleted = (lessonId) => {
-		const lessonProgress = getLessonProgress(lessonId);
-		return lessonProgress?.completed || false;
-	};
+	const completeCurrentLesson = useCallback(async () => {
+		if (!selectedLessonId || isCompleted || !user?.id) return true;
+		try {
+			setIsCompleting(true);
+			const result = await courseProgressService.completeLesson(selectedLessonId);
+			setIsCompleted(true);
+			if (result?.progress) {
+				setProgress(result.progress);
+			} else {
+				await refreshCourseProgress();
+			}
+			return true;
+		} catch (err) {
+			const msg = err?.response?.data?.message || err?.message || 'Nu s-a putut marca lecția ca finalizată.';
+			showToast(msg, 'error');
+			return false;
+		} finally {
+			setIsCompleting(false);
+		}
+	}, [selectedLessonId, isCompleted, user?.id, refreshCourseProgress, showToast]);
+
+	const isLessonCompleted = (lessonId) => isLessonMarkedComplete(progress, lessonId);
 
 	const getModuleProgress = (module) => {
 		if (!progress || !module.lessons) return { completed: 0, total: 0, percentage: 0 };
@@ -216,8 +265,9 @@ const LessonsPage = () => {
 		return { completed, total, percentage };
 	};
 
-	const getModuleCourseTests = (m) => m?.course_tests || m?.courseTests || [];
-	const getLessonCourseTests = (l) => l?.course_tests || l?.courseTests || [];
+	const getModuleCourseTests = (m) =>
+		filterPublishedCourseTests(m?.course_tests || m?.courseTests || m?.exams || []);
+	const getLessonCourseTests = (l) => filterPublishedCourseTests(l?.course_tests || l?.courseTests || []);
 	const getProgressModule = (moduleId) =>
 		progress?.modules?.find((x) => Number(x.id) === Number(moduleId));
 	const getLessonTestProgress = (moduleId, lessonId, testId) => {
@@ -257,13 +307,8 @@ const LessonsPage = () => {
 
 					if (response?.completed || response?.auto_completed || milestone >= 100) {
 						setIsCompleted(true);
-						if (user?.id) {
-							try {
-								const progressData = await courseProgressService.getCourseProgress(courseId);
-								if (!cancelled) setProgress(progressData);
-							} catch (progressErr) {
-								console.log('Could not refresh progress');
-							}
+						if (user?.id && !cancelled) {
+							await refreshCourseProgress();
 						}
 					}
 				} catch (err) {
@@ -278,35 +323,9 @@ const LessonsPage = () => {
 		return () => {
 			cancelled = true;
 		};
-	}, [selectedLessonId, reachedMilestones, courseId, user?.id]);
+	}, [selectedLessonId, reachedMilestones, courseId, user?.id, refreshCourseProgress]);
 
-	// Auto-complete on scroll
-	const handleAutoComplete = useCallback(async () => {
-		if (isCompleting || isCompleted || !selectedLessonId) return;
-		
-		try {
-			setIsCompleting(true);
-			await lessonsService.complete(selectedLessonId);
-			setIsCompleted(true);
-			showToast('Lecția a fost marcată automat ca completată!', 'success');
-			
-			// Refresh progress
-			if (user?.id) {
-				try {
-					const progressData = await courseProgressService.getCourseProgress(courseId);
-					setProgress(progressData);
-				} catch (err) {
-					console.log('Could not refresh progress');
-				}
-			}
-		} catch (err) {
-			console.error('Error completing lesson:', err);
-		} finally {
-			setIsCompleting(false);
-		}
-	}, [selectedLessonId, isCompleting, isCompleted, courseId, user?.id, showToast]);
-
-	// Auto-complete on scroll effect - only for the lesson we're actually viewing
+	// Scroll milestones — only for the lesson we're actually viewing
 	useEffect(() => {
 		if (!currentLesson || isCompleted || isCompleting) return;
 		// Must match: avoid completing the wrong lesson when switching (selectedLessonId updates before currentLesson)
@@ -368,7 +387,12 @@ const LessonsPage = () => {
 		};
 	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, reachedMilestones]);
 
-	const handleNextLesson = () => {
+	const handleNextLesson = async () => {
+		if (!isCompleted) {
+			const ok = await completeCurrentLesson();
+			if (!ok) return;
+		}
+
 		let foundCurrent = false;
 		for (const module of modules) {
 			const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -394,8 +418,8 @@ const LessonsPage = () => {
 				return;
 			}
 			if (selectedLessonId && !isCompleted) {
-				await lessonsService.complete(selectedLessonId);
-				setIsCompleted(true);
+				const ok = await completeCurrentLesson();
+				if (!ok) return;
 			}
 			const p = await courseProgressService.getCourseProgress(courseId);
 			setProgress(p);
@@ -447,7 +471,9 @@ const LessonsPage = () => {
 		return (
 			<div className="lessons-page-modern">
 				<div className="lessons-page-error">
-					<div className="lessons-page-error-icon">⚠️</div>
+					<div className="lessons-page-error-icon">
+						<WarningCircle size={24} weight="duotone" aria-hidden />
+					</div>
 					<h2>Eroare</h2>
 					<p>{error || 'Cursul nu a fost găsit'}</p>
 					<button
@@ -488,9 +514,7 @@ const LessonsPage = () => {
 							className="lessons-page-sidebar-back-btn"
 							onClick={() => navigate(-1)}
 						>
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M19 12H5M12 19l-7-7 7-7"/>
-							</svg>
+							<ArrowLeft size={20} weight="bold" aria-hidden />
 							<span>Înapoi</span>
 						</button>
 						<button 
@@ -498,9 +522,7 @@ const LessonsPage = () => {
 							onClick={() => setSidebarOpen(false)}
 							aria-label="Închide meniul"
 						>
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M18 6L6 18M6 6l12 12"/>
-							</svg>
+							<X size={24} weight="bold" aria-hidden />
 						</button>
 					</div>
 					<h2 className="lessons-page-sidebar-title">{course.title}</h2>
@@ -543,17 +565,12 @@ const LessonsPage = () => {
 													{module.isRootLessonGroup ? 'Lecții fără modul' : module.title}
 												</span>
 											</div>
-											<svg 
+											<CaretDown
 												className={`lessons-page-sidebar-module-arrow ${isModuleExpanded ? 'expanded' : ''}`}
-												width="16" 
-												height="16" 
-												viewBox="0 0 24 24" 
-												fill="none" 
-												stroke="currentColor" 
-												strokeWidth="2"
-											>
-												<path d="M6 9l6 6 6-6"/>
-											</svg>
+												size={16}
+												weight="bold"
+												aria-hidden
+											/>
 										</button>
 
 										{isModuleExpanded && (
@@ -572,9 +589,7 @@ const LessonsPage = () => {
 															>
 																<div className="lessons-page-sidebar-lesson-icon">
 																	{isCompleted ? (
-																		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-																			<path d="M20 6L9 17l-5-5"/>
-																		</svg>
+																		<Check size={16} weight="bold" aria-hidden />
 																	) : (
 																		<span>{lessonIndex + 1}</span>
 																	)}
@@ -593,7 +608,7 @@ const LessonsPage = () => {
 																		className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}`}
 																		onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
 																	>
-																		<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+																		<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 																		<span className="lessons-page-sidebar-lesson-title">
 																			{ct.test?.title || 'Test'}
 																			{ct.required ? ' *' : ''}
@@ -617,7 +632,7 @@ const LessonsPage = () => {
 															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
 															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
 														>
-															<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
 																{ct.required ? ' *' : ''}
@@ -637,11 +652,12 @@ const LessonsPage = () => {
 						</div>
 					)}
 					{/* Course-level tests */}
-					{Array.isArray(course?.exams) && course.exams.filter((e) => !e.module_id).length > 0 && (
+					{Array.isArray(course?.exams) &&
+						course.exams.filter((e) => !e.module_id && isPublishedTestStatus(e?.status)).length > 0 && (
 						<div className="lessons-page-sidebar-tests-section">
 							<div className="lessons-page-sidebar-tests-header">Teste la nivel de curs</div>
 							<p className="lessons-page-sidebar-tests-hint">Legate de acest curs (nu examene independente)</p>
-							{course.exams.filter((e) => !e.module_id).map((exam) => {
+							{course.exams.filter((e) => !e.module_id && isPublishedTestStatus(e?.status)).map((exam) => {
 								const tp = getCourseLevelTestProgress(exam.id);
 								const passed = Boolean(tp?.passed);
 								return (
@@ -651,7 +667,7 @@ const LessonsPage = () => {
 										className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
 										onClick={() => navigate(`/courses/${courseId}/exams/${exam.id}`)}
 									>
-										<div className="lessons-page-sidebar-lesson-icon">{passed ? '✓' : '📝'}</div>
+										<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 										<span className="lessons-page-sidebar-lesson-title">
 											{exam.title || 'Test'}
 											{exam.required ? ' *' : ''}
@@ -673,11 +689,7 @@ const LessonsPage = () => {
 					onClick={() => setSidebarOpen(true)}
 					aria-label="Deschide meniul lecțiilor"
 				>
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<line x1="3" y1="6" x2="21" y2="6"/>
-						<line x1="3" y1="12" x2="21" y2="12"/>
-						<line x1="3" y1="18" x2="21" y2="18"/>
-					</svg>
+					<List size={24} weight="bold" aria-hidden />
 					<span>Lecții</span>
 				</button>
 				{currentLessonLoading ? (
@@ -696,9 +708,7 @@ const LessonsPage = () => {
 							<div className="lessons-page-lesson-viewer-meta">
 								{isCompleted && (
 									<div className="lessons-page-lesson-completed-badge">
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M20 6L9 17l-5-5"/>
-										</svg>
+										<Check size={18} weight="bold" aria-hidden />
 										<span>Completată</span>
 									</div>
 								)}
@@ -718,9 +728,9 @@ const LessonsPage = () => {
 						))}
 
 							{(() => {
-								const blocks = Array.isArray(currentLesson.content_blocks) ? currentLesson.content_blocks : Array.isArray(currentLesson.contentBlocks) ? currentLesson.contentBlocks : [];
-								const hasBlocks = blocks.length > 0;
-								const hasLegacyContent = currentLesson.content && currentLesson.content.trim().length > 0;
+								const blocks = currentLesson.content_blocks ?? currentLesson.contentBlocks ?? [];
+								const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
+								const legacyHtml = lessonLegacyHtml(currentLesson);
 
 								if (hasBlocks) {
 									return (
@@ -729,21 +739,18 @@ const LessonsPage = () => {
 										</div>
 									);
 								}
-								if (hasLegacyContent) {
+								if (legacyHtml.trim()) {
 									return (
 										<div
 											className="lessons-page-lesson-content-text"
-											dangerouslySetInnerHTML={{ __html: normalizeRichTextMediaHtml(currentLesson.content) }}
+											dangerouslySetInnerHTML={{ __html: normalizeRichTextMediaHtml(legacyHtml) }}
 										/>
 									);
 								}
 								return (
 									<div className="lessons-page-empty-content">
 										<div className="lessons-page-empty-icon">
-											<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-												<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-											</svg>
+											<FileText size={64} weight="duotone" aria-hidden />
 										</div>
 										<h3>Lecția nu are conținut configurat</h3>
 										<p>Conținutul lecției va fi disponibil în curând.</p>
@@ -757,7 +764,7 @@ const LessonsPage = () => {
 							<button
 								className="lessons-page-btn lessons-page-btn-secondary"
 								type="button"
-								disabled={finalizingCourse}
+								disabled={finalizingCourse || isCompleting}
 								onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNextLesson}
 								style={{ background: '#FFEE00', color: '#000', borderColor: '#FFEE00' }}
 							>
@@ -766,18 +773,14 @@ const LessonsPage = () => {
 										<span>Se procesează…</span>
 									) : (
 										<>
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-												<path d="M20 6L9 17l-5-5"/>
-											</svg>
+											<Check size={16} weight="bold" aria-hidden />
 											<span>Finalizează</span>
 										</>
 									)
 								) : (
 									<>
 										<span>Următoarea lecție</span>
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M5 12h14M12 5l7 7-7 7"/>
-										</svg>
+										<ArrowRight size={16} weight="bold" aria-hidden />
 									</>
 								)}
 							</button>
@@ -786,10 +789,7 @@ const LessonsPage = () => {
 				) : (
 					<div className="lessons-page-no-lesson">
 						<div className="lessons-page-empty-icon">
-							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-								<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-							</svg>
+							<FileText size={64} weight="duotone" aria-hidden />
 						</div>
 						<h3>Selectează o lecție</h3>
 						<p>Selectează o lecție din meniul din stânga pentru a începe.</p>

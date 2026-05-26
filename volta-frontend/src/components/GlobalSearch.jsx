@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { coursesService, adminService } from '../services/api';
+import { Books, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { useScrollResetOnOpen } from '../hooks/useScrollResetOnOpen';
 
 /**
  * GlobalSearch - Command Palette Style Search
@@ -21,6 +23,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const inputRef = useRef(null);
 	const resultsRef = useRef(null);
+	useScrollResetOnOpen(isOpen, resultsRef);
 
 	const isAdmin = user?.role === 'admin';
 
@@ -114,7 +117,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 						description: course.description,
 						type: 'course',
 						url: `/courses/${course.id}`,
-						icon: '📚',
+						icon: <Books size={18} weight="duotone" aria-hidden />,
 					}));
 				allResults.push(...courseMatches);
 			} catch (err) {
@@ -170,20 +173,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 			<div className="global-search-modal" onClick={(e) => e.stopPropagation()}>
 				{/* Search Input */}
 				<div className="global-search-input-wrapper">
-					<svg
-						className="global-search-icon"
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<circle cx="11" cy="11" r="8" />
-						<path d="m21 21-4.35-4.35" />
-					</svg>
+					<MagnifyingGlass className="global-search-icon" size={20} weight="bold" aria-hidden />
 					<input
 						ref={inputRef}
 						type="text"
@@ -202,10 +192,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 							}}
 							aria-label="Golește căutarea"
 						>
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</svg>
+							<X size={16} weight="bold" aria-hidden />
 						</button>
 					)}
 					<div className="global-search-shortcut">

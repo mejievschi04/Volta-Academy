@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus } from '@phosphor-icons/react';
 import { useAuth } from '../../contexts/AuthContext';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
 import AdminCoursesPage from './AdminCoursesPage';
@@ -22,6 +23,7 @@ const AdminContentPage = () => {
 	const view = isInstructor && rawView === 'maps' ? '' : rawView;
 	const shouldOpenNewMap = searchParams.get('new') === '1';
 	const activeTab = ['courses', 'tests', 'banks', 'exams', 'manual-review'].includes(tab) ? tab : 'courses';
+	const showCourseMaps = activeTab === 'courses' && (!isInstructor || view === 'maps');
 
 	useEffect(() => {
 		const handleOutsideClick = (event) => {
@@ -42,6 +44,16 @@ const AdminContentPage = () => {
 			return next;
 		}, { replace: true });
 	}, [isInstructor, rawView, setSearchParams]);
+
+	useEffect(() => {
+		if (isInstructor || activeTab !== 'courses' || rawView === 'maps') return;
+		setSearchParams((prev) => {
+			const next = new URLSearchParams(prev);
+			next.set('tab', 'courses');
+			next.set('view', 'maps');
+			return next;
+		}, { replace: true });
+	}, [activeTab, isInstructor, rawView, setSearchParams]);
 
 	const handleVoltCourseGenerated = (course) => {
 		if (course?.id) {
@@ -64,7 +76,7 @@ const AdminContentPage = () => {
 			)}
 			<div className="admin-content-tab-panel" role="tabpanel">
 				{activeTab === 'courses' && (
-					view === 'maps'
+					showCourseMaps
 						? (
 							<AdminCourseMapsPage
 								embedded
@@ -76,9 +88,7 @@ const AdminContentPage = () => {
 											className="admin-btn-create-course"
 											onClick={() => setShowCreateMenu((prev) => !prev)}
 										>
-											<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-												<path d="M12 5V19M5 12H19" strokeLinecap="round" />
-											</svg>
+											<Plus size={18} weight="bold" aria-hidden />
 											Creează curs
 										</button>
 										{showCreateMenu && (

@@ -1,5 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+	ArrowLeft,
+	ArrowRight,
+	Books,
+	Check,
+	FileText,
+	FilmSlate,
+	WarningCircle,
+} from '@phosphor-icons/react';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,9 +17,19 @@ import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocks
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
+import { isLessonMarkedComplete } from '../utils/lessonProgress';
+import { scrollAppToTop } from '../utils/scrollToTop';
+import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonPage.css';
 
 const LESSON_MILESTONES = [25, 50, 75, 100];
+
+const getLessonTypeContent = (contentType) => {
+	if (contentType === 'video') return <><FilmSlate size={14} weight="duotone" aria-hidden /> Video</>;
+	if (contentType === 'text') return <><FileText size={14} weight="duotone" aria-hidden /> Text</>;
+	if (contentType === 'live') return <><WarningCircle size={14} weight="duotone" aria-hidden /> Live</>;
+	return <><Books size={14} weight="duotone" aria-hidden /> Lecție</>;
+};
 
 const LessonPage = () => {
 	const { courseId, lessonId } = useParams();
@@ -36,28 +55,32 @@ const LessonPage = () => {
 		enabled: Boolean(user?.id && lessonId && !['admin', 'analyst'].includes(user?.actualRole || user?.role || '')),
 	});
 
-	// Handle auto-complete function
-	const handleAutoComplete = useCallback(async () => {
-		if (isCompleting || isCompleted) return;
-		
+	const completeCurrentLesson = useCallback(async () => {
+		if (!lessonId || isCompleted || !user?.id) return true;
 		try {
 			setIsCompleting(true);
-			await lessonsService.complete(lessonId);
+			await courseProgressService.completeLesson(lessonId);
 			setIsCompleted(true);
-			showToast('Lecția a fost marcată automat ca completată!', 'success');
+			return true;
 		} catch (err) {
-			console.error('Error completing lesson:', err);
-			// Don't show error toast for auto-complete failures
+			const msg = err?.response?.data?.message || err?.message || 'Nu s-a putut marca lecția ca finalizată.';
+			showToast(msg, 'error');
+			return false;
 		} finally {
 			setIsCompleting(false);
 		}
-	}, [lessonId, isCompleting, isCompleted, showToast]);
+	}, [lessonId, isCompleted, user?.id, showToast]);
 
 	useEffect(() => {
 		if (lessonId && courseId) {
 			fetchLessonData();
 		}
 	}, [lessonId, courseId]);
+
+	useLayoutEffect(() => {
+		if (!lessonId || loading) return;
+		scrollAppToTop({ behavior: 'instant' });
+	}, [lessonId, loading]);
 
 	useEffect(() => {
 		setReachedMilestones(new Set());
@@ -172,7 +195,7 @@ const LessonPage = () => {
 			setError(null);
 			
 			// Fetch lesson
-			const lessonData = await lessonsService.getById(lessonId);
+			const lessonData = normalizeLessonFromApi(await lessonsService.getById(lessonId));
 			setLesson(lessonData);
 			
 			// Fetch course for context
@@ -187,11 +210,8 @@ const LessonPage = () => {
 			if (user?.id) {
 				try {
 					const progress = await courseProgressService.getCourseProgress(courseId);
-					if (progress?.lessons) {
-						const lessonProgress = progress.lessons.find(l => l.lesson_id === parseInt(lessonId));
-						if (lessonProgress?.completed) {
-							setIsCompleted(true);
-						}
+					if (isLessonMarkedComplete(progress, lessonId)) {
+						setIsCompleted(true);
 					}
 				} catch (err) {
 					console.log('Could not fetch progress data');
@@ -209,7 +229,11 @@ const LessonPage = () => {
 	const nextLessonTarget = getNextLessonIdAfter(course?.modules, lessonId);
 	const isLastLessonInCourse = nextLessonTarget === null;
 
-	const handleNext = () => {
+	const handleNext = async () => {
+		if (!isCompleted) {
+			const ok = await completeCurrentLesson();
+			if (!ok) return;
+		}
 		if (typeof nextLessonTarget === 'number') {
 			navigate(`/courses/${courseId}/lessons/${nextLessonTarget}`);
 			return;
@@ -226,8 +250,8 @@ const LessonPage = () => {
 				return;
 			}
 			if (!isCompleted) {
-				await lessonsService.complete(lessonId);
-				setIsCompleted(true);
+				const ok = await completeCurrentLesson();
+				if (!ok) return;
 			}
 			const p = await courseProgressService.getCourseProgress(courseId);
 			if (p?.next_exam?.id) {
@@ -278,7 +302,9 @@ const LessonPage = () => {
 		return (
 			<div className="lesson-page-modern">
 				<div className="lesson-page-error">
-					<div className="lesson-page-error-icon">⚠️</div>
+					<div className="lesson-page-error-icon">
+						<WarningCircle size={24} weight="duotone" aria-hidden />
+					</div>
 					<h2>Eroare</h2>
 					<p>{error || 'Lecția nu a fost găsită'}</p>
 					<button
@@ -306,9 +332,7 @@ const LessonPage = () => {
 						className="lesson-page-back-btn"
 						onClick={() => navigate(`/courses/${courseId}`)}
 					>
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-							<path d="M19 12H5M12 19l-7-7 7-7"/>
-						</svg>
+						<ArrowLeft size={20} weight="bold" aria-hidden />
 						<span>Înapoi la curs</span>
 					</button>
 					
@@ -333,9 +357,7 @@ const LessonPage = () => {
 							{lesson.content_type && (
 								<div className="lesson-page-meta-item">
 									<span className="lesson-page-type-badge">
-										{lesson.content_type === 'video' ? '🎥 Video' :
-										 lesson.content_type === 'text' ? '📄 Text' :
-										 lesson.content_type === 'live' ? '🔴 Live' : '📚 Lecție'}
+										{getLessonTypeContent(lesson.content_type)}
 									</span>
 								</div>
 							)}
@@ -355,9 +377,9 @@ const LessonPage = () => {
 						))}
 
 						{(() => {
-							const blocks = Array.isArray(lesson.content_blocks) ? lesson.content_blocks : Array.isArray(lesson.contentBlocks) ? lesson.contentBlocks : [];
-							const hasBlocks = blocks.length > 0;
-							const hasLegacyContent = lesson.content && lesson.content.trim().length > 0;
+							const blocks = lesson.content_blocks ?? lesson.contentBlocks ?? [];
+							const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
+							const legacyHtml = lessonLegacyHtml(lesson);
 
 							if (hasBlocks) {
 								return (
@@ -366,8 +388,8 @@ const LessonPage = () => {
 									</div>
 								);
 							}
-							if (hasLegacyContent) {
-								const html = normalizeRichTextMediaHtml(lesson.content || '');
+							if (legacyHtml.trim()) {
+								const html = normalizeRichTextMediaHtml(legacyHtml);
 								return (
 									<div
 										className="lesson-page-content-text"
@@ -378,10 +400,7 @@ const LessonPage = () => {
 							return (
 								<div className="lesson-page-empty-content">
 									<div className="lesson-page-empty-icon">
-										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-											<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-										</svg>
+										<FileText size={64} weight="duotone" aria-hidden />
 									</div>
 									<h3>Lecția nu are conținut configurat</h3>
 									<p>Conținutul lecției va fi disponibil în curând.</p>
@@ -394,9 +413,7 @@ const LessonPage = () => {
 					<div className="lesson-page-actions">
 						{isCompleted && (
 							<div className="lesson-page-completed-badge">
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-									<path d="M20 6L9 17l-5-5"/>
-								</svg>
+								<Check size={20} weight="bold" aria-hidden />
 								<span>Lecție completată</span>
 							</div>
 						)}
@@ -412,18 +429,14 @@ const LessonPage = () => {
 									<span>Se procesează…</span>
 								) : (
 									<>
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M20 6L9 17l-5-5"/>
-										</svg>
+										<Check size={18} weight="bold" aria-hidden />
 										<span>Finalizează</span>
 									</>
 								)
 							) : (
 								<>
 									<span>Următoarea lecție</span>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M5 12h14M12 5l7 7-7 7"/>
-									</svg>
+									<ArrowRight size={18} weight="bold" aria-hidden />
 								</>
 							)}
 						</button>

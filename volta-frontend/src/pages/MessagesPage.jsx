@@ -1,4 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+	ArrowLeft,
+	ChatCircleText,
+	Check,
+	CircleNotch,
+	PaperPlaneTilt,
+	Plus,
+	Trash,
+	WarningCircle,
+	X,
+} from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { messagesService } from '../services/api';
@@ -35,6 +46,8 @@ const MessagesPage = () => {
 	const [groupRenameDraft, setGroupRenameDraft] = useState('');
 	const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
 	const [leavingGroup, setLeavingGroup] = useState(false);
+	const [showDeleteConversationConfirm, setShowDeleteConversationConfirm] = useState(false);
+	const [deletingConversation, setDeletingConversation] = useState(false);
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 	const messagesEndRef = useRef(null);
 	const messagesContainerRef = useRef(null);
@@ -680,6 +693,26 @@ const MessagesPage = () => {
 		}
 	};
 
+	const handleDeleteConversation = async () => {
+		if (!selectedConversation?.id) return;
+		setDeletingConversation(true);
+		try {
+			const removedId = selectedConversation.id;
+			await messagesService.deleteConversation(removedId);
+			setShowDeleteConversationConfirm(false);
+			setShowParticipantsModal(false);
+			setConversations((prev) => prev.filter((c) => c.id !== removedId));
+			setAllConversations((prev) => prev.filter((c) => c.id !== removedId));
+			setSelectedConversation((prev) => (prev?.id === removedId ? null : prev));
+			showToast(selectedConversation?.is_group ? 'Grupul a fost șters.' : 'Conversația a fost ștearsă.', 'success');
+		} catch (err) {
+			logger.error('Error deleting conversation:', err);
+			showToast(err?.response?.data?.message || 'Nu s-a putut șterge conversația', 'error');
+		} finally {
+			setDeletingConversation(false);
+		}
+	};
+
 	const handleSetParticipantRole = async (targetUserId, groupRole) => {
 		if (!selectedConversation?.id) return;
 		setUpdatingParticipants(true);
@@ -794,7 +827,9 @@ const MessagesPage = () => {
 		return (
 			<div className="messages-page">
 				<div className="messages-page-error">
-					<div className="messages-page-error-icon" aria-hidden>⚠️</div>
+					<div className="messages-page-error-icon" aria-hidden>
+						<WarningCircle size={24} weight="duotone" />
+					</div>
 					<h2 className="messages-page-error-title">Nu s-au putut încărca conversațiile</h2>
 					<p className="messages-page-error-message">{loadError}</p>
 					<button
@@ -822,7 +857,7 @@ const MessagesPage = () => {
 							title="Conversație nouă"
 							onClick={() => setShowNewConversationModal(true)}
 						>
-							<span>+</span>
+							<Plus size={18} weight="bold" aria-hidden />
 						</button>
 					</div>
 
@@ -917,9 +952,7 @@ const MessagesPage = () => {
 										title="Înapoi la conversații"
 										aria-label="Înapoi la conversații"
 									>
-										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-											<path d="M15 18l-6-6 6-6"/>
-										</svg>
+										<ArrowLeft size={24} weight="bold" aria-hidden />
 									</button>
 								)}
 								<div className="messages-chat-header-info">
@@ -943,15 +976,13 @@ const MessagesPage = () => {
 									</div>
 								</div>
 								<button
-									className="messages-chat-actions-btn"
-									title={selectedConversation?.is_group ? 'Gestionează participanți' : 'Opțiuni'}
-									onClick={() => {
-										if (selectedConversation?.is_group) {
-											openParticipantsModal();
-										}
-									}}
+									type="button"
+									className="messages-chat-actions-btn va-btn-danger"
+									title={selectedConversation?.is_group ? 'Șterge grupul' : 'Șterge conversația'}
+									aria-label={selectedConversation?.is_group ? 'Șterge grupul' : 'Șterge conversația'}
+									onClick={() => setShowDeleteConversationConfirm(true)}
 								>
-									<span>⋯</span>
+									<Trash size={18} weight="bold" aria-hidden />
 								</button>
 							</div>
 
@@ -982,7 +1013,9 @@ const MessagesPage = () => {
 									})
 								) : (
 									<div className="lms-empty-state" style={{ padding: 'var(--space-8)' }}>
-										<div className="lms-empty-icon">💬</div>
+										<div className="lms-empty-icon">
+											<ChatCircleText size={28} weight="duotone" aria-hidden />
+										</div>
 										<div className="lms-empty-title">Nu există mesaje</div>
 										<div className="lms-empty-description">Începe conversația trimitând primul mesaj</div>
 									</div>
@@ -1005,13 +1038,15 @@ const MessagesPage = () => {
 									className="messages-chat-send-btn"
 									disabled={!newMessage.trim() || sending}
 								>
-									{sending ? '⏳' : '➤'}
+									{sending ? <CircleNotch size={16} weight="bold" aria-hidden /> : <PaperPlaneTilt size={16} weight="fill" aria-hidden />}
 								</button>
 							</form>
 						</>
 					) : (
 						<div className="lms-empty-state">
-							<div className="lms-empty-icon">💬</div>
+							<div className="lms-empty-icon">
+								<ChatCircleText size={28} weight="duotone" aria-hidden />
+							</div>
 							<div className="lms-empty-title">Selectează o conversație</div>
 							<div className="lms-empty-description">Selectează o conversație din listă pentru a începe să trimiți mesaje</div>
 						</div>
@@ -1045,7 +1080,7 @@ const MessagesPage = () => {
 									setAvailableUsers([]);
 								}}
 							>
-								×
+								<X size={16} weight="bold" aria-hidden />
 							</button>
 						</div>
 						<div className="messages-modal-body">
@@ -1101,7 +1136,7 @@ const MessagesPage = () => {
 										transform: 'translateY(-50%)',
 										color: 'var(--text-muted)'
 									}}>
-										⏳
+										<CircleNotch size={14} weight="bold" aria-hidden />
 									</div>
 								)}
 							</div>
@@ -1137,7 +1172,9 @@ const MessagesPage = () => {
 											</div>
 											{((newConversationType === 'group' && newConversationUserIds.includes(user.id)) ||
 												(newConversationType === 'direct' && newConversationUserId == user.id)) && (
-												<div className="messages-user-check">✓</div>
+												<div className="messages-user-check">
+													<Check size={14} weight="bold" aria-hidden />
+												</div>
 											)}
 										</div>
 									))}
@@ -1218,7 +1255,7 @@ const MessagesPage = () => {
 								className="messages-modal-close"
 								onClick={() => setShowParticipantsModal(false)}
 							>
-								×
+								<X size={16} weight="bold" aria-hidden />
 							</button>
 						</div>
 						<div className="messages-modal-body">
@@ -1379,6 +1416,21 @@ const MessagesPage = () => {
 				cancelLabel="Anulare"
 				variant="danger"
 				loading={leavingGroup}
+			/>
+			<ConfirmModal
+				open={showDeleteConversationConfirm}
+				onClose={() => !deletingConversation && setShowDeleteConversationConfirm(false)}
+				onConfirm={handleDeleteConversation}
+				title={selectedConversation?.is_group ? 'Ștergi grupul?' : 'Ștergi conversația?'}
+				message={
+					selectedConversation?.is_group
+						? 'Această acțiune va șterge definitiv grupul și toate mesajele din el.'
+						: 'Această acțiune va șterge definitiv conversația și toate mesajele.'
+				}
+				confirmLabel={selectedConversation?.is_group ? 'Șterge grupul' : 'Șterge conversația'}
+				cancelLabel="Anulare"
+				variant="danger"
+				loading={deletingConversation}
 			/>
 		</div>
 	);

@@ -93,6 +93,19 @@
 	color: var(--text-muted);
 }
 
+/* Grid pe pagina Teste — aliniat la examene (detaliile card în AdminExamsPage.css) */
+.admin-tests-page.admin-exams-modern-page .admin-tests-grid.admin-exams-modern-grid {
+	gap: 12px;
+}
+
+.admin-tests-page.admin-exams-modern-page .admin-tests-card.admin-exams-modern-card {
+	padding: 0;
+	display: flex;
+	gap: 0;
+	border-top-width: 3px;
+	border-top-style: solid;
+}
+
 .admin-tests-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -168,18 +181,30 @@
 }
 
 .admin-tests-actions-primary {
-	display: flex;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
 }
 
-.admin-tests-actions-primary .is-wide {
-	flex: 1;
-	border: 0;
+.admin-tests-actions-primary button {
+	border: 1px solid var(--border-primary);
 	border-radius: 10px;
-	background: var(--color-primary);
-	color: var(--text-inverse);
+	background: var(--bg-secondary);
+	color: var(--text-primary);
 	font-weight: 700;
 	padding: 10px 12px;
 	cursor: pointer;
+}
+
+.admin-tests-actions-primary button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.admin-tests-actions-primary .is-wide {
+	border: 0;
+	background: var(--color-primary);
+	color: var(--text-inverse);
 }
 
 .admin-tests-actions-primary .is-wide:disabled {

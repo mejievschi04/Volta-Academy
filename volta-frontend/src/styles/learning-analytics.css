@@ -63,74 +63,7 @@
 }
 
 /* ============================================
-   2. LEARNING FUNNEL
-   ============================================ */
-.learning-funnel-viz {
-	width: 100%;
-}
-
-.learning-funnel-stages {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-4);
-}
-
-.learning-funnel-stage {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-}
-
-.learning-funnel-stage-header {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	font-size: var(--font-size-sm);
-}
-
-.learning-funnel-stage-label {
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	min-width: 100px;
-}
-
-.learning-funnel-stage-count {
-	font-weight: var(--font-weight-bold);
-	color: var(--color-primary);
-	font-size: var(--font-size-lg);
-}
-
-.learning-funnel-conversion {
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
-	margin-left: auto;
-}
-
-.learning-funnel-bar-container {
-	width: 100%;
-	height: 40px;
-	background-color: var(--bg-secondary);
-	border-radius: var(--radius-lg);
-	overflow: hidden;
-	position: relative;
-}
-
-.learning-funnel-bar {
-	height: 100%;
-	border-radius: var(--radius-lg);
-	transition: width var(--transition-smooth);
-	box-shadow: var(--shadow-sm);
-}
-
-.learning-funnel-dropoff {
-	font-size: var(--font-size-xs);
-	color: var(--color-error);
-	font-weight: var(--font-weight-medium);
-	padding-left: var(--space-2);
-}
-
-/* ============================================
-   3. ENGAGEMENT METRICS
+   2. ENGAGEMENT METRICS
    ============================================ */
 .engagement-metrics {
 	display: flex;
@@ -174,7 +107,7 @@
 }
 
 /* ============================================
-   4. ENGAGEMENT OVER TIME
+   3. ENGAGEMENT OVER TIME
    ============================================ */
 .engagement-over-time {
 	width: 100%;
@@ -264,7 +197,7 @@
 }
 
 /* ============================================
-   5. DROPOFF HEATMAP
+   4. DROPOFF HEATMAP
    ============================================ */
 .dropoff-heatmap {
 	display: flex;
@@ -325,7 +258,7 @@
 }
 
 /* ============================================
-   6. RESPONSIVE
+   5. RESPONSIVE
    ============================================ */
 @media (max-width: 1024px) {
 	.dashboard-analytics-grid {
@@ -348,7 +281,7 @@
 }
 
 /* ============================================
-   7. VOLT RECOMMENDATIONS
+   6. VOLT RECOMMENDATIONS
    ============================================ */
 .dashboard-ai-recommendations {
 	margin-bottom: var(--space-8);

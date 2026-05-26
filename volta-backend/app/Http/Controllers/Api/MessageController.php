@@ -334,6 +334,19 @@ class MessageController extends Controller
             'last_message_at' => now(),
         ]);
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyNewMessage(
+                $user,
+                $conversation->fresh(['participants']),
+                (string) $request->content
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('MessageController::sendMessage notifyNewMessage failed', [
+                'conversation_id' => $conversationId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'data' => [
                 'id' => $message->id,
@@ -801,6 +814,39 @@ class MessageController extends Controller
         $conversation->touch();
 
         return response()->json(['message' => 'Ai părăsit grupul.']);
+    }
+
+    /**
+     * Delete a conversation.
+     * - direct: any participant can delete the full conversation
+     * - group: only owner/group admin/site admin can delete the full group chat
+     */
+    public function destroyConversation(Request $request, $conversationId)
+    {
+        $user = Auth::user();
+        $conversation = Conversation::with('participants')->findOrFail($conversationId);
+
+        if (!$conversation->hasParticipant((int) $user->id)) {
+            abort(403, 'Nu ai acces la această conversație.');
+        }
+
+        if ($conversation->is_group && !$this->canManageGroup($conversation, $user)) {
+            abort(403, 'Nu ai permisiunea să ștergi acest grup. Poți doar să îl părăsești.');
+        }
+
+        DB::transaction(function () use ($conversation) {
+            Message::where('conversation_id', $conversation->id)->delete();
+            if ($this->hasConversationParticipantsTable()) {
+                $conversation->participants()->detach();
+            }
+            $conversation->delete();
+        });
+
+        return response()->json([
+            'message' => $conversation->is_group
+                ? 'Conversația de grup a fost ștearsă.'
+                : 'Conversația a fost ștearsă.',
+        ]);
     }
 
     /**

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { CheckCircle } from '@phosphor-icons/react';
 import Modal from '../common/Modal';
 import './CourseCongratulationsModal.css';
 
@@ -26,10 +27,7 @@ function CourseCongratulationsModal({ open, onClose, courseTitle, closeButtonLab
 		>
 			<div className="course-congrats">
 				<div className="course-congrats-icon" aria-hidden="true">
-					<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-						<polyline points="22 4 12 14.01 9 11.01" />
-					</svg>
+					<CheckCircle size={56} weight="duotone" aria-hidden />
 				</div>
 				<h2 id="course-congrats-title" className="course-congrats-title">
 					Felicitări!

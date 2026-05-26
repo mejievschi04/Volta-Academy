@@ -27,6 +27,12 @@ import {
 	teamAccentByTeamId,
 } from '../../utils/teamAccent';
 import { normalizeColorInputToHex } from '../../utils/color';
+import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
+import { Books, PencilSimple, Plus, Trash, UsersThree } from '@phosphor-icons/react';
+import { DragGripIcon } from '../../components/common/DragGripIcon';
+
+const teamIconSm = { size: 16, weight: 'bold', 'aria-hidden': true };
+const teamIconMd = { size: 18, weight: 'bold', 'aria-hidden': true };
 
 function SortableTeamCard({ team, index, canMutate, children }) {
 	const sortId = `team-${team.id}`;
@@ -43,7 +49,7 @@ function SortableTeamCard({ team, index, canMutate, children }) {
 	return (
 		<div
 			ref={setNodeRef}
-			style={{ ...style, borderLeft: `4px solid ${accent}` }}
+			style={{ ...style, borderLeft: `8px solid ${accent}` }}
 			className="admin-card admin-team-card-compact admin-team-card-sortable"
 		>
 			{canMutate && (
@@ -55,7 +61,7 @@ function SortableTeamCard({ team, index, canMutate, children }) {
 					aria-label="Trage pentru a reordona echipa"
 					title="Reordonare"
 				>
-					<span aria-hidden>⋮⋮</span>
+					<DragGripIcon size={14} />
 				</button>
 			)}
 			{children}
@@ -82,6 +88,9 @@ const AdminTeamsPage = () => {
 	const [memberCourseModal, setMemberCourseModal] = useState(null);
 	const teamColorInputRef = useRef(null);
 	const openTeamColorPicker = () => teamColorInputRef.current?.click();
+	const anyTeamModalOpen =
+		showModal || showUsersModal || showCoursesModal || Boolean(memberCourseModal);
+	useScrollResetOnOpen(anyTeamModalOpen);
 	const [formData, setFormData] = useState({
 		name: '',
 		accent_color: TEAM_ACCENT_COLORS[0],
@@ -255,7 +264,8 @@ const AdminTeamsPage = () => {
 						setShowModal(true);
 					}}
 				>
-					+ Adaugă Echipă
+					<Plus {...teamIconSm} />
+					<span>Adaugă Echipă</span>
 				</button>
 				)}
 			</div>
@@ -277,7 +287,7 @@ const AdminTeamsPage = () => {
 								<div className="admin-team-card-compact__header">
 									<div className="admin-team-card-compact__header-main">
 										<div className="admin-team-card-compact__avatar" aria-hidden>
-											👥
+											<UsersThree size={20} weight="duotone" aria-hidden />
 										</div>
 										<div className="admin-team-card-compact__title-wrap">
 											<span
@@ -297,17 +307,19 @@ const AdminTeamsPage = () => {
 											className="admin-btn admin-btn-sm admin-btn-ghost admin-team-card-compact__icon-btn"
 											onClick={() => handleEdit(team)}
 											title="Editează echipă"
+											aria-label="Editează echipă"
 											type="button"
 										>
-											✏️
+											<PencilSimple {...teamIconSm} />
 										</button>
 										<button
 											className="admin-btn admin-btn-sm admin-btn-danger admin-team-card-compact__icon-btn"
 											onClick={() => handleDeleteClick(team.id)}
 											title="Șterge echipă"
+											aria-label="Șterge echipă"
 											type="button"
 										>
-											🗑️
+											<Trash {...teamIconMd} />
 										</button>
 									</div>
 									)}
@@ -343,7 +355,9 @@ const AdminTeamsPage = () => {
 											setShowUsersModal(true);
 										}}
 									>
-										<span className="admin-btn-icon">👥</span>
+										<span className="admin-btn-icon">
+											<UsersThree size={16} weight="bold" aria-hidden />
+										</span>
 										<span>Membri</span>
 									</button>
 									<button
@@ -353,7 +367,9 @@ const AdminTeamsPage = () => {
 											setShowCoursesModal(true);
 										}}
 									>
-										<span className="admin-btn-icon">📚</span>
+										<span className="admin-btn-icon">
+											<Books size={16} weight="bold" aria-hidden />
+										</span>
 										<span>Cursuri</span>
 									</button>
 								</div>
@@ -366,7 +382,9 @@ const AdminTeamsPage = () => {
 				</DndContext>
 			) : (
 				<div className="lms-empty-state">
-					<div className="lms-empty-icon">👥</div>
+					<div className="lms-empty-icon">
+						<UsersThree size={26} weight="duotone" aria-hidden />
+					</div>
 					<h3 className="lms-empty-title">Nu există echipe</h3>
 					<p className="lms-empty-description">
 						Începe prin a crea prima echipă
@@ -380,7 +398,8 @@ const AdminTeamsPage = () => {
 							setShowModal(true);
 						}}
 					>
-						+ Adaugă Echipă
+						<Plus {...teamIconSm} />
+						<span>Adaugă Echipă</span>
 					</button>
 					)}
 				</div>

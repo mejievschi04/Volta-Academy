@@ -1,4 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import {
+	ArrowsIn,
+	ArrowsOut,
+	FastForward,
+	Pause,
+	PictureInPicture,
+	Play,
+	Rewind,
+	SpeakerHigh,
+	SpeakerLow,
+	SpeakerSlash,
+} from '@phosphor-icons/react';
 import './EnhancedVideoPlayer.css';
 
 /**
@@ -385,13 +397,9 @@ const EnhancedVideoPlayer = forwardRef(({
 							aria-label={isPlaying ? 'Pauză' : 'Redare'}
 						>
 							{isPlaying ? (
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M6 4H8V16H6V4ZM12 4H14V16H12V4Z" fill="currentColor"/>
-								</svg>
+								<Pause size={20} weight="fill" aria-hidden />
 							) : (
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M6 4L16 10L6 16V4Z" fill="currentColor"/>
-								</svg>
+								<Play size={20} weight="fill" aria-hidden />
 							)}
 						</button>
 						
@@ -400,10 +408,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							onClick={() => seek(-10)}
 							aria-label="Înapoi 10 secunde"
 						>
-							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-								<path d="M4 10L14 4V10L14 16L4 10Z" fill="currentColor"/>
-								<path d="M14 4V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-							</svg>
+							<Rewind size={20} weight="fill" aria-hidden />
 							<span className="enhanced-video-control-label">10</span>
 						</button>
 						
@@ -412,10 +417,7 @@ const EnhancedVideoPlayer = forwardRef(({
 							onClick={() => seek(10)}
 							aria-label="Înainte 10 secunde"
 						>
-							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-								<path d="M6 4V16L16 10L6 4Z" fill="currentColor"/>
-								<path d="M16 4V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-							</svg>
+							<FastForward size={20} weight="fill" aria-hidden />
 							<span className="enhanced-video-control-label">10</span>
 						</button>
 						
@@ -431,20 +433,11 @@ const EnhancedVideoPlayer = forwardRef(({
 								aria-label={isMuted ? 'Cu sunet' : 'Fără sunet'}
 							>
 								{isMuted || volume === 0 ? (
-									<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-										<path d="M11 4L6 9H2V11H6L11 16V4Z" fill="currentColor"/>
-										<path d="M14 7L17 10L14 13M17 7L14 10L17 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-									</svg>
+									<SpeakerSlash size={20} weight="fill" aria-hidden />
 								) : volume < 0.5 ? (
-									<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-										<path d="M11 4L6 9H2V11H6L11 16V4Z" fill="currentColor"/>
-										<path d="M14 10C14 12 16 13 16 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-									</svg>
+									<SpeakerLow size={20} weight="fill" aria-hidden />
 								) : (
-									<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-										<path d="M11 4L6 9H2V11H6L11 16V4Z" fill="currentColor"/>
-										<path d="M14 7C14 9 16 10 16 10C16 10 14 11 14 13M17 4L13 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-									</svg>
+									<SpeakerHigh size={20} weight="fill" aria-hidden />
 								)}
 							</button>
 							{showVolumeSlider && (
@@ -503,12 +496,7 @@ const EnhancedVideoPlayer = forwardRef(({
 								onClick={togglePiP}
 								aria-label="Imagine în imagine"
 							>
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M2 4H8V10H2V4Z" fill="currentColor"/>
-									<path d="M12 4H18V10H12V4Z" fill="currentColor"/>
-									<path d="M2 12H8V18H2V12Z" fill="currentColor"/>
-									<path d="M12 12H18V18H12V12Z" fill="currentColor"/>
-								</svg>
+								<PictureInPicture size={20} weight="duotone" aria-hidden />
 							</button>
 						)}
 						
@@ -519,13 +507,9 @@ const EnhancedVideoPlayer = forwardRef(({
 							aria-label="Ecran complet"
 						>
 							{isFullscreen ? (
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-								</svg>
+								<ArrowsIn size={20} weight="bold" aria-hidden />
 							) : (
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M4 4H8V6H6V8H4V4ZM12 4H16V8H14V6H12V4ZM4 12V16H8V14H6V12H4ZM16 12V16H12V14H14V12H16Z" fill="currentColor"/>
-								</svg>
+								<ArrowsOut size={20} weight="bold" aria-hidden />
 							)}
 						</button>
 					</div>

@@ -59,8 +59,9 @@
 /* ——— Grilă cărți ——— */
 .library-book-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-	gap: clamp(1.25rem, 2vw, 1.75rem);
+	grid-template-columns: repeat(auto-fill, minmax(160px, 192px));
+	justify-content: start;
+	gap: clamp(0.85rem, 1.5vw, 1.15rem);
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -103,7 +104,7 @@
 .library-book-cover-wrap {
 	display: flex;
 	align-items: stretch;
-	padding: 1rem 1rem 0.65rem;
+	padding: 0.65rem 0.65rem 0.45rem;
 	gap: 0;
 }
 
@@ -136,8 +137,9 @@
 .library-book-cover {
 	position: relative;
 	flex: 1;
-	min-height: 200px;
-	aspect-ratio: 3 / 3.85;
+	min-height: 132px;
+	max-height: 220px;
+	aspect-ratio: 3 / 4;
 	border-radius: 2px 14px 14px 2px;
 	overflow: hidden;
 	background:
@@ -212,8 +214,8 @@
 	flex-direction: column;
 	justify-content: flex-end;
 	height: 100%;
-	min-height: 200px;
-	padding: 1rem 1rem 1.1rem;
+	min-height: 132px;
+	padding: 0.7rem 0.75rem 0.8rem;
 	box-sizing: border-box;
 }
 
@@ -234,7 +236,7 @@
 
 .library-book-cover-title {
 	margin: 0;
-	font-size: clamp(1rem, 2.8vw, 1.2rem);
+	font-size: clamp(0.8rem, 2vw, 0.92rem);
 	font-weight: 800;
 	line-height: 1.2;
 	letter-spacing: -0.02em;
@@ -287,10 +289,10 @@
 
 /* Zona info sub copertă */
 .library-book-info {
-	padding: 0.85rem 1.1rem 1.15rem;
+	padding: 0.55rem 0.75rem 0.7rem;
 	display: flex;
 	flex-direction: column;
-	gap: 0.45rem;
+	gap: 0.35rem;
 	flex: 1;
 }
 
@@ -340,10 +342,21 @@
 .library-book-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
+	gap: 0.35rem;
 	margin-top: auto;
-	padding-top: 0.65rem;
+	padding-top: 0.4rem;
 	align-items: center;
+}
+
+.library-book-actions .library-btn {
+	padding: 5px 9px;
+	font-size: 0.72rem;
+}
+
+.library-book-actions .library-btn--icon {
+	width: 32px;
+	min-width: 32px;
+	font-size: 0.85rem;
 }
 
 .library-btn--grow {
@@ -744,15 +757,17 @@
 	}
 
 	.library-book-grid {
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		justify-content: stretch;
 	}
 
 	.library-book-cover {
-		min-height: 180px;
+		min-height: 120px;
+		max-height: none;
 	}
 
 	.library-book-cover-body {
-		min-height: 180px;
+		min-height: 120px;
 	}
 
 	.library-upload-modal {

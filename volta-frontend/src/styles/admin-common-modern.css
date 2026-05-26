@@ -279,17 +279,9 @@ body.admin-view .va-main {
 	height: 39px;
 }
 
-.admin-btn-danger {
-	background-color: transparent;
-	color: var(--color-error);
-	border: 1px solid var(--color-error);
-}
-
+/* Culori ștergere: components.css (.admin-btn-danger) */
 .admin-btn-danger:hover:not(:disabled) {
-	background-color: rgba(231, 76, 60, 0.1);
-	border-color: var(--color-error);
-	color: var(--color-error);
-	box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
 .admin-btn-danger:active:not(:disabled) {
@@ -684,17 +676,19 @@ body.admin-view .va-main {
 .admin-settings-toggle-slider {
 	width: 18px;
 	height: 18px;
-	background-color: var(--text-primary);
+	background-color: #0f172a;
 	border-radius: var(--radius-full);
 	position: absolute;
 	top: 2px;
 	left: 2px;
 	transition: all var(--transition-base);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .admin-settings-toggle-switch.active .admin-settings-toggle-slider {
 	transform: translateX(20px);
-	background-color: var(--bg-primary);
+	background-color: #0f172a;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================
@@ -1038,9 +1032,9 @@ body.admin-view .va-main {
 }
 
 .admin-team-card-title-swatch {
-	width: 12px;
-	height: 28px;
-	border-radius: 6px;
+	width: 8px;
+	height: 36px;
+	border-radius: 4px;
 	flex-shrink: 0;
 	border: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -1067,8 +1061,25 @@ body.admin-view .va-main {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 0.95rem;
 	line-height: 1;
+}
+
+.admin-team-card-compact__icon-btn svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+.admin-team-card-compact__avatar svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+html[data-theme="dark"] .admin-team-card-compact__avatar {
+	color: #0f172a;
+}
+
+html[data-theme="dark"] .admin-team-card-compact__avatar svg {
+	color: #0f172a;
 }
 
 .admin-team-card-compact__description {
@@ -1147,7 +1158,14 @@ body.admin-view .va-main {
 }
 
 .admin-team-card-compact .admin-card-actions .admin-btn .admin-btn-icon {
-	font-size: 0.95rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-team-card-compact .admin-card-actions .admin-btn .admin-btn-icon svg {
+	display: block;
+	flex-shrink: 0;
 }
 
 @media (max-width: 640px) {
@@ -1205,6 +1223,23 @@ body.admin-view .va-main {
 	align-items: center;
 	justify-content: center;
 	margin-right: var(--space-2);
+}
+
+.admin-btn-icon svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+.admin-page-header .lms-btn-primary,
+.admin-container .lms-empty-state .lms-btn-primary {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.admin-container .lms-empty-icon svg {
+	display: block;
+	margin: 0 auto;
 }
 
 /* ============================================
@@ -1840,6 +1875,12 @@ body.admin-view .va-main {
 	background-color: var(--bg-secondary);
 	border-color: var(--border-secondary);
 	color: var(--text-primary);
+}
+
+.admin-event-modal-body,
+.aev-detail-body,
+.admin-team-modal-body {
+	overflow-anchor: none;
 }
 
 .admin-event-modal-body {

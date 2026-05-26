@@ -11,6 +11,7 @@ use App\Models\ExamResult;
 use App\Models\TestResult;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
+use App\Services\TestAttemptAnswerOrderService;
 use App\Services\TestQuestionSelectionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -24,11 +25,16 @@ class ExamController extends Controller
 {
     protected $progressService;
     protected TestQuestionSelectionService $questionSelectionService;
+    protected TestAttemptAnswerOrderService $answerOrderService;
 
-    public function __construct(CourseProgressService $progressService, TestQuestionSelectionService $questionSelectionService)
-    {
+    public function __construct(
+        CourseProgressService $progressService,
+        TestQuestionSelectionService $questionSelectionService,
+        TestAttemptAnswerOrderService $answerOrderService
+    ) {
         $this->progressService = $progressService;
         $this->questionSelectionService = $questionSelectionService;
+        $this->answerOrderService = $answerOrderService;
     }
 
     /**
@@ -201,6 +207,164 @@ class ExamController extends Controller
             ?? $answer['label']
             ?? ''
         );
+    }
+
+    protected function comparableAnswerText(mixed $value): string
+    {
+        if (is_array($value)) {
+            $text = (string) ($value['text'] ?? $value['answer_text'] ?? $value['content'] ?? $value['label'] ?? $value['value'] ?? '');
+        } elseif (is_object($value)) {
+            $text = (string) ($value->text ?? $value->answer_text ?? $value->content ?? $value->label ?? $value->value ?? '');
+        } else {
+            $text = (string) $value;
+        }
+
+        return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $text)));
+    }
+
+    protected function resolveSelectedAnswerIndex(mixed $userAnswer, array $answers): ?int
+    {
+        if ($userAnswer === null || $userAnswer === '') {
+            return null;
+        }
+
+        if (is_array($userAnswer)) {
+            foreach (['index', 'answerIndex', 'answer_index', 'selectedIndex', 'selected_index'] as $key) {
+                if (array_key_exists($key, $userAnswer)) {
+                    $idx = is_numeric($userAnswer[$key]) ? (int) $userAnswer[$key] : null;
+                    if ($idx !== null && array_key_exists($idx, $answers)) {
+                        return $idx;
+                    }
+                }
+            }
+
+            foreach (['id', 'answer_id', 'answerId', 'value', 'text', 'answer_text', 'content', 'label'] as $key) {
+                if (!array_key_exists($key, $userAnswer)) {
+                    continue;
+                }
+                $resolved = $this->resolveSelectedAnswerIndex($userAnswer[$key], $answers);
+                if ($resolved !== null) {
+                    return $resolved;
+                }
+            }
+
+            return null;
+        }
+
+        $raw = (string) $userAnswer;
+        if (is_numeric($raw) && array_key_exists((int) $raw, $answers)) {
+            return (int) $raw;
+        }
+
+        foreach ($answers as $index => $answer) {
+            if (!is_array($answer) && !is_object($answer)) {
+                continue;
+            }
+
+            foreach (['id', 'answer_id', 'value'] as $idKey) {
+                $answerId = is_array($answer) ? ($answer[$idKey] ?? null) : ($answer->{$idKey} ?? null);
+                if ($answerId !== null && (string) $answerId === $raw) {
+                    return (int) $index;
+                }
+            }
+        }
+
+        $needle = $this->comparableAnswerText($raw);
+        if ($needle === '') {
+            return null;
+        }
+
+        foreach ($answers as $index => $answer) {
+            if ($this->comparableAnswerText($answer) === $needle) {
+                return (int) $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return int[]
+     */
+    protected function resolveCorrectAnswerIndices(array $answers, string $type): array
+    {
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            return [];
+        }
+
+        $indices = [];
+        foreach ($answers as $idx => $answer) {
+            if ($this->isAnswerCorrectFlag($answer)) {
+                $indices[] = (int) $idx;
+            }
+        }
+
+        if ($type === 'single_choice' || $type === 'true_false') {
+            return $indices !== [] ? [$indices[0]] : [];
+        }
+
+        return array_values(array_unique($indices));
+    }
+
+    /**
+     * @return int[]
+     */
+    protected function resolveSelectedAnswerIndices(mixed $userAnswer, array $answers): array
+    {
+        if ($userAnswer === null || $userAnswer === '') {
+            return [];
+        }
+
+        if (is_array($userAnswer)) {
+            if (array_is_list($userAnswer)) {
+                $indices = [];
+                foreach ($userAnswer as $item) {
+                    if (is_numeric($item) && array_key_exists((int) $item, $answers)) {
+                        $indices[] = (int) $item;
+                    }
+                }
+
+                return array_values(array_unique($indices));
+            }
+
+            foreach (['indices', 'selectedIndices', 'selected_indices', 'answers'] as $key) {
+                if (isset($userAnswer[$key]) && is_array($userAnswer[$key])) {
+                    return $this->resolveSelectedAnswerIndices($userAnswer[$key], $answers);
+                }
+            }
+
+            $single = $this->resolveSelectedAnswerIndex($userAnswer, $answers);
+
+            return $single !== null ? [$single] : [];
+        }
+
+        if (is_numeric($userAnswer) && array_key_exists((int) $userAnswer, $answers)) {
+            return [(int) $userAnswer];
+        }
+
+        $single = $this->resolveSelectedAnswerIndex($userAnswer, $answers);
+
+        return $single !== null ? [$single] : [];
+    }
+
+    protected function gradeChoiceQuestion(string $questionType, array $correctIndices, mixed $userAnswer, array $answers): bool
+    {
+        $correctIndices = array_values(array_unique(array_map('intval', $correctIndices)));
+        sort($correctIndices);
+
+        if ($questionType === 'multiple_choice') {
+            $selected = $this->resolveSelectedAnswerIndices($userAnswer, $answers);
+            sort($selected);
+
+            return $correctIndices !== [] && $selected === $correctIndices;
+        }
+
+        $selectedIndex = $this->resolveSelectedAnswerIndex($userAnswer, $answers);
+        if ($selectedIndex === null || $correctIndices === []) {
+            return false;
+        }
+
+        return $selectedIndex === $correctIndices[0];
     }
 
     protected function normalizeArrayLike(mixed $value): ?array
@@ -399,17 +563,8 @@ class ExamController extends Controller
             $answers = [];
         }
 
-        $correctAnswerIndex = null;
         $type = $question->type ?? '';
-
-        if ($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false') {
-            foreach ($answers as $idx => $answer) {
-                if ($this->isAnswerCorrectFlag($answer)) {
-                    $correctAnswerIndex = $idx;
-                    break;
-                }
-            }
-        }
+        $correctIndices = $this->resolveCorrectAnswerIndices($answers, $type);
 
         if (($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false')
             && $test->randomize_answers
@@ -424,19 +579,13 @@ class ExamController extends Controller
             }
             usort($indexed, fn ($a, $b) => $a['key'] <=> $b['key']);
             $answers = array_values(array_map(fn ($x) => $x['ans'], $indexed));
-
-            $correctAnswerIndex = null;
-            foreach ($answers as $idx => $answer) {
-                if ($this->isAnswerCorrectFlag($answer)) {
-                    $correctAnswerIndex = $idx;
-                    break;
-                }
-            }
+            $correctIndices = $this->resolveCorrectAnswerIndices($answers, $type);
         }
 
         return [
             'answers' => $answers,
-            'correct_index' => $correctAnswerIndex,
+            'correct_index' => $correctIndices[0] ?? null,
+            'correct_indices' => $correctIndices,
         ];
     }
 
@@ -520,6 +669,12 @@ class ExamController extends Controller
         // Get user's attempts
         $userAttempts = TestResult::where('test_id', $test->id)
             ->where('user_id', $user->id)
+            ->when($courseId, function ($query) use ($courseId) {
+                $query->where(function ($scope) use ($courseId) {
+                    $scope->where('course_id', $courseId)
+                        ->orWhereNull('course_id');
+                });
+            })
             ->orderBy('attempt_number', 'desc')
             ->get();
 
@@ -620,6 +775,7 @@ class ExamController extends Controller
     protected function stripWireQuestionSolutionKeys(array $q): array
     {
         $q['answerIndex'] = null;
+        $q['answerIndices'] = null;
         if (isset($q['matching']) && is_array($q['matching'])) {
             $m = $q['matching'];
             unset($m['correctMap']);
@@ -634,12 +790,68 @@ class ExamController extends Controller
         return $q;
     }
 
+    /** Răspunsuri + corectitudine pentru ecranul imediat după trimitere (indici stabili). */
+    protected function buildReviewQuestionWire(Test $test, $question, $user, int $attemptNumber, array $storedAnswers): ?array
+    {
+        $wire = $this->mapTestQuestionToStudentWire($test, $question, $user, $attemptNumber);
+        $questionId = (int) $question->id;
+        $userAnswer = $storedAnswers[$questionId] ?? $storedAnswers[(string) $questionId] ?? null;
+        $questionType = (string) ($wire['type'] ?? 'multiple_choice');
+
+        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            $order = $this->answerOrderService->resolveChoiceOrderForAttempt(
+                $test,
+                $question,
+                (int) $user->id,
+                $attemptNumber
+            );
+            $originalSelected = $this->answerOrderService->selectedOriginalIndicesFromStored(
+                $userAnswer,
+                $questionType,
+                $order
+            );
+            $wire['correct_answer_indices'] = $order['correct_original_indices'];
+            $wire['answerIndex'] = $order['correct_original_indices'][0] ?? null;
+            $wire['answerIndices'] = $questionType === 'multiple_choice'
+                ? $order['correct_original_indices']
+                : null;
+            $wire['is_correct'] = $this->answerOrderService->gradeChoiceInOriginalSpace(
+                $questionType,
+                $originalSelected,
+                $order['correct_original_indices']
+            );
+
+            return $wire;
+        }
+
+        if ($questionType === 'ordering' && is_array($wire['ordering'] ?? null)) {
+            $wire['is_correct'] = $this->isSequenceAnswerCorrect(
+                $userAnswer,
+                $wire['ordering']['correctOrder'] ?? []
+            );
+
+            return $wire;
+        }
+
+        if ($questionType === 'matching' && is_array($wire['matching'] ?? null)) {
+            $wire['is_correct'] = $this->isSequenceAnswerCorrect(
+                $userAnswer,
+                $wire['matching']['correctMap'] ?? []
+            );
+
+            return $wire;
+        }
+
+        return $wire;
+    }
+
     /** O întrebare Test (JSON) în formatul folosit de frontend. */
     protected function mapTestQuestionToStudentWire(Test $test, $question, $user, int $attemptNumber): array
     {
         $questionType = $question->type ?? 'multiple_choice';
         $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $attemptNumber);
         $answers = $resolved['answers'];
+        $correctIndices = $resolved['correct_indices'] ?? [];
         $correctAnswerIndex = $resolved['correct_index'];
         $matching = null;
         $ordering = null;
@@ -665,6 +877,7 @@ class ExamController extends Controller
                 }, $answers)
                 : [],
             'answerIndex' => $correctAnswerIndex,
+            'answerIndices' => $questionType === 'multiple_choice' ? $correctIndices : null,
             'points' => $question->points ?? 1,
             'explanation' => $question->explanation ?? null,
             'matching' => $matching,
@@ -681,19 +894,26 @@ class ExamController extends Controller
     {
         return $exam->questions->map(function ($question) use ($user, $attemptNumber) {
             $answers = $question->answers;
-            $correctAnswerIndex = null;
             $questionType = $question->question_type ?? 'multiple_choice';
+            $answerRows = $answers instanceof \Illuminate\Support\Collection ? $answers->values()->all() : (array) $answers;
+            $correctIndices = [];
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+                foreach ($answerRows as $idx => $answer) {
+                    if ($answer->is_correct ?? false) {
+                        $correctIndices[] = (int) $idx;
+                    }
+                }
+                if ($questionType === 'single_choice' || $questionType === 'true_false') {
+                    $correctIndices = $correctIndices !== [] ? [$correctIndices[0]] : [];
+                } else {
+                    $correctIndices = array_values(array_unique($correctIndices));
+                }
+            }
+            $correctAnswerIndex = $correctIndices[0] ?? null;
             $matching = null;
             $ordering = null;
 
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
-                foreach ($answers as $idx => $answer) {
-                    if ($answer->is_correct) {
-                        $correctAnswerIndex = $idx;
-                        break;
-                    }
-                }
-            } elseif ($questionType === 'matching') {
+            if ($questionType === 'matching') {
                 $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumber);
             } elseif ($questionType === 'ordering') {
                 $ordering = $this->buildOrderingQuestionData($question, null, $user, $attemptNumber);
@@ -707,6 +927,7 @@ class ExamController extends Controller
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
+                'answerIndices' => $questionType === 'multiple_choice' ? $correctIndices : null,
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
                 'matching' => $matching,
@@ -864,6 +1085,12 @@ class ExamController extends Controller
             $userAttempts = $trackLearning
                 ? TestResult::where('test_id', $test->id)
                     ->where('user_id', $user->id)
+                    ->when($courseId, function ($query) use ($courseId) {
+                        $query->where(function ($scope) use ($courseId) {
+                            $scope->where('course_id', $courseId)
+                                ->orWhereNull('course_id');
+                        });
+                    })
                     ->get()
                 : collect();
             
@@ -887,6 +1114,9 @@ class ExamController extends Controller
             }
 
             $answers = $request->input('answers', []);
+            if (! is_array($answers)) {
+                $answers = [];
+            }
             $startedAt = null;
             $startedAtRaw = $request->input('started_at');
             if (is_string($startedAtRaw) && trim($startedAtRaw) !== '') {
@@ -901,7 +1131,11 @@ class ExamController extends Controller
         $score = 0;
         $totalPoints = 0;
         $correctAnswersCount = 0;
-        $needsManualReview = false;
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $hasManualQuestions = $questions->contains(function ($question) use ($autoGradableTypes) {
+            return !in_array((string) ($question->type ?? 'multiple_choice'), $autoGradableTypes, true);
+        });
+        $needsManualReview = (bool) ($test->requires_manual_verification ?? false) || $hasManualQuestions;
         $totalQuestions = $questions->count();
 
         foreach ($questions as $question) {
@@ -931,22 +1165,44 @@ class ExamController extends Controller
             }
 
             if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
-                // Automatically graded questions only.
-                $resolved = $this->resolveAnswersOrderForTestAttempt($test, $question, $user, $nextAttempt);
-                $correctAnswerIndex = $resolved['correct_index'];
-
                 $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
-                if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
+                $order = $this->answerOrderService->resolveChoiceOrderForAttempt(
+                    $test,
+                    $question,
+                    (int) $user->id,
+                    $nextAttempt
+                );
+                $displaySelected = $this->answerOrderService->selectedDisplayIndices($userAns, $order['display_answers']);
+                $originalSelected = $this->answerOrderService->displayIndicesToOriginal(
+                    $displaySelected,
+                    $order['display_to_original']
+                );
+                if ($this->answerOrderService->gradeChoiceInOriginalSpace(
+                    $questionType,
+                    $originalSelected,
+                    $order['correct_original_indices']
+                )) {
                     $score += $points;
                     $correctAnswersCount++;
                 }
             }
         }
+
+            $answers = $this->answerOrderService->normalizeSubmittedAnswers(
+                $test,
+                $questions,
+                (int) $user->id,
+                $nextAttempt,
+                $answers
+            );
             
             $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
 
             // Resolve CourseTest: use course_id from request when provided (test can be in multiple courses)
-            $courseId = $request->input('course_id') ? (int) $request->input('course_id') : null;
+            $submittedCourseId = $request->input('course_id', $courseId);
+            $courseId = ($submittedCourseId !== null && $submittedCourseId !== '')
+                ? (int) $submittedCourseId
+                : null;
             $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
             if ($courseId) {
                 $courseTestQuery->where('course_id', $courseId);
@@ -961,6 +1217,7 @@ class ExamController extends Controller
             if ($trackLearning) {
                 $testResult = TestResult::create([
                     'test_id' => $test->id,
+                    'course_id' => $courseId,
                     'user_id' => $user->id,
                     'attempt_number' => $nextAttempt,
                     'score' => $score,
@@ -1002,7 +1259,6 @@ class ExamController extends Controller
                                         // Check if course is now complete
                                         if ($this->progressService->canFinalizeCourse($user, $course)) {
                                             $this->markCourseCompletedWithActivity($user, $course, $request);
-                                            app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                         }
                                     }
                                 }
@@ -1020,7 +1276,6 @@ class ExamController extends Controller
                                 // Check if course is now complete
                                 if ($this->progressService->canFinalizeCourse($user, $course)) {
                                     $this->markCourseCompletedWithActivity($user, $course, $request);
-                                    app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                                 }
                             } catch (\Exception $e) {
                                 \Log::warning('Error recalculating course progress', [
@@ -1054,7 +1309,9 @@ class ExamController extends Controller
                 );
             }
 
-            $reviewQuestions = $this->transformTestQuestionsWire($questions, $test, $user, $nextAttempt)
+            $reviewQuestions = $questions
+                ->map(fn ($question) => $this->buildReviewQuestionWire($test, $question, $user, $nextAttempt, $answers))
+                ->filter()
                 ->values()
                 ->all();
 
@@ -1065,6 +1322,8 @@ class ExamController extends Controller
                     'score' => $score,
                     'total_points' => $totalPoints,
                     'max_score' => $totalPoints,
+                    'correct_answers_count' => $correctAnswersCount,
+                    'total_questions' => $totalQuestions,
                     'percentage' => $percentage,
                     'passed' => $passed,
                     'passing_score' => $passingScore,
@@ -1156,6 +1415,7 @@ class ExamController extends Controller
         // Calculate score
         $score = 0;
         $totalPoints = 0;
+        $correctAnswersCount = 0;
         $needsManualReview = false;
         $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
@@ -1169,6 +1429,7 @@ class ExamController extends Controller
                 $structured = $this->buildMatchingQuestionData($question, null, $user, $nextAttempt);
                 if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
                     $score += $question->points ?? 1;
+                    $correctAnswersCount++;
                 }
                 continue;
             }
@@ -1178,24 +1439,29 @@ class ExamController extends Controller
                 $structured = $this->buildOrderingQuestionData($question, null, $user, $nextAttempt);
                 if ($this->isSequenceAnswerCorrect($userAns, $structured['correctOrder'] ?? [])) {
                     $score += $question->points ?? 1;
+                    $correctAnswersCount++;
                 }
                 continue;
             }
 
             if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
-                $questionAnswers = $question->answers->values();
-                $correctAnswerIndex = null;
-
+                $questionAnswers = $question->answers->values()->all();
+                $correctIndices = [];
                 foreach ($questionAnswers as $idx => $answer) {
                     if ($answer->is_correct) {
-                        $correctAnswerIndex = $idx;
-                        break;
+                        $correctIndices[] = (int) $idx;
                     }
+                }
+                if ($questionType === 'single_choice' || $questionType === 'true_false') {
+                    $correctIndices = $correctIndices !== [] ? [$correctIndices[0]] : [];
+                } else {
+                    $correctIndices = array_values(array_unique($correctIndices));
                 }
 
                 $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
-                if ($userAns !== null && $userAns !== '' && (int) $userAns === (int) $correctAnswerIndex) {
+                if ($this->gradeChoiceQuestion($questionType, $correctIndices, $userAns, $questionAnswers)) {
                     $score += $question->points ?? 1;
+                    $correctAnswersCount++;
                 }
             }
         }
@@ -1214,6 +1480,8 @@ class ExamController extends Controller
                 'attempt_number' => $nextAttempt,
                 'score' => $score,
                 'total_points' => $totalPoints,
+                'correct_answers_count' => $correctAnswersCount,
+                'total_questions' => $exam->questions->count(),
                 'percentage' => $percentage,
                 'passed' => $passed,
                 'answers' => $answers,
@@ -1317,13 +1585,12 @@ class ExamController extends Controller
         Request $request
     ): void {
         try {
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'action' => 'completed_exam',
-                'model_type' => $modelType,
-                'model_id' => $modelId,
-                'description' => "{$user->name} a finalizat testul \"{$title}\" și a obținut {$percentage}%",
-                'new_values' => [
+            \App\Support\StudentActivityLogger::logCompletedExamIfFirstPass(
+                $user,
+                $modelType,
+                $modelId,
+                "{$user->name} a finalizat testul \"{$title}\" și a obținut {$percentage}%",
+                [
                     'exam_id' => $modelId,
                     'exam_title' => $title,
                     'course_id' => $course?->id,
@@ -1333,10 +1600,8 @@ class ExamController extends Controller
                     'percentage' => $percentage,
                     'passed' => $passed,
                     'attempt_number' => $attemptNumber,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+                ]
+            );
         } catch (\Throwable $e) {
             \Log::warning('Failed to log completed_exam activity', [
                 'user_id' => $user->id ?? null,
@@ -1375,23 +1640,11 @@ class ExamController extends Controller
             ]
         );
 
-        if (!$wasCompleted) {
+        if (! $wasCompleted) {
             try {
-                ActivityLog::create([
-                    'user_id' => $user->id,
-                    'action' => 'completed_course',
-                    'model_type' => 'Course',
-                    'model_id' => $course->id,
-                    'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
-                    'new_values' => [
-                        'course_id' => $course->id,
-                        'course_title' => $course->title,
-                        'progress_percentage' => 100,
-                        'completed_at' => now()->toDateTimeString(),
-                    ],
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ]);
+                if (\App\Support\StudentActivityLogger::logCompletedCourseIfFirst($user, $course)) {
+                    app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
+                }
             } catch (\Throwable $e) {
                 \Log::warning('Failed to log completed_course activity', [
                     'user_id' => $user->id ?? null,

@@ -15,6 +15,7 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DragGripIcon } from '../../common/DragGripIcon';
 
 const blockPreviewText = (block) => {
 	if (block.type === 'quiz_embed') {
@@ -113,7 +114,7 @@ const SortableBlockRow = ({ block, isSelected, onSelect, onDelete }) => {
 					style={{ cursor: 'grab', userSelect: 'none' }}
 					title="Trage pentru reordonare (sau Alt+↑/↓ când e selectat)"
 				>
-					⋮⋮
+					<DragGripIcon size={14} />
 				</div>
 				<div style={{ fontSize: '20px' }}>{typeIcon(block.type)}</div>
 				<div style={{ flex: 1, minWidth: 0 }}>

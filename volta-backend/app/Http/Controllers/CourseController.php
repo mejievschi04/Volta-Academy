@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\ActivityLog;
 use App\Models\CourseTest;
+use App\Support\CourseViews;
+use App\Support\LearningVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -92,20 +94,22 @@ class CourseController extends Controller
     public function show(Request $request, $id)
     {
         try {
+            $isStaff = LearningVisibility::isStaffRequest($request);
+            $courseQuery = Course::query();
+            LearningVisibility::applyPublishedCourseFilter($courseQuery, $isStaff);
+
             // For single course, include full content with modules, lessons, and tests
             // Note: exams relationship doesn't exist on Module, use courseTests instead
-            $course = Course::with([
-                'lessons' => function($q) {
-                    $q->whereNull('module_id')->orderBy('order');
+            $course = $courseQuery->with([
+                'lessons' => function ($q) use ($isStaff) {
+                    $q->whereNull('module_id');
+                    LearningVisibility::publishedLessonScope($q, $isStaff);
                 },
-                'modules' => function($q) {
-                    $q->orderBy('order');
-                    // Don't filter by status - show all modules for course detail view
-                    // Admin and course builder need to see all modules regardless of status
+                'modules' => function ($q) use ($isStaff) {
+                    LearningVisibility::publishedModuleScope($q, $isStaff);
                 },
-                'modules.lessons' => function($q) {
-                    $q->orderBy('order');
-                    // Don't filter by status - show all lessons for course detail view
+                'modules.lessons' => function ($q) use ($isStaff) {
+                    LearningVisibility::publishedLessonScope($q, $isStaff);
                 },
                 'modules.courseTests' => function($q) {
                     $q->orderBy('order');
@@ -118,8 +122,11 @@ class CourseController extends Controller
                 }
             ])->findOrFail($id);
 
+            CourseViews::recordView($course, $isStaff);
+
             $user = $request->user();
-            $showDraftLinkedTests = $user && in_array($user->role ?? '', ['admin', 'instructor'], true);
+            // Draft tests only when staff explicitly asks (builder/admin tools), not on learner course pages.
+            $showDraftLinkedTests = $isStaff && $request->boolean('include_draft_tests');
 
             // Teste la nivel de lecție (course_test scope=lesson) — structura studentului
             $lessonScopeRows = CourseTest::where('course_id', $course->id)
@@ -279,13 +286,15 @@ class CourseController extends Controller
             }
             
             return response()->json($course);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error in CourseController::show', [
                 'course_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'error' => 'Nu s-a putut încărca cursul',
                 'message' => $e->getMessage(),
@@ -293,99 +302,13 @@ class CourseController extends Controller
         }
     }
 
-    public function complete(Request $request, $id)
+    /**
+     * @deprecated Use POST /api/courses/{courseId}/finish (auth required).
+     */
+    public function complete(Request $request, $courseId)
     {
-        $course = Course::with('modules')->findOrFail($id);
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json(['error' => 'Utilizator neautentificat'], 401);
-        }
-
-        if ($user->isLearningActivityExempt()) {
-            return response()->json([
-                'message' => 'Cursul nu este urmărit pentru acest rol.',
-                'completed_at' => null,
-            ]);
-        }
-
-        // Check if test is passed
-        $exam = \App\Models\Exam::where('course_id', $course->id)->first();
-        if (!$exam) {
-            return response()->json(['error' => 'Nu există test pentru acest curs'], 404);
-        }
-
-        $latestResult = \App\Models\ExamResult::where('exam_id', $exam->id)
-            ->where('user_id', $user->id)
-            ->orderBy('attempt_number', 'desc')
-            ->first();
-
-        if (!$latestResult || !$latestResult->passed) {
-            return response()->json(['error' => 'Testul nu a fost trecut'], 400);
-        }
-
-        // Course is completed when test is passed (modules don't need individual completion tracking)
-
-        // Mark course as completed
-        $existingRecord = DB::table('course_user')
-            ->where('course_id', $course->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existingRecord) {
-            // Update existing record
-            DB::table('course_user')
-                ->where('course_id', $course->id)
-                ->where('user_id', $user->id)
-                ->update([
-                    'progress_percentage' => 100,
-                    'completed_at' => now(),
-                    'started_at' => $existingRecord->started_at ?: now(),
-                    'updated_at' => now(),
-                ]);
-        } else {
-            // Insert new record
-            DB::table('course_user')
-                ->insert([
-                    'course_id' => $course->id,
-                    'user_id' => $user->id,
-                    'progress_percentage' => 100,
-                    'completed_at' => now(),
-                    'started_at' => now(),
-                    'is_mandatory' => false,
-                    'enrolled' => true,
-                    'enrolled_at' => now(),
-                    'assigned_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-        }
-
-        // Log activity: user completed course
-        ActivityLog::create([
-            'user_id' => $user->id,
-            'action' => 'completed_course',
-            'model_type' => 'Course',
-            'model_id' => $course->id,
-            'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
-            'new_values' => [
-                'course_id' => $course->id,
-                'course_title' => $course->title,
-                'progress_percentage' => 100,
-                'completed_at' => now()->toDateTimeString(),
-            ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        // Invalidate cache
-        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
-        \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
-
-        return response()->json([
-            'message' => 'Cursul a fost marcat ca finalizat cu succes',
-            'completed_at' => now()->toDateTimeString(),
-        ]);
+        return app(\App\Http\Controllers\Api\CourseProgressController::class)
+            ->finishCourse($courseId);
     }
 }
 

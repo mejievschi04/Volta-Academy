@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+	ArrowLeft,
+	ArrowUpRight,
+	ArrowDownRight,
+	ChartBar,
+	ChartLineUp,
+	CheckCircle,
+	Lightbulb,
+	PlusCircle,
+	Users,
+	WarningCircle,
+	Info,
+} from '@phosphor-icons/react';
+import {
 	AreaChart,
 	Area,
 	BarChart,
@@ -130,7 +143,7 @@ const AdminAnalyticsPage = () => {
 							className="analytics-back-btn"
 							onClick={() => navigate('/admin')}
 						>
-							← Dashboard
+							<ArrowLeft size={14} weight="bold" aria-hidden /> Dashboard
 						</button>
 					</div>
 				</div>
@@ -386,22 +399,22 @@ const AdminAnalyticsPage = () => {
 								className="analytics-ai-card analytics-ai-card-risk"
 								onClick={() => navigate(`/admin/courses/${c.id}`)}
 							>
-								<div className="analytics-ai-icon">⚠️</div>
+								<div className="analytics-ai-icon"><WarningCircle size={18} weight="duotone" aria-hidden /></div>
 								<div className="analytics-ai-content">
 									<h4>Cursul „{c.title}” are risc ridicat de abandon</h4>
 									<p>Rată abandon: {c.dropoff_rate}% • Finalizare: {c.completion_rate}%</p>
-									<span className="analytics-ai-action">Vezi analiza →</span>
+									<span className="analytics-ai-action">Vezi analiza <ArrowUpRight size={14} weight="bold" aria-hidden /></span>
 								</div>
 							</div>
 						))}
 						{completionRate < 70 && (
 							<div className="analytics-ai-card analytics-ai-card-optimize">
-								<div className="analytics-ai-icon">💡</div>
+								<div className="analytics-ai-icon"><Lightbulb size={18} weight="duotone" aria-hidden /></div>
 								<div className="analytics-ai-content">
 									<h4>Rata de finalizare poate fi îmbunătățită</h4>
 									<p>Rata actuală: {completionRate.toFixed(1)}%. Consideră micro-learning și quiz-uri scurte.</p>
 									<span className="analytics-ai-action" onClick={() => navigate('/admin/courses')}>
-										Vezi cursuri →
+										Vezi cursuri <ArrowUpRight size={14} weight="bold" aria-hidden />
 									</span>
 								</div>
 							</div>
@@ -434,7 +447,11 @@ const AdminAnalyticsPage = () => {
 						filteredActivities.slice(0, 12).map((a, i) => (
 							<div key={a.id || i} className="analytics-activity-item">
 								<span className="analytics-activity-icon">
-									{a.type === 'completion' ? '✅' : a.type === 'exam_submitted' ? '📝' : 'ℹ️'}
+									{a.type === 'completion'
+										? <CheckCircle size={16} weight="duotone" aria-hidden />
+										: a.type === 'exam_submitted'
+											? <ChartBar size={16} weight="duotone" aria-hidden />
+											: <Info size={16} weight="duotone" aria-hidden />}
 								</span>
 								<div className="analytics-activity-content">
 									<p>{a.description || a.message || 'Activitate'}</p>
@@ -461,49 +478,26 @@ const AdminAnalyticsPage = () => {
 };
 
 function KpiCard({ label, value, trend, trendValue, icon }) {
+	const renderIcon = () => {
+		if (icon === 'users') return <Users size={24} weight="duotone" aria-hidden />;
+		if (icon === 'activity') return <ChartLineUp size={24} weight="duotone" aria-hidden />;
+		if (icon === 'check') return <CheckCircle size={24} weight="duotone" aria-hidden />;
+		if (icon === 'chart') return <ChartBar size={24} weight="duotone" aria-hidden />;
+		if (icon === 'enroll') return <PlusCircle size={24} weight="duotone" aria-hidden />;
+		return null;
+	};
+
 	return (
 		<div className="analytics-kpi-card">
 			<div className="analytics-kpi-icon">
-				{icon === 'users' && (
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-						<circle cx="9" cy="7" r="4" />
-						<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-					</svg>
-				)}
-				{icon === 'activity' && (
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-					</svg>
-				)}
-				{icon === 'check' && (
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-						<polyline points="22 4 12 14.01 9 11.01" />
-					</svg>
-				)}
-				{icon === 'chart' && (
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<line x1="18" y1="20" x2="18" y2="10" />
-						<line x1="12" y1="20" x2="12" y2="4" />
-						<line x1="6" y1="20" x2="6" y2="14" />
-					</svg>
-				)}
-				{icon === 'enroll' && (
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-						<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-						<circle cx="9" cy="7" r="4" />
-						<line x1="19" y1="8" x2="19" y2="14" />
-						<line x1="22" y1="11" x2="16" y2="11" />
-					</svg>
-				)}
+				{renderIcon()}
 			</div>
 			<div className="analytics-kpi-content">
 				<span className="analytics-kpi-label">{label}</span>
 				<span className="analytics-kpi-value">{value}</span>
 				{trendValue && (
 					<span className={`analytics-kpi-trend ${trend === 'up' ? 'up' : 'down'}`}>
-						{trend === 'up' ? '↑' : '↓'} {trendValue}
+						{trend === 'up' ? <ArrowUpRight size={14} weight="bold" aria-hidden /> : <ArrowDownRight size={14} weight="bold" aria-hidden />} {trendValue}
 					</span>
 				)}
 			</div>

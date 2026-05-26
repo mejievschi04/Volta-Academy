@@ -1,8 +1,11 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, BarChart3, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { downloadSimpleExcel, statisticsExcelFilename } from '../../utils/statisticsExcelExport';
+import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
 
@@ -169,7 +172,6 @@ export default function AdminExamsPage() {
     return true;
   }), [statisticsRows, statisticsStatusFilter, statisticsDateFrom, statisticsDateTo]);
   const builderHeroTitle = examSettings.title?.trim() || activeExamDraft.title || 'Examen nou';
-  const builderHeroSubtitle = 'Setări, întrebări, acces și statistici într-un layout clar.';
   const builderHeroAccent = published ? 'var(--color-success)' : 'var(--color-warning)';
 
   const deleteConfirmTitle = deleteConfirmExam?.title || 'Examen';
@@ -180,56 +182,67 @@ export default function AdminExamsPage() {
   const studentsDraftCount = studentsDraftSelected.length;
   const previewQuestionCount = Array.isArray(previewData?.questions) ? previewData.questions.length : 0;
   const activeBuilderSection = EXAM_BUILDER_SECTIONS.find((section) => section.id === activeSection) || EXAM_BUILDER_SECTIONS[0];
+  const renderBuilderSectionIcon = (sectionId) => {
+    const props = { size: 17, 'aria-hidden': true };
+    if (sectionId === 'questions') return <ListChecks {...props} />;
+    if (sectionId === 'access') return <Users {...props} />;
+    if (sectionId === 'statistics') return <BarChart3 {...props} />;
+    return <Settings {...props} />;
+  };
   const builderSidecarConfig = {
     settings: {
       eyebrow: 'Focus pe identitate',
       title: 'Pui la punct prima impresie',
       description: 'Stabilește titlul examenului și regulile de notare, timp și comportament din această secțiune.',
       facts: [
-        { label: 'Review', value: examSettings.manualReview ? 'Manual' : 'Auto' },
         { label: 'Timp', value: examSettings.timeLimitEnabled ? `${examSettings.timeLimitMinutes} min` : 'Nelimitat' },
-        { label: 'Deadline', value: examSettings.deadlineType === 'none' ? 'Fara' : 'Setat' },
+        { label: 'Deadline', value: examSettings.deadlineType === 'none' ? 'Fără' : 'Setat' },
       ],
     },
     questions: {
-      eyebrow: 'Focus pe continut',
-      title: 'Alegi sursa de intrebari',
-      description: 'Schimbi intre foldere si tag-uri, vezi imediat cate intrebari intra si cata informatie vei acoperi.',
+      eyebrow: 'Focus pe conținut',
+      title: 'Alegi sursa de întrebări',
+      description: 'Schimbi între foldere și tag-uri, vezi imediat câte întrebări intră și câtă informație vei acoperi.',
       facts: [
         { label: 'Mod', value: contentSelectionLabel },
         { label: 'Selectate', value: String(contentSelectionCount) },
-        { label: 'In examen', value: String(Number(examSettings.questionCount || 0)) },
+        { label: 'În examen', value: String(Number(examSettings.questionCount || 0)) },
         { label: 'Stele', value: String(examSettings.includeStarred ? selectedFoldersStarred : 0) },
       ],
     },
     access: {
-      eyebrow: 'Focus pe distributie',
+      eyebrow: 'Focus pe distribuție',
       title: 'Controlezi cine vede examenul',
-      description: 'Alegi intre acces pentru toti elevii sau doar o selectie precisa, fara sa iesi din builder.',
+      description: 'Alegi între acces pentru toți elevii sau doar o selecție precisă, fără să ieși din builder.',
       facts: [
         { label: 'Mod acces', value: examAccess.mode === 'selected_students' ? 'Selectat' : 'General' },
-        { label: 'Elevi', value: examAccess.mode === 'selected_students' ? String(examAccess.selectedStudents.length) : 'Toti' },
+        { label: 'Elevi', value: examAccess.mode === 'selected_students' ? String(examAccess.selectedStudents.length) : 'Toți' },
         { label: 'Preview', value: String(selectedStudentsPreview.length) },
         { label: 'Plus', value: examAccess.selectedStudents.length > selectedStudentsPreview.length ? `+${examAccess.selectedStudents.length - selectedStudentsPreview.length}` : '0' },
       ],
     },
     statistics: {
-      eyebrow: 'Focus pe analiza',
-      title: 'Vezi ce functioneaza si ce nu',
-      description: 'Rezultatele si analizele pe intrebari te ajuta sa ajustezi examenul fara sa iesi din pagina.',
+      eyebrow: 'Focus pe analiză',
+      title: 'Vezi ce funcționează și ce nu',
+      description: 'Rezultatele și analizele pe întrebări te ajută să ajustezi examenul fără să ieși din pagină.',
       facts: [
         { label: 'Rezultate', value: String(filteredStatisticsRows.length) },
-        { label: 'Intrebari', value: String(statisticsQuestionRows.length) },
-        { label: 'Tab activ', value: statisticsTab === 'students' ? 'Elevi' : 'Intrebari' },
+        { label: 'Întrebări', value: String(statisticsQuestionRows.length) },
+        { label: 'Tab activ', value: statisticsTab === 'students' ? 'Elevi' : 'Întrebări' },
         { label: 'Export', value: statisticsRows.length ? 'Disponibil' : 'Gol' },
       ],
     },
   }[activeSection] || {
     eyebrow: activeBuilderSection?.label || 'Builder',
     title: builderHeroTitle,
-    description: builderHeroSubtitle,
+    description: '',
     facts: [],
   };
+
+  const SUMMARY_GLOBAL_LABELS = new Set(['Status', 'Întrebări', 'Acces', 'Review']);
+  const builderSectionFacts = builderSidecarConfig.facts.filter(
+    (fact) => !SUMMARY_GLOBAL_LABELS.has(fact.label),
+  );
 
   const loadExams = useCallback(async () => {
     try {
@@ -322,7 +335,7 @@ export default function AdminExamsPage() {
       toastSuccess('Examen sters.'); setDeleteConfirmExam(null);
     } catch (e) {
       console.error('Failed to delete exam:', e);
-      toastError(e?.response?.data?.message || 'Nu s-a putut sterge examenul.');
+      toastError(e?.response?.data?.message || 'Nu s-a putut șterge examenul.');
     } finally { setListActionId(null); }
   };
   const handleOpenExistingExam = (item, options = {}) => {
@@ -361,7 +374,7 @@ export default function AdminExamsPage() {
       setStudentsList(Array.isArray(rows) ? rows.map((user) => ({ id: Number(user?.id), name: user?.name || 'Elev', email: user?.email || '' })).filter((user) => Number.isFinite(user.id)) : []);
     } catch (e) {
       console.error('Failed to load students:', e);
-      setStudentsList([]); setStudentsError('Nu s-au putut incarca elevii.');
+      setStudentsList([]); setStudentsError('Nu s-au putut încărca elevii.');
     } finally { setStudentsLoading(false); }
   };
   const handleToggleStudentDraft = (studentId) => setStudentsDraftSelected((prev) => prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]);
@@ -400,11 +413,33 @@ export default function AdminExamsPage() {
       if (activeExamDraft.id) {
         const response = await adminService.updateExam(activeExamDraft.id, payload);
         const updatedExam = response?.exam || response;
-        setItems((prev) => prev.map((item) => (item.id === updatedExam.id ? { ...item, ...updatedExam } : item)));
+        const normalizedUpdatedExam = {
+          ...updatedExam,
+          settings: {
+            ...(updatedExam?.settings || {}),
+            question_count: payload.settings.question_count,
+          },
+          question_selection: {
+            ...(updatedExam?.question_selection || {}),
+            count: payload.question_selection.count,
+          },
+        };
+        setItems((prev) => prev.map((item) => (item.id === normalizedUpdatedExam.id ? { ...item, ...normalizedUpdatedExam } : item)));
       } else {
         const response = await adminService.createExam(payload);
         const createdExam = response?.exam || response;
-        setItems((prev) => [createdExam, ...prev]);
+        const normalizedCreatedExam = {
+          ...createdExam,
+          settings: {
+            ...(createdExam?.settings || {}),
+            question_count: payload.settings.question_count,
+          },
+          question_selection: {
+            ...(createdExam?.question_selection || {}),
+            count: payload.question_selection.count,
+          },
+        };
+        setItems((prev) => [normalizedCreatedExam, ...prev]);
         setActiveExamDraft((prev) => ({ ...prev, id: createdExam?.id || prev.id, title }));
       }
       setPublished(effectivePublished);
@@ -422,10 +457,10 @@ export default function AdminExamsPage() {
     try { const ok = await handleSaveExam({ published: nextPublished }); if (!ok) setPublished(!nextPublished); } finally { setPublishToggleLoading(false); }
   };
   const handleOpenPreview = async () => {
-    if (!activeExamDraft.id) { toastError('Salveaza examenul inainte de previzualizare.'); return; }
+    if (!activeExamDraft.id) { toastError('Salvează examenul înainte de previzualizare.'); return; }
     setShowPreviewModal(true); setPreviewLoading(true); setPreviewError(''); setPreviewData(null);
     try { setPreviewData(await adminService.previewExam(activeExamDraft.id)); }
-    catch (e) { console.error('Failed to preview exam:', e); setPreviewError(e?.response?.data?.message || 'Nu s-a putut incarca previzualizarea examenului.'); }
+    catch (e) { console.error('Failed to preview exam:', e); setPreviewError(e?.response?.data?.message || 'Nu s-a putut încărca previzualizarea examenului.'); }
     finally { setPreviewLoading(false); }
   };  const handleOpenContentModal = async () => {
     setShowContentModal(true); setContentBanksLoading(true); setContentBanksError('');
@@ -434,7 +469,7 @@ export default function AdminExamsPage() {
       setContentBanks(Array.isArray(banks) ? banks : []); setQuestionTags(Array.isArray(tags) ? tags : []);
     } catch (e) {
       console.error('Failed to load content sources:', e);
-      setContentBanks([]); setQuestionTags([]); setContentBanksError('Nu s-au putut incarca bancile de intrebari.');
+      setContentBanks([]); setQuestionTags([]); setContentBanksError('Nu s-au putut încărca băncile de întrebări.');
     } finally { setContentBanksLoading(false); }
   };
   const handleConfirmContentSelection = async () => { setContentConfirmLoading(true); try { const ok = await handleSaveExam(); if (ok) setShowContentModal(false); } finally { setContentConfirmLoading(false); } };
@@ -453,47 +488,48 @@ export default function AdminExamsPage() {
       ]),
     );
   };
+  const buildExamMetaLine = (item) => {
+    const configuredQuestionCount = Number(
+      item?.settings?.question_count
+        ?? item?.question_selection?.count
+        ?? item?.questions_count
+        ?? 0,
+    );
+    const parts = [
+      `${configuredQuestionCount} întrebări în examen`,
+      `${Number(item.passing_score ?? 0)}% prag`,
+      item.max_attempts != null ? `${item.max_attempts} încercări` : null,
+    ].filter(Boolean);
+    return parts.join(' · ');
+  };
+
   const listView = (
-    <div className="admin-tests-page admin-exams-modern-page admin-exams-page">
-      <header className="admin-exams-list-hero va-card-shell va-card-shell--uniform">
-        <div className="admin-exams-list-hero-copy">
-          <div className="admin-exams-list-hero-top">
-            <div className="admin-exams-list-hero-title-wrap">
-              <span className="admin-exams-list-hero-kicker">Examene</span>
-              <h1>Examene</h1>
-            </div>
-            <div className="admin-tests-header-actions admin-exams-list-hero-actions">
-              {canMutateInAdminArea ? (
-                <button type="button" className="admin-tests-primary-btn" onClick={handleOpenCreateModal}>
-                  + Creează examen
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <p className="admin-exams-header-lead">Builder pentru examene: selecție întrebări, acces și statistici.</p>
-          <div className="admin-exams-list-hero-metrics" aria-label="Rezumat examene">
-            <div>
-              <span>Total</span>
-              <strong>{listStats.all}</strong>
-            </div>
-            <div>
-              <span>Draft</span>
-              <strong>{listStats.draft}</strong>
-            </div>
-            <div>
-              <span>Publicate</span>
-              <strong>{listStats.published}</strong>
-            </div>
-            <div>
-              <span>Arhivate</span>
-              <strong>{listStats.archived}</strong>
-            </div>
+    <div className="admin-tests-page admin-exams-page admin-content-list-page">
+      <header className="admin-content-list-header">
+        <div className="admin-content-list-header__copy">
+          <p className="admin-content-list-header__kicker">Conținut</p>
+          <h1>Examene</h1>
+          <p className="admin-content-list-header__lead">
+            Examene independente — întrebări, acces și statistici.
+          </p>
+          <div className="admin-content-list-stats" aria-label="Rezumat">
+            <span>Total<strong>{listStats.all}</strong></span>
+            <span>Draft<strong>{listStats.draft}</strong></span>
+            <span>Publicate<strong>{listStats.published}</strong></span>
+            <span>Arhivate<strong>{listStats.archived}</strong></span>
           </div>
         </div>
+        {canMutateInAdminArea ? (
+          <div className="admin-content-list-header__actions">
+            <button type="button" className="admin-content-list-btn-primary" onClick={handleOpenCreateModal}>
+              Creează examen
+            </button>
+          </div>
+        ) : null}
       </header>
 
-      <div className="admin-exams-modern-toolbar">
-        <div className="admin-tests-search admin-exams-modern-search">
+      <div className="admin-content-list-toolbar">
+        <div className="admin-content-list-search">
           <input
             type="search"
             placeholder="Caută după titlu sau curs…"
@@ -502,11 +538,10 @@ export default function AdminExamsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="admin-exams-modern-filter-select-wrap">
-          <label htmlFor="admin-exams-status-filter" className="admin-exams-modern-filter-label">Status</label>
+        <div className="admin-content-list-filter">
+          <label htmlFor="admin-exams-status-filter">Status</label>
           <select
             id="admin-exams-status-filter"
-            className="admin-exams-modern-status-select"
             value={listStatusFilter}
             onChange={(e) => setListStatusFilter(e.target.value)}
           >
@@ -520,113 +555,57 @@ export default function AdminExamsPage() {
       </div>
 
       {loading ? (
-        <div className="admin-exams-modern-skeleton-grid" aria-busy="true" aria-label="Se încarcă examenele">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="admin-exams-list-skeleton-card" />
+        <div className="admin-content-list-skeleton" aria-busy="true" aria-label="Se încarcă examenele">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="admin-content-list-skeleton__card" />
           ))}
         </div>
       ) : error ? (
-        <div className="admin-tests-empty">{error}</div>
+        <div className="admin-content-list-empty">{error}</div>
       ) : filteredItems.length === 0 ? (
-        <div className="admin-tests-empty admin-exams-modern-empty">
-          <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>
-            {items.length === 0 ? 'Niciun examen încă' : 'Niciun rezultat'}
-          </p>
-          <p className="admin-exams-list-empty-hint" style={{ marginTop: '0.5rem' }}>
-            {items.length === 0
-              ? 'Creează primul examen sau verifică mai târziu.'
-              : 'Schimbă filtrul sau termenii de căutare.'}
-          </p>
+        <div className="admin-content-list-empty">
+          {items.length === 0
+            ? 'Niciun examen încă. Creează primul examen.'
+            : 'Niciun rezultat — schimbă filtrul sau căutarea.'}
         </div>
       ) : (
-        <div className="admin-tests-grid admin-exams-modern-grid">
+        <div className="admin-content-list-grid">
           {filteredItems.map((item) => {
             const status = String(item?.status || 'draft').toLowerCase();
             const busy = listActionId === item.id;
+
+            const secondaryActions = canMutateInAdminArea
+              ? [
+                  {
+                    label: duplicatingExamId === item.id ? 'Se duplică…' : 'Duplică',
+                    onClick: () => handleDuplicateExam(item),
+                    disabled: busy || duplicatingExamId === item.id,
+                  },
+                  ...(status !== 'published'
+                    ? [{ label: 'Publică', onClick: () => patchExamListStatus(item, 'published'), disabled: busy, emphasis: true }]
+                    : [{ label: 'Arhivează', onClick: () => patchExamListStatus(item, 'archived'), disabled: busy }]),
+                  ...(status === 'archived'
+                    ? [{ label: 'Draft', onClick: () => patchExamListStatus(item, 'draft'), disabled: busy }]
+                    : []),
+                  { label: 'Șterge', onClick: () => setDeleteConfirmExam(item), disabled: busy, danger: true },
+                ]
+              : [];
+
             return (
-              <article
+              <AdminContentItemCard
                 key={item.id}
-                className={`admin-tests-card admin-exams-modern-card admin-exams-modern-card--${status} va-card-shell va-card-shell--uniform`}
-              >
-                <div className="admin-exams-modern-card-body va-card-content">
-                  <div className="admin-tests-card-head admin-exams-modern-card-head">
-                    <h3>{item.title || 'Examen fără titlu'}</h3>
-                    <span className="admin-exams-modern-card-context">
-                      {item.course_title ? item.course_title : 'Examen independent'}
-                    </span>
-                  </div>
-                  <p className="admin-exams-modern-card-desc va-card-subtitle">{item.description || 'Fără descriere.'}</p>
-                  <div className="admin-exams-modern-meta-grid">
-                    <div className="admin-exams-modern-meta-item">
-                      <span>Întrebări</span>
-                      <strong>{item.questions_count ?? 0}</strong>
-                    </div>
-                    <div className="admin-exams-modern-meta-item">
-                      <span>Prag minim</span>
-                      <strong>{Number(item.passing_score ?? 0)}%</strong>
-                    </div>
-                    <div className="admin-exams-modern-meta-item">
-                      <span>Încercări</span>
-                      <strong>{item.max_attempts != null ? item.max_attempts : '—'}</strong>
-                    </div>
-                    <div className="admin-exams-modern-meta-item">
-                      <span>Status</span>
-                      <strong>{examStatusLabelRo(item.status)}</strong>
-                    </div>
-                  </div>
-                  {canMutateInAdminArea ? (
-                    <div className="admin-exams-modern-card-actions">
-                      <div className="admin-tests-actions-primary admin-exams-modern-card-primary-row">
-                        <button type="button" className="is-wide admin-exams-modern-card-primary-btn" disabled={busy} onClick={() => handleOpenExistingExam(item)}>
-                          Deschide builder-ul
-                        </button>
-                      </div>
-                      <div className="admin-exams-modern-card-actions-grid">
-                        <button
-                          type="button"
-                          className="admin-exams-modern-card-action"
-                          disabled={busy || duplicatingExamId === item.id}
-                          onClick={() => handleDuplicateExam(item)}
-                        >
-                          {duplicatingExamId === item.id ? 'Se duplică...' : 'Duplică'}
-                        </button>
-                        {status !== 'published' ? (
-                          <button
-                            type="button"
-                            className="admin-exams-modern-card-action is-emphasis"
-                            disabled={busy}
-                            onClick={() => patchExamListStatus(item, 'published')}
-                          >
-                            Publică
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="admin-exams-modern-card-action"
-                            disabled={busy}
-                            onClick={() => patchExamListStatus(item, 'archived')}
-                          >
-                            Arhivează
-                          </button>
-                        )}
-                        {status === 'archived' ? (
-                          <button
-                            type="button"
-                            className="admin-exams-modern-card-action"
-                            disabled={busy}
-                            onClick={() => patchExamListStatus(item, 'draft')}
-                          >
-                            În draft
-                          </button>
-                        ) : null}
-                      </div>
-                      <button type="button" className="admin-exams-modern-card-danger-btn" disabled={busy} onClick={() => setDeleteConfirmExam(item)}>
-                        Șterge
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </article>
+                title={item.title || 'Examen fără titlu'}
+                badge={item.course_title || 'Examen independent'}
+                status={status}
+                statusLabel={examStatusLabelRo(item.status)}
+                metaLine={buildExamMetaLine(item)}
+                primaryAction={{
+                  label: 'Deschide builder-ul',
+                  onClick: () => handleOpenExistingExam(item),
+                  disabled: busy,
+                }}
+                actions={secondaryActions}
+              />
             );
           })}
         </div>
@@ -948,145 +927,149 @@ export default function AdminExamsPage() {
   ) : null;
 
   const createView = (
-    <div className="admin-tests-page admin-exams-modern-page admin-exams-page">
+    <div className="admin-tests-page admin-exams-modern-page admin-exams-page admin-exams-builder-redesign">
       <div className="admin-exams-builder-shell">
         <header
-          className="admin-exams-builder-top va-card-shell"
+          className="admin-exams-builder-top"
           style={{
             '--admin-exams-builder-accent': builderHeroAccent,
           }}
         >
-          <div className="admin-exams-builder-top-main">
-            <div className="admin-exams-builder-top-left">
+          <div className="admin-exams-builder-top-left">
+            <button
+              type="button"
+              className="admin-exams-builder-back-btn"
+              onClick={() => setViewMode('list')}
+            >
+              <ArrowLeft size={18} aria-hidden />
+              Înapoi
+            </button>
+            <div className="admin-exams-builder-title-wrap">
+              <p className="admin-exams-builder-kicker">Builder examen</p>
+              <h1 className="admin-exams-builder-title">{builderHeroTitle}</h1>
+            </div>
+          </div>
+
+          <div className="admin-exams-builder-actions">
+            <div className="admin-exams-builder-publish">
+              <span>{published ? 'Publicat' : 'Draft'}</span>
               <button
                 type="button"
-                className="admin-exams-builder-back-btn admin-tests-secondary-link"
-                onClick={() => setViewMode('list')}
+                className="admin-view-switcher admin-exams-header-switch"
+                onClick={handleTogglePublishedNow}
+                aria-pressed={published}
+                disabled={publishToggleLoading || saveState.loading}
               >
-                ← Înapoi la listă
+                <div
+                  className="admin-view-switcher-slider"
+                  style={{ transform: published ? 'translateX(27px)' : 'translateX(0)' }}
+                  aria-hidden
+                />
               </button>
-              <div className="admin-exams-builder-title-wrap">
-                <h1 className="admin-exams-builder-title">
-                  {builderHeroTitle}
-                </h1>
-                <p className="admin-exams-builder-subtitle">
-                  {builderHeroSubtitle}
-                </p>
-              </div>
             </div>
-            <div className="admin-exams-builder-actions">
-              <div className="admin-exams-builder-publish">
-                <span>{published ? 'Publicat' : 'Draft'}</span>
-                <button
-                  type="button"
-                  className="admin-view-switcher admin-exams-header-switch"
-                  onClick={handleTogglePublishedNow}
-                  aria-pressed={published}
-                  disabled={publishToggleLoading || saveState.loading}
-                >
-                  <div
-                    className="admin-view-switcher-slider"
-                    style={{ transform: published ? 'translateX(27px)' : 'translateX(0)' }}
-                    aria-hidden
-                  />
-                </button>
-              </div>
+            <button
+              type="button"
+              className="admin-exams-builder-ghost-btn"
+              onClick={handleOpenPreview}
+              disabled={!activeExamDraft.id || previewLoading}
+            >
+              <Eye size={17} aria-hidden />
+              Previzualizare
+            </button>
+            {canMutateInAdminArea ? (
               <button
                 type="button"
-                className="admin-tests-secondary-link"
-                onClick={handleOpenPreview}
-                disabled={!activeExamDraft.id || previewLoading}
+                className="admin-exams-builder-save-btn"
+                onClick={() => handleSaveExam()}
+                disabled={saveState.loading || publishToggleLoading}
               >
-                Previzualizare
+                <Save size={17} aria-hidden />
+                {saveState.loading ? 'Se salvează...' : 'Salvează'}
               </button>
-              {canMutateInAdminArea ? (
-                <button
-                  type="button"
-                  className="admin-tests-primary-btn"
-                  onClick={() => handleSaveExam()}
-                  disabled={saveState.loading || publishToggleLoading}
-                >
-                  {saveState.loading ? 'Se salvează…' : 'Salvează'}
-                </button>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         </header>
 
-        <nav className="admin-exams-builder-tabs-rail" aria-label="Secțiuni builder examen">
-          <div className="admin-exams-builder-tabs">
-            {EXAM_BUILDER_SECTIONS.map((section, idx) => (
-              <button
-                key={section.id}
-                type="button"
-                className={activeSection === section.id ? 'is-active' : ''}
-                onClick={() => setActiveSection(section.id)}
-              >
-                <span className="admin-exams-builder-tab-num" aria-hidden>
-                  {idx + 1}
-                </span>
-                {section.label}
-              </button>
-            ))}
+        <nav
+          className="admin-exams-builder-workflow"
+          aria-label="Pași builder examen"
+        >
+          <div className="admin-exams-builder-rail-block">
+            <span className="admin-exams-builder-rail-label">Workflow</span>
+            <div className="admin-exams-builder-tabs-rail">
+              <div className="admin-exams-builder-tabs">
+                {EXAM_BUILDER_SECTIONS.map((section, idx) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={activeSection === section.id ? 'is-active' : ''}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <span className="admin-exams-builder-tab-num" aria-hidden>
+                      {idx + 1}
+                    </span>
+                    <span className="admin-exams-builder-tab-icon" aria-hidden>
+                      {renderBuilderSectionIcon(section.id)}
+                    </span>
+                    <span className="admin-exams-builder-tab-text">
+                      <strong>{section.label}</strong>
+                      <small>{activeSection === section.id ? 'Secțiune activă' : 'Deschide secțiunea'}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </nav>
 
-        <section className="admin-exams-builder-summary admin-exams-builder-strip va-card-shell" aria-label="Rezumat rapid examen">
-          <div className="admin-exams-builder-strip-inner">
-            <span className="admin-exams-builder-strip-item">
-              <span className="admin-exams-modern-summary-label">Status</span>
-              <strong>{published ? 'Publicat' : 'Draft'}</strong>
-            </span>
-            <span className="admin-exams-builder-strip-sep" aria-hidden />
-            <span className="admin-exams-builder-strip-item">
-              <span className="admin-exams-modern-summary-label">Întrebări</span>
-              <strong>{Number(examSettings.questionCount || 0)}</strong>
-            </span>
-            <span className="admin-exams-builder-strip-sep" aria-hidden />
-            <span className="admin-exams-builder-strip-item">
-              <span className="admin-exams-modern-summary-label">Acces</span>
-              <strong>{examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi` : 'Toți'}</strong>
-            </span>
-            <span className="admin-exams-builder-strip-sep" aria-hidden />
-            <span className="admin-exams-builder-strip-item">
-              <span className="admin-exams-modern-summary-label">Review</span>
-              <strong>{examSettings.manualReview ? 'Manual' : 'Auto'}</strong>
-            </span>
-          </div>
-          {saveState.message ? (
-            <p className={`admin-exams-save-message is-${saveState.type}`}>{saveState.message}</p>
-          ) : null}
-        </section>
-
         <main className="admin-exams-builder-main">
-          <div className="admin-exams-builder-canvas">
-            <div className="admin-exams-builder-stage">{sectionBody}</div>
-            <aside className="admin-exams-builder-sidecar">
-              <div
-                className="admin-exams-builder-sidecar-preview"
-                style={{
-                  '--admin-exams-builder-sidecar-accent': builderHeroAccent,
-                }}
-              >
-                <span className="admin-exams-builder-sidecar-kicker">{builderSidecarConfig.eyebrow}</span>
-                <strong>{builderSidecarConfig.title}</strong>
-                <p>{builderSidecarConfig.description}</p>
-              </div>
-              <div className="admin-exams-builder-sidecar-card">
-                <div className="admin-exams-builder-sidecar-card-head">
-                  <span className="admin-exams-modern-summary-label">Rezumat curent</span>
+          <div className="admin-exams-builder-board">
+            <aside className="admin-exams-builder-rail" aria-label="Rezumat builder examen">
+              <section className="admin-exams-builder-summary" aria-label="Rezumat rapid examen">
+                <div className="admin-exams-builder-summary-head">
+                  <span className="admin-exams-builder-rail-label">Rezumat</span>
                   <span className="admin-exams-content-summary-chip">{activeBuilderSection?.label || 'Builder'}</span>
                 </div>
-                <div className="admin-exams-builder-sidecar-facts">
-                  {builderSidecarConfig.facts.map((fact) => (
-                    <div key={fact.label} className="admin-exams-builder-sidecar-fact">
-                      <span>{fact.label}</span>
-                      <strong>{fact.value}</strong>
-                    </div>
-                  ))}
+                <div className="admin-exams-builder-summary-card">
+                  <span>Status</span>
+                  <strong>{published ? 'Publicat' : 'Draft'}</strong>
                 </div>
-              </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Întrebări</span>
+                  <strong>{Number(examSettings.questionCount || 0)}</strong>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Acces</span>
+                  <strong>{examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi` : 'Toți'}</strong>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Review</span>
+                  <strong>{examSettings.manualReview ? 'Manual' : 'Auto'}</strong>
+                </div>
+                {builderSectionFacts.length > 0 ? (
+                  <>
+                    <div className="admin-exams-builder-summary-divider" aria-hidden />
+                    <span className="admin-exams-builder-rail-label">Secțiune activă</span>
+                    {builderSectionFacts.map((fact) => (
+                      <div key={fact.label} className="admin-exams-builder-summary-card">
+                        <span>{fact.label}</span>
+                        <strong>{fact.value}</strong>
+                      </div>
+                    ))}
+                  </>
+                ) : null}
+              </section>
             </aside>
+
+            <section
+              className="admin-exams-builder-workspace"
+              aria-label={activeBuilderSection?.label ? `Secțiune ${activeBuilderSection.label}` : 'Conținut builder examen'}
+            >
+              {saveState.message ? (
+                <p className={`admin-exams-save-message is-${saveState.type}`}>{saveState.message}</p>
+              ) : null}
+              <div className="admin-exams-builder-stage">{sectionBody}</div>
+            </section>
           </div>
         </main>
       </div>
@@ -1101,25 +1084,25 @@ export default function AdminExamsPage() {
             <div className="admin-exams-delete-confirm-hero">
               <span className="admin-exams-delete-confirm-icon" aria-hidden="true">!</span>
               <div>
-                <span className="admin-exams-delete-confirm-kicker">Actiune ireversibila</span>
-                <h3>Stergi examenul?</h3>
+                <span className="admin-exams-delete-confirm-kicker">Acțiune ireversibilă</span>
+                <h3>Ștergi examenul?</h3>
               </div>
             </div>
             <p className="admin-exams-delete-confirm-lead">
               <strong>{deleteConfirmTitle}</strong> va fi eliminat definitiv impreuna cu istoricul lui.
             </p>
             <p className="admin-exams-delete-confirm-hint">
-              Actiunea nu poate fi anulata. Daca vrei doar sa il ascunzi, arhiveaza-l.
+              Acțiunea nu poate fi anulată. Dacă vrei doar să îl ascunzi, arhivează-l.
             </p>
             <div className="admin-exams-delete-confirm-note">
-              Se vor sterge si datele aferente rezultatelor, daca exista.
+              Se vor șterge și datele aferente rezultatelor, dacă există.
             </div>
             <div className="admin-exams-delete-confirm-actions">
               <button type="button" className="admin-exams-list-btn-secondary" disabled={listActionId} onClick={() => setDeleteConfirmExam(null)}>
                 Anuleaza
               </button>
               <button type="button" className="admin-exams-list-btn-danger-solid" disabled={listActionId} onClick={handleConfirmDeleteExam}>
-                {listActionId ? 'Se sterge...' : 'Da, sterge'}
+                {listActionId ? 'Se șterge...' : 'Da, șterge'}
               </button>
             </div>
           </div>
@@ -1130,7 +1113,7 @@ export default function AdminExamsPage() {
           <div className="admin-exams-create-modal" onClick={(e) => e.stopPropagation()}>
             <aside className="admin-exams-create-modal-aside">
               <span className="admin-exams-create-modal-kicker">Pasul 1</span>
-              <h3>Creeaza examen</h3>
+              <h3>Creează examen</h3>
               <p>Stabilesti numele si descrierea. Restul se construieste imediat dupa.</p>
               <div className="admin-exams-create-modal-aside-stats">
                 <div className="admin-exams-create-modal-aside-stat">
@@ -1165,15 +1148,15 @@ export default function AdminExamsPage() {
             <div className="admin-exams-students-modal-head">
               <div>
                 <span className="admin-exams-content-subtitle">Alegi cui ii deschizi examenul.</span>
-                <h3>Selecteaza elevi</h3>
+                <h3>Selectează elevi</h3>
               </div>
               <span className="admin-exams-content-summary-chip">{studentsDraftCount} selectati</span>
             </div>
-            <input type="text" placeholder="Cauta dupa nume sau email..." value={studentsSearch} onChange={(e) => setStudentsSearch(e.target.value)} />
+            <input type="text" placeholder="Caută după nume sau email..." value={studentsSearch} onChange={(e) => setStudentsSearch(e.target.value)} />
             {studentsError ? <p className="admin-exams-create-modal-error">{studentsError}</p> : null}
             <div className="admin-exams-students-list">
               {studentsLoading ? (
-                <p>Se incarca elevii...</p>
+                <p>Se încarcă elevii...</p>
               ) : (
                 studentsList.filter((student) => {
                   const query = studentsSearch.trim().toLowerCase();
@@ -1197,11 +1180,11 @@ export default function AdminExamsPage() {
       ) : null}
       {showContentModal ? (
         <div className="admin-exams-create-modal-overlay" onClick={() => setShowContentModal(false)}>
-          <div className="admin-exams-content-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-exams-content-modal admin-exams-content-picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-exams-content-modal-head">
               <div>
-                <span className="admin-exams-content-subtitle">Construiesti sursa de intrebari pentru examen.</span>
-                <h3>Selecteaza intrebari</h3>
+                <span className="admin-exams-content-subtitle">Construiești sursa de întrebări pentru examen.</span>
+                <h3>Selectează întrebări</h3>
               </div>
               <div className="admin-exams-content-mode-option">
                 <span>Mod activ</span>
@@ -1210,42 +1193,42 @@ export default function AdminExamsPage() {
             </div>
             <div className="admin-exams-content-summary-row">
               <span className="admin-exams-content-summary-chip">{contentSelectionCount} selectate</span>
-              <span className="admin-exams-content-summary-chip">{Number(examSettings.questionCount || 0)} intrebari in examen</span>
-              <span className="admin-exams-content-summary-chip">{contentOnlyWithQuestions ? 'Doar cu intrebari' : 'Toate bancile'}</span>
+              <span className="admin-exams-content-summary-chip">{Number(examSettings.questionCount || 0)} întrebări în examen</span>
+              <span className="admin-exams-content-summary-chip">{contentOnlyWithQuestions ? 'Doar cu întrebări' : 'Toate băncile'}</span>
             </div>
             <div className="admin-exams-content-toolbar">
-              <input type="search" placeholder="Cauta banca sau tag..." value={contentSearch} onChange={(e) => setContentSearch(e.target.value)} />
+              <input type="search" placeholder="Caută bancă sau tag..." value={contentSearch} onChange={(e) => setContentSearch(e.target.value)} />
               <select value={contentSort} onChange={(e) => setContentSort(e.target.value)}>
-                <option value="questions_desc">Cele mai multe intrebari</option>
-                <option value="questions_asc">Cele mai putine intrebari</option>
+                <option value="questions_desc">Cele mai multe întrebări</option>
+                <option value="questions_asc">Cele mai puține întrebări</option>
                 <option value="title_asc">Titlu A-Z</option>
                 <option value="title_desc">Titlu Z-A</option>
               </select>
               <label className="admin-exams-modern-inline-check">
-                <span>Doar banci cu intrebari</span>
+                <span>Doar bănci cu întrebări</span>
                 <input type="checkbox" checked={contentOnlyWithQuestions} onChange={(e) => setContentOnlyWithQuestions(e.target.checked)} />
               </label>
             </div>
             <div className="admin-exams-content-meta">
-              <span>{filteredContentBanks.length} banci filtrate</span>
-              <span>{contentSelectionCount} selectie curenta</span>
+              <span>{filteredContentBanks.length} bănci filtrate</span>
+              <span>{contentSelectionCount} selecție curentă</span>
             </div>
-            <div className="admin-tests-modal-grid">
+            <div className="admin-tests-modal-grid admin-exams-content-settings-grid">
               <label>
-                Mod selectie
+                Mod selecție
                 <select value={examSettings.selectionMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, selectionMode: e.target.value }))}>
                   <option value="folders">Foldere</option>
                   <option value="tags">Tag-uri</option>
                 </select>
               </label>
               <label>
-                Numar intrebari
+                Număr întrebări
                 <input type="number" min={1} max={200} value={examSettings.questionCount} onChange={(e) => setExamSettings((prev) => ({ ...prev, questionCount: Math.max(1, Number(e.target.value || 1)) }))} />
               </label>
             </div>
             {contentBanksError ? <p className="admin-exams-create-modal-error">{contentBanksError}</p> : null}
             {contentBanksLoading ? (
-              <p>Se incarca bancile...</p>
+              <p>Se încarcă băncile...</p>
             ) : (
               <div className="admin-exams-content-banks">
                 {examSettings.selectionMode === 'folders'
@@ -1264,9 +1247,9 @@ export default function AdminExamsPage() {
                     >
                       <div className="admin-exams-content-bank-main">
                         <strong>{bank.title}</strong>
-                        <p>{bank.description || 'Fara descriere'}</p>
+                        <p>{bank.description || 'Fără descriere'}</p>
                       </div>
-                      <span className="admin-exams-content-bank-count">{bank.questions_count || 0} intrebari</span>
+                      <span className="admin-exams-content-bank-count">{bank.questions_count || 0} disponibile</span>
                     </button>
                   ))
                   : questionTags.map((tag) => (
@@ -1283,16 +1266,16 @@ export default function AdminExamsPage() {
                     >
                       <div className="admin-exams-content-bank-main">
                         <strong>{tag}</strong>
-                        <p>Tag de selectie</p>
+                        <p>Tag de selecție</p>
                       </div>
                     </button>
                   ))}
               </div>
             )}
             <div className="admin-exams-create-modal-actions admin-exams-content-modal-actions">
-              <button type="button" className="cancel" onClick={() => setShowContentModal(false)}>Inchide</button>
+              <button type="button" className="cancel" onClick={() => setShowContentModal(false)}>Închide</button>
               <button type="button" className="confirm" onClick={handleConfirmContentSelection} disabled={contentConfirmLoading}>
-                {contentConfirmLoading ? 'Se salveaza...' : 'Confirma selectia'}
+                {contentConfirmLoading ? 'Se salvează...' : 'Confirmă selecția'}
               </button>
             </div>
           </div>
@@ -1308,18 +1291,18 @@ export default function AdminExamsPage() {
               </div>
               {previewData ? (
                 <div className="admin-exams-content-mode-option">
-                  <span>Intrebari</span>
+                  <span>Întrebări</span>
                   <strong>{previewQuestionCount}</strong>
                 </div>
               ) : null}
             </div>
             {previewLoading ? (
-              <p>Se incarca previzualizarea...</p>
+              <p>Se încarcă previzualizarea...</p>
             ) : previewError ? (
               <p className="admin-exams-create-modal-error">{previewError}</p>
             ) : previewData ? (
               <div className="admin-exams-preview-body">
-                <h4>{previewData.title || 'Examen fara titlu'}</h4>
+                <h4>{previewData.title || 'Examen fără titlu'}</h4>
                 {previewData.description ? <p>{previewData.description}</p> : null}
                 {previewData.instructions ? (
                   <div className="admin-exams-preview-instructions">
@@ -1341,7 +1324,7 @@ export default function AdminExamsPage() {
                           {question.options.map((option, optionIndex) => <li key={`${question.id || index}-${optionIndex}`}>{option}</li>)}
                         </ul>
                       ) : (
-                        <small>Raspuns deschis</small>
+                        <small>Răspuns deschis</small>
                       )}
                     </article>
                   ))}
@@ -1351,7 +1334,7 @@ export default function AdminExamsPage() {
               <p>Nu exista date de previzualizare.</p>
             )}
             <div className="admin-exams-create-modal-actions admin-exams-content-modal-actions">
-              <button type="button" className="cancel" onClick={() => setShowPreviewModal(false)}>Inchide</button>
+              <button type="button" className="cancel" onClick={() => setShowPreviewModal(false)}>Închide</button>
             </div>
           </div>
         </div>

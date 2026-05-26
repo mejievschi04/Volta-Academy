@@ -20,7 +20,7 @@ const CourseCreationPage = () => {
 
 	useEffect(() => {
 		if (!canMutateInAdminArea) {
-			navigate('/admin/content?tab=courses', { replace: true });
+			navigate('/admin/content?tab=courses&view=maps', { replace: true });
 		}
 	}, [canMutateInAdminArea, navigate]);
 

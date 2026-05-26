@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
+import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 
 const STATUS_BADGES = {
 	published: { label: 'Publicat', color: '#10b981' },
@@ -192,9 +193,12 @@ const EventsPage = () => {
 											{event.short_description}
 										</p>
 									)}
-									<p style={{ color: 'var(--va-muted)', marginBottom: '1rem', lineHeight: '1.6' }}>
-										{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
-									</p>
+									{event.description ? (
+										<EventDescriptionExpandable
+											text={event.description}
+											className="events-card-desc"
+										/>
+									) : null}
 									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
 										<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
 											<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
@@ -380,9 +384,12 @@ const EventsPage = () => {
 													{event.short_description}
 												</p>
 											)}
-											<p style={{ color: 'var(--va-muted)', marginBottom: '1rem', lineHeight: '1.6' }}>
-												{event.description?.substring(0, 120)}{event.description?.length > 120 ? '...' : ''}
-											</p>
+											{event.description ? (
+												<EventDescriptionExpandable
+													text={event.description}
+													className="events-card-desc"
+												/>
+											) : null}
 											<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
 												<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
 													<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>

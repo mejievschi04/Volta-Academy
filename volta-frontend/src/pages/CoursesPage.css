@@ -700,16 +700,19 @@
 	stroke: var(--map-accent);
 }
 
-/* Mapă — embed CourseShowcaseCard (aceleași dimensiuni ca .admin-course-map-showcase-wrap) */
-.course-map-card.course-map-card--showcase-wrap {
+/* Mapă student — fără „card” în numele clasei (tema globală [class*="card"] nu mai aplică fundal) */
+.course-map-showcase-tile {
 	position: relative;
-	background: transparent;
-	border: none;
-	box-shadow: none;
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
 	padding: 0;
+	margin: 0;
 	cursor: default;
-	min-height: 382px;
-	height: 100%;
+	height: var(--course-map-tile-hit-height, 430px);
+	min-height: var(--course-map-tile-hit-height, 430px);
+	max-height: var(--course-map-tile-hit-height, 430px);
 	overflow: visible;
 	transition: none;
 	display: flex;
@@ -720,20 +723,44 @@
 	margin-inline: 0;
 }
 
-.course-map-card.course-map-card--showcase-wrap::before {
+.course-map-showcase-tile::before {
 	display: none !important;
+	content: none !important;
 }
 
-.course-map-card.course-map-card--showcase-wrap:hover {
+.course-map-showcase-tile:hover {
 	transform: none;
-	border-color: transparent;
-	box-shadow: none;
+	border: none !important;
+	box-shadow: none !important;
 }
 
-.course-map-card--showcase-wrap .course-map-folder-tile {
+.course-map-showcase-tile .course-map-folder-tile {
 	width: 100%;
 	max-width: 390px;
 	height: 100%;
+}
+
+/* Fără „card” în className — altfel tema globală colorează hit-ul */
+.courses-page-map-tile-showcase,
+.courses-page-map-tile-showcase .course-map-folder-tile__hit {
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.courses-page-map-tile-showcase .course-map-folder-tile__hit:hover,
+.courses-page-map-tile-showcase .course-map-folder-tile__hit:focus-visible {
+	background: none !important;
+	background-color: transparent !important;
+}
+
+/* Alias vechi (dacă rămâne markup vechi în cache) */
+.course-map-card.course-map-card--showcase-wrap {
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
 }
 
 /* Tema light — mape (card clasic, nu showcase) */

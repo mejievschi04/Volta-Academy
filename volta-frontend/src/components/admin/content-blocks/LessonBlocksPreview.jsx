@@ -1,6 +1,7 @@
 import React from 'react';
 import { toImageUrl } from '../../../utils/imageUrl';
 import { normalizeRichTextMediaHtml } from '../../../utils/richTextContent';
+import { resolveContentBlockSource } from '../../../utils/lessonContent';
 
 const normalizeYouTubeEmbed = (url) => {
 	if (!url) return null;
@@ -68,7 +69,7 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 				const label = `${idx + 1}. ${b.type || 'block'}`;
 
 				if (b.type === 'text') {
-					const html = normalizeRichTextMediaHtml(b.source || '');
+					const html = normalizeRichTextMediaHtml(resolveContentBlockSource(b));
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
 							<div
@@ -80,8 +81,9 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 				}
 
 				if (b.type === 'video') {
-					const yt = normalizeYouTubeEmbed(b.source || '');
-					const vimeo = normalizeVimeoEmbed(b.source || '');
+					const videoSrc = resolveContentBlockSource(b);
+					const yt = normalizeYouTubeEmbed(videoSrc);
+					const vimeo = normalizeVimeoEmbed(videoSrc);
 					const embed = yt || vimeo;
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
@@ -97,7 +99,7 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 									/>
 								</div>
 							) : (
-								<a href={b.source || '#'} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+								<a href={videoSrc || '#'} target="_blank" rel="noreferrer" className="lms-btn-secondary">
 									Deschide video
 								</a>
 							)}

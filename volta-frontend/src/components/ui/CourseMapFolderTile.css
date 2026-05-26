@@ -1,21 +1,26 @@
 .course-map-folder-tile {
 	width: 100%;
 	max-width: 390px;
+	height: 100%;
 	margin-inline: auto;
 }
 
 .course-map-folder-tile__hit {
 	position: relative;
 	width: 100%;
-	min-height: 382px;
-	display: grid;
-	justify-items: center;
-	align-content: start;
+	height: var(--course-map-tile-hit-height, 430px);
+	min-height: var(--course-map-tile-hit-height, 430px);
+	max-height: var(--course-map-tile-hit-height, 430px);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
 	gap: 12px;
 	box-sizing: border-box;
 	padding: 10px 6px 6px;
 	border: 0;
-	background: transparent;
+	background: none;
+	background-color: transparent;
 	color: var(--text-primary);
 	text-align: center;
 	cursor: pointer;
@@ -36,6 +41,7 @@
 	position: relative;
 	width: min(330px, 100%);
 	height: 282px;
+	flex-shrink: 0;
 	display: grid;
 	place-items: center;
 	overflow: visible;
@@ -50,9 +56,14 @@
 	overflow: visible;
 }
 
-.course-map-folder-tile__hit:hover .rb-folder,
-.course-map-folder-tile__hit:focus-visible .rb-folder {
+.course-map-folder-tile__hit:hover .course-map-folder-tile__visual,
+.course-map-folder-tile__hit:focus-visible .course-map-folder-tile__visual {
 	transform: translateY(-8px);
+}
+
+.course-map-folder-tile__hit:hover .rb-folder--has-cover,
+.course-map-folder-tile__hit:focus-visible .rb-folder--has-cover {
+	transform: none;
 }
 
 .course-map-folder-tile__hit:hover .rb-paper,
@@ -60,14 +71,25 @@
 	transform: translate(-50%, 0%);
 }
 
-.course-map-folder-tile__hit:hover .rb-folder__front,
-.course-map-folder-tile__hit:focus-visible .rb-folder__front {
+.course-map-folder-tile__hit:hover .rb-folder:not(.rb-folder--has-cover) .rb-folder__front,
+.course-map-folder-tile__hit:focus-visible .rb-folder:not(.rb-folder--has-cover) .rb-folder__front {
 	transform: skew(15deg) scaleY(0.6);
 }
 
-.course-map-folder-tile__hit:hover .right,
-.course-map-folder-tile__hit:focus-visible .right {
+.course-map-folder-tile__hit:hover .rb-folder:not(.rb-folder--has-cover) .rb-folder__front.right,
+.course-map-folder-tile__hit:focus-visible .rb-folder:not(.rb-folder--has-cover) .rb-folder__front.right {
 	transform: skew(-15deg) scaleY(0.6);
+}
+
+/* Mape cu copertă: capac 3D + hârtii înăuntru */
+.course-map-folder-tile__hit:hover .rb-folder--has-cover .rb-folder__front--lid,
+.course-map-folder-tile__hit:focus-visible .rb-folder--has-cover .rb-folder__front--lid {
+	transform: rotateX(-50deg);
+}
+
+.course-map-folder-tile__hit:hover .rb-folder--has-cover .rb-paper,
+.course-map-folder-tile__hit:focus-visible .rb-folder--has-cover .rb-paper {
+	transform: translate(-50%, 10%);
 }
 
 .course-map-folder-tile__paper-value,
@@ -93,15 +115,23 @@
 
 .course-map-folder-tile__meta {
 	width: min(300px, 100%);
-	display: grid;
-	justify-items: center;
+	flex: 1 1 auto;
+	min-height: 120px;
+	max-height: 120px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
 	gap: 6px;
 }
 
 .course-map-folder-tile__title {
 	width: 100%;
-	min-height: 2.35em;
+	height: 2.48em;
+	min-height: 2.48em;
+	max-height: 2.48em;
 	margin: 0;
+	flex-shrink: 0;
 	display: -webkit-box;
 	overflow: hidden;
 	color: var(--text-primary);
@@ -115,8 +145,11 @@
 
 .course-map-folder-tile__subtitle {
 	width: 100%;
-	min-height: 1.35em;
+	height: 2.7em;
+	min-height: 2.7em;
+	max-height: 2.7em;
 	margin: 0;
+	flex-shrink: 0;
 	display: -webkit-box;
 	overflow: hidden;
 	color: var(--text-secondary);
@@ -151,9 +184,15 @@
 .course-map-folder-tile__progress {
 	width: min(190px, 100%);
 	height: 5px;
+	min-height: 5px;
+	flex-shrink: 0;
 	overflow: hidden;
 	border-radius: 999px;
 	background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.course-map-folder-tile__progress--empty {
+	visibility: hidden;
 }
 
 .course-map-folder-tile__progress span {
@@ -168,6 +207,8 @@
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
+	min-height: 1.25em;
+	flex-shrink: 0;
 	color: var(--text-tertiary);
 	font-size: 0.84rem;
 	font-weight: 750;
@@ -206,7 +247,7 @@
 	}
 
 	.course-map-folder-tile__hit {
-		min-height: 350px;
+		--course-map-tile-hit-height: 398px;
 	}
 
 	.course-map-folder-tile__stage {

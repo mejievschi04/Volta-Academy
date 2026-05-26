@@ -16,13 +16,15 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { ArrowLeft, Info } from '@phosphor-icons/react';
+import { DragGripIcon } from '../components/common/DragGripIcon';
 import { courseMapsService, adminService } from '../services/api';
-import { courseCoverSrc, toImageUrl } from '../utils/imageUrl';
+import { courseCoverSrc } from '../utils/imageUrl';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-card';
 import { hexToHslSpace } from '../lib/hexToHsl';
+import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CourseMapPage.css';
 
 /**
@@ -90,7 +92,7 @@ function SortableCourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHs
 				if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
 			}}
 		>
-			<GripVertical size={14} aria-hidden />
+			<DragGripIcon size={14} />
 		</span>
 	);
 	return (
@@ -199,7 +201,14 @@ const CourseMapPage = () => {
 				const data = isAdmin
 					? await adminService.getCourseMap(mapId)
 					: await courseMapsService.getMap(mapId);
-				if (!cancelled) setMap(data);
+				if (!cancelled) {
+					if (data && !isAdmin && !isStudentVisibleMap(data)) {
+						setMap(null);
+						setError('Mapa nu a fost găsită.');
+					} else {
+						setMap(data);
+					}
+				}
 			} catch (err) {
 				if (!cancelled) setError(err.response?.status === 404 ? 'Mapa nu a fost găsită.' : 'Nu s-a putut încărca mapa.');
 			} finally {
@@ -227,9 +236,7 @@ const CourseMapPage = () => {
 				<div className="course-map-page-error">
 					<p>{error || 'Eroare'}</p>
 					<button type="button" className="course-map-page-btn" onClick={() => navigate(mapsListPath)}>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-							<path d="M19 12H5M12 19l-7-7 7-7"/>
-						</svg>
+						<ArrowLeft size={18} weight="bold" aria-hidden="true" />
 						{mapsListShortLabel}
 					</button>
 				</div>
@@ -242,18 +249,10 @@ const CourseMapPage = () => {
 	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
 	const accent = map.accent_color || '#059669';
 	const mapThemeHsl = hexToHslSpace(accent);
-	const coverSrc = map.cover_image_url ? (toImageUrl(map.cover_image_url) || map.cover_image_url) : null;
-	const headerStyle = coverSrc
-		? {
-			backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${accent} 88%, transparent), rgba(15, 23, 42, 0.88)), url(${coverSrc})`,
-			backgroundSize: 'cover',
-			backgroundPosition: 'center',
-			color: '#f8fafc',
-		}
-		: {
-			background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #0f172a))`,
-			color: '#f8fafc',
-		};
+	const headerStyle = {
+		background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #0f172a))`,
+		color: '#f8fafc',
+	};
 
 	return (
 		<div className="course-map-page">
@@ -267,15 +266,15 @@ const CourseMapPage = () => {
 							aria-label={mapsListAriaLabel}
 							title={mapsListShortLabel}
 						>
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-								<path d="M19 12H5M12 19l-7-7 7-7" />
-							</svg>
+							<ArrowLeft size={20} weight="bold" aria-hidden="true" />
 							<span className="course-map-page-back-label">Înapoi</span>
 						</button>
 						<div className="course-map-page-title-block">
 							<div className="course-map-page-title-row">
 								<h1 className="course-map-page-title">{name}</h1>
-								{isVirtualMap && <span className="course-map-page-virtual-badge">Mapă virtuală</span>}
+								{isVirtualMap && isAdmin ? (
+									<span className="course-map-page-virtual-badge">Mapă virtuală</span>
+								) : null}
 							</div>
 							{description && <p className="course-map-page-description">{description}</p>}
 						</div>
@@ -286,9 +285,7 @@ const CourseMapPage = () => {
 			<div className="course-map-page-content">
 				{isAdmin && displayCourses && displayCourses.length > 0 && (
 					<p className="course-map-page-dnd-hint" role="note">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-							<path d="M12 5v14M5 12h14" strokeLinecap="round" />
-						</svg>
+						<Info size={18} weight="bold" aria-hidden />
 						<span>
 							Trage cursurile din <strong>banda din stânga</strong> (nu acoperi coperta). Poți{' '}
 							<strong>adăuga sau schimba imaginea</strong> din zona copertei pe fiecare card.
@@ -329,9 +326,7 @@ const CourseMapPage = () => {
 					<div className="course-map-page-empty">
 						<p>Nu există cursuri în această mapă.</p>
 						<button type="button" className="course-map-page-btn" onClick={() => navigate(mapsListPath)}>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-								<path d="M19 12H5M12 19l-7-7 7-7"/>
-							</svg>
+							<ArrowLeft size={18} weight="bold" aria-hidden="true" />
 							{mapsListShortLabel}
 						</button>
 					</div>

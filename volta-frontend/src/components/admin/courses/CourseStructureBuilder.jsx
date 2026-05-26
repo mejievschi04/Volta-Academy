@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { DragGripIcon } from '../../common/DragGripIcon';
 import {
 	DndContext,
 	pointerWithin,
@@ -96,7 +97,7 @@ const ModuleCard = ({
 					tabIndex={0}
 					aria-label="Trage pentru reordonare"
 				>
-					<span className="admin-drag-handle-icon" aria-hidden>≡</span>
+					<DragGripIcon size={14} className="admin-drag-handle-icon" />
 				</div>
 				<div className="admin-module-card-info">
 					<h4 className="admin-module-card-title">
@@ -271,7 +272,7 @@ const LessonItem = ({
 				aria-label="Reordonare"
 				title="Trage pentru reordonare"
 			>
-				<span className="admin-drag-handle-icon" aria-hidden>≡</span>
+				<DragGripIcon size={14} className="admin-drag-handle-icon" />
 			</span>
 			<span className="admin-lesson-item-number">{index + 1}</span>
 			<button

@@ -27,6 +27,7 @@ const routePrefetchers = [
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
 	{ prefix: '/library', fn: () => import('../pages/LibraryPage') },
 	{ prefix: '/settings', fn: () => import('../pages/StudentSettingsPage') },
+	{ prefix: '/profile/activity', fn: () => import('../pages/StudentActivityPage') },
 	{ prefix: '/profile', fn: () => import('../pages/ProfilePage') },
 	{ prefix: '/achievements', fn: () => import('../pages/AchievementsPage') },
 	{ prefix: '/exam-results', fn: () => import('../pages/ExamResultsPage') },

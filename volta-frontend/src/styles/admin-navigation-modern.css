@@ -449,7 +449,8 @@
 .modern-nav-item.is-active svg,
 .va-nav-btn.active svg,
 .va-nav-btn.is-active svg {
-	color: var(--bg-primary);
+	color: currentColor;
+	stroke: currentColor;
 }
 
 /* Light theme: active icon SVG must be dark (not bg-primary/white) */
@@ -459,16 +460,14 @@
 [data-theme="light"] .va-nav-btn.is-active svg {
 	color: var(--text-inverse) !important;
 	stroke: currentColor !important;
-	fill: none !important;
 }
 
-/* Ensure outlined icons (no filled paths) */
+/* Keep Phosphor and legacy SVGs synced with active color */
 [data-theme="light"] .modern-nav-item.active svg *,
 [data-theme="light"] .modern-nav-item.is-active svg *,
 [data-theme="light"] .va-nav-btn.active svg *,
 [data-theme="light"] .va-nav-btn.is-active svg * {
 	stroke: currentColor !important;
-	fill: none !important;
 }
 
 .modern-nav-item:hover .modern-nav-item-icon,
@@ -830,6 +829,7 @@
 .va-topnav-btn.active .va-topnav-icon,
 .va-topnav-btn.is-active .va-topnav-icon {
 	opacity: 1;
+	color: currentColor;
 }
 
 /* Light theme - dark icons for better contrast */
@@ -1095,34 +1095,9 @@
 /* ============================================
    7. ADMIN TOP NAV CONTROL GROUPS
    ============================================ */
-.admin-topnav-control {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-2) var(--space-4);
-	background: transparent;
-	border: none;
-	border-radius: 0px;
-	transition: all var(--transition-base);
-	box-shadow: none;
-	width: 127px;
-	height: 64px;
-	flex-shrink: 0;
-}
+/* .admin-topnav-control + .admin-view-mode-btn → admin-view-switcher.css */
 
-.admin-topnav-control:hover {
-	background: transparent;
-	box-shadow: none;
-}
-
-.admin-topnav-control-label {
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-tertiary);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
+/* Legacy toggle — păstrat pentru AdminExamsPage header switch */
 .admin-view-switcher {
 	width: 48px;
 	height: 24px;

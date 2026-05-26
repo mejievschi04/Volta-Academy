@@ -90,7 +90,6 @@ class ProfileController extends Controller
                 return ($progress && $progress->completed_at) ? $course->modules->count() : 0;
             });
             $completedQuizzes = $passedTestResults->count();
-            $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
 
             // Get courses in progress
             $coursesInProgress = [];
@@ -122,11 +121,18 @@ class ProfileController extends Controller
                     ];
                 }
             }
+
+            $completedCoursesCount = count($coursesCompleted);
+            $enrolledCoursesCount = $courseProgress->count();
+            $progressPercentage = $enrolledCoursesCount > 0
+                ? round(($completedCoursesCount / $enrolledCoursesCount) * 100)
+                : 0;
             
             return [
                 'totalCourses' => $totalCourses,
                 'totalModules' => $totalModules,
                 'completedModules' => $completedModules,
+                'completedCourses' => $completedCoursesCount,
                 'completedQuizzes' => $completedQuizzes,
                 'progressPercentage' => $progressPercentage,
                 'coursesInProgress' => $coursesInProgress,
@@ -155,7 +161,7 @@ class ProfileController extends Controller
                 'completedModules' => $cachedData['completedModules'],
                 'completedQuizzes' => $cachedData['completedQuizzes'],
                 'inProgressCourses' => count($cachedData['coursesInProgress']),
-                'completedCourses' => count($cachedData['coursesCompleted']),
+                'completedCourses' => $cachedData['completedCourses'] ?? count($cachedData['coursesCompleted']),
                 'progressPercentage' => $cachedData['progressPercentage'],
             ],
             'coursesInProgress' => $cachedData['coursesInProgress'],

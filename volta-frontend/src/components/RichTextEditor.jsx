@@ -1,5 +1,30 @@
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import {
+	CaretLeft,
+	CaretRight,
+	ChatCircleText,
+	Circle,
+	ClipboardText,
+	Code,
+	Eraser,
+	FilePdf,
+	Image,
+	Link,
+	ListBullets,
+	ListNumbers,
+	PaintBucket,
+	Palette,
+	TextAlignCenter,
+	TextAlignLeft,
+	TextAlignRight,
+	TextB,
+	TextItalic,
+	TextStrikethrough,
+	TextT,
+	TextUnderline,
+	VideoCamera,
+} from '@phosphor-icons/react';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { estimatePdfContentPreviewHeight } from '../utils/pdfTextExtractor';
@@ -36,55 +61,55 @@ const RTE_CALLOUT_TYPES = [
 const RteIcon = ({ name }) => {
 	switch (name) {
 		case 'expand':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 7l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <CaretRight size={18} weight="bold" aria-hidden="true" />;
 		case 'collapse':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 7l-5 5 5 5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <CaretLeft size={18} weight="bold" aria-hidden="true" />;
 		case 'h1':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6v12M10 6v12M4 12h6M16 9l2-2v10" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextT size={18} weight="bold" aria-hidden="true" />;
 		case 'h2':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6v12M9.5 6v12M3.5 12h6M14.5 10a2.5 2.5 0 0 1 5 0c0 2-2.5 2.6-4.3 4.7h4.3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextT size={18} weight="regular" aria-hidden="true" />;
 		case 'paragraph':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h9a4 4 0 0 1 0 8H9V7m4 0v12" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextT size={18} weight="duotone" aria-hidden="true" />;
 		case 'bold':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextB size={18} weight="bold" aria-hidden="true" />;
 		case 'italic':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5M5 19h5M14 5L10 19" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextItalic size={18} weight="bold" aria-hidden="true" />;
 		case 'underline':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v6a5 5 0 0 0 10 0V5M5 19h14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextUnderline size={18} weight="bold" aria-hidden="true" />;
 		case 'strike':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M7 6a4 4 0 0 1 4-2c2 0 4 1 4 3 0 4-8 2-8 6 0 2 2 3 5 3 2 0 4-.7 5-2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <TextStrikethrough size={18} weight="bold" aria-hidden="true" />;
 		case 'list-ul':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="5" cy="7" r="1.2" fill="currentColor" /><circle cx="5" cy="12" r="1.2" fill="currentColor" /><circle cx="5" cy="17" r="1.2" fill="currentColor" /></svg>;
+			return <ListBullets size={18} weight="bold" aria-hidden="true" />;
 		case 'list-ol':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M3.7 7h1.8M3.7 11.7c.3-.5.9-.9 1.5-.9.8 0 1.4.5 1.4 1.2 0 1.2-1.8 1.3-2.8 2.7h2.9M4.2 17h2.1m-1.1-1v2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <ListNumbers size={18} weight="bold" aria-hidden="true" />;
 		case 'align-left':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h10M4 14h16M4 18h10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+			return <TextAlignLeft size={18} weight="bold" aria-hidden="true" />;
 		case 'align-center':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 10h10M4 14h16M7 18h10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+			return <TextAlignCenter size={18} weight="bold" aria-hidden="true" />;
 		case 'align-right':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M4 14h16M10 18h10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+			return <TextAlignRight size={18} weight="bold" aria-hidden="true" />;
 		case 'callout':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5v8A1.5 1.5 0 0 1 17.5 16H10l-4 3v-3H6.5A1.5 1.5 0 0 1 5 14.5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M8.5 9.5h7M8.5 12.5h4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+			return <ChatCircleText size={18} weight="duotone" aria-hidden="true" />;
 		case 'link':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14l4-4M8.5 15.5l-2 2a3 3 0 0 1-4.2-4.2l3-3a3 3 0 0 1 4.2 0M15.5 8.5l2-2a3 3 0 0 1 4.2 4.2l-3 3a3 3 0 0 1-4.2 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <Link size={18} weight="bold" aria-hidden="true" />;
 		case 'image':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="9" cy="10" r="1.4" fill="currentColor" /><path d="M6 17l4-4 3 3 3-2 2 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <Image size={18} weight="duotone" aria-hidden="true" />;
 		case 'video':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M16.5 10l4-2v8l-4-2z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <VideoCamera size={18} weight="duotone" aria-hidden="true" />;
 		case 'code':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4M13 5l-2 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <Code size={18} weight="bold" aria-hidden="true" />;
 		case 'pdf':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M14 3v5h5M9 16h6M9 12h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+			return <FilePdf size={18} weight="duotone" aria-hidden="true" />;
 		case 'text-color':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h14M8 15l4-10 4 10M9.6 11h4.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <Palette size={18} weight="duotone" aria-hidden="true" />;
 		case 'bg-color':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h16M8 6l8 8M11 3l10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <PaintBucket size={18} weight="duotone" aria-hidden="true" />;
 		case 'clear':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h11M9 5h8l-6 8H3zM14 5l5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <Eraser size={18} weight="duotone" aria-hidden="true" />;
 		case 'paste':
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6M10 3h4a1 1 0 0 1 1 1v1h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+			return <ClipboardText size={18} weight="duotone" aria-hidden="true" />;
 		default:
-			return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" fill="currentColor" /></svg>;
+			return <Circle size={8} weight="fill" aria-hidden="true" />;
 	}
 };
 

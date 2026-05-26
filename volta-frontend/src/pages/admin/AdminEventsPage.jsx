@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
 import AdminEventListCard from '../../components/admin/events/AdminEventListCard';
 import AdminEventFormModal from '../../components/admin/events/AdminEventFormModal';
+import AdminEventDetailModal from '../../components/admin/events/AdminEventDetailModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { scrollElementToTop } from '../../utils/scrollToTop';
 
 /** Parse dată/oră din API (YYYY-MM-DD HH:mm sau T) ca timp local, fără UTC shift. */
 function parseWallClockToMs(dateString) {
@@ -33,6 +35,7 @@ const AdminEventsPage = () => {
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
 	const [editingEvent, setEditingEvent] = useState(null);
+	const [viewingEventId, setViewingEventId] = useState(null);
 
 	const [searchQuery, setSearchQuery] = useState('');
 	const [filters, setFilters] = useState({
@@ -49,6 +52,11 @@ const AdminEventsPage = () => {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 	/** Meniu: o singură listă vizibilă — viitoare sau trecute */
 	const [timeScope, setTimeScope] = useState('upcoming');
+	const eventsPanelRef = useRef(null);
+
+	useLayoutEffect(() => {
+		scrollElementToTop(eventsPanelRef.current);
+	}, [timeScope]);
 
 	const fetchEvents = useCallback(async () => {
 		try {
@@ -114,7 +122,12 @@ const AdminEventsPage = () => {
 		return { upcomingEvents: upcoming, pastEvents: past };
 	}, [events, nowTick]);
 
+	const handleView = (event) => {
+		setViewingEventId(event.id);
+	};
+
 	const handleEdit = (event) => {
+		setViewingEventId(null);
 		setEditingEvent(event);
 		setShowModal(true);
 	};
@@ -194,6 +207,7 @@ const AdminEventsPage = () => {
 					event={event}
 					formatDate={formatDate}
 					calculateDuration={calculateDuration}
+					onView={handleView}
 					onEdit={handleEdit}
 					onDelete={handleDelete}
 					readOnly={!canMutateInAdminArea}
@@ -307,6 +321,7 @@ const AdminEventsPage = () => {
 			)}
 
 			<div
+				ref={eventsPanelRef}
 				id="admin-events-panel"
 				role="tabpanel"
 				aria-labelledby={timeScope === 'upcoming' ? 'admin-events-tab-upcoming' : 'admin-events-tab-past'}
@@ -373,6 +388,14 @@ const AdminEventsPage = () => {
 					renderEventGrid(activeList)
 				)}
 			</div>
+
+			<AdminEventDetailModal
+				open={viewingEventId != null}
+				eventId={viewingEventId}
+				onClose={() => setViewingEventId(null)}
+				onEdit={canMutateInAdminArea ? handleEdit : undefined}
+				readOnly={!canMutateInAdminArea}
+			/>
 
 			{showModal && canMutateInAdminArea && (
 				<AdminEventFormModal

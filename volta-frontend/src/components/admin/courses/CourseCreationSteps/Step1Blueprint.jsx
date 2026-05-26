@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { CaretDown, Plus, Ruler, Trash } from '@phosphor-icons/react';
+import { DragGripIcon } from '../../../common/DragGripIcon';
 import {
 	DndContext,
 	closestCenter,
@@ -27,11 +29,11 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onDelete,
 	return (
 		<div ref={setNodeRef} style={style} className={`step1-module-card ${isDragging ? 'step1-dragging' : ''}`}>
 			<div className="step1-module-header">
-				<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare modul">⋮⋮</button>
+				<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare modul">
+					<DragGripIcon size={14} />
+				</button>
 				<button type="button" className="step1-module-toggle" onClick={() => onToggle(module.id)}>
-					<svg className={`step1-module-arrow ${expanded ? 'expanded' : ''}`} width="16" height="16" viewBox="0 0 16 16">
-						<path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" fill="none" />
-					</svg>
+					<CaretDown className={`step1-module-arrow ${expanded ? 'expanded' : ''}`} size={16} weight="bold" aria-hidden />
 				</button>
 				<div className="step1-module-number">{index + 1}</div>
 				<input
@@ -41,7 +43,9 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onDelete,
 					placeholder="Titlu modul"
 					className="step1-module-title-input"
 				/>
-				<button type="button" className="step1-btn-remove" onClick={() => onDelete(module.id)} aria-label="Șterge modul">🗑️</button>
+				<button type="button" className="step1-btn-remove" onClick={() => onDelete(module.id)} aria-label="Șterge modul">
+					<Trash size={14} weight="bold" aria-hidden />
+				</button>
 			</div>
 			{expanded && (
 				<div className="step1-module-content">
@@ -58,7 +62,9 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onDelete,
 					<div className="step1-lessons">
 						<div className="step1-lessons-header">
 							<label>Lecții</label>
-							<button type="button" className="step1-btn-add" onClick={() => onAddLesson(module.id)}>+ Adaugă lecție</button>
+							<button type="button" className="step1-btn-add" onClick={() => onAddLesson(module.id)}>
+								<Plus size={14} weight="bold" aria-hidden /> Adaugă lecție
+							</button>
 						</div>
 						{lessons.length > 0 ? (
 							<SortableLessonList
@@ -83,7 +89,9 @@ function SortableLessonItem({ lesson, index, moduleId, onUpdateLesson, onDeleteL
 	const style = { transform: CSS.Transform.toString(transform), transition };
 	return (
 		<div ref={setNodeRef} style={style} className={`step1-lesson-item ${isDragging ? 'step1-dragging' : ''}`}>
-			<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare lecție">⋮⋮</button>
+			<button type="button" className="step1-drag-handle" {...attributes} {...listeners} aria-label="Reordonare lecție">
+				<DragGripIcon size={14} />
+			</button>
 			<div className="step1-lesson-number">{index + 1}</div>
 			<div className="step1-lesson-content">
 				<input
@@ -94,7 +102,9 @@ function SortableLessonItem({ lesson, index, moduleId, onUpdateLesson, onDeleteL
 					className="step1-lesson-title-input"
 				/>
 			</div>
-			<button type="button" className="step1-btn-remove" onClick={() => onDeleteLesson(moduleId, lesson.id)} aria-label="Șterge lecție">🗑️</button>
+			<button type="button" className="step1-btn-remove" onClick={() => onDeleteLesson(moduleId, lesson.id)} aria-label="Șterge lecție">
+				<Trash size={14} weight="bold" aria-hidden />
+			</button>
 		</div>
 	);
 }
@@ -248,7 +258,9 @@ const Step1Blueprint = ({ data, onUpdate }) => {
 				<div className="step1-modules">
 					{modules.length === 0 ? (
 						<div className="step1-empty">
-							<div className="step1-empty-icon">📐</div>
+							<div className="step1-empty-icon">
+								<Ruler size={22} weight="duotone" aria-hidden />
+							</div>
 							<p>Nu există module încă.</p>
 							<p className="step1-empty-hint">Adaugă primul modul pentru a începe.</p>
 						</div>
@@ -274,7 +286,7 @@ const Step1Blueprint = ({ data, onUpdate }) => {
 					)}
 				</div>
 				<button type="button" className="step1-btn-add-module" onClick={handleAddModule}>
-					+ Adaugă modul
+					<Plus size={14} weight="bold" aria-hidden /> Adaugă modul
 				</button>
 			</div>
 		</div>

@@ -1,153 +1,19 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Eye, EyeOff, Trash2, Zap } from 'lucide-react';
+import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Eye, EyeSlash, Lightning, Plus, Trash } from '@phosphor-icons/react';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
+import { DragGripIcon } from '../../components/common/DragGripIcon';
 import RichTextEditor from '../../components/RichTextEditor';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
 import '../../styles/admin-course-builder.css';
 import { useAuth } from '../../contexts/AuthContext';
-
-const INLINE_TEST_DEFAULT = {
-	id: null,
-	title: '',
-	description: '',
-	type: 'final',
-	status: 'draft',
-	question_source: 'direct',
-	time_limit_minutes: null,
-	max_attempts: null,
-	passing_score: 70,
-	randomize_questions: true,
-	randomize_answers: true,
-	show_results_immediately: true,
-	show_correct_answers: true,
-	allow_review: true,
-	requires_manual_verification: false,
-};
-
-const INLINE_QUESTION_TYPES = [
-	{ id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
-	{ id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
-	{ id: 'matching', label: 'Potrivire', short: '↔' },
-	{ id: 'ordering', label: 'Ordonare', short: '1-4' },
-];
-
-const normalizeInlineQuestionType = (type) => {
-	if (type === 'single_choice') return 'multiple_choice';
-	return INLINE_QUESTION_TYPES.some((t) => t.id === type) ? type : 'multiple_choice';
-};
-
-const getDefaultAnswersByType = (rawType) => {
-	const type = normalizeInlineQuestionType(rawType);
-	if (type === 'multiple_choice') {
-		return [{ text: 'Răspuns A', is_correct: true }, { text: 'Răspuns B', is_correct: false }];
-	}
-	if (type === 'true_false') {
-		return [{ text: 'Adevărat', is_correct: true }, { text: 'Fals', is_correct: false }];
-	}
-	if (type === 'matching') {
-		return [
-			{ left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true, order: 0 },
-			{ left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true, order: 1 },
-		];
-	}
-	if (type === 'ordering') {
-		return [
-			{ text: 'Pasul 1', is_correct: true, order: 0 },
-			{ text: 'Pasul 2', is_correct: true, order: 1 },
-		];
-	}
-	return [];
-};
-
-/** Wizard / API vechi pot folosi answer_text; builder-ul folosește `text` în stare. */
-const normalizeBuilderAnswer = (a, rawType = 'multiple_choice', index = 0) => {
-	const type = normalizeInlineQuestionType(rawType);
-	const obj = a && typeof a === 'object' ? a : {};
-
-	if (type === 'matching') {
-		const left = obj.left ?? obj.text ?? obj.question ?? '';
-		const right = obj.right ?? obj.answer_text ?? obj.content ?? '';
-		return {
-			...obj,
-			left: typeof left === 'string' ? left : String(left ?? ''),
-			right: typeof right === 'string' ? right : String(right ?? ''),
-			text: typeof left === 'string' ? left : String(left ?? ''),
-			answer_text: typeof right === 'string' ? right : String(right ?? ''),
-			is_correct: true,
-			order: typeof obj.order === 'number' ? obj.order : index,
-		};
-	}
-
-	if (type === 'ordering') {
-		const text = obj.text ?? obj.answer_text ?? obj.content ?? obj.label ?? '';
-		return {
-			...obj,
-			text: typeof text === 'string' ? text : String(text ?? ''),
-			is_correct: true,
-			order: typeof obj.order === 'number' ? obj.order : index,
-		};
-	}
-
-	const text = obj.text ?? obj.answer_text ?? obj.content ?? '';
-	return { ...obj, text: typeof text === 'string' ? text : String(text ?? '') };
-};
-
-const normalizeBuilderQuestion = (q) => {
-	if (!q) return q;
-	const rawId = q.id;
-	let id = rawId;
-	if (rawId != null && !(typeof rawId === 'string' && String(rawId).startsWith('temp-'))) {
-		const n = Number(rawId);
-		if (Number.isFinite(n)) id = n;
-	}
-	return {
-		...q,
-		id,
-		type: normalizeInlineQuestionType(q.type),
-		answers: Array.isArray(q.answers) ? q.answers.map((a, idx) => normalizeBuilderAnswer(a, q.type, idx)) : [],
-	};
-};
-
-/** Payload stabil pentru PUT /admin/questions — normalizează structura pentru tipuri suportate. */
-const serializeAnswersForQuestionApi = (rawType, answers) => {
-	const type = normalizeInlineQuestionType(rawType);
-	if (!Array.isArray(answers)) return [];
-	return answers.map((a, idx) => {
-		const raw = a && typeof a === 'object' ? a : {};
-
-		if (type === 'matching') {
-			const left = raw.left ?? raw.text ?? raw.question ?? '';
-			const right = raw.right ?? raw.answer_text ?? raw.content ?? '';
-			return {
-				left: typeof left === 'string' ? left : String(left ?? ''),
-				right: typeof right === 'string' ? right : String(right ?? ''),
-				text: typeof left === 'string' ? left : String(left ?? ''),
-				answer_text: typeof right === 'string' ? right : String(right ?? ''),
-				is_correct: true,
-				order: idx,
-			};
-		}
-
-		if (type === 'ordering') {
-			const text = raw.text ?? raw.answer_text ?? raw.content ?? raw.label ?? '';
-			return {
-				text: typeof text === 'string' ? text : String(text ?? ''),
-				is_correct: true,
-				order: idx,
-			};
-		}
-
-		const text = raw.text ?? raw.answer_text ?? raw.content ?? '';
-		return {
-			text: typeof text === 'string' ? text : String(text ?? ''),
-			is_correct: Boolean(raw.is_correct),
-			order: typeof raw.order === 'number' ? raw.order : idx,
-		};
-	});
-};
+import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
+import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import ProgressionRulesManager from '../../components/admin/courses/ProgressionRulesManager';
+import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
+import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 
@@ -179,6 +45,10 @@ const AdminCourseBuilderPage = () => {
 	const [lessonContent, setLessonContent] = useState('');
 	const [lessonSaveStatus, setLessonSaveStatus] = useState(null);
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
+	const [publishModalOpen, setPublishModalOpen] = useState(false);
+	const [publishValidationReport, setPublishValidationReport] = useState(null);
+	const [builderWorkspaceTab, setBuilderWorkspaceTab] = useState('content');
+	const [validateLoading, setValidateLoading] = useState(false);
 	const [showVoltAssistant, setShowVoltAssistant] = useState(false);
 
 	const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
@@ -187,20 +57,10 @@ const AdminCourseBuilderPage = () => {
 	const [quickModuleLoading, setQuickModuleLoading] = useState(false);
 	const [showTestCreator, setShowTestCreator] = useState(false);
 	const [builderSidebarVisible, setBuilderSidebarVisible] = useState(true);
-	const [creatingTest, setCreatingTest] = useState(false);
 	const [showCreateTestModal, setShowCreateTestModal] = useState(false);
 	const [createTestTitle, setCreateTestTitle] = useState('');
 	const [createTestModuleId, setCreateTestModuleId] = useState(null);
 	const [courseAttachedTests, setCourseAttachedTests] = useState([]);
-	const [inlineTestTab, setInlineTestTab] = useState('questions');
-	const [inlineTest, setInlineTest] = useState({ ...INLINE_TEST_DEFAULT });
-	const [inlineQuestions, setInlineQuestions] = useState([]);
-	const inlineQuestionsByIdRef = useRef(new Map());
-	const [inlineTestSaving, setInlineTestSaving] = useState(false);
-	const [inlinePublishLoading, setInlinePublishLoading] = useState(false);
-	const [addingQuestion, setAddingQuestion] = useState(false);
-	const [expandedQuestionId, setExpandedQuestionId] = useState(null);
-	const [openQuestionTypePickerId, setOpenQuestionTypePickerId] = useState(null);
 	const [draggingSidebarTestId, setDraggingSidebarTestId] = useState(null);
 	const [sidebarDropHint, setSidebarDropHint] = useState({ moduleId: null, targetId: null, position: null });
 	const [lessonDropHint, setLessonDropHint] = useState(null);
@@ -210,21 +70,9 @@ const AdminCourseBuilderPage = () => {
 	const lessonTitleRef = useRef(null);
 	const quickAddRef = useRef(null);
 
-	useEffect(() => {
-		const m = new Map();
-		for (const q of inlineQuestions) {
-			const id = Number(q?.id);
-			if (Number.isFinite(id)) m.set(id, q);
-		}
-		inlineQuestionsByIdRef.current = m;
-	}, [inlineQuestions]);
-	const questionTypeMenuRef = useRef(null);
 	const contentSaveTimeoutRef = useRef(null);
+	const lastPersistedLessonContentRef = useRef('');
 	const pendingContentRef = useRef(null);
-	const inlinePendingTestRef = useRef({});
-	const inlineTestSaveTimeoutRef = useRef(null);
-	const inlineQuestionPendingRef = useRef({});
-	const inlineQuestionSaveTimersRef = useRef({});
 	const flushAllInlineQuestionSavesRef = useRef(() => Promise.resolve());
 	const course = structure?.course || null;
 	const modules = useMemo(
@@ -290,6 +138,41 @@ const AdminCourseBuilderPage = () => {
 		return allLessons.find((lessonItem) => lessonItem.id === selectedLessonId) || null;
 	}, [allLessons, selectedLessonId]);
 
+	const progressionStructureOptions = useMemo(() => {
+		const testsMap = new Map();
+		for (const row of courseAttachedTests) {
+			const testId = row.test_id ?? row.test?.id;
+			if (!testId) continue;
+			if (!testsMap.has(testId)) {
+				testsMap.set(testId, {
+					id: testId,
+					title: row.test?.title || row.title || `Test #${testId}`,
+				});
+			}
+		}
+		return {
+			lessons: allLessons.map((lessonItem) => ({
+				id: lessonItem.id,
+				title: lessonItem.title || `Lecție ${lessonItem.id}`,
+				moduleTitle: lessonItem.__moduleTitle || null,
+			})),
+			modules: modules.map((moduleItem) => ({
+				id: moduleItem.id,
+				title: moduleItem.title || `Modul ${moduleItem.id}`,
+			})),
+			tests: [...testsMap.values()],
+		};
+	}, [allLessons, modules, courseAttachedTests]);
+
+	const handleBuilderWorkspaceTab = (tab) => {
+		if (tab === builderWorkspaceTab) return;
+		if (tab === 'progression') {
+			flushPendingLessonContentSave();
+			setShowTestCreator(false);
+		}
+		setBuilderWorkspaceTab(tab);
+	};
+
 	const getModuleAttachedTests = useCallback((moduleId) => (
 		courseAttachedTests
 			.filter((row) => row.scope === 'module' && Number(row.scope_id) === Number(moduleId))
@@ -319,17 +202,6 @@ const AdminCourseBuilderPage = () => {
 		};
 	}, []);
 
-	useEffect(() => {
-		const handleClickOutside = (event) => {
-			if (!openQuestionTypePickerId) return;
-			if (questionTypeMenuRef.current && !questionTypeMenuRef.current.contains(event.target)) {
-				setOpenQuestionTypePickerId(null);
-			}
-		};
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, [openQuestionTypePickerId]);
-
 	const flushPendingLessonContentSave = useCallback(async () => {
 		if (contentSaveTimeoutRef.current) {
 			clearTimeout(contentSaveTimeoutRef.current);
@@ -338,8 +210,16 @@ const AdminCourseBuilderPage = () => {
 		const pending = pendingContentRef.current;
 		if (!pending?.lessonId) return;
 		const { lessonId, content } = pending;
+		if (
+			!String(content || '').trim() &&
+			String(lastPersistedLessonContentRef.current || '').trim()
+		) {
+			pendingContentRef.current = null;
+			return;
+		}
 		try {
 			await adminService.builderUpdateLesson(courseId, lessonId, { content });
+			lastPersistedLessonContentRef.current = content ?? '';
 			// Șterge pending doar dacă nu s-a mai editat între timp (altfel păstrăm coada pentru următorul save)
 			if (
 				pendingContentRef.current?.lessonId === lessonId &&
@@ -366,6 +246,53 @@ const AdminCourseBuilderPage = () => {
 			showToast('Nu s-au putut încărca testele atașate cursului.', 'error');
 		}
 	}, [courseId, showToast]);
+
+	const testEditor = useInlineTestEditor({
+		showToast,
+		canMutateInAdminArea,
+		courseContext: {
+			courseId,
+			selectedModuleId,
+			modules,
+			courseAttachedTests,
+			fetchAttachedTests,
+			getModuleAttachedTests,
+		},
+	});
+
+	const {
+		inlineTest,
+		inlineQuestions,
+		inlineTestTab,
+		setInlineTestTab,
+		inlineTestSaving,
+		inlinePublishLoading,
+		creatingTest,
+		addingQuestion,
+		expandedQuestionId,
+		setExpandedQuestionId,
+		openQuestionTypePickerId,
+		flushAllInlineQuestionSaves,
+		loadTest: loadTestIntoEditor,
+		resetTest,
+		ensureInlineTestCreated,
+		handleSaveInlineTestNow,
+		handlePublishInlineTest: publishInlineTestBase,
+	} = testEditor;
+
+	const handlePublishInlineTest = useCallback(
+		() => publishInlineTestBase(fetchAttachedTests),
+		[publishInlineTestBase, fetchAttachedTests]
+	);
+
+	useEffect(() => {
+		flushAllInlineQuestionSavesRef.current = flushAllInlineQuestionSaves;
+	}, [flushAllInlineQuestionSaves]);
+
+	const loadInlineTestById = useCallback(async (testId) => {
+		await loadTestIntoEditor(testId, 'questions');
+		setShowTestCreator(true);
+	}, [loadTestIntoEditor]);
 
 	const clearLessonDrag = useCallback(() => {
 		lessonDragPayloadRef.current = null;
@@ -548,7 +475,9 @@ const AdminCourseBuilderPage = () => {
 			setLessonSaveStatus(null);
 			return;
 		}
-		setLessonContent(selectedLesson?.content || '');
+		const initialContent = selectedLesson?.content || '';
+		setLessonContent(initialContent);
+		lastPersistedLessonContentRef.current = initialContent;
 		setLessonSaveStatus(null);
 	}, [selectedLesson?.id]);
 
@@ -556,12 +485,6 @@ const AdminCourseBuilderPage = () => {
 		if (!lessonTitleRef.current || !selectedLesson) return;
 		lessonTitleRef.current.textContent = selectedLesson.title || 'Titlu lecție';
 	}, [selectedLesson?.id, selectedLesson?.title]);
-
-	useEffect(() => () => {
-		if (inlineTestSaveTimeoutRef.current) {
-			clearTimeout(inlineTestSaveTimeoutRef.current);
-		}
-	}, []);
 
 	const handleUpdateLessonTitle = async (lessonId, newTitle) => {
 		if (!newTitle?.trim()) return;
@@ -577,6 +500,17 @@ const AdminCourseBuilderPage = () => {
 
 	const handleLessonContentChange = (nextContent) => {
 		if (!selectedLesson?.id) return;
+		const blocks = selectedLesson?.content_blocks ?? selectedLesson?.contentBlocks ?? [];
+		const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
+		if (!String(nextContent || '').trim() && hasBlocks) {
+			return;
+		}
+		if (
+			!String(nextContent || '').trim() &&
+			String(lastPersistedLessonContentRef.current || '').trim()
+		) {
+			return;
+		}
 		setLessonContent(nextContent);
 		pendingContentRef.current = {
 			lessonId: selectedLesson.id,
@@ -693,134 +627,12 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const flushInlineTestPayloadForId = useCallback(async (testId, options = {}) => {
-		const { manageSavingState = true } = options;
-		if (!testId) return;
-		const payload = { ...inlinePendingTestRef.current };
-		inlinePendingTestRef.current = {};
-		if (!Object.keys(payload).length) return;
-		if (manageSavingState) setInlineTestSaving(true);
-		try {
-			await adminService.updateTest(testId, payload);
-		} catch (err) {
-			console.error('Inline test autosave failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la salvarea testului.', 'error');
-		} finally {
-			if (manageSavingState) setInlineTestSaving(false);
-		}
-	}, [showToast]);
-
-	const flushInlineTestSave = useCallback(async () => {
-		await flushInlineTestPayloadForId(inlineTest.id, { manageSavingState: true });
-	}, [flushInlineTestPayloadForId, inlineTest.id]);
-
-	const saveInlineTestPatch = useCallback((patch) => {
-		setInlineTest((prev) => ({ ...prev, ...patch }));
-		if (!inlineTest.id) return;
-		Object.assign(inlinePendingTestRef.current, patch);
-		if (inlineTestSaveTimeoutRef.current) clearTimeout(inlineTestSaveTimeoutRef.current);
-		inlineTestSaveTimeoutRef.current = setTimeout(() => {
-			flushInlineTestSave();
-		}, 650);
-	}, [flushInlineTestSave, inlineTest.id]);
-
-	const ensureInlineTestCreated = useCallback(async () => {
-		if (inlineTest.id) return inlineTest.id;
-		const title = (inlineTest.title || '').trim();
-		if (!title) {
-			showToast('Adaugă titlul testului.', 'error');
-			return null;
-		}
-		setCreatingTest(true);
-		try {
-			const created = await adminService.createTest({
-				title,
-				description: inlineTest.description?.trim() || null,
-				type: 'final',
-				status: 'draft',
-				passing_score: inlineTest.passing_score ?? INLINE_TEST_DEFAULT.passing_score,
-				time_limit_minutes: inlineTest.time_limit_minutes ?? null,
-				max_attempts: inlineTest.max_attempts ?? null,
-				randomize_questions: Boolean(inlineTest.randomize_questions),
-				randomize_answers: Boolean(inlineTest.randomize_answers),
-				show_results_immediately: Boolean(inlineTest.show_results_immediately),
-				show_correct_answers: Boolean(inlineTest.show_correct_answers),
-				allow_review: Boolean(inlineTest.allow_review),
-				requires_manual_verification: Boolean(inlineTest.requires_manual_verification),
-			});
-			const newTestId = Number(created?.test?.id ?? created?.id);
-			if (!newTestId) throw new Error('ID test invalid');
-
-			// API link-to-course cere mereu `scope`; înainte nu era trimis → 422, iar .catch ascundea eroarea.
-			const targetModuleId = selectedModuleId || modules[0]?.id;
-			if (targetModuleId) {
-				const moduleTests = courseAttachedTests.filter(
-					(row) => row.scope === 'module' && Number(row.scope_id) === Number(targetModuleId)
-				);
-				await adminService.builderAttachTest(courseId, {
-					test_id: newTestId,
-					scope: 'module',
-					scope_id: targetModuleId,
-					order: moduleTests.length,
-				});
-			} else {
-				await adminService.linkTestToCourse(newTestId, courseId, {
-					scope: 'course',
-					order: 0,
-				});
-			}
-
-			setInlineTest((prev) => ({ ...prev, id: newTestId }));
-			await fetchAttachedTests();
-			showToast('Test creat și asociat cursului.', 'success');
-			return newTestId;
-		} catch (err) {
-			console.error('Create inline test failed:', err);
-			const msg =
-				err?.response?.data?.message
-				|| err?.response?.data?.error
-				|| (typeof err?.response?.data === 'string' ? err.response.data : null);
-			showToast(msg || 'Eroare la crearea sau atașarea testului.', 'error');
-			return null;
-		} finally {
-			setCreatingTest(false);
-		}
-	}, [
-		courseAttachedTests,
-		courseId,
-		fetchAttachedTests,
-		inlineTest.description,
-		inlineTest.id,
-		inlineTest.title,
-		inlineTest.type,
-		modules,
-		selectedModuleId,
-		showToast,
-	]);
+	const [creatingTestFromModal, setCreatingTestFromModal] = useState(false);
 
 	const handleCreateTestInline = async (e) => {
 		e.preventDefault();
 		await ensureInlineTestCreated();
 	};
-
-	const loadInlineTestById = useCallback(async (testId) => {
-		try {
-			const testData = await adminService.getTest(testId);
-			const questions = await adminService.getQuestions(testId).catch(() => []);
-			setInlineTest((prev) => ({
-				...prev,
-				...testData,
-				id: testData.id,
-			}));
-			const list = Array.isArray(questions) ? questions : [];
-			setInlineQuestions(list.map(normalizeBuilderQuestion));
-			setInlineTestTab('questions');
-			setShowTestCreator(true);
-		} catch (e) {
-			console.error('Failed to load inline test:', e);
-			showToast('Nu am putut încărca testul.', 'error');
-		}
-	}, [showToast]);
 
 	const handleOpenCreateTestModal = () => {
 		const fallbackModuleId = selectedModuleId || modules[0]?.id || null;
@@ -836,7 +648,7 @@ const AdminCourseBuilderPage = () => {
 			showToast('Adaugă titlul testului.', 'error');
 			return;
 		}
-		setCreatingTest(true);
+		setCreatingTestFromModal(true);
 		try {
 			const created = await adminService.createTest({
 				title,
@@ -877,7 +689,7 @@ const AdminCourseBuilderPage = () => {
 			console.error('Create test from modal failed:', err);
 			showToast(err?.response?.data?.message || 'Eroare la crearea testului.', 'error');
 		} finally {
-			setCreatingTest(false);
+			setCreatingTestFromModal(false);
 		}
 	};
 
@@ -956,357 +768,64 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const handleAddInlineQuestion = async (type = 'multiple_choice') => {
-		const testId = await ensureInlineTestCreated();
-		if (!testId) return;
-		setAddingQuestion(true);
-		try {
-			const created = await adminService.createQuestion(testId, {
-				type,
-				content: 'Întrebare nouă',
-				answers: getDefaultAnswersByType(type),
-				points: 1,
-			});
-			const question = created?.question ?? created;
-			if (question) {
-				setInlineQuestions((prev) => [...prev, normalizeBuilderQuestion(question)]);
-				setExpandedQuestionId(question.id);
-			}
-		} catch (err) {
-			console.error('Add inline question failed:', err);
-			const apiMsg = err?.response?.data?.message
-				|| err?.response?.data?.error
-				|| err?.response?.data?.errors?.answers?.[0];
-			showToast(apiMsg || 'Eroare la adăugarea întrebării.', 'error');
-		} finally {
-			setAddingQuestion(false);
-		}
-	};
-
-	const queueInlineQuestionPatchSave = useCallback(async (questionId, patch, immediate = false) => {
-		const qid = Number(questionId);
-		if (!Number.isFinite(qid)) {
-			console.warn('Inline question save: id invalid', questionId);
-			return;
-		}
-		const existingPatch = inlineQuestionPendingRef.current[qid] || {};
-		inlineQuestionPendingRef.current[qid] = { ...existingPatch, ...patch };
-		if (inlineQuestionSaveTimersRef.current[qid]) {
-			clearTimeout(inlineQuestionSaveTimersRef.current[qid]);
-			delete inlineQuestionSaveTimersRef.current[qid];
-		}
-
-		const flush = async () => {
-			const pendingPatch = inlineQuestionPendingRef.current[qid];
-			if (!pendingPatch || Object.keys(pendingPatch).length === 0) return;
-			const snapshot = { ...pendingPatch };
-			if (Array.isArray(snapshot.answers)) {
-				const curType = snapshot.type ?? inlineQuestionsByIdRef.current.get(qid)?.type ?? 'multiple_choice';
-				snapshot.answers = serializeAnswersForQuestionApi(curType, snapshot.answers);
-			}
-			delete inlineQuestionPendingRef.current[qid];
-			try {
-				await adminService.updateQuestion(qid, snapshot);
-			} catch (err) {
-				const cur = inlineQuestionPendingRef.current[qid] || {};
-				inlineQuestionPendingRef.current[qid] = { ...snapshot, ...cur };
-				console.error('Inline question update failed:', err);
-				const apiMessage = err?.response?.data?.message
-					|| err?.response?.data?.error
-					|| Object.values(err?.response?.data?.errors || {})?.[0]?.[0];
-				showToast(apiMessage || 'Eroare la salvarea întrebării.', 'error');
-			}
-		};
-
-		if (immediate) {
-			await flush();
-			return;
-		}
-
-		inlineQuestionSaveTimersRef.current[qid] = setTimeout(flush, 350);
-	}, [showToast]);
-
-	const flushAllInlineQuestionSaves = useCallback(async () => {
-		Object.keys(inlineQuestionSaveTimersRef.current).forEach((qid) => {
-			clearTimeout(inlineQuestionSaveTimersRef.current[qid]);
-			delete inlineQuestionSaveTimersRef.current[qid];
-		});
-		for (let safety = 0; safety < 24; safety += 1) {
-			const pendingIds = Object.keys(inlineQuestionPendingRef.current).filter((questionIdStr) => {
-				const p = inlineQuestionPendingRef.current[Number(questionIdStr)];
-				return p && Object.keys(p).length > 0;
-			});
-			if (pendingIds.length === 0) break;
-			for (const questionIdStr of pendingIds) {
-				const questionId = Number(questionIdStr);
-				if (!Number.isFinite(questionId)) continue;
-				const pendingPatch = inlineQuestionPendingRef.current[questionId];
-				if (!pendingPatch || Object.keys(pendingPatch).length === 0) continue;
-				const snapshot = { ...pendingPatch };
-				if (Array.isArray(snapshot.answers)) {
-					const curType = snapshot.type ?? inlineQuestionsByIdRef.current.get(questionId)?.type ?? 'multiple_choice';
-					snapshot.answers = serializeAnswersForQuestionApi(curType, snapshot.answers);
-				}
-				delete inlineQuestionPendingRef.current[questionId];
-				try {
-					await adminService.updateQuestion(questionId, snapshot);
-				} catch (err) {
-					const cur = inlineQuestionPendingRef.current[questionId] || {};
-					inlineQuestionPendingRef.current[questionId] = { ...snapshot, ...cur };
-					console.error('Inline question flush failed:', err);
-					const apiMessage = err?.response?.data?.message
-						|| err?.response?.data?.error
-						|| Object.values(err?.response?.data?.errors || {})?.[0]?.[0];
-					showToast(apiMessage || 'Eroare la salvarea întrebării.', 'error');
-				}
-			}
-		}
-	}, [showToast]);
-
-	flushAllInlineQuestionSavesRef.current = flushAllInlineQuestionSaves;
-
 	useEffect(() => () => {
 		flushPendingLessonContentSave();
 		flushAllInlineQuestionSavesRef.current();
 	}, [flushPendingLessonContentSave]);
 
-	const handleInlineQuestionBlur = async (questionId, patch) => {
-		const qid = Number(questionId);
-		if (!Number.isFinite(qid)) return;
-		const curType = patch?.type ?? inlineQuestionsByIdRef.current.get(qid)?.type ?? 'multiple_choice';
-		const payload = patch?.answers ? { ...patch, type: curType, answers: serializeAnswersForQuestionApi(curType, patch.answers) } : patch;
+	const handleValidateForPublish = useCallback(async () => {
+		if (!course?.id) return;
 		try {
-			await queueInlineQuestionPatchSave(qid, payload, true);
-		} catch (err) {
-			console.error('Inline question update failed:', err);
-			const apiMessage = err?.response?.data?.message
-				|| err?.response?.data?.error
-				|| Object.values(err?.response?.data?.errors || {})?.[0]?.[0];
-			showToast(apiMessage || 'Eroare la salvarea întrebării.', 'error');
+			const report = await adminService.builderValidateCourse(course.id);
+			setPublishValidationReport(report);
+			return report;
+		} catch (e) {
+			console.error('Course validation failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut valida cursul.', 'error');
+			throw e;
 		}
-	};
+	}, [course?.id, showToast]);
 
-	const handleDeleteInlineQuestion = async (questionId) => {
+	const handleOpenPublishModal = async () => {
+		if (!course?.id || courseActionLoading) return;
+		setPublishValidationReport(null);
+		setPublishModalOpen(true);
 		try {
-			await adminService.deleteQuestion(questionId);
-			setInlineQuestions((prev) => prev.filter((q) => q.id !== questionId));
-			showToast('Întrebare ștearsă.', 'success');
-		} catch (err) {
-			console.error('Delete inline question failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la ștergere.', 'error');
+			await handleValidateForPublish();
+		} catch {
+			// Modal still opens; user can retry validation inside.
 		}
 	};
 
-	const handleAddDefaultInlineQuestion = async () => {
-		await handleAddInlineQuestion('multiple_choice');
+	const handleCoursePublished = async () => {
+		showToast('Cursul a fost publicat cu succes', 'success');
+		setPublishModalOpen(false);
+		setPublishValidationReport(null);
+		await fetchStructure(true);
 	};
 
-	const handleInlineQuestionTypeChange = async (questionId, nextType) => {
-		const id = Number(questionId);
-		const q = inlineQuestions.find((row) => Number(row.id) === id);
-		if (!q) {
-			setOpenQuestionTypePickerId(null);
-			return;
-		}
-		const normalizedNextType = normalizeInlineQuestionType(nextType);
-		if (normalizeInlineQuestionType(q.type) === normalizedNextType) {
-			setOpenQuestionTypePickerId(null);
-			return;
-		}
-		const nextAnswers = getDefaultAnswersByType(normalizedNextType);
-		setInlineQuestions((prev) => prev.map((row) => (Number(row.id) === id ? {
-			...row,
-			type: normalizedNextType,
-			answers: nextAnswers,
-		} : row)));
-		await queueInlineQuestionPatchSave(id, { type: normalizedNextType, answers: nextAnswers }, true);
-		setOpenQuestionTypePickerId(null);
-	};
-
-	const handleToggleQuestionTypePicker = (questionId) => {
-		setOpenQuestionTypePickerId((prev) => (prev === questionId ? null : questionId));
-	};
-
-	const updateInlineAnswers = (questionId, updater, persistMode = 'debounced') => {
-		const qNum = Number(questionId);
-		if (!Number.isFinite(qNum)) return;
-		setInlineQuestions((prev) =>
-			prev.map((q) => {
-				if (Number(q.id) !== qNum) return q;
-				const currentAnswers = Array.isArray(q.answers) ? q.answers : [];
-				const nextAnswers = updater(currentAnswers);
-				queueMicrotask(() => {
-					if (persistMode === 'immediate') {
-						void handleInlineQuestionBlur(qNum, { answers: nextAnswers });
-					} else if (persistMode === 'debounced') {
-						void queueInlineQuestionPatchSave(qNum, { answers: nextAnswers }, false);
-					}
-				});
-				return { ...q, answers: nextAnswers };
-			})
-		);
-	};
-
-	const handleInlineAnswerTextChange = (questionId, answerIndex, text) => {
-		updateInlineAnswers(questionId, (currentAnswers) => currentAnswers.map((ans, idx) => (idx === answerIndex ? { ...ans, text } : ans)), 'debounced');
-	};
-
-	const handleInlineAnswerCorrectToggle = (questionId, answerIndex, singleChoice = false) => {
-		const qid = Number(questionId);
-		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-		if (qType === 'matching' || qType === 'ordering') return;
-
-		updateInlineAnswers(
-			questionId,
-			(currentAnswers) => currentAnswers.map((ans, idx) => ({
-				...ans,
-				is_correct: singleChoice ? idx === answerIndex : (idx === answerIndex ? !ans.is_correct : ans.is_correct),
-			})),
-			'debounced'
-		);
-	};
-
-	const handleInlineAddAnswer = (questionId) => {
-		const qid = Number(questionId);
-		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-		if (qType === 'matching') {
-			updateInlineAnswers(
-				questionId,
-				(currentAnswers) => {
-					const next = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
-					const idx = next.length;
-					next.push({
-						left: `Element ${idx + 1}`,
-						right: `Răspuns ${idx + 1}`,
-						text: `Element ${idx + 1}`,
-						answer_text: `Răspuns ${idx + 1}`,
-						is_correct: true,
-						order: idx,
-					});
-					return next.map((a, i) => ({ ...a, order: i }));
-				},
-				'immediate'
-			);
-			return;
-		}
-		if (qType === 'ordering') {
-			updateInlineAnswers(
-				questionId,
-				(currentAnswers) => {
-					const next = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
-					next.push({ text: `Pasul ${next.length + 1}`, is_correct: true, order: next.length });
-					return next.map((a, i) => ({ ...a, order: i, is_correct: true }));
-				},
-				'immediate'
-			);
-			return;
-		}
-		updateInlineAnswers(questionId, (currentAnswers) => [...currentAnswers, { text: 'Răspuns nou', is_correct: false }], 'immediate');
-	};
-
-	const handleInlineRemoveAnswer = (questionId, answerIndex) => {
-		const qid = Number(questionId);
-		const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-		if (qType === 'matching' || qType === 'ordering') {
-			updateInlineAnswers(
-				questionId,
-				(currentAnswers) => {
-					const next = (Array.isArray(currentAnswers) ? currentAnswers : []).filter((_, idx) => idx !== answerIndex);
-					return next.map((a, i) => ({ ...a, order: i, is_correct: qType === 'ordering' ? true : (a.is_correct ?? true) }));
-				},
-				'immediate'
-			);
-			return;
-		}
-		updateInlineAnswers(questionId, (currentAnswers) => currentAnswers.filter((_, idx) => idx !== answerIndex), 'immediate');
-	};
-
-	const handleInlineMatchingPairChange = (questionId, answerIndex, side, value) => {
-		updateInlineAnswers(
-			questionId,
-			(currentAnswers) =>
-				(currentAnswers || []).map((ans, idx) => {
-					if (idx !== answerIndex) return ans;
-					if (side === 'left') {
-						return { ...ans, left: value, text: value };
-					}
-					return { ...ans, right: value, answer_text: value };
-				}),
-			'debounced'
-		);
-	};
-
-	const handleInlineOrderingMove = (questionId, answerIndex, direction) => {
-		updateInlineAnswers(
-			questionId,
-			(currentAnswers) => {
-				const list = Array.isArray(currentAnswers) ? [...currentAnswers] : [];
-				const nextIndex = direction === 'up' ? answerIndex - 1 : answerIndex + 1;
-				if (nextIndex < 0 || nextIndex >= list.length) return list;
-				const tmp = list[answerIndex];
-				list[answerIndex] = list[nextIndex];
-				list[nextIndex] = tmp;
-				return list.map((a, i) => ({ ...a, order: i, is_correct: true }));
-			},
-			'immediate'
-		);
-	};
-
-	const handleSaveInlineTestNow = async () => {
-		const testId = await ensureInlineTestCreated();
-		if (!testId) return;
-		if (inlineTestSaveTimeoutRef.current) {
-			clearTimeout(inlineTestSaveTimeoutRef.current);
-			inlineTestSaveTimeoutRef.current = null;
-		}
-		setInlineTestSaving(true);
+	const handleValidateFromWorkflow = async () => {
+		if (!course?.id || validateLoading) return;
+		setValidateLoading(true);
 		try {
-			await flushInlineTestPayloadForId(testId, { manageSavingState: false });
-			await flushAllInlineQuestionSaves();
-			showToast('Test salvat.', 'success');
-		} catch (err) {
-			console.error('Save inline test failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la salvare.', 'error');
+			await handleValidateForPublish();
+			showToast('Validare finalizată. Verifică rezultatul mai jos.', 'success');
+		} catch {
+			// handleValidateForPublish already toasts errors
 		} finally {
-			setInlineTestSaving(false);
-		}
-	};
-
-	const handlePublishInlineTest = async () => {
-		const testId = await ensureInlineTestCreated();
-		if (!testId) return;
-		if (!inlineQuestions.length && inlineTest.question_source === 'direct') {
-			showToast('Adaugă cel puțin o întrebare înainte de publicare.', 'error');
-			return;
-		}
-		if (inlineTestSaveTimeoutRef.current) {
-			clearTimeout(inlineTestSaveTimeoutRef.current);
-			inlineTestSaveTimeoutRef.current = null;
-		}
-		setInlinePublishLoading(true);
-		try {
-			await flushInlineTestPayloadForId(testId, { manageSavingState: false });
-			await flushAllInlineQuestionSaves();
-			await adminService.publishTest(testId);
-			setInlineTest((prev) => ({ ...prev, status: 'published' }));
-			showToast('Test publicat.', 'success');
-			await fetchAttachedTests();
-		} catch (err) {
-			console.error('Publish inline test failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la publicare.', 'error');
-		} finally {
-			setInlinePublishLoading(false);
+			setValidateLoading(false);
 		}
 	};
 
 	const handleCourseStatusAction = async (action) => {
 		if (!course?.id || courseActionLoading) return;
+		if (action === 'publish') {
+			await handleOpenPublishModal();
+			return;
+		}
 		setCourseActionLoading(true);
 		try {
-			if (action === 'publish') {
-				await adminService.updateCourse(course.id, { status: 'published' });
-				showToast('Cursul a fost publicat cu succes', 'success');
-			} else if (action === 'unpublish') {
+			if (action === 'unpublish') {
 				await adminService.updateCourse(course.id, { status: 'draft' });
 				showToast('Cursul a fost retras din publicare', 'success');
 			}
@@ -1700,8 +1219,7 @@ const AdminCourseBuilderPage = () => {
 			await fetchAttachedTests();
 			if (Number(inlineTest.id) === Number(testId)) {
 				setShowTestCreator(false);
-				setInlineTest({ ...INLINE_TEST_DEFAULT });
-				setInlineQuestions([]);
+				resetTest();
 			}
 			showToast('Testul a fost ?ters.', 'success');
 		} catch (e) {
@@ -1754,9 +1272,9 @@ const AdminCourseBuilderPage = () => {
 								<button
 									type="button"
 									className="admin-course-builder-back"
-									onClick={() => navigate('/admin/content?tab=courses')}
+									onClick={() => navigate('/admin/content?tab=courses&view=maps')}
 								>
-									← Cursuri
+									<ArrowLeft size={14} weight="bold" aria-hidden /> Cursuri
 								</button>
 								<p className="admin-course-builder-sidebar-course-title">{course?.title || 'Builder curs'}</p>
 							</div>
@@ -1771,9 +1289,7 @@ const AdminCourseBuilderPage = () => {
 										title="Creează modul, lecție sau test"
 									>
 										<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-											<svg viewBox="0 0 24 24" aria-hidden="true">
-												<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
-											</svg>
+											<Plus size={16} weight="bold" aria-hidden="true" />
 										</span>
 									</button>
 									{quickAddMenuOpen && (
@@ -1825,9 +1341,7 @@ const AdminCourseBuilderPage = () => {
 									title="Ascunde meniul builder"
 								>
 									<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-										<svg viewBox="0 0 24 24" aria-hidden="true">
-											<path d="M15 7l-4 5 4 5M19 7l-4 5 4 5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
-										</svg>
+										<CaretDoubleLeft size={16} weight="bold" aria-hidden="true" />
 									</span>
 								</button>
 							</div>
@@ -1909,9 +1423,9 @@ const AdminCourseBuilderPage = () => {
 													aria-label={lessonItem.status === 'published' ? 'Lecție publicată, retrage din publicare' : 'Lecție nepublicată, publică'}
 												>
 													{lessonItem.status === 'published' ? (
-														<Eye aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+														<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
 													) : (
-														<EyeOff aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+														<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
 													)}
 												</button>
 												<button
@@ -1921,7 +1435,7 @@ const AdminCourseBuilderPage = () => {
 													title="Șterge lecția"
 													aria-label="Șterge lecția"
 												>
-													<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+													<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
 												</button>
 											</div>
 										</li>
@@ -1982,7 +1496,7 @@ const AdminCourseBuilderPage = () => {
 														title="Șterge modul"
 														aria-label="Șterge modul"
 													>
-														<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+														<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
 													</button>
 												</>
 											)}
@@ -2020,7 +1534,7 @@ const AdminCourseBuilderPage = () => {
 																	if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
 																}}
 															>
-																⋮⋮
+																<DragGripIcon size={14} />
 															</span>
 														) : null}
 														<button
@@ -2045,9 +1559,9 @@ const AdminCourseBuilderPage = () => {
 															aria-label={lessonItem.status === 'published' ? 'Lecție publicată, retrage din publicare' : 'Lecție nepublicată, publică'}
 														>
 															{lessonItem.status === 'published' ? (
-																<Eye aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+																<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
 															) : (
-																<EyeOff aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#2563eb" />
+																<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
 															)}
 														</button>
 														<button
@@ -2057,7 +1571,7 @@ const AdminCourseBuilderPage = () => {
 															title="Șterge lecția"
 															aria-label="Șterge lecția"
 														>
-															<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+															<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
 														</button>
 													</div>
 													{getLessonAttachedTests(lessonItem.id).length > 0 && (
@@ -2195,7 +1709,7 @@ const AdminCourseBuilderPage = () => {
 								title="Șterge curs"
 								aria-label="Șterge curs"
 							>
-								<Trash2 aria-hidden="true" size={17} strokeWidth={2.2} absoluteStrokeWidth color="#dc2626" />
+								<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
 							</button>
 <AutoSaveIndicator status={lessonSaveStatus} />
 						</div>
@@ -2210,416 +1724,87 @@ const AdminCourseBuilderPage = () => {
 						title="Afișează meniul builder"
 					>
 						<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<path d="M9 7l4 5-4 5M5 7l4 5-4 5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
-							</svg>
+							<CaretDoubleRight size={16} weight="bold" aria-hidden="true" />
 						</span>
 					</button>
 				)}
 
 				<div className="admin-course-builder-workspace admin-course-builder-workspace-clean">
+					<nav className="admin-course-builder-workspace-tabs" aria-label="Mod builder">
+						<button
+							type="button"
+							className={`admin-course-builder-workspace-tab ${builderWorkspaceTab === 'content' ? 'is-active' : ''}`}
+							onClick={() => handleBuilderWorkspaceTab('content')}
+						>
+							Conținut
+						</button>
+						<button
+							type="button"
+							className={`admin-course-builder-workspace-tab ${builderWorkspaceTab === 'progression' ? 'is-active' : ''}`}
+							onClick={() => handleBuilderWorkspaceTab('progression')}
+						>
+							Reguli progres
+						</button>
+					</nav>
 					<div className="admin-course-builder-workspace-content">
-						{showTestCreator ? (
-							<div className="admin-course-builder-test-creator admin-course-builder-test-shell">
-								<div className="admin-course-builder-test-overview-card">
-									<div className="admin-course-builder-test-shell-header">
-										<div>
-											<h2>{(inlineTest.title || '').trim() || 'Test'}</h2>
-											<p>Configurezi testul fără să părăsești pagina de creare curs.</p>
-											<p className="admin-course-builder-test-status-line">
-												<span
-													className={`admin-course-builder-test-status-pill ${inlineTest.status === 'published' ? 'is-published' : 'is-draft'}`}
-												>
-													{inlineTest.status === 'published' ? 'Publicat' : 'Ciornă'}
-												</span>
-											</p>
-										</div>
-										{canMutateInAdminArea ? (
-											<div className="admin-course-builder-test-shell-actions">
-												<button
-													type="button"
-													className="admin-btn admin-btn-secondary"
-													onClick={handleSaveInlineTestNow}
-													disabled={creatingTest || inlineTestSaving || inlinePublishLoading}
-												>
-													{inlineTestSaving ? 'Se salvează…' : 'Salvează'}
-												</button>
-												{inlineTest.status !== 'published' ? (
-													<button
-														type="button"
-														className="admin-btn admin-btn-primary"
-														onClick={handlePublishInlineTest}
-														disabled={creatingTest || inlineTestSaving || inlinePublishLoading}
-													>
-														{inlinePublishLoading ? 'Se publică…' : 'Publică'}
-													</button>
-												) : null}
-											</div>
-										) : null}
-									</div>
-
-									<div className="admin-course-builder-test-tabs">
-										<button type="button" className={`admin-course-builder-test-tab ${inlineTestTab === 'questions' ? 'is-active' : ''}`} onClick={() => setInlineTestTab('questions')}>Întrebări</button>
-										<button type="button" className={`admin-course-builder-test-tab ${inlineTestTab === 'settings' ? 'is-active' : ''}`} onClick={() => setInlineTestTab('settings')}>Setări</button>
-									</div>
-								</div>
-
-								<div className="admin-course-builder-test-layout">
-									<div className="admin-course-builder-test-main">
-										{inlineTestTab === 'questions' && (
-											<div className="admin-course-builder-test-questions admin-course-builder-test-questions-card">
-												<div className="admin-course-builder-test-questions-header">
-													<span>Întrebări ({inlineQuestions.length})</span>
-													<div className="admin-course-builder-test-questions-actions">
-														{inlineTestSaving ? <small>Se salvează…</small> : null}
-													</div>
-												</div>
-												{inlineQuestions.length === 0 ? (
-													<p className="admin-course-builder-test-empty">Nu ai încă întrebări. Apasă pe butonul de adăugare de mai jos.</p>
-												) : (
-													<ul className="admin-course-builder-test-question-list">
-														{inlineQuestions.map((question, idx) => {
-															const qType = normalizeInlineQuestionType(question.type || 'multiple_choice');
-															return (
-															<li
-																key={question.id}
-																className={`admin-course-builder-test-question-item ${expandedQuestionId === question.id ? 'is-expanded' : 'is-collapsed'}`}
-															>
-																<div className="admin-course-builder-test-question-topline">
-																	<div className="admin-course-builder-test-question-type-picker">
-																		<button
-																			type="button"
-																			className="admin-course-builder-test-question-badge admin-course-builder-test-question-badge-btn"
-																			onClick={() => handleToggleQuestionTypePicker(question.id)}
-																		>
-																			{`Î${idx + 1}: ${INLINE_QUESTION_TYPES.find((t) => t.id === qType)?.label || 'Întrebare'}`}
-																		</button>
-																	</div>
-																	<div className="admin-course-builder-test-question-top-actions">
-																		<button
-																			type="button"
-																			className="admin-btn admin-btn-secondary"
-																			onClick={() => setExpandedQuestionId((prev) => (prev === question.id ? null : question.id))}
-																		>
-																			{expandedQuestionId === question.id ? 'Strânge' : 'Deschide'}
-																		</button>
-																		<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleDeleteInlineQuestion(question.id)}>Șterge</button>
-																	</div>
-																</div>
-																{expandedQuestionId !== question.id && (
-																	<p className="admin-course-builder-test-question-collapsed-preview">
-																		{(question.content || '').trim() || 'Întrebare fără conținut'}
-																	</p>
-																)}
-																{expandedQuestionId === question.id && (
-																	<>
-
-																		<textarea
-																			className="admin-course-builder-test-question-input"
-																			value={question.content || ''}
-																			onChange={(e) => {
-																				const nextContent = e.target.value;
-																				setInlineQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, content: nextContent } : q)));
-																				queueInlineQuestionPatchSave(question.id, { content: nextContent }, false);
-																			}}
-																			onBlur={(e) => handleInlineQuestionBlur(question.id, { content: e.target.value })}
-																			placeholder="Adaugă întrebare"
-																			rows={2}
-																		/>
-
-																		<textarea
-																			className="admin-course-builder-test-question-desc"
-																			value={question.explanation || ''}
-																			onChange={(e) => {
-																				const nextExplanation = e.target.value;
-																				setInlineQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, explanation: nextExplanation } : q)));
-																				queueInlineQuestionPatchSave(question.id, { explanation: nextExplanation }, false);
-																			}}
-																			onBlur={(e) => handleInlineQuestionBlur(question.id, { explanation: e.target.value })}
-																			placeholder="Adaugă descriere..."
-																			rows={2}
-																		/>
-
-																		{(qType === 'multiple_choice' || qType === 'true_false') && (
-																			<div className="admin-course-builder-test-question-answers">
-																				<p>Răspunsuri:</p>
-																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-																					<div key={`${question.id}-answer-${answerIdx}`} className="admin-course-builder-test-answer-row">
-																						<input
-																							type={qType === 'true_false' ? 'radio' : 'checkbox'}
-																							checked={!!answer.is_correct}
-																							onChange={() => handleInlineAnswerCorrectToggle(
-																								question.id,
-																								answerIdx,
-																								qType === 'true_false'
-																							)}
-																						/>
-																						<input
-																							type="text"
-																							value={answer.text ?? answer.answer_text ?? ''}
-																							onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
-																							placeholder="Introduce răspuns"
-																						/>
-																						{qType !== 'true_false' && (
-																							<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-																								×
-																							</button>
-																						)}
-																					</div>
-																				))}
-																				{qType !== 'true_false' && (
-																					<button
-																						type="button"
-																						className="admin-btn admin-btn-secondary"
-																						onClick={() => handleInlineAddAnswer(question.id)}
-																					>
-																						+ Adaugă răspuns
-																					</button>
-																				)}
-																			</div>
-																		)}
-
-																		{qType === 'matching' && (
-																			<div className="admin-course-builder-test-question-answers">
-																				<p>Perechi:</p>
-																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-																					<div key={`${question.id}-pair-${answerIdx}`} className="admin-course-builder-test-answer-row">
-																						<input
-																							type="text"
-																							value={answer.left ?? answer.text ?? ''}
-																							onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
-																							placeholder="Element stânga"
-																						/>
-																						<input
-																							type="text"
-																							value={answer.right ?? answer.answer_text ?? ''}
-																							onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
-																							placeholder="Element dreapta"
-																						/>
-																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-																							×
-																						</button>
-																					</div>
-																				))}
-																				<button
-																					type="button"
-																					className="admin-btn admin-btn-secondary"
-																					onClick={() => handleInlineAddAnswer(question.id)}
-																				>
-																					+ Adaugă pereche
-																				</button>
-																			</div>
-																		)}
-
-																		{qType === 'ordering' && (
-																			<div className="admin-course-builder-test-question-answers">
-																				<p>Elemente (ordinea corectă):</p>
-																				{(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-																					<div key={`${question.id}-ord-${answerIdx}`} className="admin-course-builder-test-answer-row">
-																						<span style={{ minWidth: '2rem', fontWeight: 700 }}>{answerIdx + 1}.</span>
-																						<input
-																							type="text"
-																							value={answer.text ?? answer.answer_text ?? ''}
-																							onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
-																							placeholder="Element"
-																						/>
-																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'up')} disabled={answerIdx === 0}>
-																							↑
-																						</button>
-																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'down')} disabled={answerIdx === (question.answers?.length || 0) - 1}>
-																							↓
-																						</button>
-																						<button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-																							×
-																						</button>
-																					</div>
-																				))}
-																				<button
-																					type="button"
-																					className="admin-btn admin-btn-secondary"
-																					onClick={() => handleInlineAddAnswer(question.id)}
-																				>
-																					+ Adaugă element
-																				</button>
-																			</div>
-																		)}
-																	</>
-																)}
-															</li>
-															);
-														})}
-													</ul>
-												)}
-												<div className="admin-course-builder-test-add-bottom">
-													<button
-														type="button"
-														className="admin-btn admin-btn-primary"
-														onClick={handleAddDefaultInlineQuestion}
-														disabled={addingQuestion}
-													>
-														{addingQuestion ? 'Se adaugă...' : 'Adaugă întrebare'}
-													</button>
-													<button
-														type="button"
-														className="admin-btn admin-btn-secondary"
-														disabled
-														title="Vom reveni ulterior cu importul de întrebări"
-													>
-														Importă întrebări
-													</button>
-												</div>
-											</div>
+						{builderWorkspaceTab === 'progression' ? (
+							<div className="admin-course-builder-progression-workspace">
+								<section className="admin-course-builder-workflow">
+									<h2 className="admin-course-builder-workflow-title">Workflow</h2>
+									<p className="admin-course-builder-workflow-hint">
+										Verifică cursul înainte de publicare. Erorile de validare apar mai jos; remediază conținutul sau regulile, apoi publică din meniul din stânga.
+									</p>
+									<div className="admin-course-builder-workflow-actions">
+										<button
+											type="button"
+											className="admin-btn admin-btn-secondary"
+											onClick={handleValidateFromWorkflow}
+											disabled={validateLoading || courseActionLoading}
+										>
+											{validateLoading ? 'Se verifică…' : 'Verifică acum'}
+										</button>
+										{course?.status !== 'published' && (
+											<button
+												type="button"
+												className="admin-btn admin-btn-primary"
+												onClick={() => handleCourseStatusAction('publish')}
+												disabled={courseActionLoading}
+											>
+												Publică curs
+											</button>
 										)}
-
-										{inlineTestTab === 'settings' && (
-											<div className="admin-course-builder-test-settings">
-												<div className="admin-course-builder-test-field">
-													<label htmlFor="course-test-title">Titlu test</label>
-													<input
-														id="course-test-title"
-														type="text"
-														value={inlineTest.title || ''}
-														onChange={(e) => saveInlineTestPatch({ title: e.target.value })}
-														placeholder="Ex.: Evaluare modul 1"
-													/>
-												</div>
-												<div className="admin-course-builder-test-field">
-													<label htmlFor="course-test-description">Descriere</label>
-													<textarea
-														id="course-test-description"
-														value={inlineTest.description || ''}
-														onChange={(e) => saveInlineTestPatch({ description: e.target.value })}
-														placeholder="Instrucțiuni pentru test (opțional)"
-														rows={4}
-													/>
-												</div>
-												<div className="admin-course-builder-test-field">
-													<label>Timp limită (minute)</label>
-													<input
-														type="number"
-														min="1"
-														value={inlineTest.time_limit_minutes ?? ''}
-														onChange={(e) => saveInlineTestPatch({ time_limit_minutes: e.target.value ? Number(e.target.value) : null })}
-													/>
-												</div>
-												<div className="admin-course-builder-test-field">
-													<label>Încercări maxime</label>
-													<input
-														type="number"
-														min="1"
-														value={inlineTest.max_attempts ?? ''}
-														onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.value ? Number(e.target.value) : null })}
-													/>
-												</div>
-												<div className="admin-course-builder-test-field">
-													<label>Prag promovare (%)</label>
-													<input
-														type="number"
-														min="0"
-														max="100"
-														value={inlineTest.passing_score ?? 70}
-														onChange={(e) => saveInlineTestPatch({ passing_score: e.target.value === '' ? null : Number(e.target.value) })}
-													/>
-												</div>
-												<div className="admin-course-builder-test-settings-section">
-													<h3>Comportament test</h3>
-													<div className="admin-course-builder-test-toggle-list">
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.randomize_questions)}
-																onChange={(e) => saveInlineTestPatch({ randomize_questions: e.target.checked })}
-															/>
-															<span>
-																<strong>Amestecă întrebările</strong>
-																<small>Ordinea întrebărilor va fi randomizată pentru fiecare parcurgere.</small>
-															</span>
-														</label>
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.randomize_answers)}
-																onChange={(e) => saveInlineTestPatch({ randomize_answers: e.target.checked })}
-															/>
-															<span>
-																<strong>Amestecă răspunsurile</strong>
-																<small>Opțiunile grilă se afișează în ordine diferită.</small>
-															</span>
-														</label>
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.show_results_immediately)}
-																onChange={(e) => saveInlineTestPatch({ show_results_immediately: e.target.checked })}
-															/>
-															<span>
-																<strong>Arată rezultatul imediat</strong>
-																<small>Cursantul vede scorul imediat după trimitere.</small>
-															</span>
-														</label>
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.show_correct_answers)}
-																onChange={(e) => saveInlineTestPatch({ show_correct_answers: e.target.checked })}
-															/>
-															<span>
-																<strong>Arată răspunsurile corecte</strong>
-																<small>După finalizare se pot vedea răspunsurile corecte.</small>
-															</span>
-														</label>
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.allow_review)}
-																onChange={(e) => saveInlineTestPatch({ allow_review: e.target.checked })}
-															/>
-															<span>
-																<strong>Permite revizuirea</strong>
-																<small>Cursantul poate reveni să revadă testul după completare.</small>
-															</span>
-														</label>
-														<label className="admin-course-builder-test-toggle">
-															<input
-																type="checkbox"
-																checked={Boolean(inlineTest.requires_manual_verification)}
-																onChange={(e) => saveInlineTestPatch({ requires_manual_verification: e.target.checked })}
-															/>
-															<span>
-																<strong>Necesită verificare manuală</strong>
-																<small>Rezultatul final rămâne în așteptare până la corectare.</small>
-															</span>
-														</label>
-													</div>
-												</div>
-											</div>
-										)}
-
 									</div>
-
-									<aside className={`admin-course-builder-test-sidepanel ${openQuestionTypePickerId ? 'is-open' : ''}`} ref={questionTypeMenuRef}>
-										<div className="admin-course-builder-test-sidepanel-head">
-											<h3>Tipuri întrebări</h3>
-											<button type="button" onClick={() => setOpenQuestionTypePickerId(null)} aria-label="Închide panou">×</button>
+									{publishValidationReport && (
+										<div
+											className={`admin-course-builder-validation-report ${publishValidationReport.ok ? 'is-ok' : 'is-error'}`}
+											role="status"
+										>
+											{publishValidationReport.ok ? (
+												<p>Cursul este valid și poate fi publicat.</p>
+											) : (
+												<ul>
+													{(publishValidationReport.errors || []).map((err, idx) => (
+														<li key={idx}>{typeof err === 'string' ? err : err?.message || JSON.stringify(err)}</li>
+													))}
+												</ul>
+											)}
 										</div>
-										<div className="admin-course-builder-test-type-grid">
-											{INLINE_QUESTION_TYPES.map((typeOpt) => (
-												<button
-													key={typeOpt.id}
-													type="button"
-													className="admin-course-builder-test-type-card"
-													onClick={() => openQuestionTypePickerId && handleInlineQuestionTypeChange(openQuestionTypePickerId, typeOpt.id)}
-													disabled={addingQuestion || !openQuestionTypePickerId}
-												>
-													<span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
-													<span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
-												</button>
-											))}
-										</div>
-									</aside>
-
-								</div>
+									)}
+								</section>
+								<ProgressionRulesManager
+									courseId={courseId}
+									variant="builder"
+									structureOptions={progressionStructureOptions}
+								/>
 							</div>
+						) : showTestCreator ? (
+							<InlineTestEditorShell
+								editor={{
+									...testEditor,
+									handlePublishInlineTest,
+								}}
+								subtitle="Configurezi testul fără să părăsești pagina de creare curs."
+							/>
 						) : selectedLesson ? (
 							<>
 								<div className="admin-course-builder-lesson-heading-row">
@@ -2679,7 +1864,7 @@ const AdminCourseBuilderPage = () => {
 				aria-label="Deschide Volt pentru acest curs"
 			>
 				<span className="admin-course-builder-volt-fab-label" aria-hidden="true">
-					<Zap size={18} strokeWidth={2.25} className="admin-course-builder-volt-fab-icon" />
+					<Lightning size={18} weight="bold" className="admin-course-builder-volt-fab-icon" />
 				</span>
 				<span className="admin-course-builder-volt-fab-text">Volt</span>
 			</button>
@@ -2703,7 +1888,7 @@ const AdminCourseBuilderPage = () => {
 			)}
 
 			{showCreateTestModal && (
-				<div className="admin-course-builder-test-modal-overlay" onClick={() => !creatingTest && setShowCreateTestModal(false)}>
+				<div className="admin-course-builder-test-modal-overlay" onClick={() => !creatingTestFromModal && setShowCreateTestModal(false)}>
 					<div className="admin-course-builder-test-modal" onClick={(e) => e.stopPropagation()}>
 						<h3>Creează test</h3>
 						<form onSubmit={handleCreateTestFromModal} className="admin-course-builder-test-modal-form">
@@ -2717,17 +1902,29 @@ const AdminCourseBuilderPage = () => {
 								autoFocus
 							/>
 							<div className="admin-course-builder-test-modal-actions">
-								<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowCreateTestModal(false)} disabled={creatingTest}>
+								<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowCreateTestModal(false)} disabled={creatingTestFromModal}>
 									Anulează
 								</button>
-								<button type="submit" className="admin-btn admin-btn-primary" disabled={creatingTest}>
-									{creatingTest ? 'Se creează...' : 'Continuă'}
+								<button type="submit" className="admin-btn admin-btn-primary" disabled={creatingTestFromModal}>
+									{creatingTestFromModal ? 'Se creează...' : 'Continuă'}
 								</button>
 							</div>
 						</form>
 					</div>
 				</div>
 			)}
+
+			<PublishCourseModal
+				open={publishModalOpen}
+				onClose={() => {
+					setPublishModalOpen(false);
+					setPublishValidationReport(null);
+				}}
+				courseId={course?.id}
+				validationReport={publishValidationReport}
+				onValidate={handleValidateForPublish}
+				onPublished={handleCoursePublished}
+			/>
 
 		</div>
 	);

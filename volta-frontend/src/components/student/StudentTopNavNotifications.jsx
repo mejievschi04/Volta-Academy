@@ -1,17 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
-import { dashboardService } from '../../services/api';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { dashboardService, notificationsService } from '../../services/api';
 import { countPrimite } from '../../utils/notificationInboxStorage';
 import NotificationsDrawer from '../common/NotificationsDrawer';
+import { Bell } from '@phosphor-icons/react';
+
+const POLL_MS = 30000;
+const COOLDOWN_MS_429 = 120000;
 
 const StudentTopNavNotifications = () => {
 	const [apiItems, setApiItems] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [inboxTick, setInboxTick] = useState(0);
-	const location = useLocation();
+	const [serverUnread, setServerUnread] = useState(0);
+	const pollInFlightRef = useRef(false);
+	const pollCooldownUntilRef = useRef(0);
+	const pollFailuresRef = useRef(0);
 
-	const load = useCallback(async () => {
+	const loadFull = useCallback(async () => {
 		try {
 			setLoading(true);
 			const data = await dashboardService.getStudentDashboard();
@@ -24,27 +30,51 @@ const StudentTopNavNotifications = () => {
 		}
 	}, []);
 
-	useEffect(() => {
-		load();
-	}, [load, location.pathname]);
+	const pollBadge = useCallback(async () => {
+		if (Date.now() < pollCooldownUntilRef.current) return;
+		if (pollInFlightRef.current) return;
+		pollInFlightRef.current = true;
+
+		try {
+			const count = await notificationsService.getUnreadCount();
+			setServerUnread(count);
+			pollFailuresRef.current = 0;
+		} catch (err) {
+			const status = err?.response?.status;
+			pollFailuresRef.current += 1;
+			if (status === 429 || pollFailuresRef.current >= 3) {
+				pollCooldownUntilRef.current = Date.now() + (status === 429 ? COOLDOWN_MS_429 : 60000);
+				pollFailuresRef.current = 0;
+			}
+		} finally {
+			pollInFlightRef.current = false;
+		}
+	}, []);
 
 	useEffect(() => {
-		const intervalId = window.setInterval(() => {
-			load();
-		}, 30000);
+		pollBadge();
+	}, [pollBadge]);
+
+	useEffect(() => {
+		const intervalId = window.setInterval(pollBadge, POLL_MS);
 		const onVisibilityChange = () => {
-			if (!document.hidden) load();
+			if (!document.hidden) pollBadge();
 		};
 		document.addEventListener('visibilitychange', onVisibilityChange);
 		return () => {
 			window.clearInterval(intervalId);
 			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
-	}, [load]);
+	}, [pollBadge]);
+
+	useEffect(() => {
+		if (drawerOpen) loadFull();
+	}, [drawerOpen, loadFull]);
 
 	const onLocalStateChange = useCallback(() => setInboxTick((t) => t + 1), []);
 
-	const primiteCount = useMemo(() => countPrimite(apiItems, 'student'), [apiItems, inboxTick]);
+	const localPrimite = useMemo(() => countPrimite(apiItems, 'student'), [apiItems, inboxTick]);
+	const primiteCount = drawerOpen || apiItems.length > 0 ? localPrimite : Math.max(serverUnread, localPrimite);
 
 	return (
 		<div className="va-topnav-notifications admin-topnav-notifications">
@@ -55,10 +85,7 @@ const StudentTopNavNotifications = () => {
 				aria-label="Deschide notificările"
 				aria-expanded={drawerOpen}
 			>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-					<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-					<path d="M13.73 21a2 2 0 0 1-3.46 0" />
-				</svg>
+				<Bell size={20} weight="duotone" aria-hidden />
 				{primiteCount > 0 && <span className="admin-topnav-notification-badge">{primiteCount}</span>}
 			</button>
 			<NotificationsDrawer
@@ -68,6 +95,7 @@ const StudentTopNavNotifications = () => {
 				apiItems={apiItems}
 				loading={loading}
 				onLocalStateChange={onLocalStateChange}
+				onRefresh={loadFull}
 			/>
 		</div>
 	);

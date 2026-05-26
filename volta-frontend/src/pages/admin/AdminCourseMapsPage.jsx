@@ -16,7 +16,8 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { MagnifyingGlass, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import { DragGripIcon } from '../../components/common/DragGripIcon';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
@@ -76,7 +77,7 @@ function SortableAdminMapShowcase({
 					if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
 				}}
 			>
-				<GripVertical size={14} aria-hidden />
+				<DragGripIcon size={14} />
 			</span>
 		) : null;
 
@@ -100,10 +101,7 @@ function SortableAdminMapShowcase({
 						<>
 							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
 								<button type="button" className="admin-course-map-edit-btn va-card-icon-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-									</svg>
+									<PencilSimple size={16} weight="bold" aria-hidden />
 								</button>
 							</div>
 							<span
@@ -122,10 +120,7 @@ function SortableAdminMapShowcase({
 								}}
 								aria-label="Șterge mapa"
 							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-									<line x1="18" y1="6" x2="6" y2="18" />
-									<line x1="6" y1="6" x2="18" y2="18" />
-								</svg>
+								<Trash size={18} weight="bold" aria-hidden />
 							</span>
 						</>
 					) : null
@@ -156,10 +151,7 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 						<>
 							<div className="admin-course-map-footer-actions" onClick={(e) => e.stopPropagation()}>
 								<button type="button" className="admin-course-map-edit-btn va-card-icon-btn" onClick={(e) => { e.stopPropagation(); onEdit(map); }} aria-label="Editează mapa">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-									</svg>
+									<PencilSimple size={16} weight="bold" aria-hidden />
 								</button>
 							</div>
 							<span
@@ -178,10 +170,7 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 								}}
 								aria-label="Șterge mapa"
 							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-									<line x1="18" y1="6" x2="6" y2="18" />
-									<line x1="6" y1="6" x2="18" y2="18" />
-								</svg>
+								<Trash size={18} weight="bold" aria-hidden />
 							</span>
 						</>
 					) : null
@@ -225,7 +214,11 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 	const fetchMaps = useCallback(async () => {
 		try {
 			setLoading(true);
-			const res = await adminService.getCourseMaps({ search: searchQuery || undefined, per_page: 200 });
+			const res = await adminService.getCourseMaps({
+				search: searchQuery || undefined,
+				per_page: 200,
+				include_virtual: 1,
+			});
 			const list = res?.data ?? (Array.isArray(res) ? res : []);
 			const arr = Array.isArray(list) ? list : [];
 			setMaps(arr);
@@ -457,9 +450,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 					<div className="admin-courses-header-actions">
 						{headerActions}
 						<button type="button" className="admin-btn-create-course" onClick={openCreate}>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M12 5V19M5 12H19" strokeLinecap="round"/>
-							</svg>
+							<Plus size={18} weight="bold" aria-hidden />
 							Creează mapă
 						</button>
 					</div>
@@ -468,10 +459,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 				<div className="admin-courses-toolbar">
 					<div className="admin-courses-search-wrapper">
 						<div className="admin-courses-search">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<circle cx="11" cy="11" r="8"/>
-								<path d="m21 21-4.35-4.35"/>
-							</svg>
+							<MagnifyingGlass size={18} weight="regular" aria-hidden />
 							<input
 								type="text"
 								placeholder="Caută mape..."
@@ -547,10 +535,10 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			{/* Create/Edit modal – standard LMS: secțiuni clare, selector cursuri cu checkbox */}
 			{showCreateModal && canMutateInAdminArea && (
 				<div className="admin-modal-overlay" onClick={closeCreateModal}>
-					<div className={`admin-modal admin-modal-create ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
+					<div className={`admin-modal admin-modal-create admin-course-map-modal ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
 						<div className="admin-modal-body">
-							<section className="admin-form-section">
+							<section className="admin-form-section admin-course-map-basic-section">
 								<h3 className="admin-form-section-title">Informații de bază</h3>
 								<label className="admin-form-label" htmlFor="course-map-name">Nume</label>
 								<input
@@ -574,7 +562,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 								<p className="admin-form-hint">Cursurile din mapă vor apărea grupat pentru studenți.</p>
 							</section>
 
-							<section className="admin-form-section" aria-label="Aspect mapă">
+							<section className="admin-form-section admin-course-map-style-section" aria-label="Aspect mapă">
 								<h3 className="admin-form-section-title">Aspect</h3>
 								<label className="admin-form-label">Culoare accent</label>
 								<div
@@ -760,7 +748,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 							</section>
 
 							{editingMap && (
-								<section className="admin-form-section" aria-label="Cursuri în mapă">
+								<section className="admin-form-section admin-course-map-courses-section" aria-label="Cursuri în mapă">
 									<h3 className="admin-form-section-title">Cursuri în mapă</h3>
 									<div className="admin-course-map-courses-list">
 										{(editingMap.courses || []).length === 0 ? (

@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\CourseTest;
+use App\Models\ActivityLog;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Test;
 use App\Models\TestResult;
@@ -90,6 +92,107 @@ class DashboardMetricsTest extends TestCase
         $descriptions = collect($response->json('recent_activities'))->pluck('description');
         $this->assertTrue($descriptions->contains(fn ($description) => str_contains($description, $test->title)));
         $this->assertTrue($descriptions->contains(fn ($description) => str_contains($description, $exam->title)));
+    }
+
+    public function test_admin_dashboard_chart_metrics_are_backed_by_real_activity(): void
+    {
+        [$student, $course, $test, $exam, $admin] = $this->seedResultsScenario(true);
+
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Lecție dashboard',
+            'content' => 'Conținut pentru metrice dashboard',
+            'duration_minutes' => 30,
+            'order' => 1,
+        ]);
+
+        DB::table('lesson_progress')->insert([
+            'lesson_id' => $lesson->id,
+            'user_id' => $student->id,
+            'completed' => false,
+            'time_spent_seconds' => 7200,
+            'progress_percentage' => 50,
+            'started_at' => now()->subHours(2),
+            'completed_at' => null,
+            'created_at' => now()->subHours(2),
+            'updated_at' => now()->subHour(),
+        ]);
+
+        $activityAt = now()->subHour();
+
+        $focusLog = ActivityLog::create([
+            'user_id' => $student->id,
+            'action' => 'telemetry.learner_focus_seconds',
+            'model_type' => Lesson::class,
+            'model_id' => $lesson->id,
+            'description' => 'Timp de focus',
+            'new_values' => [
+                'seconds' => 1800,
+                'lesson_id' => $lesson->id,
+            ],
+        ]);
+        $focusLog->forceFill([
+            'created_at' => $activityAt,
+            'updated_at' => $activityAt,
+        ])->save();
+
+        $sessionLog = ActivityLog::create([
+            'user_id' => $student->id,
+            'action' => 'session_started',
+            'description' => 'Sesiune dashboard test',
+        ]);
+        $sessionLog->forceFill([
+            'created_at' => $activityAt,
+            'updated_at' => $activityAt,
+        ])->save();
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=7d');
+
+        $response->assertOk()
+            ->assertJsonPath('kpis.avg_learning_minutes.value', '30')
+            ->assertJsonPath('kpis.avg_learning_minutes.sessions_count', 1)
+            ->assertJsonPath('kpis.avg_learning_minutes_total.value', '120');
+
+        $chartRows = collect($response->json('chart_data'));
+        $this->assertTrue($chartRows->contains(fn ($row) => ($row['total_users'] ?? 0) >= 1));
+        $this->assertTrue($chartRows->contains(fn ($row) => ($row['active_users'] ?? 0) >= 1));
+        $this->assertSame(30, $chartRows->sum('learning_minutes'));
+
+        $hourlyRow = collect($response->json('hourly_activity'))
+            ->firstWhere('hour', (int) $activityAt->format('G'));
+        $this->assertNotNull($hourlyRow);
+        $this->assertSame(1, $hourlyRow['sessions']);
+        $this->assertSame(1, $hourlyRow['visits']);
+        $this->assertSame(1, $hourlyRow['users']);
+
+        $activities = collect($response->json('recent_activities'))->pluck('description');
+        $this->assertTrue($activities->contains(fn ($description) => str_contains($description, 'Lecție dashboard')));
+    }
+
+    public function test_admin_dashboard_omits_revenue_kpis_without_payments_module(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Admin Revenue',
+            'email' => 'admin.revenue@example.com',
+            'role' => 'admin',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=30d');
+
+        $response->assertOk()
+            ->assertJsonMissingPath('kpis.revenue_gross')
+            ->assertJsonMissingPath('kpis.revenue_net')
+            ->assertJsonPath('integrations.payments', false);
+
+        $firstChartPoint = $response->json('chart_data.0');
+        if (is_array($firstChartPoint)) {
+            $this->assertArrayNotHasKey('revenue', $firstChartPoint);
+        }
+
+        $topCourse = $response->json('top_courses.0');
+        if (is_array($topCourse)) {
+            $this->assertArrayNotHasKey('revenue', $topCourse);
+        }
     }
 
     public function test_admin_statistics_course_test_detail_includes_both_result_tables(): void

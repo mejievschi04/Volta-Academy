@@ -177,6 +177,7 @@
 .va-shell-topnav .va-topnav-btn.active .va-topnav-icon,
 .va-shell-topnav .va-topnav-btn.is-active .va-topnav-icon {
 	opacity: 1;
+	color: currentColor;
 }
 
 /* Light theme - dark icons for better contrast */
@@ -205,90 +206,7 @@
 
 
 /* Student Top Nav Controls */
-.va-shell-topnav .admin-topnav-control {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-2) var(--space-4);
-	background: transparent;
-	border: none;
-	border-radius: 0px;
-	transition: all var(--transition-base);
-	box-shadow: none;
-	width: 127px;
-	height: 64px;
-}
-
-.va-shell-topnav .admin-topnav-control:hover {
-	background: transparent;
-	box-shadow: none;
-}
-
-.va-shell-topnav .admin-topnav-control-label {
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-tertiary);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-/* Theme toggle (admin-view-switcher) - students don't load admin CSS */
-.va-shell-topnav .admin-view-switcher {
-	width: 48px;
-	height: 24px;
-	min-width: 48px;
-	max-width: 48px;
-	min-height: 24px;
-	max-height: 24px;
-	background-color: var(--bg-elevated);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-full);
-	cursor: pointer;
-	position: relative;
-	transition: all var(--transition-base);
-	flex-shrink: 0;
-	padding: 0;
-	margin: 0;
-	overflow: hidden;
-}
-
-.va-shell-topnav .admin-view-switcher:hover {
-	border-color: var(--border-secondary);
-}
-
-.va-shell-topnav .admin-view-switcher-slider {
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 20px;
-	height: 20px;
-	min-width: 20px;
-	max-width: 20px;
-	min-height: 20px;
-	max-height: 20px;
-	background-color: var(--color-primary);
-	border-radius: var(--radius-full);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: transform var(--transition-base);
-	color: white;
-	box-sizing: border-box;
-}
-
-.va-shell-topnav .admin-view-switcher-slider svg {
-	color: var(--text-inverse);
-	stroke: var(--text-inverse);
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	display: block;
-}
-
-[data-theme="light"] .va-shell-topnav .admin-view-switcher-slider svg {
-	color: var(--text-inverse);
-	stroke: var(--text-inverse);
-}
+/* Admin view switcher → admin-view-switcher.css (încărcat global din App.jsx) */
 
 /* Student User Info */
 .va-shell-topnav .admin-topnav-user {

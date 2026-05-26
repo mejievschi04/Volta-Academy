@@ -36,9 +36,12 @@ const ProfilePage = () => {
 					profile = {
 						user: userData,
 						stats: {
-							completedLessons: userData.completed_lessons || 0,
+							completedCourses: Array.isArray(userData.courses_completed)
+								? userData.courses_completed.length
+								: (userData.completed_courses || 0),
 							completedQuizzes: userData.completed_quizzes || 0,
-							inProgressCourses: userData.in_progress_courses || 0,
+							inProgressCourses: userData.in_progress_courses
+								?? (Array.isArray(userData.courses_in_progress) ? userData.courses_in_progress.length : 0),
 							progressPercentage: userData.completion_percentage || 0,
 						},
 						coursesInProgress: userData.courses_in_progress || [],
@@ -217,13 +220,21 @@ const ProfilePage = () => {
 				</div>
 			</div>
 
+			{!isViewingOtherUser && (
+				<div className="va-profile-activity-cta">
+					<Link to="/profile/activity" className="lms-btn-secondary">
+						Vezi activitatea mea
+					</Link>
+				</div>
+			)}
+
 			{/* Stats Grid */}
 			<div className="va-profile-stats">
 				<div className="va-stat-card">
 					<div className="va-stat-icon">📚</div>
 					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.completedModules || stats.completedLessons || 0}</div>
-						<div className="va-stat-label">Module finalizate</div>
+						<div className="va-stat-value">{stats.completedCourses ?? 0}</div>
+						<div className="va-stat-label">Cursuri finalizate</div>
 					</div>
 				</div>
 				<div className="va-stat-card">
@@ -279,9 +290,7 @@ const ProfilePage = () => {
 										></div>
 									</div>
 									<div className="va-course-card-meta">
-										<span>
-											{course.completedModules || course.completedLessons || 0} / {course.totalModules || course.totalLessons || 0} module finalizate
-										</span>
+										<span>Progres parcurs: {course.progress}%</span>
 									</div>
 									<Link
 										to={`/courses/${course.id}`}

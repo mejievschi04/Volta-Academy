@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 import { toImageUrl } from '../../utils/imageUrl';
 import courseMapPlaceholder from '../../assets/course-map-placeholder.svg';
@@ -111,7 +111,7 @@ const CourseShowcaseCard = React.forwardRef(
 						) : null}
 						<div className="course-showcase-card__footer va-card-footer">
 							<span className="course-showcase-card__cta-label va-card-cta-label">{ctaLabel}</span>
-							<ArrowRight className="course-showcase-card__cta-icon va-card-cta-icon" aria-hidden />
+							<ArrowRight size={18} weight="bold" className="course-showcase-card__cta-icon va-card-cta-icon" aria-hidden />
 						</div>
 					</div>
 					{topLeftSlot ? <div className="course-showcase-card__tl">{topLeftSlot}</div> : null}

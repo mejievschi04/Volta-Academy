@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
+import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
 
 const DEFAULT_TIMEZONE = 'Europe/Bucharest';
 const DEFAULT_DURATION_MINUTES = 60;
@@ -76,6 +77,8 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 	const [formData, setFormData] = useState(emptyEventForm);
 	const [errors, setErrors] = useState({});
 	const [touched, setTouched] = useState({});
+	const bodyRef = useRef(null);
+	useScrollResetOnOpen(open, bodyRef);
 
 	const resetForm = useCallback(() => {
 		setFormData(emptyEventForm());
@@ -272,7 +275,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 						×
 					</button>
 				</div>
-				<div className="admin-event-modal-body">
+				<div ref={bodyRef} className="admin-event-modal-body">
 					<form onSubmit={handleSubmit} className="admin-event-form">
 						<section className="admin-form-section">
 							<div className="admin-form-group">

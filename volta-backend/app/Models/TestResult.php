@@ -18,6 +18,7 @@ class TestResult extends Model
 
     protected $fillable = [
         'test_id',
+        'course_id',
         'user_id',
         'score',
         'max_score',
@@ -56,6 +57,11 @@ class TestResult extends Model
         return $this->belongsTo(Test::class);
     }
 
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
     /**
      * Get the user
      */
@@ -72,4 +78,3 @@ class TestResult extends Model
         return $this->passed;
     }
 }
-

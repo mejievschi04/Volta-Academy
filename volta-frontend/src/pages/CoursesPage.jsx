@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
 import { courseMapsService, adminService, examService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-card';
 import CourseMapFolderTile from '../components/ui/CourseMapFolderTile';
 import { mapFolderCardImageUrl } from '../utils/imageUrl';
 import { hexToHslSpace } from '../lib/hexToHsl';
+import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CoursesPage.css';
 
 const COURSE_MAP_ACCENT_COLORS = [
@@ -16,6 +18,7 @@ const CoursesPage = () => {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
 	const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
+	const isStudent = !isAdmin;
 
 	const [courseMaps, setCourseMaps] = useState([]);
 	const [standaloneExams, setStandaloneExams] = useState([]);
@@ -42,7 +45,8 @@ const CoursesPage = () => {
 					setCourseMaps(Array.isArray(list) ? list : []);
 				} else {
 					const mapsData = await courseMapsService.getMaps();
-					setCourseMaps(Array.isArray(mapsData) ? mapsData : []);
+					const rows = Array.isArray(mapsData) ? mapsData : [];
+					setCourseMaps(rows.filter(isStudentVisibleMap));
 				}
 
 				try {
@@ -66,8 +70,8 @@ const CoursesPage = () => {
 
 	const filteredCourseMaps = useMemo(() => {
 		let rows = Array.isArray(courseMaps) ? [...courseMaps] : [];
-		if (!isAdmin) {
-			rows = rows.filter((map) => !map?.is_virtual && String(map?.id) !== 'unassigned');
+		if (isStudent) {
+			rows = rows.filter(isStudentVisibleMap);
 		}
 		if (searchQuery.trim()) {
 			const needle = searchQuery.trim().toLowerCase();
@@ -77,7 +81,7 @@ const CoursesPage = () => {
 			);
 		}
 		return rows;
-	}, [courseMaps, searchQuery, isAdmin]);
+	}, [courseMaps, isStudent, searchQuery]);
 
 	const filteredStandaloneExams = useMemo(() => {
 		let rows = Array.isArray(standaloneExams) ? [...standaloneExams] : [];
@@ -106,7 +110,9 @@ const CoursesPage = () => {
 		return (
 			<div className="courses-page-modern">
 				<div className="courses-page-error">
-					<div className="courses-page-error-icon">!</div>
+					<div className="courses-page-error-icon">
+						<WarningCircle size={28} weight="duotone" aria-hidden />
+					</div>
 					<h2>Eroare</h2>
 					<p>{error}</p>
 					<button
@@ -151,10 +157,7 @@ const CoursesPage = () => {
 							) : null}
 						</div>
 						<div className="courses-page-search-wrapper courses-page-hero-search">
-							<svg className="courses-page-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<circle cx="11" cy="11" r="8" />
-								<path d="m21 21-4.35-4.35" />
-							</svg>
+							<MagnifyingGlass className="courses-page-search-icon" size={20} weight="bold" aria-hidden />
 							<input
 								type="text"
 								className="courses-page-search-input"
@@ -173,7 +176,7 @@ const CoursesPage = () => {
 									onClick={() => setSearchQuery('')}
 									aria-label="Goleste cautarea"
 								>
-									X
+									<X size={16} weight="bold" aria-hidden />
 								</button>
 							)}
 						</div>
@@ -189,9 +192,7 @@ const CoursesPage = () => {
 									className="courses-page-create-btn"
 									onClick={() => navigate('/admin/courses/new')}
 								>
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M12 5v14M5 12h14" />
-									</svg>
+									<Plus size={20} weight="bold" aria-hidden />
 									<span>Creeaza Curs Nou</span>
 								</button>
 							</div>
@@ -212,9 +213,9 @@ const CoursesPage = () => {
 								const subtitle = subtitleParts.join(' - ');
 
 								return (
-									<article key={map.id} className="course-map-card course-map-card--showcase-wrap">
+									<article key={map.id} className="course-map-showcase-tile">
 										<CourseMapFolderTile
-											className="courses-page-map-card-showcase"
+											className="courses-page-map-tile-showcase"
 											title={map.name || 'Mapa'}
 											subtitle={subtitle}
 											count={courseCount}
@@ -231,10 +232,7 @@ const CoursesPage = () => {
 							{filteredCourseMaps.length === 0 ? (
 								<div className="courses-page-empty">
 									<div className="courses-page-empty-icon">
-										<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-											<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-											<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-										</svg>
+										<Books size={64} weight="duotone" aria-hidden />
 									</div>
 									<h3 className="courses-page-empty-title">
 										{searchQuery ? 'Nu am gasit mape' : 'Nu exista mape disponibile'}
@@ -257,9 +255,7 @@ const CoursesPage = () => {
 												className="courses-page-btn courses-page-btn-primary"
 												onClick={() => navigate('/admin/content?tab=course-maps')}
 											>
-												<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-													<path d="M12 5v14M5 12h14" />
-												</svg>
+												<Plus size={20} weight="bold" aria-hidden />
 												<span>Creeaza prima mapa</span>
 											</button>
 										)
@@ -279,9 +275,9 @@ const CoursesPage = () => {
 									if (ex.passing_score != null) subtitleParts.push(`Prag ${ex.passing_score}%`);
 									const subtitle = subtitleParts.join(' - ') || 'Examen independent';
 									return (
-										<article key={ex.id} className="course-map-card course-map-card--showcase-wrap">
+										<article key={ex.id} className="course-map-showcase-tile">
 											<CourseShowcaseCard
-												className="courses-page-map-card-showcase"
+												className="courses-page-map-tile-showcase"
 												imageUrl={COURSE_SHOWCASE_FALLBACK_IMAGE}
 												title={ex.title || 'Examen'}
 												subtitle={subtitle}

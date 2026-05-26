@@ -7,6 +7,7 @@ import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
 import { renderPdfFirstPageAsJpegBlob } from '../utils/renderPdfFirstPageCover';
+import { UploadSimple } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 
 function formatBytes(n) {
@@ -470,12 +471,7 @@ const LibraryPage = () => {
 								}
 							>
 								<div className="library-dropzone__icon" aria-hidden>
-									<svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.75" strokeDasharray="3 2.5" />
-										<rect x="7" y="10" width="10" height="2" rx="0.5" fill="currentColor" />
-										<rect x="7" y="14" width="10" height="2" rx="0.5" fill="currentColor" />
-										<rect x="9" y="6" width="6" height="2" rx="0.5" fill="currentColor" />
-									</svg>
+									<UploadSimple size={44} weight="duotone" />
 								</div>
 								<p className="library-dropzone__title">
 									{form.file ? form.file.name : 'Trage fișierul aici'}

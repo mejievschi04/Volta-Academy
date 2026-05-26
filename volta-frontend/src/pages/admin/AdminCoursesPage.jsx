@@ -16,7 +16,8 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil } from 'lucide-react';
+import { PencilSimple } from '@phosphor-icons/react';
+import { DragGripIcon } from '../../components/common/DragGripIcon';
 import { adminService } from '../../services/api';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
@@ -66,7 +67,7 @@ function SortableAdminCourseCard({
 				if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
 			}}
 		>
-			<GripVertical size={14} aria-hidden />
+			<DragGripIcon size={14} />
 		</span>
 	) : null;
 
@@ -98,7 +99,7 @@ function SortableAdminCourseCard({
 							title="Editează detaliile cursului"
 						>
 							<span className="admin-courses-showcase-edit-btn__icon" aria-hidden>
-								<Pencil size={15} strokeWidth={2.25} />
+								<PencilSimple size={15} weight="bold" />
 							</span>
 							<span className="admin-courses-showcase-edit-btn__text">Editează</span>
 						</button>
@@ -134,7 +135,7 @@ function StaticAdminCourseCard({ course, coverSrc, accentHsl, statusLabel, canEd
 							title="Editează detaliile cursului"
 						>
 							<span className="admin-courses-showcase-edit-btn__icon" aria-hidden>
-								<Pencil size={15} strokeWidth={2.25} />
+								<PencilSimple size={15} weight="bold" />
 							</span>
 							<span className="admin-courses-showcase-edit-btn__text">Editează</span>
 						</button>

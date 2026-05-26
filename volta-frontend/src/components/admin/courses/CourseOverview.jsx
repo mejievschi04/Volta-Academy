@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pencil, Rocket, EyeOff, Eye, Trash2 } from 'lucide-react';
+import { Eye, EyeSlash, PencilSimple, RocketLaunch, Trash } from '@phosphor-icons/react';
 
-const iconProps = { size: 18, strokeWidth: 2, 'aria-hidden': true };
+const iconProps = { size: 18, weight: 'bold', 'aria-hidden': true };
 
 const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCourseEdit = false }) => {
 
@@ -39,7 +39,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 							onClick={() => onQuickAction('edit')}
 							title="Module, lecții și conținut (builder)"
 						>
-							<Pencil {...iconProps} />
+							<PencilSimple {...iconProps} />
 							<span>Editează</span>
 						</button>
 					)}
@@ -49,7 +49,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 							className="lms-btn-primary admin-course-overview-action-btn"
 							onClick={() => onQuickAction('publish')}
 						>
-							<Rocket {...iconProps} />
+							<RocketLaunch {...iconProps} />
 							<span>Publică</span>
 						</button>
 					)}
@@ -59,7 +59,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 							className="lms-btn-secondary admin-course-overview-action-btn"
 							onClick={() => onQuickAction('unpublish')}
 						>
-							<EyeOff {...iconProps} />
+							<EyeSlash {...iconProps} />
 							<span>Retrage publicarea</span>
 						</button>
 					)}
@@ -77,7 +77,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 							className="lms-btn-secondary va-btn-danger admin-course-overview-action-btn"
 							onClick={() => onQuickAction('delete')}
 						>
-							<Trash2 {...iconProps} />
+							<Trash {...iconProps} />
 							<span>Șterge curs</span>
 						</button>
 					)}

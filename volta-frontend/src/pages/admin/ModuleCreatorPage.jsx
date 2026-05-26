@@ -27,7 +27,7 @@ const ModuleCreatorPage = () => {
 
 	useEffect(() => {
 		if (!canMutateInAdminArea) {
-			navigate(courseId ? `/admin/courses/${courseId}` : '/admin/content?tab=courses', { replace: true });
+			navigate(courseId ? `/admin/courses/${courseId}` : '/admin/content?tab=courses&view=maps', { replace: true });
 		}
 	}, [canMutateInAdminArea, courseId, navigate]);
 
@@ -241,4 +241,3 @@ const ModuleCreatorPage = () => {
 };
 
 export default ModuleCreatorPage;
-

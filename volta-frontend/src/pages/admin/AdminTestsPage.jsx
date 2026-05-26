@@ -1,34 +1,56 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
+import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
-
-const EMPTY_FORM = {
-  title: '',
-  description: '',
-  passing_score: 70,
-  max_attempts: 3,
-  time_limit_minutes: '',
-  status: 'draft',
-};
 
 const normalizeTests = (raw) => (Array.isArray(raw) ? raw : []);
 const normalizeTestStatus = (status) => (String(status || 'draft').toLowerCase() === 'published' ? 'published' : 'draft');
 
+function testStatusLabel(status) {
+  return normalizeTestStatus(status) === 'published' ? 'Publicat' : 'Draft';
+}
+
+function testTypeLabel(type) {
+  const t = String(type || 'final').toLowerCase();
+  if (t === 'practice') return 'Practică';
+  if (t === 'graded') return 'Notat';
+  return 'Final';
+}
+
+function buildTestMetaLine(item) {
+  const questions = item.questions_count ?? item.questions?.length ?? 0;
+  const parts = [
+    `${questions} întrebări`,
+    `${Number(item.passing_score ?? 70)}% prag`,
+    item.max_attempts != null ? `${item.max_attempts} încercări` : null,
+    item.time_limit_minutes ? `${item.time_limit_minutes} min` : 'Timp nelimitat',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
 export default function AdminTestsPage() {
+  const navigate = useNavigate();
   const { success: showSuccess, error: showError } = useToast();
   const { canMutateInAdminArea } = useAuth();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingTest, setEditingTest] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [deleteConfirmTest, setDeleteConfirmTest] = useState(null);
+
+  const listStats = useMemo(() => {
+    const counts = { all: tests.length, draft: 0, published: 0 };
+    tests.forEach((item) => {
+      const status = normalizeTestStatus(item?.status);
+      if (status in counts) counts[status] += 1;
+    });
+    return counts;
+  }, [tests]);
 
   const loadTests = useCallback(async () => {
     try {
@@ -39,7 +61,7 @@ export default function AdminTestsPage() {
     } catch (e) {
       console.error('Failed to load tests:', e);
       setTests([]);
-      setError('Nu s-a putut incarca lista de teste.');
+      setError('Nu s-a putut încărca lista de teste.');
     } finally {
       setLoading(false);
     }
@@ -60,59 +82,9 @@ export default function AdminTestsPage() {
     });
   }, [tests, query]);
 
-  const openEditModal = (item) => {
-    setEditingTest(item);
-    setForm({
-      title: item?.title || '',
-      description: item?.description || '',
-      passing_score: Number(item?.passing_score ?? 70),
-      max_attempts: Number(item?.max_attempts ?? 3),
-      time_limit_minutes: item?.time_limit_minutes ?? '',
-      status: normalizeTestStatus(item?.status),
-    });
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    if (saving) return;
-    setShowModal(false);
-  };
-
-  const handleSave = async () => {
-    const title = form.title.trim();
-    if (!title) {
-      showError('Titlul testului este obligatoriu.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const payload = {
-        title,
-        description: form.description.trim(),
-        status: form.status === 'published' ? 'published' : 'draft',
-        type: 'final',
-        passing_score: Number(form.passing_score || 70),
-        max_attempts: Number(form.max_attempts || 1),
-        time_limit_minutes: form.time_limit_minutes === '' ? null : Number(form.time_limit_minutes),
-      };
-
-      if (!editingTest?.id) {
-        showError('Crearea testelor din această pagină este dezactivată. Poți doar edita teste existente.');
-        return;
-      }
-
-      await adminService.updateTest(editingTest.id, payload);
-      showSuccess('Test actualizat.');
-
-      setShowModal(false);
-      await loadTests();
-    } catch (e) {
-      console.error('Failed to save test:', e);
-      showError(e?.response?.data?.message || 'Nu s-a putut salva testul.');
-    } finally {
-      setSaving(false);
-    }
+  const openBuilder = (item, section = 'questions') => {
+    if (!item?.id) return;
+    navigate(`/admin/tests/${item.id}/builder?section=${section}`);
   };
 
   const handlePublish = async (item) => {
@@ -120,8 +92,10 @@ export default function AdminTestsPage() {
     setBusyId(item.id);
     try {
       await adminService.publishTest(item.id);
+      setTests((prev) => prev.map((row) => (
+        row.id === item.id ? { ...row, status: 'published' } : row
+      )));
       showSuccess('Test publicat.');
-      await loadTests();
     } catch (e) {
       console.error('Failed to publish test:', e);
       showError(e?.response?.data?.message || 'Nu s-a putut publica testul.');
@@ -135,8 +109,10 @@ export default function AdminTestsPage() {
     setBusyId(item.id);
     try {
       await adminService.updateTest(item.id, { status: status === 'published' ? 'published' : 'draft' });
-      showSuccess(status === 'published' ? 'Test publicat.' : 'Test mutat in draft.');
-      await loadTests();
+      showSuccess(status === 'published' ? 'Test publicat.' : 'Test mutat în draft.');
+      setTests((prev) => prev.map((row) => (
+        row.id === item.id ? { ...row, status: status === 'published' ? 'published' : 'draft' } : row
+      )));
     } catch (e) {
       console.error('Failed to update test status:', e);
       showError(e?.response?.data?.message || 'Nu s-a putut actualiza statusul.');
@@ -150,87 +126,89 @@ export default function AdminTestsPage() {
     setBusyId(deleteConfirmTest.id);
     try {
       await adminService.deleteTest(deleteConfirmTest.id);
-      showSuccess('Test sters.');
+      showSuccess('Test șters.');
       setTests((prev) => prev.filter((row) => row.id !== deleteConfirmTest.id));
       setDeleteConfirmTest(null);
     } catch (e) {
       console.error('Failed to delete test:', e);
-      showError(e?.response?.data?.message || 'Nu s-a putut sterge testul.');
+      showError(e?.response?.data?.message || 'Nu s-a putut șterge testul.');
     } finally {
       setBusyId(null);
     }
   };
 
   return (
-    <div className="admin-tests-page">
-      <header className="admin-tests-header">
-        <div>
+    <div className="admin-tests-page admin-content-list-page">
+      <header className="admin-content-list-header">
+        <div className="admin-content-list-header__copy">
+          <p className="admin-content-list-header__kicker">Conținut</p>
           <h1>Teste</h1>
-          <p className="admin-tests-header-lead">
-            Publică când e gata sau lasă testul în draft pentru editări ulterioare. Verificarea manuală este în Content → Verificare manuală.
+          <p className="admin-content-list-header__lead">
+            Setări și întrebări în același builder ca la cursuri.
           </p>
+          <div className="admin-content-list-stats" aria-label="Rezumat">
+            <span>Total<strong>{listStats.all}</strong></span>
+            <span>Draft<strong>{listStats.draft}</strong></span>
+            <span>Publicate<strong>{listStats.published}</strong></span>
+          </div>
         </div>
-        <div className="admin-tests-header-actions" />
       </header>
 
-      <div className="admin-tests-search">
-        <input
-          type="text"
-          placeholder="Cauta test..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="admin-content-list-toolbar">
+        <div className="admin-content-list-search">
+          <input
+            type="search"
+            placeholder="Caută test..."
+            aria-label="Caută teste"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {loading ? (
-        <div className="admin-tests-empty">Se incarca testele...</div>
+        <div className="admin-content-list-skeleton" aria-busy="true" aria-label="Se încarcă testele">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="admin-content-list-skeleton__card" />
+          ))}
+        </div>
       ) : error ? (
-        <div className="admin-tests-empty">{error}</div>
+        <div className="admin-content-list-empty">{error}</div>
       ) : filteredTests.length === 0 ? (
-        <div className="admin-tests-empty">Nu exista teste inca.</div>
+        <div className="admin-content-list-empty">
+          {tests.length === 0 ? 'Niciun test încă. Creează unul din constructorul de curs.' : 'Niciun rezultat pentru căutare.'}
+        </div>
       ) : (
-        <div className="admin-tests-grid">
+        <div className="admin-content-list-grid">
           {filteredTests.map((item) => {
             const status = normalizeTestStatus(item.status);
             const busy = busyId === item.id;
 
+            const secondaryActions = canMutateInAdminArea
+              ? [
+                  { label: 'Setări', onClick: () => openBuilder(item, 'settings'), disabled: busy },
+                  status === 'draft'
+                    ? { label: busy ? 'Se publică…' : 'Publică', onClick: () => handlePublish(item), disabled: busy, emphasis: true }
+                    : { label: 'Draft', onClick: () => patchTestStatus(item, 'draft'), disabled: busy },
+                  { label: 'Șterge', onClick: () => setDeleteConfirmTest(item), disabled: busy, danger: true },
+                ]
+              : [];
+
             return (
-              <article key={item.id} className="admin-tests-card">
-                <div className="admin-tests-card-head">
-                  <h3>{item.title || 'Test fara titlu'}</h3>
-                  <span className={`status ${status}`}>{status}</span>
-                </div>
-                <p>{item.description || 'Fara descriere'}</p>
-                <div className="admin-tests-meta">
-                  <span>Prag: {Number(item.passing_score ?? 70)}%</span>
-                  <span>Incercari: {item.max_attempts ?? '-'}</span>
-                  <span>Timp: {item.time_limit_minutes ? `${item.time_limit_minutes} min` : 'nelimitat'}</span>
-                </div>
-                {canMutateInAdminArea ? (
-                  <div className="admin-tests-card-footer">
-                    <div className="admin-tests-actions-primary">
-                      <button type="button" className="is-wide" disabled={busy} onClick={() => openEditModal(item)}>
-                        Deschide editorul
-                      </button>
-                    </div>
-                    <div className="admin-tests-actions-grid">
-                      {status === 'draft' ? (
-                        <button type="button" className="is-emphasis" disabled={busy} onClick={() => handlePublish(item)}>
-                          {busy ? 'Se publica...' : 'Publica'}
-                        </button>
-                      ) : null}
-                      {status === 'published' ? (
-                        <button type="button" disabled={busy} onClick={() => patchTestStatus(item, 'draft')}>
-                          Muta in draft
-                        </button>
-                      ) : null}
-                      <button type="button" className="is-danger-outline" disabled={busy} onClick={() => setDeleteConfirmTest(item)}>
-                        Sterge
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </article>
+              <AdminContentItemCard
+                key={item.id}
+                title={item.title || 'Test fără titlu'}
+                badge={`Test ${testTypeLabel(item.type).toLowerCase()}`}
+                status={status}
+                statusLabel={testStatusLabel(status)}
+                metaLine={buildTestMetaLine(item)}
+                primaryAction={{
+                  label: 'Deschide builder-ul',
+                  onClick: () => openBuilder(item, 'questions'),
+                  disabled: busy,
+                }}
+                actions={secondaryActions}
+              />
             );
           })}
         </div>
@@ -249,90 +227,17 @@ export default function AdminTestsPage() {
             aria-labelledby="test-delete-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="test-delete-title">Stergi testul?</h3>
+            <h3 id="test-delete-title">Ștergi testul?</h3>
             <p className="admin-tests-delete-lead">
-              <strong>{deleteConfirmTest.title || 'Test'}</strong> va fi eliminat. Legaturile din cursuri pot inceta sa functioneze.
+              <strong>{deleteConfirmTest.title || 'Test'}</strong> va fi eliminat. Legăturile din cursuri pot înceta să funcționeze.
             </p>
-            <p className="admin-tests-delete-hint">Daca vrei doar sa-l ascunzi de elevi, muta-l in draft in loc sa-l stergi.</p>
+            <p className="admin-tests-delete-hint">Pentru a ascunde testul de elevi, mută-l în draft.</p>
             <div className="admin-tests-delete-actions">
               <button type="button" disabled={busyId} onClick={() => setDeleteConfirmTest(null)}>
-                Anuleaza
+                Anulează
               </button>
               <button type="button" className="is-danger-solid" disabled={busyId} onClick={handleConfirmDeleteTest}>
-                {busyId ? 'Se sterge...' : 'Da, sterge'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showModal ? (
-        <div className="admin-tests-modal-overlay" role="presentation" onClick={closeModal}>
-          <div className="admin-tests-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h3>Editare test</h3>
-            <label>
-              Titlu
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              />
-            </label>
-            <label>
-              Descriere
-              <textarea
-                rows={4}
-                value={form.description}
-                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              />
-            </label>
-            <div className="admin-tests-modal-grid">
-              <label>
-                Prag promovare (%)
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={form.passing_score}
-                  onChange={(e) => setForm((prev) => ({ ...prev, passing_score: Number(e.target.value || 0) }))}
-                />
-              </label>
-              <label>
-                Numar incercari
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={form.max_attempts}
-                  onChange={(e) => setForm((prev) => ({ ...prev, max_attempts: Number(e.target.value || 1) }))}
-                />
-              </label>
-              <label>
-                Timp limita (minute)
-                <input
-                  type="number"
-                  min={0}
-                  max={300}
-                  value={form.time_limit_minutes}
-                  onChange={(e) => setForm((prev) => ({ ...prev, time_limit_minutes: e.target.value }))}
-                  placeholder="Gol = nelimitat"
-                />
-              </label>
-              <label>
-                Status
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                >
-                  <option value="draft">draft</option>
-                  <option value="published">published</option>
-                </select>
-              </label>
-            </div>
-            <div className="admin-tests-modal-actions">
-              <button type="button" onClick={closeModal} disabled={saving}>Anuleaza</button>
-              <button type="button" className="is-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Se salveaza...' : 'Salveaza'}
+                {busyId ? 'Se șterge…' : 'Șterge'}
               </button>
             </div>
           </div>

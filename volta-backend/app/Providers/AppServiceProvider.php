@@ -35,6 +35,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute((int) config('messages.write_per_minute', 180))->by($key);
         });
 
+        // SPA autentificat: polling notificări, progres lecții, telemetrie — buget mai mare decât 60/min.
+        RateLimiter::for('api-app', function (Request $request) {
+            $key = (string) ($request->user()?->id ?? $request->ip());
+
+            return Limit::perMinute((int) config('api.app_per_minute', 300))->by($key);
+        });
+
         if (config('database.default') === 'sqlite') {
             $databasePath = config('database.connections.sqlite.database');
 

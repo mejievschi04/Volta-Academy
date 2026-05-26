@@ -20,12 +20,15 @@ export const coursesService = {
     return response.data?.data ?? response.data;
   },
   
+  /**
+   * @deprecated Preferă finishCourse. Alias pentru compatibilitate (autentificat).
+   */
   complete: async (id) => {
-    const response = await api.post(`/courses/${id}/complete`);
+    const response = await api.post(`/courses/${id}/finish`);
     return response.data;
   },
 
-  /** Marchează cursul finalizat (după ultima lecție, fără test obligatoriu rămas). Necesită autentificare. */
+  /** Marchează cursul finalizat (după ultima lecție + teste obligatorii). Necesită autentificare. */
   finishCourse: async (id) => {
     const response = await api.post(`/courses/${id}/finish`);
     return response.data;
@@ -59,7 +62,7 @@ export const lessonsService = {
   
   getById: async (id) => {
     const response = await api.get(`/lessons/${id}`);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
   
   complete: async (id) => {
@@ -67,6 +70,33 @@ export const lessonsService = {
     return response.data;
   },
 };
+
+export const notificationsService = {
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data?.count ?? 0;
+  },
+  list: async (params = {}) => {
+    const response = await api.get('/notifications', { params });
+    return response.data?.data ?? [];
+  },
+  markRead: async (id) => {
+    const response = await api.patch(`/notifications/${id}/read`);
+    return response.data;
+  },
+  markAllRead: async () => {
+    const response = await api.post('/notifications/mark-all-read');
+    return response.data;
+  },
+};
+
+/** Extrage ID numeric din notificări persistate (student: stored_12, admin: 12). */
+export function parseStoredNotificationId(notifId) {
+  const raw = String(notifId ?? '');
+  if (/^\d+$/.test(raw)) return parseInt(raw, 10);
+  const m = raw.match(/^stored_(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
 
 export const dashboardService = {
   getDashboard: async () => {
@@ -233,6 +263,13 @@ export const achievementsService = {
   },
 };
 
+export const studentActivityService = {
+  getActivity: async (params = {}) => {
+    const response = await api.get('/student/activity', { params });
+    return response.data;
+  },
+};
+
 export const profileService = {
   getProfile: async () => {
     const response = await api.get('/profile');
@@ -312,8 +349,9 @@ export const examResultsService = {
     return response.data;
   },
   
-  getById: async (id) => {
-    const response = await api.get(`/exam-results/${id}`);
+  getById: async (id, type = null) => {
+    const params = type ? { type } : {};
+    const response = await api.get(`/exam-results/${id}`, { params });
     return response.data;
   },
 };
@@ -419,6 +457,11 @@ export const adminService = {
   // Dashboard
   getDashboard: async (params = {}) => {
     const response = await api.get('/admin/dashboard', { params });
+    return response.data;
+  },
+
+  dismissDashboardAlert: async (alertId) => {
+    const response = await api.post('/admin/alerts/dismiss', { alert_id: alertId });
     return response.data;
   },
 
@@ -990,6 +1033,14 @@ export const adminService = {
     return response.data;
   },
 
+  setEventParticipantAttendance: async (eventId, userId, attended) => {
+    await ensureApiCsrfCookie();
+    const response = await api.put(`/admin/events/${eventId}/participants/${userId}/attendance`, {
+      attended,
+    });
+    return response.data;
+  },
+
   // Teams
   getTeams: async () => {
     const response = await api.get('/admin/teams');
@@ -1544,6 +1595,11 @@ export const messagesService = {
 
   leaveGroup: async (conversationId) => {
     const response = await api.post(`/messages/conversations/${conversationId}/leave`);
+    return response.data;
+  },
+
+  deleteConversation: async (conversationId) => {
+    const response = await api.delete(`/messages/conversations/${conversationId}`);
     return response.data;
   },
 

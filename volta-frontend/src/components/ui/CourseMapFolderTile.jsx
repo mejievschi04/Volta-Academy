@@ -62,12 +62,13 @@ const CourseMapFolderTile = ({
 
 				<div className="course-map-folder-tile__meta">
 					<h3 className="course-map-folder-tile__title">{title || 'Mapa'}</h3>
-					{subtitle ? <p className="course-map-folder-tile__subtitle">{subtitle}</p> : null}
-					{normalizedProgress !== null ? (
-						<div className="course-map-folder-tile__progress" aria-hidden>
-							<span style={{ width: `${normalizedProgress}%` }} />
-						</div>
-					) : null}
+					<p className="course-map-folder-tile__subtitle">{subtitle || '\u00A0'}</p>
+					<div
+						className={`course-map-folder-tile__progress${normalizedProgress === null ? ' course-map-folder-tile__progress--empty' : ''}`}
+						aria-hidden
+					>
+						<span style={{ width: normalizedProgress !== null ? `${normalizedProgress}%` : '0%' }} />
+					</div>
 					<div className="course-map-folder-tile__footer" aria-hidden>
 						<span>{ctaLabel}</span>
 						<span>-&gt;</span>

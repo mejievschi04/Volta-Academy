@@ -3,7 +3,8 @@ import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 
-const ProgressionRulesManager = ({ courseId }) => {
+const ProgressionRulesManager = ({ courseId, variant = 'default', structureOptions = null }) => {
+	const isBuilder = variant === 'builder';
 	const { showToast } = useToast();
 	const [rules, setRules] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -124,6 +125,160 @@ const ProgressionRulesManager = ({ courseId }) => {
 		return labels[action] || action;
 	};
 
+	const resolveEntityLabel = (entityType, entityId) => {
+		if (!entityId || !structureOptions) return null;
+		const id = Number(entityId);
+		if (entityType === 'lesson') {
+			const lesson = (structureOptions.lessons || []).find((l) => Number(l.id) === id);
+			return lesson ? `${lesson.title}${lesson.moduleTitle ? ` (${lesson.moduleTitle})` : ''}` : `Lecție #${id}`;
+		}
+		if (entityType === 'module') {
+			const mod = (structureOptions.modules || []).find((m) => Number(m.id) === id);
+			return mod ? mod.title : `Modul #${id}`;
+		}
+		if (entityType === 'test') {
+			const test = (structureOptions.tests || []).find((t) => Number(t.id) === id);
+			return test ? test.title : `Test #${id}`;
+		}
+		return null;
+	};
+
+	const renderEntityFields = () => {
+		if (!structureOptions) return null;
+		const lessons = structureOptions.lessons || [];
+		const modules = structureOptions.modules || [];
+		const tests = structureOptions.tests || [];
+
+		return (
+			<>
+				<div className="admin-form-group">
+					<label className="admin-form-label">Țintă (ce se deblochează)</label>
+					<div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+						<select
+							className="admin-form-input"
+							style={{ flex: '1 1 140px' }}
+							value={ruleForm.target_type || ''}
+							onChange={(e) =>
+								setRuleForm({
+									...ruleForm,
+									target_type: e.target.value || null,
+									target_id: null,
+								})
+							}
+						>
+							<option value="">— Tip —</option>
+							<option value="lesson">Lecție</option>
+							<option value="module">Modul</option>
+							<option value="test">Test</option>
+							<option value="course">Curs</option>
+						</select>
+						<select
+							className="admin-form-input"
+							style={{ flex: '2 1 200px' }}
+							value={ruleForm.target_id ?? ''}
+							onChange={(e) =>
+								setRuleForm({
+									...ruleForm,
+									target_id: e.target.value ? Number(e.target.value) : null,
+								})
+							}
+							disabled={!ruleForm.target_type}
+						>
+							<option value="">— Element —</option>
+							{ruleForm.target_type === 'lesson' &&
+								lessons.map((l) => (
+									<option key={l.id} value={l.id}>
+										{l.title}
+									</option>
+								))}
+							{ruleForm.target_type === 'module' &&
+								modules.map((m) => (
+									<option key={m.id} value={m.id}>
+										{m.title}
+									</option>
+								))}
+							{ruleForm.target_type === 'test' &&
+								tests.map((t) => (
+									<option key={t.id} value={t.id}>
+										{t.title}
+									</option>
+								))}
+						</select>
+					</div>
+				</div>
+				<div className="admin-form-group">
+					<label className="admin-form-label">Condiție (ce trebuie îndeplinit)</label>
+					<div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+						<select
+							className="admin-form-input"
+							style={{ flex: '1 1 140px' }}
+							value={ruleForm.condition_type || ''}
+							onChange={(e) =>
+								setRuleForm({
+									...ruleForm,
+									condition_type: e.target.value || null,
+									condition_id: null,
+								})
+							}
+						>
+							<option value="">— Tip —</option>
+							<option value="lesson">Lecție</option>
+							<option value="module">Modul</option>
+							<option value="test">Test</option>
+							<option value="score">Scor</option>
+							<option value="time">Timp</option>
+						</select>
+						{['lesson', 'module', 'test'].includes(ruleForm.condition_type) ? (
+							<select
+								className="admin-form-input"
+								style={{ flex: '2 1 200px' }}
+								value={ruleForm.condition_id ?? ''}
+								onChange={(e) =>
+									setRuleForm({
+										...ruleForm,
+										condition_id: e.target.value ? Number(e.target.value) : null,
+									})
+								}
+							>
+								<option value="">— Element —</option>
+								{ruleForm.condition_type === 'lesson' &&
+									lessons.map((l) => (
+										<option key={l.id} value={l.id}>
+											{l.title}
+										</option>
+									))}
+								{ruleForm.condition_type === 'module' &&
+									modules.map((m) => (
+										<option key={m.id} value={m.id}>
+											{m.title}
+										</option>
+									))}
+								{ruleForm.condition_type === 'test' &&
+									tests.map((t) => (
+										<option key={t.id} value={t.id}>
+											{t.title}
+										</option>
+									))}
+							</select>
+						) : (
+							<input
+								type="text"
+								className="admin-form-input"
+								style={{ flex: '2 1 200px' }}
+								placeholder={ruleForm.condition_type === 'score' ? 'ex: 70' : 'Valoare'}
+								value={ruleForm.condition_value ?? ''}
+								onChange={(e) =>
+									setRuleForm({ ...ruleForm, condition_value: e.target.value || null })
+								}
+								disabled={!ruleForm.condition_type}
+							/>
+						)}
+					</div>
+				</div>
+			</>
+		);
+	};
+
 	if (loading) {
 		return (
 			<div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -132,10 +287,23 @@ const ProgressionRulesManager = ({ courseId }) => {
 		);
 	}
 
+	const sectionClass = isBuilder
+		? 'admin-course-builder-workflow admin-course-builder-progression-panel'
+		: 'admin-form-section';
+
 	return (
-		<div className="admin-form-section">
+		<div className={sectionClass}>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-				<h3 className="admin-form-section-title">Reguli de Progres</h3>
+				<div>
+					<h3 className={isBuilder ? 'admin-course-builder-workflow-title' : 'admin-form-section-title'}>
+						Reguli de progres
+					</h3>
+					{isBuilder && (
+						<p className="admin-course-builder-workflow-hint">
+							Controlează ordinea și deblocarea lecțiilor și testelor pentru elevi. Modificările se aplică imediat după salvare.
+						</p>
+					)}
+				</div>
 				<button
 					className="va-btn va-btn-sm va-btn-primary"
 					onClick={() => {
@@ -202,8 +370,23 @@ const ProgressionRulesManager = ({ courseId }) => {
 									</div>
 									<div style={{ fontSize: '0.9rem', color: 'var(--va-muted)' }}>
 										<strong>Acțiune:</strong> {getActionLabel(rule.action)}
+										{rule.target_type && rule.target_id && (
+											<>
+												{' '}
+												• <strong>Țintă:</strong>{' '}
+												{resolveEntityLabel(rule.target_type, rule.target_id) ||
+													`${rule.target_type} #${rule.target_id}`}
+											</>
+										)}
 										{rule.condition_type && (
-											<> • <strong>Condiție:</strong> {rule.condition_type}</>
+											<>
+												{' '}
+												• <strong>Condiție:</strong>{' '}
+												{rule.condition_id
+													? resolveEntityLabel(rule.condition_type, rule.condition_id) ||
+														`${rule.condition_type} #${rule.condition_id}`
+													: rule.condition_type}
+											</>
 										)}
 										{rule.condition_value && (
 											<> • <strong>Valoare:</strong> {rule.condition_value}</>
@@ -334,6 +517,8 @@ const ProgressionRulesManager = ({ courseId }) => {
 								/>
 								<p className="admin-form-hint">Prioritate mai mică = evaluare mai devreme</p>
 							</div>
+
+							{renderEntityFields()}
 
 							<div className="admin-form-group">
 								<label className="admin-form-label admin-form-label-checkbox">

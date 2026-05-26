@@ -26,9 +26,20 @@ const AdminAlertsPage = () => {
 		fetchDashboard();
 	}, []);
 
-	const handleDismiss = (alertId) => {
-		// Handle alert dismissal
-		console.log('Dismiss alert:', alertId);
+	const handleDismiss = async (alertId) => {
+		try {
+			await adminService.dismissDashboardAlert(alertId);
+			setDashboardData((prev) => {
+				if (!prev) return prev;
+				return {
+					...prev,
+					alerts: (prev.alerts || []).filter((a) => a.id !== alertId),
+					notifications: (prev.notifications || []).filter((n) => n.id !== alertId),
+				};
+			});
+		} catch (err) {
+			console.error('Dismiss alert failed:', err);
+		}
 	};
 
 	return (

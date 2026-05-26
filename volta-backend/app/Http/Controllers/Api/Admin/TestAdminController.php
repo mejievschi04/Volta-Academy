@@ -36,7 +36,7 @@ class TestAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Test::with(['creator', 'questionBank']);
+        $query = Test::with(['creator', 'questionBank'])->withCount('questions');
 
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());
@@ -383,7 +383,7 @@ class TestAdminController extends Controller
             'question_bank_id' => null,
             'type' => $validated['type'],
             'content' => $validated['content'] ?? '',
-            'answers' => $validated['answers'] ?? [],
+            'answers' => $this->normalizeAnswersForType($validated['type'], $validated['answers'] ?? []),
             'points' => $validated['points'] ?? 1,
             'order' => $validated['order'] ?? ($maxOrder + 1),
             'explanation' => $validated['explanation'] ?? null,
@@ -438,6 +438,52 @@ class TestAdminController extends Controller
             'message' => 'Questions reordered successfully',
             'questions' => Question::where('test_id', $test->id)->orderBy('order')->get(),
         ]);
+    }
+
+    private function normalizeAnswersForType(string $questionType, array $answers): array
+    {
+        $type = strtolower(trim($questionType));
+        $normalized = [];
+
+        foreach (array_values($answers) as $idx => $item) {
+            $row = is_array($item) ? $item : [];
+
+            if ($type === 'matching') {
+                $left = $row['left'] ?? $row['text'] ?? $row['question'] ?? '';
+                $right = $row['right'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+                $left = is_string($left) ? $left : (string) $left;
+                $right = is_string($right) ? $right : (string) $right;
+
+                $normalized[] = [
+                    'left' => $left,
+                    'right' => $right,
+                    'text' => $left,
+                    'answer_text' => $right,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            if ($type === 'ordering') {
+                $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? $row['label'] ?? '';
+                $normalized[] = [
+                    'text' => is_string($text) ? $text : (string) $text,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            $text = $row['text'] ?? $row['answer_text'] ?? $row['content'] ?? '';
+            $normalized[] = [
+                'text' => is_string($text) ? $text : (string) $text,
+                'is_correct' => filter_var($row['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'order' => isset($row['order']) ? (int) $row['order'] : $idx,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

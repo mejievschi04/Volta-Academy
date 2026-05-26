@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Conversation;
 use App\Models\Course;
 use App\Models\Notification;
 use App\Models\User;
@@ -10,33 +11,45 @@ use Illuminate\Support\Facades\Schema;
 
 class NotificationService
 {
+    public function __construct(
+        protected EmailNotificationService $emailNotificationService
+    ) {}
+
     /**
      * Notify students when a course is published.
-     * If team_ids provided: notify only members of those teams.
-     * If no teams: notify all students.
+     *
+     * @param  bool  $broadcastAllStudentsIfNoTargets  When true (builder publish fără echipe), notifică toți studenții.
      */
-    public function notifyCoursePublished(Course $course, array $teamIds = []): int
+    public function notifyCoursePublished(Course $course, array $teamIds = [], bool $broadcastAllStudentsIfNoTargets = false): int
     {
-        if (!Schema::hasTable('notifications')) {
+        if (! Schema::hasTable('notifications')) {
             return 0;
         }
 
-        $userIds = $this->getTargetStudentIds($course, $teamIds);
+        $userIds = $this->getTargetStudentIds($course, $teamIds, $broadcastAllStudentsIfNoTargets);
         $count = 0;
         $description = 'Cursul "' . $course->title . '" este acum disponibil.';
+        $title = 'Curs nou disponibil';
+        $actionUrl = '/courses/' . $course->id;
+        $notifiedUserIds = [];
 
         foreach ($userIds as $userId) {
+            if ($this->hasRecentCoursePublishedNotification((int) $userId, (int) $course->id)) {
+                continue;
+            }
+
             try {
                 Notification::create([
                     'user_id' => $userId,
                     'type' => 'course_published',
-                    'title' => 'Curs nou disponibil',
+                    'title' => $title,
                     'description' => $description,
                     'data' => ['course_id' => $course->id],
-                    'action_url' => '/courses/' . $course->id,
+                    'action_url' => $actionUrl,
                     'severity' => 'info',
                 ]);
                 $count++;
+                $notifiedUserIds[] = (int) $userId;
             } catch (\Throwable $e) {
                 \Log::warning('NotificationService::notifyCoursePublished failed for user ' . $userId, [
                     'error' => $e->getMessage(),
@@ -45,31 +58,147 @@ class NotificationService
             }
         }
 
+        if ($notifiedUserIds !== []) {
+            $this->emailNotificationService->sendToMany(
+                User::whereIn('id', $notifiedUserIds)->get(),
+                $title,
+                $description,
+                $actionUrl,
+                'Vezi cursul'
+            );
+        }
+
         return $count;
     }
 
     /**
-     * Notify admins when a student completes a course.
+     * Notify a student they enrolled in a course.
      */
-    public function notifyCourseCompleted(User $student, Course $course): void
+    public function notifyCourseEnrolled(User $student, Course $course): void
     {
-        if (!Schema::hasTable('notifications')) {
+        if (! Schema::hasTable('notifications') || $student->isLearningActivityExempt()) {
             return;
         }
 
-        $admins = User::where('role', 'admin')->pluck('id');
+        if ($this->hasRecentNotification($student->id, 'course_enrolled', ['course_id' => $course->id])) {
+            return;
+        }
 
-        foreach ($admins as $adminId) {
+        $title = 'Înscriere confirmată';
+        $description = 'Te-ai înscris la cursul "' . $course->title . '".';
+        $actionUrl = '/courses/' . $course->id;
+
+        Notification::create([
+            'user_id' => $student->id,
+            'type' => 'course_enrolled',
+            'title' => $title,
+            'description' => $description,
+            'data' => ['course_id' => $course->id],
+            'action_url' => $actionUrl,
+            'severity' => 'success',
+        ]);
+
+        $this->emailNotificationService->sendToUser($student, $title, $description, $actionUrl, 'Continuă cursul');
+    }
+
+    /**
+     * Notify conversation participants about a new message (except sender).
+     */
+    public function notifyNewMessage(User $sender, Conversation $conversation, string $preview): void
+    {
+        if (! Schema::hasTable('notifications')) {
+            return;
+        }
+
+        $recipientIds = $conversation->participants()
+            ->where('users.id', '!=', $sender->id)
+            ->pluck('users.id')
+            ->all();
+
+        $title = $conversation->name
+            ? 'Mesaj nou în ' . $conversation->name
+            : 'Mesaj nou de la ' . $sender->name;
+
+        $previewText = mb_strlen($preview) > 120 ? mb_substr($preview, 0, 117) . '...' : $preview;
+        $actionUrl = '/messages?conversation=' . $conversation->id;
+        $emailRecipientIds = [];
+
+        foreach ($recipientIds as $recipientId) {
+            try {
+                Notification::create([
+                    'user_id' => $recipientId,
+                    'type' => 'new_message',
+                    'title' => $title,
+                    'description' => $previewText,
+                    'data' => [
+                        'conversation_id' => $conversation->id,
+                        'sender_id' => $sender->id,
+                    ],
+                    'action_url' => $actionUrl,
+                    'severity' => 'info',
+                ]);
+                $emailRecipientIds[] = (int) $recipientId;
+            } catch (\Throwable $e) {
+                \Log::warning('NotificationService::notifyNewMessage failed', [
+                    'recipient_id' => $recipientId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($emailRecipientIds !== []) {
+            $this->emailNotificationService->sendToMany(
+                User::whereIn('id', $emailRecipientIds)->get(),
+                $title,
+                $previewText,
+                $actionUrl,
+                'Citește mesajul'
+            );
+        }
+    }
+
+    /**
+     * Notify staff when a student completes a course.
+     */
+    public function notifyCourseCompleted(User $student, Course $course): void
+    {
+        if (! Schema::hasTable('notifications')) {
+            return;
+        }
+
+        $staffQuery = User::query()->whereIn('role', ['admin', 'instructor']);
+
+        if ($course->teacher_id) {
+            $staffQuery->where(function ($q) use ($course) {
+                $q->where('role', 'admin')
+                    ->orWhere('id', $course->teacher_id);
+            });
+        }
+
+        $staffUsers = $staffQuery->get();
+        $title = 'Curs finalizat';
+        $description = $student->name . ' a finalizat cursul "' . $course->title . '"';
+        $actionUrl = "/admin/courses/{$course->id}";
+
+        foreach ($staffUsers as $staff) {
             Notification::create([
-                'user_id' => $adminId,
+                'user_id' => $staff->id,
                 'type' => 'course_completed',
-                'title' => 'Curs finalizat',
-                'description' => $student->name . ' a finalizat cursul "' . $course->title . '"',
+                'title' => $title,
+                'description' => $description,
                 'data' => ['course_id' => $course->id, 'user_id' => $student->id],
-                'action_url' => "/admin/courses/{$course->id}",
+                'action_url' => $actionUrl,
                 'severity' => 'info',
             ]);
         }
+
+        $this->emailNotificationService->sendToMany(
+            $staffUsers,
+            $title,
+            $description,
+            $actionUrl,
+            'Vezi cursul'
+        );
     }
 
     /**
@@ -77,96 +206,110 @@ class NotificationService
      */
     public function notifyRegistrationRequested(User $user): void
     {
-        if (!Schema::hasTable('notifications')) {
+        if (! Schema::hasTable('notifications')) {
             return;
         }
 
-        $admins = User::where('role', 'admin')->pluck('id');
+        $admins = User::where('role', 'admin')->get();
+        $title = 'Cerere de înregistrare';
+        $description = "{$user->name} ({$user->email}) a solicitat înregistrarea.";
+        $actionUrl = "/admin/users/{$user->id}";
 
-        foreach ($admins as $adminId) {
+        foreach ($admins as $admin) {
             Notification::create([
-                'user_id' => $adminId,
+                'user_id' => $admin->id,
                 'type' => 'registration_requested',
-                'title' => 'Cerere de înregistrare',
-                'description' => "{$user->name} ({$user->email}) a solicitat înregistrarea.",
+                'title' => $title,
+                'description' => $description,
                 'data' => ['user_id' => $user->id],
-                'action_url' => "/admin/users/{$user->id}",
+                'action_url' => $actionUrl,
                 'severity' => 'warning',
             ]);
         }
+
+        $this->emailNotificationService->sendToMany(
+            $admins,
+            $title,
+            $description,
+            $actionUrl,
+            'Revizuiește cererea'
+        );
     }
 
     /**
-     * Notify admins when course success rate is below or above average.
+     * @return array<int>
      */
-    public function notifyCourseSuccessRate(Course $course, string $direction): void
+    private function getTargetStudentIds(Course $course, array $teamIds, bool $broadcastAllStudentsIfNoTargets): array
     {
-        if (!Schema::hasTable('notifications')) {
-            return;
-        }
+        $ids = [];
 
-        $admins = User::where('role', 'admin')->pluck('id');
-        $rate = $this->getCourseCompletionRate($course->id);
-
-        if ($direction === 'below') {
-            $title = 'Rată de finalizare sub medie';
-            $desc = 'Cursul "' . $course->title . '" are o rată de finalizare de ' . $rate . '% (sub medie).';
-            $severity = 'warning';
-        } else {
-            $title = 'Rată de finalizare peste medie';
-            $desc = 'Cursul "' . $course->title . '" are o rată de finalizare de ' . $rate . '% (peste medie).';
-            $severity = 'success';
-        }
-
-        foreach ($admins as $adminId) {
-            Notification::create([
-                'user_id' => $adminId,
-                'type' => 'course_success_' . $direction,
-                'title' => $title,
-                'description' => $desc,
-                'data' => ['course_id' => $course->id, 'rate' => $rate],
-                'action_url' => "/admin/courses/{$course->id}",
-                'severity' => $severity,
-            ]);
-        }
-    }
-
-    private function getTargetStudentIds(Course $course, array $teamIds): array
-    {
         if (count($teamIds) > 0 && Schema::hasTable('team_user')) {
-            return DB::table('team_user')
+            $ids = array_merge($ids, DB::table('team_user')
                 ->whereIn('team_id', $teamIds)
                 ->join('users', 'team_user.user_id', '=', 'users.id')
                 ->where('users.role', 'student')
                 ->distinct()
                 ->pluck('team_user.user_id')
-                ->all();
+                ->all());
         }
 
-        return User::where('role', 'student')->pluck('id')->all();
+        if (Schema::hasTable('course_user')) {
+            $enrolled = DB::table('course_user')
+                ->where('course_id', $course->id)
+                ->where('enrolled', true)
+                ->join('users', 'course_user.user_id', '=', 'users.id')
+                ->where('users.role', 'student')
+                ->pluck('course_user.user_id')
+                ->all();
+            $ids = array_merge($ids, $enrolled);
+        }
+
+        if (Schema::hasTable('course_team') && Schema::hasTable('team_user')) {
+            $courseTeamIds = DB::table('course_team')
+                ->where('course_id', $course->id)
+                ->pluck('team_id')
+                ->all();
+
+            if ($courseTeamIds !== []) {
+                $fromCourseTeams = DB::table('team_user')
+                    ->whereIn('team_id', $courseTeamIds)
+                    ->join('users', 'team_user.user_id', '=', 'users.id')
+                    ->where('users.role', 'student')
+                    ->distinct()
+                    ->pluck('team_user.user_id')
+                    ->all();
+                $ids = array_merge($ids, $fromCourseTeams);
+            }
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+
+        if ($ids !== []) {
+            return $ids;
+        }
+
+        if ($broadcastAllStudentsIfNoTargets) {
+            return User::where('role', 'student')->pluck('id')->all();
+        }
+
+        return [];
     }
 
-    private function getCourseCompletionRate(int $courseId): float
+    private function hasRecentCoursePublishedNotification(int $userId, int $courseId): bool
     {
-        if (!Schema::hasTable('course_user')) {
-            return 0;
+        return $this->hasRecentNotification($userId, 'course_published', ['course_id' => $courseId], days: 7);
+    }
+
+    private function hasRecentNotification(int $userId, string $type, array $dataMatch, int $days = 1): bool
+    {
+        $query = Notification::where('user_id', $userId)
+            ->where('type', $type)
+            ->where('created_at', '>=', now()->subDays($days));
+
+        foreach ($dataMatch as $key => $value) {
+            $query->where('data->' . $key, $value);
         }
 
-        $enrollments = DB::table('course_user')
-            ->where('course_id', $courseId)
-            ->where('enrolled', true)
-            ->count();
-
-        if ($enrollments === 0) {
-            return 0;
-        }
-
-        $completed = DB::table('course_user')
-            ->where('course_id', $courseId)
-            ->where('enrolled', true)
-            ->whereNotNull('completed_at')
-            ->count();
-
-        return round(($completed / $enrollments) * 100, 1);
+        return $query->exists();
     }
 }

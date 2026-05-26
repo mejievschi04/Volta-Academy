@@ -106,6 +106,7 @@ class ExamAdminController extends Controller
         $settings = is_array($exam->settings) ? $exam->settings : [];
         $questions = $exam->questions->sortBy('order')->values()->map(function ($question) {
             $answers = $question->answers->sortBy('order')->values();
+            $questionType = $question->question_type ?? 'multiple_choice';
             $correctAnswerIndex = null;
             foreach ($answers as $idx => $answer) {
                 if ($answer->is_correct) {
@@ -117,13 +118,15 @@ class ExamAdminController extends Controller
             return [
                 'id' => $question->id,
                 'text' => $question->question_text,
-                'type' => $question->question_type ?? 'multiple_choice',
-                'options' => in_array($question->question_type, ['multiple_choice', 'single_choice', 'true_false'], true)
+                'type' => $questionType,
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
+                'matching' => $questionType === 'matching' ? $this->buildPreviewMatchingData($question) : null,
+                'ordering' => $questionType === 'ordering' ? $this->buildPreviewOrderingData($question) : null,
             ];
         });
 
@@ -793,6 +796,57 @@ class ExamAdminController extends Controller
             return ['items' => is_array($items) ? array_values($items) : []];
         }
         return $payload;
+    }
+
+    protected function buildPreviewMatchingData(ExamQuestion $question): array
+    {
+        $payload = is_array($question->payload) ? $question->payload : [];
+        $pairs = is_array($payload['pairs'] ?? null) ? array_values($payload['pairs']) : [];
+        $leftItems = [];
+        $rightItems = [];
+
+        foreach ($pairs as $index => $pair) {
+            if (! is_array($pair)) {
+                continue;
+            }
+
+            $left = trim((string) ($pair['left'] ?? $pair['text'] ?? $pair['question'] ?? ''));
+            $right = trim((string) ($pair['right'] ?? $pair['answer_text'] ?? $pair['answer'] ?? $pair['content'] ?? ''));
+            if ($left === '' || $right === '') {
+                continue;
+            }
+
+            $leftItems[] = ['id' => (string) $index, 'text' => $left];
+            $rightItems[] = ['id' => (string) $index, 'text' => $right];
+        }
+
+        return [
+            'leftItems' => $leftItems,
+            'rightItems' => $rightItems,
+            'correctMap' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $rightItems)),
+        ];
+    }
+
+    protected function buildPreviewOrderingData(ExamQuestion $question): array
+    {
+        $payload = is_array($question->payload) ? $question->payload : [];
+        $items = is_array($payload['items'] ?? null) ? array_values($payload['items']) : [];
+        $normalized = [];
+
+        foreach ($items as $index => $item) {
+            $text = is_array($item)
+                ? trim((string) ($item['text'] ?? $item['label'] ?? $item['content'] ?? ''))
+                : trim((string) $item);
+            if ($text === '') {
+                continue;
+            }
+            $normalized[] = ['id' => (string) $index, 'text' => $text];
+        }
+
+        return [
+            'items' => $normalized,
+            'correctOrder' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $normalized)),
+        ];
     }
 
     public function getPendingReviews(Request $request)

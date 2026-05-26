@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { eventsService } from '../services/api';
+import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 
 const CalendarPage = () => {
 
@@ -119,7 +120,13 @@ const CalendarPage = () => {
 						</div>
 						<div className="va-event-body">
 							<h3 className="va-event-title">{event.title}</h3>
-							<p className="va-event-description">{event.description}</p>
+							{event.description ? (
+								<EventDescriptionExpandable
+									text={event.description}
+									className="va-event-description-wrap"
+									textClassName="va-event-description"
+								/>
+							) : null}
 							<div className="va-event-meta">
 								<div className="va-event-time">
 									<span className="va-event-icon">🕐</span>

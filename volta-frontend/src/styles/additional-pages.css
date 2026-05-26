@@ -972,13 +972,105 @@
 	background: rgba(231, 76, 60, 0.12);
 }
 
-.student-exam-answer-option input[type="radio"] {
+.student-exam-answer-option input[type="radio"],
+.student-exam-answer-option input[type="checkbox"] {
 	accent-color: var(--color-brand-primary);
+	flex-shrink: 0;
 }
 
-.student-exam-answer-option span {
+.student-exam-answer-option-text {
 	flex: 1;
 	color: var(--text-primary);
+	line-height: 1.45;
+}
+
+.student-exam-answer-option-letter {
+	display: inline-grid;
+	place-items: center;
+	width: 1.65rem;
+	height: 1.65rem;
+	border-radius: 8px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--text-secondary);
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	flex-shrink: 0;
+}
+
+.student-exam-answer-option.selected .student-exam-answer-option-letter {
+	color: #0f172a;
+	background: var(--color-brand-primary);
+	border-color: var(--color-brand-primary);
+}
+
+.student-exam-choice-block {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.student-exam-choice-hint {
+	margin: 0;
+	font-size: 0.8125rem;
+	color: var(--text-tertiary);
+}
+
+.student-exam-choice-type {
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+.student-exam-header-compact {
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--space-4);
+}
+
+.student-exam-header-compact .student-exam-header-main {
+	min-height: 0;
+}
+
+.student-exam-instructions-panel {
+	grid-column: 1 / -1;
+	border: 1px solid var(--border-primary);
+	border-radius: 16px;
+	background: var(--bg-elevated);
+	overflow: hidden;
+}
+
+.student-exam-instructions-summary {
+	cursor: pointer;
+	padding: var(--space-3) var(--space-4);
+	font-weight: 600;
+	color: var(--text-primary);
+	list-style: none;
+}
+
+.student-exam-instructions-summary::-webkit-details-marker {
+	display: none;
+}
+
+.student-exam-instructions-panel[open] .student-exam-instructions {
+	padding: 0 var(--space-4) var(--space-4);
+}
+
+.student-exam-instructions-panel .student-exam-instructions {
+	display: grid;
+	grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+	gap: var(--space-4);
+	margin: 0;
+	border: 0;
+	padding: 0;
+	background: transparent;
+}
+
+.student-exam-actions-sticky {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	margin-top: var(--space-4);
+	padding: var(--space-3) 0;
+	background: linear-gradient(180deg, transparent, var(--bg-primary) 28%);
 }
 
 .student-exam-answer-check {
@@ -1457,9 +1549,9 @@ body.sidebar-expanded .messages-page {
 	width: 36px;
 	height: 36px;
 	border-radius: var(--radius-lg);
-	background-color: var(--bg-primary) !important; /* Same color as messages-chat-messages */
-	color: var(--text-primary) !important;
-	border: 1px solid var(--border-primary) !important;
+	background-color: var(--bg-elevated);
+	color: var(--text-primary);
+	border: 1px solid var(--border-primary);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -1468,8 +1560,9 @@ body.sidebar-expanded .messages-page {
 }
 
 .messages-new-conversation-btn:hover {
-	background-color: var(--bg-secondary) !important; /* Slightly lighter on hover */
-	border-color: var(--border-secondary) !important;
+	background-color: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
 	box-shadow: var(--shadow-md);
 	transform: translateY(-1px);
 }
@@ -1685,9 +1778,6 @@ body.sidebar-expanded .messages-page {
 	width: 36px;
 	height: 36px;
 	border-radius: var(--radius-lg);
-	background-color: var(--bg-primary);
-	border: 1px solid var(--border-primary);
-	color: var(--text-secondary);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -1695,10 +1785,36 @@ body.sidebar-expanded .messages-page {
 	transition: all var(--transition-base);
 }
 
-.messages-chat-actions-btn:hover {
-	background-color: var(--bg-secondary);
-	border-color: var(--border-secondary);
-	color: var(--text-primary);
+/* Iconuri Phosphor — nu forța fill/stroke pe <svg> (rupe bold/duotone) */
+.messages-new-conversation-btn svg,
+.messages-chat-actions-btn svg,
+.messages-chat-back-btn svg,
+.messages-chat-send-btn svg,
+.messages-modal-close svg,
+.messages-user-check svg,
+.messages-page-error-icon svg,
+.messages-page .lms-empty-icon svg {
+	display: block;
+	flex-shrink: 0;
+	color: currentColor;
+	fill: unset;
+	stroke: unset;
+}
+
+.messages-new-conversation-btn svg,
+.messages-chat-actions-btn svg,
+.messages-modal-close svg {
+	width: 18px;
+	height: 18px;
+}
+
+.messages-page .lms-empty-icon {
+	color: var(--text-tertiary);
+}
+
+.messages-chat-send-btn svg {
+	width: 18px;
+	height: 18px;
 }
 
 .messages-chat-messages {
@@ -3203,10 +3319,14 @@ button.va-event-card {
 	line-height: 1.3;
 }
 
+.va-event-description-wrap {
+	margin: 0 0 var(--space-4) 0;
+}
+
 .va-event-description {
 	font-size: var(--font-size-sm);
 	color: var(--text-secondary);
-	margin: 0 0 var(--space-4) 0;
+	margin: 0;
 	line-height: 1.5;
 }
 

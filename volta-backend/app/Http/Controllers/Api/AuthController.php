@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthActivityLogger;
+use App\Support\StudentSessionLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -77,6 +79,10 @@ class AuthController extends Controller
             $request->session()->regenerate();
             
             $user = Auth::user();
+
+            $user->forceFill(['last_login_at' => now()])->save();
+            AuthActivityLogger::logLoggedIn($user, $request);
+            StudentSessionLogger::recordOpened($user, $request);
             
             // Check if user has default password (must change password)
             $mustChangePassword = $user->must_change_password ?? false;
@@ -147,6 +153,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = $request->user();
+        if ($user) {
+            AuthActivityLogger::logLoggedOut($user, $request);
+        }
+
         $bearer = $request->bearerToken();
         if ($bearer) {
             $accessToken = PersonalAccessToken::findToken($bearer);
@@ -203,6 +214,8 @@ class AuthController extends Controller
             $avatarUrl = $user->avatar
                 ? ('/storage/' . ltrim($user->avatar, '/'))
                 : null;
+
+            StudentSessionLogger::recordOpened($user, $request);
 
             return response()->json([
                 'user' => [

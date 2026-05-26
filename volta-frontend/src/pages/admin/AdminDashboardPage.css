@@ -788,19 +788,6 @@
 	border-color: var(--color-primary);
 }
 
-.admin-dashboard-clean-micro {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-3);
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	padding: var(--space-3) var(--space-4);
-	margin-bottom: var(--space-4);
-}
-
 .admin-dashboard-clean-hero {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -923,6 +910,24 @@
 .clean-card-header span {
 	color: var(--text-tertiary);
 	font-size: var(--font-size-xs);
+}
+
+.clean-card-chart-desc {
+	margin: 0 var(--space-4) var(--space-3);
+	font-size: var(--font-size-xs);
+	line-height: 1.45;
+	color: var(--text-tertiary);
+}
+
+.hourly-popularity-chart .chart-rechart-wrap {
+	min-height: 220px;
+}
+
+.hourly-popularity-footer {
+	justify-content: space-between;
+	padding: 0 var(--space-2);
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
 }
 
 .clean-card-header-text {
@@ -1256,6 +1261,7 @@
 .legend-users { background: var(--color-primary); }
 .legend-active { background: color-mix(in srgb, var(--color-primary) 72%, var(--text-secondary) 28%); }
 .legend-certified { background: color-mix(in srgb, var(--color-primary) 52%, var(--text-tertiary) 48%); }
+.legend-success { background: var(--color-success); }
 .legend-lessons { background: color-mix(in srgb, var(--color-primary) 55%, var(--text-secondary) 45%); }
 .legend-users-2 { background: color-mix(in srgb, var(--color-primary) 75%, var(--text-primary) 25%); }
 

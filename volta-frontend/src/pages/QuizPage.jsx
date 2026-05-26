@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { quizService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
+import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 
 const QuizPage = () => {
 	const { courseId } = useParams();
+	const { user } = useAuth();
 	const [quiz, setQuiz] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
@@ -20,6 +23,15 @@ const QuizPage = () => {
 	const [startTime, setStartTime] = useState(null);
 	const observerRef = useRef(null);
 	const timerIntervalRef = useRef(null);
+	const testTelemetry = useTestAttemptTelemetry({
+		enabled: Boolean(user?.id),
+		userId: user?.id,
+		entityId: quiz?.id ?? courseId,
+		courseId,
+		modelType: 'exam',
+	});
+	const testTelemetryRef = useRef(testTelemetry);
+	testTelemetryRef.current = testTelemetry;
 	const reviewAnswers = useMemo(() => {
 		if (!submitted || !result || !result.answers || typeof result.answers !== 'object') return null;
 		return result.answers;
@@ -46,7 +58,15 @@ const QuizPage = () => {
 					setSubmitted(true);
 					setSaved(true);
 					setAnswers({});
-				} else if (data.duration_minutes && !saved) {
+					void testTelemetryRef.current.trackResultViewed(data.result);
+				} else {
+					testTelemetryRef.current.resetSession();
+					void testTelemetryRef.current.trackStarted({
+						question_count: data.questions?.length ?? 0,
+						quiz_id: data.id ?? null,
+					});
+				}
+				if (data.duration_minutes && !data.hasResult && !saved) {
 					// Initialize timer if quiz has time limit
 					setTimeRemaining(data.duration_minutes * 60); // Convert to seconds
 					setStartTime(Date.now());
@@ -60,6 +80,11 @@ const QuizPage = () => {
 		};
 		fetchQuiz();
 	}, [courseId]);
+
+	useEffect(() => {
+		if (!quiz || submitted || saved) return;
+		testTelemetryRef.current.trackAnswerSaved(answers, quiz.questions?.length ?? 0);
+	}, [quiz, submitted, saved, answers]);
 
 	// Timer countdown
 	useEffect(() => {
@@ -140,6 +165,7 @@ const QuizPage = () => {
 				setQuiz((prev) => (prev ? { ...prev, questions: resultData.review_questions } : prev));
 			}
 			setSubmitted(true);
+			void testTelemetryRef.current.trackSubmitted(resultData);
 		} catch (err) {
 			console.error('Error submitting quiz:', err);
 			setError('Eroare la trimiterea testului');

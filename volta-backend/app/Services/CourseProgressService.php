@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\User;
 use App\Models\CourseTest;
 use App\Models\ActivityLog;
+use App\Support\StudentActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -26,7 +27,7 @@ class CourseProgressService
     {
         return $course->lessons()
             ->whereNull('module_id')
-            ->whereIn('status', ['published', 'draft'])
+            ->where('status', 'published')
             ->orderBy('order')
             ->get();
     }
@@ -57,8 +58,7 @@ class CourseProgressService
             return 0;
         }
 
-        // Include draft + published (lessons created in builder default to draft)
-        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
+        $modules = $course->modules()->where('status', 'published')->get();
         $rootLessons = $this->getCourseRootLessons($course);
 
         if ($modules->isEmpty() && $rootLessons->isEmpty()) {
@@ -69,7 +69,7 @@ class CourseProgressService
         $completedLessons = 0;
 
         foreach ($modules as $module) {
-            $moduleLessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
+            $moduleLessons = $module->lessons()->where('status', 'published')->get();
             $totalLessons += $moduleLessons->count();
 
             foreach ($moduleLessons as $lesson) {
@@ -140,7 +140,7 @@ class CourseProgressService
             return 0;
         }
 
-        $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
+        $lessons = $module->lessons()->where('status', 'published')->get();
         
         if ($lessons->isEmpty()) {
             return 0;
@@ -329,24 +329,9 @@ class CourseProgressService
                                 'updated_at' => Carbon::now(),
                             ]);
 
-                        if (!$wasCompleted) {
-                            ActivityLog::create([
-                                'user_id' => $user->id,
-                                'action' => 'completed_course',
-                                'model_type' => 'Course',
-                                'model_id' => $course->id,
-                                'description' => "{$user->name} a finalizat cursul \"{$course->title}\"",
-                                'new_values' => [
-                                    'course_id' => $course->id,
-                                    'course_title' => $course->title,
-                                    'progress_percentage' => 100,
-                                    'completed_at' => Carbon::now()->toDateTimeString(),
-                                ],
-                                'ip_address' => request()?->ip(),
-                                'user_agent' => request()?->userAgent(),
-                            ]);
+                        if (! $wasCompleted && StudentActivityLogger::logCompletedCourseIfFirst($user, $course)) {
+                            app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                         }
-                        app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
                     }
                 }
             } else {
@@ -371,7 +356,7 @@ class CourseProgressService
             return true;
         }
 
-        $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->get();
+        $lessons = $module->lessons()->where('status', 'published')->get();
         
         if ($lessons->isEmpty()) {
             return false;
@@ -452,7 +437,7 @@ class CourseProgressService
             return true;
         }
 
-        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->get();
+        $modules = $course->modules()->where('status', 'published')->get();
         $rootLessons = $this->getCourseRootLessons($course);
 
         if ($modules->isEmpty() && $rootLessons->isEmpty()) {
@@ -593,7 +578,7 @@ class CourseProgressService
         }
 
         $modules = $course->modules()
-            ->whereIn('status', ['published', 'draft'])
+            ->where('status', 'published')
             ->orderBy('order')
             ->get();
 
@@ -604,7 +589,7 @@ class CourseProgressService
             }
 
             $lessons = $module->lessons()
-                ->whereIn('status', ['published', 'draft'])
+                ->where('status', 'published')
                 ->orderBy('order')
                 ->get();
 
@@ -666,7 +651,7 @@ class CourseProgressService
         }
 
         $modules = $course->modules()
-            ->whereIn('status', ['published', 'draft'])
+            ->where('status', 'published')
             ->orderBy('order')
             ->get();
 
@@ -676,7 +661,7 @@ class CourseProgressService
             }
 
             $lessons = $module->lessons()
-                ->whereIn('status', ['published', 'draft'])
+                ->where('status', 'published')
                 ->orderBy('order')
                 ->get();
 
@@ -825,7 +810,7 @@ class CourseProgressService
      */
     public function getUserAccessStatus(User $user, Course $course): array
     {
-        $modules = $course->modules()->whereIn('status', ['published', 'draft'])->orderBy('order')->get();
+        $modules = $course->modules()->where('status', 'published')->orderBy('order')->get();
         $rootLessons = $this->getCourseRootLessons($course);
         $accessStatus = [
             'course_progress' => $this->calculateCourseProgress($user, $course),
@@ -888,7 +873,7 @@ class CourseProgressService
                 ->values()
                 ->all();
 
-            $lessons = $module->lessons()->whereIn('status', ['published', 'draft'])->orderBy('order')->get();
+            $lessons = $module->lessons()->where('status', 'published')->orderBy('order')->get();
             foreach ($lessons as $lesson) {
                 $isLessonUnlocked = $this->isLessonUnlocked($user, $lesson, $module, $course);
                 

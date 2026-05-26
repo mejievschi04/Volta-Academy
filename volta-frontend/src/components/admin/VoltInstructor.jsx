@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { FilePdf, Lightning, PaperPlaneRight, Paperclip, X } from '@phosphor-icons/react';
 import './VoltInstructor.css';
 
 /**
@@ -82,9 +83,7 @@ const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploa
 	};
 
 	const boltIcon = (
-		<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-			<path d="M18 2L10 14h6l-3 14 12-16h-6L18 2z" fill="currentColor"/>
-		</svg>
+		<Lightning size={24} weight="fill" aria-hidden />
 	);
 
 	const currentQuestion = activeQuestions[currentQuestionIndex];
@@ -119,7 +118,7 @@ const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploa
 							title="Minimizează"
 							aria-label="Minimizează"
 						>
-							×
+							<X size={16} weight="bold" aria-hidden />
 						</button>
 					</div>
 
@@ -175,7 +174,15 @@ const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploa
 										id="volt-pdf-upload"
 									/>
 									<label htmlFor="volt-pdf-upload" className="volt-instructor-file-label">
-										{pdfFile ? `📄 ${pdfFile.name}` : '📎 Încarcă PDF'}
+										{pdfFile ? (
+											<>
+												<FilePdf size={14} weight="duotone" aria-hidden /> {pdfFile.name}
+											</>
+										) : (
+											<>
+												<Paperclip size={14} weight="bold" aria-hidden /> Încarcă PDF
+											</>
+										)}
 									</label>
 								</div>
 							)}
@@ -187,7 +194,7 @@ const VoltInstructor = ({ actions = [], welcomeMessage, questions = [], pdfUploa
 								placeholder={isPdfQuestion ? "Sau scrie 'nu' pentru a skipa..." : 'Scrie răspunsul tău...'}
 							/>
 							<button type="submit" className="volt-instructor-send-btn" disabled={!input.trim() && !pdfFile}>
-								➤
+								<PaperPlaneRight size={14} weight="fill" aria-hidden />
 							</button>
 						</form>
 					)}

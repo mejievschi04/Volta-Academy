@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
+import { Bell, FileText, Warning, X } from '@phosphor-icons/react';
 import {
 	markNotificationRead,
 	markAllPrimiteAsRead,
@@ -12,30 +13,20 @@ import {
 import './NotificationsDrawer.css';
 
 const CloseIcon = () => (
-	<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-		<path d="M18 6L6 18M6 6l12 12" />
-	</svg>
+	<X size={22} weight="bold" aria-hidden />
 );
 
 function StudentRowIcon({ type }) {
 	if (type === 'pending_exam') {
 		return (
 			<div className="va-notif-drawer-row-icon">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-					<polyline points="14 2 14 8 20 8" />
-					<line x1="16" y1="13" x2="8" y2="13" />
-					<line x1="16" y1="17" x2="8" y2="17" />
-				</svg>
+				<FileText size={20} weight="duotone" aria-hidden />
 			</div>
 		);
 	}
 	return (
 		<div className="va-notif-drawer-row-icon">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-				<path d="M12 2L2 7l10 5 10-5-10-5z" />
-				<path d="M2 17l10 5 10-5" />
-			</svg>
+			<Bell size={20} weight="duotone" aria-hidden />
 		</div>
 	);
 }
@@ -43,16 +34,12 @@ function StudentRowIcon({ type }) {
 function AdminRowIcon() {
 	return (
 		<div className="va-notif-drawer-row-icon va-notif-drawer-row-icon--warn">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-				<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-				<path d="M12 9v4" />
-				<path d="M12 17h.01" />
-			</svg>
+			<Warning size={20} weight="duotone" aria-hidden />
 		</div>
 	);
 }
 
-const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLocalStateChange }) => {
+const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLocalStateChange, onRefresh }) => {
 	const isStudent = variant === 'student';
 	const navigate = useNavigate();
 	const [tab, setTab] = useState('primite');
@@ -80,22 +67,24 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 	const istoric = useMemo(() => getIstoricList(variant), [variant, tick]);
 
 	const handleReadStudent = useCallback(
-		(notif) => {
-			markNotificationRead(variant, notif);
+		async (notif) => {
+			await markNotificationRead(variant, notif);
 			bump();
+			onRefresh?.();
 			setTab('istoric');
 			if (notif.link && String(notif.link).startsWith('/')) {
 				onClose();
 				navigate(notif.link);
 			}
 		},
-		[variant, bump, onClose, navigate]
+		[variant, bump, onClose, navigate, onRefresh]
 	);
 
 	const handleReadAdmin = useCallback(
-		(notif) => {
-			markNotificationRead(variant, notif);
+		async (notif) => {
+			await markNotificationRead(variant, notif);
 			bump();
+			onRefresh?.();
 			setTab('istoric');
 			const href =
 				typeof notif.action_url === 'string' && notif.action_url.startsWith('/')
@@ -106,7 +95,7 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 				navigate(href);
 			}
 		},
-		[variant, bump, onClose, navigate]
+		[variant, bump, onClose, navigate, onRefresh]
 	);
 
 	const handleDeleteHistoric = useCallback(
@@ -117,11 +106,12 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 		[variant, bump]
 	);
 
-	const handleMarkAllRead = useCallback(() => {
-		markAllPrimiteAsRead(variant, apiItems);
+	const handleMarkAllRead = useCallback(async () => {
+		await markAllPrimiteAsRead(variant, apiItems);
 		bump();
+		onRefresh?.();
 		setTab('istoric');
-	}, [variant, apiItems, bump]);
+	}, [variant, apiItems, bump, onRefresh]);
 
 	const handleClearHistoric = useCallback(() => {
 		if (

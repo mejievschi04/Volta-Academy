@@ -9,6 +9,8 @@ import {
 function getSimpleIcon(action) {
 	if (!action) return '✓';
 	if (action === 'completed_course') return '📗';
+	if (action === 'logged_in') return '🔐';
+	if (action === 'logged_out') return '🚪';
 	if (action === 'completed_exam' || action === 'telemetry.learner_attempt_submitted') return '📝';
 	if (String(action).startsWith('telemetry.learner')) return '🎓';
 	return '•';
@@ -20,6 +22,7 @@ const SIMPLE_EVENT_FILTER_VALUES = [
 	'completed_course',
 	'completed_lesson',
 	'completed_exam',
+	'enrolled_course',
 	'telemetry.learner_attempt_submitted',
 	'telemetry.learner_attempt_started',
 	'telemetry.learner_result_viewed',

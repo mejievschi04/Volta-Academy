@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { libraryService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { scrollAppToTop } from '../utils/scrollToTop';
 import '../styles/library-reader-page.css';
 
 function isPdfItem(item) {
@@ -22,6 +23,10 @@ const LibraryReaderPage = () => {
 	const [pdfUrl, setPdfUrl] = useState('');
 	const [pdfLoading, setPdfLoading] = useState(false);
 	const [pdfError, setPdfError] = useState(null);
+
+	useEffect(() => {
+		scrollAppToTop();
+	}, [itemId]);
 
 	useEffect(() => {
 		let active = true;
