@@ -224,28 +224,26 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-title-section {
 	line-height: 1.6;
 }
 
-html[data-theme='dark'] .lesson-page-main h1,
-html[data-theme='dark'] .lesson-page-main h2,
-html[data-theme='dark'] .lesson-page-main h3,
-html[data-theme='dark'] .lesson-page-main p,
-html[data-theme='dark'] .lesson-page-main li,
 html[data-theme='dark'] .lesson-page-main .lesson-page-title,
 html[data-theme='dark'] .lesson-page-main .lesson-page-description,
 html[data-theme='dark'] .lesson-page-main .lesson-page-meta-item,
 html[data-theme='dark'] .lesson-page-main .lesson-page-content-text,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h1,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h2,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h3,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h4,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text p,
-html[data-theme='dark'] .lesson-page-main .lesson-page-content-text li,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h1,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h2,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h3,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h4,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content p,
-html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content li {
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content {
+	color: #000000 !important;
+}
+
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h1:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h2:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h3:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text h4:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text p:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-content-text li:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h1:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h2:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h3:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content h4:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content p:not([style*="color"]),
+html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-content li:not([style*="color"]) {
 	color: #000000 !important;
 }
 

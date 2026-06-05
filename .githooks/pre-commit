@@ -7,14 +7,14 @@ set -e
 echo "Running secret scan (gitleaks)..."
 
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks detect --staged --redact || { echo "Gitleaks found secrets. Commit aborted."; exit 1; }
+  gitleaks git --staged --redact || { echo "Gitleaks found secrets. Commit aborted."; exit 1; }
   echo "No secrets found by gitleaks."
   exit 0
 fi
 
 if command -v docker >/dev/null 2>&1; then
-  # Mount current directory into container and run gitleaks detect on staged changes
-  docker run --rm -v "$PWD":/src -w /src zricethezav/gitleaks:latest detect --staged --redact || { echo "Gitleaks (docker) found secrets. Commit aborted."; exit 1; }
+  # Mount current directory into container and run gitleaks on staged changes
+  docker run --rm -v "$PWD":/src -w /src zricethezav/gitleaks:latest git --staged --redact || { echo "Gitleaks (docker) found secrets. Commit aborted."; exit 1; }
   echo "No secrets found by gitleaks (docker)."
   exit 0
 fi

@@ -1056,15 +1056,7 @@ const MessagesPage = () => {
 
 			{/* New Conversation Modal */}
 			{showNewConversationModal && (
-				<div className="messages-modal-overlay" onClick={() => {
-					setShowNewConversationModal(false);
-					setNewConversationType('direct');
-					setNewGroupName('');
-					setNewConversationUserId('');
-					setNewConversationUserIds([]);
-					setNewConversationSearch('');
-					setAvailableUsers([]);
-				}}>
+				<div className="messages-modal-overlay">
 					<div className="messages-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="messages-modal-header">
 							<h3>Conversație nouă</h3>
@@ -1247,7 +1239,7 @@ const MessagesPage = () => {
 			)}
 
 			{showParticipantsModal && selectedConversation?.is_group && (
-				<div className="messages-modal-overlay" onClick={() => setShowParticipantsModal(false)}>
+				<div className="messages-modal-overlay">
 					<div className="messages-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="messages-modal-header">
 							<h3>Participanți grup</h3>

@@ -9,6 +9,7 @@ import { isVoltEnabled, notifyVoltComingSoon } from '../../../../utils/voltAvail
 
 const QUESTION_TYPE_OPTIONS = [
 	{ value: 'multiple_choice', label: 'Răspuns multiplu' },
+	{ value: 'single_choice', label: 'Răspuns unic' },
 	{ value: 'true_false', label: 'Adevărat/Fals' },
 	{ value: 'matching', label: 'Potrivire' },
 	{ value: 'ordering', label: 'Ordonare' },
@@ -65,9 +66,21 @@ const normalizeQuestionAnswers = (type, answers) => {
 	}
 
 	if (type === 'true_false') {
+		const firstCorrectIndex = list.slice(0, 2).findIndex((answer) => !!answer?.is_correct);
+		const correctIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
 		return list.slice(0, 2).map((answer, index) => ({
 			text: answer?.text ?? (index === 0 ? 'Adevărat' : 'Fals'),
-			is_correct: index === 0 ? !!answer?.is_correct : !!answer?.is_correct,
+			is_correct: index === correctIndex,
+		}));
+	}
+
+	if (type === 'single_choice') {
+		const firstCorrectIndex = list.findIndex((answer) => !!answer?.is_correct);
+		const correctIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+		return list.map((answer, index) => ({
+			text: answer?.text ?? '',
+			is_correct: index === correctIndex,
+			order: typeof answer?.order === 'number' ? answer.order : index,
 		}));
 	}
 
@@ -272,7 +285,10 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			return;
 		}
 
-		if (questionForm.type === 'multiple_choice' && !questionForm.answers.some((a) => a.is_correct)) {
+		if (
+			(questionForm.type === 'multiple_choice' || questionForm.type === 'single_choice' || questionForm.type === 'true_false') &&
+			!questionForm.answers.some((a) => a.is_correct)
+		) {
 			setQuestionFormErrors((prev) => ({ ...prev, correct: 'Selectează cel puțin un răspuns corect' }));
 			return;
 		}
@@ -720,11 +736,12 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							}}
 						>
 							<option value="multiple_choice">Răspuns multiplu</option>
+							<option value="single_choice">Răspuns unic</option>
 							<option value="true_false">Adevărat/Fals</option>
 							<option value="matching">Potrivire</option>
 							<option value="ordering">Ordonare</option>
 						</select>
-						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Adevărat/Fals = două opțiuni; Potrivire = perechi; Ordonare = elemente mutate în ordine.</p>
+						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Răspuns unic = o singură variantă corectă; Adevărat/Fals = două opțiuni; Potrivire = perechi; Ordonare = elemente mutate în ordine.</p>
 					</div>
 
 					<div className="admin-form-group">
@@ -848,6 +865,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 										<div key={index} className="admin-answer-item">
 											<input
 												type={questionForm.type === 'multiple_choice' ? 'checkbox' : 'radio'}
+												name={questionForm.type !== 'multiple_choice' ? 'question-form-correct-answer' : undefined}
 												className="admin-answer-checkbox"
 												checked={answer.is_correct}
 												onChange={(e) => {

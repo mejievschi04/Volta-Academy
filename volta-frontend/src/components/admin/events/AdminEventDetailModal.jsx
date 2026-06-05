@@ -81,20 +81,6 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 	}, [open]);
 
 	useEffect(() => {
-		if (!open) return;
-		const onKey = (e) => {
-			if (e.key !== 'Escape') return;
-			if (showParticipants) {
-				setShowParticipants(false);
-				return;
-			}
-			onClose();
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [open, onClose, showParticipants]);
-
-	useEffect(() => {
 		if (!open) return undefined;
 		const prev = document.body.style.overflow;
 		document.body.style.overflow = 'hidden';
@@ -136,9 +122,6 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 			<div
 				className="admin-event-modal-overlay va-cal-event-modal-overlay aev-detail-overlay"
 				role="presentation"
-				onClick={(e) => {
-					if (e.target === e.currentTarget) onClose();
-				}}
 			>
 				<div
 					className="admin-event-modal aev-detail-modal"

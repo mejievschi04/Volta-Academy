@@ -17,11 +17,18 @@ import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 
-/** Index de inserare pentru op-ul builder moveLesson (lista destinație fără lecția mutată). */
-function computeLessonInsertIndex(modulesList, toModuleId, movingLessonId, targetLessonId, position) {
+function getDropTargetLessons(modulesList, rootLessonsList, toModuleId) {
+	if (toModuleId == null) {
+		return rootLessonsList || [];
+	}
 	const mod = modulesList.find((m) => Number(m.id) === Number(toModuleId));
-	if (!mod) return 0;
-	const filtered = (mod.lessons || []).filter((l) => Number(l.id) !== Number(movingLessonId));
+	return mod?.lessons || [];
+}
+
+/** Index de inserare pentru op-ul builder moveLesson (lista destinație fără lecția mutată). */
+function computeLessonInsertIndex(modulesList, rootLessonsList, toModuleId, movingLessonId, targetLessonId, position) {
+	const targetLessons = getDropTargetLessons(modulesList, rootLessonsList, toModuleId);
+	const filtered = targetLessons.filter((l) => Number(l.id) !== Number(movingLessonId));
 	if (targetLessonId == null || position === 'end') {
 		return filtered.length;
 	}
@@ -267,17 +274,18 @@ const AdminCourseBuilderPage = () => {
 			try {
 				await flushPendingLessonContentSave();
 				await flushAllInlineQuestionSavesRef.current();
+				const normalizedModuleId = toModuleId == null ? null : Number(toModuleId);
 				const data = await adminService.patchCourseBuilderStructure(courseId, [
 					{
 						op: 'moveLesson',
 						lesson_id: Number(lessonId),
-						to_module_id: Number(toModuleId),
+						to_module_id: normalizedModuleId,
 						to_index: toIndex,
 					},
 				]);
 				setStructure(data);
 				await fetchAttachedTests();
-				setSelectedModuleId(Number(toModuleId));
+				setSelectedModuleId(normalizedModuleId);
 				setSelectedLessonId(Number(lessonId));
 				setShowTestCreator(false);
 				showToast('Lecția a fost mutată.', 'success');
@@ -317,14 +325,14 @@ const AdminCourseBuilderPage = () => {
 		e.dataTransfer.dropEffect = 'move';
 		const rect = e.currentTarget.getBoundingClientRect();
 		const position = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
-		setLessonDropHint({ moduleId: moduleItem.id, lessonId: lessonItem.id, position });
+		setLessonDropHint({ moduleId: moduleItem?.id ?? null, lessonId: lessonItem.id, position });
 	}, []);
 
 	const handleLessonDragOverModuleEnd = useCallback((e, moduleItem) => {
 		if (!lessonDragPayloadRef.current) return;
 		e.preventDefault();
 		e.dataTransfer.dropEffect = 'move';
-		setLessonDropHint({ moduleId: moduleItem.id, zone: 'end' });
+		setLessonDropHint({ moduleId: moduleItem?.id ?? null, zone: 'end' });
 	}, []);
 
 	const handleLessonDropOnLesson = useCallback(
@@ -347,15 +355,16 @@ const AdminCourseBuilderPage = () => {
 			const position = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
 			const toIndex = computeLessonInsertIndex(
 				modules,
-				targetModuleItem.id,
+				rootLessons,
+				targetModuleItem?.id ?? null,
 				movingId,
 				targetLessonItem.id,
 				position
 			);
-			await handleLessonMove(movingId, targetModuleItem.id, toIndex);
+			await handleLessonMove(movingId, targetModuleItem?.id ?? null, toIndex);
 			clearLessonDrag();
 		},
-		[modules, handleLessonMove, clearLessonDrag]
+		[modules, rootLessons, handleLessonMove, clearLessonDrag]
 	);
 
 	const handleLessonDropAtModuleEnd = useCallback(
@@ -370,11 +379,11 @@ const AdminCourseBuilderPage = () => {
 				movingId = lessonDragPayloadRef.current?.lessonId;
 			}
 			if (movingId == null) return;
-			const toIndex = computeLessonInsertIndex(modules, targetModuleItem.id, movingId, null, 'end');
-			await handleLessonMove(movingId, targetModuleItem.id, toIndex);
+			const toIndex = computeLessonInsertIndex(modules, rootLessons, targetModuleItem?.id ?? null, movingId, null, 'end');
+			await handleLessonMove(movingId, targetModuleItem?.id ?? null, toIndex);
 			clearLessonDrag();
 		},
-		[modules, handleLessonMove, clearLessonDrag]
+		[modules, rootLessons, handleLessonMove, clearLessonDrag]
 	);
 
 	const fetchStructure = async (background = false) => {
@@ -1348,9 +1357,41 @@ const AdminCourseBuilderPage = () => {
 							<div className="admin-course-builder-sidebar-course-tests-block">
 								<p className="admin-course-builder-sidebar-course-tests-label">Lecții fără modul</p>
 								<ul className="admin-course-builder-sidebar-lessons">
-									{rootLessons.map((lessonItem, lessonIndex) => (
+									{rootLessons.map((lessonItem, lessonIndex) => {
+										const rowDropClass =
+											lessonDropHint?.moduleId == null &&
+											lessonDropHint?.lessonId === lessonItem.id &&
+											lessonDropHint?.position === 'before'
+												? 'is-lesson-drop-before'
+												: lessonDropHint?.moduleId == null &&
+													lessonDropHint?.lessonId === lessonItem.id &&
+													lessonDropHint?.position === 'after'
+													? 'is-lesson-drop-after'
+													: '';
+										return (
 										<li key={lessonItem.id} className="admin-course-builder-sidebar-lesson-with-tests">
-											<div className="admin-course-builder-sidebar-lesson-row">
+											<div
+												className={`admin-course-builder-sidebar-lesson-row ${rowDropClass}`}
+												onDragOver={(e) => handleLessonDragOverRow(e, null, lessonItem)}
+												onDrop={(e) => handleLessonDropOnLesson(e, null, lessonItem)}
+											>
+												{canMutateInAdminArea ? (
+													<span
+														className="admin-course-builder-sidebar-lesson-drag-handle"
+														draggable
+														onDragStart={(e) => handleLessonDragStart(e, lessonItem, null)}
+														onDragEnd={handleLessonDragEnd}
+														title="Trage pentru a muta lectia"
+														aria-label="Trage lectia pentru mutare"
+														role="button"
+														tabIndex={0}
+														onKeyDown={(e) => {
+															if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+														}}
+													>
+														<DragGripIcon size={14} />
+													</span>
+												) : null}
 												<button
 													type="button"
 													className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
@@ -1389,7 +1430,19 @@ const AdminCourseBuilderPage = () => {
 												</button>
 											</div>
 										</li>
-									))}
+										);
+									})}
+									{canMutateInAdminArea ? (
+										<li
+											className={`admin-course-builder-sidebar-lesson-drop-end ${
+												lessonDropHint?.moduleId == null && lessonDropHint?.zone === 'end' ? 'is-active' : ''
+											}`}
+											onDragOver={(e) => handleLessonDragOverModuleEnd(e, null)}
+											onDrop={(e) => handleLessonDropAtModuleEnd(e, null)}
+										>
+											<span className="admin-course-builder-sidebar-lesson-drop-end-label">Elibereaza aici - la finalul listei fara modul</span>
+										</li>
+									) : null}
 								</ul>
 							</div>
 						)}
@@ -1758,7 +1811,7 @@ const AdminCourseBuilderPage = () => {
 			</button>
 
 			{false && showVoltAssistant && (
-				<div className="ai-chat-modal-overlay" onClick={() => setShowVoltAssistant(false)}>
+				<div className="ai-chat-modal-overlay">
 					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
 						<AICourseChat
 							initialCourseId={courseId}
@@ -1776,7 +1829,7 @@ const AdminCourseBuilderPage = () => {
 			)}
 
 			{showCreateTestModal && (
-				<div className="admin-course-builder-test-modal-overlay" onClick={() => !creatingTestFromModal && setShowCreateTestModal(false)}>
+				<div className="admin-course-builder-test-modal-overlay">
 					<div className="admin-course-builder-test-modal" onClick={(e) => e.stopPropagation()}>
 						<h3>Creează test</h3>
 						<form onSubmit={handleCreateTestFromModal} className="admin-course-builder-test-modal-form">

@@ -214,7 +214,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 			</section>
 
 			{showReviewModal && reviewTarget ? (
-				<div className="admin-tests-modal-overlay" role="presentation" onClick={closeReviewModal}>
+				<div className="admin-tests-modal-overlay" role="presentation">
 					<div
 						className="admin-tests-modal admin-tests-review-modal"
 						role="dialog"

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import './BuildCourseModal.css';
 
 /**
@@ -40,23 +40,11 @@ const BuildCourseModal = ({
 		setStep(2);
 	};
 
-	const handleBackdropKeyDown = useCallback(
-		(e) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				onClose();
-			}
-		},
-		[onClose]
-	);
-
 	const isEdit = mode === 'edit';
 
 	return (
 		<div
 			className="build-course-modal-backdrop"
-			onClick={onClose}
-			onKeyDown={handleBackdropKeyDown}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="build-course-modal-title"

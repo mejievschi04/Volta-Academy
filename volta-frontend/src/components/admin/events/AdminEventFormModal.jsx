@@ -250,12 +250,6 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 	return (
 		<div
 			className="admin-event-modal-overlay va-cal-event-modal-overlay"
-			onClick={(e) => {
-				if (e.target === e.currentTarget) {
-					onClose();
-					resetForm();
-				}
-			}}
 			role="presentation"
 		>
 			<div className="admin-event-modal" role="dialog" aria-modal="true" aria-labelledby="va-evt-modal-title">

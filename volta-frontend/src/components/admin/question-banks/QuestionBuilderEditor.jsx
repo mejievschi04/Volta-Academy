@@ -2,29 +2,29 @@ import React, { useMemo, useState } from 'react';
 import '../../../styles/admin-course-builder.css';
 
 const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
-  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
-  { id: 'matching', label: 'Potrivire', short: '↔' },
+  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B' },
+  { id: 'single_choice', label: 'Raspuns unic', short: '1' },
+  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F' },
+  { id: 'matching', label: 'Potrivire', short: '<->' },
   { id: 'ordering', label: 'Ordonare', short: '1-4' },
 ];
 
 const normalizeType = (type) => {
-  if (type === 'single_choice') return 'multiple_choice';
   return INLINE_QUESTION_TYPES.some((entry) => entry.id === type) ? type : 'multiple_choice';
 };
 
 const getDefaultAnswersByType = (type) => {
   if (type === 'true_false') {
     return [
-      { text: 'Adevărat', is_correct: true },
+      { text: 'Adevarat', is_correct: true },
       { text: 'Fals', is_correct: false },
     ];
   }
 
   if (type === 'matching') {
     return [
-      { left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true },
-      { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true },
+      { left: 'Element A', right: 'Raspuns A', text: 'Element A', answer_text: 'Raspuns A', is_correct: true },
+      { left: 'Element B', right: 'Raspuns B', text: 'Element B', answer_text: 'Raspuns B', is_correct: true },
     ];
   }
 
@@ -36,9 +36,15 @@ const getDefaultAnswersByType = (type) => {
   }
 
   return [
-    { text: 'Răspuns A', is_correct: true },
-    { text: 'Răspuns B', is_correct: false },
+    { text: 'Raspuns A', is_correct: true },
+    { text: 'Raspuns B', is_correct: false },
   ];
+};
+
+const keepOnlyOneCorrectAnswer = (answers) => {
+  const firstCorrectIndex = answers.findIndex((answer) => answer.is_correct);
+  const correctIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+  return answers.map((answer, index) => ({ ...answer, is_correct: index === correctIndex }));
 };
 
 const normalizeAnswers = (type, answers) => {
@@ -63,18 +69,17 @@ const normalizeAnswers = (type, answers) => {
     }));
   }
 
-  if (type === 'true_false') {
-    return list.slice(0, 2).map((answer, index) => ({
-      text: answer?.text ?? '',
-      is_correct: index === 0 ? !!answer?.is_correct : !!answer?.is_correct,
-    }));
-  }
-
-  return list.map((answer, index) => ({
+  const normalized = list.map((answer, index) => ({
     text: answer?.text ?? '',
     is_correct: !!answer?.is_correct,
     order: typeof answer?.order === 'number' ? answer.order : index,
   }));
+
+  if (type === 'single_choice' || type === 'true_false') {
+    return keepOnlyOneCorrectAnswer(type === 'true_false' ? normalized.slice(0, 2) : normalized);
+  }
+
+  return normalized;
 };
 
 const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
@@ -84,7 +89,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
     () => normalizeAnswers(currentType, question?.answers?.length ? question.answers : getDefaultAnswersByType(currentType)),
     [question?.answers, currentType]
   );
-  const currentTypeLabel = INLINE_QUESTION_TYPES.find((entry) => entry.id === currentType)?.label || 'Întrebare';
+  const currentTypeLabel = INLINE_QUESTION_TYPES.find((entry) => entry.id === currentType)?.label || 'Intrebare';
 
   const update = (patch) => onChange({ ...question, ...patch });
 
@@ -103,7 +108,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   };
 
   const toggleCorrect = (idx) => {
-    if (currentType === 'true_false') {
+    if (currentType === 'true_false' || currentType === 'single_choice') {
       update({
         answers: answers.map((answer, i) => ({
           ...answer,
@@ -124,14 +129,17 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   const addAnswer = () => {
     const defaults = getDefaultAnswersByType(currentType);
     const nextAnswer = defaults[answers.length] || defaults[0] || { text: '', is_correct: false };
-    const next = [...answers, { ...nextAnswer }];
+    const next = [...answers, { ...nextAnswer, is_correct: false }];
     if (currentType === 'ordering') {
-      next[next.length - 1] = { ...next[next.length - 1], order: next.length - 1 };
+      next[next.length - 1] = { ...next[next.length - 1], order: next.length - 1, is_correct: true };
     }
     update({ answers: next });
   };
 
-  const removeAnswer = (idx) => update({ answers: answers.filter((_, i) => i !== idx) });
+  const removeAnswer = (idx) => {
+    const next = answers.filter((_, i) => i !== idx);
+    update({ answers: currentType === 'single_choice' || currentType === 'true_false' ? keepOnlyOneCorrectAnswer(next) : next });
+  };
 
   const moveAnswer = (idx, direction) => {
     const nextIndex = direction === 'up' ? idx - 1 : idx + 1;
@@ -145,9 +153,10 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
     });
   };
 
-  const isChoiceType = currentType === 'multiple_choice' || currentType === 'true_false';
+  const isChoiceType = currentType === 'multiple_choice' || currentType === 'single_choice' || currentType === 'true_false';
   const isMatchingType = currentType === 'matching';
   const isOrderingType = currentType === 'ordering';
+  const radioGroupName = `answer-correct-${question?.id ?? questionNumber}`;
 
   return (
     <div className="admin-course-builder-test-layout">
@@ -171,7 +180,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                 className="admin-course-builder-test-question-input"
                 value={question?.content || ''}
                 onChange={(e) => update({ content: e.target.value })}
-                placeholder="Adaugă întrebare"
+                placeholder="Adauga intrebare"
                 rows={2}
               />
 
@@ -179,7 +188,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                 className="admin-course-builder-test-question-desc"
                 value={question?.explanation || ''}
                 onChange={(e) => update({ explanation: e.target.value })}
-                placeholder="Adaugă descriere..."
+                placeholder="Adauga descriere..."
                 rows={2}
               />
 
@@ -195,12 +204,12 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
               {isChoiceType && (
                 <div className="admin-course-builder-test-question-answers">
-                  <p>Răspunsuri:</p>
+                  <p>Raspunsuri:</p>
                   {answers.map((answer, idx) => (
                     <div key={`ans-${idx}`} className="admin-course-builder-test-answer-row">
                       <input
-                        type={currentType === 'true_false' ? 'radio' : 'checkbox'}
-                        name={currentType === 'true_false' ? 'answer-correct' : undefined}
+                        type={currentType === 'multiple_choice' ? 'checkbox' : 'radio'}
+                        name={currentType !== 'multiple_choice' ? radioGroupName : undefined}
                         checked={!!answer.is_correct}
                         onChange={() => toggleCorrect(idx)}
                       />
@@ -208,19 +217,19 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         type="text"
                         value={answer.text || ''}
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
-                        placeholder="Introduce răspuns"
+                        placeholder="Introdu raspuns"
                         disabled={currentType === 'true_false'}
                       />
                       {currentType !== 'true_false' && (
                         <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                          ×
+                          x
                         </button>
                       )}
                     </div>
                   ))}
                   {currentType !== 'true_false' && (
                     <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                      + Adaugă răspuns
+                      + Adauga raspuns
                     </button>
                   )}
                 </div>
@@ -235,7 +244,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         type="text"
                         value={answer.left || ''}
                         onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
-                        placeholder="Element stânga"
+                        placeholder="Element stanga"
                       />
                       <input
                         type="text"
@@ -244,19 +253,19 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         placeholder="Element dreapta"
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                        ×
+                        x
                       </button>
                     </div>
                   ))}
                   <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                    + Adaugă pereche
+                    + Adauga pereche
                   </button>
                 </div>
               )}
 
               {isOrderingType && (
                 <div className="admin-course-builder-test-question-answers">
-                  <p>Elemente în ordinea corectă:</p>
+                  <p>Elemente in ordinea corecta:</p>
                   {answers.map((answer, idx) => (
                     <div key={`order-${idx}`} className="admin-course-builder-test-answer-row">
                       <span style={{ minWidth: '2rem', fontWeight: 700 }}>{idx + 1}.</span>
@@ -267,18 +276,18 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         placeholder="Element"
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'up')} disabled={idx === 0}>
-                        ↑
+                        Sus
                       </button>
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'down')} disabled={idx === answers.length - 1}>
-                        ↓
+                        Jos
                       </button>
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                        ×
+                        x
                       </button>
                     </div>
                   ))}
                   <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                    + Adaugă element
+                    + Adauga element
                   </button>
                 </div>
               )}
@@ -289,7 +298,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
       <aside className={`admin-course-builder-test-sidepanel ${typePickerOpen ? 'is-open' : ''}`}>
         <div className="admin-course-builder-test-sidepanel-head">
-          <h3>Tipuri întrebări</h3>
+          <h3>Tipuri intrebari</h3>
         </div>
         <div className="admin-course-builder-test-type-grid">
           {INLINE_QUESTION_TYPES.map((typeOpt) => (

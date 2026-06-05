@@ -69,7 +69,7 @@ const PublishCourseModal = ({ open, onClose, courseId, onPublished, validationRe
 	if (!open) return null;
 
 	return (
-		<div className="admin-team-modal-overlay publish-course-modal-overlay" onClick={onClose}>
+		<div className="admin-team-modal-overlay publish-course-modal-overlay">
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
 					<h2 className="admin-team-modal-title">Publicare curs</h2>

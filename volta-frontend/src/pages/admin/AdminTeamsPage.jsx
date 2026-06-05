@@ -407,11 +407,7 @@ const AdminTeamsPage = () => {
 
 			{/* Team Form Modal */}
 			{showModal && canMutateInAdminArea && (
-				<div className="admin-team-modal-overlay" onClick={(e) => {
-					if (e.target === e.currentTarget) {
-						setShowModal(false);
-					}
-				}}>
+				<div className="admin-team-modal-overlay">
 					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="admin-team-modal-header">
 							<div className="admin-team-modal-title-wrap">
@@ -562,11 +558,7 @@ const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) =
 	};
 
 	return (
-		<div className="admin-team-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) {
-				onClose();
-			}
-		}}>
+		<div className="admin-team-modal-overlay">
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
 					<div className="admin-team-modal-title-wrap">
@@ -712,9 +704,7 @@ const TeamMemberAssignCoursesModal = ({ team, member, courses, onClose, onSaved 
 	};
 
 	return (
-		<div className="admin-team-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}>
+		<div className="admin-team-modal-overlay">
 			<div className="admin-team-modal admin-team-modal-lg" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
 					<div className="admin-team-modal-title-wrap">
@@ -773,11 +763,7 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 	};
 
 	return (
-		<div className="admin-team-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) {
-				onClose();
-			}
-		}}>
+		<div className="admin-team-modal-overlay">
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
 					<div className="admin-team-modal-title-wrap">

@@ -30,6 +30,7 @@ import { logger } from '../utils/logger';
 import { estimatePdfContentPreviewHeight } from '../utils/pdfTextExtractor';
 import { getPdfPageCount, slicePdfFileByRange } from '../utils/pdfRangeUtils';
 import { toImageUrl } from '../utils/imageUrl';
+import { stripRichTextEditorChrome } from '../utils/richTextContent';
 import { adminService } from '../services/api';
 import './RichTextEditor.css';
 
@@ -116,6 +117,19 @@ const RteIcon = ({ name }) => {
 const RTE_PDF_IFRAME_PAD = 40;
 const RTE_IMAGE_MIN_WIDTH = 20;
 const RTE_IMAGE_MAX_WIDTH = 100;
+
+const IMAGE_SIZE_PRESETS = [
+	{ id: 'small', label: 'Mic', percent: 33 },
+	{ id: 'medium', label: 'Mediu', percent: 50 },
+	{ id: 'large', label: 'Mare', percent: 75 },
+	{ id: 'full', label: 'Complet', percent: 100 },
+];
+
+const IMAGE_ALIGN_OPTIONS = [
+	{ id: 'left', label: 'Stânga' },
+	{ id: 'center', label: 'Centru' },
+	{ id: 'right', label: 'Dreapta' },
+];
 
 function isLikelyPdfIframeSrc(src) {
 	if (!src || typeof src !== 'string') return false;
@@ -224,19 +238,245 @@ function readImageWidthPercent(img) {
 	return 100;
 }
 
-function applyImageLayout(img, widthPercent) {
+function readImageAlign(img) {
+	const align = img?.getAttribute('data-rte-image-align');
+	if (align === 'left' || align === 'right' || align === 'center') return align;
+	return 'center';
+}
+
+function snapImageWidthPercent(percent) {
+	const safe = Math.max(RTE_IMAGE_MIN_WIDTH, Math.min(RTE_IMAGE_MAX_WIDTH, Math.round(Number(percent) || 100)));
+	return IMAGE_SIZE_PRESETS.reduce((best, preset) => (
+		Math.abs(preset.percent - safe) < Math.abs(best.percent - safe) ? preset : best
+	)).percent;
+}
+
+function applyImageLayout(img, widthPercent, align = 'center') {
 	if (!img) return;
 	const safeWidth = Math.max(RTE_IMAGE_MIN_WIDTH, Math.min(RTE_IMAGE_MAX_WIDTH, Math.round(Number(widthPercent) || 100)));
+	const safeAlign = align === 'left' || align === 'right' ? align : 'center';
 	img.style.width = `${safeWidth}%`;
 	img.style.maxWidth = '100%';
 	img.style.height = 'auto';
 	img.style.display = 'block';
 	img.style.borderRadius = '8px';
-	img.style.margin = '1rem auto';
+	img.style.margin = safeAlign === 'left'
+		? '1rem 0'
+		: safeAlign === 'right'
+			? '1rem 0 1rem auto'
+			: '1rem auto';
 	img.setAttribute('data-rte-resizable-image', '1');
+	img.setAttribute('data-rte-image-align', safeAlign);
+	img.setAttribute('title', 'Click: selectează · Trage: mută · Dublu-click: setări');
+}
+
+function getCaretRangeFromPoint(clientX, clientY) {
+	if (typeof document.caretRangeFromPoint === 'function') {
+		return document.caretRangeFromPoint(clientX, clientY);
+	}
+	if (typeof document.caretPositionFromPoint === 'function') {
+		const pos = document.caretPositionFromPoint(clientX, clientY);
+		if (!pos) return null;
+		const range = document.createRange();
+		range.setStart(pos.offsetNode, pos.offset);
+		range.collapse(true);
+		return range;
+	}
+	return null;
+}
+
+function getImageMoveNode(img) {
+	return img.closest('[data-rte-image-wrap="1"]') || img;
+}
+
+function placeImageAtPoint(img, clientX, clientY, editor) {
+	if (!img || !editor) return false;
+
+	const range = getCaretRangeFromPoint(clientX, clientY);
+	if (!range) return false;
+
+	const container = range.commonAncestorContainer;
+	if (!(editor.contains(container) || container === editor)) return false;
+
+	const nodeToMove = getImageMoveNode(img);
+	if (nodeToMove.contains(container) || container === nodeToMove) return false;
+
+	range.collapse(true);
+	const parent = nodeToMove.parentNode;
+	if (!parent) return false;
+
+	parent.removeChild(nodeToMove);
+	range.insertNode(nodeToMove);
+
+	const selection = window.getSelection();
+	if (selection) {
+		const after = document.createRange();
+		after.setStartAfter(nodeToMove);
+		after.collapse(true);
+		selection.removeAllRanges();
+		selection.addRange(after);
+	}
+
+	return true;
+}
+
+function cleanPastedCssValue(value) {
+	return String(value || '')
+		.replace(/!important/gi, '')
+		.trim();
+}
+
+function isUsefulPastedColor(value) {
+	const color = cleanPastedCssValue(value);
+	return Boolean(color)
+		&& !/^(inherit|initial|revert|unset|currentcolor|transparent|windowtext|auto)$/i.test(color);
+}
+
+function getDeclarationColor(declarations, propertyName) {
+	if (!declarations || typeof document === 'undefined') return '';
+	const probe = document.createElement('span');
+	probe.style.cssText = declarations;
+	const parsed = cleanPastedCssValue(probe.style.getPropertyValue(propertyName));
+	if (isUsefulPastedColor(parsed)) return parsed;
+
+	const escapedProperty = propertyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const rawMatch = declarations.match(new RegExp(`(?:^|;)\\s*${escapedProperty}\\s*:\\s*([^;]+)`, 'i'));
+	const raw = cleanPastedCssValue(rawMatch?.[1]);
+	return isUsefulPastedColor(raw) ? raw : '';
+}
+
+function extractPastedStyleSheets(doc) {
+	return Array.from(doc.querySelectorAll('style'))
+		.map((styleTag) => styleTag.textContent || '')
+		.join('\n')
+		.replace(/<!--|-->/g, '')
+		.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function applyPastedCssColorRules(doc) {
+	const css = extractPastedStyleSheets(doc);
+	const rulePattern = /([^{}]+)\{([^{}]+)\}/g;
+	let match;
+
+	while ((match = rulePattern.exec(css)) !== null) {
+		const selectors = String(match[1] || '').split(',');
+		const declarations = String(match[2] || '');
+		const color = getDeclarationColor(declarations, 'color')
+			|| getDeclarationColor(declarations, '-webkit-text-fill-color');
+		const backgroundColor = getDeclarationColor(declarations, 'background-color')
+			|| getDeclarationColor(declarations, 'background');
+		if (!color && !backgroundColor) continue;
+
+		selectors.forEach((selector) => {
+			const trimmedSelector = selector.trim();
+			if (!trimmedSelector || trimmedSelector.startsWith('@') || /:(?!not\()/.test(trimmedSelector)) return;
+			try {
+				doc.body.querySelectorAll(trimmedSelector).forEach((node) => {
+					if (color && !isUsefulPastedColor(node.style.getPropertyValue('color'))) {
+						node.style.setProperty('color', color);
+					}
+					if (backgroundColor && !isUsefulPastedColor(node.style.getPropertyValue('background-color'))) {
+						node.style.setProperty('background-color', backgroundColor);
+					}
+				});
+			} catch {
+				// Clipboard CSS often contains browser/editor-only selectors. Invalid selectors can be ignored safely.
+			}
+		});
+	}
+}
+
+function collectPastedClassColorRules(doc) {
+	const rulesByClass = new Map();
+	const css = Array.from(doc.querySelectorAll('style'))
+		.map((styleTag) => styleTag.textContent || '')
+		.join('\n')
+		.replace(/<!--|-->/g, '')
+		.replace(/\/\*[\s\S]*?\*\//g, '');
+
+	const rulePattern = /([^{}]+)\{([^{}]+)\}/g;
+	let match;
+	while ((match = rulePattern.exec(css)) !== null) {
+		const selectors = String(match[1] || '').split(',');
+		const declarations = String(match[2] || '');
+		const color = getDeclarationColor(declarations, 'color');
+		const backgroundColor = getDeclarationColor(declarations, 'background-color')
+			|| getDeclarationColor(declarations, 'background');
+		if (!color && !backgroundColor) continue;
+
+		selectors.forEach((selector) => {
+			const trimmedSelector = selector.trim();
+			if (!/^(?:[a-z][\w-]*)?(?:\.[_a-zA-Z][\w-]*)+$/i.test(trimmedSelector)) return;
+			const classMatches = trimmedSelector.match(/\.[_a-zA-Z][\w-]*/g) || [];
+			classMatches.forEach((classMatch) => {
+				const className = classMatch.slice(1);
+				const current = rulesByClass.get(className) || {};
+				rulesByClass.set(className, {
+					color: current.color || color || '',
+					backgroundColor: current.backgroundColor || backgroundColor || '',
+				});
+			});
+		});
+	}
+
+	return rulesByClass;
+}
+
+function normalizePastedHtmlForRichText(html) {
+	if (!html || typeof DOMParser === 'undefined') return html;
+	const doc = new DOMParser().parseFromString(html, 'text/html');
+	applyPastedCssColorRules(doc);
+	const rulesByClass = collectPastedClassColorRules(doc);
+
+	Array.from(doc.body.querySelectorAll('*')).forEach((node) => {
+		const inlineColor = cleanPastedCssValue(node.style.getPropertyValue('color'))
+			|| cleanPastedCssValue(node.style.getPropertyValue('-webkit-text-fill-color'));
+		const inlineBackgroundColor = cleanPastedCssValue(node.style.getPropertyValue('background-color'));
+		const fontColor = node.tagName === 'FONT' ? cleanPastedCssValue(node.getAttribute('color')) : '';
+
+		let classColor = '';
+		let classBackgroundColor = '';
+		Array.from(node.classList || []).some((className) => {
+			const rule = rulesByClass.get(className);
+			if (!rule) return false;
+			if (!classColor && rule.color) classColor = rule.color;
+			if (!classBackgroundColor && rule.backgroundColor) classBackgroundColor = rule.backgroundColor;
+			return classColor && classBackgroundColor;
+		});
+
+		const nextColor = isUsefulPastedColor(inlineColor)
+			? inlineColor
+			: (isUsefulPastedColor(fontColor) ? fontColor : classColor);
+		const nextBackgroundColor = isUsefulPastedColor(inlineBackgroundColor)
+			? inlineBackgroundColor
+			: classBackgroundColor;
+
+		if (isUsefulPastedColor(nextColor)) {
+			node.style.setProperty('color', nextColor);
+		}
+		if (isUsefulPastedColor(nextBackgroundColor)) {
+			node.style.setProperty('background-color', nextBackgroundColor);
+		}
+	});
+
+	doc.querySelectorAll('style').forEach((styleTag) => styleTag.remove());
+	return doc.body.innerHTML || html;
 }
 
 /** 'crop' = marginea de sus (decupare); 'height' = înălțime vizibilă (margine jos / laterale) */
+function getClipboardImageFile(clipboardData) {
+	if (!clipboardData) return null;
+
+	const items = Array.from(clipboardData.items || []);
+	const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+	if (imageItem) {
+		return imageItem.getAsFile();
+	}
+
+	const files = Array.from(clipboardData.files || []);
+	return files.find((file) => file.type.startsWith('image/')) || null;
+}
+
 function attachPdfLayoutPointerDrag(figure, kind, startClientY, onCommit) {
 	const { viewportHeight: startH, cropTop: startC } = readRtePdfFigureLayout(figure);
 	const ctx = { startY: startClientY, startH, startC };
@@ -265,6 +505,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const { warning: showWarning, error: showError } = useToast();
 	const editorRef = useRef(null);
 	const savedSelectionRef = useRef(null);
+	const skipNextValueSyncRef = useRef(false);
 	const [isFocused, setIsFocused] = useState(false);
 	const [internalValue, setInternalValue] = useState(value || '');
 	const [showColorPicker, setShowColorPicker] = useState(false);
@@ -288,8 +529,15 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const fileInputRef = useRef(null);
 	const imageInputRef = useRef(null);
 	const [pdfEditHost, setPdfEditHost] = useState(null);
-	const [imageEditHost, setImageEditHost] = useState(null);
-	const [imageWidthPercent, setImageWidthPercent] = useState(100);
+	const imageEditTargetRef = useRef(null);
+	const imageDragRef = useRef({ img: null, moved: false });
+	const selectedImageRef = useRef(null);
+	const [showImageEditModal, setShowImageEditModal] = useState(false);
+	const [imageEditDraft, setImageEditDraft] = useState({
+		widthPercent: 100,
+		align: 'center',
+		previewSrc: '',
+	});
 
 	const getApiFriendlyError = (error, fallbackMessage) => {
 		const data = error?.response?.data;
@@ -338,8 +586,9 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	// Initialize editor content
 	useEffect(() => {
 		if (editorRef.current && !editorRef.current.innerHTML && value) {
-			editorRef.current.innerHTML = value;
-			setInternalValue(value);
+			const cleaned = stripRichTextEditorChrome(value);
+			editorRef.current.innerHTML = cleaned;
+			setInternalValue(cleaned);
 		}
 	}, []);
 
@@ -347,12 +596,17 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	useEffect(() => {
 		if (!editorRef.current) return;
 		if (value === undefined) return;
-		const currentContent = editorRef.current.innerHTML;
-		if (currentContent !== value) {
-			editorRef.current.innerHTML = value || '';
-			setInternalValue(value || '');
+		if (showImageEditModal) return;
+		if (skipNextValueSyncRef.current) {
+			skipNextValueSyncRef.current = false;
+			return;
 		}
-	}, [value]);
+		const cleaned = stripRichTextEditorChrome(value || '');
+		if (editorRef.current.innerHTML !== cleaned) {
+			editorRef.current.innerHTML = cleaned;
+			setInternalValue(cleaned);
+		}
+	}, [value, showImageEditModal]);
 
 	const handleInput = (e) => {
 		const newValue = e.target.innerHTML;
@@ -365,7 +619,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const syncEditorFromDom = () => {
 		const ed = editorRef.current;
 		if (!ed) return;
-		const newValue = ed.innerHTML;
+		const rawValue = ed.innerHTML;
+		const newValue = stripRichTextEditorChrome(rawValue);
+		if (newValue !== rawValue) {
+			ed.innerHTML = newValue;
+		}
 		setInternalValue(newValue);
 		if (onChange) onChange(newValue);
 	};
@@ -375,11 +633,119 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		setPdfEditHost(figure);
 	};
 
-	const openImageLayoutEditor = useCallback((img) => {
-		if (!img || !editorRef.current?.contains(img)) return;
-		setImageEditHost(img);
-		setImageWidthPercent(readImageWidthPercent(img));
+	const clearSelectedImage = useCallback(() => {
+		const prev = selectedImageRef.current;
+		if (prev?.isConnected) {
+			prev.classList.remove('rte-image--selected');
+		}
+		selectedImageRef.current = null;
 	}, []);
+
+	const selectImage = useCallback((img) => {
+		if (!img) return;
+		const prev = selectedImageRef.current;
+		if (prev && prev !== img && prev.isConnected) {
+			prev.classList.remove('rte-image--selected');
+		}
+		selectedImageRef.current = img;
+		img.classList.add('rte-image--selected');
+	}, []);
+
+	const openImageEditModal = useCallback((img) => {
+		if (!img || !editorRef.current?.contains(img)) return;
+		imageEditTargetRef.current = img;
+		setImageEditDraft({
+			widthPercent: snapImageWidthPercent(readImageWidthPercent(img)),
+			align: readImageAlign(img),
+			previewSrc: img.getAttribute('src') || '',
+		});
+		setShowImageEditModal(true);
+	}, []);
+
+	const applyImageEdit = () => {
+		const img = imageEditTargetRef.current;
+		if (img?.isConnected) {
+			applyImageLayout(img, imageEditDraft.widthPercent, imageEditDraft.align);
+			syncEditorFromDom();
+			skipNextValueSyncRef.current = true;
+			selectImage(img);
+		}
+		imageEditTargetRef.current = null;
+		setShowImageEditModal(false);
+	};
+
+	const cancelImageEdit = () => {
+		imageEditTargetRef.current = null;
+		setShowImageEditModal(false);
+		clearSelectedImage();
+	};
+
+	const deleteEditingImage = () => {
+		const img = imageEditTargetRef.current;
+		if (img?.isConnected) {
+			const wrap = img.closest('[data-rte-image-wrap="1"]');
+			(wrap || img).remove();
+			syncEditorFromDom();
+			skipNextValueSyncRef.current = true;
+		}
+		imageEditTargetRef.current = null;
+		clearSelectedImage();
+		setShowImageEditModal(false);
+	};
+
+	const handleEditorMouseDown = (e) => {
+		const editor = editorRef.current;
+		if (!editor || showImageEditModal || pdfEditHost || e.button !== 0) return;
+
+		const img = findEditableImage(e.target, editor);
+		if (!img) {
+			clearSelectedImage();
+			return;
+		}
+
+		selectImage(img);
+		e.preventDefault();
+
+		const dragState = {
+			img,
+			startX: e.clientX,
+			startY: e.clientY,
+			moved: false,
+		};
+		imageDragRef.current = dragState;
+
+		const onMove = (ev) => {
+			if (!imageDragRef.current.img) return;
+			const dx = Math.abs(ev.clientX - dragState.startX);
+			const dy = Math.abs(ev.clientY - dragState.startY);
+			if (dx > 5 || dy > 5) {
+				dragState.moved = true;
+				imageDragRef.current.moved = true;
+				dragState.img.classList.add('rte-image--dragging');
+			}
+		};
+
+		const onUp = (ev) => {
+			const activeImg = imageDragRef.current.img;
+			const didMove = imageDragRef.current.moved;
+			imageDragRef.current = { img: null, moved: false };
+
+			if (activeImg) {
+				activeImg.classList.remove('rte-image--dragging');
+				if (didMove && editor.contains(activeImg) && placeImageAtPoint(activeImg, ev.clientX, ev.clientY, editor)) {
+					syncEditorFromDom();
+				}
+			}
+
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+			window.removeEventListener('pointercancel', onUp);
+		};
+
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+		window.addEventListener('pointercancel', onUp);
+	};
 
 	const handleEditorDoubleClick = (e) => {
 		const editor = editorRef.current;
@@ -388,7 +754,10 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		if (img) {
 			e.preventDefault();
 			e.stopPropagation();
-			openImageLayoutEditor(img);
+			imageDragRef.current = { img: null, moved: false };
+			img.classList.remove('rte-image--dragging');
+			selectImage(img);
+			openImageEditModal(img);
 			return;
 		}
 		const figure = findRtePdfFigure(e.target, editor);
@@ -408,10 +777,29 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		setPdfEditHost(null);
 	}, [onChange]);
 
-	const closeImageInlineEdit = useCallback(() => {
-		syncEditorFromDom();
-		setImageEditHost(null);
-	}, []);
+	useEffect(() => {
+		if (!showImageEditModal) return undefined;
+		const onKey = (e) => {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				cancelImageEdit();
+			}
+		};
+		window.addEventListener('keydown', onKey, true);
+		return () => {
+			window.removeEventListener('keydown', onKey, true);
+		};
+	}, [showImageEditModal]);
+
+	useEffect(() => {
+		const onKey = (e) => {
+			if (e.key === 'Escape' && selectedImageRef.current && !showImageEditModal) {
+				clearSelectedImage();
+			}
+		};
+		window.addEventListener('keydown', onKey, true);
+		return () => window.removeEventListener('keydown', onKey, true);
+	}, [showImageEditModal, clearSelectedImage]);
 
 	useEffect(() => {
 		if (!pdfEditHost) return undefined;
@@ -434,48 +822,14 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	}, [pdfEditHost, closePdfInlineEdit]);
 
 	useEffect(() => {
-		if (!imageEditHost) return undefined;
-		const onKey = (e) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				closeImageInlineEdit();
-			}
-		};
-		const onDown = (e) => {
-			if (imageEditHost.contains(e.target)) return;
-			closeImageInlineEdit();
-		};
-		window.addEventListener('keydown', onKey, true);
-		document.addEventListener('mousedown', onDown, true);
-		return () => {
-			window.removeEventListener('keydown', onKey, true);
-			document.removeEventListener('mousedown', onDown, true);
-		};
-	}, [imageEditHost, closeImageInlineEdit]);
-
-	useEffect(() => {
 		if (pdfEditHost && !pdfEditHost.isConnected) {
 			setPdfEditHost(null);
 		}
 	}, [value, pdfEditHost]);
 
-	useEffect(() => {
-		if (imageEditHost && !imageEditHost.isConnected) {
-			setImageEditHost(null);
-		}
-	}, [value, imageEditHost]);
-
-	const handlePaste = (e) => {
-		e.preventDefault();
+	const insertClipboardContent = (contentToInsert, insertAsHtml) => {
 		const editor = editorRef.current;
-		if (!editor) return;
-
-		const html = e.clipboardData.getData('text/html');
-		const text = e.clipboardData.getData('text/plain');
-		const contentToInsert = html || text;
-		if (!contentToInsert) return;
-
-		const insertAsHtml = Boolean(html);
+		if (!editor || !contentToInsert) return false;
 		const selection = window.getSelection();
 
 		const insertAtSelection = () => {
@@ -516,6 +870,60 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		const newValue = editor.innerHTML;
 		setInternalValue(newValue);
 		if (onChange) onChange(newValue);
+		return true;
+	};
+
+	const insertImageFile = async (file) => {
+		if (!file) return;
+		if (!file.type.startsWith('image/')) {
+			showWarning('Te rugăm să selectezi un fișier imagine.');
+			return;
+		}
+
+		try {
+			if (courseId) {
+				const formData = new FormData();
+				formData.append('file', file);
+				formData.append('type', 'image');
+				const result = await adminService.builderUploadContentFile(courseId, formData);
+				restoreSelection();
+				insertImageByUrl(result?.url || '');
+			} else {
+				const dataUrl = await new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = () => resolve(reader.result);
+					reader.onerror = reject;
+					reader.readAsDataURL(file);
+				});
+				restoreSelection();
+				insertImageByUrl(String(dataUrl || ''));
+			}
+		} catch (error) {
+			logger.error('Error uploading image for editor:', error);
+			showError(getApiFriendlyError(error, 'Eroare la încărcarea imaginii.'));
+		}
+	};
+
+	const handlePaste = async (e) => {
+		const clipboardData = e.clipboardData;
+		if (!clipboardData) return;
+
+		const imageFile = getClipboardImageFile(clipboardData);
+		if (imageFile) {
+			e.preventDefault();
+			saveSelection();
+			await insertImageFile(imageFile);
+			return;
+		}
+
+		e.preventDefault();
+		const html = clipboardData.getData('text/html');
+		const text = clipboardData.getData('text/plain');
+		const normalizedHtml = html ? normalizePastedHtmlForRichText(html) : '';
+		const contentToInsert = normalizedHtml || text;
+		if (!contentToInsert) return;
+
+		insertClipboardContent(contentToInsert, Boolean(normalizedHtml));
 	};
 
 	const saveSelection = () => {
@@ -845,34 +1253,8 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const handleImageSelected = async (event) => {
 		const file = event.target.files?.[0];
 		if (!file) return;
-		if (!file.type.startsWith('image/')) {
-			showWarning('Te rugăm să selectezi un fișier imagine.');
-			event.target.value = '';
-			return;
-		}
-
-		try {
-			if (courseId) {
-				const formData = new FormData();
-				formData.append('file', file);
-				formData.append('type', 'image');
-				const result = await adminService.builderUploadContentFile(courseId, formData);
-				insertImageByUrl(result?.url || '');
-			} else {
-				const reader = new FileReader();
-				const dataUrl = await new Promise((resolve, reject) => {
-					reader.onload = () => resolve(reader.result);
-					reader.onerror = reject;
-					reader.readAsDataURL(file);
-				});
-				insertImageByUrl(String(dataUrl || ''));
-			}
-		} catch (error) {
-			logger.error('Error uploading image for editor:', error);
-			showError(getApiFriendlyError(error, 'Eroare la încărcarea imaginii.'));
-		} finally {
-			event.target.value = '';
-		}
+		await insertImageFile(file);
+		event.target.value = '';
 	};
 
 	const insertVideoFromPrompt = () => {
@@ -924,6 +1306,35 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	};
 
 	const handlePastePlainFromClipboard = async () => {
+		try {
+			restoreSelection();
+			editorRef.current?.focus();
+
+			if (navigator.clipboard?.read) {
+				const items = await navigator.clipboard.read();
+				for (const item of items) {
+					if (!item.types?.includes('text/html')) continue;
+					const blob = await item.getType('text/html');
+					const html = await blob.text();
+					const normalizedHtml = normalizePastedHtmlForRichText(html);
+					if (insertClipboardContent(normalizedHtml, true)) {
+						return;
+					}
+				}
+
+				for (const item of items) {
+					if (!item.types?.includes('text/plain')) continue;
+					const blob = await item.getType('text/plain');
+					const text = await blob.text();
+					if (insertClipboardContent(text, false)) {
+						return;
+					}
+				}
+			}
+		} catch (error) {
+			logger.error('Clipboard rich read failed:', error);
+		}
+
 		const dispatchInputUpdate = () => {
 			if (editorRef.current) {
 				const event = new Event('input', { bubbles: true });
@@ -1130,12 +1541,19 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					contentEditable
 					className={`rte-editor ${isFocused ? 'focused' : ''}`}
 					onInput={handleInput}
+					onMouseDown={handleEditorMouseDown}
 					onDoubleClick={handleEditorDoubleClick}
 					onPaste={handlePaste}
 					onContextMenu={(e) => {
 						e.preventDefault();
 						saveSelection();
-						setContextMenu({ open: true, x: e.clientX, y: e.clientY });
+						const imageTarget = findEditableImage(e.target, editorRef.current);
+						setContextMenu({
+							open: true,
+							x: e.clientX,
+							y: e.clientY,
+							imageTarget: imageTarget || null,
+						});
 					}}
 					onMouseUp={saveSelection}
 					onKeyDown={handleEditorKeyDown}
@@ -1192,12 +1610,28 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					style={{ top: contextMenu.y, left: contextMenu.x }}
 					onClick={(e) => e.stopPropagation()}
 				>
+					{contextMenu.imageTarget ? (
+						<>
+							<button
+								type="button"
+								onMouseDown={handleToolMouseDown}
+								onClick={() => {
+									openImageEditModal(contextMenu.imageTarget);
+									setContextMenu((prev) => ({ ...prev, open: false, imageTarget: null }));
+								}}
+							>
+								<span className="rte-context-menu-icon"><RteIcon name="image" /></span>
+								<span>Setări imagine</span>
+							</button>
+							<span className="rte-context-menu-separator" aria-hidden="true" />
+						</>
+					) : null}
 					<button
 						type="button"
 						onMouseDown={handleToolMouseDown}
 						onClick={() => {
 							imageInputRef.current?.click();
-							setContextMenu((prev) => ({ ...prev, open: false }));
+							setContextMenu((prev) => ({ ...prev, open: false, imageTarget: null }));
 						}}
 					>
 						<span className="rte-context-menu-icon"><RteIcon name="image" /></span>
@@ -1247,7 +1681,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 						}}
 					>
 						<span className="rte-context-menu-icon"><RteIcon name="paste" /></span>
-						<span>Lipește text simplu</span>
+						<span>Lipește</span>
 					</button>
 				</div>
 			)}
@@ -1323,20 +1757,15 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 				)
 				: null}
 
-			{imageEditHost
-				? createPortal(
-					<ImageInlineEditChrome
-						image={imageEditHost}
-						widthPercent={imageWidthPercent}
-						onWidthChange={(nextWidth) => {
-							setImageWidthPercent(nextWidth);
-							applyImageLayout(imageEditHost, nextWidth);
-							syncEditorFromDom();
-						}}
-					/>,
-					document.body,
-				)
-				: null}
+			{showImageEditModal && (
+				<ImageEditModal
+					draft={imageEditDraft}
+					onDraftChange={setImageEditDraft}
+					onApply={applyImageEdit}
+					onClose={cancelImageEdit}
+					onDelete={deleteEditingImage}
+				/>
+			)}
 		</div>
 	);
 };
@@ -1393,64 +1822,69 @@ const PdfInlineEditChrome = ({ figure, onSync }) => {
 	);
 };
 
-const IMAGE_PRESET_WIDTHS = [25, 40, 60, 80, 100];
-
-const ImageInlineEditChrome = ({ image, widthPercent, onWidthChange }) => {
-	const [position, setPosition] = useState(null);
-
-	useLayoutEffect(() => {
-		image.classList.add('rte-image--editing');
-		const updatePosition = () => {
-			if (!image.isConnected) return;
-			const rect = image.getBoundingClientRect();
-			setPosition({
-				top: Math.max(12, rect.top - 88),
-				left: rect.left + rect.width / 2,
-			});
-		};
-		updatePosition();
-		window.addEventListener('resize', updatePosition);
-		window.addEventListener('scroll', updatePosition, true);
-		return () => {
-			image.classList.remove('rte-image--editing');
-			window.removeEventListener('resize', updatePosition);
-			window.removeEventListener('scroll', updatePosition, true);
-		};
-	}, [image]);
-
-	if (!position) {
-		return null;
-	}
+const ImageEditModal = ({ draft, onDraftChange, onApply, onClose, onDelete }) => {
+	const previewAlignClass = `rte-image-preview-wrap--${draft.align}`;
 
 	return (
-		<div
-			className="rte-image-chrome"
-			contentEditable={false}
-			style={{ top: position.top, left: position.left }}
-		>
-			<div className="rte-image-toolbar" onMouseDown={(e) => e.preventDefault()}>
-				<span className="rte-image-toolbar__label">Dimensiune imagine</span>
-				<input
-					type="range"
-					min={RTE_IMAGE_MIN_WIDTH}
-					max={RTE_IMAGE_MAX_WIDTH}
-					step="5"
-					value={widthPercent}
-					onChange={(e) => onWidthChange(Number(e.target.value))}
-				/>
-				<span className="rte-image-toolbar__value">{Math.round(widthPercent)}%</span>
-			</div>
-			<div className="rte-image-presets" onMouseDown={(e) => e.preventDefault()}>
-				{IMAGE_PRESET_WIDTHS.map((preset) => (
-					<button
-						key={preset}
-						type="button"
-						className={`rte-image-preset${Math.round(widthPercent) === preset ? ' is-active' : ''}`}
-						onClick={() => onWidthChange(preset)}
-					>
-						{preset}%
-					</button>
-				))}
+		<div className="rte-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rte-image-edit-title" onClick={onClose}>
+			<div className="rte-modal rte-image-edit-modal" onClick={(e) => e.stopPropagation()}>
+				<div className="rte-modal-header">
+					<h3 id="rte-image-edit-title" className="rte-modal-title">Setări imagine</h3>
+					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">×</button>
+				</div>
+
+				<div className="rte-modal-body">
+					<div className={`rte-image-preview-wrap ${previewAlignClass}`}>
+						<img
+							src={draft.previewSrc}
+							alt="Previzualizare imagine"
+							className="rte-image-preview"
+							style={{ width: `${draft.widthPercent}%` }}
+						/>
+					</div>
+
+					<div className="rte-image-edit-section">
+						<p className="rte-image-edit-label">Dimensiune</p>
+						<div className="rte-image-size-options">
+							{IMAGE_SIZE_PRESETS.map((preset) => (
+								<button
+									key={preset.id}
+									type="button"
+									className={`rte-image-size-btn${draft.widthPercent === preset.percent ? ' is-active' : ''}`}
+									onClick={() => onDraftChange({ ...draft, widthPercent: preset.percent })}
+								>
+									{preset.label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="rte-image-edit-section">
+						<p className="rte-image-edit-label">Aliniere</p>
+						<div className="rte-image-align-options">
+							{IMAGE_ALIGN_OPTIONS.map((option) => (
+								<button
+									key={option.id}
+									type="button"
+									className={`rte-image-align-btn${draft.align === option.id ? ' is-active' : ''}`}
+									onClick={() => onDraftChange({ ...draft, align: option.id })}
+								>
+									{option.label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="rte-image-edit-actions">
+						<button type="button" className="rte-image-delete-btn" onClick={onDelete}>
+							Șterge imaginea
+						</button>
+						<div className="rte-image-edit-actions__main">
+							<button type="button" className="rte-image-modal-btn rte-image-modal-btn--secondary" onClick={onClose}>Anulează</button>
+							<button type="button" className="rte-image-modal-btn rte-image-modal-btn--primary" onClick={onApply}>Aplică</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	);
@@ -1469,7 +1903,6 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 	return (
 		<div
 			className="rte-modal-overlay"
-			onClick={onClose}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="rte-color-picker-title"
@@ -1602,7 +2035,6 @@ const CalloutDialogModal = ({
 }) => (
 	<div
 		className="rte-modal-overlay"
-		onClick={onClose}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="rte-callout-title"
@@ -1763,7 +2195,6 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 	return (
 		<div
 			className="rte-modal-overlay"
-			onClick={onClose}
 		>
 			<div
 				className="rte-modal"
@@ -1934,7 +2365,6 @@ const PdfUploadModal = ({
 	return (
 		<div
 			className="rte-modal-overlay"
-			onClick={onClose}
 		>
 			<div
 				className="rte-modal"

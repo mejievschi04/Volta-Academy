@@ -310,7 +310,7 @@ const AdminCoursesPage = () => {
 				/>
 			)}
 			{showAiCourseChat && canMutateInAdminArea && (
-				<div className="ai-chat-modal-overlay" onClick={() => setShowAiCourseChat(false)}>
+				<div className="ai-chat-modal-overlay">
 					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
 						<AICourseChat
 							onCourseGenerated={handleAiCourseGenerated}

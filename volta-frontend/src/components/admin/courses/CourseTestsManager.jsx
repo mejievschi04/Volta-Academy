@@ -200,7 +200,7 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 
 			{/* Link Test Modal */}
 			{showLinkModal && (
-				<div className="course-tests-modal-overlay" onClick={() => setShowLinkModal(false)}>
+				<div className="course-tests-modal-overlay">
 					<div className="course-tests-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="course-tests-modal-header">
 							<h3>Atașează test la curs</h3>

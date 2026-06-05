@@ -22,17 +22,6 @@ const AddLessonModal = ({ moduleTitle, onClose, onSubmit, loading }) => {
 	}, []);
 
 	useEffect(() => {
-		const onKeyDown = (e) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				onClose();
-			}
-		};
-		window.addEventListener('keydown', onKeyDown);
-		return () => window.removeEventListener('keydown', onKeyDown);
-	}, [onClose]);
-
-	useEffect(() => {
 		setError('');
 	}, [title]);
 
@@ -47,7 +36,7 @@ const AddLessonModal = ({ moduleTitle, onClose, onSubmit, loading }) => {
 	};
 
 	return (
-		<div className="add-lesson-modal-backdrop" onClick={onClose}>
+		<div className="add-lesson-modal-backdrop">
 			<div className="add-lesson-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="add-lesson-title" aria-modal="true">
 				<header className="add-lesson-modal-header">
 					<h2 id="add-lesson-title">Adaugă lecție</h2>

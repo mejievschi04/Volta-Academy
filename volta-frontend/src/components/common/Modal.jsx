@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 /**
- * Accessible modal: focus trap, Escape to close, ARIA dialog.
+ * Accessible modal: focus trap, ARIA dialog.
  * Use aria-labelledby and optionally aria-describedby on the content div for a11y.
  *
  * @param {boolean} isOpen
  * @param {function} onClose
  * @param {string} [ariaLabelledby] - id of the modal title element
  * @param {string} [ariaDescribedby] - id of the modal description
- * @param {boolean} [closeOnBackdropClick=true]
+ * @param {boolean} [closeOnBackdropClick=false]
  * @param {React.ReactNode} children
  */
 function Modal({
@@ -16,7 +16,7 @@ function Modal({
 	onClose,
 	ariaLabelledby,
 	ariaDescribedby,
-	closeOnBackdropClick = true,
+	closeOnBackdropClick = false,
 	children,
 	className = '',
 	...rest
@@ -66,18 +66,6 @@ function Modal({
 			}
 		};
 	}, [isOpen]);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		const handler = (e) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				onClose();
-			}
-		};
-		window.addEventListener('keydown', handler);
-		return () => window.removeEventListener('keydown', handler);
-	}, [isOpen, onClose]);
 
 	if (!isOpen) return null;
 

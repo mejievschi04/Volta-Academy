@@ -68,7 +68,7 @@ const AdminContentPage = () => {
 	return (
 		<div className="admin-container admin-content-page">
 			{showVoltCourseChat && canMutateInAdminArea && (
-				<div className="ai-chat-modal-overlay" onClick={() => setShowVoltCourseChat(false)}>
+				<div className="ai-chat-modal-overlay">
 					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
 						<AICourseChat
 							onCourseGenerated={handleVoltCourseGenerated}

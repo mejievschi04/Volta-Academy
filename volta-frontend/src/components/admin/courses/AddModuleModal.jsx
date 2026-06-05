@@ -16,17 +16,6 @@ const AddModuleModal = ({ onClose, onSubmit, loading }) => {
 	}, []);
 
 	useEffect(() => {
-		const onKeyDown = (e) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				onClose();
-			}
-		};
-		window.addEventListener('keydown', onKeyDown);
-		return () => window.removeEventListener('keydown', onKeyDown);
-	}, [onClose]);
-
-	useEffect(() => {
 		setError('');
 	}, [title]);
 
@@ -41,7 +30,7 @@ const AddModuleModal = ({ onClose, onSubmit, loading }) => {
 	};
 
 	return (
-		<div className="add-module-modal-backdrop" onClick={onClose}>
+		<div className="add-module-modal-backdrop">
 			<div className="add-module-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="add-module-title" aria-modal="true">
 				<header className="add-module-modal-header">
 					<h2 id="add-module-title">Adaugă modul</h2>

@@ -2107,7 +2107,8 @@ html[data-theme='light'] .admin-course-builder-page .admin-course-builder-sideba
 	border: none;
 	border-radius: 0;
 	background: #ffffff;
-	height: 100%;
+	min-height: 100%;
+	overflow: visible;
 }
 
 .admin-course-builder-direct-editor-wrap .rte-toolbar {
@@ -2116,20 +2117,20 @@ html[data-theme='light'] .admin-course-builder-page .admin-course-builder-sideba
 }
 
 .admin-course-builder-direct-editor-wrap .rte-editor {
-	min-height: 100%;
+	min-height: 420px;
 	padding: 28px;
 	color: #000000;
 }
 
 .admin-course-builder-direct-editor-wrap-full {
-	flex: 1;
-	min-height: 0;
+	flex: 0 0 auto;
+	min-height: calc(var(--builder-pane-height) - 140px);
 }
 
 .admin-course-builder-direct-editor-wrap-full .rte-editor-shell {
 	grid-template-columns: minmax(0, 1fr);
-	min-height: 100%;
-	height: 100%;
+	min-height: calc(var(--builder-pane-height) - 140px);
+	height: auto;
 }
 
 .admin-course-builder-direct-editor-wrap-full .rte-side-tools {
@@ -3103,15 +3104,6 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 	color: #000000 !important;
 }
 
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h1,
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h2,
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h3,
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h4,
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor p,
-.admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor li {
-	color: #000000 !important;
-}
-
 /* Peste dark-theme.css în foaia lecției */
 html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean,
 html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-workspace-content,
@@ -3121,20 +3113,17 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-container,
 html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor,
 html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor-shell,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor-shell > .rte-editor,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean h1,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean h2,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean h3,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean h4,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean p,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean li,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h1,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h2,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h3,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h4,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor p,
-html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor li {
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor-shell > .rte-editor {
 	background-color: #ffffff !important;
+	color: #000000 !important;
+}
+
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h1:not([style*="color"]),
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h2:not([style*="color"]),
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h3:not([style*="color"]),
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor h4:not([style*="color"]),
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor p:not([style*="color"]),
+html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-direct-editor-wrap .rte-editor li:not([style*="color"]) {
 	color: #000000 !important;
 }
 

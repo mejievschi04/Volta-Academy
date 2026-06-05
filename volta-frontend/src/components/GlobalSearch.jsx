@@ -49,11 +49,6 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 				}
 			}
 
-			// Close search: Escape
-			if (e.key === 'Escape' && isOpen) {
-				onClose();
-			}
-
 			// Navigate results: Arrow keys
 			if (isOpen && results.length > 0) {
 				if (e.key === 'ArrowDown') {
@@ -169,7 +164,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 	if (!isOpen) return null;
 
 	return (
-		<div className="global-search-overlay" onClick={onClose}>
+		<div className="global-search-overlay">
 			<div className="global-search-modal" onClick={(e) => e.stopPropagation()}>
 				{/* Search Input */}
 				<div className="global-search-input-wrapper">
@@ -195,6 +190,26 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 							<X size={16} weight="bold" aria-hidden />
 						</button>
 					)}
+					<button
+						type="button"
+						className="global-search-close"
+						onClick={onClose}
+						aria-label="Inchide cautarea"
+						style={{
+							display: 'inline-flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							width: 36,
+							height: 36,
+							border: 'none',
+							borderRadius: 8,
+							background: 'transparent',
+							color: 'inherit',
+							cursor: 'pointer',
+						}}
+					>
+						<X size={16} weight="bold" aria-hidden />
+					</button>
 					<div className="global-search-shortcut">
 						<kbd>⌘</kbd>
 						<kbd>K</kbd>
@@ -271,4 +286,3 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 };
 
 export default GlobalSearch;
-

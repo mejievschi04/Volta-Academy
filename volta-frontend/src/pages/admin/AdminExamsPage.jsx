@@ -1079,7 +1079,7 @@ export default function AdminExamsPage() {
     <>
       {viewMode === 'list' ? listView : createView}
       {deleteConfirmExam ? (
-        <div className="admin-exams-create-modal-overlay" onClick={() => !listActionId && setDeleteConfirmExam(null)}>
+        <div className="admin-exams-create-modal-overlay">
           <div className="admin-exams-delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-exams-delete-confirm-hero">
               <span className="admin-exams-delete-confirm-icon" aria-hidden="true">!</span>
@@ -1109,7 +1109,7 @@ export default function AdminExamsPage() {
         </div>
       ) : null}
       {showCreateModal ? (
-        <div className="admin-exams-create-modal-overlay" onClick={() => setShowCreateModal(false)}>
+        <div className="admin-exams-create-modal-overlay">
           <div className="admin-exams-create-modal" onClick={(e) => e.stopPropagation()}>
             <aside className="admin-exams-create-modal-aside">
               <span className="admin-exams-create-modal-kicker">Pasul 1</span>
@@ -1143,7 +1143,7 @@ export default function AdminExamsPage() {
         </div>
       ) : null}
       {showStudentsModal ? (
-        <div className="admin-exams-create-modal-overlay" onClick={() => setShowStudentsModal(false)}>
+        <div className="admin-exams-create-modal-overlay">
           <div className="admin-exams-create-modal admin-exams-students-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-exams-students-modal-head">
               <div>
@@ -1179,7 +1179,7 @@ export default function AdminExamsPage() {
         </div>
       ) : null}
       {showContentModal ? (
-        <div className="admin-exams-create-modal-overlay" onClick={() => setShowContentModal(false)}>
+        <div className="admin-exams-create-modal-overlay">
           <div className="admin-exams-content-modal admin-exams-content-picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-exams-content-modal-head">
               <div>
@@ -1282,7 +1282,7 @@ export default function AdminExamsPage() {
         </div>
       ) : null}
       {showPreviewModal ? (
-        <div className="admin-exams-create-modal-overlay" onClick={() => setShowPreviewModal(false)}>
+        <div className="admin-exams-create-modal-overlay">
           <div className="admin-exams-content-modal admin-exams-preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-exams-content-modal-head">
               <div>

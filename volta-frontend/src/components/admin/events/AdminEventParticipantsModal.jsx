@@ -55,15 +55,6 @@ const AdminEventParticipantsModal = ({
 		}
 	}, [open]);
 
-	useEffect(() => {
-		if (!open) return;
-		const onKey = (e) => {
-			if (e.key === 'Escape') onClose();
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [open, onClose]);
-
 	const handleAttendanceToggle = async (user, checked) => {
 		if (readOnly || savingUserId != null) return;
 
@@ -132,9 +123,6 @@ const AdminEventParticipantsModal = ({
 		<div
 			className="admin-event-modal-overlay aev-participants-overlay"
 			role="presentation"
-			onClick={(e) => {
-				if (e.target === e.currentTarget) onClose();
-			}}
 		>
 			<div
 				className="admin-event-modal aev-participants-modal"

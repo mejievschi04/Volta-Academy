@@ -448,6 +448,20 @@ class TestBuilderService
             ];
         }
 
+        if (in_array($type, ['single_choice', 'true_false'], true)) {
+            $correctIndex = null;
+            foreach ($normalized as $idx => $answer) {
+                if (! empty($answer['is_correct'])) {
+                    $correctIndex = $idx;
+                    break;
+                }
+            }
+            $correctIndex ??= 0;
+            foreach ($normalized as $idx => $answer) {
+                $normalized[$idx]['is_correct'] = $idx === $correctIndex;
+            }
+        }
+
         return $normalized;
     }
 }

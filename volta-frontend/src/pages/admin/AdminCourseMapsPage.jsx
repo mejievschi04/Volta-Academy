@@ -540,7 +540,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 
 			{/* Create/Edit modal – standard LMS: secțiuni clare, selector cursuri cu checkbox */}
 			{showCreateModal && canMutateInAdminArea && (
-				<div className="admin-modal-overlay" onClick={closeCreateModal}>
+				<div className="admin-modal-overlay">
 					<div className={`admin-modal admin-modal-create admin-course-map-modal ${editingMap ? 'admin-modal-lg' : ''}`} onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
 						<div className="admin-modal-body">
@@ -862,7 +862,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 
 			{/* Manage courses modal */}
 			{managingMap && canMutateInAdminArea && (
-				<div className="admin-modal-overlay" onClick={() => setManagingMap(null)}>
+				<div className="admin-modal-overlay">
 					<div className="admin-modal admin-modal-create admin-modal-lg" onClick={(e) => e.stopPropagation()}>
 						<h2 className="admin-modal-title">Cursuri în „{managingMap.name}”</h2>
 						<div className="admin-modal-body">

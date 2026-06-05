@@ -112,11 +112,14 @@ class CourseBuilderService
 
                     case 'moveLesson':
                         $lessonId = (int)($op['lesson_id'] ?? 0);
-                        $toModuleId = (int)($op['to_module_id'] ?? 0);
+                        $rawToModuleId = $op['to_module_id'] ?? null;
+                        $toModuleId = $rawToModuleId === null || $rawToModuleId === '' ? null : (int)$rawToModuleId;
                         $toIndex = (int)($op['to_index'] ?? 0);
-                        if ($lessonId > 0 && $toModuleId > 0) {
+                        if ($lessonId > 0) {
                             $lesson = Lesson::where('id', $lessonId)->where('course_id', $course->id)->firstOrFail();
-                            $toModule = Module::where('id', $toModuleId)->where('course_id', $course->id)->firstOrFail();
+                            $toModule = $toModuleId
+                                ? Module::where('id', $toModuleId)->where('course_id', $course->id)->firstOrFail()
+                                : null;
                             $this->moveLessonToModule($lesson, $toModule, $toIndex);
                             $this->logActivity($actor, 'builder.move_lesson', Lesson::class, $lessonId, [
                                 'to_module_id' => $toModuleId,
@@ -189,29 +192,39 @@ class CourseBuilderService
     /**
      * Move a lesson to another module and reindex orders.
      */
-    protected function moveLessonToModule(Lesson $lesson, Module $toModule, int $toIndex): void
+    protected function moveLessonToModule(Lesson $lesson, ?Module $toModule, int $toIndex): void
     {
         $fromModuleId = $lesson->module_id;
+        $toCourseId = $toModule?->course_id ?? $lesson->course_id;
+        $toModuleId = $toModule?->id;
 
         // Move lesson to the new module
         $lesson->update([
-            'module_id' => $toModule->id,
-            'course_id' => $toModule->course_id,
+            'module_id' => $toModuleId,
+            'course_id' => $toCourseId,
         ]);
 
         // Reindex destination module lessons with insertion
-        $destIds = Lesson::where('module_id', $toModule->id)->orderBy('order')->pluck('id')->all();
+        $destQuery = Lesson::where('course_id', $toCourseId)->orderBy('order');
+        if ($toModuleId) {
+            $destQuery->where('module_id', $toModuleId);
+        } else {
+            $destQuery->whereNull('module_id');
+        }
+        $destIds = $destQuery->pluck('id')->all();
         $destIds = array_values(array_filter($destIds, fn ($id) => (int)$id !== (int)$lesson->id));
         array_splice($destIds, max(0, min($toIndex, count($destIds))), 0, [$lesson->id]);
-        $this->reorderLessons($toModule, $destIds);
+        $this->reorderLessonIds($destIds);
 
         // Reindex source module if different
-        if ($fromModuleId && (int)$fromModuleId !== (int)$toModule->id) {
+        if ($fromModuleId && (int)$fromModuleId !== (int)$toModuleId) {
             $source = Module::find($fromModuleId);
             if ($source) {
                 $sourceIds = Lesson::where('module_id', $source->id)->orderBy('order')->pluck('id')->all();
                 $this->reorderLessons($source, $sourceIds);
             }
+        } elseif (!$fromModuleId && $toModuleId) {
+            $this->reindexCourseRootLessons($toCourseId);
         }
     }
 
@@ -1009,6 +1022,18 @@ class CourseBuilderService
                 Lesson::where('id', $lessonId)
                     ->where('module_id', $module->id)
                     ->update(['order' => $index]);
+            }
+        });
+    }
+
+    /**
+     * Reorder a trusted lesson id list after a move.
+     */
+    protected function reorderLessonIds(array $lessonIds): void
+    {
+        DB::transaction(function () use ($lessonIds) {
+            foreach ($lessonIds as $index => $lessonId) {
+                Lesson::where('id', $lessonId)->update(['order' => $index]);
             }
         });
     }

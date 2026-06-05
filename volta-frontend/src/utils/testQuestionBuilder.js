@@ -17,29 +17,29 @@ export const TEST_EDITOR_DEFAULT = {
 };
 
 export const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
-  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
-  { id: 'matching', label: 'Potrivire', short: '↔' },
+  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B' },
+  { id: 'single_choice', label: 'Raspuns unic', short: '1' },
+  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F' },
+  { id: 'matching', label: 'Potrivire', short: '<->' },
   { id: 'ordering', label: 'Ordonare', short: '1-4' },
 ];
 
 export const normalizeInlineQuestionType = (type) => {
-  if (type === 'single_choice') return 'multiple_choice';
   return INLINE_QUESTION_TYPES.some((t) => t.id === type) ? type : 'multiple_choice';
 };
 
 export const getDefaultAnswersByType = (rawType) => {
   const type = normalizeInlineQuestionType(rawType);
-  if (type === 'multiple_choice') {
-    return [{ text: 'Răspuns A', is_correct: true }, { text: 'Răspuns B', is_correct: false }];
+  if (type === 'multiple_choice' || type === 'single_choice') {
+    return [{ text: 'Raspuns A', is_correct: true }, { text: 'Raspuns B', is_correct: false }];
   }
   if (type === 'true_false') {
-    return [{ text: 'Adevărat', is_correct: true }, { text: 'Fals', is_correct: false }];
+    return [{ text: 'Adevarat', is_correct: true }, { text: 'Fals', is_correct: false }];
   }
   if (type === 'matching') {
     return [
-      { left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true, order: 0 },
-      { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true, order: 1 },
+      { left: 'Element A', right: 'Raspuns A', text: 'Element A', answer_text: 'Raspuns A', is_correct: true, order: 0 },
+      { left: 'Element B', right: 'Raspuns B', text: 'Element B', answer_text: 'Raspuns B', is_correct: true, order: 1 },
     ];
   }
   if (type === 'ordering') {
@@ -80,8 +80,19 @@ export const normalizeBuilderAnswer = (a, rawType = 'multiple_choice', index = 0
   }
 
   const text = obj.text ?? obj.answer_text ?? obj.content ?? '';
-  return { ...obj, text: typeof text === 'string' ? text : String(text ?? '') };
+  return {
+    ...obj,
+    text: typeof text === 'string' ? text : String(text ?? ''),
+    is_correct: Boolean(obj.is_correct),
+    order: typeof obj.order === 'number' ? obj.order : index,
+  };
 };
+
+function keepOnlyOneCorrectAnswer(answers) {
+  const firstCorrectIndex = answers.findIndex((answer) => answer.is_correct);
+  const correctIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+  return answers.map((answer, index) => ({ ...answer, is_correct: index === correctIndex }));
+}
 
 export const normalizeBuilderQuestion = (q) => {
   if (!q) return q;
@@ -91,18 +102,24 @@ export const normalizeBuilderQuestion = (q) => {
     const n = Number(rawId);
     if (Number.isFinite(n)) id = n;
   }
+  const type = normalizeInlineQuestionType(q.type);
+  const answers = Array.isArray(q.answers) ? q.answers.map((a, idx) => normalizeBuilderAnswer(a, type, idx)) : [];
   return {
     ...q,
     id,
-    type: normalizeInlineQuestionType(q.type),
-    answers: Array.isArray(q.answers) ? q.answers.map((a, idx) => normalizeBuilderAnswer(a, q.type, idx)) : [],
+    type,
+    answers: type === 'single_choice' || type === 'true_false' ? keepOnlyOneCorrectAnswer(answers) : answers,
   };
 };
 
 export const serializeAnswersForQuestionApi = (rawType, answers) => {
   const type = normalizeInlineQuestionType(rawType);
-  if (!Array.isArray(answers)) return [];
-  return answers.map((a, idx) => {
+  const sourceAnswers = Array.isArray(answers) ? answers : [];
+  const normalizedAnswers = type === 'single_choice' || type === 'true_false'
+    ? keepOnlyOneCorrectAnswer(sourceAnswers.map((answer, index) => normalizeBuilderAnswer(answer, type, index)))
+    : sourceAnswers;
+
+  return normalizedAnswers.map((a, idx) => {
     const raw = a && typeof a === 'object' ? a : {};
 
     if (type === 'matching') {

@@ -617,9 +617,9 @@ class QuestionBankAdminController extends Controller
     private function generateAutoQuestionsSequentially(string $courseContent, int $numberOfQuestions, string $difficulty, array $questionTypes = ['multiple_choice']): array
     {
         $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
-        $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'true_false']));
+        $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'single_choice', 'true_false']));
         if (empty($typeList)) {
-            $typeList = ['multiple_choice', 'true_false'];
+            $typeList = ['multiple_choice', 'single_choice', 'true_false'];
         }
 
         $generatedQuestions = [];
@@ -685,9 +685,9 @@ class QuestionBankAdminController extends Controller
         try {
             $courseContent = $this->compactCourseContentForQuestions($courseContent);
             $typeList = array_values(array_filter(array_map('strval', $questionTypes)));
-            $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'true_false']));
+            $typeList = array_values(array_intersect($typeList, ['multiple_choice', 'single_choice', 'true_false']));
             if (empty($typeList)) {
-                $typeList = ['multiple_choice', 'true_false'];
+                $typeList = ['multiple_choice', 'single_choice', 'true_false'];
             }
             $typeHint = implode(', ', $typeList);
             $usedQuestions = array_values(array_filter(array_unique(array_merge($approvedQuestions, $blockedQuestions))));
@@ -860,13 +860,13 @@ class QuestionBankAdminController extends Controller
         }
 
         $type = (string) ($question['type'] ?? 'multiple_choice');
-        if (!in_array($type, ['multiple_choice', 'true_false'], true)) {
+        if (!in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
             $reasons[] = 'unsupported_type';
         }
 
         $answers = is_array($question['answers'] ?? null) ? $question['answers'] : [];
-        if ($type === 'multiple_choice' && count($answers) < 4) {
-            $reasons[] = 'not_enough_answers_for_multiple_choice';
+        if (in_array($type, ['multiple_choice', 'single_choice'], true) && count($answers) < 4) {
+            $reasons[] = 'not_enough_answers_for_choice_question';
         }
         if ($type === 'true_false' && count($answers) < 2) {
             $reasons[] = 'not_enough_answers_for_true_false';

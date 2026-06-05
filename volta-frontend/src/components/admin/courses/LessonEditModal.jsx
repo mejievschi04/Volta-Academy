@@ -94,7 +94,7 @@ const LessonEditModal = ({ lesson, moduleId, courseId, onClose, onSave, onUpdate
 	}
 
 	return (
-		<div className="lesson-edit-modal-overlay" onClick={onClose}>
+		<div className="lesson-edit-modal-overlay">
 			<div className="lesson-edit-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="lesson-edit-modal-header">
 					<h2>✏️ Editează Lecție</h2>

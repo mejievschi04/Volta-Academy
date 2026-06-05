@@ -82,7 +82,7 @@ const CourseCreationPage = () => {
 	return (
 		<div className="admin-container course-creation-simple-page">
 			{showAiCourseChat && (
-				<div className="ai-chat-modal-overlay" onClick={() => setShowAiCourseChat(false)}>
+				<div className="ai-chat-modal-overlay">
 					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
 						<AICourseChat
 							onCourseGenerated={handleAiCourseGenerated}

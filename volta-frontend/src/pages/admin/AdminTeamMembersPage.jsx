@@ -507,9 +507,7 @@ const RolePermissionsModal = ({ member, onClose, onSave, loading }) => {
 	};
 
 	return (
-		<div className="admin-team-members-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}>
+		<div className="admin-team-members-modal-overlay">
 			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-members-modal-header">
 					<h2 className="admin-team-members-modal-title">Editare rol și permisiuni - {member.name}</h2>
@@ -583,9 +581,7 @@ const CoursesAssignmentModal = ({ member, courses, onClose, onSave, loading }) =
 	};
 
 	return (
-		<div className="admin-team-members-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}>
+		<div className="admin-team-members-modal-overlay">
 			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-members-modal-header">
 					<h2 className="admin-team-members-modal-title">Atribuie Cursuri - {member.name}</h2>
@@ -655,9 +651,7 @@ const SuspendModal = ({ member, onClose, onSave, loading }) => {
 	};
 
 	return (
-		<div className="admin-team-members-modal-overlay" onClick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}>
+		<div className="admin-team-members-modal-overlay">
 			<div className="admin-team-members-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-members-modal-header">
 					<h2 className="admin-team-members-modal-title">Suspendă Membru - {member.name}</h2>

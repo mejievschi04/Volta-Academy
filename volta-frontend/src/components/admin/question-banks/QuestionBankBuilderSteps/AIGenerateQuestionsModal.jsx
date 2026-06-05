@@ -22,7 +22,7 @@ const AIGenerateQuestionsModal = ({
   const hasCourses = Array.isArray(courses) && courses.length > 0;
 
   const modal = (
-    <div className="admin-team-modal-overlay" onClick={() => !aiGenerating && onClose()} style={{ zIndex: 10000 }}>
+    <div className="admin-team-modal-overlay" style={{ zIndex: 10000 }}>
       <div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
         <div className="admin-team-modal-header">
           <div>

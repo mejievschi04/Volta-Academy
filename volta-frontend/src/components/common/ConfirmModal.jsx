@@ -5,7 +5,7 @@ import './ConfirmModal.css';
 /**
  * Modal de confirmare reutilizabil (înlocuiește window.confirm).
  * @param {boolean} open - vizibil
- * @param {function} onClose - la Anulare / Escape / backdrop
+ * @param {function} onClose - la Anulare / buton explicit
  * @param {function} onConfirm - la confirmare (ex. Șterge)
  * @param {string} title - titlu (ex. "Confirmă ștergerea")
  * @param {string} message - mesaj (ex. "Ești sigur că vrei să ștergi?")
@@ -53,7 +53,7 @@ function ConfirmModal({
 		<Modal
 			isOpen={open}
 			onClose={onClose}
-			closeOnBackdropClick={!loading}
+			closeOnBackdropClick={false}
 			ariaLabelledby="confirm-modal-title"
 			ariaDescribedby="confirm-modal-desc"
 			className="confirm-modal-overlay"

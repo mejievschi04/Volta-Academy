@@ -485,7 +485,7 @@ const AvatarEditorModal = ({ open, imageUrl, fileName, busy, onClose, onSave }) 
 	const maxZoom = Math.max(3, minZoom * 3);
 
 	return (
-		<div className="va-avatar-editor-overlay" onClick={() => !busy && onClose()}>
+		<div className="va-avatar-editor-overlay">
 			<div className="va-avatar-editor-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="va-avatar-editor-header">
 					<div>

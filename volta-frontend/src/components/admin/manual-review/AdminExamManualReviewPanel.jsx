@@ -203,7 +203,7 @@ export default function AdminExamManualReviewPanel() {
 			</section>
 
 			{showManualReviewModal && manualReviewTarget ? (
-				<div className="admin-exams-create-modal-overlay" onClick={() => !manualReviewSubmitting && closeManualReviewModal()}>
+				<div className="admin-exams-create-modal-overlay">
 					<div
 						className="admin-exams-create-modal admin-exams-manual-modal admin-exams-manual-modal--full"
 						onClick={(e) => e.stopPropagation()}

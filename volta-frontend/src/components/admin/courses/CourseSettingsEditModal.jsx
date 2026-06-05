@@ -117,7 +117,7 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 	if (!open || !course?.id) return null;
 
 	return (
-		<div className="admin-course-builder-test-modal-overlay" onClick={() => !courseEditSaving && onClose()}>
+		<div className="admin-course-builder-test-modal-overlay">
 			<div className="admin-course-builder-test-modal admin-course-builder-course-edit-modal" onClick={(e) => e.stopPropagation()}>
 				<h3>Editare curs</h3>
 				<div className="admin-course-builder-test-modal-form admin-course-builder-course-edit-form">

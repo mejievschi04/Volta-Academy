@@ -83,7 +83,7 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 	if (!open) return null;
 
 	return (
-		<div className="admin-team-modal-overlay" onClick={onClose} style={{ zIndex: 10000 }}>
+		<div className="admin-team-modal-overlay" style={{ zIndex: 10000 }}>
 			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(980px, calc(100vw - 32px))' }}>
 				<div className="admin-team-modal-header">
 					<div>
@@ -227,4 +227,3 @@ const MediaLibraryModal = ({ open, onClose, courseId, type, onSelect }) => {
 };
 
 export default MediaLibraryModal;
-

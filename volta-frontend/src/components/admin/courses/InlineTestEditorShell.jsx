@@ -195,15 +195,16 @@ export default function InlineTestEditorShell({
                               rows={2}
                               disabled={!canMutateInAdminArea}
                             />
-                            {(qType === 'multiple_choice' || qType === 'true_false') && (
+                            {(qType === 'multiple_choice' || qType === 'single_choice' || qType === 'true_false') && (
                               <div className="admin-course-builder-test-question-answers">
                                 <p>Răspunsuri:</p>
                                 {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
                                   <div key={`${question.id}-answer-${answerIdx}`} className="admin-course-builder-test-answer-row">
                                     <input
-                                      type={qType === 'true_false' ? 'radio' : 'checkbox'}
+                                      type={qType === 'multiple_choice' ? 'checkbox' : 'radio'}
+                                      name={qType !== 'multiple_choice' ? `inline-answer-correct-${question.id}` : undefined}
                                       checked={!!answer.is_correct}
-                                      onChange={() => handleInlineAnswerCorrectToggle(question.id, answerIdx, qType === 'true_false')}
+                                      onChange={() => handleInlineAnswerCorrectToggle(question.id, answerIdx, qType !== 'multiple_choice')}
                                       disabled={!canMutateInAdminArea}
                                     />
                                     <input
