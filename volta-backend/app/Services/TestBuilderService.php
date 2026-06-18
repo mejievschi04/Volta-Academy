@@ -35,6 +35,7 @@ class TestBuilderService
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
             'show_results_immediately' => (bool)($data['show_results_immediately'] ?? true),
             'show_correct_answers' => (bool)($data['show_correct_answers'] ?? false),
+            'show_only_submitted_answers' => (bool)($data['show_only_submitted_answers'] ?? false),
             'allow_review' => (bool)($data['allow_review'] ?? true),
             'requires_manual_verification' => (bool)($data['requires_manual_verification'] ?? false),
             'question_source' => $data['question_source'] ?? 'direct',

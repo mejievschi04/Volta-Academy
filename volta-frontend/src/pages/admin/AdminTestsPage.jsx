@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 
@@ -34,14 +35,23 @@ function buildTestMetaLine(item) {
 
 export default function AdminTestsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { success: showSuccess, error: showError } = useToast();
   const { canMutateInAdminArea } = useAuth();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [statsQuery, setStatsQuery] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [deleteConfirmTest, setDeleteConfirmTest] = useState(null);
+
+  const pageView = searchParams.get('view') === 'statistics' ? 'statistics' : 'list';
+  const selectedTestId = Number(searchParams.get('testId')) || null;
+  const selectedTest = useMemo(
+    () => tests.find((item) => item.id === selectedTestId) || null,
+    [tests, selectedTestId],
+  );
 
   const listStats = useMemo(() => {
     const counts = { all: tests.length, draft: 0, published: 0 };
@@ -56,7 +66,7 @@ export default function AdminTestsPage() {
     try {
       setLoading(true);
       setError('');
-      const data = await adminService.getTests();
+      const data = await adminService.getTests({ per_page: 500 });
       setTests(normalizeTests(data));
     } catch (e) {
       console.error('Failed to load tests:', e);
@@ -82,9 +92,36 @@ export default function AdminTestsPage() {
     });
   }, [tests, query]);
 
+  const filteredStatsTests = useMemo(() => {
+    const needle = statsQuery.trim().toLowerCase();
+    if (!needle) return tests;
+    return tests.filter((row) => String(row?.title || '').toLowerCase().includes(needle));
+  }, [tests, statsQuery]);
+
   const openBuilder = (item, section = 'questions') => {
     if (!item?.id) return;
     navigate(`/admin/tests/${item.id}/builder?section=${section}`);
+  };
+
+  const setPageView = (view, testId = null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'tests');
+      if (view === 'statistics') {
+        next.set('view', 'statistics');
+        if (testId) next.set('testId', String(testId));
+        else next.delete('testId');
+      } else {
+        next.delete('view');
+        next.delete('testId');
+      }
+      return next;
+    });
+  };
+
+  const openStatistics = (item) => {
+    if (!item?.id) return;
+    setPageView('statistics', item.id);
   };
 
   const handlePublish = async (item) => {
@@ -144,16 +181,102 @@ export default function AdminTestsPage() {
           <p className="admin-content-list-header__kicker">Conținut</p>
           <h1>Teste</h1>
           <p className="admin-content-list-header__lead">
-            Setări și întrebări în același builder ca la cursuri.
+            {pageView === 'statistics'
+              ? 'Statistici detaliate per test: rezumat, elevi și analiză pe întrebări.'
+              : 'Setări și întrebări în același builder ca la cursuri.'}
           </p>
-          <div className="admin-content-list-stats" aria-label="Rezumat">
-            <span>Total<strong>{listStats.all}</strong></span>
-            <span>Draft<strong>{listStats.draft}</strong></span>
-            <span>Publicate<strong>{listStats.published}</strong></span>
-          </div>
+          {pageView === 'list' ? (
+            <div className="admin-content-list-stats" aria-label="Rezumat">
+              <span>Total<strong>{listStats.all}</strong></span>
+              <span>Draft<strong>{listStats.draft}</strong></span>
+              <span>Publicate<strong>{listStats.published}</strong></span>
+            </div>
+          ) : null}
         </div>
       </header>
 
+      <nav className="admin-tests-compartments" aria-label="Compartimente teste">
+        <button
+          type="button"
+          className={`admin-tests-compartment-tab${pageView === 'list' ? ' is-active' : ''}`}
+          onClick={() => setPageView('list')}
+        >
+          Listă teste
+        </button>
+        <button
+          type="button"
+          className={`admin-tests-compartment-tab${pageView === 'statistics' ? ' is-active' : ''}`}
+          onClick={() => setPageView('statistics', selectedTestId || tests[0]?.id || null)}
+        >
+          Statistici
+        </button>
+      </nav>
+
+      {pageView === 'statistics' ? (
+        <div className="admin-tests-stats-layout">
+          <aside className="admin-tests-stats-sidebar">
+            <div className="admin-tests-stats-sidebar-head">
+              <h2>Teste</h2>
+              <p>Selectează testul pentru analiză detaliată.</p>
+            </div>
+            <div className="admin-tests-stats-sidebar-search">
+              <input
+                type="search"
+                placeholder="Caută test…"
+                aria-label="Caută în lista de teste"
+                value={statsQuery}
+                onChange={(e) => setStatsQuery(e.target.value)}
+              />
+            </div>
+            {loading ? (
+              <div className="admin-tests-stats-sidebar-empty">Se încarcă…</div>
+            ) : filteredStatsTests.length === 0 ? (
+              <div className="admin-tests-stats-sidebar-empty">Niciun test găsit.</div>
+            ) : (
+              <ul className="admin-tests-stats-sidebar-list" role="listbox" aria-label="Teste disponibile">
+                {filteredStatsTests.map((item) => {
+                  const status = normalizeTestStatus(item.status);
+                  const isActive = item.id === selectedTestId;
+                  const questions = item.questions_count ?? item.questions?.length ?? 0;
+                  const attempts = item.results_count ?? 0;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={`admin-tests-stats-sidebar-item${isActive ? ' is-active' : ''}`}
+                        onClick={() => setPageView('statistics', item.id)}
+                      >
+                        <span className="admin-tests-stats-sidebar-item-title">{item.title || `Test #${item.id}`}</span>
+                        <span className="admin-tests-stats-sidebar-item-meta">
+                          {testStatusLabel(status)} · {questions} întrebări · {attempts} încercări
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </aside>
+
+          <div className="admin-tests-stats-main">
+            {loading ? (
+              <div className="admin-content-list-empty">Se încarcă testele…</div>
+            ) : tests.length === 0 ? (
+              <div className="admin-content-list-empty">Niciun test disponibil pentru statistici.</div>
+            ) : !selectedTestId ? (
+              <div className="admin-content-list-empty">Selectează un test din lista din stânga.</div>
+            ) : (
+              <TestStatisticsPanel
+                testId={selectedTestId}
+                testTitle={(selectedTest?.title || '').trim() || 'Test'}
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="admin-content-list-toolbar">
         <div className="admin-content-list-search">
           <input
@@ -184,15 +307,18 @@ export default function AdminTestsPage() {
             const status = normalizeTestStatus(item.status);
             const busy = busyId === item.id;
 
-            const secondaryActions = canMutateInAdminArea
-              ? [
+            const secondaryActions = [
+              { label: 'Statistici', onClick: () => openStatistics(item), disabled: busy },
+              ...(canMutateInAdminArea
+                ? [
                   { label: 'Setări', onClick: () => openBuilder(item, 'settings'), disabled: busy },
                   status === 'draft'
                     ? { label: busy ? 'Se publică…' : 'Publică', onClick: () => handlePublish(item), disabled: busy, emphasis: true }
                     : { label: 'Draft', onClick: () => patchTestStatus(item, 'draft'), disabled: busy },
                   { label: 'Șterge', onClick: () => setDeleteConfirmTest(item), disabled: busy, danger: true },
                 ]
-              : [];
+                : []),
+            ];
 
             return (
               <AdminContentItemCard
@@ -212,6 +338,8 @@ export default function AdminTestsPage() {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       {deleteConfirmTest ? (

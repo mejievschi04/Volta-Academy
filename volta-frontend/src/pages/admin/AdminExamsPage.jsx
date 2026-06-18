@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { downloadSimpleExcel, statisticsExcelFilename } from '../../utils/statisticsExcelExport';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
@@ -32,6 +33,7 @@ const DEFAULT_SETTINGS = {
   manualReview: false,
   showFeedbackInstant: false,
   showCorrectAnswers: false,
+  showOnlySubmittedAnswers: false,
   timeLimitEnabled: false,
   timeLimitMinutes: 60,
   attempts: 1,
@@ -347,6 +349,7 @@ export default function AdminExamsPage() {
       timeLimitEnabled: Boolean(item?.time_limit_minutes), timeLimitMinutes: Number(item?.time_limit_minutes || 60),
       shuffleQuestions: Boolean(item?.settings?.shuffle_questions), manualReview: Boolean(item?.settings?.manual_review),
       showFeedbackInstant: Boolean(item?.settings?.show_feedback_instant), showCorrectAnswers: Boolean(item?.settings?.show_correct_answers),
+      showOnlySubmittedAnswers: Boolean(item?.settings?.show_only_submitted_answers),
       navigationMode: item?.settings?.navigation_mode || 'sequential', deadlineType: item?.settings?.deadline_type || 'none',
       deadlineAt: localDateTime(item?.settings?.deadline_at), deadlineDays: Number(item?.settings?.deadline_days ?? 7) || 7,
       contentBankId: item?.settings?.question_bank_id || null, selectionMode: item?.settings?.selection_mode || 'folders',
@@ -399,6 +402,7 @@ export default function AdminExamsPage() {
         settings: {
           shuffle_questions: Boolean(examSettings.shuffleQuestions), manual_review: Boolean(examSettings.manualReview),
           show_feedback_instant: Boolean(examSettings.showFeedbackInstant), show_correct_answers: Boolean(examSettings.showCorrectAnswers),
+          show_only_submitted_answers: Boolean(examSettings.showOnlySubmittedAnswers),
           manual_review_mode: manualReviewState.reviewMode, navigation_mode: examSettings.navigationMode,
           deadline_type: examSettings.deadlineType,
           deadline_at: examSettings.deadlineType === 'fixed' && examSettings.deadlineAt ? new Date(examSettings.deadlineAt).toISOString() : null,
@@ -577,6 +581,11 @@ export default function AdminExamsPage() {
             const secondaryActions = canMutateInAdminArea
               ? [
                   {
+                    label: 'Rezultate',
+                    onClick: () => handleOpenExistingExam(item, { initialSection: 'statistics' }),
+                    disabled: busy,
+                  },
+                  {
                     label: duplicatingExamId === item.id ? 'Se duplică…' : 'Duplică',
                     onClick: () => handleDuplicateExam(item),
                     disabled: busy || duplicatingExamId === item.id,
@@ -718,6 +727,10 @@ export default function AdminExamsPage() {
               <input type="checkbox" checked={examSettings.showCorrectAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showCorrectAnswers: e.target.checked }))} />
               Afișează răspunsurile corecte (unde e cazul)
             </label>
+            <label>
+              <input type="checkbox" checked={examSettings.showOnlySubmittedAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showOnlySubmittedAnswers: e.target.checked }))} />
+              Afișează doar răspunsurile oferite (fără corect/greșit)
+            </label>
           </div>
         </section>
       </div>
@@ -857,49 +870,11 @@ export default function AdminExamsPage() {
               </div>
 
               {statisticsTab === 'students' ? (
-                <>
-                  <div className="admin-exams-statistics-filters">
-                    <select value={statisticsStatusFilter} onChange={(e) => setStatisticsStatusFilter(e.target.value)}>
-                      <option value="all">Toate statusurile</option>
-                      <option value="pending">În așteptare</option>
-                      <option value="approved">Aprobat</option>
-                      <option value="rejected">Respins</option>
-                      <option value="completed">Finalizat</option>
-                    </select>
-                    <input type="date" value={statisticsDateFrom} onChange={(e) => setStatisticsDateFrom(e.target.value)} />
-                    <input type="date" value={statisticsDateTo} onChange={(e) => setStatisticsDateTo(e.target.value)} />
-                    <button type="button" onClick={exportStatistics}>Export Excel</button>
-                  </div>
-
-                  {filteredStatisticsRows.length === 0 ? (
-                    <div className="admin-exams-statistics-empty">Nu există rezultate pentru filtrele actuale.</div>
-                  ) : (
-                    <div className="admin-exams-statistics-table-wrap">
-                      <table className="admin-exams-statistics-table">
-                        <thead>
-                          <tr>
-                            <th>Elev</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Scor</th>
-                            <th>Finalizat</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredStatisticsRows.map((row) => (
-                            <tr key={row.id}>
-                              <td>{row.user?.name || '-'}</td>
-                              <td>{row.user?.email || '-'}</td>
-                              <td>{row.status || '-'}</td>
-                              <td>{row.percentage != null ? `${row.percentage}%` : '-'}</td>
-                              <td>{row.completed_at ? new Date(row.completed_at).toLocaleString('ro-RO') : '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
+                <TestResultsPanel
+                  kind="exam"
+                  entityId={activeExamDraft.id}
+                  entityTitle={examSettings.title?.trim() || activeExamDraft.title || 'Examen'}
+                />
               ) : statisticsQuestionRows.length === 0 ? (
                 <div className="admin-exams-statistics-empty">Nu există analize pe întrebări.</div>
               ) : (

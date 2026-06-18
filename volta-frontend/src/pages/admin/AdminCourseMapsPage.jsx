@@ -198,14 +198,20 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formAccent, setFormAccent] = useState(COURSE_MAP_ACCENT_COLORS[0]);
+	const [formHeaderBg, setFormHeaderBg] = useState('');
+	const [formHeaderText, setFormHeaderText] = useState('');
 	const [formVisibility, setFormVisibility] = useState('public');
 	const [coverBusy, setCoverBusy] = useState(false);
 	const [pendingMapCoverFile, setPendingMapCoverFile] = useState(null);
 	const [pendingMapCoverPreviewUrl, setPendingMapCoverPreviewUrl] = useState(null);
 	const mapColorInputRef = useRef(null);
+	const mapHeaderBgInputRef = useRef(null);
+	const mapHeaderTextInputRef = useRef(null);
 	const mapCoverInputRef = useRef(null);
 	const [orderedMaps, setOrderedMaps] = useState([]);
 	const openMapColorPicker = () => mapColorInputRef.current?.click();
+	const openMapHeaderBgPicker = () => mapHeaderBgInputRef.current?.click();
+	const openMapHeaderTextPicker = () => mapHeaderTextInputRef.current?.click();
 	const openMapCoverPicker = () => mapCoverInputRef.current?.click();
 
 	const sensors = useSensors(
@@ -277,6 +283,8 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		setFormName('');
 		setFormDescription('');
 		setFormAccent(COURSE_MAP_ACCENT_COLORS[0]);
+		setFormHeaderBg('');
+		setFormHeaderText('');
 		setFormVisibility('public');
 		setPendingMapCoverFile(null);
 		setPendingMapCoverPreviewUrl(null);
@@ -291,6 +299,8 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			setFormName(full.name || '');
 			setFormDescription(full.description || '');
 			setFormAccent(full.accent_color || COURSE_MAP_ACCENT_COLORS[0]);
+			setFormHeaderBg(full.header_bg_color || '');
+			setFormHeaderText(full.header_text_color || '');
 			setPendingMapCoverFile(null);
 			setPendingMapCoverPreviewUrl(null);
 			setCoverBusy(false);
@@ -309,7 +319,19 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			return;
 		}
 		const normalizedAccent = normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]);
-		const payload = { name, description: formDescription || null, accent_color: normalizedAccent };
+		const normalizedHeaderBg = formHeaderBg.trim()
+			? normalizeColorInputToHex(formHeaderBg, null)
+			: null;
+		const normalizedHeaderText = formHeaderText.trim()
+			? normalizeColorInputToHex(formHeaderText, null)
+			: null;
+		const payload = {
+			name,
+			description: formDescription || null,
+			accent_color: normalizedAccent,
+			header_bg_color: normalizedHeaderBg,
+			header_text_color: normalizedHeaderText,
+		};
 		if (!editingMap && isAdmin) {
 			payload.visibility = formVisibility === 'private' ? 'private' : 'public';
 		}
@@ -645,6 +667,132 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 										placeholder="#6366f1"
 										aria-label="Culoare accent în hex"
 									/>
+								</div>
+
+								<label className="admin-form-label">Culoare fundal header</label>
+								<p className="admin-form-hint admin-course-map-color-hint">
+									Lasă gol pentru gradient automat din culoarea accent.
+								</p>
+								<div
+									className="admin-course-map-palette-preview"
+									role="button"
+									tabIndex={0}
+									aria-label="Deschide selectorul pentru fundalul headerului"
+									title="Deschide selectorul de culori"
+									style={{ cursor: 'pointer' }}
+									onClick={openMapHeaderBgPicker}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											openMapHeaderBgPicker();
+										}
+									}}
+								>
+									<span
+										className="admin-course-map-palette-preview-swatch"
+										style={{
+											'--swatch-color':
+												formHeaderBg.trim()
+													? normalizeColorInputToHex(formHeaderBg, '#059669')
+													: 'transparent',
+										}}
+										aria-hidden="true"
+									/>
+									<span className="admin-course-map-palette-preview-label">
+										{formHeaderBg.trim()
+											? normalizeColorInputToHex(formHeaderBg, '#059669')
+											: 'Gradient automat'}
+									</span>
+								</div>
+								<div className="admin-course-map-color-control">
+									<input
+										ref={mapHeaderBgInputRef}
+										type="color"
+										className="admin-course-map-color-input-native"
+										value={normalizeColorInputToHex(formHeaderBg || '#059669', '#059669')}
+										onChange={(e) => setFormHeaderBg(e.target.value)}
+										aria-label="Alege culoarea de fundal a headerului"
+									/>
+									<input
+										type="text"
+										className="admin-form-input admin-course-map-color-input"
+										value={formHeaderBg}
+										onChange={(e) => setFormHeaderBg(e.target.value)}
+										placeholder="#059669"
+										aria-label="Culoare fundal header în hex"
+									/>
+									{formHeaderBg.trim() ? (
+										<button
+											type="button"
+											className="lms-btn-secondary admin-course-map-color-clear"
+											onClick={() => setFormHeaderBg('')}
+										>
+											Resetează
+										</button>
+									) : null}
+								</div>
+
+								<label className="admin-form-label">Culoare text header</label>
+								<p className="admin-form-hint admin-course-map-color-hint">
+									Titlu, descriere și buton Înapoi. Implicit: alb (#f8fafc).
+								</p>
+								<div
+									className="admin-course-map-palette-preview"
+									role="button"
+									tabIndex={0}
+									aria-label="Deschide selectorul pentru culoarea textului headerului"
+									title="Deschide selectorul de culori"
+									style={{ cursor: 'pointer' }}
+									onClick={openMapHeaderTextPicker}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											openMapHeaderTextPicker();
+										}
+									}}
+								>
+									<span
+										className="admin-course-map-palette-preview-swatch"
+										style={{
+											'--swatch-color': normalizeColorInputToHex(
+												formHeaderText || '#f8fafc',
+												'#f8fafc'
+											),
+										}}
+										aria-hidden="true"
+									/>
+									<span className="admin-course-map-palette-preview-label">
+										{formHeaderText.trim()
+											? normalizeColorInputToHex(formHeaderText, '#f8fafc')
+											: '#f8fafc (implicit)'}
+									</span>
+								</div>
+								<div className="admin-course-map-color-control">
+									<input
+										ref={mapHeaderTextInputRef}
+										type="color"
+										className="admin-course-map-color-input-native"
+										value={normalizeColorInputToHex(formHeaderText || '#f8fafc', '#f8fafc')}
+										onChange={(e) => setFormHeaderText(e.target.value)}
+										aria-label="Alege culoarea textului headerului"
+									/>
+									<input
+										type="text"
+										className="admin-form-input admin-course-map-color-input"
+										value={formHeaderText}
+										onChange={(e) => setFormHeaderText(e.target.value)}
+										placeholder="#f8fafc"
+										aria-label="Culoare text header în hex"
+									/>
+									{formHeaderText.trim() ? (
+										<button
+											type="button"
+											className="lms-btn-secondary admin-course-map-color-clear"
+											onClick={() => setFormHeaderText('')}
+										>
+											Resetează
+										</button>
+									) : null}
 								</div>
 
 								{!editingMap ? (

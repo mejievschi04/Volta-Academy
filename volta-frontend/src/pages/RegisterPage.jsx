@@ -173,6 +173,9 @@ const RegisterPage = () => {
 								Autentifică-te
 							</Link>
 						</p>
+						<p className="modern-auth-footer-text modern-form-hint" style={{ marginTop: '0.75rem' }}>
+							Ai primit invitație pe email? Deschide linkul din mesaj pentru a-ți activa contul.
+						</p>
 					</div>
 				</div>
 			</div>

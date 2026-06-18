@@ -15,11 +15,16 @@ export const TEAM_ACCENT_COLORS = [
 
 export const TEAM_ACCENT_NEUTRAL = '#94a3b8';
 
+function readTeamAccentColor(team) {
+	if (!team) return null;
+	return team.accent_color || team.accentColor || null;
+}
+
 /**
  * Culoare afișată în liste/chip-uri: doar API sau gri neutru.
  */
 export function teamAccentNeutral(team) {
-	return (team && team.accent_color) || TEAM_ACCENT_NEUTRAL;
+	return readTeamAccentColor(team) || TEAM_ACCENT_NEUTRAL;
 }
 
 /**
@@ -27,12 +32,17 @@ export function teamAccentNeutral(team) {
  */
 export function teamAccentByTeamId(team) {
 	if (!team) return TEAM_ACCENT_NEUTRAL;
-	return team.accent_color || TEAM_ACCENT_COLORS[(team.id || 0) % TEAM_ACCENT_COLORS.length];
+	return readTeamAccentColor(team) || TEAM_ACCENT_COLORS[(team.id || 0) % TEAM_ACCENT_COLORS.length];
 }
 
 /**
  * Culoare în grilă ordonată: API sau paletă după poziția din listă.
  */
 export function teamAccentByListIndex(team, index) {
-	return team?.accent_color || TEAM_ACCENT_COLORS[(Number(index) || 0) % TEAM_ACCENT_COLORS.length];
+	return readTeamAccentColor(team) || TEAM_ACCENT_COLORS[(Number(index) || 0) % TEAM_ACCENT_COLORS.length];
+}
+
+/** Culoare chip/swatch în tabele utilizatori și liste similare. */
+export function teamAccent(team) {
+	return teamAccentByTeamId(team);
 }

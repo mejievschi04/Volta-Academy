@@ -1,0 +1,51 @@
+/* Ghiduri — extinde stilurile bibliotecii pentru carduri link */
+
+.guides-page .library-upload-trigger {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.guides-cover-icon {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--lib-cover-accent, #fde68a);
+	opacity: 0.85;
+	z-index: 1;
+	pointer-events: none;
+}
+
+.guides-cover.library-book-cover--photo .guides-cover-icon {
+	display: none;
+}
+
+.guides-link-host {
+	margin: 0 0 0.75rem;
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+	word-break: break-all;
+}
+
+.guides-modal textarea {
+	width: 100%;
+	min-height: 5rem;
+	padding: 0.65rem 0.75rem;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	font: inherit;
+	resize: vertical;
+}
+
+.guides-remove-cover {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}

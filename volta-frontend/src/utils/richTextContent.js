@@ -67,6 +67,30 @@ export function stripRichTextEditorChrome(html) {
 	return cleaned === html ? html : cleaned;
 }
 
+export function stripRichTextToPlain(html) {
+	if (!html || typeof html !== 'string') {
+		return '';
+	}
+
+	const withBreaks = html
+		.replace(/<br\s*\/?>/gi, '\n')
+		.replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n');
+
+	if (typeof document !== 'undefined') {
+		const div = document.createElement('div');
+		div.innerHTML = withBreaks;
+		return (div.textContent || div.innerText || '')
+			.replace(/\u00a0/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
+	return withBreaks
+		.replace(/<[^>]*>/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
 export function normalizeRichTextMediaHtml(html) {
 	if (!html || typeof html !== 'string') {
 		return '';

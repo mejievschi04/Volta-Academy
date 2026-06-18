@@ -218,11 +218,6 @@ const AdminLessonsPage = () => {
 			{showModal && canMutateInAdminArea && (
 				<div
 					className="admin-team-modal-overlay"
-					onClick={(e) => {
-						if (e.target === e.currentTarget) {
-							setShowModal(false);
-						}
-					}}
 				>
 					<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
 						<div className="admin-team-modal-header">

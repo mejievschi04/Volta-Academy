@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
  * @param {string} [ariaLabelledby] - id of the modal title element
  * @param {string} [ariaDescribedby] - id of the modal description
  * @param {boolean} [closeOnBackdropClick=false]
+ * @param {boolean} [closeOnEscape=false]
  * @param {React.ReactNode} children
  */
 function Modal({
@@ -17,6 +18,7 @@ function Modal({
 	ariaLabelledby,
 	ariaDescribedby,
 	closeOnBackdropClick = false,
+	closeOnEscape = false,
 	children,
 	className = '',
 	...rest
@@ -66,6 +68,18 @@ function Modal({
 			}
 		};
 	}, [isOpen]);
+
+	useEffect(() => {
+		if (!isOpen || !closeOnEscape) return;
+		const handler = (e) => {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				onClose();
+			}
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [isOpen, onClose, closeOnEscape]);
 
 	if (!isOpen) return null;
 

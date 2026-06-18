@@ -31,6 +31,41 @@ class EmailNotificationService
     }
 
     /**
+     * Send to an email address (e.g. before the user account exists).
+     */
+    public function sendToRawEmail(
+        string $email,
+        string $subject,
+        string $body,
+        ?string $actionPath = null,
+        string $actionLabel = 'Deschide în platformă'
+    ): void {
+        if (! $this->isEnabled()) {
+            return;
+        }
+
+        $email = trim($email);
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new VoltaUserNotificationMail(
+                heading: $subject,
+                body: $body,
+                actionUrl: $this->absoluteUrl($actionPath),
+                actionLabel: $actionLabel,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('EmailNotificationService::sendToRawEmail failed', [
+                'email' => $email,
+                'subject' => $subject,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Send a notification email to one user (no-op if disabled or no email).
      */
     public function sendToUser(

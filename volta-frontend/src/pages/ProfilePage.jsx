@@ -9,6 +9,54 @@ import { toImageUrl } from '../utils/imageUrl';
 const AVATAR_EDITOR_SIZE = 280;
 const AVATAR_OUTPUT_SIZE = 512;
 
+const COURSE_FILTERS = [
+	{ id: 'all', label: 'Total atribuite', statKey: 'total_assigned' },
+	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
+	{ id: 'in_progress', label: 'Nefinalizate', statKey: 'in_progress' },
+	{ id: 'not_accessed', label: 'Neaccesate', statKey: 'not_accessed' },
+];
+
+const COURSE_FILTER_TITLES = {
+	all: 'Toate cursurile atribuite',
+	completed: 'Cursuri finalizate',
+	in_progress: 'Cursuri nefinalizate',
+	not_accessed: 'Cursuri neaccesate',
+};
+
+const buildProfileFromCourseData = (user, data) => ({
+	user,
+	stats: {
+		completedCourses: data.course_stats?.completed
+			?? data.courseStats?.completed
+			?? (Array.isArray(data.courses_completed || data.coursesCompleted) ? (data.courses_completed || data.coursesCompleted).length : 0),
+		completedQuizzes: data.completed_quizzes ?? data.stats?.completedQuizzes ?? 0,
+		inProgressCourses: data.course_stats?.in_progress
+			?? data.courseStats?.in_progress
+			?? data.in_progress_courses
+			?? data.stats?.inProgressCourses
+			?? 0,
+		notAccessedCourses: data.course_stats?.not_accessed
+			?? data.courseStats?.not_accessed
+			?? data.stats?.notAccessedCourses
+			?? 0,
+		totalAssigned: data.course_stats?.total_assigned
+			?? data.courseStats?.total_assigned
+			?? data.stats?.totalAssigned
+			?? 0,
+		progressPercentage: data.completion_percentage ?? data.stats?.progressPercentage ?? 0,
+	},
+	courseStats: data.course_stats || data.courseStats || {
+		total_assigned: 0,
+		completed: 0,
+		in_progress: 0,
+		not_accessed: 0,
+	},
+	coursesAssigned: data.courses_assigned || data.coursesAssigned || [],
+	coursesInProgress: data.courses_in_progress || data.coursesInProgress || [],
+	coursesCompleted: data.courses_completed || data.coursesCompleted || [],
+	coursesNotAccessed: data.courses_not_accessed || data.coursesNotAccessed || [],
+});
+
 const ProfilePage = () => {
 	const { userId } = useParams(); // Optional user ID from URL
 	const navigate = useNavigate();
@@ -21,6 +69,7 @@ const ProfilePage = () => {
 	const [uploadingAvatar, setUploadingAvatar] = useState(false);
 	const [showRemoveAvatarConfirm, setShowRemoveAvatarConfirm] = useState(false);
 	const [avatarEditorState, setAvatarEditorState] = useState(null);
+	const [courseFilter, setCourseFilter] = useState('all');
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
 	useEffect(() => {
@@ -30,26 +79,11 @@ const ProfilePage = () => {
 				let profile;
 				
 				if (isViewingOtherUser) {
-					// Admin viewing another user's profile
 					const userData = await adminService.getUser(userId);
-					// Construct profile from user data
-					profile = {
-						user: userData,
-						stats: {
-							completedCourses: Array.isArray(userData.courses_completed)
-								? userData.courses_completed.length
-								: (userData.completed_courses || 0),
-							completedQuizzes: userData.completed_quizzes || 0,
-							inProgressCourses: userData.in_progress_courses
-								?? (Array.isArray(userData.courses_in_progress) ? userData.courses_in_progress.length : 0),
-							progressPercentage: userData.completion_percentage || 0,
-						},
-						coursesInProgress: userData.courses_in_progress || [],
-						coursesCompleted: userData.courses_completed || [],
-					};
+					profile = buildProfileFromCourseData(userData, userData);
 				} else {
-					// Current user viewing their own profile
-					profile = await profileService.getProfile();
+					const profileResponse = await profileService.getProfile();
+					profile = buildProfileFromCourseData(profileResponse.user, profileResponse);
 				}
 				
 				setProfileData(profile);
@@ -62,6 +96,10 @@ const ProfilePage = () => {
 		};
 		fetchData();
 	}, [userId, isViewingOtherUser]);
+
+	useEffect(() => {
+		setCourseFilter('all');
+	}, [userId]);
 
 	const handleAvatarChange = (e) => {
 		const file = e.target?.files?.[0];
@@ -130,9 +168,80 @@ const ProfilePage = () => {
 		);
 	}
 
-	const stats = profileData.stats;
 	const coursesInProgress = profileData.coursesInProgress || [];
 	const coursesCompleted = profileData.coursesCompleted || [];
+	const coursesNotAccessed = profileData.coursesNotAccessed || [];
+	const coursesAssigned = profileData.coursesAssigned || [];
+	const courseStats = profileData.courseStats || {};
+
+	const filteredCourses = (() => {
+		if (courseFilter === 'completed') return coursesCompleted;
+		if (courseFilter === 'in_progress') return coursesInProgress;
+		if (courseFilter === 'not_accessed') return coursesNotAccessed;
+		return coursesAssigned;
+	})();
+
+	const renderCourseCard = (course) => {
+		const status = course.status || 'not_accessed';
+		const courseLink = isViewingOtherUser ? `/admin/courses/${course.id}` : `/courses/${course.id}`;
+		const actionLabel = isViewingOtherUser
+			? 'Deschide cursul'
+			: status === 'not_accessed'
+				? 'Începe cursul'
+				: status === 'completed'
+					? 'Vezi cursul'
+					: (course.progress || 0) >= 100
+						? 'Vezi cursul'
+						: 'Continuă cursul';
+		const buttonClass = isViewingOtherUser ? 'lms-btn-secondary lms-btn-sm' : 'lms-btn-primary lms-btn-sm';
+
+		return (
+			<div className="va-course-card va-course-card-admin" key={course.id}>
+				<div className="va-course-card-header">
+					<h3 className="va-course-card-title">{course.title}</h3>
+					<span className={`va-course-status-badge is-${status}`}>
+						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'Nefinalizat' : 'Neaccesat'}
+					</span>
+				</div>
+				{course.description ? (
+					<p className="va-course-card-description">{course.description}</p>
+				) : null}
+				{status === 'in_progress' ? (
+					<>
+						<div className="va-course-card-progress-bar">
+							<div
+								className="va-course-card-progress-fill"
+								style={{ width: `${course.progress || 0}%` }}
+							/>
+						</div>
+						<div className="va-course-card-meta">
+							<span>Progres: {course.progress ?? 0}%</span>
+							{course.totalModules ? (
+								<span>{course.completedModules ?? 0} / {course.totalModules} module</span>
+							) : null}
+						</div>
+					</>
+				) : null}
+				{status === 'completed' ? (
+					<div className="va-course-card-meta">
+						<span>Test: {course.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
+					</div>
+				) : null}
+				{status === 'not_accessed' ? (
+					<div className="va-course-card-meta">
+						<span>
+							{isViewingOtherUser
+								? 'Elevul nu a deschis încă acest curs.'
+								: 'Nu ai deschis încă acest curs.'}
+						</span>
+					</div>
+				) : null}
+				<Link to={courseLink} className={buttonClass}>
+					{actionLabel}
+				</Link>
+			</div>
+		);
+	};
 
 	return (
 		<div className="va-profile-container">
@@ -204,10 +313,15 @@ const ProfilePage = () => {
 					<div className="va-profile-details">
 						<h1 className="va-profile-name">{profileData.user.name}</h1>
 						<p className="va-profile-role">
-							{isViewingOtherUser 
-								? (profileData.user.role === 'admin' ? 'Administrator' : 'Utilizator')
-								: 'Student'
-							}
+							{isViewingOtherUser
+								? (profileData.user.role === 'admin'
+									? 'Administrator'
+									: profileData.user.role === 'instructor'
+										? 'Instructor'
+										: profileData.user.role === 'analyst'
+											? 'Analist'
+											: 'Student')
+								: 'Student'}
 						</p>
 						{isViewingOtherUser && (
 							<div className="va-profile-badges">
@@ -228,127 +342,49 @@ const ProfilePage = () => {
 				</div>
 			)}
 
-			{/* Stats Grid */}
-			<div className="va-profile-stats">
-				<div className="va-stat-card">
-					<div className="va-stat-icon">📚</div>
-					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.completedCourses ?? 0}</div>
-						<div className="va-stat-label">Cursuri finalizate</div>
-					</div>
-				</div>
-				<div className="va-stat-card">
-					<div className="va-stat-icon">🎯</div>
-					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.completedQuizzes}</div>
-						<div className="va-stat-label">Teste promovate</div>
-					</div>
-				</div>
-				<div className="va-stat-card">
-					<div className="va-stat-icon">🚀</div>
-					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.inProgressCourses}</div>
-						<div className="va-stat-label">Cursuri în progres</div>
-					</div>
-				</div>
-				<div className="va-stat-card va-stat-card-progress">
-					<div className="va-stat-icon">⭐</div>
-					<div className="va-stat-content">
-						<div className="va-stat-value">{stats.progressPercentage}%</div>
-						<div className="va-stat-label">Progres general</div>
-						<div className="va-stat-progress-bar">
-							<div
-								className="va-stat-progress-fill"
-								style={{ width: `${stats.progressPercentage}%` }}
-							></div>
+			{/* KPI + cursuri filtrate */}
+			<div className="va-profile-stats va-profile-stats-kpi">
+				{COURSE_FILTERS.map(({ id, label, statKey }) => (
+					<button
+						key={id}
+						type="button"
+						className={`va-stat-card va-stat-card-kpi${courseFilter === id ? ' is-active' : ''}`}
+						onClick={() => setCourseFilter(id)}
+						aria-pressed={courseFilter === id}
+					>
+						<div className="va-stat-content">
+							<div className="va-stat-value">{courseStats[statKey] ?? 0}</div>
+							<div className="va-stat-label">{label}</div>
 						</div>
-					</div>
-				</div>
+					</button>
+				))}
 			</div>
 
-			{/* Main Content Grid */}
-			<div className="va-profile-grid">
-				{/* Courses In Progress */}
-				<div className="va-profile-section">
-					<div className="va-section-header">
-						<h2 className="va-section-title">Cursuri în progres</h2>
-						<span className="va-section-count">{coursesInProgress.length}</span>
-					</div>
-					<div className="va-courses-list">
-						{coursesInProgress.length > 0 ? (
-							coursesInProgress.map((course) => (
-								<div className="va-course-card" key={course.id}>
-									<div className="va-course-card-header">
-										<h3 className="va-course-card-title">{course.title}</h3>
-										<span className="va-course-card-progress">{course.progress}%</span>
-									</div>
-									<p className="va-course-card-description">{course.description}</p>
-									<div className="va-course-card-progress-bar">
-										<div
-											className="va-course-card-progress-fill"
-											style={{ width: `${course.progress}%` }}
-										></div>
-									</div>
-									<div className="va-course-card-meta">
-										<span>Progres parcurs: {course.progress}%</span>
-									</div>
-									<Link
-										to={`/courses/${course.id}`}
-										className="lms-btn-primary lms-btn-sm"
-									>
-										{(course.progress || 0) >= 100 ? 'Vezi cursul' : 'Continuă cursul'}
-									</Link>
-								</div>
-							))
-						) : (
-							<div className="lms-empty-state">
-								<p className="lms-empty-description">Nu ai cursuri în progres momentan.</p>
+			<div className="va-profile-section va-profile-section-admin-courses">
+				<div className="va-section-header">
+					<h2 className="va-section-title">{COURSE_FILTER_TITLES[courseFilter] || 'Cursuri'}</h2>
+					<span className="va-section-count">{filteredCourses.length}</span>
+				</div>
+				<div className="va-courses-list">
+					{filteredCourses.length > 0 ? (
+						filteredCourses.map(renderCourseCard)
+					) : (
+						<div className="lms-empty-state">
+							<p className="lms-empty-description">
+								{courseFilter === 'all'
+									? (isViewingOtherUser
+										? 'Niciun curs atribuit acestui elev.'
+										: 'Nu ai cursuri atribuite momentan.')
+									: 'Niciun curs în această categorie.'}
+							</p>
+							{!isViewingOtherUser && courseFilter === 'all' ? (
 								<Link to="/courses" className="lms-btn-secondary">
 									Explorează cursuri
 								</Link>
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Completed Courses */}
-				<div className="va-profile-section">
-					<div className="va-section-header">
-						<div className="va-section-title-group">
-							<h2 className="va-section-title">Cursuri finalizate</h2>
-							{coursesCompleted.length > 3 && (
-								<Link
-									to="/completed-courses"
-									className="va-section-more-btn"
-									title="Vezi toate cursurile finalizate"
-								>
-									⋯
-								</Link>
-							)}
+							) : null}
 						</div>
-						<span className="va-section-count">{coursesCompleted.length}</span>
-					</div>
-					<div className="va-completed-courses-list">
-						{coursesCompleted.length > 0 ? (
-							coursesCompleted.slice(0, 3).map((course) => (
-								<div className="va-completed-course-item" key={course.id}>
-									<div className="va-completed-course-content">
-										<span className="va-completed-course-title">{course.title}</span>
-										<span className="va-completed-course-badge">✓ Completat</span>
-									</div>
-									<div className="va-completed-course-meta">
-										<span>Quiz: {course.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
-									</div>
-								</div>
-							))
-						) : (
-							<div className="lms-empty-state">
-								<p className="lms-empty-description">Nu ai finalizat niciun curs încă.</p>
-							</div>
-						)}
-					</div>
+					)}
 				</div>
-
 			</div>
 
 			<ConfirmModal

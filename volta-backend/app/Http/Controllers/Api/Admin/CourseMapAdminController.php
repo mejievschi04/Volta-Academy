@@ -112,12 +112,17 @@ class CourseMapAdminController extends Controller
             ];
         })->values();
 
+        $defaultMap = CourseMapBuckets::defaultMapRecord();
+
         return response()->json([
             'id' => 'unassigned',
-            'name' => 'Fără mapă',
-            'description' => 'Cursuri neasociate unei mape.',
+            'name' => $defaultMap?->name ?? 'Fără mapă',
+            'description' => $defaultMap?->description ?? 'Cursuri neasociate unei mape.',
             'courses' => $courses,
             'is_virtual' => true,
+            'accent_color' => $defaultMap?->accent_color,
+            'header_bg_color' => $defaultMap?->header_bg_color,
+            'header_text_color' => $defaultMap?->header_text_color,
         ]);
     }
 
@@ -132,6 +137,8 @@ class CourseMapAdminController extends Controller
             'visibility' => 'nullable|in:public,private',
             'order' => 'nullable|integer|min:0',
             'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'header_bg_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'header_text_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $validated['created_by'] = auth()->id();
@@ -152,23 +159,54 @@ class CourseMapAdminController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $map = CourseMap::findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $map->created_by !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
+        $map = $this->resolveEditableMap($id);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:5000',
             'order' => 'nullable|integer|min:0',
             'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'header_bg_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'header_text_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $map->update($validated);
+
+        if ((string) $id === 'unassigned') {
+            return $this->showUnassignedMap();
+        }
+
         $map->load('createdBy:id,name,email');
         $map->loadCount('courses');
 
         return response()->json($map);
+    }
+
+    /**
+     * @param  int|string  $id
+     */
+    private function resolveEditableMap($id): CourseMap
+    {
+        if ((string) $id === 'unassigned') {
+            $map = CourseMapBuckets::defaultMapRecord();
+            if (! $map) {
+                $map = CourseMap::create([
+                    'name' => CourseMapBuckets::DEFAULT_MAP_NAME,
+                    'description' => 'Cursuri create recent, neorganizate inca intr-o mapa finala.',
+                    'created_by' => auth()->id(),
+                    'order' => 0,
+                ]);
+            }
+
+            return $map;
+        }
+
+        $map = CourseMap::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $map->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis.');
+        }
+
+        return $map;
     }
 
     /**

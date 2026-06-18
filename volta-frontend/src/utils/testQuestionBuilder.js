@@ -12,6 +12,7 @@ export const TEST_EDITOR_DEFAULT = {
   randomize_answers: true,
   show_results_immediately: true,
   show_correct_answers: true,
+  show_only_submitted_answers: false,
   allow_review: true,
   requires_manual_verification: false,
 };
@@ -151,4 +152,30 @@ export const serializeAnswersForQuestionApi = (rawType, answers) => {
       order: typeof raw.order === 'number' ? raw.order : idx,
     };
   });
+};
+
+/** Selectează tot textul la focus/click — util pentru câmpuri de răspuns la întrebări. */
+export const selectAllTextInputHandlers = {
+  onFocus: (event) => {
+    const input = event.currentTarget;
+    requestAnimationFrame(() => {
+      input.select();
+    });
+  },
+  onClick: (event) => {
+    const input = event.currentTarget;
+    requestAnimationFrame(() => {
+      input.select();
+    });
+  },
+  onMouseUp: (event) => {
+    const input = event.currentTarget;
+    if (
+      input.value.length > 0 &&
+      input.selectionStart === 0 &&
+      input.selectionEnd === input.value.length
+    ) {
+      event.preventDefault();
+    }
+  },
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
 	ArrowLeft,
@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { getNextLessonIdAfter, getPreviousLessonIdBefore } from '../utils/lessonOrder';
+import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
@@ -31,30 +31,6 @@ const renderTestStatusIcon = (passed) => (
 	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
 );
 
-const normalizeCourseModules = (courseData) => {
-	const sortedModules = [...(courseData?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
-	const rootLessons = [...(courseData?.lessons || [])]
-		.filter((lesson) => lesson?.module_id == null)
-		.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-	if (!rootLessons.length) {
-		return sortedModules;
-	}
-
-	return [
-		{
-			id: `root-${courseData?.id || 'course'}`,
-			title: 'Lecții fără modul',
-			order: -1,
-			lessons: rootLessons,
-			course_tests: [],
-			courseTests: [],
-			isRootLessonGroup: true,
-		},
-		...sortedModules,
-	];
-};
-
 const LessonsPage = () => {
 	const { courseId } = useParams();
 	const [searchParams] = useSearchParams();
@@ -63,9 +39,13 @@ const LessonsPage = () => {
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
 	const sentMilestonesRef = useRef(new Set());
-	
+
 	const [course, setCourse] = useState(null);
-	const [modules, setModules] = useState([]);
+	const modules = useMemo(
+		() => [...(course?.modules || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
+		[course?.modules]
+	);
+	const rootLessons = useMemo(() => getRootLessons(course), [course]);
 	const [progress, setProgress] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -96,21 +76,25 @@ const LessonsPage = () => {
 
 	// Auto-open first lesson when course loads (no lesson in URL)
 	useEffect(() => {
-		if (!loading && modules.length > 0 && !selectedLessonId) {
-			// Find first lesson from first module
+		if (!loading && !selectedLessonId) {
+			const firstRootLesson = rootLessons[0];
+			if (firstRootLesson) {
+				setSelectedLessonId(firstRootLesson.id);
+				loadLesson(firstRootLesson.id);
+				return;
+			}
 			const firstModule = modules[0];
-			if (firstModule?.lessons && firstModule.lessons.length > 0) {
-				const sortedLessons = firstModule.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
+			if (firstModule?.lessons?.length > 0) {
+				const sortedLessons = [...firstModule.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
 				const firstLesson = sortedLessons[0];
 				if (firstLesson) {
 					setSelectedLessonId(firstLesson.id);
 					loadLesson(firstLesson.id);
-					// Expand first module
 					setExpandedModules(new Set([firstModule.id]));
 				}
 			}
 		}
-	}, [loading, modules, selectedLessonId]);
+	}, [loading, modules, rootLessons, selectedLessonId]);
 
 	// Expand module containing lesson when loading from URL (?lesson=1)
 	useEffect(() => {
@@ -166,8 +150,6 @@ const LessonsPage = () => {
 			
 			const courseData = await coursesService.getById(courseId);
 			setCourse(courseData);
-			
-			setModules(normalizeCourseModules(courseData));
 			
 			// Fetch progress if user is enrolled
 			if (user?.id) {
@@ -271,6 +253,10 @@ const LessonsPage = () => {
 	const getProgressModule = (moduleId) =>
 		progress?.modules?.find((x) => Number(x.id) === Number(moduleId));
 	const getLessonTestProgress = (moduleId, lessonId, testId) => {
+		if (moduleId == null) {
+			const les = progress?.root_lessons?.find((x) => Number(x.id) === Number(lessonId));
+			return les?.tests?.find((t) => Number(t.test_id) === Number(testId));
+		}
 		const mod = getProgressModule(moduleId);
 		const les = mod?.lessons?.find((x) => Number(x.id) === Number(lessonId));
 		return les?.tests?.find((t) => Number(t.test_id) === Number(testId));
@@ -407,7 +393,7 @@ const LessonsPage = () => {
 			if (!ok) return;
 		}
 
-		const nextId = getNextLessonIdAfter(modules, selectedLessonId);
+		const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
 		if (nextId != null && !Number.isNaN(nextId)) {
 			handleLessonClick(nextId);
 			return;
@@ -416,7 +402,7 @@ const LessonsPage = () => {
 	};
 
 	const handlePreviousLesson = () => {
-		const prevId = getPreviousLessonIdBefore(modules, selectedLessonId);
+		const prevId = getPreviousLessonIdBefore(modules, selectedLessonId, rootLessons);
 		if (prevId != null && !Number.isNaN(prevId)) {
 			handleLessonClick(prevId);
 		}
@@ -500,10 +486,10 @@ const LessonsPage = () => {
 		);
 	}
 
-	const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+	const totalLessons = rootLessons.length + modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
 	const hasMultipleLessons = totalLessons > 1;
-	const nextLessonTarget = selectedLessonId ? getNextLessonIdAfter(modules, selectedLessonId) : undefined;
-	const previousLessonTarget = selectedLessonId ? getPreviousLessonIdBefore(modules, selectedLessonId) : undefined;
+	const nextLessonTarget = selectedLessonId ? getNextLessonIdAfter(modules, selectedLessonId, rootLessons) : undefined;
+	const previousLessonTarget = selectedLessonId ? getPreviousLessonIdBefore(modules, selectedLessonId, rootLessons) : undefined;
 	const isLastLessonInCourse = nextLessonTarget === null;
 	const hasPreviousLesson = previousLessonTarget != null && !Number.isNaN(previousLessonTarget);
 	const hasNextLesson = typeof nextLessonTarget === 'number' && !Number.isNaN(nextLessonTarget);
@@ -559,8 +545,56 @@ const LessonsPage = () => {
 				</div>
 
 				<div className="lessons-page-sidebar-content">
-					{modules.length > 0 ? (
+					{rootLessons.length > 0 || modules.length > 0 ? (
 						<div className="lessons-page-sidebar-modules">
+							{rootLessons.length > 0 && (
+								<div className="lessons-page-sidebar-root-lessons">
+									{rootLessons.map((lesson, lessonIndex) => {
+										const isCompleted = isLessonCompleted(lesson.id);
+										const isActive = selectedLessonId === lesson.id;
+										const lessonTests = getLessonCourseTests(lesson);
+
+										return (
+											<Fragment key={lesson.id}>
+												<button
+													type="button"
+													className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+													onClick={() => handleLessonClick(lesson.id)}
+												>
+													<div className="lessons-page-sidebar-lesson-icon">
+														{isCompleted ? (
+															<Check size={16} weight="bold" aria-hidden />
+														) : (
+															<span>{lessonIndex + 1}</span>
+														)}
+													</div>
+													<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
+												</button>
+												{lessonTests.map((ct) => {
+													const testId = ct.test_id ?? ct.test?.id;
+													if (!testId) return null;
+													const tp = getLessonTestProgress(null, lesson.id, testId);
+													const passed = Boolean(tp?.passed);
+													return (
+														<button
+															key={`lesson-${lesson.id}-test-${testId}`}
+															type="button"
+															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}`}
+															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+														>
+															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
+															<span className="lessons-page-sidebar-lesson-title">
+																{ct.test?.title || 'Test'}
+																{ct.required ? ' *' : ''}
+															</span>
+														</button>
+													);
+												})}
+											</Fragment>
+										);
+									})}
+								</div>
+							)}
 							{modules.map((module, moduleIndex) => {
 								const isModuleExpanded = expandedModules.has(module.id);
 								const moduleProgress = getModuleProgress(module);
@@ -576,10 +610,10 @@ const LessonsPage = () => {
 										>
 											<div className="lessons-page-sidebar-module-info">
 												<span className="lessons-page-sidebar-module-number">
-													{module.isRootLessonGroup ? '•' : moduleIndex + 1}
+													{moduleIndex + 1}
 												</span>
 												<span className="lessons-page-sidebar-module-title">
-													{module.isRootLessonGroup ? 'Lecții fără modul' : module.title}
+													{module.title}
 												</span>
 											</div>
 											<CaretDown

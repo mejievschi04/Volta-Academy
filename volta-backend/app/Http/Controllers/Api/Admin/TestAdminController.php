@@ -10,6 +10,7 @@ use App\Models\TestResult;
 use App\Models\ActivityLog;
 use App\Services\TestBuilderService;
 use App\Services\TestQuestionSelectionService;
+use App\Services\TestAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -24,11 +25,16 @@ class TestAdminController extends Controller
 {
     protected TestBuilderService $testBuilderService;
     protected TestQuestionSelectionService $questionSelectionService;
+    protected TestAnalyticsService $testAnalyticsService;
 
-    public function __construct(TestBuilderService $testBuilderService, TestQuestionSelectionService $questionSelectionService)
-    {
+    public function __construct(
+        TestBuilderService $testBuilderService,
+        TestQuestionSelectionService $questionSelectionService,
+        TestAnalyticsService $testAnalyticsService
+    ) {
         $this->testBuilderService = $testBuilderService;
         $this->questionSelectionService = $questionSelectionService;
+        $this->testAnalyticsService = $testAnalyticsService;
     }
 
     /**
@@ -36,7 +42,7 @@ class TestAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Test::with(['creator', 'questionBank'])->withCount('questions');
+        $query = Test::with(['creator', 'questionBank'])->withCount(['questions', 'results']);
 
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());
@@ -66,7 +72,8 @@ class TestAdminController extends Controller
             });
         }
 
-        $tests = $query->orderBy('created_at', 'desc')->paginate(20);
+        $perPage = min(500, max(1, (int) $request->input('per_page', 20)));
+        $tests = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json($tests);
     }
@@ -109,6 +116,7 @@ class TestAdminController extends Controller
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
             'show_correct_answers' => 'nullable|boolean',
+            'show_only_submitted_answers' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
             'requires_manual_verification' => 'nullable|boolean',
             'question_source' => 'nullable|in:direct,bank',
@@ -180,6 +188,7 @@ class TestAdminController extends Controller
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
             'show_correct_answers' => 'nullable|boolean',
+            'show_only_submitted_answers' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
             'requires_manual_verification' => 'nullable|boolean',
             'question_source' => 'nullable|in:direct,bank',
@@ -579,6 +588,174 @@ class TestAdminController extends Controller
                 Question::where('id', $q->id)->update(['points' => $points]);
             }
         });
+    }
+
+    /**
+     * List all attempts for a test (admin review).
+     */
+    public function results($id)
+    {
+        $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți vedea doar rezultatele testelor tale.');
+        }
+
+        $rows = TestResult::with(['user:id,name,email'])
+            ->where('test_id', $test->id)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'id' => $row->id,
+                    'attempt_number' => $row->attempt_number,
+                    'score' => $row->score,
+                    'max_score' => $row->max_score,
+                    'percentage' => $row->percentage,
+                    'passed' => (bool) $row->passed,
+                    'completed_at' => $row->completed_at,
+                    'needs_manual_review' => (bool) ($row->needs_manual_review ?? false),
+                    'reviewed_at' => $row->reviewed_at,
+                    'status' => $row->status,
+                    'user' => [
+                        'id' => $row->user?->id,
+                        'name' => $row->user?->name,
+                        'email' => $row->user?->email,
+                    ],
+                ];
+            });
+
+        return response()->json($rows->values());
+    }
+
+    /**
+     * Summary statistics for a test (attempts, averages, pass rate).
+     */
+    public function statisticsSummary($id)
+    {
+        $test = Test::findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți vedea doar statisticile testelor tale.');
+        }
+
+        $results = $this->testAnalyticsService->loadResults($test);
+
+        return response()->json([
+            'summary' => $this->testAnalyticsService->buildSummary($test, $results),
+        ]);
+    }
+
+    /**
+     * Item analysis per question for a test.
+     */
+    public function questionAnalytics($id)
+    {
+        $test = Test::with(['questions', 'questionBank.questions'])->findOrFail($id);
+        if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți vedea doar statisticile testelor tale.');
+        }
+
+        $results = $this->testAnalyticsService->loadResults($test);
+
+        return response()->json($this->testAnalyticsService->buildQuestionAnalytics($test, $results));
+    }
+
+    /**
+     * Per-question breakdown for a single test attempt (admin drill-down).
+     */
+    public function resultBreakdown($resultId)
+    {
+        $result = TestResult::with(['test', 'user:id,name,email'])->findOrFail($resultId);
+        if (auth()->user()->isInstructor() && (int) $result->test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți vedea doar rezultatele testelor tale.');
+        }
+
+        return response()->json([
+            'result' => [
+                'id' => $result->id,
+                'attempt_number' => $result->attempt_number,
+                'score' => $result->score,
+                'max_score' => $result->max_score,
+                'percentage' => $result->percentage,
+                'passed' => (bool) $result->passed,
+                'completed_at' => $result->completed_at,
+                'user' => [
+                    'id' => $result->user?->id,
+                    'name' => $result->user?->name,
+                    'email' => $result->user?->email,
+                ],
+            ],
+            'questions' => $this->testAnalyticsService->buildAttemptBreakdown($result),
+        ]);
+    }
+
+    /**
+     * Manually adjust the score for a test attempt.
+     */
+    public function updateResultScore(Request $request, $resultId)
+    {
+        $validated = $request->validate([
+            'score' => 'required|numeric|min:0',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        $result = TestResult::with('test')->findOrFail($resultId);
+        if (auth()->user()->isInstructor() && (int) $result->test->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți modifica doar rezultatele testelor tale.');
+        }
+
+        $maxScore = (int) ($result->max_score ?? 0);
+        if ($maxScore <= 0) {
+            $maxScore = 1;
+        }
+
+        $newScore = min((float) $validated['score'], (float) $maxScore);
+        $newPercentage = round(($newScore / $maxScore) * 100, 2);
+
+        $courseTest = \App\Models\CourseTest::where('test_id', $result->test_id)->first();
+        $passingScore = $courseTest
+            ? (int) ($courseTest->passing_score ?? $result->test->passing_score ?? 70)
+            : (int) ($result->test->passing_score ?? 70);
+        $newPassed = $newPercentage >= $passingScore;
+
+        $manualScores = is_array($result->manual_review_scores) ? $result->manual_review_scores : [];
+        $previousScore = $result->score;
+        $meta = is_array($manualScores['_meta'] ?? null) ? $manualScores['_meta'] : [];
+        $meta['score_adjustment'] = [
+            'previous_score' => $previousScore,
+            'adjusted_score' => $newScore,
+            'adjusted_at' => now()->toIso8601String(),
+            'adjusted_by' => Auth::id(),
+            'note' => $validated['note'] ?? null,
+        ];
+        $manualScores['_meta'] = $meta;
+
+        $result->update([
+            'score' => (int) round($newScore),
+            'percentage' => $newPercentage,
+            'passed' => $newPassed,
+            'needs_manual_review' => false,
+            'status' => 'completed',
+            'reviewed_at' => $result->reviewed_at ?? now(),
+            'reviewed_by' => Auth::id(),
+            'manual_review_scores' => $manualScores,
+        ]);
+
+        \Illuminate\Support\Facades\Cache::forget("profile_user_{$result->user_id}");
+        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$result->user_id}_stats");
+
+        return response()->json([
+            'message' => 'Punctajul a fost actualizat.',
+            'result' => [
+                'id' => $result->id,
+                'score' => $result->score,
+                'max_score' => $result->max_score,
+                'percentage' => $result->percentage,
+                'passed' => $result->passed,
+                'status' => $result->status,
+                'reviewed_at' => $result->reviewed_at,
+            ],
+        ]);
     }
 
     /**

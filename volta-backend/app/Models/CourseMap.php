@@ -16,6 +16,8 @@ class CourseMap extends Model
         'created_by',
         'order',
         'accent_color',
+        'header_bg_color',
+        'header_text_color',
         'cover_image_path',
     ];
 

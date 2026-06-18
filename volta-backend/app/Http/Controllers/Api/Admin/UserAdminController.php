@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -155,124 +156,26 @@ class UserAdminController extends Controller
     public function show($id)
     {
         try {
-            $user = User::with($this->eagerLoadTeamsCoursesAssigned())->findOrFail($id);
-            
-            // Get courses with modules (optimized query)
-            // Use try-catch to handle potential issues with column selection
-            try {
-                $courses = Course::with(['modules:id,course_id,title,order', 'teacher:id,name'])->get();
-            } catch (\Exception $e) {
-                // Fallback: get courses without column selection if it fails
-                $courses = Course::with(['modules', 'teacher'])->get();
-            }
-            
-            // Get user progress from course_user pivot table
-            $courseProgress = DB::table('course_user')
-                ->where('user_id', $user->id)
-                ->where('enrolled', true)
-                ->get()
-                ->keyBy('course_id');
+            $user = User::with([
+                self::TEAMS_ADMIN_EAGER,
+                'assignedCourses.modules:id,course_id,title,order',
+                'assignedCourses.teacher:id,name',
+            ])->findOrFail($id);
 
-            // Get all exams for courses and their latest results for this user
-            $courseIds = $courses->pluck('id')->toArray();
-            $exams = [];
-            $examIds = [];
-            
-            if (!empty($courseIds)) {
-                try {
-                    $exams = Exam::whereIn('course_id', $courseIds)->get();
-                    $examIds = $exams->pluck('id')->toArray();
-                } catch (\Exception $e) {
-                    // If exams table doesn't exist or has issues, continue without exams
-                    Log::warning('Error fetching exams for user profile', ['user_id' => $user->id, 'error' => $e->getMessage()]);
-                }
-            }
-            
-            // Get the latest exam result for each exam for this user
-            $latestExamResults = collect();
-            if (!empty($examIds)) {
-                try {
-                    $latestExamResults = ExamResult::whereIn('exam_id', $examIds)
-                        ->where('user_id', $user->id)
-                        ->orderBy('exam_id')
-                        ->orderBy('attempt_number', 'desc')
-                        ->get()
-                        ->unique('exam_id')
-                        ->keyBy('exam_id');
-                } catch (\Exception $e) {
-                    Log::warning('Error fetching exam results for user profile', ['user_id' => $user->id, 'error' => $e->getMessage()]);
-                }
-            }
-            
-            // Create a map of course_id => has_passed_exam (based on latest result)
-            $courseExamMap = [];
-            foreach ($exams as $exam) {
-                $latestResult = $latestExamResults->get($exam->id);
-                if ($latestResult && isset($latestResult->passed) && $latestResult->passed === true) {
-                    $courseExamMap[$exam->course_id] = true;
-                }
-            }
-            
-            // Count passed quizzes
-            $passedExamResults = $latestExamResults->filter(function($result) {
-                return isset($result->passed) && $result->passed === true;
-            });
+            $coursesData = app(UserAssignedCoursesService::class)->buildProfileCoursesData($user);
 
-            // Calculate stats using modules instead of lessons
-            $totalCourses = $courses->count();
-            $totalModules = $courses->sum(function($course) {
-                return $course->modules ? $course->modules->count() : 0;
-            });
-            $completedModules = $courses->sum(function($course) use ($courseProgress) {
-                $progress = $courseProgress->get($course->id);
-                // If course is completed, all modules are considered completed
-                $moduleCount = $course->modules ? $course->modules->count() : 0;
-                return ($progress && isset($progress->completed_at) && $progress->completed_at) ? $moduleCount : 0;
-            });
-            $completedQuizzes = $passedExamResults->count();
-            $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
+            $user->completed_modules = $coursesData['completed_modules'];
+            $user->completed_quizzes = $coursesData['completed_quizzes'];
+            $user->in_progress_courses = $coursesData['in_progress_courses'];
+            $user->completed_courses = $coursesData['completed_courses'];
+            $user->total_courses = $coursesData['total_courses'];
+            $user->completion_percentage = $coursesData['completion_percentage'];
+            $user->courses_in_progress = $coursesData['courses_in_progress'];
+            $user->courses_completed = $coursesData['courses_completed'];
+            $user->courses_not_accessed = $coursesData['courses_not_accessed'];
+            $user->courses_assigned = $coursesData['courses_assigned'];
+            $user->course_stats = $coursesData['course_stats'];
 
-            // Get courses in progress
-            $coursesInProgress = [];
-            $coursesCompleted = [];
-            
-            foreach ($courses as $course) {
-                $progress = $courseProgress->get($course->id);
-                $courseProgressPercentage = $progress && isset($progress->progress_percentage) ? ($progress->progress_percentage ?? 0) : 0;
-                $isCompleted = $progress && isset($progress->completed_at) && $progress->completed_at;
-                
-                // Check if user has passed the exam for this course
-                $quizPassed = isset($courseExamMap[$course->id]) && $courseExamMap[$course->id] === true;
-                
-                $moduleCount = $course->modules ? $course->modules->count() : 0;
-                
-                if ($courseProgressPercentage > 0 && !$isCompleted) {
-                    $coursesInProgress[] = [
-                        'id' => $course->id,
-                        'title' => $course->title ?? '',
-                        'description' => $course->description ?? '',
-                        'progress' => $courseProgressPercentage,
-                        'completedModules' => round(($courseProgressPercentage / 100) * $moduleCount),
-                        'totalModules' => $moduleCount,
-                    ];
-                } elseif ($isCompleted) {
-                    $coursesCompleted[] = [
-                        'id' => $course->id,
-                        'title' => $course->title ?? '',
-                        'description' => $course->description ?? '',
-                        'quizPassed' => $quizPassed,
-                    ];
-                }
-            }
-            
-            // Add profile data to user object
-            $user->completed_modules = $completedModules;
-            $user->completed_quizzes = $completedQuizzes;
-            $user->in_progress_courses = count($coursesInProgress);
-            $user->completion_percentage = $progressPercentage;
-            $user->courses_in_progress = $coursesInProgress;
-            $user->courses_completed = $coursesCompleted;
-            
             return response()->json($user);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([

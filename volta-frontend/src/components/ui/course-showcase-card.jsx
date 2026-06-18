@@ -34,6 +34,7 @@ const CourseShowcaseCard = React.forwardRef(
 			progress,
 			topLeftSlot,
 			topRightSlot,
+			footerExtraSlot,
 			showAccentRibbon = false,
 			density = 'default',
 			style,
@@ -110,8 +111,13 @@ const CourseShowcaseCard = React.forwardRef(
 							</div>
 						) : null}
 						<div className="course-showcase-card__footer va-card-footer">
-							<span className="course-showcase-card__cta-label va-card-cta-label">{ctaLabel}</span>
-							<ArrowRight size={18} weight="bold" className="course-showcase-card__cta-icon va-card-cta-icon" aria-hidden />
+							{footerExtraSlot ? (
+								<div className="course-showcase-card__footer-extra">{footerExtraSlot}</div>
+							) : null}
+							<div className="course-showcase-card__footer-cta">
+								<span className="course-showcase-card__cta-label va-card-cta-label">{ctaLabel}</span>
+								<ArrowRight size={18} weight="bold" className="course-showcase-card__cta-icon va-card-cta-icon" aria-hidden />
+							</div>
 						</div>
 					</div>
 					{topLeftSlot ? <div className="course-showcase-card__tl">{topLeftSlot}</div> : null}

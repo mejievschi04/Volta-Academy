@@ -1609,6 +1609,19 @@
 	align-items: center;
 	gap: 10px;
 	margin-top: 10px;
+	margin-bottom: 0.85rem;
+}
+
+.admin-course-map-color-hint {
+	margin: 0.2rem 0 0.45rem;
+	font-size: 0.78rem;
+	color: var(--text-tertiary);
+}
+
+.admin-course-map-color-clear {
+	min-height: 36px;
+	padding: 0.35rem 0.65rem;
+	font-size: 0.78rem;
 }
 
 .admin-course-map-color-button {

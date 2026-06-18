@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\ContentBlock;
 use App\Models\Course;
+use App\Support\CourseCatalog;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\CourseVersion;
@@ -526,11 +527,14 @@ class CourseBuilderController extends Controller
         $validated = $request->validate([
             'team_ids' => 'nullable|array',
             'team_ids.*' => 'exists:teams,id',
+            'catalog_outside_map' => 'nullable|boolean',
         ]);
         $teamIds = $validated['team_ids'] ?? [];
+        $catalogOutsideMap = (bool) ($validated['catalog_outside_map'] ?? false);
 
-        DB::transaction(function () use ($course, $teamIds) {
+        DB::transaction(function () use ($course, $teamIds, $catalogOutsideMap) {
             $course->update(['status' => 'published', 'workflow_status' => 'published']);
+            CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             if (count($teamIds) > 0 && \Illuminate\Support\Facades\Schema::hasTable('course_team')) {

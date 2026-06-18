@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { getNextLessonIdAfter } from '../utils/lessonOrder';
+import { getNextLessonIdAfter, getRootLessons } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
@@ -238,7 +238,8 @@ const LessonPage = () => {
 		}
 	};
 
-	const nextLessonTarget = getNextLessonIdAfter(course?.modules, lessonId);
+	const rootLessons = getRootLessons(course);
+	const nextLessonTarget = getNextLessonIdAfter(course?.modules, lessonId, rootLessons);
 	const isLastLessonInCourse = nextLessonTarget === null;
 
 	const handleNext = async () => {

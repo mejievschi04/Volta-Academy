@@ -34,6 +34,12 @@ export const coursesService = {
     const response = await api.post(`/courses/${id}/finish`);
     return response.data;
   },
+
+  /** Cursuri publicate vizibile direct în catalog, fără mapă. */
+  listStandalone: async () => {
+    const response = await api.get('/courses/standalone');
+    return response.data?.data ?? response.data ?? [];
+  },
 };
 
 /** Mape de curs pentru studenți (foldere care grupează cursuri). */
@@ -383,6 +389,49 @@ export const libraryService = {
     return response.data;
   },
 
+  createTextItem: async ({ title, description, body, cover, removeCover = false }) => {
+    await ensureApiCsrfCookie();
+    const formData = new FormData();
+    formData.append('content_type', 'text');
+    formData.append('title', title);
+    if (description) formData.append('description', description);
+    formData.append('body', body);
+    if (cover instanceof Blob) {
+      formData.append('cover', cover, cover.name || 'cover.jpg');
+    }
+    const response = await api.post('/library/items', formData, {
+      timeout: parseInt(import.meta.env.VITE_UPLOAD_TIMEOUT || '600000'),
+    });
+    return response.data;
+  },
+
+  updateTextItem: async (id, { title, description, body, cover, removeCover = false }) => {
+    await ensureApiCsrfCookie();
+    const hasCoverChange = cover instanceof Blob || removeCover;
+
+    if (hasCoverChange) {
+      const formData = new FormData();
+      formData.append('title', title);
+      if (description) formData.append('description', description);
+      formData.append('body', body);
+      if (removeCover) formData.append('remove_cover', '1');
+      if (cover instanceof Blob) {
+        formData.append('cover', cover, cover.name || 'cover.jpg');
+      }
+      const response = await api.post(`/library/items/${id}`, formData, {
+        timeout: parseInt(import.meta.env.VITE_UPLOAD_TIMEOUT || '600000'),
+      });
+      return response.data;
+    }
+
+    const response = await api.put(`/library/items/${id}`, {
+      title,
+      description: description || undefined,
+      body,
+    });
+    return response.data;
+  },
+
   deleteItem: async (id) => {
     const response = await api.delete(`/library/items/${id}`);
     return response.data;
@@ -406,6 +455,45 @@ export const libraryService = {
       }
     }
     return { blob: response.data, filename: name };
+  },
+};
+
+export const guidesService = {
+  listItems: async (params = {}) => {
+    const response = await api.get('/guides/items', { params });
+    return response.data;
+  },
+
+  createItem: async ({ title, description, url, cover }) => {
+    await ensureApiCsrfCookie();
+    const formData = new FormData();
+    formData.append('title', title);
+    if (description) formData.append('description', description);
+    formData.append('url', url);
+    if (cover instanceof Blob) {
+      formData.append('cover', cover, cover.name || 'cover.jpg');
+    }
+    const response = await api.post('/guides/items', formData);
+    return response.data;
+  },
+
+  updateItem: async (id, { title, description, url, cover, removeCover = false }) => {
+    await ensureApiCsrfCookie();
+    const formData = new FormData();
+    formData.append('title', title);
+    if (description) formData.append('description', description);
+    formData.append('url', url);
+    if (removeCover) formData.append('remove_cover', '1');
+    if (cover instanceof Blob) {
+      formData.append('cover', cover, cover.name || 'cover.jpg');
+    }
+    const response = await api.post(`/guides/items/${id}`, formData);
+    return response.data;
+  },
+
+  deleteItem: async (id) => {
+    const response = await api.delete(`/guides/items/${id}`);
+    return response.data;
   },
 };
 
@@ -450,6 +538,17 @@ export const authService = {
       new_password: newPassword,
       new_password_confirmation: newPasswordConfirmation,
     });
+    return response.data;
+  },
+
+  getInvitation: async (token) => {
+    const response = await api.get(`/auth/invitations/${encodeURIComponent(token)}`);
+    return response.data;
+  },
+
+  acceptInvitation: async (token, payload) => {
+    await ensureApiCsrfCookie();
+    const response = await api.post(`/auth/invitations/${encodeURIComponent(token)}/accept`, payload);
     return response.data;
   },
 };
@@ -1111,6 +1210,31 @@ export const adminService = {
     return response.data;
   },
 
+  getUserInvitations: async () => {
+    const response = await api.get('/admin/users/invitations');
+    return response.data;
+  },
+
+  sendUserInvitation: async (payload) => {
+    const response = await api.post('/admin/users/invitations', payload);
+    return response.data;
+  },
+
+  copyUserInvitationLink: async (id) => {
+    const response = await api.post(`/admin/users/invitations/${id}/copy-link`);
+    return response.data;
+  },
+
+  resendUserInvitation: async (id) => {
+    const response = await api.post(`/admin/users/invitations/${id}/resend`);
+    return response.data;
+  },
+
+  cancelUserInvitation: async (id) => {
+    const response = await api.delete(`/admin/users/invitations/${id}`);
+    return response.data;
+  },
+
   assignCourses: async (userId, courseIds, isMandatory = true) => {
     const response = await api.post(`/admin/users/${userId}/courses`, {
       course_ids: courseIds,
@@ -1225,6 +1349,34 @@ export const adminService = {
     return response.data;
   },
 
+  getTestResults: async (testId) => {
+    const response = await api.get(`/admin/tests/${testId}/results`);
+    return response.data;
+  },
+
+  getTestStatisticsSummary: async (testId) => {
+    const response = await api.get(`/admin/tests/${testId}/statistics`);
+    return response.data;
+  },
+
+  getTestQuestionAnalytics: async (testId) => {
+    const response = await api.get(`/admin/tests/${testId}/question-analytics`);
+    return response.data;
+  },
+
+  getTestResultBreakdown: async (resultId) => {
+    const response = await api.get(`/admin/test-results/${resultId}/breakdown`);
+    return response.data;
+  },
+
+  updateTestResultScore: async (resultId, score, note = '') => {
+    const response = await api.patch(`/admin/test-results/${resultId}/score`, {
+      score,
+      note: note || undefined,
+    });
+    return response.data;
+  },
+
   getPendingExamReviews: async () => {
     const response = await api.get('/admin/exams/pending-reviews');
     return response.data;
@@ -1241,6 +1393,14 @@ export const adminService = {
     const response = await api.post(`/admin/exam-results/${resultId}/manual-review`, {
       manual_review_scores: reviewScores,
       overall_feedback: overallFeedback || undefined,
+    });
+    return response.data;
+  },
+
+  updateExamResultScore: async (resultId, score, note = '') => {
+    const response = await api.patch(`/admin/exam-results/${resultId}/score`, {
+      score,
+      note: note || undefined,
     });
     return response.data;
   },
@@ -1360,8 +1520,11 @@ export const adminService = {
     return response.data;
   },
 
-  builderPublishCourse: async (courseId, teamIds = []) => {
-    const response = await api.post(`/admin/courses/${courseId}/builder/publish`, { team_ids: teamIds });
+  builderPublishCourse: async (courseId, teamIds = [], options = {}) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/publish`, {
+      team_ids: teamIds,
+      catalog_outside_map: Boolean(options.catalogOutsideMap),
+    });
     return response.data;
   },
 

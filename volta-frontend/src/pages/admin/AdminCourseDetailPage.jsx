@@ -228,7 +228,7 @@ const AdminCourseDetailPage = () => {
 					setPublishModalOpen(false);
 					setPublishValidationReport(null);
 				}}
-				courseId={course.id}
+				course={course}
 				validationReport={publishValidationReport}
 				onValidate={handleValidateForPublish}
 				onPublished={() => {

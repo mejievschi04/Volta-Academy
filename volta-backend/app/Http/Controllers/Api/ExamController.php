@@ -751,7 +751,8 @@ class ExamController extends Controller
 
         $fullWire = $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
         $showSolutions = $latestResult && ! $forNewAttempt;
-        $transformedQuestions = $showSolutions
+        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
+        $transformedQuestions = ($showSolutions && ! $submittedOnly)
             ? $fullWire
             : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
 
@@ -779,6 +780,7 @@ class ExamController extends Controller
             'instructions' => null,
             'show_feedback_instant' => (bool) ($test->show_results_immediately ?? false),
             'show_correct_answers' => (bool) ($test->show_correct_answers ?? false),
+            'show_only_submitted_answers' => (bool) ($test->show_only_submitted_answers ?? false),
             'type' => $test->type ?? 'final',
             'course_id' => $resolvedCourseId,
             'module_id' => $moduleId,
@@ -1045,7 +1047,8 @@ class ExamController extends Controller
 
         $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed);
         $showSolutions = $latestResult && ! $forNewAttempt;
-        $questions = $showSolutions
+        $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
+        $questions = ($showSolutions && ! $submittedOnly)
             ? $fullWire
             : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
 
@@ -1058,6 +1061,7 @@ class ExamController extends Controller
             'manual_review_mode' => (string) ($settings['manual_review_mode'] ?? 'after_complete'),
             'show_feedback_instant' => (bool) ($settings['show_feedback_instant'] ?? false),
             'show_correct_answers' => (bool) ($settings['show_correct_answers'] ?? false),
+            'show_only_submitted_answers' => (bool) ($settings['show_only_submitted_answers'] ?? false),
             'navigation_mode' => (string) ($settings['navigation_mode'] ?? 'sequential'),
             'deadline_type' => $deadline['type'],
             'deadline_at' => $deadline['deadline_at'],

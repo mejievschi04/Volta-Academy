@@ -27,7 +27,12 @@ function isPdfItem(item) {
 	return mimeType === 'application/pdf' || filename.endsWith('.pdf') || item?.is_pdf === true;
 }
 
+function isTextItem(item) {
+	return item?.is_text === true || item?.content_type === 'text';
+}
+
 function getItemTypeLabel(item) {
+	if (isTextItem(item)) return 'Text';
 	if (isPdfItem(item)) return 'PDF';
 	const filename = String(item?.original_filename || '').toLowerCase();
 	if (filename.endsWith('.doc') || filename.endsWith('.docx')) return 'DOC';
@@ -82,6 +87,11 @@ const LibraryPage = () => {
 			return false;
 		},
 		[actualRole, user],
+	);
+
+	const canEditItem = useCallback(
+		(item) => canDeleteItem(item) && isTextItem(item),
+		[canDeleteItem],
 	);
 
 	const load = useCallback(async (p = 1) => {
@@ -261,12 +271,19 @@ const LibraryPage = () => {
 				<div className="library-page-header-copy">
 					<h1 className="library-page-title">Bibliotecă</h1>
 					<p className="library-page-lead">
-						Materiale partajate: cărți, documente și alte fișiere utile. Toți utilizatorii autentificați pot
-						descărca. Încărcarea este disponibilă pentru administratori și instructori.
+						Materiale partajate: cărți, documente, articole și ghiduri. Toți utilizatorii autentificați pot citi
+						și descărca. Administratorii și instructorii pot încărca fișiere sau scrie direct în bibliotecă.
 					</p>
 				</div>
 				{canUpload && (
 					<div className="library-page-header-actions">
+						<button
+							type="button"
+							className="library-btn library-btn--secondary library-upload-trigger"
+							onClick={() => navigate('/library/compose')}
+						>
+							Scrie material
+						</button>
 						<button
 							type="button"
 							className="library-btn library-btn--primary library-upload-trigger"
@@ -341,8 +358,8 @@ const LibraryPage = () => {
 											</div>
 										</div>
 										<div className="library-book-info">
-											<p className="library-book-filename" title={item.original_filename}>
-												{item.original_filename}
+											<p className="library-book-filename" title={isTextItem(item) ? item.description || item.title : item.original_filename}>
+												{isTextItem(item) ? (item.description || 'Material scris') : item.original_filename}
 											</p>
 											<div className="library-book-actions">
 												<button
@@ -350,11 +367,29 @@ const LibraryPage = () => {
 													className="library-btn library-btn--primary library-btn--grow"
 													onClick={(e) => {
 														e.stopPropagation();
-														onDownload(item);
+														if (isTextItem(item)) {
+															onOpen(item);
+														} else {
+															onDownload(item);
+														}
 													}}
 												>
-													Descarcă
+													{isTextItem(item) ? 'Citește' : 'Descarcă'}
 												</button>
+												{canEditItem(item) && (
+													<button
+														type="button"
+														className="library-btn library-btn--secondary library-btn--icon"
+														onClick={(e) => {
+															e.stopPropagation();
+															navigate(`/library/compose/${item.id}`);
+														}}
+														title="Editează materialul"
+														aria-label="Editează materialul"
+													>
+														✎
+													</button>
+												)}
 												{canDeleteItem(item) && (
 													<button
 														type="button"

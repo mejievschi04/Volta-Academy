@@ -114,6 +114,12 @@ class CourseMapController extends Controller
         if (Schema::hasColumn('course_maps', 'accent_color')) {
             $payload['accent_color'] = $map->accent_color;
         }
+        if (Schema::hasColumn('course_maps', 'header_bg_color')) {
+            $payload['header_bg_color'] = $map->header_bg_color;
+        }
+        if (Schema::hasColumn('course_maps', 'header_text_color')) {
+            $payload['header_text_color'] = $map->header_text_color;
+        }
         if (Schema::hasColumn('course_maps', 'cover_image_path')) {
             $payload['cover_image_url'] = $map->cover_image_url;
         }

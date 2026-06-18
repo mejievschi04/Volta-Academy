@@ -53,7 +53,8 @@ function ConfirmModal({
 		<Modal
 			isOpen={open}
 			onClose={onClose}
-			closeOnBackdropClick={false}
+			closeOnBackdropClick={!loading}
+			closeOnEscape={!loading}
 			ariaLabelledby="confirm-modal-title"
 			ariaDescribedby="confirm-modal-desc"
 			className="confirm-modal-overlay"

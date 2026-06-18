@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
+import RichTextHtml from '../components/RichTextHtml';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 import {
 	coerceChoiceAnswerForQuestion,
@@ -457,8 +458,9 @@ const ExamPage = () => {
 	const needsManualReview = Boolean(result?.needs_manual_review || result?.status === 'pending_review');
 	const showsPartialManualReview = Boolean(needsManualReview && exam?.manual_review_mode === 'partial');
 	const isSequentialNavigation = (exam?.navigation_mode || 'sequential') !== 'free';
+	const showOnlySubmittedAnswers = Boolean(exam?.show_only_submitted_answers);
 	const canShowInstantResults = Boolean(submitted && result && (( !needsManualReview && exam?.show_feedback_instant) || showsPartialManualReview));
-	const canShowCorrectAnswers = Boolean(canShowInstantResults && exam?.show_correct_answers);
+	const canShowCorrectAnswers = Boolean(canShowInstantResults && exam?.show_correct_answers && !showOnlySubmittedAnswers);
 	const mobileSingleQuestion = isMobile && !submitted;
 	const visibleQuestions = useMemo(() => {
 		if (!exam?.questions) return [];
@@ -482,6 +484,13 @@ const ExamPage = () => {
 	// Get question status
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
+			if (showOnlySubmittedAnswers) {
+				const question = exam.questions.find((q) => q.id === questionId);
+				const isAnswered = question
+					? isChoiceAnswered(question, visibleAnswers[questionId])
+					: visibleAnswers[questionId] !== undefined;
+				return isAnswered ? 'answered' : 'not-started';
+			}
 			const question = exam.questions.find(q => q.id === questionId);
 			if (!Array.isArray(question?.options) || question.options.length === 0) {
 				return (question?.type === 'matching' || question?.type === 'ordering') ? (isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect') : 'pending';
@@ -494,7 +503,7 @@ const ExamPage = () => {
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, submitted, result, exam, isQuestionCorrect, visibleAnswers]);
+	}, [answers, currentQuestionIndex, submitted, result, exam, isQuestionCorrect, visibleAnswers, showOnlySubmittedAnswers]);
 
 	if (loading) {
 		return (
@@ -539,12 +548,17 @@ const ExamPage = () => {
 		const hasMatching = q.type === 'matching' && q.matching;
 		const hasOrdering = q.type === 'ordering' && q.ordering;
 		const isStructured = Boolean(hasMatching || hasOrdering);
-		const isCorrect = isQuestionCorrect(q, userAnswer);
+		const isCorrect = showOnlySubmittedAnswers ? null : isQuestionCorrect(q, userAnswer);
 		const matchingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
 		const orderingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
-		const statusLabel = isStructured
-			? (isCorrect ? '✓ Corect' : '✗ Incorect')
-			: (hasOptions ? (isCorrect ? '✓ Corect' : '✗ Incorect') : 'Tip fără opțiuni');
+		const statusLabel = showOnlySubmittedAnswers
+			? 'Răspuns trimis'
+			: isStructured
+				? (isCorrect ? '✓ Corect' : '✗ Incorect')
+				: (hasOptions ? (isCorrect ? '✓ Corect' : '✗ Incorect') : 'Tip fără opțiuni');
+		const feedbackToneClass = showOnlySubmittedAnswers
+			? 'submitted'
+			: (isCorrect ? 'correct' : 'incorrect');
 		const questionPreview =
 			typeof q.text === 'string' && q.text.length > 80 ? `${q.text.slice(0, 80)}…` : q.text;
 
@@ -594,7 +608,8 @@ const ExamPage = () => {
 				)}
 				{canShowCorrectAnswers && q.explanation && (
 					<div className="student-exam-feedback-item-explanation">
-						<strong>Explicație:</strong> {q.explanation}
+						<strong>Explicație:</strong>{' '}
+						<RichTextHtml html={q.explanation} className="student-exam-feedback-item-explanation-body" />
 					</div>
 				)}
 			</>
@@ -604,8 +619,8 @@ const ExamPage = () => {
 			return (
 				<details
 					key={q.id}
-					className={`student-exam-feedback-item student-exam-feedback-item--collapsible ${isCorrect ? 'correct' : 'incorrect'}`}
-					open={!isCorrect}
+					className={`student-exam-feedback-item student-exam-feedback-item--collapsible ${feedbackToneClass}`}
+					open={showOnlySubmittedAnswers ? false : !isCorrect}
 				>
 					<summary className="student-exam-feedback-item-summary">
 						<span className="student-exam-feedback-item-number">{idx + 1}</span>
@@ -618,7 +633,7 @@ const ExamPage = () => {
 		}
 
 		return (
-			<div key={q.id} className={`student-exam-feedback-item ${isCorrect ? 'correct' : 'incorrect'}`}>
+			<div key={q.id} className={`student-exam-feedback-item ${feedbackToneClass}`}>
 				<div className="student-exam-feedback-item-header">
 					<span className="student-exam-feedback-item-number">{idx + 1}</span>
 					<span className="student-exam-feedback-item-status">{statusLabel}</span>
@@ -761,7 +776,11 @@ const ExamPage = () => {
 										{actualIndex + 1}
 									</div>
 									<div className="student-exam-question-content">
-										<div className="student-exam-question-text">{q.text}</div>
+										<RichTextHtml
+											html={q.text}
+											className="student-exam-question-text"
+											fallback={<div className="student-exam-question-text">Întrebare fără conținut</div>}
+										/>
 										<div className="student-exam-question-meta">
 											<span className="student-exam-question-points">{q.points || 1} {q.points === 1 ? 'punct' : 'puncte'}</span>
 											{!submitted && (
@@ -853,7 +872,7 @@ const ExamPage = () => {
 							<div className="student-exam-result-stat-label">Procentaj</div>
 							<div className="student-exam-result-stat-value">{result.percentage}%</div>
 						</div>
-						{performanceMetrics && (
+						{performanceMetrics && !showOnlySubmittedAnswers && (
 							<>
 								<div className="student-exam-result-stat">
 									<div className="student-exam-result-stat-label">Corecte</div>

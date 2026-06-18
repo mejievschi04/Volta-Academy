@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PencilSimple, Plus, Trash, UsersThree, X } from '@phosphor-icons/react';
+import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple } from '@phosphor-icons/react';
+import AdminUserInvitationsPanel from '../../components/admin/users/AdminUserInvitationsPanel';
 import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { logger } from '../../utils/logger';
@@ -8,7 +9,7 @@ import { toImageUrl } from '../../utils/imageUrl';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContext';
-import { teamAccentNeutral as teamAccent } from '../../utils/teamAccent';
+import { teamAccent } from '../../utils/teamAccent';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -26,9 +27,10 @@ const AdminUsersPage = () => {
 	const [roleFilter, setRoleFilter] = useState('all');
 	const [statusFilter, setStatusFilter] = useState('all');
 	const [searchQuery, setSearchQuery] = useState('');
-	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' (coș)
+	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' | 'invitations'
 	const [confirmAction, setConfirmAction] = useState(null); // { type: 'trash'|'reject', userId }
 	const [confirmLoading, setConfirmLoading] = useState(false);
+	const [inviteModalOpen, setInviteModalOpen] = useState(false);
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -43,6 +45,7 @@ const AdminUsersPage = () => {
 	}, []);
 
 	useEffect(() => {
+		if (usersView === 'invitations') return;
 		fetchUsers();
 	}, [statusFilter, usersView, searchQuery]);
 
@@ -262,7 +265,7 @@ const AdminUsersPage = () => {
 		return roles[role] || role || 'Utilizator';
 	};
 
-	if (loading) {
+	if (loading && usersView !== 'invitations') {
 		return (
 			<div className="admin-container">
 				<div className="lms-dashboard-loading">
@@ -277,14 +280,28 @@ const AdminUsersPage = () => {
 			<div className="admin-page-header">
 				<div className="admin-page-header-content">
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
-					<p className="admin-page-subtitle">Gestionează toți utilizatorii din platformă</p>
+					<p className="admin-page-subtitle">
+						{usersView === 'invitations'
+							? 'Invită utilizatori pe email și urmărește statusul trimiterii.'
+							: 'Gestionează toți utilizatorii din platformă'}
+					</p>
 				</div>
+				{usersView === 'invitations' && canMutateInAdminArea && (
+					<button
+						type="button"
+						className="lms-btn-primary"
+						onClick={() => setInviteModalOpen(true)}
+					>
+						<EnvelopeSimple size={16} weight="duotone" aria-hidden />
+						Invitație nouă
+					</button>
+				)}
 				{usersView === 'active' && canMutateInAdminArea && (
 					<button
 						className="lms-btn-primary"
 						onClick={() => {
 							setEditingUser(null);
-							setFormData({ name: '', email: '', password: '', role: 'student', bio: '' });
+							setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
 							setShowModal(true);
 						}}
 					>
@@ -311,6 +328,16 @@ const AdminUsersPage = () => {
 				{canMutateInAdminArea && (
 					<button
 						type="button"
+						className={`admin-users-view-tab ${usersView === 'invitations' ? 'active' : ''}`}
+						onClick={() => setUsersView('invitations')}
+					>
+						<EnvelopeSimple size={16} weight="duotone" aria-hidden />
+						Invitații
+					</button>
+				)}
+				{canMutateInAdminArea && (
+					<button
+						type="button"
 						className={`admin-users-view-tab ${usersView === 'trash' ? 'active' : ''}`}
 						onClick={() => setUsersView('trash')}
 					>
@@ -319,6 +346,14 @@ const AdminUsersPage = () => {
 				)}
 			</nav>
 
+			{usersView === 'invitations' && canMutateInAdminArea ? (
+				<AdminUserInvitationsPanel
+					teams={teams}
+					modalOpen={inviteModalOpen}
+					onModalOpenChange={setInviteModalOpen}
+				/>
+			) : (
+			<>
 			{/* Căutare și filtre */}
 			<div className="admin-users-filters">
 				<div className="admin-users-search-wrap">
@@ -571,7 +606,6 @@ const AdminUsersPage = () => {
 				isOpen={showModal}
 				onClose={() => setShowModal(false)}
 				ariaLabelledby="admin-users-modal-title"
-				closeOnBackdropClick
 				className="admin-users-modal-overlay"
 			>
 				<div className="admin-users-modal">
@@ -722,6 +756,8 @@ const AdminUsersPage = () => {
 						</div>
 				</div>
 			</Modal>
+			</>
+			)}
 
 			<ConfirmModal
 				open={!!confirmAction}

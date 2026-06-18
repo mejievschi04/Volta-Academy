@@ -181,7 +181,7 @@ html[data-theme="dark"] .admin-content-card__primary:hover:not(:disabled) {
 	border-color: rgba(0, 0, 0, 0.14) !important;
 }
 
-html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-course-builder-volt-fab):not(.admin-course-builder-quick-add-btn):not(.admin-course-builder-sidebar-toggle):not(.admin-course-builder-test-question-badge-btn):not(.admin-content-card__action):not(.qb-star-btn):not(.qb-actions-btn):not(.qb-delete-btn):not(.qb-drawer-close):not(.admin-course-builder-test-order-btn.is-delete) {
+html[data-theme="dark"] button:not([class*="primary"]):not([class*="danger"]):not(.mobile-sidebar-toggle):not(.modern-sidebar-logo-toggle):not(.va-sidebar-logo-toggle):not(.admin-settings-toggle-switch):not(.splash-start-btn):not(.splash-review-btn):not(.va-theme-segment-btn):not(.va-cal-drawer-chip):not(.library-reader-floating-btn):not(.admin-courses-showcase-edit-btn):not(.admin-courses-showcase-publish__switch):not(.admin-course-builder-volt-fab):not(.admin-course-builder-quick-add-btn):not(.admin-course-builder-sidebar-toggle):not(.admin-course-builder-test-question-badge-btn):not(.admin-content-card__action):not(.qb-star-btn):not(.qb-actions-btn):not(.qb-delete-btn):not(.qb-drawer-close):not(.admin-course-builder-test-order-btn.is-delete) {
 	color: var(--text-primary) !important;
 	background-color: var(--bg-elevated) !important;
 	border-color: var(--border-primary) !important;

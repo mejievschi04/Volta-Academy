@@ -35,6 +35,7 @@ class TestService
             'randomize_answers' => $data['randomize_answers'] ?? false,
             'show_results_immediately' => $data['show_results_immediately'] ?? true,
             'show_correct_answers' => $data['show_correct_answers'] ?? false,
+            'show_only_submitted_answers' => $data['show_only_submitted_answers'] ?? false,
             'allow_review' => $data['allow_review'] ?? true,
             'question_source' => $data['question_source'] ?? 'direct',
             'question_set_id' => $data['question_set_id'] ?? null,

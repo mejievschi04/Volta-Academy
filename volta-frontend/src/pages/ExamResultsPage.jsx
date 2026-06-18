@@ -21,6 +21,7 @@ import {
 	isMultiSelectChoiceQuestion,
 	normalizeMultiChoiceIndices,
 } from '../utils/examChoiceQuestions';
+import RichTextHtml from '../components/RichTextHtml';
 
 const PASSING_ACCENT = '#22c55e';
 const FAILING_ACCENT = '#ef4444';
@@ -117,7 +118,7 @@ function countAutoGradedQuestions(questions) {
 	return { graded: graded.length, correct, total: questions.length };
 }
 
-function QuestionReview({ question, index, result }) {
+function QuestionReview({ question, index, result, submittedOnly = false }) {
 	const type = question.type || question.question_type || 'multiple_choice';
 	const userAnswer = question.user_answer ?? result?.answers?.[question.id] ?? result?.answers?.[String(question.id)];
 	const multi = isMultiSelectChoiceQuestion({ type });
@@ -143,11 +144,11 @@ function QuestionReview({ question, index, result }) {
 		}));
 	const hasOptions = options.length > 0 && !['matching', 'ordering'].includes(type);
 	const correctness = question.is_correct;
-	const hasAutoStatus = typeof correctness === 'boolean';
+	const hasAutoStatus = !submittedOnly && typeof correctness === 'boolean';
 	const manualEntry = getManualEntry(result, question.id);
 	const manualScore = typeof manualEntry === 'object' ? manualEntry?.score : manualEntry;
 	const manualFeedback = typeof manualEntry === 'object' ? manualEntry?.feedback : null;
-	const statusClass = hasAutoStatus ? (correctness ? 'correct' : 'incorrect') : 'pending';
+	const statusClass = submittedOnly ? 'submitted' : (hasAutoStatus ? (correctness ? 'correct' : 'incorrect') : 'pending');
 	const matching = question.matching;
 	const ordering = question.ordering;
 	const rightLookup = useMemo(
@@ -177,14 +178,16 @@ function QuestionReview({ question, index, result }) {
 					<span className={`exam-result-question-status ${correctness ? 'correct' : 'incorrect'}`}>
 						{correctness ? 'Corect' : 'Incorect'}
 					</span>
-				) : (
+				) : submittedOnly ? null : (
 					<span className="exam-result-question-status pending">Evaluare manuala</span>
 				)}
 			</div>
 
-			<div className="exam-result-question-text">
-				{question.text || question.question_text || question.content || 'Întrebare fără conținut'}
-			</div>
+			<RichTextHtml
+				html={question.text || question.question_text || question.content}
+				className="exam-result-question-text"
+				fallback={<div className="exam-result-question-text">Întrebare fără conținut</div>}
+			/>
 
 			{hasOptions && (
 				<div className="exam-result-answers">
@@ -193,21 +196,28 @@ function QuestionReview({ question, index, result }) {
 						const selected = fromApiAnswers
 							? Boolean(answer.is_selected)
 							: userAnswerIndices.includes(answerIndex);
-						const correct = fromApiAnswers
-							? Boolean(answer.is_correct)
-							: correctIndices.includes(answerIndex);
+						if (submittedOnly && !selected) {
+							return null;
+						}
+						const correct = submittedOnly
+							? false
+							: (fromApiAnswers
+								? Boolean(answer.is_correct)
+								: correctIndices.includes(answerIndex));
 						const answerText = answer.answer_text || answer.text || answer.content || `Varianta ${answerIndex + 1}`;
 						return (
 							<div
 								key={answer.id ?? answerIndex}
-								className={`exam-result-answer ${correct ? 'correct' : selected ? 'user-incorrect' : 'default'}`}
+								className={`exam-result-answer ${submittedOnly ? 'submitted' : (correct ? 'correct' : selected ? 'user-incorrect' : 'default')}`}
 							>
-								<span className="exam-result-answer-marker" aria-hidden>
-									{correct ? <CheckCircle size={18} weight="bold" /> : selected ? <XCircle size={18} weight="bold" /> : null}
-								</span>
+								{!submittedOnly && (
+									<span className="exam-result-answer-marker" aria-hidden>
+										{correct ? <CheckCircle size={18} weight="bold" /> : selected ? <XCircle size={18} weight="bold" /> : null}
+									</span>
+								)}
 								<span className="exam-result-answer-text">{answerText}</span>
 								{selected && <span className="exam-result-answer-label user">Răspunsul tău</span>}
-								{correct && <span className="exam-result-answer-label">Corect</span>}
+								{!submittedOnly && correct && <span className="exam-result-answer-label">Corect</span>}
 							</div>
 						);
 					})}
@@ -223,7 +233,7 @@ function QuestionReview({ question, index, result }) {
 							<div key={left.id ?? pairIndex} className="exam-result-structured-row">
 								<strong>{left.text}</strong>
 								<span>Răspunsul tău: {rightLookup.get(String(userChoice))?.text || 'Fără răspuns'}</span>
-								{!correctness && (
+								{!submittedOnly && !correctness && (
 									<span>Corect: {rightLookup.get(String(correctChoice))?.text || 'Indisponibil'}</span>
 								)}
 							</div>
@@ -238,7 +248,7 @@ function QuestionReview({ question, index, result }) {
 						<strong>Ordinea ta</strong>
 						<span>{renderValueList(userAnswer, orderLookup)}</span>
 					</div>
-					{!correctness && (
+					{!submittedOnly && !correctness && (
 						<div className="exam-result-structured-row">
 							<strong>Ordinea corectă</strong>
 							<span>{renderValueList(ordering.correctOrder, orderLookup)}</span>
@@ -262,9 +272,10 @@ function QuestionReview({ question, index, result }) {
 				</div>
 			)}
 
-			{question.explanation && (
+			{!submittedOnly && question.explanation && (
 				<div className="exam-result-explanation">
-					<strong>Explicatie:</strong> {question.explanation}
+					<strong>Explicatie:</strong>{' '}
+					<RichTextHtml html={question.explanation} className="exam-result-explanation-body" />
 				</div>
 			)}
 		</article>
@@ -370,6 +381,7 @@ const ExamResultsPage = () => {
 
 	const activeResult = selectedResult || selectedListResult;
 	const activeState = getResultState(activeResult);
+	const submittedOnly = Boolean(activeResult?.show_only_submitted_answers);
 	const questions = asArray(activeResult?.exam?.questions);
 	const questionStats = useMemo(() => countAutoGradedQuestions(questions), [questions]);
 	const overallFeedback = activeResult?.manual_review_scores?._meta?.overall_feedback || null;
@@ -556,11 +568,13 @@ const ExamResultsPage = () => {
 									<div className="exam-result-score-display-item">
 										<div className="exam-result-score-display-label">Întrebări corecte</div>
 										<div className="exam-result-score-display-value">
-											{hasOfficialBreakdown
-												? `${officialCorrect} / ${officialTotal}`
-												: questionStats.graded > 0
-													? `${questionStats.correct} / ${questionStats.graded}`
-													: '—'}
+											{submittedOnly
+												? '—'
+												: hasOfficialBreakdown
+													? `${officialCorrect} / ${officialTotal}`
+													: questionStats.graded > 0
+														? `${questionStats.correct} / ${questionStats.graded}`
+														: '—'}
 										</div>
 									</div>
 									<div className="exam-result-score-display-item">
@@ -588,7 +602,7 @@ const ExamResultsPage = () => {
 								<div>
 									<h3 className="exam-result-questions-title">
 										Răspunsurile tale
-										{questionStats.graded > 0 && (
+										{!submittedOnly && questionStats.graded > 0 && (
 											<span className="exam-result-questions-count">
 												{questionStats.correct} corecte · {questionStats.graded - questionStats.correct} greșite
 											</span>
@@ -601,6 +615,7 @@ const ExamResultsPage = () => {
 												question={question}
 												index={index}
 												result={activeResult}
+												submittedOnly={submittedOnly}
 											/>
 										))}
 									</div>

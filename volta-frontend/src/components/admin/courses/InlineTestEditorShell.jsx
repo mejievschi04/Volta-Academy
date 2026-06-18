@@ -2,13 +2,18 @@ import React from 'react';
 import {
   INLINE_QUESTION_TYPES,
   normalizeInlineQuestionType,
+  selectAllTextInputHandlers,
 } from '../../../utils/testQuestionBuilder';
+import RichTextEditor from '../../RichTextEditor';
+import RichTextHtml from '../../RichTextHtml';
+import { stripRichTextToPlain } from '../../../utils/richTextContent';
 
 export default function InlineTestEditorShell({
   editor,
   subtitle = 'Configurezi testul în același editor ca în constructorul de curs.',
   showImportButton = true,
   showBuilderSummary = false,
+  courseId = null,
 }) {
   const {
     inlineTest,
@@ -19,8 +24,10 @@ export default function InlineTestEditorShell({
     inlinePublishLoading,
     creatingTest,
     addingQuestion,
-    expandedQuestionId,
-    setExpandedQuestionId,
+    isQuestionExpanded,
+    toggleQuestionExpanded,
+    toggleAllQuestionsExpanded,
+    allQuestionsExpanded,
     openQuestionTypePickerId,
     questionTypeMenuRef,
     canMutateInAdminArea,
@@ -130,6 +137,15 @@ export default function InlineTestEditorShell({
               <div className="admin-course-builder-test-questions-header">
                 <span>Întrebări ({inlineQuestions.length})</span>
                 <div className="admin-course-builder-test-questions-actions">
+                  {inlineQuestions.length > 0 && canMutateInAdminArea ? (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary"
+                      onClick={toggleAllQuestionsExpanded}
+                    >
+                      {allQuestionsExpanded ? 'Strânge toate' : 'Deschide toate'}
+                    </button>
+                  ) : null}
                   {inlineTestSaving ? <small>Se salvează...</small> : null}
                 </div>
               </div>
@@ -140,10 +156,11 @@ export default function InlineTestEditorShell({
                   {inlineQuestions.map((question, idx) => {
                     const qType = normalizeInlineQuestionType(question.type || 'multiple_choice');
                     const typeLabel = INLINE_QUESTION_TYPES.find((t) => t.id === qType)?.label || 'Întrebare';
+                    const questionExpanded = isQuestionExpanded(question.id);
                     return (
                       <li
                         key={question.id}
-                        className={`admin-course-builder-test-question-item ${expandedQuestionId === question.id ? 'is-expanded' : 'is-collapsed'}`}
+                        className={`admin-course-builder-test-question-item ${questionExpanded ? 'is-expanded' : 'is-collapsed'}`}
                       >
                         <div className="admin-course-builder-test-question-topline">
                           <div className="admin-course-builder-test-question-type-picker">
@@ -160,9 +177,9 @@ export default function InlineTestEditorShell({
                               <button
                                 type="button"
                                 className="admin-btn admin-btn-secondary"
-                                onClick={() => setExpandedQuestionId((prev) => (prev === question.id ? null : question.id))}
+                                onClick={() => toggleQuestionExpanded(question.id)}
                               >
-                                {expandedQuestionId === question.id ? 'Strânge' : 'Deschide'}
+                                {questionExpanded ? 'Strânge' : 'Deschide'}
                               </button>
                               <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleDeleteInlineQuestion(question.id)}>
                                 Șterge
@@ -170,31 +187,70 @@ export default function InlineTestEditorShell({
                             </div>
                           ) : null}
                         </div>
-                        {expandedQuestionId !== question.id && (
-                          <p className="admin-course-builder-test-question-collapsed-preview">
-                            {(question.content || '').trim() || 'Întrebare fără conținut'}
-                          </p>
+                        {!questionExpanded && (
+                          <div className="admin-course-builder-test-question-collapsed-preview">
+                            <p className="admin-course-builder-test-question-collapsed-text">
+                              {stripRichTextToPlain(question.content) || 'Întrebare fără conținut'}
+                            </p>
+                            {stripRichTextToPlain(question.explanation) ? (
+                              <p className="admin-course-builder-test-question-collapsed-desc">
+                                {stripRichTextToPlain(question.explanation)}
+                              </p>
+                            ) : null}
+                          </div>
                         )}
-                        {expandedQuestionId === question.id && (
+                        {questionExpanded && (
                           <>
-                            <textarea
-                              className="admin-course-builder-test-question-input"
-                              value={question.content || ''}
-                              onChange={(e) => patchQuestionField(question.id, 'content', e.target.value)}
-                              onBlur={(e) => handleInlineQuestionBlur(question.id, { content: e.target.value })}
-                              placeholder="Adaugă întrebare"
-                              rows={2}
-                              disabled={!canMutateInAdminArea}
-                            />
-                            <textarea
-                              className="admin-course-builder-test-question-desc"
-                              value={question.explanation || ''}
-                              onChange={(e) => patchQuestionField(question.id, 'explanation', e.target.value)}
-                              onBlur={(e) => handleInlineQuestionBlur(question.id, { explanation: e.target.value })}
-                              placeholder="Adaugă descriere..."
-                              rows={2}
-                              disabled={!canMutateInAdminArea}
-                            />
+                            <div className="admin-course-builder-test-question-fields">
+                              <div className="admin-course-builder-test-question-field">
+                                <span className="admin-course-builder-test-question-field-label">Text întrebare</span>
+                                {canMutateInAdminArea ? (
+                                  <div className="admin-course-builder-test-question-rte">
+                                    <RichTextEditor
+                                      value={question.content || ''}
+                                      onChange={(html) => patchQuestionField(question.id, 'content', html)}
+                                      onBlur={() => handleInlineQuestionBlur(question.id, {})}
+                                      placeholder="Scrie și formatează întrebarea..."
+                                      courseId={courseId}
+                                      toolbarVariant="basic"
+                                      showSideTools={false}
+                                      style={{ minHeight: '120px' }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <RichTextHtml
+                                    html={question.content}
+                                    className="admin-course-builder-test-question-readonly"
+                                    fallback={<p className="admin-course-builder-test-empty">Întrebare fără conținut</p>}
+                                  />
+                                )}
+                              </div>
+                              <div className="admin-course-builder-test-question-field">
+                                <span className="admin-course-builder-test-question-field-label">
+                                  Descriere sau indiciu
+                                  <span className="admin-course-builder-test-question-field-hint">opțional</span>
+                                </span>
+                                {canMutateInAdminArea ? (
+                                  <div className="admin-course-builder-test-question-rte admin-course-builder-test-question-rte-desc">
+                                    <RichTextEditor
+                                      value={question.explanation || ''}
+                                      onChange={(html) => patchQuestionField(question.id, 'explanation', html)}
+                                      onBlur={() => handleInlineQuestionBlur(question.id, {})}
+                                      placeholder="Context, indiciu sau explicație..."
+                                      courseId={courseId}
+                                      toolbarVariant="basic"
+                                      showSideTools={false}
+                                      style={{ minHeight: '88px' }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <RichTextHtml
+                                    html={question.explanation}
+                                    className="admin-course-builder-test-question-readonly admin-course-builder-test-question-readonly-desc"
+                                  />
+                                )}
+                              </div>
+                            </div>
                             {(qType === 'multiple_choice' || qType === 'single_choice' || qType === 'true_false') && (
                               <div className="admin-course-builder-test-question-answers">
                                 <p>Răspunsuri:</p>
@@ -213,6 +269,7 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
                                       placeholder="Introdu răspuns"
                                       disabled={!canMutateInAdminArea}
+                                      {...selectAllTextInputHandlers}
                                     />
                                     {qType !== 'true_false' && canMutateInAdminArea ? (
                                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
@@ -239,6 +296,7 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
                                       placeholder="Element stânga"
                                       disabled={!canMutateInAdminArea}
+                                      {...selectAllTextInputHandlers}
                                     />
                                     <input
                                       type="text"
@@ -246,6 +304,7 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
                                       placeholder="Element dreapta"
                                       disabled={!canMutateInAdminArea}
+                                      {...selectAllTextInputHandlers}
                                     />
                                     {canMutateInAdminArea ? (
                                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
@@ -273,6 +332,7 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
                                       placeholder="Element"
                                       disabled={!canMutateInAdminArea}
+                                      {...selectAllTextInputHandlers}
                                     />
                                     {canMutateInAdminArea ? (
                                       <div className="admin-course-builder-test-order-actions">
@@ -386,6 +446,7 @@ export default function InlineTestEditorShell({
                     ['randomize_answers', 'Amestecă răspunsurile', 'Opțiunile grilă se afișează în ordine diferită.'],
                     ['show_results_immediately', 'Arată rezultatul imediat', 'Cursantul vede scorul imediat după trimitere.'],
                     ['show_correct_answers', 'Arată răspunsurile corecte', 'După finalizare se pot vedea răspunsurile corecte.'],
+                    ['show_only_submitted_answers', 'Doar răspunsurile oferite', 'La final și în rezultate se afișează doar ce a răspuns cursantul, fără corect/greșit.'],
                     ['allow_review', 'Permite revizuirea', 'Cursantul poate reveni să revadă testul după completare.'],
                     ['requires_manual_verification', 'Necesită verificare manuală', 'Rezultatul final rămâne în așteptare până la corectare.'],
                   ].map(([key, label, hint]) => (

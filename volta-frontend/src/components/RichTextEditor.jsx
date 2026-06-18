@@ -501,6 +501,75 @@ function attachPdfLayoutPointerDrag(figure, kind, startClientY, onCommit) {
 	window.addEventListener('pointercancel', onUp);
 }
 
+const BASIC_FONT_OPTIONS = [
+	{ label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+	{ label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+	{ label: 'Trebuchet MS', value: '"Trebuchet MS", Helvetica, sans-serif' },
+	{ label: 'Georgia', value: 'Georgia, "Times New Roman", serif' },
+	{ label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+	{ label: 'Courier New', value: '"Courier New", Courier, monospace' },
+	{ label: 'Comic Sans MS', value: '"Comic Sans MS", "Comic Sans", cursive' },
+];
+
+const BASIC_FONT_DEFAULT = BASIC_FONT_OPTIONS[0].value;
+
+function matchBasicFontOption(fontFamily) {
+	const families = String(fontFamily || '')
+		.toLowerCase()
+		.split(',')
+		.map((part) => part.trim().replace(/["']/g, ''));
+
+	for (const option of BASIC_FONT_OPTIONS) {
+		const primary = option.value.split(',')[0].trim().replace(/["']/g, '').toLowerCase();
+		if (families.some((name) => name === primary || name.includes(primary) || primary.includes(name))) {
+			return option.value;
+		}
+	}
+
+	if (families.some((name) => name.includes('courier') || name.includes('monospace'))) {
+		return BASIC_FONT_OPTIONS.find((option) => option.label === 'Courier New')?.value || BASIC_FONT_DEFAULT;
+	}
+	if (families.some((name) => name.includes('georgia') || name.includes('times') || name.includes('serif'))) {
+		return BASIC_FONT_OPTIONS.find((option) => option.label === 'Georgia')?.value || BASIC_FONT_DEFAULT;
+	}
+	if (families.some((name) => name.includes('comic'))) {
+		return BASIC_FONT_OPTIONS.find((option) => option.label === 'Comic Sans MS')?.value || BASIC_FONT_DEFAULT;
+	}
+	if (families.some((name) => name.includes('trebuchet'))) {
+		return BASIC_FONT_OPTIONS.find((option) => option.label === 'Trebuchet MS')?.value || BASIC_FONT_DEFAULT;
+	}
+	if (families.some((name) => name.includes('verdana'))) {
+		return BASIC_FONT_OPTIONS.find((option) => option.label === 'Verdana')?.value || BASIC_FONT_DEFAULT;
+	}
+
+	return BASIC_FONT_DEFAULT;
+}
+
+function getBasicFontAtSelection(editor) {
+	if (!editor) return BASIC_FONT_DEFAULT;
+
+	const selection = window.getSelection();
+	if (!selection || selection.rangeCount === 0) {
+		return matchBasicFontOption(window.getComputedStyle(editor).fontFamily);
+	}
+
+	let node = selection.anchorNode;
+	if (!node || !editor.contains(node)) {
+		return matchBasicFontOption(window.getComputedStyle(editor).fontFamily);
+	}
+
+	let element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+	while (element && element !== editor) {
+		if (element.style?.fontFamily) {
+			return matchBasicFontOption(element.style.fontFamily);
+		}
+		element = element.parentElement;
+	}
+
+	const base = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+	return matchBasicFontOption(window.getComputedStyle(base || editor).fontFamily);
+}
+
 const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVariant = 'full', courseId = null, showSideTools = true }) => {
 	const { warning: showWarning, error: showError } = useToast();
 	const editorRef = useRef(null);
@@ -526,6 +595,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const [pdfEndPage, setPdfEndPage] = useState(1);
 	const [uploadingPdf, setUploadingPdf] = useState(false);
 	const [sideToolsExpanded, setSideToolsExpanded] = useState(false);
+	const [basicFontValue, setBasicFontValue] = useState(BASIC_FONT_DEFAULT);
 	const fileInputRef = useRef(null);
 	const imageInputRef = useRef(null);
 	const [pdfEditHost, setPdfEditHost] = useState(null);
@@ -936,6 +1006,16 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		}
 	};
 
+	const refreshBasicFontFromSelection = () => {
+		if (toolbarVariant !== 'basic') return;
+		setBasicFontValue(getBasicFontAtSelection(editorRef.current));
+	};
+
+	const handleEditorSelectionChange = () => {
+		saveSelection();
+		refreshBasicFontFromSelection();
+	};
+
 	const restoreSelection = () => {
 		const editor = editorRef.current;
 		const selection = window.getSelection();
@@ -951,6 +1031,10 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const handleToolMouseDown = (e) => {
 		e.preventDefault();
 		restoreSelection();
+	};
+
+	const handleFontSelectPointerDown = () => {
+		handleEditorSelectionChange();
 	};
 
 	const execCommand = (command, value = null) => {
@@ -1398,6 +1482,76 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		</button>
 	);
 
+	const dispatchEditorInput = () => {
+		if (!editorRef.current) return;
+		const event = new Event('input', { bubbles: true });
+		editorRef.current.dispatchEvent(event);
+	};
+
+	const applyBasicFontFamily = (fontFamily) => {
+		restoreSelection();
+		const editor = editorRef.current;
+		const selection = window.getSelection();
+		if (!editor || !selection || selection.rangeCount === 0) {
+			editor?.focus();
+			return;
+		}
+
+		const range = selection.getRangeAt(0);
+		if (!editor.contains(range.commonAncestorContainer)) {
+			editor.focus();
+			return;
+		}
+
+		const wrapRangeWithSpan = (targetRange, span) => {
+			try {
+				targetRange.surroundContents(span);
+				return span;
+			} catch {
+				const fragment = targetRange.extractContents();
+				span.appendChild(fragment);
+				targetRange.insertNode(span);
+				return span;
+			}
+		};
+
+		if (!fontFamily) {
+			editor.focus();
+			return;
+		}
+
+		const span = document.createElement('span');
+		span.style.fontFamily = fontFamily;
+		span.setAttribute('data-rte-font', '1');
+
+		if (range.collapsed) {
+			range.insertNode(span);
+			const caret = document.createRange();
+			caret.setStart(span, 0);
+			caret.collapse(true);
+			selection.removeAllRanges();
+			selection.addRange(caret);
+			savedSelectionRef.current = caret.cloneRange();
+		} else {
+			const wrapped = wrapRangeWithSpan(range, span);
+			const after = document.createRange();
+			after.selectNodeContents(wrapped);
+			after.collapse(false);
+			selection.removeAllRanges();
+			selection.addRange(after);
+			savedSelectionRef.current = after.cloneRange();
+		}
+
+		editor.focus();
+		dispatchEditorInput();
+		setBasicFontValue(fontFamily);
+	};
+
+	const handleBasicFontChange = (fontFamily) => {
+		if (!fontFamily) return;
+		applyBasicFontFamily(fontFamily);
+	};
+
 	const sideToolGroups = [
 		[
 			{ key: 'h1', label: 'Titlu H1', icon: 'h1', onClick: () => execCommand('formatBlock', 'h1') },
@@ -1426,8 +1580,46 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	];
 
 	return (
-		<div className="rte-container" style={style}>
-			{toolbarVariant !== 'side-only' && (
+		<div className={`rte-container ${toolbarVariant === 'basic' ? 'rte-container-basic' : ''}`} style={style}>
+			{toolbarVariant === 'basic' && (
+				<div className="rte-toolbar rte-toolbar-basic">
+					<div className="rte-toolbar-group rte-toolbar-group-labeled">
+						<span className="rte-toolbar-label">Font</span>
+						<select
+							className="rte-toolbar-select rte-toolbar-select-basic"
+							value={basicFontValue}
+							onMouseDown={handleFontSelectPointerDown}
+							onPointerDown={handleFontSelectPointerDown}
+							onChange={(e) => {
+								handleBasicFontChange(e.target.value);
+							}}
+							title="Fontul textului selectat sau de la cursor"
+						>
+							{BASIC_FONT_OPTIONS.map((option) => (
+								<option
+									key={option.value}
+									value={option.value}
+									style={{ fontFamily: option.value }}
+								>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="rte-toolbar-separator" />
+					<ToolbarButton onClick={() => execCommand('underline')} icon={<u>U</u>} title="Subliniat" />
+					<ToolbarButton
+						onClick={() => {
+							setColorType('foreground');
+							setShowColorPicker(true);
+						}}
+						icon="A"
+						title="Culoare text"
+						className="rte-toolbar-btn-color"
+					/>
+				</div>
+			)}
+			{toolbarVariant === 'full' && (
 				<div className="rte-toolbar">
 					<div className="rte-toolbar-group rte-toolbar-group-labeled">
 						<span className="rte-toolbar-label" id="rte-format-label">Stil:</span>
@@ -1544,7 +1736,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					onMouseDown={handleEditorMouseDown}
 					onDoubleClick={handleEditorDoubleClick}
 					onPaste={handlePaste}
-					onContextMenu={(e) => {
+					onContextMenu={toolbarVariant === 'basic' ? undefined : (e) => {
 						e.preventDefault();
 						saveSelection();
 						const imageTarget = findEditableImage(e.target, editorRef.current);
@@ -1555,15 +1747,24 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 							imageTarget: imageTarget || null,
 						});
 					}}
-					onMouseUp={saveSelection}
+					onMouseUp={handleEditorSelectionChange}
 					onKeyDown={handleEditorKeyDown}
-					onKeyUp={saveSelection}
-					onFocus={() => setIsFocused(true)}
+					onKeyUp={handleEditorSelectionChange}
+					onFocus={() => {
+						setIsFocused(true);
+						refreshBasicFontFromSelection();
+					}}
 					onBlur={(e) => {
+						const container = e.currentTarget.closest('.rte-container');
+						const nextFocus = e.relatedTarget;
+						if (nextFocus && container?.contains(nextFocus)) {
+							handleEditorSelectionChange();
+							return;
+						}
+						saveSelection();
 						// Trimite ultima versiune din DOM înainte de flush la părinte (formatări din toolbar, paste etc. pot să nu fi declanșat încă onInput).
 						syncEditorFromDom();
 						setIsFocused(false);
-						saveSelection();
 						if (onBlur) onBlur(e);
 					}}
 					data-placeholder={placeholder}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
 	DndContext,
 	closestCenter,
@@ -17,7 +17,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowLeft, Info } from '@phosphor-icons/react';
+import CourseMapHeaderStyleEditor from '../components/admin/course-maps/CourseMapHeaderStyleEditor';
 import { DragGripIcon } from '../components/common/DragGripIcon';
+import {
+	CourseShowcaseEditButton,
+	CourseShowcasePublishToggle,
+} from '../components/admin/courses/CourseShowcaseQuickActions';
+import { useCoursePublishFromCard } from '../hooks/useCoursePublishFromCard';
 import { courseMapsService, adminService } from '../services/api';
 import { courseCoverSrc } from '../utils/imageUrl';
 import { useAuth } from '../contexts/AuthContext';
@@ -68,7 +74,17 @@ function CourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {
 	);
 }
 
-function SortableCourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {
+function SortableCourseMapCourseCard({
+	course,
+	fmtDur,
+	onNavigateCourse,
+	themeHsl,
+	canMutate,
+	canEdit,
+	onStatusClick,
+	onEdit,
+	statusBusy,
+}) {
 	const sid = sortableCourseId(course.id);
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sid });
 	const style = {
@@ -111,6 +127,16 @@ function SortableCourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHs
 				onOpen={() => onNavigateCourse(course.id)}
 				ctaLabel="Deschide"
 				topLeftSlot={dragHandle}
+				topRightSlot={canEdit ? <CourseShowcaseEditButton onEdit={onEdit} /> : null}
+				footerExtraSlot={
+					canMutate ? (
+						<CourseShowcasePublishToggle
+							course={course}
+							onStatusClick={onStatusClick}
+							statusBusy={statusBusy}
+						/>
+					) : null
+				}
 			/>
 		</div>
 	);
@@ -119,8 +145,11 @@ function SortableCourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHs
 const CourseMapPage = () => {
 	const { mapId } = useParams();
 	const navigate = useNavigate();
-	const { user } = useAuth();
+	const location = useLocation();
+	const { user, canMutateInAdminArea, canEditCoursesAsStaff } = useAuth();
 	const { showToast } = useToast();
+	const isAdminRoute = location.pathname.startsWith('/admin/');
+	const canShowMapHeaderEdit = canEditCoursesAsStaff && isAdminRoute;
 	const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
 	const mapsListPath = isAdmin
 		? user?.actualRole === 'instructor'
@@ -171,6 +200,10 @@ const CourseMapPage = () => {
 		setOrderedCourses((rows) => rows.map(patch));
 	}, []);
 
+	const { handleCourseStatusQuick, statusBusyId, publishModal } = useCoursePublishFromCard({
+		onCoursePatched: mergeCourseIntoLists,
+		showToast,
+	});
 
 	const handleCoursesDragEnd = async (event) => {
 		if (!isAdmin || !map?.id) return;
@@ -249,15 +282,28 @@ const CourseMapPage = () => {
 	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
 	const accent = map.accent_color || '#059669';
 	const mapThemeHsl = hexToHslSpace(accent);
+	const headerBgColor = map.header_bg_color?.trim() || '';
+	const headerTextColor = map.header_text_color?.trim() || '';
+	const hasCustomHeaderColors = Boolean(headerBgColor || headerTextColor);
+	const resolvedHeaderText = headerTextColor || '#f8fafc';
 	const headerStyle = {
-		background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #0f172a))`,
-		color: '#f8fafc',
+		background: headerBgColor
+			? headerBgColor
+			: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #0f172a))`,
+		color: resolvedHeaderText,
+		'--map-header-text': resolvedHeaderText,
 	};
 
 	return (
 		<div className={`course-map-page${!isAdmin ? ' course-map-page--student' : ''}`}>
-			<header className="course-map-page-header course-map-page-header--branded" style={headerStyle}>
+			<header
+				className={`course-map-page-header course-map-page-header--branded${hasCustomHeaderColors ? ' course-map-page-header--custom-colors' : ''}${canShowMapHeaderEdit ? ' course-map-page-header--has-edit' : ''}`}
+				style={headerStyle}
+			>
 				<div className="course-map-page-header-inner">
+					{canShowMapHeaderEdit ? (
+						<CourseMapHeaderStyleEditor map={map} onSaved={setMap} />
+					) : null}
 					<div className="course-map-page-header-top">
 						<button
 							type="button"
@@ -304,6 +350,11 @@ const CourseMapPage = () => {
 											fmtDur={formatDuration}
 											onNavigateCourse={navigateToCourse}
 											themeHsl={mapThemeHsl}
+											canMutate={canMutateInAdminArea}
+											canEdit={canEditCoursesAsStaff}
+											onStatusClick={handleCourseStatusQuick}
+											onEdit={() => navigate(`/admin/courses/${course.id}/builder`)}
+											statusBusy={statusBusyId === course.id}
 										/>
 									))}
 								</div>
@@ -332,6 +383,7 @@ const CourseMapPage = () => {
 					</div>
 				)}
 			</div>
+			{publishModal}
 		</div>
 	);
 };

@@ -24,7 +24,7 @@
 
 @media (max-width: 768px) {
 	/* Buttons - PAGES ONLY (nu meniul). Touch target 44px. */
-	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch),
+	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch),
 	.va-shell-main .btn,
 	.va-shell-main .admin-btn,
 	.va-shell-main .va-btn,
@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
+	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -62,9 +62,9 @@
 	}
 
 	/* Icon buttons - pages only */
-	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch),
+	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch),
 	.va-shell-main .icon-btn,
-	.admin-container button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-edit-btn),
+	.admin-container button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.admin-courses-showcase-edit-btn),
 	.admin-container .icon-btn {
 		min-width: var(--btn-mobile-min-width);
 		min-height: var(--btn-mobile-min-height);

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\RegistrationInvitationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TelemetryController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\Admin\EventAdminController;
 use App\Http\Controllers\Api\Admin\DashboardAdminController;
 use App\Http\Controllers\Api\Admin\TeamAdminController;
 use App\Http\Controllers\Api\Admin\UserAdminController;
+use App\Http\Controllers\Api\Admin\RegistrationInvitationAdminController;
 use App\Http\Controllers\Api\Admin\ActivityLogAdminController;
 use App\Http\Controllers\Api\Admin\MediaAdminController;
 use App\Http\Controllers\Api\Admin\CourseMapAdminController;
@@ -57,7 +59,7 @@ Route::get('/health', function () {
 // Public routes – throttle to prevent abuse (e.g. scraping, DoS)
 Route::middleware('throttle:120,1')->group(function () {
     Route::get('/courses', [CourseController::class, 'index']);
-    Route::get('/courses/{id}', [CourseController::class, 'show']);
+    Route::get('/courses/{id}', [CourseController::class, 'show'])->whereNumber('id');
     Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{id}', [EventController::class, 'show']);
@@ -86,6 +88,8 @@ if (config('app.debug')) {
 
 // Auth routes with rate limiting (prevent brute force attacks)
 Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 'register'])->middleware('throttle:15,1'); // 15 attempts per minute
+Route::get('/auth/invitations/{token}', [RegistrationInvitationController::class, 'show'])->middleware('throttle:60,1');
+Route::post('/auth/invitations/{token}/accept', [RegistrationInvitationController::class, 'accept'])->middleware('throttle:15,1');
 Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:15,1'); // 15 attempts per minute
 Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth:sanctum');
@@ -135,6 +139,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
     Route::patch('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
     
     // Course Progress
+    Route::get('/courses/standalone', [CourseController::class, 'learnerStandaloneCourses']);
     Route::get('/courses/{courseId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'getCourseProgress']);
     Route::post('/courses/{courseId}/enroll', [\App\Http\Controllers\Api\CourseProgressController::class, 'enrollCourse']);
     Route::post('/courses/{courseId}/finish', [\App\Http\Controllers\Api\CourseProgressController::class, 'finishCourse']);
@@ -168,8 +173,17 @@ Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
     Route::get('/library/items', [LibraryController::class, 'index']);
     Route::get('/library/items/{id}', [LibraryController::class, 'show']);
     Route::post('/library/items', [LibraryController::class, 'store']);
+    Route::put('/library/items/{id}', [LibraryController::class, 'update']);
+    Route::post('/library/items/{id}', [LibraryController::class, 'update']);
     Route::delete('/library/items/{id}', [LibraryController::class, 'destroy']);
     Route::get('/library/items/{id}/download', [LibraryController::class, 'download']);
+
+    // Ghiduri — linkuri utile (listare toți utilizatorii autentificați)
+    Route::get('/guides/items', [\App\Http\Controllers\Api\GuideController::class, 'index']);
+    Route::post('/guides/items', [\App\Http\Controllers\Api\GuideController::class, 'store']);
+    Route::put('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'update']);
+    Route::post('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'update']);
+    Route::delete('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'destroy']);
 
     Route::post('/telemetry/events', [TelemetryController::class, 'store']);
     
@@ -306,6 +320,9 @@ Route::middleware([
     Route::post('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'store']);
     Route::put('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'update']);
     Route::delete('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'destroy']);
+    Route::get('/tests/{id}/results', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'results']);
+    Route::get('/tests/{id}/statistics', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'statisticsSummary']);
+    Route::get('/tests/{id}/question-analytics', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'questionAnalytics']);
     Route::post('/tests/{id}/publish', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'publish']);
     Route::post('/tests/{id}/selection-preview', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'selectionPreview']);
     Route::get('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getQuestions']);
@@ -363,6 +380,11 @@ Route::middleware([
     
     // Users Management
     Route::get('/users', [UserAdminController::class, 'index']);
+    Route::get('/users/invitations', [RegistrationInvitationAdminController::class, 'index']);
+    Route::post('/users/invitations', [RegistrationInvitationAdminController::class, 'store']);
+    Route::post('/users/invitations/{id}/resend', [RegistrationInvitationAdminController::class, 'resend']);
+    Route::post('/users/invitations/{id}/copy-link', [RegistrationInvitationAdminController::class, 'copyLink']);
+    Route::delete('/users/invitations/{id}', [RegistrationInvitationAdminController::class, 'destroy']);
     Route::get('/users/{id}', [UserAdminController::class, 'show']);
     Route::post('/users', [UserAdminController::class, 'store']);
     Route::put('/users/{id}', [UserAdminController::class, 'update']);
@@ -391,9 +413,12 @@ Route::middleware([
     
     // Exam Manual Review (legacy Exam model)
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
+    Route::patch('/exam-results/{id}/score', [ExamAdminController::class, 'updateResultScore']);
 
     // Test Manual Review (Test model - standalone tests)
     Route::post('/test-results/{id}/manual-review', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'submitManualReview']);
+    Route::patch('/test-results/{id}/score', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'updateResultScore']);
+    Route::get('/test-results/{id}/breakdown', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'resultBreakdown']);
     
     // Admin Settings
     Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'index']);

@@ -13,9 +13,15 @@ import InlineTestEditorShell from '../../components/admin/courses/InlineTestEdit
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
+import {
+	buildModuleFlowItems,
+	buildRootOutlineFlow,
+	resolvePlacementFromFlowInsert,
+} from '../../utils/courseBuilderTestFlow';
 import { notifyVoltComingSoon } from '../../utils/voltAvailability';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
+const TEST_DRAG_MIME = 'application/x-volta-course-test';
 
 function getDropTargetLessons(modulesList, rootLessonsList, toModuleId) {
 	if (toModuleId == null) {
@@ -66,10 +72,43 @@ const AdminCourseBuilderPage = () => {
 	const [createTestTitle, setCreateTestTitle] = useState('');
 	const [createTestModuleId, setCreateTestModuleId] = useState(null);
 	const [courseAttachedTests, setCourseAttachedTests] = useState([]);
-	const [draggingSidebarTestId, setDraggingSidebarTestId] = useState(null);
-	const [sidebarDropHint, setSidebarDropHint] = useState({ moduleId: null, targetId: null, position: null });
 	const [lessonDropHint, setLessonDropHint] = useState(null);
 	const lessonDragPayloadRef = useRef(null);
+	const testDragPayloadRef = useRef(null);
+	const sidebarTestDropHintRef = useRef(null);
+	const sidebarNavRef = useRef(null);
+	const draggingTestRowRef = useRef(null);
+	const dragGhostCloneRef = useRef(null);
+
+	const syncTestDropHintDom = useCallback((hint) => {
+		sidebarTestDropHintRef.current = hint;
+		const root = sidebarNavRef.current;
+		if (!root) return;
+		root.querySelectorAll('.admin-course-builder-drop-slot.is-active').forEach((el) => {
+			el.classList.remove('is-active');
+		});
+		if (!hint || hint.targetType !== 'flow-insert') return;
+		const moduleKey = hint.moduleId ?? 'root';
+		const slot = root.querySelector(
+			`.admin-course-builder-drop-slot[data-drop-module-id="${moduleKey}"][data-flow-insert-index="${hint.insertIndex}"]`
+		);
+		slot?.classList.add('is-active');
+	}, []);
+
+	const applyTestDropHint = useCallback(
+		(hint) => {
+			const prev = sidebarTestDropHintRef.current;
+			if (
+				prev?.targetType === hint?.targetType &&
+				(prev?.moduleId ?? null) === (hint?.moduleId ?? null) &&
+				prev?.insertIndex === hint?.insertIndex
+			) {
+				return;
+			}
+			syncTestDropHintDom(hint);
+		},
+		[syncTestDropHintDom]
+	);
 	const [editingModuleId, setEditingModuleId] = useState(null);
 	const [editingModuleTitle, setEditingModuleTitle] = useState('');
 	const lessonTitleRef = useRef(null);
@@ -98,7 +137,6 @@ const AdminCourseBuilderPage = () => {
 			return source.map((lessonItem) => ({
 				...lessonItem,
 				module_id: null,
-				__moduleTitle: 'Fara modul',
 			}));
 		},
 		[course?.lessons, structure?.lessons, structure?.root_lessons]
@@ -134,7 +172,7 @@ const AdminCourseBuilderPage = () => {
 			`Curs: ${course?.title || 'Curs curent'}`,
 			course?.description ? `Descriere: ${course.description}` : null,
 			moduleLines.length > 0 ? `Module existente:\n${moduleLines.join('\n')}` : 'Module existente: niciunul',
-			rootLessonTitles ? `Lecții la rădăcină: ${rootLessonTitles}` : null,
+			rootLessonTitles ? `Lecții: ${rootLessonTitles}` : null,
 		].filter(Boolean).join('\n\n');
 	}, [course?.description, course?.title, modules, rootLessons]);
 
@@ -239,8 +277,6 @@ const AdminCourseBuilderPage = () => {
 		inlinePublishLoading,
 		creatingTest,
 		addingQuestion,
-		expandedQuestionId,
-		setExpandedQuestionId,
 		openQuestionTypePickerId,
 		flushAllInlineQuestionSaves,
 		loadTest: loadTestIntoEditor,
@@ -296,6 +332,271 @@ const AdminCourseBuilderPage = () => {
 		},
 		[courseId, fetchAttachedTests, flushPendingLessonContentSave, showToast]
 	);
+
+	const clearTestDragVisuals = useCallback(() => {
+		draggingTestRowRef.current?.classList.remove('is-dragging');
+		draggingTestRowRef.current = null;
+		document.body.classList.remove('admin-course-builder-test-drag-active');
+		if (dragGhostCloneRef.current) {
+			dragGhostCloneRef.current.remove();
+			dragGhostCloneRef.current = null;
+		}
+		syncTestDropHintDom(null);
+	}, [syncTestDropHintDom]);
+
+	const clearTestDrag = useCallback(() => {
+		testDragPayloadRef.current = null;
+		clearTestDragVisuals();
+	}, [clearTestDragVisuals]);
+
+	const handleCourseTestMove = useCallback(
+		async (courseTestItem, placement) => {
+			if (!courseTestItem || !placement) return;
+
+			const movingCourseTestId = courseTestItem.id;
+			const targetScope = placement.scope;
+			const targetScopeId = placement.scope_id;
+			const moduleId = placement.moduleId;
+
+			const getTargetSiblings = (excludeId) => {
+				if (targetScope === 'lesson') {
+					return getLessonAttachedTests(targetScopeId).filter((row) => Number(row.id) !== Number(excludeId));
+				}
+				if (targetScope === 'module' && moduleId != null) {
+					return getModuleAttachedTests(moduleId).filter((row) => Number(row.id) !== Number(excludeId));
+				}
+				if (targetScope === 'course') {
+					return getCourseLevelAttachedTests().filter((row) => Number(row.id) !== Number(excludeId));
+				}
+				return [];
+			};
+
+			const sourceScope = courseTestItem.scope;
+			const sourceScopeId = courseTestItem.scope_id;
+			const scopeChanged =
+				sourceScope !== targetScope || Number(sourceScopeId) !== Number(targetScopeId);
+
+			let insertAt = placement.order;
+			if (!scopeChanged) {
+				const originalSiblings =
+					targetScope === 'lesson'
+						? getLessonAttachedTests(targetScopeId)
+						: targetScope === 'module' && moduleId != null
+							? getModuleAttachedTests(moduleId)
+							: targetScope === 'course'
+								? getCourseLevelAttachedTests()
+								: [];
+				const sourceIndex = originalSiblings.findIndex(
+					(row) => Number(row.id) === Number(movingCourseTestId)
+				);
+				if (sourceIndex !== -1 && sourceIndex < insertAt) {
+					insertAt -= 1;
+				}
+			}
+
+			const siblings = getTargetSiblings(movingCourseTestId);
+			insertAt = Math.max(0, Math.min(insertAt, siblings.length));
+			const nextRows = [...siblings];
+			nextRows.splice(insertAt, 0, {
+				...courseTestItem,
+				scope: targetScope,
+				scope_id: targetScopeId,
+			});
+
+			try {
+				if (scopeChanged) {
+					await adminService.builderDetachTest(courseId, courseTestItem.test_id, {
+						course_test_id: courseTestItem.id,
+					});
+				}
+
+				for (let i = 0; i < nextRows.length; i += 1) {
+					const row = nextRows[i];
+					await adminService.builderAttachTest(courseId, {
+						test_id: row.test_id,
+						scope: targetScope,
+						scope_id: targetScope === 'course' ? null : targetScopeId,
+						order: i,
+						required: row.required,
+						passing_score: row.passing_score,
+					});
+				}
+
+				if (scopeChanged) {
+					let oldSiblings = [];
+					if (sourceScope === 'lesson') {
+						oldSiblings = getLessonAttachedTests(sourceScopeId);
+					} else if (sourceScope === 'module') {
+						oldSiblings = getModuleAttachedTests(sourceScopeId);
+					} else if (sourceScope === 'course') {
+						oldSiblings = getCourseLevelAttachedTests();
+					}
+					oldSiblings = oldSiblings.filter((row) => Number(row.id) !== Number(movingCourseTestId));
+
+					for (let i = 0; i < oldSiblings.length; i += 1) {
+						const row = oldSiblings[i];
+						await adminService.builderAttachTest(courseId, {
+							test_id: row.test_id,
+							scope: sourceScope,
+							scope_id: sourceScope === 'course' ? null : sourceScopeId,
+							order: i,
+							required: row.required,
+							passing_score: row.passing_score,
+						});
+					}
+				}
+
+				await fetchAttachedTests();
+				showToast('Testul a fost mutat.', 'success');
+			} catch (err) {
+				console.error('Move course test failed:', err);
+				showToast(err?.response?.data?.message || 'Eroare la mutarea testului.', 'error');
+				await fetchAttachedTests();
+			}
+		},
+		[courseId, fetchAttachedTests, getCourseLevelAttachedTests, getLessonAttachedTests, getModuleAttachedTests, showToast]
+	);
+
+	const handleTestDragStart = useCallback(
+		(e, courseTestItem) => {
+			if (!canMutateInAdminArea) {
+				e.preventDefault();
+				return;
+			}
+			const payload = { courseTestId: courseTestItem.id };
+			testDragPayloadRef.current = payload;
+			syncTestDropHintDom(null);
+
+			const dragRow =
+				e.currentTarget.closest('.admin-course-builder-outline-test-row')
+				|| e.currentTarget.closest('.admin-course-builder-sidebar-test');
+			draggingTestRowRef.current = dragRow;
+
+			try {
+				e.dataTransfer.setData(TEST_DRAG_MIME, JSON.stringify(payload));
+				e.dataTransfer.setData('text/plain', String(courseTestItem.id));
+			} catch {
+				// unele browsere pot restricționa setData
+			}
+			e.dataTransfer.effectAllowed = 'move';
+
+			if (dragRow) {
+				const clone = dragRow.cloneNode(true);
+				clone.classList.remove('is-dragging');
+				clone.style.cssText = 'position:fixed;top:-2000px;left:-2000px;opacity:1;transform:none;pointer-events:none;';
+				clone.style.width = `${dragRow.offsetWidth}px`;
+				clone.setAttribute('aria-hidden', 'true');
+				document.body.appendChild(clone);
+				dragGhostCloneRef.current = clone;
+				try {
+					e.dataTransfer.setDragImage(clone, clone.offsetWidth / 2, clone.offsetHeight / 2);
+				} catch {
+					// ignore
+				}
+			}
+
+			requestAnimationFrame(() => {
+				if (!testDragPayloadRef.current) return;
+				dragRow?.classList.add('is-dragging');
+				document.body.classList.add('admin-course-builder-test-drag-active');
+			});
+		},
+		[canMutateInAdminArea, syncTestDropHintDom]
+	);
+
+	const handleTestDragEnd = useCallback(() => {
+		clearTestDrag();
+	}, [clearTestDrag]);
+
+	const resolveDraggingCourseTest = useCallback(
+		(e) => {
+			let courseTestId = testDragPayloadRef.current?.courseTestId;
+			const raw = e.dataTransfer.getData(TEST_DRAG_MIME);
+			if (raw) {
+				try {
+					courseTestId = JSON.parse(raw).courseTestId ?? courseTestId;
+				} catch {
+					// ignore
+				}
+			}
+			if (courseTestId == null) {
+				const plain = e.dataTransfer.getData('text/plain');
+				if (plain) courseTestId = Number(plain);
+			}
+			if (courseTestId == null) return null;
+			return courseAttachedTests.find((row) => Number(row.id) === Number(courseTestId)) || null;
+		},
+		[courseAttachedTests]
+	);
+
+	const handleTestDropAtFlowIndex = useCallback(
+		async (e, moduleItem, flowItems, insertIndex, rootLessonsList = null) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const movingTest = resolveDraggingCourseTest(e);
+			if (!movingTest) {
+				clearTestDrag();
+				return;
+			}
+
+			const placement = resolvePlacementFromFlowInsert(
+				flowItems,
+				insertIndex,
+				moduleItem?.id ?? null,
+				movingTest.id,
+				getLessonAttachedTests,
+				getModuleAttachedTests,
+				getCourseLevelAttachedTests
+			);
+
+			clearTestDrag();
+			if (!placement) return;
+
+			await handleCourseTestMove(movingTest, placement);
+		},
+		[
+			clearTestDrag,
+			getCourseLevelAttachedTests,
+			getLessonAttachedTests,
+			getModuleAttachedTests,
+			handleCourseTestMove,
+			resolveDraggingCourseTest,
+		]
+	);
+
+	const getFlowInsertIndexFromEvent = (e, flowIndex) => {
+		const rect = e.currentTarget.getBoundingClientRect();
+		return (e.clientY - rect.top) < rect.height / 2 ? flowIndex : flowIndex + 1;
+	};
+
+	const handleTestDragOverFlowRow = useCallback((e, moduleId, flowIndex) => {
+		if (!testDragPayloadRef.current) return;
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+		const insertIndex = getFlowInsertIndexFromEvent(e, flowIndex);
+		applyTestDropHint({
+			moduleId: moduleId ?? null,
+			targetType: 'flow-insert',
+			insertIndex,
+		});
+	}, [applyTestDropHint]);
+
+	const handleTestDropOnFlowRow = useCallback(
+		(e, moduleItem, flowItems, flowIndex, rootLessonsList = null) => {
+			if (!testDragPayloadRef.current) return;
+			e.preventDefault();
+			e.stopPropagation();
+			const insertIndex = getFlowInsertIndexFromEvent(e, flowIndex);
+			handleTestDropAtFlowIndex(e, moduleItem, flowItems, insertIndex, rootLessonsList);
+		},
+		[handleTestDropAtFlowIndex]
+	);
+
+	const handleSidebarTestDragOver = useCallback((e) => {
+		if (!testDragPayloadRef.current) return;
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+	}, []);
 
 	const handleLessonDragStart = useCallback(
 		(e, lessonItem, sourceModuleId) => {
@@ -631,6 +932,7 @@ const AdminCourseBuilderPage = () => {
 				randomize_answers: INLINE_TEST_DEFAULT.randomize_answers,
 				show_results_immediately: INLINE_TEST_DEFAULT.show_results_immediately,
 				show_correct_answers: INLINE_TEST_DEFAULT.show_correct_answers,
+				show_only_submitted_answers: INLINE_TEST_DEFAULT.show_only_submitted_answers,
 				allow_review: INLINE_TEST_DEFAULT.allow_review,
 				requires_manual_verification: INLINE_TEST_DEFAULT.requires_manual_verification,
 			});
@@ -638,13 +940,26 @@ const AdminCourseBuilderPage = () => {
 			if (!newTestId) throw new Error('ID test invalid');
 
 			if (createTestModuleId) {
-				const moduleTests = getModuleAttachedTests(createTestModuleId);
-				await adminService.builderAttachTest(courseId, {
-					test_id: newTestId,
-					scope: 'module',
-					scope_id: createTestModuleId,
-					order: moduleTests.length,
-				});
+				const moduleItem = modules.find((row) => Number(row.id) === Number(createTestModuleId));
+				const moduleLessons = moduleItem?.lessons || [];
+				if (moduleLessons.length > 0) {
+					const lastLesson = moduleLessons[moduleLessons.length - 1];
+					const lessonTests = getLessonAttachedTests(lastLesson.id);
+					await adminService.builderAttachTest(courseId, {
+						test_id: newTestId,
+						scope: 'lesson',
+						scope_id: lastLesson.id,
+						order: lessonTests.length,
+					});
+				} else {
+					const moduleTests = getModuleAttachedTests(createTestModuleId);
+					await adminService.builderAttachTest(courseId, {
+						test_id: newTestId,
+						scope: 'module',
+						scope_id: createTestModuleId,
+						order: moduleTests.length,
+					});
+				}
 			} else {
 				await adminService.builderAttachTest(courseId, {
 					test_id: newTestId,
@@ -662,81 +977,6 @@ const AdminCourseBuilderPage = () => {
 			showToast(err?.response?.data?.message || 'Eroare la crearea testului.', 'error');
 		} finally {
 			setCreatingTestFromModal(false);
-		}
-	};
-
-	const handleMoveModuleTest = async (moduleId, courseTestId, direction) => {
-		const list = getModuleAttachedTests(moduleId);
-		const currentIndex = list.findIndex((item) => Number(item.id) === Number(courseTestId));
-		if (currentIndex === -1) return;
-		const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-		if (targetIndex < 0 || targetIndex >= list.length) return;
-
-		const swapped = [...list];
-		const temp = swapped[currentIndex];
-		swapped[currentIndex] = swapped[targetIndex];
-		swapped[targetIndex] = temp;
-
-		setCourseAttachedTests((prev) => prev.map((row) => {
-			const idx = swapped.findIndex((item) => Number(item.id) === Number(row.id));
-			if (idx === -1) return row;
-			return { ...row, order: idx };
-		}));
-
-		try {
-			for (let i = 0; i < swapped.length; i += 1) {
-				const row = swapped[i];
-				await adminService.builderAttachTest(courseId, {
-					test_id: row.test_id,
-					scope: 'module',
-					scope_id: moduleId,
-					order: i,
-					required: row.required,
-					passing_score: row.passing_score,
-				});
-			}
-			await fetchAttachedTests();
-		} catch (err) {
-			console.error('Reorder module tests failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la mutarea testului.', 'error');
-			fetchAttachedTests();
-		}
-	};
-
-	const handleReorderModuleTests = async (moduleId, sourceCourseTestId, targetCourseTestId) => {
-		if (Number(sourceCourseTestId) === Number(targetCourseTestId)) return;
-		const list = getModuleAttachedTests(moduleId);
-		const sourceIndex = list.findIndex((item) => Number(item.id) === Number(sourceCourseTestId));
-		const targetIndex = list.findIndex((item) => Number(item.id) === Number(targetCourseTestId));
-		if (sourceIndex === -1 || targetIndex === -1) return;
-
-		const reordered = [...list];
-		const [moved] = reordered.splice(sourceIndex, 1);
-		reordered.splice(targetIndex, 0, moved);
-
-		setCourseAttachedTests((prev) => prev.map((row) => {
-			const idx = reordered.findIndex((item) => Number(item.id) === Number(row.id));
-			if (idx === -1) return row;
-			return { ...row, order: idx };
-		}));
-
-		try {
-			for (let i = 0; i < reordered.length; i += 1) {
-				const row = reordered[i];
-				await adminService.builderAttachTest(courseId, {
-					test_id: row.test_id,
-					scope: 'module',
-					scope_id: moduleId,
-					order: i,
-					required: row.required,
-					passing_score: row.passing_score,
-				});
-			}
-			await fetchAttachedTests();
-		} catch (err) {
-			console.error('Drag reorder module tests failed:', err);
-			showToast(err?.response?.data?.message || 'Eroare la mutarea testului.', 'error');
-			fetchAttachedTests();
 		}
 	};
 
@@ -1129,6 +1369,31 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const handleTestStatusToggle = async (courseTestItem, nextStatus) => {
+		const testId = courseTestItem?.test_id;
+		if (!testId) return;
+		try {
+			await adminService.updateTest(testId, { status: nextStatus });
+			setCourseAttachedTests((prev) =>
+				prev.map((row) =>
+					Number(row.test_id) === Number(testId)
+						? { ...row, test: { ...(row.test || {}), status: nextStatus } }
+						: row
+				)
+			);
+			if (Number(inlineTest.id) === Number(testId)) {
+				await loadTestIntoEditor(testId, inlineTestTab);
+			}
+			showToast(
+				nextStatus === 'published' ? 'Testul a fost publicat.' : 'Testul a fost retras din publicare.',
+				'success'
+			);
+		} catch (e) {
+			console.error('Test status toggle failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul testului.', 'error');
+		}
+	};
+
 	const handleDeleteCourse = async () => {
 		if (!course?.id) return;
 		if (!window.confirm(`Ștergi definitiv cursul „${course.title || 'fără titlu'}”?`)) return;
@@ -1170,21 +1435,252 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	const handleDeleteTestFromBuilder = async (testId) => {
-		if (!testId) return;
-		if (!window.confirm('Ștergi definitiv acest test din creatorul de curs?')) return;
+	const handleDetachTestFromCourse = async (courseTestItem) => {
+		if (!courseTestItem?.id) return;
+		const title = courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`;
+		if (!window.confirm(`Elimini testul „${title}” din acest curs?`)) return;
 		try {
-			await adminService.deleteTest(testId);
+			await adminService.builderDetachTest(courseId, courseTestItem.test_id, {
+				course_test_id: courseTestItem.id,
+			});
 			await fetchAttachedTests();
-			if (Number(inlineTest.id) === Number(testId)) {
+			if (Number(inlineTest.id) === Number(courseTestItem.test_id)) {
 				setShowTestCreator(false);
 				resetTest();
 			}
-			showToast('Testul a fost ?ters.', 'success');
+			showToast('Testul a fost eliminat din curs.', 'success');
 		} catch (e) {
-			console.error('Delete test failed:', e);
-			showToast(e?.response?.data?.message || 'Nu am putut șterge testul.', 'error');
+			console.error('Detach test failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut elimina testul din curs.', 'error');
 		}
+	};
+
+	const outlineItemCount = useMemo(() => {
+		let count = buildRootOutlineFlow(rootLessons, getLessonAttachedTests, getCourseLevelAttachedTests).length;
+		modules.forEach((moduleItem) => {
+			count += buildModuleFlowItems(moduleItem, getLessonAttachedTests, getModuleAttachedTests).length;
+		});
+		return count;
+	}, [getCourseLevelAttachedTests, getLessonAttachedTests, getModuleAttachedTests, modules, rootLessons]);
+
+	const renderTestDropSlot = (moduleId, flowItems, insertIndex, moduleItem, rootLessonsList = null) => {
+		if (!canMutateInAdminArea) return null;
+
+		return (
+			<li
+				key={`drop-slot-${moduleId ?? 'root'}-${insertIndex}`}
+				className="admin-course-builder-drop-slot"
+				data-drop-module-id={moduleId ?? 'root'}
+				data-flow-insert-index={insertIndex}
+				onDragEnter={(e) => {
+					if (!testDragPayloadRef.current) return;
+					e.preventDefault();
+					applyTestDropHint({
+						moduleId: moduleId ?? null,
+						targetType: 'flow-insert',
+						insertIndex,
+					});
+				}}
+				onDragOver={(e) => {
+					if (!testDragPayloadRef.current) return;
+					e.preventDefault();
+					e.dataTransfer.dropEffect = 'move';
+					applyTestDropHint({
+						moduleId: moduleId ?? null,
+						targetType: 'flow-insert',
+						insertIndex,
+					});
+				}}
+				onDrop={(e) => handleTestDropAtFlowIndex(e, moduleItem, flowItems, insertIndex, rootLessonsList)}
+			>
+				<div className="admin-course-builder-drop-slot-hit">
+					<span className="admin-course-builder-drop-slot-line" />
+					<span className="admin-course-builder-drop-slot-label">Plasează aici</span>
+				</div>
+			</li>
+		);
+	};
+
+	const renderOutlineFlow = ({
+		flowItems,
+		moduleId,
+		moduleItem,
+		rootLessonsList,
+		stepOffset = 0,
+	}) => {
+		let step = stepOffset;
+		return flowItems.map((flowItem, flowIndex) => {
+			const dropSlot = renderTestDropSlot(moduleId, flowItems, flowIndex, moduleItem, rootLessonsList);
+
+			if (flowItem.type === 'lesson') {
+				const lessonItem = flowItem.lesson;
+				step += 1;
+				const currentStep = step;
+				const rowDropClass =
+					moduleItem &&
+					lessonDropHint?.moduleId === moduleItem.id &&
+					lessonDropHint?.lessonId === lessonItem.id &&
+					lessonDropHint?.position === 'before'
+						? 'is-lesson-drop-before'
+						: moduleItem &&
+							lessonDropHint?.moduleId === moduleItem.id &&
+							lessonDropHint?.lessonId === lessonItem.id &&
+							lessonDropHint?.position === 'after'
+							? 'is-lesson-drop-after'
+							: '';
+
+				return (
+					<React.Fragment key={flowItem.key}>
+						{dropSlot}
+						<li className="admin-course-builder-outline-item admin-course-builder-outline-item--lesson">
+							<div
+								className={`admin-course-builder-sidebar-lesson-row admin-course-builder-outline-row ${rowDropClass}`}
+								onDragOver={(e) => {
+									if (testDragPayloadRef.current) {
+										handleTestDragOverFlowRow(e, moduleId, flowIndex);
+										return;
+									}
+									if (moduleItem) handleLessonDragOverRow(e, moduleItem, lessonItem);
+								}}
+								onDrop={(e) => {
+									if (testDragPayloadRef.current) {
+										handleTestDropOnFlowRow(e, moduleItem, flowItems, flowIndex, rootLessonsList);
+										return;
+									}
+									if (moduleItem) handleLessonDropOnLesson(e, moduleItem, lessonItem);
+								}}
+							>
+								{canMutateInAdminArea && moduleItem ? (
+									<span
+										className="admin-course-builder-sidebar-lesson-drag-handle"
+										draggable
+										onDragStart={(e) => handleLessonDragStart(e, lessonItem, moduleItem.id)}
+										onDragEnd={handleLessonDragEnd}
+										title="Mută lecția"
+										aria-label="Mută lecția"
+									>
+										<DragGripIcon size={14} color="#94a3b8" />
+									</span>
+								) : (
+									<span className="admin-course-builder-sidebar-lesson-drag-handle is-muted" aria-hidden="true">
+										<DragGripIcon size={14} color="#94a3b8" />
+									</span>
+								)}
+								<button
+									type="button"
+									className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
+									onClick={async () => {
+										await flushPendingLessonContentSave();
+										await flushAllInlineQuestionSavesRef.current();
+										setSelectedModuleId(moduleItem?.id ?? null);
+										setSelectedLessonId(lessonItem.id);
+										setShowTestCreator(false);
+									}}
+								>
+									<span className="admin-course-builder-sidebar-lesson-num">{currentStep}</span>
+									<span className="admin-course-builder-sidebar-lesson-title">
+										{lessonItem.title || `Lecție ${currentStep}`}
+									</span>
+								</button>
+								<button
+									type="button"
+									className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
+									onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
+									title={lessonItem.status === 'published' ? 'Publicată — click pentru a retrage' : 'Ciornă — click pentru a publica'}
+									aria-label={lessonItem.status === 'published' ? 'Lecție publicată' : 'Lecție nepublicată'}
+								>
+									{lessonItem.status === 'published' ? (
+										<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
+									) : (
+										<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
+									)}
+								</button>
+								<button
+									type="button"
+									className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+									onClick={() => handleDeleteLesson(lessonItem)}
+									title="Șterge lecția"
+									aria-label="Șterge lecția"
+								>
+									<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
+								</button>
+							</div>
+						</li>
+					</React.Fragment>
+				);
+			}
+
+			step += 1;
+			const currentStep = step;
+			const courseTestItem = flowItem.courseTest;
+			const isSelected = showTestCreator && inlineTest.id === courseTestItem.test_id;
+			const testStatus = courseTestItem?.test?.status === 'published' ? 'published' : 'draft';
+
+			return (
+				<React.Fragment key={flowItem.key}>
+					{dropSlot}
+					<li className="admin-course-builder-outline-item admin-course-builder-outline-item--test">
+						<div
+							className={`admin-course-builder-sidebar-test admin-course-builder-outline-test-row ${isSelected ? 'is-selected' : ''}`}
+							onDragOver={(e) => handleTestDragOverFlowRow(e, moduleId, flowIndex)}
+							onDrop={(e) => handleTestDropOnFlowRow(e, moduleItem, flowItems, flowIndex, rootLessonsList)}
+						>
+							{canMutateInAdminArea ? (
+								<span
+									className="admin-course-builder-sidebar-lesson-drag-handle"
+									draggable
+									onDragStart={(e) => handleTestDragStart(e, courseTestItem)}
+									onDragEnd={handleTestDragEnd}
+									title="Trage testul pentru a-l muta"
+									aria-label="Trage testul"
+								>
+									<DragGripIcon size={14} color="#94a3b8" />
+								</span>
+							) : (
+								<span className="admin-course-builder-sidebar-lesson-drag-handle is-muted" aria-hidden="true">
+									<DragGripIcon size={14} color="#94a3b8" />
+								</span>
+							)}
+							<span className="admin-course-builder-outline-test-num">{currentStep}</span>
+							<button
+								type="button"
+								className="admin-course-builder-sidebar-test-main"
+								onClick={() => loadInlineTestById(courseTestItem.test_id)}
+							>
+								<span className="admin-course-builder-sidebar-test-tag">Test</span>
+								<span className="admin-course-builder-sidebar-test-title">
+									{courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`}
+								</span>
+							</button>
+							<button
+								type="button"
+								className={`admin-course-builder-sidebar-lesson-icon-btn ${testStatus === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
+								onClick={() => handleTestStatusToggle(courseTestItem, testStatus === 'published' ? 'draft' : 'published')}
+								title={testStatus === 'published' ? 'Publicat — click pentru a retrage' : 'Ciornă — click pentru a publica'}
+								aria-label={testStatus === 'published' ? 'Test publicat' : 'Test nepublicat'}
+							>
+								{testStatus === 'published' ? (
+									<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
+								) : (
+									<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
+								)}
+							</button>
+							{canMutateInAdminArea ? (
+								<button
+									type="button"
+									className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+									onClick={() => handleDetachTestFromCourse(courseTestItem)}
+									title="Elimină testul din curs"
+									aria-label="Elimină testul din curs"
+								>
+									<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
+								</button>
+							) : null}
+						</div>
+					</li>
+				</React.Fragment>
+			);
+		});
 	};
 
 	if (loading) {
@@ -1233,7 +1729,7 @@ const AdminCourseBuilderPage = () => {
 									className="admin-course-builder-back"
 									onClick={() => navigate('/admin/content?tab=courses&view=maps')}
 								>
-									<ArrowLeft size={14} weight="bold" aria-hidden /> Cursuri
+									<ArrowLeft size={14} weight="bold" color="currentColor" aria-hidden /> Cursuri
 								</button>
 								<p className="admin-course-builder-sidebar-course-title">{course?.title || 'Builder curs'}</p>
 							</div>
@@ -1248,7 +1744,7 @@ const AdminCourseBuilderPage = () => {
 										title="Creează modul, lecție sau test"
 									>
 										<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-											<Plus size={16} weight="bold" aria-hidden="true" />
+											<Plus size={16} weight="bold" color="currentColor" aria-hidden="true" />
 										</span>
 									</button>
 									{quickAddMenuOpen && (
@@ -1275,15 +1771,6 @@ const AdminCourseBuilderPage = () => {
 												type="button"
 												onClick={() => {
 													setQuickAddMenuOpen(false);
-													handleQuickCreateLesson(null);
-												}}
-											>
-												Lecție fără modul
-											</button>
-											<button
-												type="button"
-												onClick={() => {
-													setQuickAddMenuOpen(false);
 													handleOpenCreateTestModal();
 												}}
 											>
@@ -1300,7 +1787,7 @@ const AdminCourseBuilderPage = () => {
 									title="Ascunde meniul builder"
 								>
 									<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-										<CaretDoubleLeft size={16} weight="bold" aria-hidden="true" />
+										<CaretDoubleLeft size={16} weight="bold" color="currentColor" aria-hidden="true" />
 									</span>
 								</button>
 							</div>
@@ -1331,351 +1818,157 @@ const AdminCourseBuilderPage = () => {
 						)}
 					</div>
 
-					<div className="admin-course-builder-sidebar-nav">
-						{getCourseLevelAttachedTests().length > 0 && (
-							<div className="admin-course-builder-sidebar-course-tests-block">
-								<p className="admin-course-builder-sidebar-course-tests-label">Teste la nivel de curs</p>
-								<ul className="admin-course-builder-sidebar-tests">
-									{getCourseLevelAttachedTests().map((courseTestItem) => (
-										<li key={courseTestItem.id} className="admin-course-builder-sidebar-course-test-row">
-											<button
-												type="button"
-												className={`admin-course-builder-sidebar-test-main admin-course-builder-sidebar-test-main-full ${showTestCreator && inlineTest.id === courseTestItem.test_id ? 'is-selected' : ''}`}
-												onClick={() => loadInlineTestById(courseTestItem.test_id)}
-											>
-												<span className="admin-course-builder-sidebar-test-tag">Test</span>
-												<span className="admin-course-builder-sidebar-test-title">
-													{courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`}
-												</span>
-											</button>
-										</li>
-									))}
-								</ul>
-							</div>
-						)}
-						{rootLessons.length > 0 && (
-							<div className="admin-course-builder-sidebar-course-tests-block">
-								<p className="admin-course-builder-sidebar-course-tests-label">Lecții fără modul</p>
-								<ul className="admin-course-builder-sidebar-lessons">
-									{rootLessons.map((lessonItem, lessonIndex) => {
-										const rowDropClass =
-											lessonDropHint?.moduleId == null &&
-											lessonDropHint?.lessonId === lessonItem.id &&
-											lessonDropHint?.position === 'before'
-												? 'is-lesson-drop-before'
-												: lessonDropHint?.moduleId == null &&
-													lessonDropHint?.lessonId === lessonItem.id &&
-													lessonDropHint?.position === 'after'
-													? 'is-lesson-drop-after'
-													: '';
-										return (
-										<li key={lessonItem.id} className="admin-course-builder-sidebar-lesson-with-tests">
-											<div
-												className={`admin-course-builder-sidebar-lesson-row ${rowDropClass}`}
-												onDragOver={(e) => handleLessonDragOverRow(e, null, lessonItem)}
-												onDrop={(e) => handleLessonDropOnLesson(e, null, lessonItem)}
-											>
-												{canMutateInAdminArea ? (
-													<span
-														className="admin-course-builder-sidebar-lesson-drag-handle"
-														draggable
-														onDragStart={(e) => handleLessonDragStart(e, lessonItem, null)}
-														onDragEnd={handleLessonDragEnd}
-														title="Trage pentru a muta lectia"
-														aria-label="Trage lectia pentru mutare"
-														role="button"
-														tabIndex={0}
-														onKeyDown={(e) => {
-															if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-														}}
-													>
-														<DragGripIcon size={14} />
-													</span>
-												) : null}
-												<button
-													type="button"
-													className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
-													onClick={async () => {
-														await flushPendingLessonContentSave();
-														await flushAllInlineQuestionSavesRef.current();
-														setSelectedModuleId(null);
-														setSelectedLessonId(lessonItem.id);
-														setShowTestCreator(false);
-													}}
-												>
-													<span className="admin-course-builder-sidebar-lesson-num">{lessonIndex + 1}</span>
-													<span className="admin-course-builder-sidebar-lesson-title">{lessonItem.title || `Lecție ${lessonIndex + 1}`}</span>
-												</button>
-												<button
-													type="button"
-													className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
-													onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
-													title={lessonItem.status === 'published' ? 'Lecție publicată — click pentru a o retrage din publicare' : 'Lecție nepublicată — click pentru a o publica'}
-													aria-label={lessonItem.status === 'published' ? 'Lecție publicată, retrage din publicare' : 'Lecție nepublicată, publică'}
-												>
-													{lessonItem.status === 'published' ? (
-														<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-													) : (
-														<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-													)}
-												</button>
-												<button
-													type="button"
-													className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-													onClick={() => handleDeleteLesson(lessonItem)}
-													title="Șterge lecția"
-													aria-label="Șterge lecția"
-												>
-													<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-												</button>
-											</div>
-										</li>
-										);
-									})}
-									{canMutateInAdminArea ? (
-										<li
-											className={`admin-course-builder-sidebar-lesson-drop-end ${
-												lessonDropHint?.moduleId == null && lessonDropHint?.zone === 'end' ? 'is-active' : ''
-											}`}
-											onDragOver={(e) => handleLessonDragOverModuleEnd(e, null)}
-											onDrop={(e) => handleLessonDropAtModuleEnd(e, null)}
-										>
-											<span className="admin-course-builder-sidebar-lesson-drop-end-label">Elibereaza aici - la finalul listei fara modul</span>
-										</li>
-									) : null}
-								</ul>
-							</div>
-						)}
-						{modules.length === 0 && rootLessons.length === 0 ? (
+					<div
+						ref={sidebarNavRef}
+						className="admin-course-builder-sidebar-nav"
+						onDragOver={handleSidebarTestDragOver}
+					>
+						<p className="admin-course-builder-drag-hint" role="status" aria-live="polite">
+							Trage testul la linia evidențiată unde vrei să îl plasezi
+						</p>
+
+						{modules.length === 0 && rootLessons.length === 0 && getCourseLevelAttachedTests().length === 0 ? (
 							<div className="admin-course-builder-sidebar-empty-state">
-								<p className="admin-course-builder-sidebar-empty">Începe prin a crea un modul.</p>
+								<p className="admin-course-builder-sidebar-empty">Începe prin a crea o lecție sau un modul.</p>
 							</div>
 						) : (
-							<ul className="admin-course-builder-sidebar-list">
-								{modules.map((moduleItem, moduleIndex) => (
-									<li key={moduleItem.id} className="admin-course-builder-sidebar-module">
-										<div className="admin-course-builder-sidebar-module-head">
-											<span className="admin-course-builder-sidebar-module-num">{moduleIndex + 1}.</span>
-											{editingModuleId === moduleItem.id ? (
-												<input
-													type="text"
-													className="admin-course-builder-sidebar-module-input"
-													value={editingModuleTitle}
-													autoFocus
-													onChange={(e) => setEditingModuleTitle(e.target.value)}
-													onBlur={() => handleSaveModuleRename(moduleItem.id, moduleItem.title)}
-													onKeyDown={(e) => {
-														if (e.key === 'Enter') {
-															e.preventDefault();
-															handleSaveModuleRename(moduleItem.id, moduleItem.title);
-														}
-														if (e.key === 'Escape') {
-															setEditingModuleId(null);
-															setEditingModuleTitle('');
-														}
-													}}
-												/>
-											) : (
-												<>
-													<button
-														type="button"
-														className={`admin-course-builder-sidebar-module-title admin-course-builder-sidebar-link ${
-															selectedModuleId === moduleItem.id ? 'is-active' : ''
-														}`}
-														onClick={async () => {
-															await flushAllInlineQuestionSavesRef.current();
-															setSelectedModuleId(moduleItem.id);
-															setShowTestCreator(false);
-														}}
-														onDoubleClick={() => beginModuleRename(moduleItem)}
-														title="Dublu-click pentru a modifica denumirea modulului"
-													>
-														{moduleItem.title || `Modul ${moduleIndex + 1}`}
-													</button>
-													<button
-														type="button"
-														className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-														onClick={() => handleDeleteModule(moduleItem)}
-														title="Șterge modul"
-														aria-label="Șterge modul"
-													>
-														<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-													</button>
-												</>
-											)}
-										</div>
-										<ul className="admin-course-builder-sidebar-lessons">
-											{(moduleItem.lessons || []).map((lessonItem, lessonIndex) => {
-												const rowDropClass =
-													lessonDropHint?.moduleId === moduleItem.id &&
-													lessonDropHint?.lessonId === lessonItem.id &&
-													lessonDropHint?.position === 'before'
-														? 'is-lesson-drop-before'
-														: lessonDropHint?.moduleId === moduleItem.id &&
-															lessonDropHint?.lessonId === lessonItem.id &&
-															lessonDropHint?.position === 'after'
-															? 'is-lesson-drop-after'
-															: '';
-												return (
-												<li key={lessonItem.id} className="admin-course-builder-sidebar-lesson-with-tests">
-													<div
-														className={`admin-course-builder-sidebar-lesson-row ${rowDropClass}`}
-														onDragOver={(e) => handleLessonDragOverRow(e, moduleItem, lessonItem)}
-														onDrop={(e) => handleLessonDropOnLesson(e, moduleItem, lessonItem)}
-													>
-														{canMutateInAdminArea ? (
-															<span
-																className="admin-course-builder-sidebar-lesson-drag-handle"
-																draggable
-																onDragStart={(e) => handleLessonDragStart(e, lessonItem, moduleItem.id)}
-																onDragEnd={handleLessonDragEnd}
-																title="Trage pentru a muta lecția în alt modul sau poziție"
-																aria-label="Trage lecția pentru mutare"
-																role="button"
-																tabIndex={0}
-																onKeyDown={(e) => {
-																	if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+							<div className="admin-course-builder-outline">
+								<div className="admin-course-builder-outline-head">
+									<h3 className="admin-course-builder-outline-title">Structură curs</h3>
+									<span className="admin-course-builder-outline-count">
+										{outlineItemCount} {outlineItemCount === 1 ? 'element' : 'elemente'}
+									</span>
+								</div>
+								<ul
+									className="admin-course-builder-outline-list"
+									onDragOver={handleSidebarTestDragOver}
+								>
+									{(() => {
+										const rootFlow = buildRootOutlineFlow(
+											rootLessons,
+											getLessonAttachedTests,
+											getCourseLevelAttachedTests
+										);
+										return (
+											<>
+												{rootFlow.length > 0 && (
+													<>
+														{renderOutlineFlow({
+															flowItems: rootFlow,
+															moduleId: null,
+															moduleItem: null,
+															rootLessonsList: rootLessons,
+															stepOffset: 0,
+														})}
+														{renderTestDropSlot(null, rootFlow, rootFlow.length, null, rootLessons)}
+													</>
+												)}
+												{modules.map((moduleItem, moduleIndex) => {
+													const moduleFlow = buildModuleFlowItems(
+														moduleItem,
+														getLessonAttachedTests,
+														getModuleAttachedTests
+													);
+													let stepOffset = rootFlow.length;
+													for (let i = 0; i < moduleIndex; i += 1) {
+														stepOffset += buildModuleFlowItems(
+															modules[i],
+															getLessonAttachedTests,
+															getModuleAttachedTests
+														).length;
+													}
+													return (
+														<li key={moduleItem.id} className="admin-course-builder-outline-module">
+															<div
+																className="admin-course-builder-outline-module-head"
+																onDragOver={(e) => {
+																	if (!testDragPayloadRef.current) return;
+																	e.preventDefault();
+																	e.dataTransfer.dropEffect = 'move';
 																}}
 															>
-																<DragGripIcon size={14} />
-															</span>
-														) : null}
-														<button
-															type="button"
-															className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
-															onClick={async () => {
-																await flushPendingLessonContentSave();
-																await flushAllInlineQuestionSavesRef.current();
-																setSelectedModuleId(moduleItem.id);
-																setSelectedLessonId(lessonItem.id);
-																setShowTestCreator(false);
-															}}
-														>
-															<span className="admin-course-builder-sidebar-lesson-num">{lessonIndex + 1}</span>
-															<span className="admin-course-builder-sidebar-lesson-title">{lessonItem.title || `Lecție ${lessonIndex + 1}`}</span>
-														</button>
-														<button
-															type="button"
-															className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
-															onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
-															title={lessonItem.status === 'published' ? 'Lecție publicată — click pentru a o retrage din publicare' : 'Lecție nepublicată — click pentru a o publica'}
-															aria-label={lessonItem.status === 'published' ? 'Lecție publicată, retrage din publicare' : 'Lecție nepublicată, publică'}
-														>
-															{lessonItem.status === 'published' ? (
-																<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-															) : (
-																<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-															)}
-														</button>
-														<button
-															type="button"
-															className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-															onClick={() => handleDeleteLesson(lessonItem)}
-															title="Șterge lecția"
-															aria-label="Șterge lecția"
-														>
-															<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-														</button>
-													</div>
-													{getLessonAttachedTests(lessonItem.id).length > 0 && (
-														<ul className="admin-course-builder-sidebar-lesson-tests">
-															{getLessonAttachedTests(lessonItem.id).map((courseTestItem) => (
-																<li key={courseTestItem.id} className="admin-course-builder-sidebar-course-test-row">
-																	<button
-																		type="button"
-																		className={`admin-course-builder-sidebar-test-main admin-course-builder-sidebar-test-main-full ${showTestCreator && inlineTest.id === courseTestItem.test_id ? 'is-selected' : ''}`}
-																		onClick={() => loadInlineTestById(courseTestItem.test_id)}
-																	>
-																		<span className="admin-course-builder-sidebar-test-tag">Test</span>
-																		<span className="admin-course-builder-sidebar-test-title">
-																			{courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`}
-																		</span>
-																	</button>
-																</li>
-															))}
-														</ul>
-													)}
-												</li>
-												);
-											})}
-											{canMutateInAdminArea ? (
-												<li
-													className={`admin-course-builder-sidebar-lesson-drop-end ${
-														lessonDropHint?.moduleId === moduleItem.id && lessonDropHint?.zone === 'end' ? 'is-active' : ''
-													}`}
-													onDragOver={(e) => handleLessonDragOverModuleEnd(e, moduleItem)}
-													onDrop={(e) => handleLessonDropAtModuleEnd(e, moduleItem)}
-												>
-													<span className="admin-course-builder-sidebar-lesson-drop-end-label">Eliberă aici — la finalul modulului</span>
-												</li>
-											) : null}
-										</ul>
-										{getModuleAttachedTests(moduleItem.id).length > 0 && (
-											<ul className="admin-course-builder-sidebar-tests">
-												{getModuleAttachedTests(moduleItem.id).map((courseTestItem) => (
-													<li key={courseTestItem.id}>
-														<div
-															className={`admin-course-builder-sidebar-test ${showTestCreator && inlineTest.id === courseTestItem.test_id ? 'is-selected' : ''} ${draggingSidebarTestId === courseTestItem.id ? 'is-dragging' : ''} ${
-																sidebarDropHint.moduleId === moduleItem.id && sidebarDropHint.targetId === courseTestItem.id
-																	? (sidebarDropHint.position === 'before' ? 'is-drop-before' : 'is-drop-after')
-																	: ''
-															}`}
-															draggable
-															onDragStart={(e) => {
-																setDraggingSidebarTestId(courseTestItem.id);
-																e.dataTransfer.effectAllowed = 'move';
-																e.dataTransfer.setData('text/plain', String(courseTestItem.id));
-															}}
-															onDragEnd={() => {
-																setDraggingSidebarTestId(null);
-																setSidebarDropHint({ moduleId: null, targetId: null, position: null });
-															}}
-															onDragOver={(e) => {
-																e.preventDefault();
-																const rect = e.currentTarget.getBoundingClientRect();
-																const position = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
-																setSidebarDropHint({ moduleId: moduleItem.id, targetId: courseTestItem.id, position });
-															}}
-															onDragLeave={() => {
-																if (sidebarDropHint.moduleId === moduleItem.id && sidebarDropHint.targetId === courseTestItem.id) {
-																	setSidebarDropHint({ moduleId: null, targetId: null, position: null });
-																}
-															}}
-															onDrop={(e) => {
-																e.preventDefault();
-																const sourceId = e.dataTransfer.getData('text/plain');
-																if (!sourceId) return;
-																const list = getModuleAttachedTests(moduleItem.id);
-																const sourceIndex = list.findIndex((item) => Number(item.id) === Number(sourceId));
-																const targetIndexRaw = list.findIndex((item) => Number(item.id) === Number(courseTestItem.id));
-																if (sourceIndex === -1 || targetIndexRaw === -1) return;
-																const insertAfter = sidebarDropHint.moduleId === moduleItem.id
-																	&& sidebarDropHint.targetId === courseTestItem.id
-																	&& sidebarDropHint.position === 'after';
-																const targetIndex = insertAfter ? Math.min(targetIndexRaw + 1, list.length - 1) : targetIndexRaw;
-																const targetId = list[targetIndex]?.id ?? courseTestItem.id;
-																handleReorderModuleTests(moduleItem.id, Number(sourceId), Number(targetId));
-																setSidebarDropHint({ moduleId: null, targetId: null, position: null });
-															}}
-														>
-															<button
-																type="button"
-																className="admin-course-builder-sidebar-test-main"
-																onClick={() => loadInlineTestById(courseTestItem.test_id)}
-															>
-																<span className="admin-course-builder-sidebar-test-tag">Test</span>
-																<span className="admin-course-builder-sidebar-test-title">
-																	{courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`}
+																<span className="admin-course-builder-outline-module-label">
+																	Modul {moduleIndex + 1}
 																</span>
-															</button>
-														</div>
-													</li>
-												))}
-											</ul>
-										)}
-									</li>
-								))}
-							</ul>
+																{editingModuleId === moduleItem.id ? (
+																	<input
+																		type="text"
+																		className="admin-course-builder-outline-module-input"
+																		value={editingModuleTitle}
+																		autoFocus
+																		onChange={(e) => setEditingModuleTitle(e.target.value)}
+																		onBlur={() => handleSaveModuleRename(moduleItem.id, moduleItem.title)}
+																		onKeyDown={(e) => {
+																			if (e.key === 'Enter') {
+																				e.preventDefault();
+																				handleSaveModuleRename(moduleItem.id, moduleItem.title);
+																			}
+																			if (e.key === 'Escape') {
+																				setEditingModuleId(null);
+																				setEditingModuleTitle('');
+																			}
+																		}}
+																	/>
+																) : (
+																	<>
+																		<button
+																			type="button"
+																			className={`admin-course-builder-outline-module-name ${
+																				selectedModuleId === moduleItem.id ? 'is-active' : ''
+																			}`}
+																			onClick={async () => {
+																				await flushAllInlineQuestionSavesRef.current();
+																				setSelectedModuleId(moduleItem.id);
+																				setShowTestCreator(false);
+																			}}
+																			onDoubleClick={() => beginModuleRename(moduleItem)}
+																			title="Dublu-click pentru redenumire"
+																		>
+																			{moduleItem.title || `Modul ${moduleIndex + 1}`}
+																		</button>
+																		<button
+																			type="button"
+																			className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
+																			onClick={() => handleDeleteModule(moduleItem)}
+																			title="Șterge modulul"
+																			aria-label="Șterge modulul"
+																		>
+																			<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
+																		</button>
+																	</>
+																)}
+															</div>
+															<ul className="admin-course-builder-outline-module-items">
+																{renderOutlineFlow({
+																	flowItems: moduleFlow,
+																	moduleId: moduleItem.id,
+																	moduleItem,
+																	rootLessonsList: null,
+																	stepOffset,
+																})}
+																{renderTestDropSlot(moduleItem.id, moduleFlow, moduleFlow.length, moduleItem)}
+																{canMutateInAdminArea ? (
+																	<li
+																		className={`admin-course-builder-outline-lesson-drop-end ${
+																			lessonDropHint?.moduleId === moduleItem.id && lessonDropHint?.zone === 'end'
+																				? 'is-active'
+																				: ''
+																		}`}
+																		onDragOver={(e) => handleLessonDragOverModuleEnd(e, moduleItem)}
+																		onDrop={(e) => handleLessonDropAtModuleEnd(e, moduleItem)}
+																	>
+																		Eliberă aici — mută lecția la finalul modulului
+																	</li>
+																) : null}
+															</ul>
+														</li>
+													);
+												})}
+											</>
+										);
+									})()}
+								</ul>
+							</div>
 						)}
 					</div>
 
@@ -1727,7 +2020,7 @@ const AdminCourseBuilderPage = () => {
 						title="Afișează meniul builder"
 					>
 						<span className="admin-course-builder-icon-wrap" aria-hidden="true">
-							<CaretDoubleRight size={16} weight="bold" aria-hidden="true" />
+							<CaretDoubleRight size={16} weight="bold" color="currentColor" aria-hidden="true" />
 						</span>
 					</button>
 				)}
@@ -1740,6 +2033,7 @@ const AdminCourseBuilderPage = () => {
 									...testEditor,
 									handlePublishInlineTest,
 								}}
+								courseId={courseId}
 								subtitle="Configurezi testul fără să părăsești pagina de creare curs."
 							/>
 						) : selectedLesson ? (
@@ -1861,7 +2155,7 @@ const AdminCourseBuilderPage = () => {
 					setPublishModalOpen(false);
 					setPublishValidationReport(null);
 				}}
-				courseId={course?.id}
+				course={course}
 				validationReport={publishValidationReport}
 				onValidate={handleValidateForPublish}
 				onPublished={handleCoursePublished}

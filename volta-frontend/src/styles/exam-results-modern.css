@@ -565,6 +565,21 @@
 	line-height: 1.5;
 }
 
+.exam-result-question-text p,
+.exam-result-question-text ul,
+.exam-result-question-text ol {
+	margin: 0 0 0.5em;
+}
+
+.exam-result-explanation-body {
+	display: inline;
+}
+
+.exam-result-explanation-body p {
+	display: inline;
+	margin: 0;
+}
+
 .exam-result-answers,
 .exam-result-structured {
 	display: grid;

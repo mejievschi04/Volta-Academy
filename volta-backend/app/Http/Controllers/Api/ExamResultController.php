@@ -55,6 +55,48 @@ class ExamResultController extends Controller
         return null;
     }
 
+    protected function shouldShowOnlySubmittedAnswers(?Test $test = null, ?array $examSettings = null): bool
+    {
+        if ($test && (bool) ($test->show_only_submitted_answers ?? false)) {
+            return true;
+        }
+
+        return (bool) ($examSettings['show_only_submitted_answers'] ?? false);
+    }
+
+    protected function sanitizeQuestionWireForSubmittedOnly(array $wire): array
+    {
+        unset(
+            $wire['is_correct'],
+            $wire['correct_answer_index'],
+            $wire['correct_answer_indices'],
+            $wire['answerIndex'],
+            $wire['answerIndices'],
+            $wire['explanation']
+        );
+
+        if (isset($wire['answers']) && is_array($wire['answers'])) {
+            $wire['answers'] = array_map(function ($answer) {
+                if (! is_array($answer)) {
+                    return $answer;
+                }
+                unset($answer['is_correct']);
+
+                return $answer;
+            }, $wire['answers']);
+        }
+
+        if (isset($wire['matching']) && is_array($wire['matching'])) {
+            unset($wire['matching']['correctMap']);
+        }
+
+        if (isset($wire['ordering']) && is_array($wire['ordering'])) {
+            unset($wire['ordering']['correctOrder']);
+        }
+
+        return $wire;
+    }
+
     protected function normalizeArrayLike(mixed $value): ?array
     {
         if ($value instanceof \Illuminate\Support\Collection) {
@@ -818,7 +860,7 @@ class ExamResultController extends Controller
             
             // Try to find as TestResult first (new system)
             $testResult = $preferredType === 'exam' ? null : TestResult::with([
-                'test:id,title,description,type,status,question_source,question_set_id',
+                'test:id,title,description,type,status,question_source,question_set_id,show_only_submitted_answers',
                 'test.questions' => function($query) {
                     $query->orderBy('order');
                 },
@@ -875,6 +917,8 @@ class ExamResultController extends Controller
                 if (!is_array($userAnswers)) {
                     $userAnswers = [];
                 }
+
+                $submittedOnly = $this->shouldShowOnlySubmittedAnswers($testResult->test);
                 
                 return response()->json([
                     'id' => $testResult->id,
@@ -897,6 +941,7 @@ class ExamResultController extends Controller
                     'manual_review_scores' => is_array($testResult->manual_review_scores) ? $testResult->manual_review_scores : null,
                     'reviewed_at' => $testResult->reviewed_at,
                     'status' => $testResult->status,
+                    'show_only_submitted_answers' => $submittedOnly,
                     'test' => $testResult->test ? [
                         'id' => $testResult->test->id,
                         'title' => $testResult->test->title,
@@ -912,8 +957,15 @@ class ExamResultController extends Controller
                         'type' => $testResult->test->type,
                         'status' => $testResult->test->status,
                         'course' => $course,
-                        'questions' => $questions->map(function($question) use ($userAnswers, $testResult) {
-                            return $this->buildTestQuestionResultWire($testResult, $question, $userAnswers);
+                        'questions' => $questions->map(function($question) use ($userAnswers, $testResult, $submittedOnly) {
+                            $wire = $this->buildTestQuestionResultWire($testResult, $question, $userAnswers);
+                            if (! $wire) {
+                                return null;
+                            }
+
+                            return $submittedOnly
+                                ? $this->sanitizeQuestionWireForSubmittedOnly($wire)
+                                : $wire;
                         })->filter(function($q) {
                             return $q !== null;
                         }),
@@ -942,6 +994,8 @@ class ExamResultController extends Controller
             
             // Get user answers
             $userAnswers = $examResult->answers ?? [];
+            $examSettings = is_array($examResult->exam->settings ?? null) ? $examResult->exam->settings : [];
+            $submittedOnly = $this->shouldShowOnlySubmittedAnswers(null, $examSettings);
             
             return response()->json([
                 'id' => $examResult->id,
@@ -960,6 +1014,7 @@ class ExamResultController extends Controller
                 'needs_manual_review' => $examResult->needs_manual_review ?? false,
                 'manual_review_scores' => is_array($examResult->manual_review_scores) ? $examResult->manual_review_scores : null,
                 'reviewed_at' => $examResult->reviewed_at,
+                'show_only_submitted_answers' => $submittedOnly,
                 'exam' => $examResult->exam ? [
                     'id' => $examResult->exam->id,
                     'title' => $examResult->exam->title,
@@ -967,8 +1022,12 @@ class ExamResultController extends Controller
                         'id' => $examResult->exam->course->id,
                         'title' => $examResult->exam->course->title,
                     ] : null,
-                    'questions' => $examResult->exam->questions->map(function($question) use ($userAnswers, $examResult) {
-                        return $this->buildLegacyExamQuestionResultWire($examResult, $question, $userAnswers);
+                    'questions' => $examResult->exam->questions->map(function($question) use ($userAnswers, $examResult, $submittedOnly) {
+                        $wire = $this->buildLegacyExamQuestionResultWire($examResult, $question, $userAnswers);
+
+                        return $submittedOnly
+                            ? $this->sanitizeQuestionWireForSubmittedOnly($wire)
+                            : $wire;
                     }),
                 ] : null,
             ]);

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import RichTextEditor from '../../RichTextEditor';
+import { selectAllTextInputHandlers } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
 
 const INLINE_QUESTION_TYPES = [
@@ -176,21 +178,37 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                 </div>
               </div>
 
-              <textarea
-                className="admin-course-builder-test-question-input"
-                value={question?.content || ''}
-                onChange={(e) => update({ content: e.target.value })}
-                placeholder="Adauga intrebare"
-                rows={2}
-              />
-
-              <textarea
-                className="admin-course-builder-test-question-desc"
-                value={question?.explanation || ''}
-                onChange={(e) => update({ explanation: e.target.value })}
-                placeholder="Adauga descriere..."
-                rows={2}
-              />
+              <div className="admin-course-builder-test-question-fields">
+                <div className="admin-course-builder-test-question-field">
+                  <span className="admin-course-builder-test-question-field-label">Text întrebare</span>
+                  <div className="admin-course-builder-test-question-rte">
+                    <RichTextEditor
+                      value={question?.content || ''}
+                      onChange={(html) => update({ content: html })}
+                      placeholder="Scrie și formatează întrebarea..."
+                      toolbarVariant="basic"
+                      showSideTools={false}
+                      style={{ minHeight: '120px' }}
+                    />
+                  </div>
+                </div>
+                <div className="admin-course-builder-test-question-field">
+                  <span className="admin-course-builder-test-question-field-label">
+                    Descriere sau indiciu
+                    <span className="admin-course-builder-test-question-field-hint">opțional</span>
+                  </span>
+                  <div className="admin-course-builder-test-question-rte admin-course-builder-test-question-rte-desc">
+                    <RichTextEditor
+                      value={question?.explanation || ''}
+                      onChange={(html) => update({ explanation: html })}
+                      placeholder="Context, indiciu sau explicație..."
+                      toolbarVariant="basic"
+                      showSideTools={false}
+                      style={{ minHeight: '88px' }}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="admin-course-builder-test-field">
                 <label>Puncte</label>
@@ -219,6 +237,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
                         placeholder="Introdu raspuns"
                         disabled={currentType === 'true_false'}
+                        {...selectAllTextInputHandlers}
                       />
                       {currentType !== 'true_false' && (
                         <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
@@ -244,13 +263,15 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         type="text"
                         value={answer.left || ''}
                         onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
-                        placeholder="Element stanga"
+                        placeholder="Element stânga"
+                        {...selectAllTextInputHandlers}
                       />
                       <input
                         type="text"
                         value={answer.right || ''}
                         onChange={(e) => updateAnswer(idx, 'right', e.target.value)}
                         placeholder="Element dreapta"
+                        {...selectAllTextInputHandlers}
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
                         x
@@ -274,6 +295,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         value={answer.text || ''}
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
                         placeholder="Element"
+                        {...selectAllTextInputHandlers}
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'up')} disabled={idx === 0}>
                         Sus

@@ -11,6 +11,8 @@ class LibraryItem extends Model
         'user_id',
         'title',
         'description',
+        'content_type',
+        'body',
         'original_filename',
         'stored_path',
         'cover_image_path',

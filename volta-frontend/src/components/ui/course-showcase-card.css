@@ -139,9 +139,23 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 10px;
 	padding-top: 8px;
 	border-top: 1px solid var(--border-primary);
 	color: hsl(var(--theme-color) / 0.86);
+}
+
+.course-showcase-card__footer-extra {
+	flex-shrink: 0;
+}
+
+.course-showcase-card__footer-cta {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	min-width: 0;
 }
 
 .course-showcase-card__cta-label {
@@ -160,12 +174,11 @@
 .course-showcase-card__tl,
 .course-showcase-card__tr {
 	position: absolute;
-	top: 8px;
 	z-index: 4;
 }
 
-.course-showcase-card__tl { left: 8px; }
-.course-showcase-card__tr { right: 8px; }
+.course-showcase-card__tl { top: 8px; left: 8px; }
+.course-showcase-card__tr { top: 8px; right: 8px; }
 
 .course-showcase-dnd-handle {
 	display: inline-flex;

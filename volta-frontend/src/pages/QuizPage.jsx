@@ -162,7 +162,16 @@ const QuizPage = () => {
 			const resultData = await quizService.submitQuiz(courseId, answers);
 			setResult(resultData);
 			if (Array.isArray(resultData.review_questions) && resultData.review_questions.length > 0) {
-				setQuiz((prev) => (prev ? { ...prev, questions: resultData.review_questions } : prev));
+				setQuiz((prev) => (prev ? {
+					...prev,
+					questions: resultData.review_questions,
+					show_only_submitted_answers: resultData.show_only_submitted_answers ?? prev.show_only_submitted_answers,
+				} : prev));
+			} else {
+				setQuiz((prev) => (prev ? {
+					...prev,
+					show_only_submitted_answers: resultData.show_only_submitted_answers ?? prev.show_only_submitted_answers,
+				} : prev));
 			}
 			setSubmitted(true);
 			void testTelemetryRef.current.trackSubmitted(resultData);
@@ -230,9 +239,14 @@ const QuizPage = () => {
 		};
 	}, [result, quiz, visibleAnswers]);
 
+	const showOnlySubmittedAnswers = Boolean(quiz?.show_only_submitted_answers || result?.show_only_submitted_answers);
+
 	// Get question status for sidebar
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (saved || submitted) {
+			if (showOnlySubmittedAnswers) {
+				return visibleAnswers[questionId] !== undefined ? 'answered' : 'not-started';
+			}
 			const question = quiz.questions.find(q => q.id === questionId);
 			const isCorrect = isQuestionCorrect(question, visibleAnswers[questionId]);
 			return isCorrect ? 'completed' : 'incorrect';
@@ -242,7 +256,7 @@ const QuizPage = () => {
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, saved, submitted, quiz, visibleAnswers]);
+	}, [answers, currentQuestionIndex, saved, submitted, quiz, visibleAnswers, showOnlySubmittedAnswers]);
 
 	if (loading) {
 		return (
@@ -549,6 +563,7 @@ const QuizPage = () => {
 									const isStructured = Boolean(hasMatching || hasOrdering);
 									const isCorrect = isQuestionCorrect(q, visibleAnswers[q.id]);
 									const showResult = (submitted || saved) && result;
+									const showGrading = showResult && !showOnlySubmittedAnswers;
 									const isFlagged = flaggedQuestions.has(q.id);
 									const points = q.points || 1;
 									
@@ -556,15 +571,15 @@ const QuizPage = () => {
 										<div 
 											id={`question-${q.id}`}
 											key={q.id}
-											className={`va-question-card ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}
+											className={`va-question-card ${showGrading ? (isCorrect ? 'correct' : 'incorrect') : ''}`}
 											style={{
-												background: showResult
+												background: showGrading
 													? (isCorrect
 														? 'linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05))'
 														: 'linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.05))')
 													: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
 												backdropFilter: 'blur(20px)',
-												border: showResult
+												border: showGrading
 													? (isCorrect
 														? '1px solid rgba(74, 222, 128, 0.3)'
 														: '1px solid rgba(255,107,107,0.3)')
@@ -572,7 +587,7 @@ const QuizPage = () => {
 												borderRadius: '20px',
 												padding: '2rem',
 												marginBottom: '1.5rem',
-												boxShadow: showResult
+												boxShadow: showGrading
 													? (isCorrect
 														? '0 8px 32px rgba(74, 222, 128, 0.2), 0 0 0 1px rgba(74, 222, 128, 0.1) inset'
 														: '0 8px 32px rgba(255,107,107,0.2), 0 0 0 1px rgba(255,107,107,0.1) inset')
@@ -697,7 +712,7 @@ const QuizPage = () => {
 															return (
 																<label 
 																	key={i} 
-																	className={`va-answer-option ${showResult 
+																	className={`va-answer-option ${showGrading
 																		? (isCorrectOption ? 'correct' : isSelected ? 'incorrect' : 'default')
 																		: (isSelected ? 'selected' : 'default')
 																	} ${(submitted || saved) ? 'disabled' : ''}`}
@@ -706,7 +721,7 @@ const QuizPage = () => {
 																		alignItems: 'center',
 																		gap: '1rem',
 																		padding: '1.25rem 1.5rem',
-																		background: showResult
+																		background: showGrading
 																			? (isCorrectOption
 																				? 'linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.1))'
 																				: isSelected
@@ -716,7 +731,7 @@ const QuizPage = () => {
 																				? 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))'
 																				: 'rgba(255,255,255,0.03)'),
 																		backdropFilter: 'blur(10px)',
-																		border: showResult
+																		border: showGrading
 																			? (isCorrectOption
 																				? '1px solid rgba(74, 222, 128, 0.35)'
 																				: isSelected
@@ -728,7 +743,7 @@ const QuizPage = () => {
 																		borderRadius: '16px',
 																		cursor: (submitted || saved) ? 'default' : 'pointer',
 																		transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-																		boxShadow: showResult
+																		boxShadow: showGrading
 																			? (isCorrectOption || isSelected
 																				? '0 4px 16px rgba(255,238,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
 																				: '0 2px 8px rgba(0,0,0,0.2)')
@@ -776,10 +791,10 @@ const QuizPage = () => {
 																	}}>
 																		{opt}
 																	</span>
-																	{showResult && isCorrectOption && (
+																	{showGrading && isCorrectOption && (
 																		<span style={{ color: 'var(--va-primary)', fontSize: '1.2rem' }}>✓</span>
 																	)}
-																	{showResult && isSelected && !isCorrectOption && (
+																	{showGrading && isSelected && !isCorrectOption && (
 																		<span style={{ color: '#ff6b6b', fontSize: '1.2rem' }}>✗</span>
 																	)}
 															</label>
@@ -800,7 +815,7 @@ const QuizPage = () => {
 													</div>
 												</div>
 											)}
-													{showResult && (
+													{showGrading && (
 														<div className={`va-answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
 															<div className="va-feedback-header">
 																<span className="va-feedback-icon">
@@ -874,7 +889,7 @@ const QuizPage = () => {
 									<div className="va-results-stat-label">Procentaj</div>
 									<div className="va-results-stat-value">{result.percentage || 0}%</div>
 								</div>
-								{performanceMetrics && (
+								{performanceMetrics && !showOnlySubmittedAnswers && (
 									<>
 										<div className="va-results-stat">
 											<div className="va-results-stat-label">Corecte</div>
@@ -904,7 +919,7 @@ const QuizPage = () => {
 						</div>
 
 						{/* Performance Breakdown */}
-						{performanceMetrics && (
+						{quiz.questions?.length > 0 && (
 							<div style={{
 								background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
 								border: '1px solid rgba(255,238,0,0.25)',
@@ -924,7 +939,7 @@ const QuizPage = () => {
 									gap: '0.75rem'
 								}}>
 									<span>📊</span>
-									<span>Breakdown detaliat</span>
+									<span>{showOnlySubmittedAnswers ? 'Răspunsurile tale' : 'Breakdown detaliat'}</span>
 								</h3>
 								<div style={{ display: 'grid', gap: '1rem' }}>
 									{quiz.questions.map((q, idx) => {
@@ -934,10 +949,12 @@ const QuizPage = () => {
 										
 										return (
 											<div key={q.id} style={{
-												background: isCorrect 
-													? 'linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05))'
-													: 'linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.05))',
-												border: `1px solid ${isCorrect ? 'rgba(74, 222, 128, 0.3)' : 'rgba(255,107,107,0.3)'}`,
+												background: showOnlySubmittedAnswers
+													? 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))'
+													: (isCorrect
+														? 'linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05))'
+														: 'linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.05))'),
+												border: `1px solid ${showOnlySubmittedAnswers ? 'rgba(255,238,0,0.25)' : (isCorrect ? 'rgba(74, 222, 128, 0.3)' : 'rgba(255,107,107,0.3)')}`,
 												borderRadius: '16px',
 												padding: '1.5rem'
 											}}>
@@ -946,9 +963,11 @@ const QuizPage = () => {
 														width: '36px',
 														height: '36px',
 														borderRadius: '10px',
-														background: isCorrect 
-															? 'linear-gradient(135deg, #4ade80, #22c55e)'
-															: 'linear-gradient(135deg, #ff6b6b, #ff5252)',
+														background: showOnlySubmittedAnswers
+															? 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.1))'
+															: (isCorrect
+																? 'linear-gradient(135deg, #4ade80, #22c55e)'
+																: 'linear-gradient(135deg, #ff6b6b, #ff5252)'),
 														display: 'flex',
 														alignItems: 'center',
 														justifyContent: 'center',
@@ -956,7 +975,7 @@ const QuizPage = () => {
 														fontWeight: 700,
 														fontSize: '1rem'
 													}}>
-														{isCorrect ? '✓' : '✗'}
+														{showOnlySubmittedAnswers ? (idx + 1) : (isCorrect ? '✓' : '✗')}
 													</div>
 													<div style={{ flex: 1 }}>
 														<div style={{
@@ -994,7 +1013,7 @@ const QuizPage = () => {
 																			<div style={{ marginTop: '0.25rem' }}>
 																				Răspunsul tău: {selectedItem?.text || '—'}
 																			</div>
-																			{!isCorrect && (
+																			{!showOnlySubmittedAnswers && !isCorrect && (
 																				<div style={{ marginTop: '0.15rem', color: '#4ade80' }}>
 																					Răspuns corect: {correctItem?.text || '—'}
 																				</div>
@@ -1018,14 +1037,29 @@ const QuizPage = () => {
 															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
 																Ordinea ta: {(Array.isArray(userAnswer) ? userAnswer : []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
 															</div>
-															{!isCorrect && (
+															{!showOnlySubmittedAnswers && !isCorrect && (
 																<div style={{ color: '#4ade80', fontSize: '0.9rem', marginTop: '0.25rem' }}>
 																	Ordinea corectă: {(q.ordering.correctOrder || []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
 																</div>
 															)}
 														</div>
 													)}
-													{!isStructured && (<div style={{
+													{!isStructured && showOnlySubmittedAnswers && userAnswer !== undefined && (
+														<div style={{
+															padding: '0.75rem 1rem',
+															background: 'rgba(255,255,255,0.05)',
+															border: '1px solid rgba(255,238,0,0.15)',
+															borderRadius: '12px'
+														}}>
+															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+																Răspunsul tău
+															</div>
+															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
+																{q.options?.[userAnswer]}
+															</div>
+														</div>
+													)}
+													{!isStructured && !showOnlySubmittedAnswers && (<div style={{
 														padding: '0.75rem 1rem',
 														background: 'rgba(74, 222, 128, 0.1)',
 														border: '1px solid rgba(74, 222, 128, 0.2)',
@@ -1038,7 +1072,7 @@ const QuizPage = () => {
 															{q.options?.[q.answerIndex]}
 														</div>
 													</div>)}
-													{!isStructured && !isCorrect && userAnswer !== undefined && (
+													{!isStructured && !showOnlySubmittedAnswers && !isCorrect && userAnswer !== undefined && (
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,107,107,0.1)',
@@ -1053,7 +1087,7 @@ const QuizPage = () => {
 															</div>
 														</div>
 													)}
-													{!isStructured && q.explanation && (
+													{!showOnlySubmittedAnswers && !isStructured && q.explanation && (
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,255,255,0.05)',
@@ -1069,7 +1103,7 @@ const QuizPage = () => {
 															</div>
 														</div>
 													)}
-													{isStructured && q.explanation && (
+													{!showOnlySubmittedAnswers && isStructured && q.explanation && (
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,255,255,0.05)',
@@ -1094,7 +1128,7 @@ const QuizPage = () => {
 						)}
 
 						{/* Recommendations */}
-						{performanceMetrics && !result.passed && (
+						{performanceMetrics && !showOnlySubmittedAnswers && !result.passed && (
 							<div style={{
 								background: 'linear-gradient(135deg, rgba(255,193,7,0.12), rgba(255,193,7,0.08))',
 								border: '1px solid rgba(255,193,7,0.3)',

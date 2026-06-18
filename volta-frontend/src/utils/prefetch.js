@@ -26,6 +26,7 @@ const routePrefetchers = [
 	{ prefix: '/messages', fn: () => import('../pages/MessagesPage') },
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
 	{ prefix: '/library', fn: () => import('../pages/LibraryPage') },
+	{ prefix: '/guides', fn: () => import('../pages/GuidesPage') },
 	{ prefix: '/settings', fn: () => import('../pages/StudentSettingsPage') },
 	{ prefix: '/profile/activity', fn: () => import('../pages/StudentActivityPage') },
 	{ prefix: '/profile', fn: () => import('../pages/ProfilePage') },

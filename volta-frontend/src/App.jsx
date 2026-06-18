@@ -30,6 +30,7 @@ import {
 	ChartLineUp,
 	ChatsCircle,
 	CheckCircle,
+	Compass,
 	GearSix,
 	House,
 	ListBullets,
@@ -62,6 +63,8 @@ import './styles/lms-dashboard-enterprise.css';
 import './styles/achievements-modern.css';
 import './styles/library-page.css';
 import './styles/library-reader-page.css';
+import './styles/library-compose-page.css';
+import './styles/guides-page.css';
 /* Student styles - loaded after shared to ensure proper cascade */
 import './styles/student-navigation-modern.css';
 import './styles/admin-view-switcher.css';
@@ -92,6 +95,7 @@ const ExamResultsPage = lazy(() => import('./pages/ExamResultsPage'));
 const CalendarViewPage = lazy(() => import('./pages/CalendarViewPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const InviteRegisterPage = lazy(() => import('./pages/InviteRegisterPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
@@ -128,6 +132,8 @@ const LessonsPage = lazy(() => import('./pages/LessonsPage'));
 const LessonPage = lazy(() => import('./pages/LessonPage'));
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const LibraryReaderPage = lazy(() => import('./pages/LibraryReaderPage'));
+const LibraryComposePage = lazy(() => import('./pages/LibraryComposePage'));
+const GuidesPage = lazy(() => import('./pages/GuidesPage'));
 
 // Loading component (post-login: no full-screen overlay)
 const PageLoader = () => (
@@ -216,10 +222,15 @@ function Layout({ children }) {
 	//   - If accessed from admin sidebar: use admin layout
 	//   - If accessed from user top nav: use user layout
 	const isMessagesPage = location.pathname === '/messages';
-	const isLibraryPage = location.pathname === '/library' || location.pathname.startsWith('/library/items/');
-	const isLibraryReaderPage = location.pathname.startsWith('/library/items/');
+	const isLibraryPage =
+		location.pathname === '/library' ||
+		location.pathname.startsWith('/library/items/') ||
+		location.pathname.startsWith('/library/compose');
+	const isGuidesPage = location.pathname === '/guides';
+	const isLibraryReaderPage =
+		location.pathname.startsWith('/library/items/') && !location.pathname.includes('/edit');
 	const isAdminPage = location.pathname.startsWith('/admin');
-	const isStaffLibraryPage = isLibraryPage && hasStaffAdminShell && user?.role !== 'student';
+	const isStaffLibraryPage = (isLibraryPage || isGuidesPage) && hasStaffAdminShell && user?.role !== 'student';
 	const isAdminShellPage = isAdminPage || isStaffLibraryPage;
 	
 	// Track if we came from admin context for messages page
@@ -449,8 +460,8 @@ function Layout({ children }) {
 				sessionStorage.setItem('messagesFromAdmin', 'true');
 				sessionStorage.removeItem('studentPreviewFromAdmin');
 				setCameFromAdmin(true);
-			} else if (isLibraryPage) {
-				// Biblioteca folosește shell-ul de admin pentru staff, dar nu trebuie să forțeze contextul mesageriei.
+			} else if (isLibraryPage || isGuidesPage) {
+				// Biblioteca și ghidurile folosesc shell-ul de admin pentru staff, dar nu forțează contextul mesageriei.
 				sessionStorage.setItem('messagesFromAdmin', 'false');
 				setCameFromAdmin(false);
 			} else if (isMessagesPage) {
@@ -463,7 +474,7 @@ function Layout({ children }) {
 				setCameFromAdmin(false);
 			}
 		}
-	}, [location.pathname, hasStaffAdminShell, isAdminPage, isLibraryPage, isMessagesPage]);
+	}, [location.pathname, hasStaffAdminShell, isAdminPage, isLibraryPage, isGuidesPage, isMessagesPage]);
 
 	// Student preview mode: admin viewing as student - no admin UI, 100% student experience
 	const isStudentPreviewMode = isTrueAdminAccount && showUserLayout && sessionStorage.getItem('studentPreviewFromAdmin') === 'true';
@@ -555,6 +566,14 @@ function Layout({ children }) {
 			title: 'Materiale partajate: cărți, PDF-uri și documente',
 			icon: (
 				<Books size={20} weight="duotone" aria-hidden />
+			),
+		},
+		{
+			path: '/guides',
+			label: 'Ghiduri',
+			title: 'Linkuri utile și resurse externe recomandate',
+			icon: (
+				<Compass size={20} weight="duotone" aria-hidden />
 			),
 		},
 		{ 
@@ -674,6 +693,13 @@ function Layout({ children }) {
 			label: 'Bibliotecă',
 			icon: (
 				<Books size={18} weight="duotone" aria-hidden />
+			),
+		},
+		{
+			path: '/guides',
+			label: 'Ghiduri',
+			icon: (
+				<Compass size={18} weight="duotone" aria-hidden />
 			),
 		},
 		{
@@ -1276,6 +1302,7 @@ function App() {
 					/>
 					{/* Public routes */}
 					<Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
+					<Route path="/register/invite/:token" element={<Suspense fallback={<PageLoader />}><InviteRegisterPage /></Suspense>} />
 					<Route path="/register" element={<Suspense fallback={<PageLoader />}><RegisterPage /></Suspense>} />
 					
 					{/* Protected routes */}
@@ -1425,11 +1452,41 @@ function App() {
 										}
 									/>
 									<Route
+										path="/library/compose"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<LibraryComposePage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/library/compose/:itemId"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<LibraryComposePage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
 										path="/library/items/:itemId"
 										element={
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
 													<LibraryReaderPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/guides"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<GuidesPage />
 												</Suspense>
 											</UserRoute>
 										}

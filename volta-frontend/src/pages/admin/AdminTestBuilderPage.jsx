@@ -16,13 +16,14 @@ export default function AdminTestBuilderPage() {
   const { canMutateInAdminArea } = useAuth();
 
   const testId = Number(testIdParam);
-  const section = searchParams.get('section') === 'settings' ? 'settings' : 'questions';
+  const sectionParam = searchParams.get('section');
+  const section = sectionParam === 'settings' ? 'settings' : 'questions';
 
   const editor = useInlineTestEditor({
     showToast,
     canMutateInAdminArea,
     initialTestId: Number.isFinite(testId) && testId > 0 ? testId : null,
-    initialTab: section,
+    initialTab: section === 'settings' ? 'settings' : 'questions',
   });
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function AdminTestBuilderPage() {
       next.set('section', tab);
       return next;
     });
-    editor.setInlineTestTab(tab);
+    editor.setInlineTestTab(tab === 'settings' ? 'settings' : 'questions');
   };
 
   const handleBack = () => {
@@ -76,6 +77,27 @@ export default function AdminTestBuilderPage() {
         <button type="button" className="admin-test-builder-back" onClick={handleBack}>
           <ArrowLeft size={18} weight="bold" aria-hidden />
           Înapoi la Teste
+        </button>
+      </div>
+
+      <div className="admin-test-builder-section-nav" role="tablist" aria-label="Secțiuni test">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'questions'}
+          className={`admin-test-builder-section-tab ${section === 'questions' ? 'is-active' : ''}`}
+          onClick={() => handleSectionChange('questions')}
+        >
+          Întrebări
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'settings'}
+          className={`admin-test-builder-section-tab ${section === 'settings' ? 'is-active' : ''}`}
+          onClick={() => handleSectionChange('settings')}
+        >
+          Setări
         </button>
       </div>
 

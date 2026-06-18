@@ -162,7 +162,7 @@ const EventsPage = () => {
 										className="events-card-thumbnail"
 										style={{
 											width: '100%',
-											height: '200px',
+											height: '148px',
 											backgroundImage: `url(${event.thumbnail})`,
 											backgroundSize: 'cover',
 											backgroundPosition: 'center',
@@ -353,7 +353,7 @@ const EventsPage = () => {
 												className="events-card-thumbnail"
 												style={{
 													width: '100%',
-													height: '200px',
+													height: '148px',
 													backgroundImage: `url(${event.thumbnail})`,
 													backgroundSize: 'cover',
 													backgroundPosition: 'center',

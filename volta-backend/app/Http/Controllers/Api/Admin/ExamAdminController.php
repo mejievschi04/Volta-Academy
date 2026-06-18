@@ -138,6 +138,7 @@ class ExamAdminController extends Controller
             'instructions' => $settings['instructions'] ?? null,
             'show_feedback_instant' => (bool) ($settings['show_feedback_instant'] ?? false),
             'show_correct_answers' => (bool) ($settings['show_correct_answers'] ?? false),
+            'show_only_submitted_answers' => (bool) ($settings['show_only_submitted_answers'] ?? false),
             'passing_score' => $exam->passing_score ?? 70,
             'time_limit_minutes' => $exam->time_limit_minutes,
             'max_attempts' => $exam->max_attempts,
@@ -1002,6 +1003,68 @@ class ExamAdminController extends Controller
         return response()->json([
             'message' => 'Coada de verificări a fost curățată.',
             'cleared_count' => count($toClearIds),
+        ]);
+    }
+
+    /**
+     * Manually adjust the score for an exam attempt.
+     */
+    public function updateResultScore(Request $request, $resultId)
+    {
+        $validated = $request->validate([
+            'score' => 'required|numeric|min:0',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        $result = ExamResult::with('exam')->findOrFail($resultId);
+        $this->assertExamAccessibleByInstructor($result->exam);
+
+        $maxScore = (int) ($result->total_points ?? 0);
+        if ($maxScore <= 0) {
+            $maxScore = 1;
+        }
+
+        $newScore = min((float) $validated['score'], (float) $maxScore);
+        $newPercentage = round(($newScore / $maxScore) * 100, 2);
+        $passingScore = (int) ($result->exam->passing_score ?? 70);
+        $newPassed = $newPercentage >= $passingScore;
+
+        $manualScores = is_array($result->manual_review_scores) ? $result->manual_review_scores : [];
+        $previousScore = $result->score;
+        $meta = is_array($manualScores['_meta'] ?? null) ? $manualScores['_meta'] : [];
+        $meta['score_adjustment'] = [
+            'previous_score' => $previousScore,
+            'adjusted_score' => $newScore,
+            'adjusted_at' => now()->toIso8601String(),
+            'adjusted_by' => Auth::id(),
+            'note' => $validated['note'] ?? null,
+        ];
+        $manualScores['_meta'] = $meta;
+
+        $result->update([
+            'score' => (int) round($newScore),
+            'percentage' => $newPercentage,
+            'passed' => $newPassed,
+            'needs_manual_review' => false,
+            'reviewed_at' => $result->reviewed_at ?? now(),
+            'reviewed_by' => Auth::id(),
+            'manual_review_scores' => $manualScores,
+        ]);
+
+        \Illuminate\Support\Facades\Cache::forget("profile_user_{$result->user_id}");
+        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$result->user_id}_stats");
+
+        return response()->json([
+            'message' => 'Punctajul a fost actualizat.',
+            'result' => [
+                'id' => $result->id,
+                'score' => $result->score,
+                'total_points' => $result->total_points,
+                'percentage' => $result->percentage,
+                'passed' => $result->passed,
+                'status' => $result->reviewed_at ? 'approved' : 'completed',
+                'reviewed_at' => $result->reviewed_at,
+            ],
         ]);
     }
 

@@ -7,7 +7,7 @@ import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { toImageUrl } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
-import { teamAccentNeutral as teamAccent } from '../../utils/teamAccent';
+import { teamAccent } from '../../utils/teamAccent';
 
 const AdminTeamMembersPage = () => {
 	const navigate = useNavigate();
