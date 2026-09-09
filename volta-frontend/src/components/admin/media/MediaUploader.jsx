@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 
 const inferTypeFromFile = (file) => {
 	const mime = (file?.type || '').toLowerCase();

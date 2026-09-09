@@ -19,9 +19,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { MagnifyingGlass, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { DragGripIcon } from '../../components/common/DragGripIcon';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import { mapFolderCardImageUrl, toImageUrl } from '../../utils/imageUrl';
 import CourseMapFolderTile from '../../components/ui/CourseMapFolderTile';
 import { normalizeColorInputToHex } from '../../utils/color';
@@ -180,7 +182,7 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 	);
 }
 
-const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, headerActions = null }) => {
+const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions = null }) => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
 	const { canMutateInAdminArea, user } = useAuth();
@@ -249,7 +251,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		if (autoOpenCreate && canMutateInAdminArea) {
 			openCreate();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+
 	}, [autoOpenCreate, canMutateInAdminArea]);
 
 	useEffect(() => {
@@ -266,7 +268,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		try {
 			const data = await adminService.getCourses({ per_page: 500 });
 			setAllCourses(Array.isArray(data) ? data : (data?.data ?? []));
-		} catch (e) {
+		} catch  {
 			setAllCourses([]);
 		}
 	}, []);
@@ -307,7 +309,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			setAddCourseIds([]);
 			fetchCourses();
 			setShowCreateModal(true);
-		} catch (err) {
+		} catch  {
 			showToast('Nu s-a putut încărca mapa', 'error');
 		}
 	};
@@ -388,16 +390,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 		if (deleteConfirmMap) deleteMap(deleteConfirmMap);
 	};
 
-	const openManage = async (map) => {
-		try {
-			const full = await adminService.getCourseMap(map.id);
-			setManagingMap(full);
-			setAddCourseIds([]);
-			fetchCourses();
-		} catch (err) {
-			showToast('Nu s-a putut încărca mapa', 'error');
-		}
-	};
+
 
 	const addCoursesToMap = async (fromEditModal = false) => {
 		const mapContext = fromEditModal ? editingMap : managingMap;
@@ -410,7 +403,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			if (fromEditModal) setEditingMap(updated);
 			else setManagingMap(updated);
 			fetchMaps();
-		} catch (err) {
+		} catch  {
 			showToast('Eroare la adăugare cursuri', 'error');
 		}
 	};
@@ -424,7 +417,7 @@ const AdminCourseMapsPage = ({ embedded, onOpenMap, autoOpenCreate = false, head
 			if (fromEditModal) setEditingMap(updated);
 			else setManagingMap(updated);
 			fetchMaps();
-		} catch (err) {
+		} catch  {
 			showToast('Eroare la scoaterea cursului', 'error');
 		}
 	};

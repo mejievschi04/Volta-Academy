@@ -15,9 +15,6 @@ const AddModuleModal = ({ onClose, onSubmit, loading }) => {
 		firstInputRef.current?.focus();
 	}, []);
 
-	useEffect(() => {
-		setError('');
-	}, [title]);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -48,7 +45,7 @@ const AddModuleModal = ({ onClose, onSubmit, loading }) => {
 							id="add-module-title-input"
 							type="text"
 							value={title}
-							onChange={(e) => setTitle(e.target.value)}
+							onChange={(e) => { setTitle(e.target.value); setError(''); }}
 							placeholder="Titlul modulului"
 							className="add-module-modal-input"
 							disabled={loading}

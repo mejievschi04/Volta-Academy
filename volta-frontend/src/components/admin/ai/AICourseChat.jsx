@@ -1,8 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
 import { openaiService } from '../../../services/openaiService';
-import { useToast } from '../../../contexts/ToastContext';
+import { adminService } from '../../../services/api';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import { buildCourseCreationPromptFromBrief } from '../../../utils/voltAiPrompts';
+import {
+	buildStructuredExcelRows,
+	downloadStructuredExcel,
+	statisticsExcelFilename,
+} from '../../../utils/statisticsExcelExport';
 import { isVoltEnabled, notifyVoltComingSoon, VOLT_COMING_SOON_MESSAGE } from '../../../utils/voltAvailability';
 import './AIChat.css';
 
@@ -12,6 +19,9 @@ const AICourseChat = ({
 	onApplyPlan = null,
 	onClose,
 	initialCourseId = null,
+	selectedModuleId = null,
+	selectedLessonId = null,
+	selectedLessonDraft = null,
 	mode = 'create', // create | assist
 	title = '⚡ Volt Course Creator',
 	welcomeMessage = null,
@@ -20,16 +30,23 @@ const AICourseChat = ({
 	quickActions = [],
 }) => {
 	const { showToast } = useToast();
-	const [messages, setMessages] = useState([
-		{
-			role: 'assistant',
-			content: welcomeMessage || (mode === 'assist'
-			? 'Sunt Volt. Pot modifica și genera lecții, module și conținutul lor. Spune-mi ce vrei să schimbăm.'
-				: 'Sunt Volt. Pot genera cursul complet, cu module, lecții și conținutul lor. Dacă îmi lipsesc detalii, te întreb pe rând.'),
-		},
-	]);
+	const [messages, setMessages] = useState(() => {
+		// În modul "create", subtitlul din header transmite deja mesajul de bun venit — evităm dublarea.
+		if (mode === 'create' && !welcomeMessage) {
+			return [];
+		}
+		return [
+			{
+				role: 'assistant',
+				content: welcomeMessage || (mode === 'assist'
+					? 'Sunt Volt. Pot modifica și genera lecții, module și conținutul lor. Spune-mi ce vrei să schimbăm.'
+					: 'Sunt Volt. Pot genera cursul complet, cu module, lecții și conținutul lor. Dacă îmi lipsesc detalii, te întreb pe rând.'),
+			},
+		];
+	});
 	const [input, setInput] = useState('');
 	const [isGenerating, setIsGenerating] = useState(false);
+	const [isDirectExporting, setIsDirectExporting] = useState(false);
 	const [generatedPlan, setGeneratedPlan] = useState(null);
 	const [attachedDocuments, setAttachedDocuments] = useState([]);
 	const [attachmentUploading, setAttachmentUploading] = useState(false);
@@ -41,9 +58,9 @@ const AICourseChat = ({
 		targetAudience: '',
 		level: 'incepator',
 		style: 'practic',
-		modulesCount: '3',
+		modulesCount: '2',
 		lessonsPerModule: '2',
-		lessonSize: 'mediu',
+		lessonSize: 'detaliat',
 	});
 	const messagesEndRef = useRef(null);
 	const chatContainerRef = useRef(null);
@@ -84,6 +101,17 @@ const AICourseChat = ({
 		return null;
 	};
 
+	const looksLikePartialJson = (text) => {
+		if (!text || typeof text !== 'string') return false;
+		const trimmed = text.trim();
+		return (
+			trimmed.startsWith('{') ||
+			trimmed.startsWith('```json') ||
+			trimmed.includes('"response_type"') ||
+			trimmed.includes('"modules"')
+		) && !extractJsonFromText(trimmed);
+	};
+
 	const getResponseTypeFromText = (text) => {
 		const parsed = extractJsonFromText(text || '');
 		return String(parsed?.response_type || parsed?.type || '').trim().toLowerCase();
@@ -109,7 +137,7 @@ const AICourseChat = ({
 		}
 
 		return text
-			.replace(/\u0000/g, '')
+			.replaceAll('\u0000', '')
 			.replace(/\r\n/g, '\n')
 			.replace(/\r/g, '\n')
 			.replace(/[ \t]+\n/g, '\n')
@@ -399,6 +427,9 @@ const AICourseChat = ({
 						mode: mode === 'assist' ? 'builder_diff' : 'guided_creation:full',
 						courseId: currentCourseId,
 						initialCourseId: currentCourseId,
+						selectedModuleId: selectedModuleId ?? null,
+						selectedLessonId: selectedLessonId ?? null,
+						selectedLessonDraft: selectedLessonDraft ?? null,
 						attachments: attachedDocuments,
 						guided_brief: briefPayload,
 					}
@@ -544,7 +575,9 @@ const AICourseChat = ({
 				const trimmedSourceText = sourceText.trim();
 				const fallbackText = parsedCourse
 					? (parsedCourse.description || parsedCourse.short_description || 'Am pregătit cursul. Dacă vrei să continui, îmi poți spune ce lipsește.')
-					: trimmedSourceText;
+					: looksLikePartialJson(trimmedSourceText)
+						? 'Volt a generat un răspuns incomplet. Încearcă un curs mai mic (2 module x 2 lecții) sau apasă din nou după câteva secunde.'
+						: trimmedSourceText;
 				setMessages(prev => {
 					const newMessages = [...prev];
 					newMessages[newMessages.length - 1] = {
@@ -578,6 +611,80 @@ const AICourseChat = ({
 		await submitPrompt(input);
 	};
 
+	const handleDirectExport = async () => {
+		if (isGenerating) return;
+		if (!isVoltEnabled()) {
+			notifyVoltComingSoon(showToast);
+			return;
+		}
+
+		const exportPrompt = input.trim();
+		if (exportPrompt.length < 3) {
+			showToast('Scrie ce date vrei în export.', 'warning');
+			return;
+		}
+
+		setMessages(prev => [
+			...prev,
+			{ role: 'user', content: `Export Excel: ${exportPrompt}` },
+			{ role: 'assistant', content: '⚙️ Pregătesc exportul Excel...\nTe rog să aștepți.' },
+		]);
+		setInput('');
+		setIsGenerating(true);
+		setIsDirectExporting(true);
+
+		try {
+			const exportData = await adminService.generateStatisticsExportWithVolt({
+				prompt: exportPrompt,
+			});
+
+			const rows = buildStructuredExcelRows({
+				sheetLabel: exportData.title || 'Export Volt',
+				periodFrom: exportData.filters_applied?.date_from || '',
+				periodTo: exportData.filters_applied?.date_to || '',
+				kpiEntries: exportData.kpis?.length ? exportData.kpis : null,
+				extraMeta: [
+					['Tip raport', exportData.dataset_label || exportData.dataset || '—'],
+					['Cerere', exportPrompt],
+					['Rezumat Volt', exportData.summary || ''],
+				],
+				tableHeaders: exportData.headers || [],
+				tableRows: exportData.rows || [],
+			});
+
+			downloadStructuredExcel(
+				statisticsExcelFilename(exportData.filename_slug || exportData.dataset || 'volt-export'),
+				exportData.title || 'Export Volt',
+				rows
+			);
+
+			setMessages(prev => {
+				const next = [...prev];
+				next[next.length - 1] = {
+					...next[next.length - 1],
+					content: `✅ Exportul Excel a fost generat și descărcat.\n\n${exportData.title || 'Export Volt'}\n${exportData.row_count ?? 0} rânduri`,
+				};
+				return next;
+			});
+			showToast('Export Excel descărcat.', 'success');
+		} catch (error) {
+			console.error('Error generating direct export:', error);
+			const message = error?.response?.data?.error || error?.message || 'Nu s-a putut genera exportul.';
+			setMessages(prev => {
+				const next = [...prev];
+				next[next.length - 1] = {
+					...next[next.length - 1],
+					content: `Nu am putut genera exportul Excel: ${message}`,
+				};
+				return next;
+			});
+			showToast(message, 'error');
+		} finally {
+			setIsDirectExporting(false);
+			setIsGenerating(false);
+		}
+	};
+
 	const handleQuickAction = async (actionPrompt) => {
 		await submitPrompt(actionPrompt);
 	};
@@ -605,6 +712,11 @@ const AICourseChat = ({
 			String(guidedBrief.description || '').trim()
 		)
 		: Boolean(input.trim());
+
+	const liveStatusTitle = isDirectExporting ? '⚙️ Volt pregătește exportul Excel' : '⚙️ Volt construiește cursul';
+	const liveStatusSubtitle = isDirectExporting
+		? 'Analizez cererea, extrag datele și pregătesc fișierul.'
+		: 'Verific detaliile, cer clarificări doar dacă lipsesc informații și apoi finalizez.';
 
 
 	if (!isVoltEnabled()) {
@@ -646,15 +758,15 @@ const AICourseChat = ({
 			</div>
 			{mode === 'create' && (
 				<div className="ai-chat-guided-brief">
-					<div className="ai-chat-guided-brief-grid">
-						<input
-							type="text"
-							className="ai-chat-guided-brief-input"
-							placeholder="Tema cursului (ex: React Native avansat)"
-							value={guidedBrief.topic}
-							onChange={(e) => updateGuidedBriefField('topic', e.target.value)}
-							disabled={isGenerating}
-						/>
+					<input
+						type="text"
+						className="ai-chat-guided-brief-input ai-chat-guided-brief-topic"
+						placeholder="Tema cursului (ex: React Native avansat)"
+						value={guidedBrief.topic}
+						onChange={(e) => updateGuidedBriefField('topic', e.target.value)}
+						disabled={isGenerating}
+					/>
+					<div className="ai-chat-guided-brief-pair">
 						<input
 							type="text"
 							className="ai-chat-guided-brief-input"
@@ -671,6 +783,8 @@ const AICourseChat = ({
 							onChange={(e) => updateGuidedBriefField('targetAudience', e.target.value)}
 							disabled={isGenerating}
 						/>
+					</div>
+					<div className="ai-chat-guided-brief-controls">
 						<div className="ai-chat-guided-brief-row">
 							<label>Nivel</label>
 							<select
@@ -696,19 +810,19 @@ const AICourseChat = ({
 							</select>
 						</div>
 						<div className="ai-chat-guided-brief-row">
-							<label>Dimensiune lecții</label>
+							<label>Lecții</label>
 							<select
 								value={guidedBrief.lessonSize}
 								onChange={(e) => updateGuidedBriefField('lessonSize', e.target.value)}
 								disabled={isGenerating}
 							>
-								<option value="scurt">Scurtă</option>
-								<option value="mediu">Medie</option>
-								<option value="lung">Lungă</option>
+								<option value="scurt">Scurte</option>
+								<option value="mediu">Medii</option>
+								<option value="detaliat">Detaliate</option>
 							</select>
 						</div>
 						<div className="ai-chat-guided-brief-row">
-							<label>Nr. module</label>
+							<label>Module</label>
 							<input
 								type="number"
 								min={2}
@@ -736,7 +850,7 @@ const AICourseChat = ({
 						value={guidedBrief.description}
 						onChange={(e) => updateGuidedBriefField('description', e.target.value)}
 						disabled={isGenerating}
-						rows={3}
+						rows={2}
 					/>
 				</div>
 			)}
@@ -777,7 +891,7 @@ const AICourseChat = ({
 						<div className="ai-chat-message-content">
 							<div className="ai-chat-build-status ai-chat-build-status-live" role="status" aria-live="polite">
 								<p className="ai-chat-build-status-title">
-									<span className="ai-chat-build-title-text">⚙️ Volt construiește cursul</span>
+									<span className="ai-chat-build-title-text">{liveStatusTitle}</span>
 									<span className="ai-chat-build-dots" aria-hidden="true">
 										<span />
 										<span />
@@ -785,7 +899,7 @@ const AICourseChat = ({
 									</span>
 								</p>
 								<p className="ai-chat-build-status-subtitle">
-									Verific detaliile, cer clarificări doar dacă lipsesc informații și apoi finalizez.
+									{liveStatusSubtitle}
 								</p>
 								<div className="ai-chat-build-progress" aria-hidden="true">
 									<span className="ai-chat-build-progress-bar" />
@@ -876,6 +990,15 @@ const AICourseChat = ({
 					placeholder={mode === 'create' ? 'Ex: vreau un curs de React pentru începători, orientat pe practică' : 'Scrie cererea ta...'}
 					disabled={isGenerating}
 				/>
+				<button
+					type="button"
+					className="ai-chat-btn ai-chat-btn-export"
+					onClick={handleDirectExport}
+					disabled={!input.trim() || isGenerating}
+					title="Exportă direct în Excel"
+				>
+					Excel
+				</button>
 				<button
 					type="submit"
 					className="ai-chat-btn ai-chat-btn-send"

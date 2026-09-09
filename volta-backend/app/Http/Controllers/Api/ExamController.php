@@ -788,7 +788,7 @@ class ExamController extends Controller
             'passing_score' => $resolvedPassingScore,
             'time_limit_minutes' => $test->time_limit_minutes,
             'max_attempts' => $test->max_attempts,
-            'is_required' => (bool) ($courseTest && ($courseTest->required ?? false)),
+            'is_required' => (bool) $courseTest,
             'questions' => $transformedQuestions,
             'current_attempt' => $currentAttempt,
             'remaining_attempts' => $remainingAttempts,

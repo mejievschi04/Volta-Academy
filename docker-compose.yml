@@ -21,7 +21,8 @@ services:
       retries: 5
 
   # Backend Laravel
-  backend:
+  backend: &backend-service
+    image: volta-academy-backend:local
     build:
       context: ./volta-backend
       dockerfile: Dockerfile
@@ -51,6 +52,16 @@ services:
       # Pentru sesiuni în DB pe mai multe instanțe, schimbă explicit aici în `database` și rulează migrate.
       SESSION_DRIVER: file
       CACHE_STORE: file
+      QUEUE_CONNECTION: database
+      DB_QUEUE_RETRY_AFTER: 240
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_HOST: ${MAIL_HOST:-127.0.0.1}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Volta Academy}
       SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
@@ -79,8 +90,32 @@ services:
         condition: service_healthy
     networks:
       - volta-network
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     # Expune portul pentru PHP-FPM (dacă folosești Nginx separat)
     # Sau poți folosi un reverse proxy
+
+  queue-worker:
+    <<: *backend-service
+    container_name: volta-queue-worker
+    entrypoint: ["php", "artisan"]
+    command: ["queue:work", "database", "--sleep=2", "--tries=3", "--timeout=60", "--max-time=3600"]
+    stop_grace_period: 200s
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - backend_cache:/var/www/html/bootstrap/cache
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # Nginx Reverse Proxy pentru Backend
   nginx-backend:

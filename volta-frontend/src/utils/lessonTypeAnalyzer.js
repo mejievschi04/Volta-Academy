@@ -84,7 +84,7 @@ export const analyzeLessonTypes = (modules) => {
  * Generează recomandări pentru teste, prețuri și funcții
  */
 const generateRecommendations = (stats) => {
-	const { typeCounts, totalLessons, hasVideo, hasText, hasAssignment, hasQuiz, hasLive, hasPdf } = stats;
+	const { typeCounts, totalLessons, hasVideo, hasText, hasAssignment, hasQuiz, hasLive } = stats;
 	
 	const recommendations = {
 		assessments: [],

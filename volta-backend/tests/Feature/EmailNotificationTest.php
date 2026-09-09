@@ -34,7 +34,7 @@ class EmailNotificationTest extends TestCase
 
         app(NotificationService::class)->notifyCourseEnrolled($student, $course);
 
-        Mail::assertSent(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($student) {
+        Mail::assertQueued(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($student) {
             return $mail->hasTo($student->email)
                 && str_contains($mail->heading, 'Înscriere');
         });
@@ -53,7 +53,7 @@ class EmailNotificationTest extends TestCase
 
         app(NotificationService::class)->notifyCourseEnrolled($student, $course);
 
-        Mail::assertNothingSent();
+        Mail::assertNothingOutgoing();
     }
 
     public function test_registration_requested_emails_admins(): void
@@ -67,7 +67,7 @@ class EmailNotificationTest extends TestCase
 
         app(NotificationService::class)->notifyRegistrationRequested($applicant);
 
-        Mail::assertSent(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($admin) {
+        Mail::assertQueued(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($admin) {
             return $mail->hasTo($admin->email);
         });
     }

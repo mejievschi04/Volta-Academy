@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
+import AIStatisticsExportPanel from '../../components/admin/statistics/AIStatisticsExportPanel';
 import {
 	buildStructuredExcelRows,
 	downloadStructuredExcel,
@@ -8,6 +9,7 @@ import {
 import './AdminStatisticsHubPage.css';
 
 const MENU_ITEMS = [
+	{ id: 'ai-export', label: '⚡ Export cu Volt' },
 	{ id: 'student-progress', label: 'Progresul elevilor' },
 	{ id: 'course-progress', label: 'Progres cursuri' },
 	{ id: 'test-progress', label: 'Progres teste' },
@@ -1429,7 +1431,9 @@ const AdminStatisticsHubPage = () => {
 				</aside>
 
 				<section className="admin-statistics-hub-main">
-				{active === 'student-progress' ? (
+				{active === 'ai-export' ? (
+					<AIStatisticsExportPanel dateFrom={dateFrom} dateTo={dateTo} />
+				) : active === 'student-progress' ? (
 					renderStudentProgress()
 				) : active === 'course-progress' ? (
 					renderCourseProgress()

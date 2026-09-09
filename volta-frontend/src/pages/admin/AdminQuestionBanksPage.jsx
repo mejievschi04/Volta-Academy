@@ -14,9 +14,11 @@ import {
 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import FolderCard from '../../components/admin/question-banks/FolderCard';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import './AdminQuestionBanksPage.css';
 
 function stripHtmlPreview(raw, maxLen = 160) {

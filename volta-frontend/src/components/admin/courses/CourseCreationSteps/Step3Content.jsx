@@ -250,7 +250,7 @@ function ContentEditor({ block, onUpdate }) {
 		);
 	}
 	if (type === 'image_gallery') {
-		const images = Array.isArray(payload.images) ? payload.images : [];
+
 		return (
 			<div className="step3-editor-form">
 				<label>Galerie imagini</label>
@@ -353,7 +353,7 @@ function LessonPreview({ blocks }) {
 			{(!blocks || blocks.length === 0) && (
 				<p className="step3-preview-empty">Niciun bloc în această lecție.</p>
 			)}
-			{blocks && blocks.length > 0 && blocks.map((block, idx) => {
+			{blocks && blocks.length > 0 && blocks.map((block) => {
 				if (block.visible === false) return null;
 				const info = typeInfo(block.type);
 				return (

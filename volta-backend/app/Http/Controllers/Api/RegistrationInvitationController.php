@@ -45,14 +45,14 @@ class RegistrationInvitationController extends Controller
             ], 404);
         }
 
-        if (User::where('email', $invitation->email)->exists()) {
+        if (! $invitation->user_id && User::where('email', $invitation->email)->exists()) {
             return response()->json([
                 'message' => 'Există deja un cont cu acest email.',
             ], 422);
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s\-\.]+$/u',
+            'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u',
             'password' => [
                 'required',
                 'string',
@@ -66,25 +66,39 @@ class RegistrationInvitationController extends Controller
             'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
         ]);
 
-        $user = User::create([
-            'name' => strip_tags($validated['name']),
-            'email' => $invitation->email,
-            'password' => Hash::make($validated['password']),
-            'role' => $invitation->role ?: 'student',
-            'level' => 1,
-            'points' => 0,
-            'status' => 'active',
-            'must_change_password' => false,
-        ]);
+        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($token, $validated, $invitationService) {
+            $invitation = \App\Models\RegistrationInvitation::where('token', hash('sha256', $token))
+                ->whereNull('accepted_at')->where('expires_at', '>', now())->lockForUpdate()->first();
+            abort_unless($invitation, 404, 'Linkul de invitație este invalid sau a expirat.');
 
-        if ($invitation->team_id) {
-            $user->teams()->syncWithoutDetaching([$invitation->team_id]);
-        }
+            if ($invitation->user_id) {
+                $user = User::lockForUpdate()->find($invitation->user_id);
+                $invitationService->assertUserInvitable($user, $invitation->email);
+                $user->update([
+                    'password' => Hash::make($validated['password']),
+                    'must_change_password' => false,
+                ]);
+            } else {
+                $user = User::create([
+                    'name' => strip_tags($validated['name']),
+                    'email' => $invitation->email,
+                    'password' => Hash::make($validated['password']),
+                    'role' => $invitation->role ?: 'student',
+                    'level' => 1,
+                    'points' => 0,
+                    'status' => 'active',
+                    'must_change_password' => false,
+                ]);
+                if ($invitation->team_id) {
+                    $user->teams()->syncWithoutDetaching([$invitation->team_id]);
+                }
+            }
 
-        $invitation->update([
-            'accepted_at' => now(),
-            'user_id' => $user->id,
-        ]);
+            $user->forceFill(['last_login_at' => now()])->save();
+            $invitation->update(['accepted_at' => now(), 'user_id' => $user->id]);
+
+            return $user;
+        });
 
         if (Schema::hasTable('activity_logs')) {
             \App\Models\ActivityLog::create([
@@ -116,7 +130,7 @@ class RegistrationInvitationController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Cont creat cu succes. Bine ai venit!',
+            'message' => 'Cont activat cu succes. Bine ai venit!',
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

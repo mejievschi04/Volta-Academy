@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { dashboardService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import CourseProgressWidget from '../components/student/CourseProgressWidget';
 import IncompleteLessonsWidget from '../components/student/IncompleteLessonsWidget';

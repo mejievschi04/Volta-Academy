@@ -478,6 +478,15 @@ class CourseBuilderController extends Controller
         return response()->json($report);
     }
 
+    public function qualityAudit(Request $request, int $courseId)
+    {
+        $this->ensureCourseAccess($courseId);
+        $course = Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'courseTests.test'])->findOrFail($courseId);
+        $report = $this->courseBuilderValidator->qualityAudit($course);
+
+        return response()->json($report);
+    }
+
     public function submitForReview(Request $request, int $courseId)
     {
         $this->ensureCourseAccess($courseId);
@@ -537,7 +546,7 @@ class CourseBuilderController extends Controller
             CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            if (count($teamIds) > 0 && \Illuminate\Support\Facades\Schema::hasTable('course_team')) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('course_team')) {
                 $course->teams()->sync($teamIds);
             }
             $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);

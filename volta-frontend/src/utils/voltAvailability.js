@@ -1,5 +1,9 @@
-/** Volt AI — dezactivat temporar; schimbă în `true` când e gata. */
-export const VOLT_ENABLED = false;
+/** Volt AI — activat când backend-ul are un provider AI configurat. */
+export let VOLT_ENABLED = false;
+
+export function setVoltCapabilities(capabilities) {
+	VOLT_ENABLED = capabilities?.volt === true;
+}
 
 export const VOLT_COMING_SOON_MESSAGE = 'Volt va fi disponibil în curând.';
 

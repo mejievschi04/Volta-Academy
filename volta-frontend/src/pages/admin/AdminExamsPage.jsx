@@ -1,14 +1,21 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { downloadSimpleExcel, statisticsExcelFilename } from '../../utils/statisticsExcelExport';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
+
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
 import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
+import {
+  TEST_RESULTS_DISPLAY_OPTIONS,
+  getExamResultsDisplayMode,
+  patchExamResultsDisplayMode,
+} from '../../utils/testQuestionBuilder';
 
 /** Id-uri stabile pentru logică; etichete cu diacritice în UI. */
 const EXAM_BUILDER_SECTIONS = [
@@ -120,9 +127,9 @@ export default function AdminExamsPage() {
   const [statisticsQuestionRows, setStatisticsQuestionRows] = useState([]);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
   const [statisticsTab, setStatisticsTab] = useState('students');
-  const [statisticsStatusFilter, setStatisticsStatusFilter] = useState('all');
-  const [statisticsDateFrom, setStatisticsDateFrom] = useState('');
-  const [statisticsDateTo, setStatisticsDateTo] = useState('');
+  const [statisticsStatusFilter] = useState('all');
+  const [statisticsDateFrom] = useState('');
+  const [statisticsDateTo] = useState('');
 
   const selectedBank = useMemo(() => contentBanks.find((bank) => String(bank.id) === String(examSettings.contentBankId)), [contentBanks, examSettings.contentBankId]);
   const selectedFoldersStarred = useMemo(() => contentBanks.filter((bank) => examSettings.selectedFolderIds.includes(bank.id)).reduce((acc, bank) => acc + Number(bank?.starred_questions_count || 0), 0), [contentBanks, examSettings.selectedFolderIds]);
@@ -478,20 +485,7 @@ export default function AdminExamsPage() {
   };
   const handleConfirmContentSelection = async () => { setContentConfirmLoading(true); try { const ok = await handleSaveExam(); if (ok) setShowContentModal(false); } finally { setContentConfirmLoading(false); } };
 
-  const exportStatistics = () => {
-    downloadSimpleExcel(
-      statisticsExcelFilename(`examen-${activeExamDraft.id || 'export'}`),
-      'Statistici examen',
-      ['Data susținerii', 'Nume complet', 'Email', 'Status', 'Scor'],
-      filteredStatisticsRows.map((row) => [
-        row.completed_at ? new Date(row.completed_at).toLocaleDateString('ro-RO') : '-',
-        row.user?.name || '-',
-        row.user?.email || '-',
-        row.status || '-',
-        row.percentage != null ? `${row.percentage}%` : '-',
-      ]),
-    );
-  };
+
   const buildExamMetaLine = (item) => {
     const configuredQuestionCount = Number(
       item?.settings?.question_count
@@ -723,14 +717,32 @@ export default function AdminExamsPage() {
               <input type="checkbox" checked={examSettings.showFeedbackInstant} onChange={(e) => setExamSettings((prev) => ({ ...prev, showFeedbackInstant: e.target.checked }))} />
               Afișează rezultatul imediat după trimitere
             </label>
-            <label>
-              <input type="checkbox" checked={examSettings.showCorrectAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showCorrectAnswers: e.target.checked }))} />
-              Afișează răspunsurile corecte (unde e cazul)
-            </label>
-            <label>
-              <input type="checkbox" checked={examSettings.showOnlySubmittedAnswers} onChange={(e) => setExamSettings((prev) => ({ ...prev, showOnlySubmittedAnswers: e.target.checked }))} />
-              Afișează doar răspunsurile oferite (fără corect/greșit)
-            </label>
+          </div>
+          <div className="admin-exams-results-display-mode">
+            <div className="admin-exams-results-display-mode-head">
+              <strong>Afișare răspunsuri după examen</strong>
+              <small>Alege una dintre opțiuni — răspunsurile corecte și cele oferite de student nu pot fi active simultan.</small>
+            </div>
+            <div className="admin-exams-results-display-mode-options" role="radiogroup" aria-label="Afișare răspunsuri după examen">
+              {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => (
+                <label
+                  key={option.id}
+                  className={`admin-exams-results-display-mode-option ${getExamResultsDisplayMode(examSettings) === option.id ? 'is-active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="exam-results-display"
+                    value={option.id}
+                    checked={getExamResultsDisplayMode(examSettings) === option.id}
+                    onChange={() => setExamSettings((prev) => ({ ...prev, ...patchExamResultsDisplayMode(option.id) }))}
+                  />
+                  <span>
+                    <strong>{option.label}</strong>
+                    <small>{option.hint}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
         </section>
       </div>

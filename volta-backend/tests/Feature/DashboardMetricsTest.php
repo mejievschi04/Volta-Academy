@@ -341,4 +341,38 @@ class DashboardMetricsTest extends TestCase
 
         return [$student, $course, $test, $exam];
     }
+
+    public function test_dashboard_lists_course_test_once_across_multiple_modules(): void
+    {
+        [$student, $course, $test] = $this->seedResultsScenario();
+        CourseTest::where('test_id', $test->id)->update(['scope' => 'course', 'scope_id' => null]);
+        Module::withoutEvents(fn () => Module::create([
+            'course_id' => $course->id, 'title' => 'Modulul 2', 'order' => 2, 'status' => 'published',
+        ]));
+        $this->mock(\App\Services\CourseProgressService::class, function ($mock) {
+            $mock->shouldReceive('calculateCourseProgress')->andReturn(0.0);
+            $mock->shouldReceive('getUserAccessStatus')->andReturn(['modules' => []]);
+            $mock->shouldReceive('getNextIncompleteLesson')->andReturn(null);
+            $mock->shouldReceive('isTestUnlocked')->once()->andReturn(true);
+        });
+
+        $this->actingAs($student, 'sanctum')->getJson('/api/student/dashboard')
+            ->assertOk()->assertJsonCount(1, 'pending_exams')
+            ->assertJsonPath('pending_exams.0.id', $test->id)
+            ->assertJsonPath('pending_exams.0.module_id', null);
+    }
+
+    public function test_dashboard_does_not_recommend_a_test_when_unlock_check_fails(): void
+    {
+        [$student] = $this->seedResultsScenario();
+        $this->mock(\App\Services\CourseProgressService::class, function ($mock) {
+            $mock->shouldReceive('calculateCourseProgress')->andReturn(0.0);
+            $mock->shouldReceive('getUserAccessStatus')->andReturn(['modules' => []]);
+            $mock->shouldReceive('getNextIncompleteLesson')->andReturn(null);
+            $mock->shouldReceive('isTestUnlocked')->once()->andThrow(new \RuntimeException('Unavailable'));
+        });
+
+        $this->actingAs($student, 'sanctum')->getJson('/api/student/dashboard')
+            ->assertOk()->assertJsonCount(0, 'pending_exams');
+    }
 }

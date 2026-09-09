@@ -1,3 +1,4 @@
+import '../styles/auth-modern.css';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -10,7 +11,8 @@ import {
 	User,
 	WarningCircle,
 } from '@phosphor-icons/react';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
 
 const RegisterPage = () => {

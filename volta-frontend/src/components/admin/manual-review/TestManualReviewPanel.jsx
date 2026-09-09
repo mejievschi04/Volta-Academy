@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
-import { useAuth } from '../../../contexts/AuthContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../../contexts/AuthContextShared.js';
 import '../../../pages/admin/AdminTestsPendingReviewsPage.css';
 
-const MANUAL_QUESTION_TYPES = [];
+const MANUAL_QUESTION_TYPES = ['essay'];
 
 function getTestQuestionsList(test) {
 	if (!test) return [];
@@ -58,8 +60,11 @@ export default function TestManualReviewPanel({ embedded = false }) {
 	const [reviewTarget, setReviewTarget] = useState(null);
 	const [reviewScores, setReviewScores] = useState({});
 	const [reviewFeedback, setReviewFeedback] = useState({});
+	const [reviewRubrics, setReviewRubrics] = useState({});
+	const [reviewNotes, setReviewNotes] = useState([]);
 	const [overallFeedback, setOverallFeedback] = useState('');
 	const [reviewSubmitting, setReviewSubmitting] = useState(false);
+	const [voltFeedbackLoading, setVoltFeedbackLoading] = useState(false);
 	const [clearing, setClearing] = useState(false);
 
 	const loadPendingReviews = useCallback(async () => {
@@ -85,6 +90,8 @@ export default function TestManualReviewPanel({ embedded = false }) {
 		setReviewTarget(null);
 		setReviewScores({});
 		setReviewFeedback({});
+		setReviewRubrics({});
+		setReviewNotes([]);
 		setOverallFeedback('');
 	};
 
@@ -101,8 +108,40 @@ export default function TestManualReviewPanel({ embedded = false }) {
 		setReviewTarget(result);
 		setReviewScores(scores);
 		setReviewFeedback({});
+		setReviewRubrics({});
+		setReviewNotes([]);
 		setOverallFeedback('');
 		setShowReviewModal(true);
+	};
+
+	const handleSuggestWithVolt = async () => {
+		if (!reviewTarget?.id || voltFeedbackLoading) return;
+		setVoltFeedbackLoading(true);
+		try {
+			const suggestions = await adminService.suggestTestManualReviewFeedback(reviewTarget.id);
+			const nextScores = {};
+			const nextFeedback = {};
+			const nextRubrics = {};
+			(suggestions?.scores || []).forEach((item) => {
+				if (!item?.question_id) return;
+				nextScores[item.question_id] = item.suggested_score ?? 0;
+				nextFeedback[item.question_id] = item.feedback || '';
+				nextRubrics[item.question_id] = Array.isArray(item.rubric_criteria) ? item.rubric_criteria : [];
+			});
+			setReviewScores((prev) => ({ ...prev, ...nextScores }));
+			setReviewFeedback((prev) => ({ ...prev, ...nextFeedback }));
+			setReviewRubrics((prev) => ({ ...prev, ...nextRubrics }));
+			if (suggestions?.overall_feedback) {
+				setOverallFeedback(suggestions.overall_feedback);
+			}
+			setReviewNotes(Array.isArray(suggestions?.review_notes) ? suggestions.review_notes : []);
+			showSuccess('Volt a completat sugestiile de feedback.');
+		} catch (e) {
+			console.error('Volt feedback failed:', e);
+			showError(e?.response?.data?.message || e?.response?.data?.error || 'Volt nu a putut genera feedback.');
+		} finally {
+			setVoltFeedbackLoading(false);
+		}
 	};
 
 	const handleSubmitReview = async () => {
@@ -118,6 +157,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 				question_id: q.id,
 				score,
 				...(fb ? { feedback: fb } : {}),
+				...(reviewRubrics[q.id]?.length ? { rubric_criteria: reviewRubrics[q.id] } : {}),
 			};
 		});
 		setReviewSubmitting(true);
@@ -128,6 +168,8 @@ export default function TestManualReviewPanel({ embedded = false }) {
 			setReviewTarget(null);
 			setReviewScores({});
 			setReviewFeedback({});
+			setReviewRubrics({});
+			setReviewNotes([]);
 			setOverallFeedback('');
 			await loadPendingReviews();
 		} catch (e) {
@@ -226,9 +268,16 @@ export default function TestManualReviewPanel({ embedded = false }) {
 						<p className="admin-tests-review-sub">
 							{reviewTarget.user?.name || reviewTarget.user?.email || 'Elev'} · {reviewTarget.test?.title || 'Test'}
 						</p>
+						<div className="admin-tests-review-ai-actions">
+							<button type="button" className="admin-tests-review-ai-btn" onClick={handleSuggestWithVolt} disabled={voltFeedbackLoading || reviewSubmitting}>
+								{voltFeedbackLoading ? 'Volt analizează…' : 'Generează feedback cu Volt'}
+							</button>
+							<span>Completează scoruri, rubrici și feedback. Verifică înainte de salvare.</span>
+						</div>
 						<div className="admin-tests-review-questions">
 							{reviewModalQuestions.map((q) => {
 								const maxPts = Math.max(1, Number(q.points ?? 1));
+								const rubrics = reviewRubrics[q.id] || [];
 								return (
 									<div key={q.id} className="admin-tests-review-q">
 										<div className="admin-tests-review-q-head">
@@ -265,10 +314,30 @@ export default function TestManualReviewPanel({ embedded = false }) {
 												}
 											/>
 										</label>
+										{rubrics.length ? (
+											<div className="admin-tests-review-rubrics">
+												<span className="admin-tests-review-label">Rubrică sugerată</span>
+												<ul>
+													{rubrics.map((criterion, index) => (
+														<li key={`${q.id}-rubric-${index}`}>{criterion}</li>
+													))}
+												</ul>
+											</div>
+										) : null}
 									</div>
 								);
 							})}
 						</div>
+						{reviewNotes.length ? (
+							<div className="admin-tests-review-notes">
+								<strong>Observații pentru profesor</strong>
+								<ul>
+									{reviewNotes.map((note, index) => (
+										<li key={`review-note-${index}`}>{note}</li>
+									))}
+								</ul>
+							</div>
+						) : null}
 						<label className="admin-tests-review-overall">
 							Feedback general (opțional)
 							<textarea

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { toImageUrl } from '../../utils/imageUrl';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import { teamAccent } from '../../utils/teamAccent';
 
 const AdminTeamMembersPage = () => {

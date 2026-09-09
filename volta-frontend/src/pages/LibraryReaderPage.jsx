@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { libraryService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { toImageUrl } from '../utils/imageUrl';
 import '../styles/library-reader-page.css';

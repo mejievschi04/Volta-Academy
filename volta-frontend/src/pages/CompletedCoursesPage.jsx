@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { profileService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+
+
 
 const CompletedCoursesPage = () => {
 	const navigate = useNavigate();
-	const { user: currentUser } = useAuth();
+
 	const [coursesCompleted, setCoursesCompleted] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);

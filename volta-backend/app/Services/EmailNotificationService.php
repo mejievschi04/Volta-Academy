@@ -50,7 +50,7 @@ class EmailNotificationService
         }
 
         try {
-            Mail::to($email)->send(new VoltaUserNotificationMail(
+            Mail::to($email)->queue(new VoltaUserNotificationMail(
                 heading: $subject,
                 body: $body,
                 actionUrl: $this->absoluteUrl($actionPath),
@@ -85,7 +85,7 @@ class EmailNotificationService
         }
 
         try {
-            Mail::to($email)->send(new VoltaUserNotificationMail(
+            Mail::to($email)->queue(new VoltaUserNotificationMail(
                 heading: $subject,
                 body: $body,
                 actionUrl: $this->absoluteUrl($actionPath),
@@ -115,13 +115,13 @@ class EmailNotificationService
             return;
         }
 
-        $users = collect($usersOrIds)->map(function ($item) {
-            if ($item instanceof User) {
-                return $item;
-            }
-
-            return User::query()->find((int) $item);
-        })->filter();
+        $items = collect($usersOrIds);
+        $users = $items->filter(fn ($item) => $item instanceof User);
+        $ids = $items->reject(fn ($item) => $item instanceof User)->map(fn ($id) => (int) $id);
+        if ($ids->isNotEmpty()) {
+            $users = $users->concat(User::query()->whereIn('id', $ids)->get());
+        }
+        $users = $users->unique('id');
 
         foreach ($users as $user) {
             $this->sendToUser($user, $subject, $body, $actionPath, $actionLabel);

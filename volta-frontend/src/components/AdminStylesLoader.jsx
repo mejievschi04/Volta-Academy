@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import { isStaffAdminRole } from '../constants/staffRoles';
 import { useLocation } from 'react-router-dom';
 

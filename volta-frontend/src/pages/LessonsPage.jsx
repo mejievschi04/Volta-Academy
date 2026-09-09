@@ -1,3 +1,4 @@
+import '../styles/course-detail-modern.css';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -12,8 +13,10 @@ import {
 	X,
 } from '@phosphor-icons/react';
 import { coursesService, courseProgressService, lessonsService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
@@ -156,7 +159,7 @@ const LessonsPage = () => {
 				try {
 					const progressData = await courseProgressService.getCourseProgress(courseId);
 					setProgress(progressData);
-				} catch (err) {
+				} catch  {
 					console.log('No progress data available');
 				}
 			}
@@ -237,15 +240,7 @@ const LessonsPage = () => {
 
 	const isLessonCompleted = (lessonId) => isLessonMarkedComplete(progress, lessonId);
 
-	const getModuleProgress = (module) => {
-		if (!progress || !module.lessons) return { completed: 0, total: 0, percentage: 0 };
-		
-		const total = module.lessons.length;
-		const completed = module.lessons.filter(lesson => isLessonCompleted(lesson.id)).length;
-		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-		
-		return { completed, total, percentage };
-	};
+
 
 	const getModuleCourseTests = (m) =>
 		filterPublishedCourseTests(m?.course_tests || m?.courseTests || m?.exams || []);
@@ -297,7 +292,7 @@ const LessonsPage = () => {
 							await refreshCourseProgress();
 						}
 					}
-				} catch (err) {
+				} catch  {
 					if (cancelled) return;
 					sentMilestonesRef.current.delete(milestone);
 				}
@@ -585,7 +580,7 @@ const LessonsPage = () => {
 															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
-																{ct.required ? ' *' : ''}
+																{' · Obligatoriu'}
 															</span>
 														</button>
 													);
@@ -597,7 +592,7 @@ const LessonsPage = () => {
 							)}
 							{modules.map((module, moduleIndex) => {
 								const isModuleExpanded = expandedModules.has(module.id);
-								const moduleProgress = getModuleProgress(module);
+
 								const sortedLessons = (module.lessons || []).sort((a, b) => (a.order || 0) - (b.order || 0));
 								const isActive = selectedLessonId && sortedLessons.some(l => l.id === selectedLessonId);
 								
@@ -662,7 +657,7 @@ const LessonsPage = () => {
 																		<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 																		<span className="lessons-page-sidebar-lesson-title">
 																			{ct.test?.title || 'Test'}
-																			{ct.required ? ' *' : ''}
+																			{' · Obligatoriu'}
 																		</span>
 																	</button>
 																);
@@ -686,7 +681,7 @@ const LessonsPage = () => {
 															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
-																{ct.required ? ' *' : ''}
+																{' · Obligatoriu'}
 															</span>
 														</button>
 													);
@@ -721,7 +716,7 @@ const LessonsPage = () => {
 										<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
 										<span className="lessons-page-sidebar-lesson-title">
 											{exam.title || 'Test'}
-											{exam.required ? ' *' : ''}
+											{' · Obligatoriu'}
 										</span>
 									</button>
 								);
@@ -828,7 +823,7 @@ const LessonsPage = () => {
 										aria-label="Lecția anterioară"
 										title="Lecția anterioară"
 									>
-										<ArrowLeft size={22} weight="bold" aria-hidden />
+										<ArrowLeft size={22} weight="bold" aria-hidden /><span>Anterioară</span>
 									</button>
 									{isLastLessonInCourse ? (
 										<button
@@ -855,7 +850,7 @@ const LessonsPage = () => {
 											aria-label="Lecția următoare"
 											title="Lecția următoare"
 										>
-											<ArrowRight size={22} weight="bold" aria-hidden />
+											<span>Următoarea</span><ArrowRight size={22} weight="bold" aria-hidden />
 										</button>
 									)}
 								</>

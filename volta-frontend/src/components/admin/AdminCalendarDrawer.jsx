@@ -1,8 +1,10 @@
+import { notifyAdminEventsRefresh } from './AdminCalendarDrawerShared.js';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminService, eventsService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminEventFormModal from './events/AdminEventFormModal';
 import AdminEventDetailModal from './events/AdminEventDetailModal';
 import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
@@ -44,9 +46,7 @@ function getEventsForDate(events, date) {
 	});
 }
 
-export function notifyAdminEventsRefresh() {
-	window.dispatchEvent(new CustomEvent('volta-admin-events-refresh'));
-}
+
 
 const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 	const isStudentVariant = variant === 'student';
@@ -55,7 +55,7 @@ const AdminCalendarDrawer = ({ open, onClose, variant = 'admin' }) => {
 	const allowAdminCalendarEdit = canMutateInAdminArea && !isStudentVariant;
 	const panelRef = useRef(null);
 	const [events, setEvents] = useState([]);
-	const [loading, setLoading] = useState(false);
+	const [, setLoading] = useState(false);
 	const [currentDate, setCurrentDate] = useState(() => new Date());
 	const [showModal, setShowModal] = useState(false);
 	const [editingEvent, setEditingEvent] = useState(null);

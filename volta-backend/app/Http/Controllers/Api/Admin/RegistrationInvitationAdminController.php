@@ -44,7 +44,7 @@ class RegistrationInvitationAdminController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|string|email|max:255',
-            'name' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9\s\-\.]+$/u',
+            'name' => 'nullable|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u',
             'role' => 'nullable|string|in:student,instructor,analyst',
             'team_id' => 'nullable|exists:teams,id',
         ]);

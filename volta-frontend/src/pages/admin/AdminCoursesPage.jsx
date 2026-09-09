@@ -25,11 +25,14 @@ import { useCoursePublishFromCard } from '../../hooks/useCoursePublishFromCard';
 import { adminService } from '../../services/api';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
-import { notifyVoltComingSoon } from '../../utils/voltAvailability';
+import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import { courseCoverSrc } from '../../utils/imageUrl';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../../components/ui/course-showcase-card';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+import { CourseShowcaseCard } from '../../components/ui/course-showcase-card';
+import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../../components/ui/course-showcase-cardShared.js';
 import { hexToHslSpace } from '../../lib/hexToHsl';
 import './AdminCoursesPage.css';
 
@@ -345,7 +348,7 @@ const AdminCoursesPage = () => {
 								<button type="button" onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
 									Curs nou
 								</button>
-								<button type="button" onClick={() => { setShowCreateMenu(false); notifyVoltComingSoon(showToast); }}>
+								<button type="button" onClick={() => { setShowCreateMenu(false); if (isVoltEnabled()) { setShowAiCourseChat(true); } else { notifyVoltComingSoon(showToast); } }}>
 									Curs cu Volt
 								</button>
 							</div>

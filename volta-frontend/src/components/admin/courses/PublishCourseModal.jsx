@@ -2,10 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
 import { teamAccent } from '../../../utils/teamAccent';
 
+function normalizeTeams(raw) {
+	return Array.isArray(raw) ? raw : raw?.data || [];
+}
+
+function extractAssignedUsers(courseData) {
+	if (!courseData || typeof courseData !== 'object') return [];
+	const users = courseData.assigned_users || courseData.assignedUsers || [];
+	return Array.isArray(users) ? users : [];
+}
+
+function extractTeamIds(courseData, fallbackCourse) {
+	const teams = courseData?.teams || fallbackCourse?.teams || [];
+	return (Array.isArray(teams) ? teams : []).map((t) => t.id).filter(Boolean);
+}
+
 const PublishCourseModal = ({ open, onClose, course, onPublished, validationReport, onValidate }) => {
 	const courseId = course?.id;
 	const [teams, setTeams] = useState([]);
 	const [selectedTeamIds, setSelectedTeamIds] = useState([]);
+	const [assignedUsers, setAssignedUsers] = useState([]);
+	const [restoredPreviousSettings, setRestoredPreviousSettings] = useState(false);
 	const [catalogOutsideMap, setCatalogOutsideMap] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadingTeams, setLoadingTeams] = useState(true);
@@ -19,17 +36,47 @@ const PublishCourseModal = ({ open, onClose, course, onPublished, validationRepo
 	const canPublish = validationReport?.ok && !loading;
 
 	useEffect(() => {
-		if (open) {
-			setError(null);
-			setPublishErrorReport(null);
-			setCatalogOutsideMap(Boolean(course?.settings?.catalog_outside_map));
-			setLoadingTeams(true);
-			adminService.getTeams().then((data) => {
-				setTeams(Array.isArray(data) ? data : data?.data || []);
-				setSelectedTeamIds([]);
-			}).catch(() => setTeams([])).finally(() => setLoadingTeams(false));
-		}
-	}, [open, course?.id, course?.settings?.catalog_outside_map]);
+		if (!open || !courseId) return;
+
+		let cancelled = false;
+		setError(null);
+		setPublishErrorReport(null);
+		setLoadingTeams(true);
+		setRestoredPreviousSettings(false);
+
+		(async () => {
+			try {
+				const [teamsData, courseData] = await Promise.all([
+					adminService.getTeams(),
+					adminService.getCourse(courseId),
+				]);
+				if (cancelled) return;
+
+				const fullCourse = courseData?.course || courseData;
+				const existingTeamIds = extractTeamIds(fullCourse, course);
+				const users = extractAssignedUsers(fullCourse);
+
+				setTeams(normalizeTeams(teamsData));
+				setSelectedTeamIds(existingTeamIds);
+				setAssignedUsers(users);
+				setRestoredPreviousSettings(existingTeamIds.length > 0 || users.length > 0);
+				setCatalogOutsideMap(Boolean(
+					fullCourse?.settings?.catalog_outside_map ?? course?.settings?.catalog_outside_map
+				));
+			} catch {
+				if (cancelled) return;
+				setTeams([]);
+				setSelectedTeamIds(extractTeamIds(null, course));
+				setAssignedUsers([]);
+			} finally {
+				if (!cancelled) setLoadingTeams(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [open, courseId]);
 
 	const handleValidateClick = async () => {
 		if (!onValidate) return;
@@ -47,7 +94,7 @@ const PublishCourseModal = ({ open, onClose, course, onPublished, validationRepo
 		setLoading(true);
 		try {
 			const res = await adminService.builderPublishCourse(courseId, selectedTeamIds, { catalogOutsideMap });
-			onPublished?.(res, { catalogOutsideMap });
+			onPublished?.(res, { catalogOutsideMap, teamIds: selectedTeamIds });
 			onClose?.();
 		} catch (e) {
 			console.error('Publish failed:', e);
@@ -131,6 +178,12 @@ const PublishCourseModal = ({ open, onClose, course, onPublished, validationRepo
 						</div>
 					)}
 
+					{restoredPreviousSettings && !loadingTeams && (
+						<div className="publish-course-restored-banner" role="status">
+							Setările anterioare de distribuție au fost restaurate. Poți modifica echipele înainte de publicare; elevii atribuiți direct rămân la fel.
+						</div>
+					)}
+
 					<div className="admin-form-group publish-course-catalog-option">
 						<label className="publish-course-team-item publish-course-catalog-option__label">
 							<input
@@ -174,6 +227,24 @@ const PublishCourseModal = ({ open, onClose, course, onPublished, validationRepo
 							</div>
 						)}
 					</div>
+
+					{assignedUsers.length > 0 && (
+						<div className="admin-form-group publish-course-assigned-users">
+							<label className="admin-settings-label">Elevi atribuiți direct (păstrați)</label>
+							<ul className="publish-course-assigned-users-list">
+								{assignedUsers.map((user) => (
+									<li key={user.id}>
+										<strong>{user.name}</strong>
+										{user.email ? <span>{user.email}</span> : null}
+									</li>
+								))}
+							</ul>
+							<p className="publish-course-teams-muted">
+								Atribuirile directe rămân active și după retragerea din publicare. Le poți modifica din pagina de distribuție a cursului.
+							</p>
+						</div>
+					)}
+
 					<div className="publish-course-actions">
 						<button type="button" className="admin-btn admin-btn-secondary" onClick={onClose}>
 							Anulare
@@ -182,7 +253,7 @@ const PublishCourseModal = ({ open, onClose, course, onPublished, validationRepo
 							type="button"
 							className="admin-btn admin-btn-primary"
 							onClick={handlePublish}
-							disabled={loading || !canPublish}
+							disabled={loading || !canPublish || loadingTeams}
 							aria-busy={loading}
 							title={!validationReport ? 'Rulează mai întâi validarea' : hasErrors ? 'Remediază erorile de validare' : undefined}
 						>

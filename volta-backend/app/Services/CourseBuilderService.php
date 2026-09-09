@@ -34,6 +34,12 @@ class CourseBuilderService
         $course = Course::with([
             'teacher:id,name,email',
             'teams:id,name',
+            'assignedUsers' => function ($query) {
+                $query->select('users.id', 'users.name', 'users.email', 'users.role');
+                if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                    $query->wherePivot('enrolled', true);
+                }
+            },
             'lessons' => function ($q) {
                 $q->whereNull('module_id')
                     ->orderBy('order')
@@ -563,7 +569,7 @@ class CourseBuilderService
                     'test_id' => (int)($row['test_id'] ?? 0),
                     'scope' => $scope,
                     'scope_id' => $scopeId,
-                    'required' => (bool)($row['required'] ?? false),
+                    'required' => true,
                     'passing_score' => $row['passing_score'] ?? 70,
                     'order' => $row['order'] ?? 0,
                     'unlock_after_previous' => (bool)($row['unlock_after_previous'] ?? false),
@@ -805,7 +811,7 @@ class CourseBuilderService
                 'scope_id' => $options['scope_id'] ?? null,
             ],
             [
-                'required' => $options['required'] ?? false,
+                'required' => true,
                 'passing_score' => $options['passing_score'] ?? 70,
                 'order' => $options['order'] ?? 0,
                 'unlock_after_previous' => $options['unlock_after_previous'] ?? false,

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import Step0Context from './CourseCreationSteps/Step0Context';
 import Step1Blueprint from './CourseCreationSteps/Step1Blueprint';

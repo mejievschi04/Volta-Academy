@@ -1,8 +1,11 @@
+import '../styles/profile-modern.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { profileService, adminService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { toImageUrl } from '../utils/imageUrl';
 
@@ -149,7 +152,7 @@ const ProfilePage = () => {
 			setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, avatar: null } } : prev);
 			await checkAuth();
 			showToast('Poza de profil a fost ștearsă', 'success');
-		} catch (err) {
+		} catch  {
 			showToast('Eroare la ștergerea pozei', 'error');
 		} finally {
 			setUploadingAvatar(false);

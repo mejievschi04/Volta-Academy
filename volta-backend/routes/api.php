@@ -150,6 +150,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
     Route::get('/lessons/{lessonId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkLessonAccess']);
     Route::get('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'show']);
     Route::put('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'update']);
+    Route::post('/lessons/{lessonId}/study-tools', [\App\Http\Controllers\AIController::class, 'generateLessonStudyTool']);
     Route::get('/exams/{examId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkExamAccess']);
 
     // Quiz curs (legacy Exam per course): autentificat — nu expune chei fără control în API public
@@ -269,6 +270,7 @@ Route::middleware([
         Route::get('/media/{mediaId}/file', [CourseBuilderController::class, 'serveMediaFile']);
 
         Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
+        Route::post('/quality-audit', [CourseBuilderController::class, 'qualityAudit']);
         Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
         Route::post('/publish', [CourseBuilderController::class, 'publish']);
         Route::post('/clone', [CourseBuilderController::class, 'clone']);
@@ -318,6 +320,10 @@ Route::middleware([
     Route::post('/tests/pending-reviews/clear', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'clearPendingReviews']);
     Route::get('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'show']);
     Route::post('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'store']);
+    Route::post('/tests/ai/suggest-blueprint-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'suggestBlueprintFromCourse']);
+    Route::post('/tests/ai/preview-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'previewFromCourse']);
+    Route::post('/tests/ai/regenerate-question-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'regenerateQuestionFromCourse']);
+    Route::post('/tests/ai/create-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'createFromCourse']);
     Route::put('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'update']);
     Route::delete('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'destroy']);
     Route::get('/tests/{id}/results', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'results']);
@@ -390,6 +396,7 @@ Route::middleware([
     Route::put('/users/{id}', [UserAdminController::class, 'update']);
     Route::delete('/users/{id}', [UserAdminController::class, 'destroy']);
     Route::post('/users/{id}/restore', [UserAdminController::class, 'restore']);
+    Route::post('/users/{id}/send-invitation', [UserAdminController::class, 'sendInvitation'])->middleware('throttle:6,1');
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
@@ -406,6 +413,8 @@ Route::middleware([
     
     // Statistici (doar admin)
     Route::get('/statistics/course-test-detail', [StatisticsAdminController::class, 'courseTestDetail']);
+    Route::get('/statistics/ai-export/datasets', [\App\Http\Controllers\Api\Admin\AIExportAdminController::class, 'datasets']);
+    Route::post('/statistics/ai-export', [\App\Http\Controllers\Api\Admin\AIExportAdminController::class, 'generate']);
 
     // Activity Logs
     Route::get('/activity-logs', [ActivityLogAdminController::class, 'index']);
@@ -416,6 +425,7 @@ Route::middleware([
     Route::patch('/exam-results/{id}/score', [ExamAdminController::class, 'updateResultScore']);
 
     // Test Manual Review (Test model - standalone tests)
+    Route::post('/test-results/{id}/feedback-with-volt', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'suggestManualReviewFeedback']);
     Route::post('/test-results/{id}/manual-review', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'submitManualReview']);
     Route::patch('/test-results/{id}/score', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'updateResultScore']);
     Route::get('/test-results/{id}/breakdown', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'resultBreakdown']);

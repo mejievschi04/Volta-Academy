@@ -179,3 +179,48 @@ export const selectAllTextInputHandlers = {
     }
   },
 };
+
+/** Mod afișare răspunsuri după test — mutual exclusive */
+export const TEST_RESULTS_DISPLAY_OPTIONS = [
+  {
+    id: 'correct',
+    label: 'Arată răspunsurile corecte',
+    hint: 'După finalizare se pot vedea răspunsurile corecte.',
+  },
+  {
+    id: 'submitted',
+    label: 'Doar răspunsurile oferite',
+    hint: 'La final se afișează doar ce a răspuns cursantul, fără corect/greșit.',
+  },
+  {
+    id: 'none',
+    label: 'Fără detaliu răspunsuri',
+    hint: 'Nu se afișează nici răspunsurile corecte, nici compararea cu răspunsurile oferite.',
+  },
+];
+
+export function getTestResultsDisplayMode(test) {
+  if (test?.show_only_submitted_answers) return 'submitted';
+  if (test?.show_correct_answers) return 'correct';
+  return 'none';
+}
+
+export function patchTestResultsDisplayMode(mode) {
+  return {
+    show_correct_answers: mode === 'correct',
+    show_only_submitted_answers: mode === 'submitted',
+  };
+}
+
+export function patchExamResultsDisplayMode(mode) {
+  return {
+    showCorrectAnswers: mode === 'correct',
+    showOnlySubmittedAnswers: mode === 'submitted',
+  };
+}
+
+export function getExamResultsDisplayMode(settings) {
+  if (settings?.showOnlySubmittedAnswers) return 'submitted';
+  if (settings?.showCorrectAnswers) return 'correct';
+  return 'none';
+}

@@ -10,6 +10,12 @@ return [
 
     'verify_ssl' => filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
 
+    'huggingface' => [
+        'api_key' => env('HUGGINGFACE_API_KEY', ''),
+        'api_url' => rtrim((string) env('HUGGINGFACE_API_URL', 'https://router.huggingface.co'), '/'),
+        'model' => env('HUGGINGFACE_MODEL', 'meta-llama/Meta-Llama-3.1-8B-Instruct'),
+    ],
+
     'groq' => [
         'api_key' => env('GROQ_API_KEY', ''),
         'api_url' => rtrim((string) env('GROQ_API_URL', 'https://api.groq.com/openai/v1'), '/'),

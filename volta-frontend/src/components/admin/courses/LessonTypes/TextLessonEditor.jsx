@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import RichTextEditor from '../../../RichTextEditor';
 import { openaiService } from '../../../../services/openaiService';
-import { useToast } from '../../../../contexts/ToastContext';
+
+import { useToast } from '../../../../contexts/ToastContextShared.js';
 import { buildTextLessonDifficultyPrompt, buildTextLessonTransformPrompt } from '../../../../utils/voltAiPrompts';
 import { runVoltAction } from '../../../../utils/voltAvailability';
 

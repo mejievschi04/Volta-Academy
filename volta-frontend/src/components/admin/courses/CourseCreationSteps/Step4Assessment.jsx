@@ -361,10 +361,10 @@ const Step4Assessment = ({ data, onUpdate }) => {
 
 	const assessments = data.assessments || {};
 
-	const handleAddAssessment = (lessonId, type) => {
+	const handleAddAssessment = (lessonId, type, assessmentId) => {
 		const lessonAssessments = assessments[lessonId] || [];
 		const newAssessment = {
-			id: Date.now(),
+			id: assessmentId,
 			type,
 			passing_threshold: 70,
 			time_limit_minutes: null,
@@ -424,7 +424,7 @@ const Step4Assessment = ({ data, onUpdate }) => {
 		const a = getAssessment(lessonId, assessmentId);
 		const questions = [...(a?.questions || [])];
 		const newQ = {
-			id: Date.now(),
+			id: assessmentId,
 			question_text: '',
 			question_type: questionType,
 			points: 1,
@@ -462,8 +462,8 @@ const Step4Assessment = ({ data, onUpdate }) => {
 								<div className="step4-lessons-list">
 									{module.lessons.map((lesson) => {
 										const lessonAssessments = assessments[lesson.id] || [];
-										const isQuizExpanded = expandedQuiz?.lessonId === lesson.id && lessonAssessments.some((a) => a.id === expandedQuiz?.assessmentId);
-										const expandedAssessment = isQuizExpanded ? lessonAssessments.find((a) => a.id === expandedQuiz.assessmentId) : null;
+
+
 
 										return (
 											<div key={lesson.id} className="step4-lesson-card">
@@ -476,7 +476,7 @@ const Step4Assessment = ({ data, onUpdate }) => {
 																key={type.id}
 																type="button"
 																className="step4-assessment-type-btn"
-																onClick={() => handleAddAssessment(lesson.id, type.id)}
+																onClick={() => handleAddAssessment(lesson.id, type.id, Date.now())}
 															>
 																{type.icon} {type.label}
 															</button>

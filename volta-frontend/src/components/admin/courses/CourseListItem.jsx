@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpenText, Books, Plus, Star } from '@phosphor-icons/react';
 import { courseCoverSrc } from '../../../utils/imageUrl';
@@ -7,10 +7,7 @@ const CourseListItem = React.memo(({
 	course,
 	selected,
 	onSelect,
-	onQuickAction,
-	loading,
-	viewMode = 'grid',
-	onPreview
+	viewMode = 'grid'
 }) => {
 	const navigate = useNavigate();
 
@@ -25,20 +22,10 @@ const CourseListItem = React.memo(({
 	const statusBadge = getStatusBadge(course.status || 'draft');
 	const coverSrc = courseCoverSrc(course);
 
-	const handleQuickAction = (action, e) => {
-		e.stopPropagation();
-		onQuickAction(course.id, action);
-	};
 
 
-	const formatDate = (date) => {
-		if (!date) return 'N/A';
-		return new Date(date).toLocaleDateString('ro-RO', {
-			day: '2-digit',
-			month: 'short',
-			year: 'numeric',
-		});
-	};
+
+
 
 	if (viewMode === 'list' || viewMode === 'table') {
 		return (

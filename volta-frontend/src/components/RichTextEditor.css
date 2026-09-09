@@ -157,6 +157,17 @@
 	line-height: inherit;
 }
 
+/* Emphasis: question text bold + larger by default */
+.rte-emphasis-strong .rte-editor {
+	font-size: 1.15rem;
+	font-weight: 700;
+	line-height: 1.5;
+}
+
+.rte-emphasis-strong .rte-editor:empty::before {
+	font-weight: 700;
+}
+
 /* Editor area */
 .rte-editor {
 	min-height: 200px;

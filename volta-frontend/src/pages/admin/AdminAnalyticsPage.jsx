@@ -67,7 +67,7 @@ const AdminAnalyticsPage = () => {
 
 	const totalUsers = parseInt(String(kpis.total_users?.value || 0).replace(/,/g, '')) || 0;
 	const activeUsers = parseInt(String(kpis.active_users?.value || 0).replace(/,/g, '')) || 0;
-	const totalCourses = parseInt(String(kpis.total_courses?.value || 0).replace(/,/g, '')) || 0;
+
 	const completionRate = parseFloat(String(kpis.completion_rate?.value || 0).replace('%', '')) || 0;
 	const engagement = parseFloat(String(kpis.engagement?.value || 0).replace('%', '')) || 0;
 	const newEnrollments = parseInt(String(kpis.new_enrollments?.value || 0).replace(/,/g, '')) || 0;

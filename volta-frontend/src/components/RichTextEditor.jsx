@@ -25,7 +25,8 @@ import {
 	TextUnderline,
 	VideoCamera,
 } from '@phosphor-icons/react';
-import { useToast } from '../contexts/ToastContext';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import { estimatePdfContentPreviewHeight } from '../utils/pdfTextExtractor';
 import { getPdfPageCount, slicePdfFileByRange } from '../utils/pdfRangeUtils';
@@ -570,13 +571,13 @@ function getBasicFontAtSelection(editor) {
 	return matchBasicFontOption(window.getComputedStyle(base || editor).fontFamily);
 }
 
-const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVariant = 'full', courseId = null, showSideTools = true }) => {
+const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVariant = 'full', courseId = null, showSideTools = true, emphasis = null }) => {
 	const { warning: showWarning, error: showError } = useToast();
 	const editorRef = useRef(null);
 	const savedSelectionRef = useRef(null);
 	const skipNextValueSyncRef = useRef(false);
 	const [isFocused, setIsFocused] = useState(false);
-	const [internalValue, setInternalValue] = useState(value || '');
+	const [, setInternalValue] = useState(value || '');
 	const [showColorPicker, setShowColorPicker] = useState(false);
 	const [showLinkDialog, setShowLinkDialog] = useState(false);
 	const [showCalloutDialog, setShowCalloutDialog] = useState(false);
@@ -595,7 +596,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	const [pdfEndPage, setPdfEndPage] = useState(1);
 	const [uploadingPdf, setUploadingPdf] = useState(false);
 	const [sideToolsExpanded, setSideToolsExpanded] = useState(false);
-	const [basicFontValue, setBasicFontValue] = useState(BASIC_FONT_DEFAULT);
+	const [, setBasicFontValue] = useState(BASIC_FONT_DEFAULT);
 	const fileInputRef = useRef(null);
 	const imageInputRef = useRef(null);
 	const [pdfEditHost, setPdfEditHost] = useState(null);
@@ -1033,9 +1034,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		restoreSelection();
 	};
 
-	const handleFontSelectPointerDown = () => {
-		handleEditorSelectionChange();
-	};
+
 
 	const execCommand = (command, value = null) => {
 		restoreSelection();
@@ -1369,25 +1368,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		insertNodeAtSelection(container);
 	};
 
-	const insertCodeFromPrompt = () => {
-		const code = prompt('Introdu codul:');
-		if (!code || !code.trim()) return;
-		const pre = document.createElement('pre');
-		pre.style.background = 'rgba(0, 0, 0, 0.3)';
-		pre.style.padding = '1rem';
-		pre.style.borderRadius = '8px';
-		pre.style.overflow = 'auto';
-		pre.style.margin = '1rem 0';
-		pre.style.border = '1px solid rgba(9, 168, 107, 0.2)';
 
-		const codeEl = document.createElement('code');
-		codeEl.textContent = code.trim();
-		codeEl.style.color = '#09A86B';
-		codeEl.style.fontFamily = 'monospace';
-		codeEl.style.fontSize = '0.9rem';
-		pre.appendChild(codeEl);
-		insertNodeAtSelection(pre);
-	};
 
 	const handlePastePlainFromClipboard = async () => {
 		try {
@@ -1482,75 +1463,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		</button>
 	);
 
-	const dispatchEditorInput = () => {
-		if (!editorRef.current) return;
-		const event = new Event('input', { bubbles: true });
-		editorRef.current.dispatchEvent(event);
-	};
 
-	const applyBasicFontFamily = (fontFamily) => {
-		restoreSelection();
-		const editor = editorRef.current;
-		const selection = window.getSelection();
-		if (!editor || !selection || selection.rangeCount === 0) {
-			editor?.focus();
-			return;
-		}
 
-		const range = selection.getRangeAt(0);
-		if (!editor.contains(range.commonAncestorContainer)) {
-			editor.focus();
-			return;
-		}
 
-		const wrapRangeWithSpan = (targetRange, span) => {
-			try {
-				targetRange.surroundContents(span);
-				return span;
-			} catch {
-				const fragment = targetRange.extractContents();
-				span.appendChild(fragment);
-				targetRange.insertNode(span);
-				return span;
-			}
-		};
 
-		if (!fontFamily) {
-			editor.focus();
-			return;
-		}
 
-		const span = document.createElement('span');
-		span.style.fontFamily = fontFamily;
-		span.setAttribute('data-rte-font', '1');
-
-		if (range.collapsed) {
-			range.insertNode(span);
-			const caret = document.createRange();
-			caret.setStart(span, 0);
-			caret.collapse(true);
-			selection.removeAllRanges();
-			selection.addRange(caret);
-			savedSelectionRef.current = caret.cloneRange();
-		} else {
-			const wrapped = wrapRangeWithSpan(range, span);
-			const after = document.createRange();
-			after.selectNodeContents(wrapped);
-			after.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(after);
-			savedSelectionRef.current = after.cloneRange();
-		}
-
-		editor.focus();
-		dispatchEditorInput();
-		setBasicFontValue(fontFamily);
-	};
-
-	const handleBasicFontChange = (fontFamily) => {
-		if (!fontFamily) return;
-		applyBasicFontFamily(fontFamily);
-	};
 
 	const sideToolGroups = [
 		[
@@ -1580,33 +1497,11 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	];
 
 	return (
-		<div className={`rte-container ${toolbarVariant === 'basic' ? 'rte-container-basic' : ''}`} style={style}>
+		<div className={`rte-container ${toolbarVariant === 'basic' ? 'rte-container-basic' : ''} ${emphasis === 'strong' ? 'rte-emphasis-strong' : ''}`} style={style}>
 			{toolbarVariant === 'basic' && (
 				<div className="rte-toolbar rte-toolbar-basic">
-					<div className="rte-toolbar-group rte-toolbar-group-labeled">
-						<span className="rte-toolbar-label">Font</span>
-						<select
-							className="rte-toolbar-select rte-toolbar-select-basic"
-							value={basicFontValue}
-							onMouseDown={handleFontSelectPointerDown}
-							onPointerDown={handleFontSelectPointerDown}
-							onChange={(e) => {
-								handleBasicFontChange(e.target.value);
-							}}
-							title="Fontul textului selectat sau de la cursor"
-						>
-							{BASIC_FONT_OPTIONS.map((option) => (
-								<option
-									key={option.value}
-									value={option.value}
-									style={{ fontFamily: option.value }}
-								>
-									{option.label}
-								</option>
-							))}
-						</select>
-					</div>
-					<div className="rte-toolbar-separator" />
+					<ToolbarButton onClick={() => execCommand('bold')} icon={<strong>B</strong>} title="Aldin (text gros)" />
+					<ToolbarButton onClick={() => execCommand('italic')} icon={<em>I</em>} title="Italic (text înclinat)" />
 					<ToolbarButton onClick={() => execCommand('underline')} icon={<u>U</u>} title="Subliniat" />
 					<ToolbarButton
 						onClick={() => {
@@ -2095,9 +1990,11 @@ const ImageEditModal = ({ draft, onDraftChange, onApply, onClose, onDelete }) =>
 const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorSelect, onClose, type }) => {
 	const [customColor, setCustomColor] = useState(selectedColor || '#ffee00');
 
-	useEffect(() => {
+	const [previousColor, setPreviousColor] = useState(selectedColor);
+	if (previousColor !== selectedColor) {
+		setPreviousColor(selectedColor);
 		setCustomColor(selectedColor || '#ffee00');
-	}, [selectedColor]);
+	}
 
 	const colors = Array.isArray(palette) && palette.length > 0 ? palette : RTE_COLOR_PALETTE;
 

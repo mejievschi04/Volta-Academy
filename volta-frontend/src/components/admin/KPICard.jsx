@@ -5,8 +5,7 @@ const KPICard = ({
 	value, 
 	trend, 
 	trendValue, 
-	icon, 
-	color = 'var(--accent-ai)',
+	icon,
 	onClick 
 }) => {
 	const trendColor = trend === 'up' ? 'var(--accent-success)' : trend === 'down' ? 'var(--accent-danger)' : 'var(--text-muted)';

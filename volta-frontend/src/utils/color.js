@@ -19,7 +19,7 @@ function normalizeHexInput(raw) {
 }
 
 function normalizeRgbInput(raw) {
-	const match = /^rgba?\(\s*([+\-]?\d{1,3})\s*,\s*([+\-]?\d{1,3})\s*,\s*([+\-]?\d{1,3})(?:\s*,\s*(?:\d*\.?\d+))?\s*\)$/i.exec(String(raw || '').trim());
+	const match = /^rgba?\(\s*([+-]?\d{1,3})\s*,\s*([+-]?\d{1,3})\s*,\s*([+-]?\d{1,3})(?:\s*,\s*(?:\d*\.?\d+))?\s*\)$/i.exec(String(raw || '').trim());
 	if (!match) return null;
 	return `#${byteToHex(match[1])}${byteToHex(match[2])}${byteToHex(match[3])}`;
 }

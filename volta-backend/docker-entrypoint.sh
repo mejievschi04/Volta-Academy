@@ -11,14 +11,20 @@ fi
 
 # Așteaptă PostgreSQL și rulează migrații (retry până la 30 secunde)
 echo "Waiting for database and running migrations..."
+migrated=0
 for i in $(seq 1 15); do
   if php artisan migrate --force; then
+    migrated=1
     echo "Migrations completed."
     break
   fi
   echo "Database not ready, retrying in 2s... ($i/15)"
   sleep 2
 done
+if [ "$migrated" != "1" ]; then
+  echo "FATAL: Database migrations did not complete."
+  exit 1
+fi
 
 # Optimizări Laravel
 php artisan config:cache

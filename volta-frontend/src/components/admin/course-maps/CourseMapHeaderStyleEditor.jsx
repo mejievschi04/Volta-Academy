@@ -3,7 +3,8 @@ import { PencilSimple, X } from '@phosphor-icons/react';
 import Modal from '../../common/Modal';
 import { adminService } from '../../../services/api';
 import { normalizeColorInputToHex } from '../../../utils/color';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 
 const MAP_ACCENT_FALLBACK = '#059669';
 const MAP_TEXT_FALLBACK = '#f8fafc';

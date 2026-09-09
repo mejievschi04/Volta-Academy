@@ -76,6 +76,14 @@ export const lessonsService = {
     const response = await api.post(`/lessons/${id}/complete`);
     return response.data;
   },
+
+  generateStudyTool: async (id, tool) => {
+    assertVoltEnabled();
+    const response = await api.post(`/lessons/${id}/study-tools`, { tool }, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
 };
 
 export const notificationsService = {
@@ -389,7 +397,7 @@ export const libraryService = {
     return response.data;
   },
 
-  createTextItem: async ({ title, description, body, cover, removeCover = false }) => {
+  createTextItem: async ({ title, description, body, cover }) => {
     await ensureApiCsrfCookie();
     const formData = new FormData();
     formData.append('content_type', 'text');
@@ -826,6 +834,38 @@ export const adminService = {
     return response.data;
   },
 
+  previewTestWithVolt: async (payload = {}) => {
+    assertVoltEnabled();
+    const response = await api.post('/admin/tests/ai/preview-from-course', payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
+
+  suggestTestBlueprintWithVolt: async (payload = {}) => {
+    assertVoltEnabled();
+    const response = await api.post('/admin/tests/ai/suggest-blueprint-from-course', payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
+
+  regenerateTestQuestionWithVolt: async (payload = {}) => {
+    assertVoltEnabled();
+    const response = await api.post('/admin/tests/ai/regenerate-question-from-course', payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
+
+  createTestWithVolt: async (payload = {}) => {
+    assertVoltEnabled();
+    const response = await api.post('/admin/tests/ai/create-from-course', payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
+
   unlinkTestFromCourse: async (testId, courseId, scope = null, scopeId = null) => {
     const response = await api.post(`/admin/tests/${testId}/unlink-from-course`, {
       course_id: courseId,
@@ -1200,6 +1240,11 @@ export const adminService = {
     return response.data;
   },
 
+  sendExistingUserInvitation: async (id) => {
+    const response = await api.post(`/admin/users/${id}/send-invitation`);
+    return response.data;
+  },
+
   approveUser: async (id) => {
     const response = await api.post(`/admin/users/${id}/approve`);
     return response.data;
@@ -1225,7 +1270,7 @@ export const adminService = {
     return response.data;
   },
 
-  resendUserInvitation: async (id) => {
+  resendExistingUserInvitation: async (id) => {
     const response = await api.post(`/admin/users/invitations/${id}/resend`);
     return response.data;
   },
@@ -1349,6 +1394,11 @@ export const adminService = {
     return response.data;
   },
 
+  suggestTestManualReviewFeedback: async (resultId) => {
+    const response = await api.post(`/admin/test-results/${resultId}/feedback-with-volt`);
+    return response.data;
+  },
+
   getTestResults: async (testId) => {
     const response = await api.get(`/admin/tests/${testId}/results`);
     return response.data;
@@ -1422,6 +1472,19 @@ export const adminService = {
 
   getStatisticsCourseTestDetail: async (params = {}) => {
     const response = await api.get('/admin/statistics/course-test-detail', { params });
+    return response.data;
+  },
+
+  generateStatisticsExportWithVolt: async (payload = {}) => {
+    assertVoltEnabled();
+    const response = await api.post('/admin/statistics/ai-export', payload, {
+      timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
+    });
+    return response.data;
+  },
+
+  getStatisticsExportDatasets: async () => {
+    const response = await api.get('/admin/statistics/ai-export/datasets');
     return response.data;
   },
 
@@ -1512,6 +1575,11 @@ export const adminService = {
 
   builderValidateCourse: async (courseId) => {
     const response = await api.post(`/admin/courses/${courseId}/builder/validate`);
+    return response.data;
+  },
+
+  builderQualityAuditCourse: async (courseId) => {
+    const response = await api.post(`/admin/courses/${courseId}/builder/quality-audit`);
     return response.data;
   },
 

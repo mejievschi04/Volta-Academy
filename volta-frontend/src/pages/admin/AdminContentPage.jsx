@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus } from '@phosphor-icons/react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
-import { notifyVoltComingSoon } from '../../utils/voltAvailability';
+import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import AdminCoursesPage from './AdminCoursesPage';
 import AdminCourseMapsPage from './AdminCourseMapsPage';
 import AdminQuestionBanksPage from './AdminQuestionBanksPage';
@@ -99,7 +101,7 @@ const AdminContentPage = () => {
 												<button onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
 													Curs nou
 												</button>
-												<button onClick={() => { setShowCreateMenu(false); notifyVoltComingSoon(showToast); }}>
+												<button onClick={() => { setShowCreateMenu(false); if (isVoltEnabled()) { setShowVoltCourseChat(true); } else { notifyVoltComingSoon(showToast); } }}>
 													Curs cu Volt
 												</button>
 											</div>

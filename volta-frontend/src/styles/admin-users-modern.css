@@ -363,10 +363,12 @@
 }
 
 .admin-users-actions .admin-users-action-compact {
-	width: 104px;
-	min-width: 104px;
-	height: 32px;
-	padding: 0 8px;
+	width: 36px;
+	min-width: 36px;
+	max-width: 36px;
+	height: 36px;
+	flex: 0 0 36px;
+	padding: 0;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -611,10 +613,10 @@
 		font-size: var(--font-size-xs);
 	}
 
-	.admin-users-table th:nth-child(5),
-	.admin-users-table th:nth-child(6),
-	.admin-users-table td:nth-child(5),
-	.admin-users-table td:nth-child(6) {
+	.admin-users-table--directory th:nth-child(5),
+	.admin-users-table--directory th:nth-child(6),
+	.admin-users-table--directory td:nth-child(5),
+	.admin-users-table--directory td:nth-child(6) {
 		display: none;
 	}
 }
@@ -998,4 +1000,99 @@
 		width: 100%;
 		justify-content: center;
 	}
+}
+/* Constrain long user data while reserving room for all row actions. */
+.admin-users-page,
+.admin-users-page .admin-users-table-wrapper {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.admin-users-page .admin-users-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+.admin-users-page .admin-users-table {
+    display: table;
+    overflow: visible;
+    table-layout: fixed;
+    width: 100%;
+    min-width: 0;
+}
+.admin-users-page .admin-users-table th,
+.admin-users-page .admin-users-table td {
+    padding: 12px 10px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+.admin-users-table--directory th:nth-child(1) { width: 20%; }
+.admin-users-table--directory th:nth-child(2) { width: 22%; }
+.admin-users-table--directory th:nth-child(3) { width: 12%; }
+.admin-users-table--directory th:nth-child(4) { width: 14%; }
+.admin-users-table--directory th:nth-child(5),
+.admin-users-table--directory th:nth-child(6) { width: 7%; }
+.admin-users-page .admin-users-table th:last-child { width: 120px; }
+.admin-users-page .admin-invitations-table th:last-child { width: 172px; }
+.admin-users-page .admin-users-table-cell-user,
+.admin-users-page .admin-users-table-cell-user > div:last-child,
+.admin-users-page .admin-users-progress-container {
+    min-width: 0;
+    max-width: 100%;
+}
+.admin-users-page .admin-users-table-cell-name,
+.admin-users-page .admin-users-table-cell-bio {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.admin-users-page .admin-users-team-chip,
+.admin-users-page .admin-users-role-badge,
+.admin-users-page .admin-users-status-badge { max-width: 100%; }
+.admin-users-page .admin-users-team-chip-name { min-width: 0; }
+.admin-users-page .admin-users-role-badge,
+.admin-users-page .admin-users-status-badge { white-space: normal; overflow-wrap: anywhere; }
+.admin-users-page .admin-users-actions { flex-wrap: nowrap; gap: 8px; }
+.admin-users-page .admin-users-actions .admin-users-action-compact {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    padding: 0;
+}
+.admin-users-page .admin-users-action-compact:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
+}
+@media (max-width: 768px) {
+    .admin-users-page .admin-users-table { min-width: 640px; }
+    .admin-users-page .admin-users-table th:last-child { width: 120px; }
+    .admin-users-page .admin-invitations-table th:last-child { width: 172px; }
+    .admin-users-page .admin-users-table th:last-child,
+    .admin-users-page .admin-users-table td:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+        background: var(--bg-elevated);
+        box-shadow: -1px 0 0 var(--border-primary);
+    }
+    .admin-users-page .admin-users-table th:last-child { background: var(--bg-secondary); }
+    .admin-users-page .admin-users-actions .admin-users-action-compact {
+        width: 44px;
+        min-width: 44px;
+        max-width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+}
+
+.admin-users-page .admin-users-actions:has(.admin-users-invite-button) {
+    flex-wrap: wrap;
+}
+
+.admin-users-page .admin-users-invite-button {
+    flex: 0 0 100%;
+    white-space: normal;
+    justify-content: center;
 }

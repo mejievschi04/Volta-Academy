@@ -15,9 +15,7 @@ class StandaloneCourseCatalogTest extends TestCase
 
     public function test_student_sees_only_published_courses_marked_for_catalog_outside_map(): void
     {
-        if (! Schema::hasColumn('courses', 'settings')) {
-            $this->markTestSkipped('courses.settings column is not available in the test database.');
-        }
+        $this->assertTrue(Schema::hasColumn('courses', 'settings'));
 
         $student = User::factory()->create(['role' => 'student']);
 

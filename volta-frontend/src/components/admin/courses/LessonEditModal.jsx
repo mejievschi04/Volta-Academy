@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import RichTextEditor from '../../RichTextEditor';
 import VideoLessonEditor from './LessonTypes/VideoLessonEditor';
 import TextLessonEditor from './LessonTypes/TextLessonEditor';

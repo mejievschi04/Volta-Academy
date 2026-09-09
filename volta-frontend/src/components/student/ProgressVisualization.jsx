@@ -81,13 +81,6 @@ const ProgressVisualization = ({
 		}
 	}, [course, allLessons, progress]);
 	
-	// Calculate streak (consecutive days with activity)
-	const streak = useMemo(() => {
-		// This would come from backend in a real implementation
-		// For now, return a placeholder
-		return null; // Will be implemented with backend support
-	}, []);
-	
 	return (
 		<div className="progress-visualization">
 			{/* Main Progress Card */}
@@ -107,7 +100,7 @@ const ProgressVisualization = ({
 							style={{ width: `${currentProgress}%` }}
 						/>
 						{/* Milestone Markers */}
-						{milestones.map((milestone, index) => {
+						{milestones.map((milestone) => {
 							const isCompleted = currentProgress >= milestone.percentage;
 							const isNext = milestone === nextMilestone;
 							

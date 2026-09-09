@@ -23,10 +23,15 @@ class RegistrationInvitationService
         ?string $name = null,
         string $role = 'student',
         ?int $teamId = null,
-        int $expiresInDays = 7
+        int $expiresInDays = 7,
+        ?User $existingUser = null
     ): array {
         $email = strtolower(trim($email));
-        $this->assertEmailAvailable($email);
+        if ($existingUser) {
+            $this->assertUserInvitable($existingUser, $email);
+        } else {
+            $this->assertEmailAvailable($email);
+        }
 
         RegistrationInvitation::query()
             ->where('email', $email)
@@ -38,6 +43,7 @@ class RegistrationInvitationService
 
         $invitation = RegistrationInvitation::create([
             'email' => $email,
+            'user_id' => $existingUser?->id,
             'token' => hash('sha256', $plainToken),
             'encrypted_token' => Crypt::encryptString($plainToken),
             'name' => $name ? strip_tags(trim($name)) : null,
@@ -70,7 +76,11 @@ class RegistrationInvitationService
     public function resendEmail(RegistrationInvitation $invitation, User $invitedBy): array
     {
         $this->assertInvitationActive($invitation);
-        $this->assertEmailAvailable($invitation->email);
+        if ($invitation->user_id) {
+            $this->assertUserInvitable($invitation->user, $invitation->email);
+        } else {
+            $this->assertEmailAvailable($invitation->email);
+        }
 
         [$plainToken, $inviteUrl] = $this->rotateToken($invitation, $invitedBy);
         $emailEnabled = $this->emailNotificationsEnabled();
@@ -119,6 +129,17 @@ class RegistrationInvitationService
             ->whereNull('accepted_at')
             ->where('expires_at', '>', now())
             ->first();
+    }
+
+    public function assertUserInvitable(?User $user, string $email): void
+    {
+        if (! $user || $user->last_login_at !== null
+            || ($user->status ?? 'active') !== 'active'
+            || strtolower($user->email) !== strtolower($email)) {
+            throw ValidationException::withMessages([
+                'user' => ['Invitația este disponibilă doar pentru conturi active care încă nu au accesat Academy.'],
+            ]);
+        }
     }
 
     private function assertEmailAvailable(string $email): void
@@ -186,6 +207,6 @@ class RegistrationInvitationService
             $invitation->id,
             $plainToken,
             $invitedBy->name ?: 'Administrator',
-        )->afterResponse();
+        )->afterCommit();
     }
 }

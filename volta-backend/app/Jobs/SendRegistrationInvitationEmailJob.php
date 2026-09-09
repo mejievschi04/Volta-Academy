@@ -22,6 +22,8 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
 
     public int $backoff = 30;
 
+    public int $timeout = 60;
+
     public function __construct(
         public int $invitationId,
         public string $plainToken,
@@ -31,12 +33,13 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
     public function handle(): void
     {
         $invitation = RegistrationInvitation::find($this->invitationId);
-        if (! $invitation || $invitation->isAccepted()) {
+        if (! $invitation || $invitation->isAccepted() || $invitation->isExpired()
+            || ! hash_equals($invitation->token, hash('sha256', $this->plainToken))) {
             return;
         }
 
         if (! (bool) Setting::get('email_notifications', true)) {
-            $invitation->update([
+            $this->updateCurrentInvitation([
                 'email_status' => 'skipped',
                 'email_last_error' => null,
             ]);
@@ -54,7 +57,7 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
                 recipientName: $invitation->name,
             ));
 
-            $invitation->update([
+            $this->updateCurrentInvitation([
                 'email_status' => 'sent',
                 'email_sent_at' => now(),
                 'email_last_error' => null,
@@ -66,12 +69,30 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            $invitation->update([
-                'email_status' => 'failed',
+            $this->updateCurrentInvitation([
+                'email_status' => 'pending',
                 'email_last_error' => $e->getMessage(),
             ]);
 
             throw $e;
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        $this->updateCurrentInvitation([
+            'email_status' => 'failed',
+            'email_last_error' => $exception?->getMessage() ?? 'Trimiterea emailului a eșuat.',
+        ]);
+    }
+
+    private function updateCurrentInvitation(array $attributes): void
+    {
+        // An older attempt must not overwrite the state of a resent invitation.
+        RegistrationInvitation::query()
+            ->whereKey($this->invitationId)
+            ->where('token', hash('sha256', $this->plainToken))
+            ->whereNull('accepted_at')
+            ->update($attributes);
     }
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { quizService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 
@@ -16,8 +17,7 @@ const QuizPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-	const [sidebarOpen, setSidebarOpen] = useState(true);
-	const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+	const [, setIsMobile] = useState(window.innerWidth < 1024);
 	const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
 	const [timeRemaining, setTimeRemaining] = useState(null);
 	const [startTime, setStartTime] = useState(null);

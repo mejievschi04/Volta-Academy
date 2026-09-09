@@ -199,7 +199,7 @@ class UserAdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s\-\.]+$/u', // Sanitize name
+            'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
             'email' => 'required|string|email|max:255|unique:users',
             'password' => [
                 'nullable',
@@ -245,6 +245,27 @@ class UserAdminController extends Controller
             'message' => 'Utilizator creat cu succes. Parola implicită: volta2025',
             'user' => $user->load($this->eagerLoadTeamsCourses()),
         ], 201);
+    }
+
+    public function sendInvitation(int $id, \App\Services\RegistrationInvitationService $service)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+        if (! (bool) \App\Models\Setting::get('email_notifications', true)) {
+            return response()->json(['message' => 'Trimiterea emailurilor este dezactivată în setări.'], 422);
+        }
+
+        DB::transaction(function () use ($id, $service) {
+            $user = User::lockForUpdate()->findOrFail($id);
+            $service->createAndSend(
+                email: $user->email,
+                invitedBy: Auth::user(),
+                name: $user->name,
+                role: $user->role,
+                existingUser: $user,
+            );
+        });
+
+        return response()->json(['message' => 'Invitația a fost programată pentru trimitere prin email.']);
     }
 
     public function update(Request $request, $id)

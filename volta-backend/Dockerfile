@@ -29,10 +29,14 @@ RUN printf "upload_max_filesize=512M\npost_max_size=550M\nmax_execution_time=600
     > /etc/php/8.2/cli/conf.d/99-uploads.ini
 
 WORKDIR /var/www/html
+# Dependency layers survive changes to application source.
+COPY composer.json composer.lock ./
+COPY patches ./patches
+RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --prefer-dist
+COPY package*.json ./
+RUN npm ci
 COPY . .
-
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-RUN npm install && npm run build
+RUN composer dump-autoload --no-dev --optimize --no-interaction && npm run build
 
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \

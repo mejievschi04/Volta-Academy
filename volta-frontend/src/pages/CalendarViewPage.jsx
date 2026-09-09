@@ -34,7 +34,7 @@ const CalendarViewPage = () => {
 	const weekDays = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
 
 	const getEventsForDate = (day) => {
-		const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
 		return mockEvents.filter((event) => {
 			const eventDate = new Date(event.startDate);
 			return (

@@ -1,7 +1,10 @@
+import { rowMatchesResultFilters } from './TestResultsPanelShared.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
-import { useAuth } from '../../../contexts/AuthContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../../contexts/AuthContextShared.js';
 import Modal from '../../common/Modal';
 import RichTextHtml from '../../RichTextHtml';
 import './TestResultsPanel.css';
@@ -30,26 +33,7 @@ function maxScoreForRow(row, kind) {
 	return Number(row?.max_score) || 1;
 }
 
-export function rowMatchesResultFilters(row, { statusFilter = 'all', dateFrom = '', dateTo = '' } = {}) {
-	if (statusFilter === 'passed' && !row?.passed) return false;
-	if (statusFilter === 'failed' && (row?.passed || row?.needs_manual_review || row?.status === 'pending_review')) return false;
-	if (statusFilter === 'pending' && !(row?.needs_manual_review || row?.status === 'pending' || row?.status === 'pending_review')) {
-		return false;
-	}
-	if (dateFrom || dateTo) {
-		if (!row?.completed_at) return false;
-		const completed = new Date(row.completed_at);
-		if (dateFrom) {
-			const from = new Date(`${dateFrom}T00:00:00`);
-			if (completed < from) return false;
-		}
-		if (dateTo) {
-			const to = new Date(`${dateTo}T23:59:59`);
-			if (completed > to) return false;
-		}
-	}
-	return true;
-}
+
 
 /**
  * @param {{ kind?: 'test' | 'exam', entityId: number, entityTitle?: string, showBreakdown?: boolean, embedded?: boolean, statusFilter?: string, dateFrom?: string, dateTo?: string }} props

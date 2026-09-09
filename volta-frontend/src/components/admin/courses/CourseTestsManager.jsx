@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../components/common/ConfirmModal';
+import AITestGenerateModal from '../tests/AITestGenerateModal';
+import { isVoltEnabled } from '../../../utils/voltAvailability';
 import './CourseTestsManager.css';
 
 const TYPE_LABELS = { final: 'Test final' };
 
 const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
+	const navigate = useNavigate();
 	const { showToast } = useToast();
 	const [availableTests, setAvailableTests] = useState([]);
 	const [linkedTests, setLinkedTests] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [showLinkModal, setShowLinkModal] = useState(false);
+	const [showVoltTestModal, setShowVoltTestModal] = useState(false);
 	const [selectedTest, setSelectedTest] = useState(null);
 	const [linkOptions, setLinkOptions] = useState({
 		scope: 'course',
 		scope_id: null,
-		required: false,
+		required: true,
 		passing_score: 70,
 		order: 0,
 	});
@@ -117,9 +123,19 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 	const canAttach = selectedTest && (linkOptions.scope === 'course' || (linkOptions.scope_id != null && linkOptions.scope_id !== ''));
 
 	const openLinkModal = () => {
-		setLinkOptions({ scope: 'course', scope_id: null, required: false, passing_score: 70, order: 0 });
+		setLinkOptions({ scope: 'course', scope_id: null, required: true, passing_score: 70, order: 0 });
 		setSelectedTest(null);
 		setShowLinkModal(true);
+	};
+
+	const handleVoltTestSaved = (test) => {
+		setShowVoltTestModal(false);
+		showToast('Test generat și atașat cu succes', 'success');
+		fetchData();
+		onUpdate?.();
+		if (test?.id) {
+			navigate(`/admin/tests/${test.id}/builder?section=questions`);
+		}
 	};
 
 	return (
@@ -129,13 +145,24 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 					<h2>Teste & Evaluări</h2>
 					<p>Gestionează testele atribuite acestui curs</p>
 				</div>
-				<button
-					className="admin-btn admin-btn-primary"
-					onClick={openLinkModal}
-					type="button"
-				>
-					➕ Atașează test
-				</button>
+				<div className="course-tests-header-actions">
+					{isVoltEnabled() ? (
+						<button
+							className="admin-btn admin-btn-secondary"
+							onClick={() => setShowVoltTestModal(true)}
+							type="button"
+						>
+							⚡ Generează cu Volt și atașează
+						</button>
+					) : null}
+					<button
+						className="admin-btn admin-btn-primary"
+						onClick={openLinkModal}
+						type="button"
+					>
+						➕ Atașează test
+					</button>
+				</div>
 			</div>
 
 			{/* Linked Tests */}
@@ -154,7 +181,7 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 						</button>
 					</div>
 				) : (
-					linkedTests.map((test, index) => {
+					linkedTests.map((test) => {
 						const pivot = test.pivot || test;
 						return (
 							<div key={`${test.id}-${pivot.scope}-${pivot.scope_id}`} className="course-test-card">
@@ -304,10 +331,10 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 								<label className="course-tests-check-label">
 									<input
 										type="checkbox"
-										checked={!!linkOptions.required}
-										onChange={(e) => setLinkOptions(prev => ({ ...prev, required: e.target.checked }))}
+										checked
+										readOnly
 									/>
-									<span>Test obligatoriu</span>
+									<span>Obligatoriu — cursul nu poate fi finalizat fără promovarea testului</span>
 								</label>
 							</div>
 
@@ -352,6 +379,15 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 				cancelLabel="Anulare"
 				variant="danger"
 				loading={unlinkLoading}
+			/>
+
+			<AITestGenerateModal
+				open={showVoltTestModal}
+				onClose={() => setShowVoltTestModal(false)}
+				onSaved={handleVoltTestSaved}
+				presetCourseId={courseId}
+				presetCourseData={courseData}
+				attachByDefault
 			/>
 		</div>
 	);

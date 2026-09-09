@@ -26,9 +26,12 @@ import {
 import { useCoursePublishFromCard } from '../hooks/useCoursePublishFromCard';
 import { courseMapsService, adminService } from '../services/api';
 import { courseCoverSrc } from '../utils/imageUrl';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
-import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-card';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
+import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
+import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-cardShared.js';
 import { hexToHslSpace } from '../lib/hexToHsl';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CourseMapPage.css';

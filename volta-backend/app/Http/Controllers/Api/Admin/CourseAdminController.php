@@ -1170,7 +1170,12 @@ class CourseAdminController extends Controller
         }
 
         try {
-            app(\App\Services\NotificationService::class)->notifyCoursePublished($course, [], false);
+            $teamIds = $course->teams()->pluck('teams.id')->map(fn ($id) => (int) $id)->all();
+            app(\App\Services\NotificationService::class)->notifyCoursePublished(
+                $course,
+                $teamIds,
+                broadcastAllStudentsIfNoTargets: count($teamIds) === 0
+            );
         } catch (\Throwable $e) {
             \Log::warning('CourseAdminController: notifyCoursePublished failed', [
                 'course_id' => $course->id,

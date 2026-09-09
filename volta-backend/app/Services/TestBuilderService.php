@@ -26,7 +26,7 @@ class TestBuilderService
         $insert = [
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'type' => 'final',
+            'type' => $data['type'] ?? 'final',
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => $data['max_attempts'] ?? null,
@@ -404,6 +404,11 @@ class TestBuilderService
         $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
         return in_array($type, $allowed, true) ? $type : 'multiple_choice';
+    }
+
+    public function normalizeQuestionAnswersForType(?string $questionType, array $answers): array
+    {
+        return $this->normalizeAnswersForType($questionType, $answers);
     }
 
     protected function normalizeAnswersForType(?string $questionType, array $answers): array

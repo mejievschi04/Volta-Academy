@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
 import { adminService } from '../../../../services/api';
-import { useToast } from '../../../../contexts/ToastContext';
+
+import { useToast } from '../../../../contexts/ToastContextShared.js';
 import { buildVideoLessonPrompt } from '../../../../utils/voltAiPrompts';
 import { runVoltAction } from '../../../../utils/voltAvailability';
 

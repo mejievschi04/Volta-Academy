@@ -3,6 +3,9 @@ import {
   INLINE_QUESTION_TYPES,
   normalizeInlineQuestionType,
   selectAllTextInputHandlers,
+  TEST_RESULTS_DISPLAY_OPTIONS,
+  getTestResultsDisplayMode,
+  patchTestResultsDisplayMode,
 } from '../../../utils/testQuestionBuilder';
 import RichTextEditor from '../../RichTextEditor';
 import RichTextHtml from '../../RichTextHtml';
@@ -213,6 +216,7 @@ export default function InlineTestEditorShell({
                                       placeholder="Scrie și formatează întrebarea..."
                                       courseId={courseId}
                                       toolbarVariant="basic"
+                                      emphasis="strong"
                                       showSideTools={false}
                                       style={{ minHeight: '120px' }}
                                     />
@@ -445,8 +449,6 @@ export default function InlineTestEditorShell({
                     ['randomize_questions', 'Amestecă întrebările', 'Ordinea întrebărilor va fi randomizată pentru fiecare parcurgere.'],
                     ['randomize_answers', 'Amestecă răspunsurile', 'Opțiunile grilă se afișează în ordine diferită.'],
                     ['show_results_immediately', 'Arată rezultatul imediat', 'Cursantul vede scorul imediat după trimitere.'],
-                    ['show_correct_answers', 'Arată răspunsurile corecte', 'După finalizare se pot vedea răspunsurile corecte.'],
-                    ['show_only_submitted_answers', 'Doar răspunsurile oferite', 'La final și în rezultate se afișează doar ce a răspuns cursantul, fără corect/greșit.'],
                     ['allow_review', 'Permite revizuirea', 'Cursantul poate reveni să revadă testul după completare.'],
                     ['requires_manual_verification', 'Necesită verificare manuală', 'Rezultatul final rămâne în așteptare până la corectare.'],
                   ].map(([key, label, hint]) => (
@@ -463,6 +465,34 @@ export default function InlineTestEditorShell({
                       </span>
                     </label>
                   ))}
+                </div>
+
+                <div className="admin-course-builder-test-results-mode">
+                  <div className="admin-course-builder-test-results-mode-head">
+                    <strong>Afișare răspunsuri după test</strong>
+                    <small>Alege una dintre opțiuni — răspunsurile corecte și cele oferite de student nu pot fi active simultan.</small>
+                  </div>
+                  <div className="admin-course-builder-test-results-mode-options" role="radiogroup" aria-label="Afișare răspunsuri după test">
+                    {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => (
+                      <label
+                        key={option.id}
+                        className={`admin-course-builder-test-results-mode-option ${getTestResultsDisplayMode(inlineTest) === option.id ? 'is-active' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="inline-test-results-display"
+                          value={option.id}
+                          checked={getTestResultsDisplayMode(inlineTest) === option.id}
+                          onChange={() => saveInlineTestPatch(patchTestResultsDisplayMode(option.id))}
+                          disabled={!canMutateInAdminArea}
+                        />
+                        <span>
+                          <strong>{option.label}</strong>
+                          <small>{option.hint}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

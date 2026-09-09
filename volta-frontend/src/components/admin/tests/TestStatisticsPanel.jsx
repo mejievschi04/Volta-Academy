@@ -21,7 +21,8 @@ import {
 	YAxis,
 } from 'recharts';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import {
 	buildStructuredExcelRows,
 	downloadStructuredExcel,
@@ -29,7 +30,8 @@ import {
 } from '../../../utils/statisticsExcelExport';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import RichTextHtml from '../../RichTextHtml';
-import TestResultsPanel, { rowMatchesResultFilters } from './TestResultsPanel';
+import TestResultsPanel from './TestResultsPanel';
+import { rowMatchesResultFilters } from './TestResultsPanelShared.js';
 import './TestStatisticsPanel.css';
 
 const TYPE_LABELS = {

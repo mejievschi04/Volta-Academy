@@ -1,4 +1,5 @@
 import { GlobalWorkerOptions } from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 let configured = false;
 
@@ -7,7 +8,6 @@ export function configurePdfWorker() {
 		return;
 	}
 
-	const base = String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
-	GlobalWorkerOptions.workerSrc = `${base}assets/pdf.worker.js`;
+	GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 	configured = true;
 }

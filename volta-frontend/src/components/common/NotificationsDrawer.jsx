@@ -50,9 +50,11 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 		onLocalStateChange?.();
 	}, [onLocalStateChange]);
 
-	useEffect(() => {
+	const [previousOpen, setPreviousOpen] = useState(open);
+	if (previousOpen !== open) {
+		setPreviousOpen(open);
 		if (open) setTab('primite');
-	}, [open]);
+	}
 
 	useEffect(() => {
 		if (!open) return;

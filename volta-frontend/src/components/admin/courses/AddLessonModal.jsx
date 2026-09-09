@@ -21,9 +21,6 @@ const AddLessonModal = ({ moduleTitle, onClose, onSubmit, loading }) => {
 		firstInputRef.current?.focus();
 	}, []);
 
-	useEffect(() => {
-		setError('');
-	}, [title]);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -54,7 +51,7 @@ const AddLessonModal = ({ moduleTitle, onClose, onSubmit, loading }) => {
 							id="add-lesson-title-input"
 							type="text"
 							value={title}
-							onChange={(e) => setTitle(e.target.value)}
+							onChange={(e) => { setTitle(e.target.value); setError(''); }}
 							placeholder="Titlul lecției"
 							className="add-lesson-modal-input"
 							disabled={loading}

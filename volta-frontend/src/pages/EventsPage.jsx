@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
-import { useToast } from '../contexts/ToastContext';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 
@@ -96,18 +97,7 @@ const EventsPage = () => {
 		return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	};
 
-	const formatDuration = (startDateString, endDateString) => {
-		const start = parseEventDate(startDateString);
-		const end = parseEventDate(endDateString);
-		if (!start || !end) return null;
-		const minutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
-		const hours = Math.floor(minutes / 60);
-		const remainingMinutes = minutes % 60;
-		const hourLabel = hours === 1 ? 'ora' : 'ore';
-		if (hours > 0 && remainingMinutes > 0) return `${hours} ${hourLabel} ${remainingMinutes} min`;
-		if (hours > 0) return `${hours} ${hourLabel}`;
-		return `${remainingMinutes} min`;
-	};
+
 
 
 	const getEventTypeLabel = (type) => {
@@ -134,141 +124,7 @@ const EventsPage = () => {
 		}
 	};
 
-	const renderEventSection = (title, subtitle, sectionEvents) => {
-		if (!sectionEvents.length) return null;
 
-		return (
-			<section key={title} style={{ marginTop: '2rem' }}>
-				<div style={{ marginBottom: '1rem' }}>
-					<h2 style={{ marginBottom: '0.35rem' }}>{title}</h2>
-					<p style={{ color: 'var(--va-muted)', margin: 0 }}>{subtitle}</p>
-				</div>
-				<div className="events-grid">
-					{sectionEvents.map((event) => {
-						const statusBadge = getStatusBadge(event);
-						const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
-						const isCompleted = getTimelineGroup(event) === 'completed';
-						const duration = formatDuration(event.start_date, event.end_date);
-
-						return (
-							<div
-								key={event.id}
-								className="va-card-enhanced stagger-item"
-								style={{ cursor: 'pointer' }}
-								onClick={() => navigate(`/events/${event.id}`)}
-							>
-								{event.thumbnail && (
-									<div
-										className="events-card-thumbnail"
-										style={{
-											width: '100%',
-											height: '148px',
-											backgroundImage: `url(${event.thumbnail})`,
-											backgroundSize: 'cover',
-											backgroundPosition: 'center',
-											borderRadius: '8px 8px 0 0',
-										}}
-									/>
-								)}
-								<div className="va-card-body">
-									<div className="events-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem', gap: '0.75rem' }}>
-										<h3 className="va-card-title" style={{ marginBottom: 0, flex: 1 }}>
-											📅 {event.title}
-										</h3>
-										{statusBadge && (
-											<span className="events-card-status-badge" style={{
-												padding: '0.25rem 0.75rem',
-												borderRadius: '12px',
-												fontSize: '0.75rem',
-												fontWeight: 'bold',
-												background: statusBadge.color,
-												color: '#fff',
-											}}>
-												{statusBadge.label}
-											</span>
-										)}
-									</div>
-									{event.short_description && (
-										<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
-											{event.short_description}
-										</p>
-									)}
-									{event.description ? (
-										<EventDescriptionExpandable
-											text={event.description}
-											className="events-card-desc"
-										/>
-									) : null}
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
-										<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-											<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
-											{duration && <span>⏱️ <strong style={{ color: 'var(--va-text)' }}>{duration}</strong></span>}
-										</div>
-										{event.instructor && (
-											<div style={{ marginBottom: '0.5rem' }}>
-												👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
-											</div>
-										)}
-										<div style={{ marginBottom: '0.5rem' }}>
-											📍 <strong style={{ color: 'var(--va-text)' }}>
-												{event.location || event.live_link || 'N/A'}
-											</strong>
-										</div>
-										<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-											🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
-											{event.end_date && (
-												<span style={{ marginLeft: '0.5rem' }}>
-													- {formatTime(event.end_date)}
-												</span>
-											)}
-										</div>
-										{event.max_capacity && (
-											<div style={{ marginBottom: '0.5rem' }}>
-												👥 <strong style={{ color: 'var(--va-text)' }}>
-													{event.registrations_count || 0} / {event.max_capacity} înscriși
-													{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
-												</strong>
-											</div>
-										)}
-									</div>
-									<div className="events-card-actions">
-										<button
-											className="lms-btn-primary"
-											onClick={(e) => {
-												e.stopPropagation();
-												navigate(`/events/${event.id}`);
-											}}
-											style={{ flex: 1 }}
-										>
-											Vezi Detalii
-										</button>
-										{!isCompleted && !event.user_registered && !isFull && event.status !== 'cancelled' && (
-											<button
-												className="lms-btn-secondary"
-												onClick={(e) => handleRegister(event.id, e)}
-												style={{ background: '#10b981', color: '#fff' }}
-											>
-												Înscrie-te
-											</button>
-										)}
-										{event.user_registered && (
-											<button
-												className="lms-btn-secondary"
-												disabled
-												style={{ background: '#10b981', color: '#fff', cursor: 'not-allowed' }}
-											>
-												Înscris
-											</button>
-										)}
-									</div>
-								</div>
-							</div>
-						);
-					})}
-				</div>
-			</section>
-		);
-	};
 
 	if (loading) {
 		return (
@@ -339,7 +195,7 @@ const EventsPage = () => {
 								const statusBadge = getStatusBadge(event);
 								const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
 								const isCompleted = getTimelineGroup(event) === 'completed';
-								const duration = formatDuration(event.start_date, event.end_date);
+
 								
 								return (
 									<div

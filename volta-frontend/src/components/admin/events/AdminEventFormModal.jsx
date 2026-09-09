@@ -1,22 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { emptyEventForm, DEFAULT_DURATION_MINUTES } from './AdminEventFormModalShared.js';
+import React, { useState, useCallback, useRef } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
 
 const DEFAULT_TIMEZONE = 'Europe/Chisinau';
-const DEFAULT_DURATION_MINUTES = 60;
+
 const TIME_24H_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-export const emptyEventForm = () => ({
-	title: '',
-	description: '',
-	type: 'live_online',
-	event_date: '',
-	start_time: '09:00',
-	duration_minutes: DEFAULT_DURATION_MINUTES,
-	location: '',
-	live_link: '',
-});
+
 
 const trimOrNull = (v) => {
 	const t = typeof v === 'string' ? v.trim() : '';
@@ -72,22 +65,7 @@ const calculateDurationMinutes = (startDate, endDate) => {
  * @param {{ event_date?: string, start_time?: string } | null} props.prefill
  * @param {() => void} props.onSaved
  */
-const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) => {
-	const { success: showSuccess, error: showError } = useToast();
-	const [formData, setFormData] = useState(emptyEventForm);
-	const [errors, setErrors] = useState({});
-	const [touched, setTouched] = useState({});
-	const bodyRef = useRef(null);
-	useScrollResetOnOpen(open, bodyRef);
-
-	const resetForm = useCallback(() => {
-		setFormData(emptyEventForm());
-		setErrors({});
-		setTouched({});
-	}, []);
-
-	useEffect(() => {
-		if (!open) return;
+function initialEventForm(editingEvent, prefill) {
 		if (editingEvent) {
 			let eventDate = '';
 			let startTime = '09:00';
@@ -101,7 +79,7 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 			}
 			const rawType = editingEvent.type || 'live_online';
 			const formType = rawType === 'physical' ? 'physical' : 'live_online';
-			setFormData({
+			return {
 				title: editingEvent.title || '',
 				description: editingEvent.description || '',
 				type: formType,
@@ -110,24 +88,38 @@ const AdminEventFormModal = ({ open, onClose, editingEvent, prefill, onSaved }) 
 				duration_minutes: calculateDurationMinutes(editingEvent.start_date, editingEvent.end_date),
 				location: formType === 'physical' ? (editingEvent.location || '') : '',
 				live_link: formType === 'live_online' ? (editingEvent.live_link || '') : '',
-			});
-			setErrors({});
-			setTouched({});
-			return;
+			};
 		}
 		if (prefill?.event_date) {
-			setFormData({
+			return {
 				...emptyEventForm(),
 				event_date: prefill.event_date,
 				start_time: prefill.start_time || '09:00',
 				duration_minutes: DEFAULT_DURATION_MINUTES,
-			});
+			};
 		} else {
-			setFormData(emptyEventForm());
+			return emptyEventForm();
 		}
+
+}
+
+const AdminEventFormModal = (props) => props.open ? <EventForm key={props.editingEvent?.id ?? "new"} {...props} /> : null;
+
+const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
+	const { success: showSuccess, error: showError } = useToast();
+	const [formData, setFormData] = useState(() => initialEventForm(editingEvent, prefill));
+	const [errors, setErrors] = useState({});
+	const [touched, setTouched] = useState({});
+	const bodyRef = useRef(null);
+	useScrollResetOnOpen(open, bodyRef);
+
+	const resetForm = useCallback(() => {
+		setFormData(emptyEventForm());
 		setErrors({});
 		setTouched({});
-	}, [open, editingEvent, prefill]);
+	}, []);
+
+
 
 	const validate = useCallback(() => {
 		const newErrors = {};

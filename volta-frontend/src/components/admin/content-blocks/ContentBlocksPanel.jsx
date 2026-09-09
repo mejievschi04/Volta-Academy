@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import AutoSaveIndicator from '../../common/AutoSaveIndicator';
 import ContentBlockList from './ContentBlockList';
@@ -466,7 +467,7 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 			// 1) Delete blocks that do not exist in checkpoint.
 			for (const currentBlock of blocks || []) {
 				if (!checkpointIds.has(currentBlock.id)) {
-					// eslint-disable-next-line no-await-in-loop
+
 					await adminService.builderDeleteContentBlock(courseId, currentBlock.id);
 				}
 			}
@@ -484,11 +485,11 @@ const ContentBlocksPanel = ({ courseId, lesson, onRefresh }) => {
 				};
 
 				if (existing) {
-					// eslint-disable-next-line no-await-in-loop
+
 					await adminService.builderUpdateContentBlock(courseId, existing.id, payload);
 					finalOrderedIds.push(existing.id);
 				} else {
-					// eslint-disable-next-line no-await-in-loop
+
 					const created = await adminService.builderCreateContentBlock(courseId, lesson.id, payload);
 					const newId = created?.content_block?.id;
 					if (newId) finalOrderedIds.push(newId);

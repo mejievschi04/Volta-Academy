@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 
 /**
  * Atribuire curs ↔ echipe (sincronizare) și elevi (atașare fără a șterge alte cursuri).

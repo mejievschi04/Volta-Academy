@@ -1,10 +1,12 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../../services/api';
-import { useToast } from '../../../../contexts/ToastContext';
+
+import { useToast } from '../../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../../components/common/ConfirmModal';
 import Modal from '../../../../components/common/Modal';
 import QuestionItemCard from './QuestionItemCard';
 import AIGenerateQuestionsModal from './AIGenerateQuestionsModal';
+import { DEFAULT_AI_QUESTION_TYPES } from './AIGenerateQuestionsModalShared.js';
 import { isVoltEnabled, notifyVoltComingSoon } from '../../../../utils/voltAvailability';
 
 const QUESTION_TYPE_OPTIONS = [
@@ -119,14 +121,15 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 	const [aiCourses, setAiCourses] = useState([]);
 	const [aiCoursesLoading, setAiCoursesLoading] = useState(false);
 	const [aiSelectedCourseId, setAiSelectedCourseId] = useState('');
-	const [aiReviewStarted, setAiReviewStarted] = useState(false);
-	const [aiCurrentDraftQuestion, setAiCurrentDraftQuestion] = useState(null);
-	const [aiApprovedQuestions, setAiApprovedQuestions] = useState([]);
+	const [, setAiReviewStarted] = useState(false);
+	const [, setAiCurrentDraftQuestion] = useState(null);
+	const [, setAiApprovedQuestions] = useState([]);
 	const [aiGeneratedCount, setAiGeneratedCount] = useState(0);
+	const [aiGeneratedPreviews, setAiGeneratedPreviews] = useState([]);
 	const [aiOptions, setAiOptions] = useState({
 		numberOfQuestions: 10,
 		difficulty: 'medium',
-		questionTypes: ['multiple_choice']
+		questionTypes: [...DEFAULT_AI_QUESTION_TYPES]
 	});
 
 	// Load existing questions if editing
@@ -209,24 +212,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		}
 	};
 
-	const fetchAiDraftQuestion = async (actualBankId, approvedQuestions = [], courseIdOverride = null) => {
-		const validCourseId = resolveValidCourseId(courseIdOverride);
-		if (!validCourseId) {
-			throw new Error('Alege un curs valid înainte de generare.');
-		}
 
-		const result = await adminService.previewQuestionsWithVolt(actualBankId, {
-			course_id: validCourseId,
-			numberOfQuestions: 1,
-			difficulty: aiOptions.difficulty,
-			questionTypes: aiOptions.questionTypes,
-			instructions: '',
-			approvedQuestions: approvedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
-		});
-
-		const draft = Array.isArray(result?.draft) ? result.draft : [];
-		return draft[0] || null;
-	};
 
 	const fetchQuestions = async () => {
 		try {
@@ -522,112 +508,23 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		setAiOptions({
 			numberOfQuestions: 10,
 			difficulty: 'medium',
-			questionTypes: ['multiple_choice']
+			questionTypes: [...DEFAULT_AI_QUESTION_TYPES]
 		});
 		setAiError(null);
 		setAiReviewStarted(false);
 		setAiCurrentDraftQuestion(null);
 		setAiApprovedQuestions([]);
 		setAiGeneratedCount(0);
+		setAiGeneratedPreviews([]);
 		if (!aiSelectedCourseId && aiCourses.length > 0) {
 			setAiSelectedCourseId(String(aiCourses[0].id));
 		}
 		setShowAIModal(true);
 	};
 
-	const startAiReview = async (overrideCourseId = null) => {
-		const effectiveCourseId = resolveValidCourseId(overrideCourseId);
-		if (!effectiveCourseId) {
-			showToast('Alege mai întâi un curs sursă', 'error');
-			return;
-		}
 
-		setAiReviewStarted(true);
-		setAiCurrentDraftQuestion(null);
-		try {
-			setAiGenerating(true);
-			setAiError(null);
 
-			const actualBankId = await ensureBankExists();
-			if (!actualBankId) {
-				setAiReviewStarted(false);
-				return;
-			}
 
-			const draft = await fetchAiDraftQuestion(actualBankId, [], effectiveCourseId);
-			if (!draft) {
-				throw new Error('Volt nu a returnat nicio întrebare.');
-			}
-			setAiCurrentDraftQuestion(draft);
-			setAiGeneratedCount(1);
-		} catch (err) {
-			console.error('Error generating questions:', err);
-			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
-			setAiError(message);
-			setAiReviewStarted(false);
-			showToast(message, 'error');
-		} finally {
-			setAiGenerating(false);
-		}
-	};
-
-	const advanceAiDraft = async (shouldApprove = false) => {
-		if (!aiCurrentDraftQuestion) return;
-
-		const nextApproved = shouldApprove ? [...aiApprovedQuestions, aiCurrentDraftQuestion] : aiApprovedQuestions;
-		const nextApprovedCount = nextApproved.length;
-		const target = aiTargetCount;
-
-		if (shouldApprove && nextApprovedCount >= target) {
-			try {
-				setAiGenerating(true);
-				const actualBankId = await ensureBankExists();
-				if (!actualBankId) return;
-				await adminService.addQuestionsToBankBulk(actualBankId, nextApproved);
-				showToast(`Au fost salvate ${nextApproved.length} întrebări aprobate.`, 'success');
-				setShowAIModal(false);
-				setAiReviewStarted(false);
-				setAiCurrentDraftQuestion(null);
-				setAiApprovedQuestions([]);
-				setAiGeneratedCount(0);
-				setAiError(null);
-				const updated = await adminService.getQuestionBankQuestions(actualBankId);
-				onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
-			} catch (err) {
-				console.error('Error saving approved questions:', err);
-				const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Nu am putut salva întrebările aprobate.';
-				setAiError(message);
-				showToast(message, 'error');
-			} finally {
-				setAiGenerating(false);
-			}
-			return;
-		}
-
-		try {
-			setAiGenerating(true);
-			const actualBankId = await ensureBankExists();
-			if (!actualBankId) {
-				setAiReviewStarted(false);
-				return;
-			}
-			const draft = await fetchAiDraftQuestion(actualBankId, nextApproved, effectiveCourseId);
-			if (!draft) {
-				throw new Error('Volt nu a returnat o întrebare nouă.');
-			}
-			setAiApprovedQuestions(nextApproved);
-			setAiCurrentDraftQuestion(draft);
-			setAiGeneratedCount((prev) => prev + 1);
-		} catch (err) {
-			console.error('Error advancing Volt draft:', err);
-			const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea următoarei întrebări.';
-			setAiError(message);
-			setAiReviewStarted(false);
-			showToast(message, 'error');
-		} finally {
-			setAiGenerating(false);
-		}
-	};
 
 	const startAiAutoGenerate = async (overrideCourseId = null, requestedCount = null) => {
 		const effectiveCourseId = resolveValidCourseId(overrideCourseId);
@@ -663,12 +560,22 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				throw new Error('Volt nu a returnat nicio întrebare.');
 			}
 
+			setAiGeneratedCount(generatedQuestions.length);
+			setAiGeneratedPreviews(
+				generatedQuestions.map((question, index) => ({
+					index: index + 1,
+					content: question.content || question.question || '',
+					type: question.type || 'multiple_choice',
+				}))
+			);
+
 			await adminService.addQuestionsToBankBulk(actualBankId, generatedQuestions);
 			showToast(`Au fost generate și salvate ${generatedQuestions.length} întrebări.`, 'success');
 			setShowAIModal(false);
 			setAiCurrentDraftQuestion(null);
 			setAiApprovedQuestions([]);
 			setAiGeneratedCount(0);
+			setAiGeneratedPreviews([]);
 			setAiError(null);
 			const updated = await adminService.getQuestionBankQuestions(actualBankId);
 			onUpdate({ questions: Array.isArray(updated) ? updated : (updated?.data || []) });
@@ -1069,6 +976,9 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				aiOptions={aiOptions}
 				setAiOptions={setAiOptions}
 				aiError={aiError}
+				aiGeneratedCount={aiGeneratedCount}
+				aiTargetCount={aiTargetCount}
+				aiGeneratedPreviews={aiGeneratedPreviews}
 				onClose={() => setShowAIModal(false)}
 				onStartReview={startAiAutoGenerate}
 			/>

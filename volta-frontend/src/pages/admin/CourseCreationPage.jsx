@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import AICourseChat from '../../components/admin/ai/AICourseChat';
-import { notifyVoltComingSoon } from '../../utils/voltAvailability';
+import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import './CourseCreationPage.css';
 
 const CourseCreationPage = () => {
@@ -127,7 +129,11 @@ const CourseCreationPage = () => {
 							className={`course-creation-mode-card${creationMode === 'volt' ? ' is-active' : ''}`}
 							onClick={() => {
 								setCreationMode('volt');
-								notifyVoltComingSoon(showToast);
+								if (isVoltEnabled()) {
+									setShowAiCourseChat(true);
+								} else {
+									notifyVoltComingSoon(showToast);
+								}
 							}}
 							disabled={loading}
 						>
@@ -179,7 +185,9 @@ const CourseCreationPage = () => {
 						<button
 							type={creationMode === 'volt' ? 'button' : 'submit'}
 							className="course-creation-simple-btn-primary"
-							onClick={creationMode === 'volt' ? () => notifyVoltComingSoon(showToast) : undefined}
+							onClick={creationMode === 'volt'
+								? () => (isVoltEnabled() ? setShowAiCourseChat(true) : notifyVoltComingSoon(showToast))
+								: undefined}
 							disabled={loading}
 						>
 							{loading ? 'Se creează...' : creationMode === 'volt' ? 'Deschide Volt' : 'Creează curs'}

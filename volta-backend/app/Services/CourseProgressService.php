@@ -58,46 +58,22 @@ class CourseProgressService
             return 0;
         }
 
-        $modules = $course->modules()->where('status', 'published')->get();
-        $rootLessons = $this->getCourseRootLessons($course);
-
-        if ($modules->isEmpty() && $rootLessons->isEmpty()) {
-            return 0;
-        }
-
-        $totalLessons = 0;
-        $completedLessons = 0;
-
-        foreach ($modules as $module) {
-            $moduleLessons = $module->lessons()->where('status', 'published')->get();
-            $totalLessons += $moduleLessons->count();
-
-            foreach ($moduleLessons as $lesson) {
-                // Check if lesson is completed (either marked as completed OR has 100% progress)
-                $lessonProgress = DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('lesson_id', $lesson->id)
-                    ->first();
-                
-                $isCompleted = false;
-                if ($lessonProgress) {
-                    $progressPercentage = $lessonProgress->progress_percentage ?? 0;
-                    // Lesson is completed if marked as completed OR has 100% progress
-                    $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
-                }
-
-                if ($isCompleted) {
-                    $completedLessons++;
-                }
-            }
-        }
-
-        $totalLessons += $rootLessons->count();
-        foreach ($rootLessons as $lesson) {
-            if ($this->isLessonMarkedComplete($user, $lesson->id)) {
-                $completedLessons++;
-            }
-        }
+        $lessonIds = Lesson::query()
+            ->where('status', 'published')
+            ->where(function ($query) use ($course) {
+                $query->where(function ($root) use ($course) {
+                    $root->where('course_id', $course->id)->whereNull('module_id');
+                })->orWhereHas('module', function ($module) use ($course) {
+                    $module->where('course_id', $course->id)->where('status', 'published');
+                });
+            })
+            ->pluck('id');
+        $totalLessons = $lessonIds->count();
+        $completedLessons = $totalLessons === 0 ? 0 : DB::table('lesson_progress')
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $lessonIds)
+            ->where(fn ($query) => $query->where('completed', true)->orWhere('progress_percentage', '>=', 100))
+            ->distinct()->count('lesson_id');
 
         if ($totalLessons === 0) {
             return 0;
@@ -140,38 +116,17 @@ class CourseProgressService
             return 0;
         }
 
-        $lessons = $module->lessons()->where('status', 'published')->get();
-        
-        if ($lessons->isEmpty()) {
+        $lessonIds = $module->lessons()->where('status', 'published')->pluck('id');
+        if ($lessonIds->isEmpty()) {
             return 0;
         }
 
-        $completed = 0;
-        foreach ($lessons as $lesson) {
-            // Check if lesson is completed (either marked as completed OR has 100% progress)
-            $lessonProgress = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $lesson->id)
-                ->first();
-            
-            $isCompleted = false;
-            if ($lessonProgress) {
-                $progressPercentage = $lessonProgress->progress_percentage ?? 0;
-                // Lesson is completed if marked as completed OR has 100% progress
-                $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
-            }
-
-            if ($isCompleted) {
-                $completed++;
-            }
-        }
-
-        $progress = ($completed / $lessons->count()) * 100;
-        
-        // Update module calculated_progress if column exists
-        if (DB::getSchemaBuilder()->hasColumn('modules', 'calculated_progress')) {
-            // This is aggregate progress for all users, calculate separately if needed
-        }
+        $completed = DB::table('lesson_progress')
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $lessonIds)
+            ->where(fn ($query) => $query->where('completed', true)->orWhere('progress_percentage', '>=', 100))
+            ->distinct()->count('lesson_id');
+        $progress = ($completed / $lessonIds->count()) * 100;
 
         return round($progress, 2);
     }
@@ -480,12 +435,12 @@ class CourseProgressService
             }
         }
 
-        // Р вЂњР вЂ№n special: testul final (type='final') trebuie promovat
-        $finalTests = CourseTest::where('course_id', $course->id)
-            ->whereHas('test', fn ($q) => $q->where('type', 'final'))
+        // Every published attached test must be passed, regardless of scope or optional legacy flags.
+        $attachedTests = CourseTest::where('course_id', $course->id)
+            ->whereHas('test', fn ($q) => $q->where('status', 'published'))
             ->get();
 
-        foreach ($finalTests as $courseTest) {
+        foreach ($attachedTests as $courseTest) {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 continue;
@@ -849,7 +804,7 @@ class CourseProgressService
                 'test_id' => $test->id,
                 'passed' => $hasPassed,
                 'unlocked' => $this->isTestUnlocked($user, $test, $course),
-                'required' => (bool) $courseTest->required,
+                'required' => true,
                 'passing_score' => $courseTest->passing_score,
                 'title' => $test->title,
             ];

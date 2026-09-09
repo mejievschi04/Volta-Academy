@@ -27,6 +27,13 @@
 	font-size: var(--font-size-sm);
 }
 
+.course-tests-header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	align-items: center;
+}
+
 .course-tests-list {
 	display: flex;
 	flex-direction: column;

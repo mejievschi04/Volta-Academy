@@ -1,11 +1,14 @@
+import '../styles/achievements-modern.css';
 import React, { useState, useEffect } from 'react';
 import { achievementsService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 
 const AchievementsPage = () => {
-	const { user } = useAuth();
+
 	const { error: showError } = useToast();
 	const [achievements, setAchievements] = useState(null);
 	const [loading, setLoading] = useState(true);

@@ -9,7 +9,7 @@ function getStorageOrigin() {
 		try {
 			const u = new URL(storageUrl);
 			return `${u.protocol}//${u.host}`;
-		} catch {}
+		} catch { /* Invalid URL: try the next supported form. */ }
 	}
 	// 2. Din API URL
 	const apiUrl = import.meta.env.VITE_API_URL;
@@ -17,7 +17,7 @@ function getStorageOrigin() {
 		try {
 			const u = new URL(apiUrl);
 			return `${u.protocol}//${u.host}`;
-		} catch {}
+		} catch { /* Invalid URL: try the next supported form. */ }
 	}
 	// 3. SSR / build time
 	if (typeof window === 'undefined') {
@@ -33,7 +33,7 @@ function getStorageOrigin() {
 				return `${u.protocol}//${u.hostname}:8000`;
 			}
 		}
-	} catch {}
+	} catch { /* Invalid URL: try the next supported form. */ }
 	return origin;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import {
 	ArrowsIn,
 	ArrowsOut,
@@ -28,12 +28,10 @@ import './EnhancedVideoPlayer.css';
 const EnhancedVideoPlayer = forwardRef(({ 
 	src, 
 	poster,
-	title,
 	onProgress,
 	onTimeUpdate,
 	onEnded,
 	className = '',
-	autoplay = false,
 	startTime = 0 // Resume from last position
 }) => {
 	const videoRef = useRef(null);
@@ -49,7 +47,7 @@ const EnhancedVideoPlayer = forwardRef(({
 	const [isMuted, setIsMuted] = useState(false);
 	const [playbackRate, setPlaybackRate] = useState(1);
 	const [isFullscreen, setIsFullscreen] = useState(false);
-	const [isPiP, setIsPiP] = useState(false);
+	const [, setIsPiP] = useState(false);
 	const [showControls, setShowControls] = useState(true);
 	const [buffered, setBuffered] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
@@ -149,58 +147,6 @@ const EnhancedVideoPlayer = forwardRef(({
 		};
 	}, [src, startTime, duration, isPlaying, onProgress, onTimeUpdate, onEnded, volume, isMuted, playbackRate]);
 	
-	// Keyboard shortcuts
-	useEffect(() => {
-		const handleKeyDown = (e) => {
-			// Don't trigger if user is typing in an input
-			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-			
-			const video = videoRef.current;
-			if (!video) return;
-			
-			switch (e.key) {
-				case ' ': // Spacebar - Play/Pause
-					e.preventDefault();
-					togglePlay();
-					break;
-				case 'ArrowLeft': // Left arrow - Rewind 10s
-					e.preventDefault();
-					seek(-10);
-					break;
-				case 'ArrowRight': // Right arrow - Forward 10s
-					e.preventDefault();
-					seek(10);
-					break;
-				case 'ArrowUp': // Up arrow - Volume up
-					e.preventDefault();
-					setVolume(Math.min(1, volume + 0.1));
-					break;
-				case 'ArrowDown': // Down arrow - Volume down
-					e.preventDefault();
-					setVolume(Math.max(0, volume - 0.1));
-					break;
-				case 'm': // M - Mute/Unmute
-				case 'M':
-					e.preventDefault();
-					toggleMute();
-					break;
-				case 'f': // F - Fullscreen
-				case 'F':
-					e.preventDefault();
-					toggleFullscreen();
-					break;
-				case 'p': // P - Picture-in-Picture
-				case 'P':
-					e.preventDefault();
-					togglePiP();
-					break;
-			}
-		};
-		
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [volume]);
-	
 	// Play/Pause
 	const togglePlay = useCallback(() => {
 		const video = videoRef.current;
@@ -285,6 +231,58 @@ const EnhancedVideoPlayer = forwardRef(({
 		}
 	}, []);
 	
+	// Keyboard shortcuts
+	useEffect(() => {
+		const handleKeyDown = (e) => {
+			// Don't trigger if user is typing in an input
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+			const video = videoRef.current;
+			if (!video) return;
+
+			switch (e.key) {
+				case ' ': // Spacebar - Play/Pause
+					e.preventDefault();
+					togglePlay();
+					break;
+				case 'ArrowLeft': // Left arrow - Rewind 10s
+					e.preventDefault();
+					seek(-10);
+					break;
+				case 'ArrowRight': // Right arrow - Forward 10s
+					e.preventDefault();
+					seek(10);
+					break;
+				case 'ArrowUp': // Up arrow - Volume up
+					e.preventDefault();
+					setVolume(Math.min(1, volume + 0.1));
+					break;
+				case 'ArrowDown': // Down arrow - Volume down
+					e.preventDefault();
+					setVolume(Math.max(0, volume - 0.1));
+					break;
+				case 'm': // M - Mute/Unmute
+				case 'M':
+					e.preventDefault();
+					toggleMute();
+					break;
+				case 'f': // F - Fullscreen
+				case 'F':
+					e.preventDefault();
+					toggleFullscreen();
+					break;
+				case 'p': // P - Picture-in-Picture
+				case 'P':
+					e.preventDefault();
+					togglePiP();
+					break;
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [volume, togglePlay, seek, toggleMute, toggleFullscreen, togglePiP]);
+
 	// Progress bar click
 	const handleProgressClick = useCallback((e) => {
 		const progressBar = progressBarRef.current;

@@ -50,9 +50,7 @@ async function fetchWithCsrfRetry(url, options) {
 	return response;
 }
 
-function delay(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 
 // Service for Volt-assisted generation (OpenAI-compatible / Hugging Face APIs)
 export const openaiService = {

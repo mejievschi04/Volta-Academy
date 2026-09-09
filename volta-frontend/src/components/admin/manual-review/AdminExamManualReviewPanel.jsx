@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
-import { useAuth } from '../../../contexts/AuthContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../../contexts/AuthContextShared.js';
 import '../../../pages/admin/AdminExamsPage.css';
 import '../../../pages/admin/AdminTestsPendingReviewsPage.css';
 

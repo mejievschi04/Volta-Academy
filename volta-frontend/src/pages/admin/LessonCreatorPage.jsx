@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import RichTextEditor from '../../components/RichTextEditor';
 
 // Template blocks for lessons
@@ -206,7 +208,7 @@ const LessonCreatorPage = () => {
 		// Links
 		html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 		// Lists
-		html = html.replace(/^\- (.+)$/gim, '<li>$1</li>');
+		html = html.replace(/^- (.+)$/gim, '<li>$1</li>');
 		html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 		// Line breaks
 		html = html.replace(/\n/g, '<br>');

@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { setVoltCapabilities } from '../utils/voltAvailability';
+import { AuthContext } from './AuthContextShared.js';
+import React, {   useState, useEffect, useMemo, useCallback } from 'react';
 import { ensureApiCsrfCookie } from '../api';
 import { authService } from '../services/api';
 
-export const AuthContext = createContext(null);
+
 
 const STORAGE_VIEW_KEY = 'voltaAdminViewMode';
 
@@ -33,13 +35,7 @@ function buildContextUser(rawUser, adminViewMode) {
 	return { ...rawUser, role: effectiveRole, actualRole: 'admin' };
 }
 
-export const useAuth = () => {
-	const context = useContext(AuthContext);
-	if (!context) {
-		throw new Error('useAuth must be used within AuthProvider');
-	}
-	return context;
-};
+
 
 export const AuthProvider = ({ children }) => {
 	const [rawUser, setRawUser] = useState(null);
@@ -88,6 +84,7 @@ export const AuthProvider = ({ children }) => {
 	const checkAuth = async () => {
 		try {
 			const data = await authService.me();
+			setVoltCapabilities(data?.user?.capabilities);
 			setRawUser(data?.user ?? null);
 		} catch {
 			// Rețea / 5xx pe /auth/me: nu ștergem sesiunea din UI (evită logout fals).
@@ -99,12 +96,14 @@ export const AuthProvider = ({ children }) => {
 
 	const login = async (email, password) => {
 		const data = await authService.login(email, password);
+		setVoltCapabilities(data.user?.capabilities);
 		setRawUser(data.user);
 		return data;
 	};
 
 	const changePassword = async (currentPassword, newPassword, newPasswordConfirmation) => {
 		const data = await authService.changePassword(currentPassword, newPassword, newPasswordConfirmation);
+		setVoltCapabilities(data.user?.capabilities);
 		setRawUser(data.user);
 		return data;
 	};
@@ -112,6 +111,7 @@ export const AuthProvider = ({ children }) => {
 	const register = async (name, email, password) => {
 		const data = await authService.register(name, email, password);
 		if (!data.pending_approval && data.user) {
+			setVoltCapabilities(data.user?.capabilities);
 			setRawUser(data.user);
 		}
 		return data;
@@ -119,6 +119,7 @@ export const AuthProvider = ({ children }) => {
 
 	const logout = async () => {
 		await authService.logout();
+		setVoltCapabilities(null);
 		setRawUser(null);
 	};
 

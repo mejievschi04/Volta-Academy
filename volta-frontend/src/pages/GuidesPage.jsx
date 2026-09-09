@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { guidesService } from '../services/api';
-import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useToast } from '../contexts/ToastContextShared.js';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';

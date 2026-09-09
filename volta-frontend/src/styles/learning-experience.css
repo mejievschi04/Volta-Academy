@@ -1,0 +1,44 @@
+/* Shared catalog and assessment refinements for both viewport sizes. */
+.courses-page-student .courses-catalog-description {
+	margin: -4px 0 20px;
+	max-width: 60ch;
+	color: var(--text-secondary);
+	font-size: 15px;
+	line-height: 1.6;
+}
+.courses-page-student .courses-page-search-input { min-height: 48px; padding-right: 48px; }
+.courses-page-student .courses-page-search-clear { width: 44px; height: 44px; }
+.courses-page-student-filter:focus-visible,
+.courses-page-search-clear:focus-visible,
+.exam-question-overview summary:focus-visible {
+	outline: 2px solid var(--text-primary);
+	outline-offset: 3px;
+}
+.exam-question-overview { flex: 0 0 248px; min-width: 0; position: sticky; top: 16px; }
+.exam-question-overview > summary {
+	padding: 12px;
+	color: var(--text-secondary);
+	font-size: 13px;
+	line-height: 1.6;
+	cursor: pointer;
+}
+.student-exam-page .exam-question-overview .student-exam-nav {
+	position: static;
+	width: 100%;
+	box-sizing: border-box;
+}
+.student-exam-page .exam-question-overview .student-exam-nav-item { min-width: 44px; min-height: 44px; }
+.student-exam-page .student-exam-question-flag { min-height: 44px; }
+@media (max-width: 768px) {
+	.va-shell .courses-page-student .courses-page-student-filters { gap: 8px !important; }
+	.va-shell .courses-page-student .courses-page-student-filter { flex-grow: 1; text-align: center; justify-content: center; }
+	.courses-page-student .courses-page-search-input { font-size: 16px !important; }
+	.student-exam-page .exam-question-overview { position: static; width: 100%; margin-bottom: 16px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-elevated); }
+	.student-exam-page .exam-question-overview summary { min-height: 44px; box-sizing: border-box; }
+	.student-exam-page .exam-question-overview .student-exam-nav { display: block !important; border: 0; }
+	.student-exam-page .student-exam-desktop-meta { display: block !important; margin-top: 12px; }
+	.student-exam-page .student-exam-desktop-meta-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+	.student-exam-page .student-exam-desktop-meta-seq { display: none; }
+	.student-exam-page .student-exam-desktop-progress { height: 6px; border-radius: 99px; background: var(--border-primary); overflow: hidden; }
+	.student-exam-page .student-exam-desktop-progress-fill { height: 100%; background: var(--color-primary); border-radius: inherit; }
+}

@@ -1,3 +1,4 @@
+import '../styles/exam-results-modern.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {

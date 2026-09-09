@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
 import { pickRegisteredUsers, formatPivotDate } from './adminEventParticipantsUtils';
 import './AdminEventParticipantsModal.css';

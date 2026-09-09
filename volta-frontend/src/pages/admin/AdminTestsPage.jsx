@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
 import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
+import AITestGenerateModal from '../../components/admin/tests/AITestGenerateModal';
+import { isVoltEnabled } from '../../utils/voltAvailability';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 
@@ -45,6 +49,7 @@ export default function AdminTestsPage() {
   const [statsQuery, setStatsQuery] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [deleteConfirmTest, setDeleteConfirmTest] = useState(null);
+  const [showVoltTestModal, setShowVoltTestModal] = useState(false);
 
   const pageView = searchParams.get('view') === 'statistics' ? 'statistics' : 'list';
   const selectedTestId = Number(searchParams.get('testId')) || null;
@@ -174,6 +179,16 @@ export default function AdminTestsPage() {
     }
   };
 
+  const handleVoltTestSaved = (test) => {
+    if (test?.id) {
+      showSuccess('Test generat cu Volt. Poți continua editarea în builder.');
+      navigate(`/admin/tests/${test.id}/builder?section=questions`);
+      return;
+    }
+    showSuccess('Test generat cu Volt.');
+    loadTests();
+  };
+
   return (
     <div className="admin-tests-page admin-content-list-page">
       <header className="admin-content-list-header">
@@ -193,6 +208,17 @@ export default function AdminTestsPage() {
             </div>
           ) : null}
         </div>
+        {pageView === 'list' && canMutateInAdminArea && isVoltEnabled() ? (
+          <div className="admin-content-list-header__actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn-primary"
+              onClick={() => setShowVoltTestModal(true)}
+            >
+              ⚡ Generează test cu Volt
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <nav className="admin-tests-compartments" aria-label="Compartimente teste">
@@ -371,6 +397,12 @@ export default function AdminTestsPage() {
           </div>
         </div>
       ) : null}
+
+      <AITestGenerateModal
+        open={showVoltTestModal}
+        onClose={() => setShowVoltTestModal(false)}
+        onSaved={handleVoltTestSaved}
+      />
     </div>
   );
 }

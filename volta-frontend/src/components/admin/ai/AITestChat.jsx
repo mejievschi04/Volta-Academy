@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { openaiService } from '../../../services/openaiService';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import './AIChat.css';
 
 const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
@@ -89,7 +90,7 @@ const AITestChat = ({ courseId = null, onTestGenerated, onClose }) => {
 		if (jsonMatch) {
 			try {
 				return JSON.parse(jsonMatch[0]);
-			} catch (e) {
+			} catch  {
 				// If JSON parsing fails, try to extract structured data
 			}
 		}

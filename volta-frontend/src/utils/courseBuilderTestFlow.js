@@ -153,7 +153,7 @@ export function resolvePlacementFromFlowInsert(
 	return null;
 }
 
-export function resolveTestDropOnLesson(moduleId, lessons, lessonId, position, getLessonAttachedTests, getModuleAttachedTests) {
+export function resolveTestDropOnLesson(moduleId, lessons, lessonId, position, getLessonAttachedTests) {
 	const lessonIndex = lessons.findIndex((lessonItem) => Number(lessonItem.id) === Number(lessonId));
 	if (lessonIndex === -1) return null;
 
@@ -163,7 +163,7 @@ export function resolveTestDropOnLesson(moduleId, lessons, lessonId, position, g
 	}
 
 	if (lessonIndex === 0) {
-		const moduleTests = getModuleAttachedTests(moduleId);
+
 		return { moduleId, scope: 'module', scope_id: moduleId, order: 0 };
 	}
 

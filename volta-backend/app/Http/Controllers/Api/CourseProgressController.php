@@ -584,7 +584,7 @@ class CourseProgressController extends Controller
 
             return response()->json([
                 'unlocked' => $isUnlocked,
-                'is_required' => (bool) ($courseTest && ($courseTest->required ?? false)),
+                'is_required' => (bool) $courseTest,
             ]);
         }
 

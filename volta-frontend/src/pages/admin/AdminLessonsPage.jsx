@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 
 const AdminLessonsPage = () => {
 	const { canMutateInAdminArea } = useAuth();

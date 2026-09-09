@@ -10,7 +10,8 @@ import {
 	X,
 } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import { logger } from '../../../utils/logger';
 import Modal from '../../common/Modal';
 
@@ -139,7 +140,8 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 			if (result.invitation) {
 				setInvitations((prev) => prev.map((inv) => (inv.id === id ? result.invitation : inv)));
 			}
-			showSuccess(result.message || 'Email retrimis.');
+			showSuccess(result.message || 'Emailul se retrimite în fundal.');
+			await fetchInvitations(true);
 		} catch (err) {
 			showError(err.response?.data?.message || 'Nu s-a putut retrimite emailul.');
 		} finally {
@@ -258,7 +260,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions admin-invitation-actions">
-												<button
+												<button title="Copiază linkul invitației" aria-label={`Copiază linkul invitației: ${invitation.email}`}
 													type="button"
 													className="lms-btn-secondary lms-btn-sm admin-users-action-compact"
 													disabled={busy}
@@ -271,9 +273,9 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 													) : (
 														<Copy size={14} aria-hidden />
 													)}
-													<span>{copiedId === invitation.id ? 'Copiat' : 'Copiază link'}</span>
+
 												</button>
-												<button
+												<button title="Retrimite emailul" aria-label={`Retrimite emailul: ${invitation.email}`}
 													type="button"
 													className="lms-btn-secondary lms-btn-sm admin-users-action-compact"
 													disabled={busy}
@@ -284,9 +286,9 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 													) : (
 														<ArrowClockwise size={14} weight="bold" aria-hidden />
 													)}
-													<span>Retrimite email</span>
+
 												</button>
-												<button
+												<button title="Anulează invitația" aria-label={`Anulează invitația: ${invitation.email}`}
 													type="button"
 													className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
 													disabled={busy}
@@ -297,7 +299,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 													) : (
 														<Trash size={14} weight="bold" aria-hidden />
 													)}
-													<span>Anulează</span>
+
 												</button>
 											</div>
 										</td>

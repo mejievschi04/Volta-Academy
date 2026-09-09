@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { logger } from '../../utils/logger';
 import AdminEventListCard from '../../components/admin/events/AdminEventListCard';
 import AdminEventFormModal from '../../components/admin/events/AdminEventFormModal';
 import AdminEventDetailModal from '../../components/admin/events/AdminEventDetailModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import { scrollElementToTop } from '../../utils/scrollToTop';
 
 /** Parse dată/oră din API (YYYY-MM-DD HH:mm sau T) ca timp local, fără UTC shift. */

@@ -15,15 +15,18 @@ import {
 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { adminService } from '../../services/api';
 import Drawer from '../../components/admin/question-banks/Drawer';
 import QuestionRow from '../../components/admin/question-banks/QuestionRow';
 import Tag from '../../components/admin/question-banks/Tag';
 import QuestionBuilderEditor from '../../components/admin/question-banks/QuestionBuilderEditor';
 import AIGenerateQuestionsModal from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModal';
+import { DEFAULT_AI_QUESTION_TYPES } from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModalShared.js';
 import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import './AdminQuestionBanksPage.css';
 
 const QUESTION_TYPE_LABELS = {
@@ -44,7 +47,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
   const { id } = useParams();
   const { canMutateInAdminArea } = useAuth();
   const readOnly = !canMutateInAdminArea;
-  const { success, error } = useToast();
+  const { success, error, showToast } = useToast();
   const [folder, setFolder] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -68,7 +71,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
   const [aiOptions, setAiOptions] = useState({
     numberOfQuestions: 10,
     difficulty: 'medium',
-    questionTypes: ['multiple_choice'],
+    questionTypes: [...DEFAULT_AI_QUESTION_TYPES],
   });
   const [deleteConfirmQuestionId, setDeleteConfirmQuestionId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -177,14 +180,6 @@ const AdminQuestionBankFolderDetailsPage = () => {
     return parsed;
   };
 
-  const trimQuestionText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
-  const normalizeQuestionText = (value) =>
-    trimQuestionText(value)
-      .toLowerCase()
-      .replace(/[^a-z0-9ăâîșşțţ\s]+/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
   const toggleSelect = (questionId) => {
     setSelectedIds((prev) => (prev.includes(questionId) ? prev.filter((idv) => idv !== questionId) : [...prev, questionId]));
   };
@@ -269,26 +264,6 @@ const AdminQuestionBankFolderDetailsPage = () => {
     }
   };
 
-  const fetchAiDraftQuestion = async (approvedQuestions = [], blockedQuestions = [], courseIdOverride = null) => {
-    const validCourseId = resolveValidCourseId(courseIdOverride);
-    if (!validCourseId) {
-      throw new Error('Alege un curs valid înainte de generare.');
-    }
-
-    const result = await adminService.previewQuestionsWithVolt(id, {
-      course_id: validCourseId,
-      numberOfQuestions: Math.max(1, Number(aiOptions.numberOfQuestions) || 1),
-      difficulty: aiOptions.difficulty,
-      questionTypes: aiOptions.questionTypes,
-      instructions: '',
-      approvedQuestions: approvedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
-      blockedQuestions: blockedQuestions.map((q) => q.content || q.text || '').filter(Boolean),
-      autoGenerate: false,
-    });
-
-    return Array.isArray(result?.draft) ? result.draft : [];
-  };
-
   const handleOpenAIModal = () => {
     if (!isVoltEnabled()) {
       notifyVoltComingSoon(showToast);
@@ -297,7 +272,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
     setAiOptions({
       numberOfQuestions: 10,
       difficulty: 'medium',
-      questionTypes: ['multiple_choice'],
+      questionTypes: [...DEFAULT_AI_QUESTION_TYPES],
     });
     setAiError(null);
     setAiGeneratedCount(0);
@@ -321,40 +296,28 @@ const AdminQuestionBankFolderDetailsPage = () => {
       const targetCount = Math.max(1, Number(requestedCount) || aiTargetCount);
       setAiGeneratedCount(0);
       setAiGeneratedPreviews([]);
-      const generatedQuestions = [];
-      const generatedPreviews = [];
-      const usedNormalized = new Set();
 
-      for (let index = 0; index < targetCount; index += 1) {
-        let candidate = null;
-        let content = '';
-        const maxAttempts = 5;
-        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-          const draft = await fetchAiDraftQuestion(generatedQuestions, generatedQuestions, effectiveCourseId);
-          candidate = Array.isArray(draft) ? draft[0] : null;
-          content = trimQuestionText(candidate?.content || candidate?.question || '');
-          const normalized = normalizeQuestionText(content);
-          if (!candidate || !content || !normalized || usedNormalized.has(normalized)) {
-            candidate = null;
-            continue;
-          }
-          usedNormalized.add(normalized);
-          break;
-        }
+      const result = await adminService.previewQuestionsWithVolt(id, {
+        course_id: effectiveCourseId,
+        numberOfQuestions: targetCount,
+        difficulty: aiOptions.difficulty,
+        questionTypes: aiOptions.questionTypes,
+        autoGenerate: true,
+      });
 
-        if (!candidate || !content) {
-          throw new Error('Volt nu a returnat nicio întrebare.');
-        }
-
-        generatedQuestions.push(candidate);
-        generatedPreviews.push({
-          index: index + 1,
-          content,
-          type: candidate.type || 'multiple_choice',
-        });
-        setAiGeneratedCount(index + 1);
-        setAiGeneratedPreviews([...generatedPreviews]);
+      const generatedQuestions = Array.isArray(result?.draft) ? result.draft : [];
+      if (!generatedQuestions.length) {
+        throw new Error('Volt nu a returnat nicio întrebare.');
       }
+
+      setAiGeneratedCount(generatedQuestions.length);
+      setAiGeneratedPreviews(
+        generatedQuestions.map((question, index) => ({
+          index: index + 1,
+          content: question.content || question.question || '',
+          type: question.type || 'multiple_choice',
+        }))
+      );
 
       await adminService.addQuestionsToBankBulk(id, generatedQuestions);
       success(`Au fost generate și salvate ${generatedQuestions.length} întrebări.`);

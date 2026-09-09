@@ -1,23 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple } from '@phosphor-icons/react';
+import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check } from '@phosphor-icons/react';
 import AdminUserInvitationsPanel from '../../components/admin/users/AdminUserInvitationsPanel';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { logger } from '../../utils/logger';
 import { toImageUrl } from '../../utils/imageUrl';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import { teamAccent } from '../../utils/teamAccent';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
-	const { canMutateInAdminArea } = useAuth();
+	const { canMutateInAdminArea, user: currentUser } = useAuth();
 	const { success: showSuccess, error: showError } = useToast();
 	const [users, setUsers] = useState([]);
+	const [invitingIds, setInvitingIds] = useState([]);
 	const [teams, setTeams] = useState([]);
-	const [filteredUsers, setFilteredUsers] = useState([]);
+	const requestVersion = useRef(0);
+	const [hasLoadedUsers, setHasLoadedUsers] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
@@ -40,46 +44,45 @@ const AdminUsersPage = () => {
 		team_id: '',
 	});
 
-	useEffect(() => {
-		fetchTeams();
-	}, []);
-
-	useEffect(() => {
-		if (usersView === 'invitations') return;
-		fetchUsers();
-	}, [statusFilter, usersView, searchQuery]);
-
-	useEffect(() => {
-		applyFiltersAndSort();
-	}, [users, sortBy, sortOrder, roleFilter]);
-
-	const fetchUsers = async () => {
+	const fetchUsers = useCallback(async () => {
+		const version = ++requestVersion.current;
 		try {
 			setLoading(true);
+			setError(null);
 			const params = {};
 			if (statusFilter !== 'all') params.status = statusFilter;
 			if (searchQuery.trim()) params.search = searchQuery.trim();
 			if (usersView === 'trash') params.trashed = 1;
 			const data = await adminService.getUsers(params);
-			setUsers(Array.isArray(data) ? data : []);
+			if (version === requestVersion.current) setUsers(Array.isArray(data) ? data : []);
 		} catch (err) {
 			console.error('Error fetching users:', err);
-			setError('Nu s-au putut încărca utilizatorii');
+			if (version === requestVersion.current) setError('Nu s-au putut încărca utilizatorii');
 		} finally {
-			setLoading(false);
+            if (version === requestVersion.current) {
+                setLoading(false);
+                setHasLoadedUsers(true);
+            }
 		}
-	};
+	}, [statusFilter, usersView, searchQuery]);
 
-	const fetchTeams = async () => {
+	const fetchTeams = useCallback(async () => {
 		try {
 			const data = await adminService.getTeams();
 			setTeams(Array.isArray(data) ? data : (data.data || []));
 		} catch (err) {
 			console.error('Error fetching teams:', err);
 		}
-	};
+	}, []);
 
-	const applyFiltersAndSort = () => {
+    useEffect(() => { fetchTeams(); }, [fetchTeams]);
+    useEffect(() => {
+        if (usersView === 'invitations') return;
+        const timer = setTimeout(fetchUsers, searchQuery.trim() ? 250 : 0);
+        return () => { clearTimeout(timer); requestVersion.current++; };
+    }, [fetchUsers, usersView, searchQuery]);
+
+	const filteredUsers = useMemo(() => {
 		let filtered = [...users];
 
 		// Filter by role
@@ -129,8 +132,8 @@ const AdminUsersPage = () => {
 			}
 		});
 
-		setFilteredUsers(filtered);
-	};
+		return filtered;
+	}, [users, sortBy, sortOrder, roleFilter, statusFilter]);
 
 	const handleSort = (field) => {
 		if (sortBy === field) {
@@ -224,6 +227,19 @@ const AdminUsersPage = () => {
 		}
 	};
 
+	const handleSendInvitation = async (id) => {
+        if (invitingIds.includes(id)) return;
+        setInvitingIds((ids) => [...ids, id]);
+        try {
+            const result = await adminService.sendExistingUserInvitation(id);
+            showSuccess(result.message);
+        } catch (err) {
+            showError(err.response?.data?.message || 'Invitația nu a putut fi trimisă.');
+        } finally {
+            setInvitingIds((ids) => ids.filter((value) => value !== id));
+        }
+    };
+
 	const handleApprove = async (id) => {
 		try {
 			await adminService.approveUser(id);
@@ -265,7 +281,7 @@ const AdminUsersPage = () => {
 		return roles[role] || role || 'Utilizator';
 	};
 
-	if (loading && usersView !== 'invitations') {
+	if (loading && !hasLoadedUsers && usersView !== 'invitations') {
 		return (
 			<div className="admin-container">
 				<div className="lms-dashboard-loading">
@@ -276,7 +292,7 @@ const AdminUsersPage = () => {
 	}
 
 	return (
-		<div className="admin-container admin-container--wide">
+		<div className="admin-container admin-container--wide admin-users-page">
 			<div className="admin-page-header">
 				<div className="admin-page-header-content">
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
@@ -395,8 +411,8 @@ const AdminUsersPage = () => {
 			</div>
 
 			{/* Table */}
-			<div className="admin-users-table-wrapper">
-				<table className="admin-users-table">
+			<div className="admin-users-table-wrapper" aria-busy={loading}>
+				<table className="admin-users-table admin-users-table--directory">
 					<thead>
 						<tr>
 							<th className={`sortable ${sortBy === 'name' ? (sortOrder === 'asc' ? 'sort-asc' : 'sort-desc') : ''}`} onClick={() => handleSort('name')}>
@@ -445,7 +461,7 @@ const AdminUsersPage = () => {
 													)}
 												</div>
 												<div>
-													<div className="admin-users-table-cell-name">{user.name}</div>
+													<div className="admin-users-table-cell-name" title={user.name}>{user.name}</div>
 													{user.bio && (
 														<div className="admin-users-table-cell-bio">
 															{user.bio.substring(0, 50)}{user.bio.length > 50 ? '...' : ''}
@@ -454,7 +470,7 @@ const AdminUsersPage = () => {
 												</div>
 											</div>
 										</td>
-										<td className="admin-users-table-cell-email">{user.email}</td>
+										<td className="admin-users-table-cell-email" title={user.email}>{user.email}</td>
 										<td>
 											<span className={`admin-users-role-badge ${user.role}`}>
 												{getRoleLabel(user.role)}
@@ -520,60 +536,72 @@ const AdminUsersPage = () => {
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
+                                                {currentUser?.role === 'admin' && usersView === 'active' && !user.last_login_at && (user.status || 'active') === 'active' && (
+                                                    <button type="button" className="lms-btn-secondary lms-btn-sm admin-users-invite-button"
+                                                        aria-label={`Trimite invitație: ${user.name}`}
+                                                        disabled={invitingIds.includes(user.id)}
+                                                        onClick={() => handleSendInvitation(user.id)}>
+                                                        <EnvelopeSimple size={18} aria-hidden="true" />
+                                                        {invitingIds.includes(user.id) ? 'Se trimite…' : 'Trimite invitație'}
+                                                    </button>
+                                                )}
 												{!canMutateInAdminArea ? (
 													<span className="admin-users-table-cell-muted">—</span>
 												) : usersView === 'trash' ? (
-													<button
-														className="lms-btn-primary lms-btn-sm"
+													<button title="Restabilește utilizatorul" aria-label={`Restabilește utilizatorul: ${user.name}`}
+														type="button"
+														className="lms-btn-primary lms-btn-sm admin-users-action-compact"
 														onClick={(e) => {
 															e.stopPropagation();
 															handleRestore(user.id);
 														}}
 													>
-														Restabilește
+														<ArrowCounterClockwise size={18} weight="bold" aria-hidden="true" />
 													</button>
 												) : (user.status || 'active') === 'pending' ? (
 													<>
-														<button
-															className="lms-btn-primary lms-btn-sm"
+														<button title="Aprobă utilizatorul" aria-label={`Aprobă utilizatorul: ${user.name}`}
+															type="button"
+														className="lms-btn-primary lms-btn-sm admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleApprove(user.id);
 															}}
 														>
-															Aprobă
+															<Check size={18} weight="bold" aria-hidden="true" />
 														</button>
-														<button
-															className="lms-btn-secondary lms-btn-sm va-btn-danger"
+														<button title="Respinge cererea" aria-label={`Respinge cererea: ${user.name}`}
+															type="button"
+														className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleRejectClick(user.id);
 															}}
 														>
-															Respinge
+															<X size={18} weight="bold" aria-hidden="true" />
 														</button>
 													</>
 												) : (
 													<>
-														<button
+														<button title="Editează utilizatorul" aria-label={`Editează utilizatorul: ${user.name}`}
 															className="lms-btn-secondary lms-btn-sm admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleEdit(user);
 															}}
 														>
-															<PencilSimple size={14} weight="bold" aria-hidden="true" />
-															<span>Editare</span>
+															<PencilSimple size={18} weight="bold" aria-hidden="true" />
+
 														</button>
-														<button
+														<button title="Mută utilizatorul în coș" aria-label={`Mută utilizatorul în coș: ${user.name}`}
 															className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleDeleteClick(user.id);
 															}}
 														>
-															<Trash size={14} weight="bold" aria-hidden="true" />
-															<span>În coș</span>
+															<Trash size={18} weight="bold" aria-hidden="true" />
+
 														</button>
 													</>
 												)}
@@ -622,7 +650,7 @@ const AdminUsersPage = () => {
 						</button>
 					</div>
 						<div className="admin-users-modal-body">
-							<form onSubmit={handleSubmit} className="admin-users-modal-form">
+							<form onSubmit={handleSubmit} className="admin-users-modal-form" autoComplete="off">
 								<div className="admin-form-group">
 									<label className="admin-form-label">Nume</label>
 									<input
@@ -700,6 +728,13 @@ const AdminUsersPage = () => {
 									<label className="admin-form-label">Email</label>
 									<input
 										type="email"
+                                        name="managed-user-email"
+                                        autoComplete="off"
+                                        data-lpignore="true"
+                                        data-1p-ignore="true"
+                                        readOnly
+                                        onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
+                                        onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
 										className="admin-form-input"
 										value={formData.email}
 										onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -712,6 +747,13 @@ const AdminUsersPage = () => {
 									</label>
 									<input
 										type="password"
+                                        name="managed-user-password"
+                                        autoComplete="new-password"
+                                        data-lpignore="true"
+                                        data-1p-ignore="true"
+                                        readOnly
+                                        onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
+                                        onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
 										className="admin-form-input"
 										value={formData.password}
 										onChange={(e) => setFormData({ ...formData, password: e.target.value })}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {  useMemo, useState } from 'react';
 import { DragGripIcon } from '../../common/DragGripIcon';
 import {
 	DndContext,
@@ -42,8 +42,6 @@ const ModuleCard = ({
 	onToggleStatus,
 	onAddLesson,
 	onAddTest,
-	onReorderLessons,
-	onMoveLesson,
 	onToggleLessonStatus,
 	onToggleLessonPreview,
 	onSelectLesson,
@@ -212,7 +210,6 @@ const ModuleCard = ({
 
 const LessonItem = ({
 	lesson,
-	moduleId,
 	index,
 	issueCounts,
 	bulkMode,
@@ -342,7 +339,7 @@ const LessonItem = ({
 };
 
 const CourseStructureBuilder = ({
-	course,
+
 	modules,
 	validationReport,
 	onReorderModules,
@@ -361,7 +358,7 @@ const CourseStructureBuilder = ({
 	onAddTest,
 	loading,
 }) => {
-	const [activeId, setActiveId] = useState(null);
+	const [, setActiveId] = useState(null);
 	const [bulkMode, setBulkMode] = useState(false);
 	const [selectedLessonIds, setSelectedLessonIds] = useState([]);
 	const [moduleMenuOpen, setModuleMenuOpen] = useState(null);
@@ -423,11 +420,7 @@ const CourseStructureBuilder = ({
 		return { moduleErrors, moduleWarnings, lessonIssueCounts };
 	}, [modules, validationReport]);
 
-	useEffect(() => {
-		if (!bulkMode && selectedLessonIds.length > 0) {
-			setSelectedLessonIds([]);
-		}
-	}, [bulkMode, selectedLessonIds.length]);
+
 
 	const toggleSelectLesson = (lessonId, checked) => {
 		setSelectedLessonIds((prev) => {
@@ -548,7 +541,7 @@ const CourseStructureBuilder = ({
 				<h2 className="admin-course-structure-title">Structură curs</h2>
 				<div className="admin-course-structure-header-actions">
 					<label className="admin-course-structure-bulk-label">
-						<input type="checkbox" checked={bulkMode} onChange={(e) => setBulkMode(e.target.checked)} />
+						<input type="checkbox" checked={bulkMode} onChange={(e) => { setBulkMode(e.target.checked); if (!e.target.checked) setSelectedLessonIds([]); }} />
 						<span>Selectare multiplă</span>
 					</label>
 					<button type="button" className="admin-course-structure-add-module" onClick={() => onAddModule?.()} disabled={loading}>

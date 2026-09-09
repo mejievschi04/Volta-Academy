@@ -11,11 +11,13 @@ import {
 } from '@phosphor-icons/react';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { getNextLessonIdAfter, getRootLessons } from '../utils/lessonOrder';
+import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
@@ -23,6 +25,14 @@ import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent
 import './LessonPage.css';
 
 const LESSON_MILESTONES = [25, 50, 75, 100];
+
+const STUDY_TOOL_OPTIONS = [
+	{ id: 'summary', label: 'Rezumat' },
+	{ id: 'explain', label: 'Explică simplu' },
+	{ id: 'flashcards', label: 'Flashcards' },
+	{ id: 'quiz', label: 'Quiz rapid' },
+	{ id: 'study_plan', label: 'Plan recapitulare' },
+];
 
 const getLessonTypeContent = (contentType) => {
 	if (contentType === 'video') return <><FilmSlate size={14} weight="duotone" aria-hidden /> Video</>;
@@ -48,6 +58,9 @@ const LessonPage = () => {
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
 	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
+	const [studyToolLoading, setStudyToolLoading] = useState('');
+	const [studyToolResult, setStudyToolResult] = useState(null);
+	const [studyToolError, setStudyToolError] = useState('');
 
 	useLessonTimeTracking(lessonId, {
 		userId: user?.id,
@@ -113,7 +126,7 @@ const LessonPage = () => {
 					if (response?.completed || response?.auto_completed || milestone >= 100) {
 						setIsCompleted(true);
 					}
-				} catch (err) {
+				} catch  {
 					if (cancelled) return;
 					sentMilestonesRef.current.delete(milestone);
 				}
@@ -214,7 +227,7 @@ const LessonPage = () => {
 			try {
 				const courseData = await coursesService.getById(courseId);
 				setCourse(courseData);
-			} catch (err) {
+			} catch  {
 				console.log('Could not fetch course data');
 			}
 			
@@ -225,7 +238,7 @@ const LessonPage = () => {
 					if (isLessonMarkedComplete(progress, lessonId)) {
 						setIsCompleted(true);
 					}
-				} catch (err) {
+				} catch  {
 					console.log('Could not fetch progress data');
 				}
 			}
@@ -240,6 +253,7 @@ const LessonPage = () => {
 
 	const rootLessons = getRootLessons(course);
 	const nextLessonTarget = getNextLessonIdAfter(course?.modules, lessonId, rootLessons);
+	const previousLessonTarget = getPreviousLessonIdBefore(course?.modules, lessonId, rootLessons);
 	const isLastLessonInCourse = nextLessonTarget === null;
 
 	const handleNext = async () => {
@@ -298,6 +312,109 @@ const LessonPage = () => {
 	const handleCongratsClose = () => {
 		setShowCourseCongrats(false);
 		navigate('/courses');
+	};
+
+	const handleStudyTool = async (tool) => {
+		if (!lessonId || studyToolLoading) return;
+		try {
+			setStudyToolLoading(tool);
+			setStudyToolError('');
+			const response = await lessonsService.generateStudyTool(lessonId, tool);
+			setStudyToolResult(response);
+		} catch (err) {
+			const message = err?.response?.data?.error || err?.message || 'Nu s-a putut genera instrumentul de studiu.';
+			setStudyToolError(message);
+			showToast(message, 'error');
+		} finally {
+			setStudyToolLoading('');
+		}
+	};
+
+	const renderStudyToolResult = () => {
+		const result = studyToolResult?.result;
+		if (!result) return null;
+
+		if (studyToolResult.tool === 'flashcards') {
+			return (
+				<div className="lesson-study-result-grid">
+					{(result.flashcards || []).map((card, index) => (
+						<div className="lesson-study-flashcard" key={`${card.front}-${index}`}>
+							<strong>{card.front}</strong>
+							<p>{card.back}</p>
+						</div>
+					))}
+				</div>
+			);
+		}
+
+		if (studyToolResult.tool === 'quiz') {
+			return (
+				<div className="lesson-study-quiz-list">
+					{(result.questions || []).map((question, index) => (
+						<div className="lesson-study-question" key={`${question.question}-${index}`}>
+							<strong>{index + 1}. {question.question}</strong>
+							<ul>
+								{(question.options || []).map((option, optionIndex) => (
+									<li key={`${option}-${optionIndex}`} className={optionIndex === question.correct_index ? 'is-correct' : ''}>
+										{option}
+									</li>
+								))}
+							</ul>
+							{question.explanation && <p>{question.explanation}</p>}
+						</div>
+					))}
+				</div>
+			);
+		}
+
+		if (studyToolResult.tool === 'study_plan') {
+			return (
+				<div className="lesson-study-plan">
+					{(result.steps || []).map((step, index) => (
+						<div className="lesson-study-plan-step" key={`${step.label}-${index}`}>
+							<span>{step.minutes ? `${step.minutes} min` : `${index + 1}`}</span>
+							<div>
+								<strong>{step.label}</strong>
+								<p>{step.instruction}</p>
+							</div>
+						</div>
+					))}
+					{result.review_focus?.length ? (
+						<div className="lesson-study-list-section">
+							<strong>Focus recapitulare</strong>
+							<ul>{result.review_focus.map((item) => <li key={item}>{item}</li>)}</ul>
+						</div>
+					) : null}
+				</div>
+			);
+		}
+
+		return (
+			<div className="lesson-study-text-result">
+				{result.summary && <p>{result.summary}</p>}
+				{result.simple_explanation && <p>{result.simple_explanation}</p>}
+				{result.analogy && <p><strong>Analogic:</strong> {result.analogy}</p>}
+				{result.key_points?.length ? (
+					<div className="lesson-study-list-section">
+						<strong>Idei cheie</strong>
+						<ul>{result.key_points.map((item) => <li key={item}>{item}</li>)}</ul>
+					</div>
+				) : null}
+				{result.steps?.length ? (
+					<div className="lesson-study-list-section">
+						<strong>Pași</strong>
+						<ul>{result.steps.map((item) => <li key={item}>{item}</li>)}</ul>
+					</div>
+				) : null}
+				{result.common_confusions?.length ? (
+					<div className="lesson-study-list-section">
+						<strong>Confuzii comune</strong>
+						<ul>{result.common_confusions.map((item) => <li key={item}>{item}</li>)}</ul>
+					</div>
+				) : null}
+				{result.takeaway && <p className="lesson-study-takeaway">{result.takeaway}</p>}
+			</div>
+		);
 	};
 
 	if (loading) {
@@ -422,7 +539,48 @@ const LessonPage = () => {
 						})()}
 					</div>
 
-					<div className="lesson-page-actions">
+					{user?.actualRole === 'admin' && user?.role === 'admin' && (
+					<section className="lesson-study-tools">
+						<div className="lesson-study-header">
+							<div>
+								<span className="lesson-study-eyebrow">Volt Study Tools</span>
+								<h2>Învață mai ușor lecția</h2>
+								<p>Generează rezumat, explicații, flashcards, quiz sau plan de recapitulare din conținutul lecției.</p>
+							</div>
+						</div>
+
+						<div className="lesson-study-actions">
+							{STUDY_TOOL_OPTIONS.map((option) => (
+								<button
+									key={option.id}
+									type="button"
+									className="lesson-study-tool-btn"
+									onClick={() => handleStudyTool(option.id)}
+									disabled={Boolean(studyToolLoading)}
+								>
+									{studyToolLoading === option.id ? 'Se generează...' : option.label}
+								</button>
+							))}
+						</div>
+
+						{studyToolError ? (
+							<div className="lesson-study-error" role="alert">{studyToolError}</div>
+						) : null}
+
+						{studyToolResult?.result ? (
+							<div className="lesson-study-result">
+								<div className="lesson-study-result-header">
+									<h3>{studyToolResult.result.title || 'Rezultat Volt'}</h3>
+									<span>{STUDY_TOOL_OPTIONS.find((option) => option.id === studyToolResult.tool)?.label || 'Volt'}</span>
+								</div>
+								{renderStudyToolResult()}
+							</div>
+						) : null}
+					</section>
+					)}
+
+					<div className="lesson-page-actions" role="navigation" aria-label="Navigare lecții">
+						<button type="button" className="lesson-page-btn lesson-page-btn-secondary" disabled={previousLessonTarget == null || finalizingCourse} onClick={() => navigate(`/courses/${courseId}/lessons/${previousLessonTarget}`)}><ArrowLeft size={20} weight="bold" aria-hidden /><span>Anterioară</span></button>
 						{isCompleted && (
 							<div className="lesson-page-completed-badge">
 								<Check size={20} weight="bold" aria-hidden />
@@ -432,7 +590,7 @@ const LessonPage = () => {
 						
 						<button
 							type="button"
-							className="lesson-page-btn lesson-page-btn-secondary"
+							className="lesson-page-btn lesson-page-btn-primary"
 							disabled={finalizingCourse}
 							onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNext}
 						>

@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Image as ImageIcon } from '@phosphor-icons/react';
 import RichTextEditor from '../components/RichTextEditor';
 import { libraryService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
 import '../styles/library-compose-page.css';

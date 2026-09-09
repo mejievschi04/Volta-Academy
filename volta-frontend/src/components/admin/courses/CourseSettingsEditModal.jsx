@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import { courseCoverSrc } from '../../../utils/imageUrl';
 import '../../../styles/admin-course-builder.css';
 

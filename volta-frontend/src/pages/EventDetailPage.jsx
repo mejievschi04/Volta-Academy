@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { eventsService } from '../services/api';
-import { useToast } from '../contexts/ToastContext';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import { handleApiError } from '../utils/errorHandler';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -40,13 +41,7 @@ const EventDetailPage = () => {
 		return `${day}.${month}.${year}, ${hour}:${minute}`;
 	};
 
-	const formatTime = (dateString) => {
-		if (!dateString) return '';
-		const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):?(\d{2})?/);
-		if (!parts) return dateString;
-		const [, , , , hour, minute] = parts;
-		return `${hour}:${minute}`;
-	};
+
 
 	const getEventTypeLabel = (type) => {
 		const labels = {

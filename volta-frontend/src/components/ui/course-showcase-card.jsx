@@ -1,12 +1,13 @@
+import { COURSE_SHOWCASE_FALLBACK_IMAGE } from './course-showcase-cardShared.js';
 import * as React from 'react';
 import { ArrowRight } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 import { toImageUrl } from '../../utils/imageUrl';
-import courseMapPlaceholder from '../../assets/course-map-placeholder.svg';
+import '../../assets/course-map-placeholder.svg';
 import './course-showcase-card.css';
 
 /** Copertă implicită când lipsește URL-ul sau încărcarea eșuează. */
-export const COURSE_SHOWCASE_FALLBACK_IMAGE = courseMapPlaceholder;
+
 
 function resolveCardImageUrl(value) {
 	if (value == null || value === '') return null;

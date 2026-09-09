@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAutoSave } from '../../hooks/useAutoSave';
 
-const LessonNotes = ({ lessonId, initialNotes = '' }) => {
-	const [notes, setNotes] = useState(initialNotes);
+const LessonNotes = (props) => <LessonNotesEditor key={props.lessonId} {...props} />;
+
+const LessonNotesEditor = ({ lessonId, initialNotes = '' }) => {
+	const [notes, setNotes] = useState(() => localStorage.getItem(`lesson_notes_${lessonId}`) ?? initialNotes);
 	const { saveStatus } = useAutoSave(
 		notes,
 		async (data) => {
@@ -12,13 +14,7 @@ const LessonNotes = ({ lessonId, initialNotes = '' }) => {
 		1000 // 1 second delay
 	);
 
-	useEffect(() => {
-		// Load notes from localStorage
-		const savedNotes = localStorage.getItem(`lesson_notes_${lessonId}`);
-		if (savedNotes) {
-			setNotes(savedNotes);
-		}
-	}, [lessonId]);
+
 
 	return (
 		<div className="student-lesson-notes">

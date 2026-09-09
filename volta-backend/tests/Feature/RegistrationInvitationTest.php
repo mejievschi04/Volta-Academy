@@ -24,12 +24,13 @@ class RegistrationInvitationTest extends TestCase
 
         $response = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/users/invitations', [
             'email' => 'invitat@example.com',
-            'name' => 'Invitat Test',
+            'name' => 'Invitat Ștefan Țîrlea',
             'role' => 'student',
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('invitation.email', 'invitat@example.com')
+            ->assertJsonPath('invitation.name', 'Invitat Ștefan Țîrlea')
             ->assertJsonStructure(['invite_url']);
 
         Bus::assertDispatched(SendRegistrationInvitationEmailJob::class);
@@ -73,7 +74,7 @@ class RegistrationInvitationTest extends TestCase
             'email' => 'nou@example.com',
             'token' => hash('sha256', $plainToken),
             'encrypted_token' => Crypt::encryptString($plainToken),
-            'name' => 'Nou Utilizator',
+            'name' => 'Ștefăniță Măriuță',
             'role' => 'student',
             'expires_at' => now()->addDays(7),
             'email_status' => 'sent',
@@ -85,11 +86,12 @@ class RegistrationInvitationTest extends TestCase
             ->assertJsonPath('email', 'nou@example.com');
 
         $this->postJson('/api/auth/invitations/'.$plainToken.'/accept', [
-            'name' => 'Nou Utilizator',
+            'name' => 'Ștefăniță Măriuță',
             'password' => 'Password123',
             'password_confirmation' => 'Password123',
         ])->assertCreated()
-            ->assertJsonPath('user.email', 'nou@example.com');
+            ->assertJsonPath('user.email', 'nou@example.com')
+            ->assertJsonPath('user.name', 'Ștefăniță Măriuță');
 
         $user = User::where('email', 'nou@example.com')->firstOrFail();
         $this->assertTrue(Hash::check('Password123', $user->password));

@@ -1,3 +1,4 @@
+import '../styles/auth-modern.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
@@ -10,7 +11,8 @@ import {
 	Lock,
 	WarningCircle,
 } from '@phosphor-icons/react';
-import { useAuth } from '../contexts/AuthContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
 import { isStaffAdminRole } from '../constants/staffRoles';
 import { prefetchRoute } from '../utils/prefetch';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';

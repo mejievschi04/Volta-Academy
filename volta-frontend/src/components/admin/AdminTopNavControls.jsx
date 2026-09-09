@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { adminService, notificationsService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminCalendarDrawer from './AdminCalendarDrawer';
 import NotificationsDrawer from '../common/NotificationsDrawer';
 import { countPrimite } from '../../utils/notificationInboxStorage';

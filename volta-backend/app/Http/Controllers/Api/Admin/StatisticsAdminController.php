@@ -20,9 +20,11 @@ class StatisticsAdminController extends Controller
         }
     }
 
+    private array $columns = [];
+
     private function hasColumn(string $table, string $column): bool
     {
-        return Schema::hasTable($table) && Schema::hasColumn($table, $column);
+        return $this->columns[$table . "." . $column] ??= Schema::hasTable($table) && Schema::hasColumn($table, $column);
     }
 
     private function selectOrNull(string $table, string $column, ?string $alias = null, string $fallback = 'NULL'): mixed
@@ -38,6 +40,14 @@ class StatisticsAdminController extends Controller
      * Date detaliate pentru hub-ul Statistică: cursuri, elevi, înscrieri, teste, timp pe lecții.
      */
     public function courseTestDetail(Request $request)
+    {
+        return response()->json($this->buildCourseTestDetailData($request));
+    }
+
+    /**
+     * @return array{courses:\Illuminate\Support\Collection,students:\Illuminate\Support\Collection,enrollments:array,test_results:array,course_tests:array,meta:array}
+     */
+    public function buildCourseTestDetailData(Request $request): array
     {
         $courseId = $request->get('course_id');
         $userId = $request->get('user_id');
@@ -63,7 +73,7 @@ class StatisticsAdminController extends Controller
 
         $testCourseMap = [];
         if (Schema::hasTable('course_test')) {
-            foreach (DB::table('course_test')->select('test_id', 'course_id')->get() as $ct) {
+            foreach (DB::table('course_test')->select('test_id', 'course_id')->when($courseId, fn ($q) => $q->where('course_id', (int) $courseId))->get() as $ct) {
                 if (!isset($testCourseMap[(int) $ct->test_id])) {
                     $testCourseMap[(int) $ct->test_id] = (int) $ct->course_id;
                 }
@@ -133,7 +143,7 @@ class StatisticsAdminController extends Controller
             ])->all();
         }
 
-        $learningKeyed = $this->getLearningAggregatesByUserCourse();
+        $learningKeyed = $this->getLearningAggregatesByUserCourse($courseId, $userId);
 
         foreach ($enrollments as &$e) {
             $k = $e['user_id'] . ':' . $e['course_id'];
@@ -334,7 +344,7 @@ class StatisticsAdminController extends Controller
             'total_learning_seconds' => (int) collect($learningKeyed)->sum(fn ($row) => (int) ($row->time_spent_seconds ?? 0)),
         ];
 
-        return response()->json([
+        return [
             'courses' => $courses,
             'students' => $students,
             'enrollments' => $enrollments,
@@ -344,14 +354,16 @@ class StatisticsAdminController extends Controller
                 'date_from' => $from?->toDateString(),
                 'date_to' => $to?->toDateString(),
                 'total_learning_seconds' => $totals['total_learning_seconds'],
+                // lesson_progress stores cumulative time, not daily time slices.
+                'learning_time_scope' => 'all_time_for_selected_course_and_user',
             ],
-        ]);
+        ];
     }
 
     /**
      * @return array<string, object{user_id:int,course_id:int,time_spent_seconds:int,lessons_completed:int}>
      */
-    private function getLearningAggregatesByUserCourse(): array
+    private function getLearningAggregatesByUserCourse($courseId = null, $userId = null): array
     {
         if (!Schema::hasTable('lesson_progress') || !Schema::hasTable('lessons')) {
             return [];
@@ -392,6 +404,8 @@ class StatisticsAdminController extends Controller
                 DB::raw($completedExpr . ' as lessons_completed')
             )
             ->whereRaw($courseExpr . ' IS NOT NULL')
+            ->when($courseId, fn ($q) => $q->whereRaw($courseExpr . ' = ?', [(int) $courseId]))
+            ->when($userId, fn ($q) => $q->where('lp.user_id', (int) $userId))
             ->groupBy('lp.user_id', DB::raw($courseExpr))
             ->get();
 

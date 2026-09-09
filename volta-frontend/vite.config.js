@@ -1,37 +1,12 @@
 import path from 'node:path';
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
-const pdfWorkerPath = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
-
-function pdfJsWorkerAssetPlugin() {
-  return {
-    name: 'volta-pdfjs-worker-asset',
-    configureServer(server) {
-      server.middlewares.use('/assets/pdf.worker.js', (req, res) => {
-        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache');
-        fs.createReadStream(pdfWorkerPath).pipe(res);
-      });
-    },
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'assets/pdf.worker.js',
-        source: fs.readFileSync(pdfWorkerPath),
-      });
-    },
-  };
-}
-
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), pdfJsWorkerAssetPlugin()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -49,12 +24,13 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Port 8000 e adesea ocupat de alte proiecte locale; Volta backend: php artisan serve --port=8001
+        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8001',
         changeOrigin: true,
         secure: false,
       },
       '/storage': {
-        target: 'http://localhost:8000',
+        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8001',
         changeOrigin: true,
         secure: false,
       },
@@ -75,6 +51,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        onlyExplicitManualChunks: true,
+        manualChunks(id) {
+          if (id.includes('/node_modules/recharts/')) return 'charts';
+          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-vendor';
+        },
         // Inline small assets for fewer requests
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',

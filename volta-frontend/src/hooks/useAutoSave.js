@@ -38,11 +38,10 @@ export const useAutoSave = (data, saveFn, debounceMs = 2000, enabled = true) => 
 			clearTimeout(timeoutRef.current);
 		}
 
-		// Set saving status
-		setSaveStatus('saving');
 
 		// Create new timeout
 		timeoutRef.current = setTimeout(async () => {
+			setSaveStatus('saving');
 			try {
 				await saveFn(data);
 				setSaveStatus('saved');

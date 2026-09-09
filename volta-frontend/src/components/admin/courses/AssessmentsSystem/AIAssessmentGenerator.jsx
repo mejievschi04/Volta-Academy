@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { openaiService } from '../../../../services/openaiService';
-import { useToast } from '../../../../contexts/ToastContext';
+
+import { useToast } from '../../../../contexts/ToastContextShared.js';
 import { buildAssessmentAnalysisPrompt, buildAssessmentGenerationPrompt } from '../../../../utils/voltAiPrompts';
 import { runVoltAction } from '../../../../utils/voltAvailability';
 

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
 const MilestoneNotification = ({ milestone, onClose }) => {
-	const [isVisible, setIsVisible] = useState(false);
+	const [isVisible, setIsVisible] = useState(true);
 
 	useEffect(() => {
-		setIsVisible(true);
 		const timer = setTimeout(() => {
 			setIsVisible(false);
 			setTimeout(() => onClose(), 300);

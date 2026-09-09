@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import QuestionBankBuilderStep1 from './QuestionBankBuilderSteps/Step1Basics';
 import QuestionBankBuilderStep2 from './QuestionBankBuilderSteps/Step2Questions';
 import QuestionBankBuilderStep3 from './QuestionBankBuilderSteps/Step3Review';

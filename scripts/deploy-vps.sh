@@ -42,8 +42,12 @@ if ! command -v docker &> /dev/null; then
   exit 1
 fi
 
-echo ">>> build (fără cache) — include frontend + backend"
-"${COMPOSE[@]}" build --no-cache
+echo ">>> build — include frontend + backend"
+BUILD_ARGS=()
+if [ "${DEPLOY_NO_CACHE:-0}" = "1" ]; then
+  BUILD_ARGS+=(--no-cache)
+fi
+"${COMPOSE[@]}" build "${BUILD_ARGS[@]}"
 
 echo ">>> pornire servicii"
 "${COMPOSE[@]}" up -d
@@ -65,7 +69,7 @@ echo ">>> permisiuni storage"
 "${COMPOSE[@]}" exec -T backend chown -R www-data:www-data storage bootstrap/cache || true
 
 echo ">>> restart servicii aplicație (asigură reload după cache)"
-"${COMPOSE[@]}" restart backend frontend
+"${COMPOSE[@]}" restart backend frontend queue-worker
 
 echo ""
 echo ">>> status"

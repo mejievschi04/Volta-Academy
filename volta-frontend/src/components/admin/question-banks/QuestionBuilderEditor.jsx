@@ -89,7 +89,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   const currentType = normalizeType(question?.type);
   const answers = useMemo(
     () => normalizeAnswers(currentType, question?.answers?.length ? question.answers : getDefaultAnswersByType(currentType)),
-    [question?.answers, currentType]
+    [question, currentType]
   );
   const currentTypeLabel = INLINE_QUESTION_TYPES.find((entry) => entry.id === currentType)?.label || 'Intrebare';
 
@@ -187,6 +187,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                       onChange={(html) => update({ content: html })}
                       placeholder="Scrie și formatează întrebarea..."
                       toolbarVariant="basic"
+                      emphasis="strong"
                       showSideTools={false}
                       style={{ minHeight: '120px' }}
                     />

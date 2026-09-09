@@ -8,8 +8,10 @@ import {
 } from '@phosphor-icons/react';
 import ThemePreferenceControl from '../components/ThemePreferenceControl';
 import { profileService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 
 const emptyFieldErrors = { name: '', email: '', bio: '' };
 

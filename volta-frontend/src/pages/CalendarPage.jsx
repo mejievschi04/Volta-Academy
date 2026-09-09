@@ -5,14 +5,7 @@ import EventDescriptionExpandable from '../components/common/EventDescriptionExp
 
 const CalendarPage = () => {
 
-	const formatDate = (dateString) => {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('ro-RO', {
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric',
-		});
-	};
+
 
 	const formatTime = (dateString) => {
 		const date = new Date(dateString);

@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import '../../styles/admin-course-builder.css';

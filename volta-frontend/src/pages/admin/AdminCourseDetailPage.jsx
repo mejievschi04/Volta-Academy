@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService, coursesService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import CourseOverview from '../../components/admin/courses/CourseOverview';
 import CourseDistributionPanel from '../../components/admin/courses/CourseDistributionPanel';
 import CourseSettingsEditModal from '../../components/admin/courses/CourseSettingsEditModal';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import '../../styles/admin-course-detail-modern.css';
 
 const AdminCourseDetailPage = () => {

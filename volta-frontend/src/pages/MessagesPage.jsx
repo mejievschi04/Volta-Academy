@@ -10,8 +10,10 @@ import {
 	WarningCircle,
 	X,
 } from '@phosphor-icons/react';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
 import { messagesService } from '../services/api';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
@@ -41,7 +43,7 @@ const MessagesPage = () => {
 	const [groupParticipants, setGroupParticipants] = useState([]);
 	const [participantsSearch, setParticipantsSearch] = useState('');
 	const [participantsSearchResults, setParticipantsSearchResults] = useState([]);
-	const [loadingParticipants, setLoadingParticipants] = useState(false);
+	const [loadingParticipants] = useState(false);
 	const [updatingParticipants, setUpdatingParticipants] = useState(false);
 	const [groupRenameDraft, setGroupRenameDraft] = useState('');
 	const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
@@ -473,10 +475,7 @@ const MessagesPage = () => {
 		}, 0);
 	};
 
-	const getConversationUpdatedAt = (conversation) => {
-		const lastMessage = getConversationLastMessage(conversation);
-		return conversation?.updated_at || conversation?.updatedAt || conversation?.last_message_at || conversation?.lastMessageAt || lastMessage?.created_at || lastMessage?.createdAt || null;
-	};
+
 
 	const applyConversationReadLocally = (conversationId) => {
 		const id = String(conversationId);
@@ -610,27 +609,9 @@ const MessagesPage = () => {
 		setAvailableUsers([]);
 	};
 
-	const loadGroupParticipants = async (conversationId) => {
-		setLoadingParticipants(true);
-		try {
-			const res = await messagesService.getParticipants(conversationId);
-			setGroupParticipants(Array.isArray(res?.data) ? res.data : []);
-		} catch (err) {
-			logger.error('Error loading group participants:', err);
-			showToast('Nu s-au putut încărca participanții', 'error');
-		} finally {
-			setLoadingParticipants(false);
-		}
-	};
 
-	const openParticipantsModal = async () => {
-		if (!selectedConversation?.is_group) return;
-		setShowParticipantsModal(true);
-		setGroupRenameDraft(selectedConversation.name || '');
-		setParticipantsSearch('');
-		setParticipantsSearchResults([]);
-		await loadGroupParticipants(selectedConversation.id);
-	};
+
+
 
 	const groupModalPermissions = useMemo(() => {
 		const me = groupParticipants.find((p) => p.id === user?.id);

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { coursesService, adminService } from '../services/api';
+
+
+import { coursesService } from '../services/api';
 import { Books, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { useScrollResetOnOpen } from '../hooks/useScrollResetOnOpen';
 
@@ -16,7 +17,7 @@ import { useScrollResetOnOpen } from '../hooks/useScrollResetOnOpen';
  */
 const GlobalSearch = ({ isOpen, onClose }) => {
 	const navigate = useNavigate();
-	const { user } = useAuth();
+
 	const [query, setQuery] = useState('');
 	const [results, setResults] = useState([]);
 	const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 	const resultsRef = useRef(null);
 	useScrollResetOnOpen(isOpen, resultsRef);
 
-	const isAdmin = user?.role === 'admin';
+
 
 	// Focus input when opened
 	useEffect(() => {

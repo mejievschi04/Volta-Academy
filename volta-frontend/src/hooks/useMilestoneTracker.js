@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 
 /**
  * Hook pentru tracking milestone-uri de progres
@@ -20,6 +20,6 @@ export const useMilestoneTracker = (currentProgress, onMilestone) => {
 		}
 	}, [currentProgress, onMilestone]);
 
-	return achievedMilestones.current;
+	return useMemo(() => new Set([25, 50, 75, 100].filter((milestone) => currentProgress >= milestone)), [currentProgress]);
 };
 

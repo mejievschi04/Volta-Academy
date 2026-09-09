@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import ThemePreferenceControl from '../../components/ThemePreferenceControl';
 

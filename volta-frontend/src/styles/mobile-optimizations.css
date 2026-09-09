@@ -6366,3 +6366,252 @@
 		padding-top: var(--space-3) !important;
 	}
 }
+
+/* Phone layout: reserve the fixed header once, then use the available width. */
+@media (max-width: 768px) {
+	.va-shell .va-shell-main {
+		margin-top: 64px !important;
+		padding-top: 0 !important;
+		margin-left: 0 !important;
+		width: 100% !important;
+		min-width: 0;
+	}
+
+	.va-shell.va-shell-topnav .va-shell-main {
+		height: calc(100dvh - 64px) !important;
+		min-height: 0 !important;
+	}
+
+	.va-shell .va-shell-main > .va-main {
+		padding: 20px 16px max(24px, env(safe-area-inset-bottom)) !important;
+		min-height: 0 !important;
+		min-width: 0;
+	}
+
+	.va-shell .va-shell-main > .va-main > .va-main {
+		padding: 0 !important;
+		margin: 0 !important;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.va-shell .modern-sidebar.expanded {
+		width: min(320px, calc(100vw - 48px)) !important;
+		max-width: calc(100vw - 48px) !important;
+		height: 100dvh !important;
+		padding-bottom: env(safe-area-inset-bottom) !important;
+		overscroll-behavior: contain;
+	}
+
+	.va-shell .modern-topnav-left {
+		min-width: 0;
+	}
+
+	.va-shell .va-topnav-page-title {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.va-shell .courses-page-modern.courses-page-student,
+	.va-shell .courses-page-student-main {
+		padding: 0 !important;
+		margin: 0 !important;
+		width: 100% !important;
+		min-width: 0;
+	}
+
+	.va-shell .courses-page-student .courses-page-hero,
+	.va-shell .courses-page-student .courses-page-content {
+		padding: 0 !important;
+		margin: 0 0 20px !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-hero-title {
+		font-size: 24px !important;
+		text-align: left !important;
+		margin-bottom: 16px !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-student-filters {
+		display: flex !important;
+		flex-wrap: wrap !important;
+		gap: 8px !important;
+		overflow: visible !important;
+		max-width: 100%;
+		padding: 0 !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-student-filter {
+		min-height: 44px;
+		padding: 8px 12px !important;
+		font-size: 14px !important;
+		flex: 0 1 auto;
+	}
+
+	.va-shell .courses-page-student .courses-page-empty {
+		padding: 28px 20px !important;
+		min-height: 0 !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-empty-icon {
+		width: 64px !important;
+		height: 64px !important;
+		margin-bottom: 16px !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-empty-title {
+		font-size: 20px !important;
+		line-height: 1.4 !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-empty-text {
+		font-size: 16px !important;
+		line-height: 1.6 !important;
+	}
+
+	.va-shell .admin-users-filters input,
+	.va-shell .admin-users-filters select,
+	.va-shell .admin-users-modal input,
+	.va-shell .admin-users-modal select {
+		font-size: 16px !important;
+		min-height: 44px;
+	}
+}
+
+/* Thumb-friendly primary navigation with space reserved for the home indicator. */
+@media (max-width: 768px) {
+	.va-shell-topnav:has(.student-mobile-tabs) { --student-tab-height: calc(68px + env(safe-area-inset-bottom, 0px)); }
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .va-shell-main { height: calc(100dvh - 64px - var(--student-tab-height)) !important; }
+	.student-mobile-tabs {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 990;
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		height: var(--student-tab-height);
+		box-sizing: border-box;
+		padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+		background: var(--bg-elevated);
+		border-top: 1px solid var(--border-primary);
+	}
+	.student-mobile-tab {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		min-width: 0;
+		min-height: 48px;
+		padding: 4px 2px;
+		border: 0;
+		border-radius: 12px;
+		background: transparent;
+		color: var(--text-secondary);
+		font: inherit;
+		font-size: 11px;
+		font-weight: 600;
+		line-height: 1.3;
+		text-decoration: none;
+		cursor: pointer;
+		touch-action: manipulation;
+	}
+	.student-mobile-tab.active { background: var(--color-primary); color: var(--btn-primary-text); }
+	.student-mobile-tab:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
+	.student-mobile-tab-icon { position: relative; display: flex; }
+	.student-mobile-tab-icon .messages-menu-badge { position: absolute; top: -5px; left: 16px; margin: 0; min-width: 16px; font-size: 10px; }
+	.va-shell-topnav:has(.student-mobile-tabs) .volt-widget-root,
+	.va-shell-topnav:has(.student-mobile-tabs) .student-preview-back-to-admin { bottom: calc(var(--student-tab-height) + 12px); }
+	.va-shell .mobile-sidebar-toggle,
+	.va-shell .sidebar-mobile-close { min-width: 44px; min-height: 44px; }
+}
+
+/* Keep lesson controls visible above global navigation in both lesson readers. */
+.va-shell .lessons-page-lesson-viewer .lessons-page-lesson-actions,
+.va-shell .lesson-page-main .lesson-page-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 80;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: 16px;
+	box-shadow: 0 -4px 20px rgb(0 0 0 / 12%);
+}
+.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn,
+.va-shell .lesson-page-actions .lesson-page-btn,
+.va-shell .lessons-page-lesson-actions .lessons-page-lesson-cta {
+	width: auto;
+	min-width: 0;
+	min-height: 52px;
+	flex: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 12px 16px;
+	border-radius: 12px;
+	font-size: 15px;
+	font-weight: 700;
+}
+.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--next,
+.va-shell .lesson-page-actions .lesson-page-btn-primary {
+	background: #ffee00 !important;
+	color: #161300 !important;
+	border: 2px solid #ffee00;
+}
+.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--prev,
+.va-shell .lesson-page-actions .lesson-page-btn-secondary {
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	border: 2px solid var(--text-secondary);
+}
+.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn svg { color: inherit !important; }
+.va-shell .lesson-page-actions .lesson-page-btn:disabled,
+.va-shell .lessons-page-lesson-actions .lessons-page-nav-btn:disabled { opacity: .45; cursor: not-allowed; }
+.va-shell .lesson-page-actions button:focus-visible,
+.va-shell .lessons-page-lesson-actions button:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 3px; }
+@media (max-width: 768px) {
+	.va-shell .lessons-page-lesson-viewer .lessons-page-lesson-actions,
+	.va-shell .lesson-page-main .lesson-page-actions {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: var(--student-tab-height, 0px);
+		margin: 0;
+		padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+		border-radius: 16px 16px 0 0;
+		flex-wrap: nowrap;
+	}
+	.va-shell .lesson-page-actions .lesson-page-completed-badge { display: none; }
+	.va-shell .lesson-page-main,
+	.va-shell .lessons-page-lesson-viewer { padding-bottom: 104px !important; }
+	.va-shell .lesson-page-actions .lesson-page-btn { padding: 10px 8px; font-size: 14px; }
+}
+
+/* Black foreground on yellow active mobile navigation, including dark mode. */
+@media (max-width: 768px) {
+	html[data-theme='dark'] .va-shell .student-mobile-tab.active,
+	html[data-theme='dark'] .va-shell .student-mobile-tab.active > span,
+	html[data-theme='dark'] .va-shell .student-mobile-tab.active svg {
+		color: #000000 !important;
+	}
+}
+
+/* Match active drawer items to the high-contrast mobile navigation. */
+html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) {
+	background: #ffee00 !important;
+	color: #000000 !important;
+	border-color: #ffee00 !important;
+}
+html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-label,
+html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-icon,
+html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) svg {
+	color: #000000 !important;
+}

@@ -1,15 +1,17 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, NavLink, Link, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { AuthProvider, useAuth, AuthContext } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth, AuthContext } from './contexts/AuthContextShared.js';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import AdminRoute from './components/AdminRoute';
 import UserRoute from './components/UserRoute';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import LoadingOverlay from './components/LoadingOverlay';
-import SplashScreen from './components/SplashScreen';
+const SplashScreen = lazy(() => import('./components/SplashScreen'));
 import GlobalSearch from './components/GlobalSearch';
+import { isVoltEnabled } from './utils/voltAvailability';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
 import AdminViewSwitcher from './components/admin/AdminViewSwitcher';
 import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
@@ -57,22 +59,14 @@ import './styles/layout.css';
 import './styles/pages.css';
 import './styles/ui-components.css';
 import './styles/additional-pages.css';
-import './styles/exam-results-modern.css';
-import './styles/profile-modern.css';
+// Shared LMS buttons and loading states are also used outside the dashboard.
 import './styles/lms-dashboard-enterprise.css';
-import './styles/achievements-modern.css';
-import './styles/library-page.css';
-import './styles/library-reader-page.css';
-import './styles/library-compose-page.css';
-import './styles/guides-page.css';
 /* Student styles - loaded after shared to ensure proper cascade */
 import './styles/student-navigation-modern.css';
 import './styles/admin-view-switcher.css';
 import './styles/student-components.css';
 import './styles/student-overrides.css';
 import './styles/common-components.css';
-import './styles/auth-modern.css';
-import './styles/course-detail-modern.css';
 import './styles/builder-overrides.css';
 import './components/SplashScreen.css';
 /* Mobile optimizations must be last to override base styles */
@@ -80,6 +74,7 @@ import './styles/mobile-optimizations.css';
 import logoShort from './assets/Volta Logo 2@300x 1.png';
 
 // Lazy load pages for code splitting
+const VoltAssistantWidget = lazy(() => import('./components/ai/VoltAssistantWidget'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const CourseMapPage = lazy(() => import('./pages/CourseMapPage'));
@@ -124,8 +119,6 @@ const AdminTestsPendingReviewsPage = lazy(() => import('./pages/admin/AdminTests
 const AdminTestBuilderPage = lazy(() => import('./pages/admin/AdminTestBuilderPage'));
 // const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage')); // Removed - will be rebuilt from scratch
 const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
-const ProDashboard = lazy(() => import('./pages/ProDashboard'));
-const ProCourses = lazy(() => import('./pages/ProCourses'));
 const CompletedCoursesPage = lazy(() => import('./pages/CompletedCoursesPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const LessonsPage = lazy(() => import('./pages/LessonsPage'));
@@ -191,6 +184,10 @@ function Layout({ children }) {
 			</div>
 		);
 	}
+	return <AuthenticatedLayout authContext={authContext}>{children}</AuthenticatedLayout>;
+}
+
+function AuthenticatedLayout({ children, authContext }) {
 	const { user, logout, setAdminViewMode } = authContext;
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -232,6 +229,9 @@ function Layout({ children }) {
 	const isAdminPage = location.pathname.startsWith('/admin');
 	const isStaffLibraryPage = (isLibraryPage || isGuidesPage) && hasStaffAdminShell && user?.role !== 'student';
 	const isAdminShellPage = isAdminPage || isStaffLibraryPage;
+	// Pe paginile de builder (curs/teste) există deja un Volt contextual,
+	// așa că ascundem widget-ul global ca să nu apară două butoane Volt.
+	const hasContextualVoltAssistant = /^\/admin\/(courses|tests)\/[^/]+\/builder/.test(location.pathname);
 	
 	// Track if we came from admin context for messages page
 	const [cameFromAdmin, setCameFromAdmin] = React.useState(() => {
@@ -274,10 +274,11 @@ function Layout({ children }) {
 	}, [requiresAdminChromePaintHold]);
 	
 	// State for admin view toggle (active when on admin page or messages from admin)
-	const [isAdminView, setIsAdminView] = React.useState((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
+	const [, setIsAdminView] = React.useState((!isUserPage || (isMessagesPage && cameFromAdmin)) && isAdmin);
 	
 	// State for sidebar expanded/collapsed
 	const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
+		if (window.innerWidth <= 768) return false;
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
@@ -359,6 +360,41 @@ function Layout({ children }) {
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);
 	}, []);
+
+	// Keep the mobile drawer's scroll and keyboard focus inside the menu.
+	React.useEffect(() => {
+		if (!isMobile || !isSidebarExpanded) return;
+		const drawer = document.querySelector('.va-sidebar');
+		const previousFocus = document.activeElement;
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		const getControls = () => [...drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex="0"]')]
+			.filter(element => element.getClientRects().length > 0);
+		getControls()[0]?.focus();
+		const handleKey = (event) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				setIsSidebarExpanded(false);
+			}
+			if (event.key !== 'Tab') return;
+			const controls = getControls();
+			const first = controls[0];
+			const last = controls[controls.length - 1];
+			if (!drawer.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
+				event.preventDefault();
+				(event.shiftKey ? last : first)?.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first?.focus();
+			}
+		};
+		document.addEventListener('keydown', handleKey);
+		return () => {
+			document.body.style.overflow = previousOverflow;
+			document.removeEventListener('keydown', handleKey);
+			if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+		};
+	}, [isMobile, isSidebarExpanded]);
 
 	React.useEffect(() => {
 		const handleTopnavContextEvent = (event) => {
@@ -501,7 +537,7 @@ function Layout({ children }) {
 	
 	// Save sidebar state to localStorage and update body class
 	React.useEffect(() => {
-		localStorage.setItem('sidebarExpanded', isSidebarExpanded.toString());
+		if (!isMobile) localStorage.setItem('sidebarExpanded', isSidebarExpanded.toString());
 		// Add class to body for CSS targeting
 		if (isSidebarExpanded) {
 			document.body.classList.add('sidebar-expanded');
@@ -511,7 +547,7 @@ function Layout({ children }) {
 		return () => {
 			document.body.classList.remove('sidebar-expanded');
 		};
-	}, [isSidebarExpanded]);
+	}, [isSidebarExpanded, isMobile]);
 
 	// Admin-only layout styling hooks (avoid impacting student UI)
 	React.useEffect(() => {
@@ -531,7 +567,7 @@ function Layout({ children }) {
 	
 	// Determine courses path based on user role and current view
 	// All users use /courses (which redirects appropriately based on role)
-	const coursesPath = '/courses';
+
 	const renderMessagesNavBadge = () => messagesUnreadCount > 0 ? (
 		<span className="messages-menu-badge">{messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}</span>
 	) : null;
@@ -770,6 +806,7 @@ function Layout({ children }) {
 					)}
 					
 					<aside
+						inert={isMobile && !isSidebarExpanded ? '' : undefined}
 						className={['modern-sidebar', 'va-sidebar', isSidebarExpanded ? 'expanded open' : ''].filter(Boolean).join(' ')}
 					>
 						<div className="modern-sidebar-brand va-sidebar-brand">
@@ -989,6 +1026,7 @@ function Layout({ children }) {
 							{/* Mobile hamburger button */}
 							<button
 								className="mobile-sidebar-toggle"
+								aria-expanded={isSidebarExpanded}
 								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
 								title="Deschide meniul"
 								aria-label="Deschide meniul"
@@ -1068,7 +1106,7 @@ function Layout({ children }) {
 						</div>
 					</header>
 
-					<div className="va-shell-main va-shell-main-topnav">
+					<div className="va-shell-main">
 						<main className="va-main">{children}</main>
 					</div>
 					
@@ -1086,7 +1124,7 @@ function Layout({ children }) {
 					)}
 
 					{/* Student Sidebar — mobil (drawer) */}
-					<aside className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
+					<aside id="student-mobile-menu" role={isMobile && isSidebarExpanded ? 'dialog' : undefined} aria-modal={isMobile && isSidebarExpanded ? true : undefined} aria-label="Meniu principal" inert={isMobile && !isSidebarExpanded ? '' : undefined} className={`modern-sidebar va-sidebar student-sidebar ${isSidebarExpanded ? 'expanded open' : ''}`}>
 						<div className="sidebar-mobile-header">
 							<button
 								type="button"
@@ -1161,15 +1199,6 @@ function Layout({ children }) {
 
 					<header className={`modern-topnav va-topnav ${isSidebarExpanded ? 'sidebar-expanded' : ''}`}>
 						<div className="modern-topnav-left va-topnav-brand">
-							{/* Mobile hamburger button */}
-							<button
-								className="mobile-sidebar-toggle"
-								onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-								title="Deschide meniul"
-								aria-label="Deschide meniul"
-							>
-								<ListBullets size={24} weight="bold" aria-hidden />
-							</button>
 							{!isMobile && (
 								<span className="va-logo-text">
 									<img
@@ -1249,6 +1278,25 @@ function Layout({ children }) {
 						</div>
 					</header>
 
+					{isMobile && (
+						<nav className="student-mobile-tabs" aria-label="Navigare principală">
+							{[
+								{ path: '/courses', label: 'Cursuri', Icon: BookOpenText },
+								{ path: '/events', label: 'Evenimente', Icon: CalendarDots },
+								{ path: '/messages', label: 'Mesaje', Icon: ChatsCircle },
+							].map(({ path, label, Icon }) => (
+								<NavLink key={path} to={path} className={({ isActive }) => `student-mobile-tab${isActive ? ' active' : ''}`}>
+									<span className="student-mobile-tab-icon"><Icon size={23} weight="duotone" aria-hidden />{path === '/messages' && renderMessagesNavBadge()}</span>
+									<span>{label}</span>
+								</NavLink>
+							))}
+							<button type="button" className="student-mobile-tab" onClick={() => setIsSidebarExpanded(true)} aria-expanded={isSidebarExpanded} aria-controls="student-mobile-menu">
+								<span className="student-mobile-tab-icon"><ListBullets size={23} weight="bold" aria-hidden /></span>
+								<span>Meniu</span>
+							</button>
+						</nav>
+					)}
+
 					<div className="va-shell-main va-shell-main-topnav">
 						<main className="va-main">{children}</main>
 					</div>
@@ -1271,6 +1319,12 @@ function Layout({ children }) {
 						</button>
 					)}
 				</>
+			)}
+
+			{user && isTrueAdminAccount && user.role === 'admin' && !showUserLayout && isVoltEnabled() && !hasContextualVoltAssistant && (
+				<Suspense fallback={null}>
+					<VoltAssistantWidget />
+				</Suspense>
 			)}
 		</div>
 	);
@@ -1340,7 +1394,7 @@ function App() {
 							element={
 								<UserRoute>
 									<Suspense fallback={<PageLoader />}>
-										<ProDashboard />
+										<Navigate to="/dashboard" replace />
 									</Suspense>
 								</UserRoute>
 							}
@@ -1351,7 +1405,7 @@ function App() {
 							element={
 								<UserRoute>
 									<Suspense fallback={<PageLoader />}>
-										<ProCourses />
+										<Navigate to="/courses" replace />
 									</Suspense>
 								</UserRoute>
 							}
@@ -1955,9 +2009,9 @@ function SplashEntry() {
 	const appReady = !loading && prefetchDone;
 
 	return (
-		<SplashScreen
+		<Suspense fallback={<PageLoader />}><SplashScreen
 			onStart={() => navigate('/login', { replace: true })}
 			appReady={appReady}
-		/>
+		/></Suspense>
 	);
 }

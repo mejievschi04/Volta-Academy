@@ -18,7 +18,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s\-\.]+$/u', // Sanitize name
+            'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
             'email' => 'required|string|email|max:255|unique:users',
             'password' => [
                 'required',
@@ -107,6 +107,7 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role ?? 'student',
+                    'capabilities' => ['volt' => \App\Support\VoltAvailability::isConfigured()],
                     'level' => $user->level ?? 1,
                     'points' => $user->points ?? 0,
                     'must_change_password' => (bool)$mustChangePassword,
@@ -225,6 +226,7 @@ class AuthController extends Controller
                     'bio' => $user->bio,
                     'avatar' => $avatarUrl,
                     'role' => $user->role ?? 'student',
+                    'capabilities' => ['volt' => \App\Support\VoltAvailability::isConfigured()],
                     'level' => $user->level ?? 1,
                     'points' => $user->points ?? 0,
                     'must_change_password' => (bool)($user->must_change_password ?? false),
@@ -292,6 +294,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'capabilities' => ['volt' => \App\Support\VoltAvailability::isConfigured()],
                 'level' => $user->level,
                 'points' => $user->points,
                 'must_change_password' => false,

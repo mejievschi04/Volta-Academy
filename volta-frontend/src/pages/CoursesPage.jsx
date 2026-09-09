@@ -2,24 +2,27 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
 import { courseMapsService, adminService, examService, coursesService, profileService } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { CourseShowcaseCard, COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-card';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
+import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-cardShared.js';
 import CourseMapFolderTile from '../components/ui/CourseMapFolderTile';
 import { courseCoverSrc, mapFolderCardImageUrl } from '../utils/imageUrl';
 import { hexToHslSpace } from '../lib/hexToHsl';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CoursesPage.css';
+import '../styles/learning-experience.css';
 
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9',
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Mape' },
-	{ id: 'in_progress', label: 'Nefinisate', statKey: 'in_progress' },
-	{ id: 'not_accessed', label: 'Neaccesate', statKey: 'not_accessed' },
+	{ id: 'maps', label: 'Parcursuri și cursuri' },
+	{ id: 'in_progress', label: 'Nefinalizate', statKey: 'in_progress' },
+	{ id: 'not_accessed', label: 'Neîncepute', statKey: 'not_accessed' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	{ id: 'exams', label: 'Examene' },
+	{ id: 'exams', label: 'Teste' },
 ];
 
 const STUDENT_FILTER_TITLES = {
@@ -256,16 +259,16 @@ const CoursesPage = () => {
 					<div className={`courses-page-hero-content${!isAdmin ? ' courses-page-hero-content--student' : ''}`}>
 						<div className="courses-page-hero-text">
 							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : 'Cursuri'}</h1>
+							{!isAdmin && <p className="courses-catalog-description">Continuă ce ai început sau alege următorul curs. Testele sunt într-o secțiune separată.</p>}
 							{!isAdmin ? (
-								<div className="courses-page-student-filters" role="tablist" aria-label="Filtrare cursuri">
+								<div className="courses-page-student-filters" role="group" aria-label="Filtrare cursuri">
 									{STUDENT_COURSE_FILTERS.map((filter) => {
 										const count = getStudentFilterCount(filter);
 										return (
 											<button
 												key={filter.id}
 												type="button"
-												role="tab"
-												aria-selected={studentFilter === filter.id}
+												aria-pressed={studentFilter === filter.id}
 												className={`courses-page-student-filter${studentFilter === filter.id ? ' is-active' : ''}`}
 												onClick={() => setStudentFilter(filter.id)}
 											>
@@ -284,12 +287,13 @@ const CoursesPage = () => {
 							<input
 								type="text"
 								className="courses-page-search-input"
+								aria-label={studentFilter === 'exams' ? 'Caută teste' : 'Caută cursuri'}
 								placeholder={
 									!isAdmin && studentFilter === 'exams'
-										? 'Cauta examene...'
+										? 'Caută un test...'
 										: !isAdmin && studentFilter !== 'maps'
-											? 'Cauta cursuri...'
-											: 'Cauta cursuri...'
+											? 'Caută după titlu sau descriere...'
+											: 'Caută după titlu sau descriere...'
 								}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
@@ -299,7 +303,7 @@ const CoursesPage = () => {
 									type="button"
 									className="courses-page-search-clear"
 									onClick={() => setSearchQuery('')}
-									aria-label="Goleste cautarea"
+									aria-label="Șterge căutarea"
 								>
 									<X size={16} weight="bold" aria-hidden />
 								</button>

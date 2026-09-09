@@ -17,10 +17,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { adminService } from '../../services/api';
 import { coursesService } from '../../services/api';
-import { useToast } from '../../contexts/ToastContext';
+
+import { useToast } from '../../contexts/ToastContextShared.js';
 import { logger } from '../../utils/logger';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { useAuth } from '../../contexts/AuthContext';
+
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import {
 	TEAM_ACCENT_COLORS,
 	teamAccentByListIndex,

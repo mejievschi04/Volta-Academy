@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../../services/api';
-import { useToast } from '../../../contexts/ToastContext';
+
+import { useToast } from '../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import { toImageUrl } from '../../../utils/imageUrl';
 

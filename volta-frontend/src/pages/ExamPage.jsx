@@ -3,13 +3,16 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import { examService, courseProgressService, coursesService } from '../services/api';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
-import { logger } from '../utils/logger';
+
+import { useAuth } from '../contexts/AuthContextShared.js';
+
+import { useToast } from '../contexts/ToastContextShared.js';
+
 import { handleApiError } from '../utils/errorHandler';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
 import RichTextHtml from '../components/RichTextHtml';
+import '../styles/learning-experience.css';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 import {
 	coerceChoiceAnswerForQuestion,
@@ -76,7 +79,7 @@ const ExamPage = () => {
 	const examId = params.examId;
 	const { user } = useAuth();
 	const navigate = useNavigate();
-	const { warning: showWarning, error: showError } = useToast();
+	const { warning: showWarning } = useToast();
 	const [exam, setExam] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
@@ -695,7 +698,7 @@ const ExamPage = () => {
 					</div>
 				)}
 
-				{!isMobile && !submitted && exam.questions.length > 0 && (
+				{!submitted && exam.questions.length > 0 && (
 					<div className="student-exam-desktop-meta">
 						<div className="student-exam-desktop-meta-text">
 							<span className="student-exam-desktop-meta-count">
@@ -728,7 +731,8 @@ const ExamPage = () => {
 			{/* Navigator + Questions */}
 			{!submitted && (
 				<div className="student-exam-layout">
-					{!isMobile && (
+					<details className="exam-question-overview" open={isMobile ? undefined : true}>
+					<summary>Întrebări · {answeredQuestionsCount}/{exam.questions.length} completate · {flaggedQuestions.size} de revăzut</summary>
 					<aside className="student-exam-nav" aria-label="Navigare întrebări">
 						<div className="student-exam-nav-title">Întrebări</div>
 						<div className="student-exam-nav-list">
@@ -744,6 +748,7 @@ const ExamPage = () => {
 										onClick={() => canJumpToQuestion && scrollToQuestion(idx)}
 										className={`student-exam-nav-item ${status === 'current' ? 'current' : ''} ${status === 'answered' ? 'answered' : ''} ${isFlagged ? 'flagged' : ''}`}
 										title={`Întrebarea ${idx + 1}`}
+										aria-label={`Întrebarea ${idx + 1}, ${isChoiceAnswered(q, answers[q.id]) ? 'completată' : 'fără răspuns'}${isFlagged ? ', de revăzut' : ''}`}
 										aria-current={status === 'current' ? 'true' : undefined}
 										disabled={!canJumpToQuestion}
 									>
@@ -753,7 +758,7 @@ const ExamPage = () => {
 							})}
 						</div>
 					</aside>
-					)}
+					</details>
 					<div className="student-exam-questions">
 					{visibleQuestions.map((q, idx) => {
 						const actualIndex =
