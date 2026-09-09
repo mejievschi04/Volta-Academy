@@ -49,7 +49,7 @@ const AdminUsersPage = () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const params = {};
+			const params = { all: true };
 			if (statusFilter !== 'all') params.status = statusFilter;
 			if (searchQuery.trim()) params.search = searchQuery.trim();
 			if (usersView === 'trash') params.trashed = 1;

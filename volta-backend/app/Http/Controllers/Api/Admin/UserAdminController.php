@@ -85,8 +85,8 @@ class UserAdminController extends Controller
         $totalCourses = $allCourses->count();
         
         // Get paginated users with relationships
-        $usersPaginated = $query->paginate($perPage);
-        $users = $usersPaginated->items();
+        $usersPaginated = $request->boolean('all') ? null : $query->paginate($perPage);
+        $users = $usersPaginated ? $usersPaginated->items() : $query->get()->all();
         
         // Get all course progress for current page users in one query
         $allProgress = DB::table('course_user')
@@ -147,6 +147,10 @@ class UserAdminController extends Controller
             return $user;
         });
         
+        if (! $usersPaginated) {
+            return response()->json($usersWithStats->values());
+        }
+
         // Replace items in paginator
         $usersPaginated->setCollection($usersWithStats);
         
