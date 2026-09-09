@@ -1,3 +1,4 @@
+import TestAttemptFooter from '../components/student/TestAttemptFooter';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { quizService } from '../services/api';
@@ -12,6 +13,9 @@ const QuizPage = () => {
 	const [quiz, setQuiz] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const submitInFlightRef = useRef(false);
+    const latestSubmitRef = useRef(null);
 	const [result, setResult] = useState(null);
 	const [saved, setSaved] = useState(false);
 	const [loading, setLoading] = useState(true);
@@ -66,7 +70,7 @@ const QuizPage = () => {
 						quiz_id: data.id ?? null,
 					});
 				}
-				if (data.duration_minutes && !data.hasResult && !saved) {
+				if (data.duration_minutes && !data.hasResult) {
 					// Initialize timer if quiz has time limit
 					setTimeRemaining(data.duration_minutes * 60); // Convert to seconds
 					setStartTime(Date.now());
@@ -96,9 +100,10 @@ const QuizPage = () => {
 			
 			if (remaining <= 0) {
 				setTimeRemaining(0);
+                setCurrentQuestionIndex(Math.max(0, (quiz?.questions?.length ?? 1) - 1));
 				clearInterval(timerIntervalRef.current);
 				// Auto-submit when time runs out
-				handleSubmit();
+				latestSubmitRef.current?.();
 			} else {
 				setTimeRemaining(remaining);
 			}
@@ -109,7 +114,7 @@ const QuizPage = () => {
 				clearInterval(timerIntervalRef.current);
 			}
 		};
-	}, [quiz?.duration_minutes, saved, submitted, startTime]);
+	}, [quiz?.duration_minutes, quiz?.questions?.length, saved, submitted, startTime]);
 
 	// Track scroll position to update current question
 	useEffect(() => {
@@ -155,12 +160,17 @@ const QuizPage = () => {
 	}, [quiz, saved]);
 
 	const handleSubmit = useCallback(async () => {
+        if (submitInFlightRef.current || submitted) return;
+        submitInFlightRef.current = true;
+        setSubmitting(true);
+        setError(null);
 		try {
 			if (timerIntervalRef.current) {
 				clearInterval(timerIntervalRef.current);
 			}
 			const resultData = await quizService.submitQuiz(courseId, answers);
 			setResult(resultData);
+            setQuiz((prev) => prev ? { ...prev, attempts_count: (prev.attempts_count || 0) + 1 } : prev);
 			if (Array.isArray(resultData.review_questions) && resultData.review_questions.length > 0) {
 				setQuiz((prev) => (prev ? {
 					...prev,
@@ -178,8 +188,12 @@ const QuizPage = () => {
 		} catch (err) {
 			console.error('Error submitting quiz:', err);
 			setError('Eroare la trimiterea testului');
-		}
-	}, [courseId, answers]);
+		} finally {
+            submitInFlightRef.current = false;
+            setSubmitting(false);
+        }
+	}, [courseId, answers, submitted]);
+    latestSubmitRef.current = handleSubmit;
 
 	const handleSave = useCallback(() => {
 		setSaved(true);
@@ -266,7 +280,7 @@ const QuizPage = () => {
 		);
 	}
 
-	if (error || !quiz) {
+	if (!quiz) {
 		return (
 			<div className="va-stack" style={{ padding: '2rem' }}>
 				<p style={{ color: 'var(--va-primary)' }}>{error || 'Testul nu a fost găsit'}</p>
@@ -403,6 +417,7 @@ const QuizPage = () => {
 
 			{/* Main Content */}
 			<main className="va-course-content-main">
+                {error && <p role="alert">{error}</p>}
 				{/* Breadcrumb */}
 				<div className="va-course-content-header">
 					<Link 
@@ -1202,31 +1217,9 @@ const QuizPage = () => {
 					</div>
 				)}
 
-				{/* Submit Button */}
-				{!submitted && !saved && (
-					<div style={{ marginTop: '2rem' }}>
-						<div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-							<button 
-								className="lms-btn-primary" 
-								onClick={handleSubmit}
-								style={{
-									padding: '0.875rem 2rem',
-									fontSize: '1rem',
-									fontWeight: 600
-								}}
-							>
-								Trimite testul
-							</button>
-							<Link 
-								to={`/courses/${courseId}`}
-								className="lms-btn-link"
-								style={{ padding: '0.875rem 1.5rem' }}
-							>
-								Înapoi la curs
-							</Link>
-						</div>
-					</div>
-				)}
+                {!submitted && !saved && <TestAttemptFooter currentIndex={currentQuestionIndex}
+                    total={quiz.questions?.length ?? 0} onNavigate={scrollToQuestion}
+                    onSubmit={handleSubmit} submitting={submitting} backTo={`/courses/${courseId}`} />}
 
 				{/* Save Result Button */}
 				{!saved && submitted && result && (

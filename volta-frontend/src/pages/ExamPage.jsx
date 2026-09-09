@@ -1,6 +1,6 @@
+import TestAttemptFooter from '../components/student/TestAttemptFooter';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import { examService, courseProgressService, coursesService } from '../services/api';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 
@@ -83,6 +83,9 @@ const ExamPage = () => {
 	const [exam, setExam] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const submitInFlightRef = useRef(false);
+    const latestSubmitRef = useRef(null);
 	const [result, setResult] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -225,8 +228,9 @@ const ExamPage = () => {
 
 			if (remaining <= 0) {
 				setTimeRemaining(0);
+                setCurrentQuestionIndex(Math.max(0, (exam?.questions?.length ?? 1) - 1));
 				clearInterval(timerIntervalRef.current);
-				handleSubmit();
+				latestSubmitRef.current?.();
 			} else {
 				setTimeRemaining(remaining);
 			}
@@ -237,10 +241,14 @@ const ExamPage = () => {
 				clearInterval(timerIntervalRef.current);
 			}
 		};
-	}, [exam?.time_limit_minutes, submitted, startTime]);
+	}, [exam?.time_limit_minutes, exam?.questions?.length, submitted, startTime]);
 
 	// Handle submit
 	const handleSubmit = useCallback(async () => {
+        if (submitInFlightRef.current || submitted) return;
+        submitInFlightRef.current = true;
+        setSubmitting(true);
+        setError(null);
 		try {
 			if (timerIntervalRef.current) {
 				clearInterval(timerIntervalRef.current);
@@ -248,6 +256,13 @@ const ExamPage = () => {
 
 			const resultData = await examService.submitExam(examId, answers, courseId || null);
 			const submittedResult = resultData.result;
+            if (submittedResult && 'remaining_attempts' in submittedResult) {
+                setExam((prev) => prev ? { ...prev,
+                    remaining_attempts: submittedResult.remaining_attempts,
+                    can_retake: !submittedResult.passed && !submittedResult.needs_manual_review
+                        && (submittedResult.remaining_attempts === null || submittedResult.remaining_attempts > 0),
+                } : prev);
+            }
 			const reviewQs = Array.isArray(submittedResult?.review_questions) ? submittedResult.review_questions : null;
 			setResult(submittedResult);
 			if (reviewQs && reviewQs.length > 0) {
@@ -296,8 +311,12 @@ const ExamPage = () => {
 		} catch (err) {
 			const errorMessage = handleApiError(err, 'submitExam');
 			setError(errorMessage || 'Eroare la trimiterea testului');
-		}
-	}, [examId, answers, exam, courseId, user?.id]);
+		} finally {
+            submitInFlightRef.current = false;
+            setSubmitting(false);
+        }
+	}, [examId, answers, exam, courseId, user?.id, submitted]);
+    latestSubmitRef.current = handleSubmit;
 
 	const handleCongratsClose = useCallback(() => {
 		setShowCourseCongrats(false);
@@ -424,8 +443,8 @@ const ExamPage = () => {
 	const scrollToQuestion = useCallback((index) => {
 		if (!exam?.questions || index < 0 || index >= exam.questions.length) return;
 		setCurrentQuestionIndex(index);
-		if (isMobile) {
-			examPageRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+		if (isMobile || (exam.navigation_mode || 'sequential') !== 'free') {
+			examPageRef.current?.querySelector('.student-exam-body')?.scrollTo({ top: 0, behavior: 'smooth' });
 			return;
 		}
 		const questionElement = document.getElementById(`question-${exam.questions[index].id}`);
@@ -519,7 +538,7 @@ const ExamPage = () => {
 		);
 	}
 
-	if (error || !exam) {
+	if (!exam) {
 		return (
 			<div className="student-exam-page">
 				<div className="student-exam-error">
@@ -658,7 +677,16 @@ const ExamPage = () => {
 				.filter(Boolean)
 				.join(' ')}
 		>
-			<div className="student-exam-body">
+			<div className="student-exam-body" onScroll={(event) => {
+                if (submitted || isSequentialNavigation || isMobile) return;
+                const top = event.currentTarget.getBoundingClientRect().top + 100;
+                const index = exam.questions.findIndex((q) => {
+                    const node = document.getElementById(`question-${q.id}`);
+                    return node && node.getBoundingClientRect().bottom > top;
+                });
+                if (index >= 0) setCurrentQuestionIndex(index);
+            }}>
+                {error && <p role="alert" className="student-exam-error">{error}</p>}
 			{/* Back link */}
 			{courseId ? (
 				<Link to={`/courses/${courseId}`} className="student-exam-back-link">
@@ -806,14 +834,14 @@ const ExamPage = () => {
 										question={q}
 										value={answers[q.id]}
 										onChange={(next) => handleAnswerChange(q.id, next)}
-										disabled={submitted}
+										disabled={submitted || submitting}
 									/>
 								) : hasOptions ? (
 									<ChoiceQuestionOptions
 										question={q}
 										value={answers[q.id]}
 										onChange={(next) => handleAnswerChange(q.id, next)}
-										disabled={submitted}
+										disabled={submitted || submitting}
 									/>
 								) : (
 									<div className="student-exam-answer-options">
@@ -928,99 +956,14 @@ const ExamPage = () => {
 			)}
 			</div>
 
-			{/* Actions */}
-			<div
-				className={[
-					'student-exam-footer',
-					'student-exam-actions',
-					'student-exam-actions-sticky',
-					submitted && result ? 'student-exam-footer--results' : '',
-				]
-					.filter(Boolean)
-					.join(' ')}
-			>
-				{!submitted && !isMobile && isSequentialNavigation && exam.questions.length > 1 && (
-					<div className="student-exam-desktop-pager" role="navigation" aria-label="Navigare întrebări">
-						<button
-							type="button"
-							className="student-exam-desktop-pager-btn"
-							onClick={() => scrollToQuestion(currentQuestionIndex - 1)}
-							disabled={currentQuestionIndex === 0}
-							aria-label="Întrebarea anterioară"
-						>
-							<ArrowLeft size={20} weight="bold" aria-hidden />
-							<span>Anterioară</span>
-						</button>
-						<span className="student-exam-desktop-pager-label">
-							{currentQuestionIndex + 1} / {exam.questions.length}
-						</span>
-						<button
-							type="button"
-							className="student-exam-desktop-pager-btn"
-							onClick={() => scrollToQuestion(currentQuestionIndex + 1)}
-							disabled={currentQuestionIndex >= exam.questions.length - 1}
-							aria-label="Întrebarea următoare"
-						>
-							<span>Următoare</span>
-							<ArrowRight size={20} weight="bold" aria-hidden />
-						</button>
-					</div>
-				)}
-				{!submitted && isMobile && exam.questions.length > 1 && (
-					<div className="student-exam-mobile-pager" role="navigation" aria-label="Navigare întrebări">
-						<button
-							type="button"
-							className="student-exam-mobile-pager-btn"
-							onClick={() => scrollToQuestion(currentQuestionIndex - 1)}
-							disabled={currentQuestionIndex === 0}
-							aria-label="Întrebarea anterioară"
-						>
-							<ArrowLeft size={22} weight="bold" aria-hidden />
-						</button>
-						<span className="student-exam-mobile-pager-label">
-							{currentQuestionIndex + 1} / {exam.questions.length}
-						</span>
-						<button
-							type="button"
-							className="student-exam-mobile-pager-btn"
-							onClick={() => scrollToQuestion(currentQuestionIndex + 1)}
-							disabled={currentQuestionIndex >= exam.questions.length - 1}
-							aria-label="Întrebarea următoare"
-						>
-							<ArrowRight size={22} weight="bold" aria-hidden />
-						</button>
-					</div>
-				)}
-				<div className="student-exam-footer-actions">
-					{!submitted && (
-						<button
-							type="button"
-							onClick={handleSubmit}
-							className="student-exam-btn student-exam-btn-primary"
-							disabled={!exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}
-						>
-							Trimite testul
-						</button>
-					)}
-					{submitted && result && exam.can_retake && !result.passed && !needsManualReview && (
-						<button
-							type="button"
-							onClick={handleRetry}
-							className="student-exam-btn student-exam-btn-primary"
-						>
-							Reîncearcă
-						</button>
-					)}
-					{courseId && (
-						<Link
-							to={`/courses/${courseId}`}
-							className="student-exam-btn student-exam-btn-secondary"
-						>
-							Înapoi la curs
-						</Link>
-					)}
-				</div>
-			</div>
+            <TestAttemptFooter currentIndex={currentQuestionIndex} total={exam.questions.length}
+                onNavigate={scrollToQuestion} onSubmit={handleSubmit} submitting={submitting}
+                submitted={submitted} backTo={courseId ? `/courses/${courseId}` : null}
+                canSubmit={timeRemaining === 0 || exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}>
+                {submitted && result && exam.can_retake && !result.passed && !needsManualReview && (
+                    <button type="button" onClick={handleRetry} className="lms-btn-primary">Reîncearcă</button>
+                )}
+            </TestAttemptFooter>
 
 			<CourseCongratulationsModal
 				open={showCourseCongrats}

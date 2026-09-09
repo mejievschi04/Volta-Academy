@@ -292,6 +292,10 @@ class QuizController extends Controller
             'courseId' => $course->id,
             'maxScore' => $exam->max_score,
             'maxAttempts' => $exam->max_attempts,
+            'max_attempts' => $exam->max_attempts,
+            'attempts_count' => $currentAttempt,
+            'duration_minutes' => $exam->time_limit_minutes,
+            'passing_score' => $exam->passing_score ?? 70,
             'show_only_submitted_answers' => (bool) ($settings['show_only_submitted_answers'] ?? false),
             'questions' => $questionsWire,
             'hasResult' => $latestResult !== null,
@@ -390,14 +394,14 @@ class QuizController extends Controller
                 
                 // Check if user's answer matches correct answer
                 $userAnswer = $this->answerValueForQuestion($answers, (int) $question->id);
-                if ($userAnswer !== null && $userAnswer !== '' && (int) $userAnswer === (int) $correctAnswerIndex) {
+                if ($correctAnswerIndex !== null && is_numeric($userAnswer) && (float) $userAnswer === (float) $correctAnswerIndex) {
                     $score += $question->points ?? 1;
                 }
             }
         }
         
         $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100) : 0;
-        $passed = $percentage >= 50;
+        $passed = $percentage >= ($exam->passing_score ?? 70);
         
         // Save quiz result to database
         if ($trackLearning) {

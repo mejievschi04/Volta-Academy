@@ -535,7 +535,8 @@ class ExamResultController extends Controller
             $attemptNumber
         );
 
-        $orderedAnswers = $order['display_answers'];
+        // Result payloads expose stored (original) indices, so keep every field in that order.
+        $orderedAnswers = $order['original_answers'];
         $correctIndices = $order['correct_original_indices'];
         $correctAnswerIndex = $correctIndices[0] ?? null;
         $originalSelected = $this->answerOrderService->selectedOriginalIndicesFromStored(
@@ -543,10 +544,7 @@ class ExamResultController extends Controller
             $questionType,
             $order
         );
-        $selectedIndices = $this->answerOrderService->originalIndicesToDisplay(
-            $originalSelected,
-            $order['original_to_display']
-        );
+        $selectedIndices = $originalSelected;
         $selectedAnswerIndex = $selectedIndices[0] ?? null;
         $matching = null;
         $ordering = null;
@@ -569,7 +567,7 @@ class ExamResultController extends Controller
         } elseif (is_array($orderedAnswers)) {
             foreach ($orderedAnswers as $displayIndex => $answer) {
                 $answerData = is_array($answer) ? $answer : ['text' => $answer];
-                $originalIndex = $order['display_to_original'][$displayIndex] ?? $displayIndex;
+                $originalIndex = $displayIndex;
 
                 $processedAnswers[] = [
                     'id' => $answerData['id'] ?? $answerData['answer_id'] ?? $displayIndex,
@@ -860,7 +858,7 @@ class ExamResultController extends Controller
             
             // Try to find as TestResult first (new system)
             $testResult = $preferredType === 'exam' ? null : TestResult::with([
-                'test:id,title,description,type,status,question_source,question_set_id,show_only_submitted_answers',
+                'test',
                 'test.questions' => function($query) {
                     $query->orderBy('order');
                 },

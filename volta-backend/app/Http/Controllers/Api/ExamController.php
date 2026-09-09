@@ -749,8 +749,14 @@ class ExamController extends Controller
         // Get questions (supports bank + optional rule-based selection)
         $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
 
-        $fullWire = $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
         $showSolutions = $latestResult && ! $forNewAttempt;
+        // Saved answers use original option indices; review options must use the same order.
+        $fullWire = $showSolutions
+            ? $questions->map(fn ($question) => $this->buildReviewQuestionWire(
+                $test, $question, $user, $attemptNumberForSeed,
+                is_array($latestResult->answers) ? $latestResult->answers : []
+            ))
+            : $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
         $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
         $transformedQuestions = ($showSolutions && ! $submittedOnly)
             ? $fullWire
@@ -822,6 +828,7 @@ class ExamController extends Controller
     /** Elimină chei folosite la corectare din payload-ul trimis elevului în timpul testului. */
     protected function stripWireQuestionSolutionKeys(array $q): array
     {
+        unset($q['correct_answer_indices'], $q['correct_answer_index'], $q['is_correct']);
         $q['answerIndex'] = null;
         $q['answerIndices'] = null;
         if (isset($q['matching']) && is_array($q['matching'])) {
@@ -857,6 +864,10 @@ class ExamController extends Controller
                 $userAnswer,
                 $questionType,
                 $order
+            );
+            $wire['options'] = array_map(
+                fn ($answer) => $this->answerOrderService->answerText($answer),
+                $order['original_answers']
             );
             $wire['correct_answer_indices'] = $order['correct_original_indices'];
             $wire['answerIndex'] = $order['correct_original_indices'][0] ?? null;

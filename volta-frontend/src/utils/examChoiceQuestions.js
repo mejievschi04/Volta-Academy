@@ -39,6 +39,9 @@ export function getCorrectChoiceIndices(question) {
 }
 
 export function coerceChoiceAnswerForQuestion(question, value) {
+	const type = getQuestionType(question);
+	// Only choice answers are option indices. Sequences and written answers are payloads.
+	if (type !== 'multiple_choice' && !SINGLE_SELECT_TYPES.has(type)) return value;
 	if (!isMultiSelectChoiceQuestion(question)) {
 		if (Array.isArray(value)) {
 			return value.length > 0 ? normalizeAnswerIndex(value[0]) : undefined;

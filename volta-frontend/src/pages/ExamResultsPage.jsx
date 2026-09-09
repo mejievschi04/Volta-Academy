@@ -380,7 +380,10 @@ const ExamResultsPage = () => {
 		return { passed, failed, review, average };
 	}, [results]);
 
-	const activeResult = selectedResult || selectedListResult;
+	// Never display the previous attempt's answers while the new selection is loading.
+	const activeResult = selectedResult && `${selectedResult.type || 'exam'}:${selectedResult.id}` === selectedKey
+		? selectedResult
+		: selectedListResult;
 	const activeState = getResultState(activeResult);
 	const submittedOnly = Boolean(activeResult?.show_only_submitted_answers);
 	const questions = asArray(activeResult?.exam?.questions);
