@@ -33,7 +33,7 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 COPY patches ./patches
 RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --prefer-dist
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN composer dump-autoload --no-dev --optimize --no-interaction && npm run build
