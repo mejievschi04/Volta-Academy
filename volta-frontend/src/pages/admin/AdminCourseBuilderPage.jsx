@@ -21,7 +21,7 @@ import {
 	buildRootOutlineFlow,
 	resolvePlacementFromFlowInsert,
 } from '../../utils/courseBuilderTestFlow';
-import { applyVoltCoursePlan, VOLT_BUILDER_REFRESH_EVENT } from '../../utils/voltCoursePlan';
+import { VOLT_BUILDER_REFRESH_EVENT } from '../../utils/voltCoursePlan';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 const TEST_DRAG_MIME = 'application/x-volta-course-test';
@@ -745,9 +745,12 @@ const AdminCourseBuilderPage = () => {
 
 	useEffect(() => {
 		const onVoltRefresh = (event) => {
-			if (Number(event.detail?.courseId) === Number(courseId)) {
-				fetchStructure(true);
+			if (Number(event.detail?.courseId) !== Number(courseId)) {
+				return;
 			}
+			Promise.resolve(fetchStructure(true)).finally(() => {
+				setLessonEditorRefreshKey((prev) => prev + 1);
+			});
 		};
 		window.addEventListener(VOLT_BUILDER_REFRESH_EVENT, onVoltRefresh);
 		return () => window.removeEventListener(VOLT_BUILDER_REFRESH_EVENT, onVoltRefresh);
@@ -1131,42 +1134,6 @@ const AdminCourseBuilderPage = () => {
 		} catch (e) {
 			console.error('Course status action failed:', e);
 			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul cursului.', 'error');
-		} finally {
-			setCourseActionLoading(false);
-		}
-	};	const handleApplyVoltPlan = async (planPayload) => {
-		if (contentSaveTimeoutRef.current) {
-			clearTimeout(contentSaveTimeoutRef.current);
-			contentSaveTimeoutRef.current = null;
-		}
-		pendingContentRef.current = null;
-		setCourseActionLoading(true);
-		try {
-			const { appliedSteps } = await applyVoltCoursePlan(courseId, planPayload);
-			const freshData = await fetchStructure(true);
-			if (selectedLessonId != null) {
-				const freshLessons = Array.isArray(freshData?.lessons)
-					? freshData.lessons
-					: [
-						...(Array.isArray(freshData?.root_lessons) ? freshData.root_lessons : []),
-						...((Array.isArray(freshData?.modules) ? freshData.modules : []).flatMap(
-							(moduleItem) => (Array.isArray(moduleItem?.lessons) ? moduleItem.lessons : [])
-						)),
-					];
-				const freshSelected = freshLessons.find(
-					(lessonItem) => Number(lessonItem?.id) === Number(selectedLessonId)
-				);
-				if (freshSelected) {
-					const freshContent = String(freshSelected.content ?? '');
-					setLessonContent(freshContent);
-					lastPersistedLessonContentRef.current = freshContent;
-				}
-			}
-			setLessonEditorRefreshKey((prev) => prev + 1);
-			showToast(`Volt a aplicat ${appliedSteps} schimbări în builder.`, 'success');
-		} catch (e) {
-			console.error('Volt plan apply failed:', e);
-			showToast(e?.message || e?.response?.data?.message || 'Nu am putut aplica planul Volt.', 'error');
 		} finally {
 			setCourseActionLoading(false);
 		}
@@ -1913,6 +1880,14 @@ const AdminCourseBuilderPage = () => {
 							<button type="button" className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
 								Previzualizează ca elev
 							</button>
+							<button
+								type="button"
+								className="admin-btn admin-btn-secondary"
+								onClick={handleRunQualityAudit}
+								disabled={qualityAuditLoading}
+							>
+								{qualityAuditLoading ? 'Se auditează…' : 'Audit QA'}
+							</button>
 							{!isCoursePublished || hasUnpublishedEdits ? (
 								<button
 									type="button"
@@ -1940,9 +1915,19 @@ const AdminCourseBuilderPage = () => {
 													: 'Cursul are probleme importante înainte de publicare.'}
 										</p>
 									</div>
-									<button type="button" className="admin-course-builder-qa-close" onClick={() => setQualityAuditReport(null)}>
-										×
-									</button>
+									<div className="admin-course-builder-qa-head-actions">
+										<button
+											type="button"
+											className="admin-btn admin-btn-secondary"
+											onClick={handleRunQualityAudit}
+											disabled={qualityAuditLoading}
+										>
+											{qualityAuditLoading ? 'Se auditează…' : 'Re-rulează'}
+										</button>
+										<button type="button" className="admin-course-builder-qa-close" onClick={() => setQualityAuditReport(null)}>
+											×
+										</button>
+									</div>
 								</div>
 								<div className="admin-course-builder-qa-summary">
 									<span>{qualityAuditReport.summary?.modules ?? 0} module</span>

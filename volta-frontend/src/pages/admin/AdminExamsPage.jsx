@@ -124,7 +124,6 @@ export default function AdminExamsPage() {
   const [studentsList, setStudentsList] = useState([]);
   const [studentsDraftSelected, setStudentsDraftSelected] = useState([]);
   const [manualReviewState, setManualReviewState] = useState({ reviewMode: 'after_complete' });
-  const [statisticsRows, setStatisticsRows] = useState([]);
   const [statisticsQuestionRows, setStatisticsQuestionRows] = useState([]);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
   const [statisticsTab, setStatisticsTab] = useState('students');
@@ -204,16 +203,15 @@ export default function AdminExamsPage() {
 
   const handleRefreshStatistics = useCallback(async (notify = false) => {
     if (viewMode !== 'create' || activeSection !== 'statistics') return;
-    if (!activeExamDraft.id) { setStatisticsRows([]); setStatisticsQuestionRows([]); return; }
+    if (!activeExamDraft.id) { setStatisticsQuestionRows([]); return; }
     try {
       setStatisticsLoading(true);
-      const [resultsData, questionData] = await Promise.all([adminService.getExamResults(activeExamDraft.id), adminService.getExamQuestionAnalytics(activeExamDraft.id)]);
-      setStatisticsRows(Array.isArray(resultsData) ? resultsData : []);
+      const questionData = await adminService.getExamQuestionAnalytics(activeExamDraft.id);
       setStatisticsQuestionRows(Array.isArray(questionData) ? questionData : []);
       if (notify) toastSuccess('Statisticile au fost actualizate.');
     } catch (e) {
       console.error('Failed to refresh statistics:', e);
-      setStatisticsRows([]); setStatisticsQuestionRows([]);
+      setStatisticsQuestionRows([]);
       if (notify) toastError('Nu s-au putut actualiza statisticile.');
     } finally { setStatisticsLoading(false); }
   }, [activeExamDraft.id, activeSection, viewMode, toastSuccess, toastError]);

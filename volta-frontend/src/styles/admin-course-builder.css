@@ -60,6 +60,13 @@ body.admin-course-builder-scroll-lock .va-main {
 	color: var(--text-secondary);
 }
 
+.admin-course-builder-qa-head-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-shrink: 0;
+}
+
 .admin-course-builder-qa-close {
 	width: 32px;
 	height: 32px;

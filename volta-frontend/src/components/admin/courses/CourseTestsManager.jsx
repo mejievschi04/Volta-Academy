@@ -7,7 +7,7 @@ import './CourseTestsManager.css';
 
 const TYPE_LABELS = { final: 'Test final' };
 
-const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
+const CourseTestsManager = ({ courseId, courseData }) => {
 	const { showToast } = useToast();
 	const [availableTests, setAvailableTests] = useState([]);
 	const [linkedTests, setLinkedTests] = useState([]);
