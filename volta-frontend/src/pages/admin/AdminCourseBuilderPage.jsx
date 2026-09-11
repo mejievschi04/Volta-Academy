@@ -1,19 +1,19 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Eye, EyeSlash, Lightning, Plus, Trash } from '@phosphor-icons/react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Plus, Trash } from '@phosphor-icons/react';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
+import Modal from '../../components/common/Modal';
 import { DragGripIcon } from '../../components/common/DragGripIcon';
 import RichTextEditor from '../../components/RichTextEditor';
-import AICourseChat from '../../components/admin/ai/AICourseChat';
-import AITestGenerateModal from '../../components/admin/tests/AITestGenerateModal';
 import '../../styles/admin-course-builder.css';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import OutlineItemMenu from '../../components/admin/courses/OutlineItemMenu';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
 import {
@@ -21,7 +21,7 @@ import {
 	buildRootOutlineFlow,
 	resolvePlacementFromFlowInsert,
 } from '../../utils/courseBuilderTestFlow';
-import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
+import { applyVoltCoursePlan, VOLT_BUILDER_REFRESH_EVENT } from '../../utils/voltCoursePlan';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 const TEST_DRAG_MIME = 'application/x-volta-course-test';
@@ -50,6 +50,7 @@ const AdminCourseBuilderPage = () => {
 	const { id } = useParams();
 	const courseId = Number(id);
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const { showToast } = useToast();
 	const { canMutateInAdminArea } = useAuth();
 
@@ -64,8 +65,6 @@ const AdminCourseBuilderPage = () => {
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
 	const [publishModalOpen, setPublishModalOpen] = useState(false);
 	const [publishValidationReport, setPublishValidationReport] = useState(null);
-	const [showVoltAssistant, setShowVoltAssistant] = useState(false);
-	const [showVoltTestModal, setShowVoltTestModal] = useState(false);
 	const [qualityAuditLoading, setQualityAuditLoading] = useState(false);
 	const [qualityAuditReport, setQualityAuditReport] = useState(null);
 
@@ -74,7 +73,9 @@ const AdminCourseBuilderPage = () => {
 	const [quickModuleTitle, setQuickModuleTitle] = useState('');
 	const [quickModuleLoading, setQuickModuleLoading] = useState(false);
 	const [showTestCreator, setShowTestCreator] = useState(false);
-	const [builderSidebarVisible, setBuilderSidebarVisible] = useState(true);
+	const [builderSidebarVisible, setBuilderSidebarVisible] = useState(
+		() => (typeof window === 'undefined' ? true : window.matchMedia('(min-width: 769px)').matches)
+	);
 	const [showCreateTestModal, setShowCreateTestModal] = useState(false);
 	const [createTestTitle, setCreateTestTitle] = useState('');
 	const [createTestModuleId, setCreateTestModuleId] = useState(null);
@@ -86,6 +87,21 @@ const AdminCourseBuilderPage = () => {
 	const sidebarNavRef = useRef(null);
 	const draggingTestRowRef = useRef(null);
 	const dragGhostCloneRef = useRef(null);
+
+	const closeOutlineIfMobile = useCallback(() => {
+		if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+			setBuilderSidebarVisible(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		const mq = window.matchMedia('(max-width: 768px)');
+		const sync = () => {
+			setBuilderSidebarVisible(!mq.matches);
+		};
+		mq.addEventListener('change', sync);
+		return () => mq.removeEventListener('change', sync);
+	}, []);
 
 	const syncTestDropHintDom = useCallback((hint) => {
 		sidebarTestDropHintRef.current = hint;
@@ -123,9 +139,24 @@ const AdminCourseBuilderPage = () => {
 
 	const contentSaveTimeoutRef = useRef(null);
 	const lastPersistedLessonContentRef = useRef('');
+	const lastPersistedLessonUpdatedAtRef = useRef(null);
+	const lessonContentSaveChainRef = useRef(Promise.resolve());
 	const pendingContentRef = useRef(null);
 	const flushAllInlineQuestionSavesRef = useRef(() => Promise.resolve());
+	const publishFocusConsumedRef = useRef(false);
 	const course = structure?.course || null;
+	const isCoursePublished = course?.status === 'published';
+	const hasUnpublishedEdits = isCoursePublished && String(course?.workflow_status || '') === 'editing';
+	const coursePublishStatusLabel = hasUnpublishedEdits
+		? 'Publicat · Ai modificări nepublicate'
+		: isCoursePublished
+			? 'Publicat'
+			: 'Ciornă';
+	const coursePublishStatusHint = hasUnpublishedEdits
+		? 'Modificările sunt salvate. Cursanții văd versiunea publicată anterior.'
+		: isCoursePublished
+			? 'Cursanții văd această versiune publicată.'
+			: 'Cursanții nu văd cursul până la publicare.';
 	const modules = useMemo(
 		() => (Array.isArray(course?.modules) ? course.modules : Array.isArray(structure?.modules) ? structure.modules : []),
 		[course?.modules, structure?.modules]
@@ -170,16 +201,6 @@ const AdminCourseBuilderPage = () => {
 		return allLessons.find((lessonItem) => lessonItem.id === selectedLessonId) || null;
 	}, [allLessons, selectedLessonId]);
 
-	const selectedVoltTestScope = useMemo(() => {
-		if (selectedLesson?.id) {
-			return { scope: 'lesson', scopeId: selectedLesson.id };
-		}
-		if (selectedModuleId) {
-			return { scope: 'module', scopeId: selectedModuleId };
-		}
-		return { scope: 'course', scopeId: null };
-	}, [selectedLesson?.id, selectedModuleId]);
-
 	const getModuleAttachedTests = useCallback((moduleId) => (
 		courseAttachedTests
 			.filter((row) => row.scope === 'module' && Number(row.scope_id) === Number(moduleId))
@@ -209,6 +230,22 @@ const AdminCourseBuilderPage = () => {
 		};
 	}, []);
 
+	const persistLessonContent = useCallback(async (lessonId, content) => {
+		const run = async () => {
+			const response = await adminService.builderUpdateLesson(courseId, lessonId, {
+				content,
+				expected_updated_at: lastPersistedLessonUpdatedAtRef.current || undefined,
+			});
+			lastPersistedLessonContentRef.current = content ?? '';
+			if (response?.lesson?.updated_at) {
+				lastPersistedLessonUpdatedAtRef.current = response.lesson.updated_at;
+			}
+		};
+		const chained = lessonContentSaveChainRef.current.then(run, run);
+		lessonContentSaveChainRef.current = chained.catch(() => {});
+		await chained;
+	}, [courseId]);
+
 	const flushPendingLessonContentSave = useCallback(async () => {
 		if (contentSaveTimeoutRef.current) {
 			clearTimeout(contentSaveTimeoutRef.current);
@@ -225,9 +262,7 @@ const AdminCourseBuilderPage = () => {
 			return;
 		}
 		try {
-			await adminService.builderUpdateLesson(courseId, lessonId, { content });
-			lastPersistedLessonContentRef.current = content ?? '';
-			// Șterge pending doar dacă nu s-a mai editat între timp (altfel păstrăm coada pentru următorul save)
+			await persistLessonContent(lessonId, content);
 			if (
 				pendingContentRef.current?.lessonId === lessonId &&
 				pendingContentRef.current?.content === content
@@ -240,7 +275,7 @@ const AdminCourseBuilderPage = () => {
 			setLessonSaveStatus('error');
 			showToast('Eroare la salvarea conținutului lecției.', 'error');
 		}
-	}, [courseId, showToast]);
+	}, [persistLessonContent, showToast]);
 
 	const fetchAttachedTests = useCallback(async () => {
 		try {
@@ -290,16 +325,6 @@ const AdminCourseBuilderPage = () => {
 		await loadTestIntoEditor(testId, 'questions');
 		setShowTestCreator(true);
 	}, [loadTestIntoEditor]);
-
-	const handleVoltTestSaved = useCallback(async (test) => {
-		const newTestId = Number(test?.id ?? test?.test?.id);
-		setShowVoltTestModal(false);
-		await fetchAttachedTests();
-		if (newTestId) {
-			await loadInlineTestById(newTestId);
-		}
-		showToast('Test generat cu Volt și atașat în builder.', 'success');
-	}, [fetchAttachedTests, loadInlineTestById, showToast]);
 
 	const clearLessonDrag = useCallback(() => {
 		lessonDragPayloadRef.current = null;
@@ -719,8 +744,55 @@ const AdminCourseBuilderPage = () => {
 	}, [courseId, canMutateInAdminArea, navigate]);
 
 	useEffect(() => {
+		const onVoltRefresh = (event) => {
+			if (Number(event.detail?.courseId) === Number(courseId)) {
+				fetchStructure(true);
+			}
+		};
+		window.addEventListener(VOLT_BUILDER_REFRESH_EVENT, onVoltRefresh);
+		return () => window.removeEventListener(VOLT_BUILDER_REFRESH_EVENT, onVoltRefresh);
+	}, [courseId]);
+
+	useEffect(() => {
 		const hasModules = modules.length > 0;
 		const hasRootLessons = rootLessons.length > 0;
+		const focus = searchParams.get('focus');
+		const rawId = Number(searchParams.get('id'));
+		const hasFocus = Boolean(focus) && Number.isFinite(rawId);
+
+		if (hasFocus && !publishFocusConsumedRef.current) {
+			if (focus === 'lesson') {
+				const lesson = allLessons.find((item) => Number(item.id) === rawId);
+				if (!lesson) return;
+				setSelectedLessonId(lesson.id);
+				setSelectedModuleId(lesson.module_id ?? null);
+				setShowTestCreator(false);
+				publishFocusConsumedRef.current = true;
+				setSearchParams({}, { replace: true });
+				return;
+			}
+			if (focus === 'module') {
+				if (!modules.some((item) => Number(item.id) === rawId)) return;
+				setSelectedModuleId(rawId);
+				publishFocusConsumedRef.current = true;
+				setSearchParams({}, { replace: true });
+				return;
+			}
+			if (focus === 'test') {
+				const row = courseAttachedTests.find((item) => Number(item.id) === rawId);
+				if (row?.test_id) {
+					loadInlineTestById(row.test_id);
+					publishFocusConsumedRef.current = true;
+					setSearchParams({}, { replace: true });
+					return;
+				}
+				if (courseAttachedTests.length > 0) {
+					publishFocusConsumedRef.current = true;
+					setSearchParams({}, { replace: true });
+				}
+				return;
+			}
+		}
 
 		if (!hasModules && !hasRootLessons) {
 			setSelectedModuleId(null);
@@ -741,7 +813,7 @@ const AdminCourseBuilderPage = () => {
 			setSelectedLessonId(firstLesson?.id || null);
 			setSelectedModuleId(firstLesson?.module_id ?? null);
 		}
-	}, [allLessons, modules, rootLessons, selectedLessonId, selectedModuleId]);
+	}, [allLessons, modules, rootLessons, selectedLessonId, selectedModuleId, searchParams, setSearchParams, courseAttachedTests, loadInlineTestById]);
 
 	// Doar la schimbarea lecției — nu la fiecare refresh al structurii (ex. moveLesson, fetch).
 	// Altfel `selectedLesson.content` din snapshot poate fi gol/diferit și rescrie ce scrie utilizatorul.
@@ -754,6 +826,7 @@ const AdminCourseBuilderPage = () => {
 		const initialContent = selectedLesson?.content || '';
 		setLessonContent(initialContent);
 		lastPersistedLessonContentRef.current = initialContent;
+		lastPersistedLessonUpdatedAtRef.current = selectedLesson?.updated_at || null;
 		setLessonSaveStatus(null);
 		// lessonEditorRefreshKey: forțează reîncărcarea conținutului după ce Volt aplică modificări
 		// pe lecția deja deschisă (id neschimbat → altfel editorul ar rămâne pe conținutul vechi).
@@ -801,7 +874,7 @@ const AdminCourseBuilderPage = () => {
 			if (!pending?.lessonId) return;
 			const { lessonId, content } = pending;
 			try {
-				await adminService.builderUpdateLesson(courseId, lessonId, { content });
+				await persistLessonContent(lessonId, content);
 				if (
 					pendingContentRef.current?.lessonId === lessonId &&
 					pendingContentRef.current?.content === content
@@ -990,6 +1063,8 @@ const AdminCourseBuilderPage = () => {
 	const handleValidateForPublish = useCallback(async () => {
 		if (!course?.id) return;
 		try {
+			await flushPendingLessonContentSave();
+			await flushAllInlineQuestionSaves();
 			const report = await adminService.builderValidateCourse(course.id);
 			setPublishValidationReport(report);
 			return report;
@@ -998,7 +1073,7 @@ const AdminCourseBuilderPage = () => {
 			showToast(e?.response?.data?.message || 'Nu am putut valida cursul.', 'error');
 			throw e;
 		}
-	}, [course?.id, showToast]);
+	}, [course?.id, flushPendingLessonContentSave, flushAllInlineQuestionSaves, showToast]);
 
 	const handleOpenPublishModal = async () => {
 		if (!course?.id || courseActionLoading) return;
@@ -1009,6 +1084,28 @@ const AdminCourseBuilderPage = () => {
 		} catch {
 			// Modal still opens; user can retry validation inside.
 		}
+	};
+
+	const handleFixPublishIssue = useCallback((issue) => {
+		if (!issue) return;
+		if (issue.kind === 'lesson' && issue.id) {
+			setSelectedLessonId(issue.id);
+			setShowTestCreator(false);
+		} else if (issue.kind === 'module' && issue.id) {
+			setSelectedModuleId(issue.id);
+			setShowTestCreator(false);
+		} else if (issue.kind === 'test' && issue.id) {
+			const row = courseAttachedTests.find((item) => Number(item.id) === Number(issue.id));
+			if (row?.test_id) {
+				loadInlineTestById(row.test_id);
+			}
+		}
+		setPublishModalOpen(false);
+	}, [courseAttachedTests, loadInlineTestById]);
+
+	const handlePreviewAsStudent = () => {
+		if (!course?.id) return;
+		window.open(`/courses/${course.id}`, '_blank', 'noopener,noreferrer');
 	};
 
 	const handleCoursePublished = async () => {
@@ -1037,328 +1134,16 @@ const AdminCourseBuilderPage = () => {
 		} finally {
 			setCourseActionLoading(false);
 		}
-	};	const getLessonContentFromPlanItem = (lessonItem) => {
-		if (!lessonItem || typeof lessonItem !== 'object') {
-			return '';
-		}
-
-		return String(lessonItem.content ?? lessonItem.body ?? lessonItem.html ?? '').trim();
-	};
-
-	const countLessonContentLines = (content) => {
-		const text = String(content ?? '').trim();
-		if (!text) return 0;
-
-		const normalized = text
-			.replace(/<br\s*\/?>(?![^<]*>)/gi, '\n')
-			.replace(/<br\s*\/?/gi, '\n')
-			.replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
-			.replace(/\r\n/g, '\n')
-			.replace(/\r/g, '\n');
-		const plain = normalized.replace(/<[^>]*>/g, ' ');
-		return plain
-			.split(/\n+/)
-			.map((line) => line.trim())
-			.filter(Boolean)
-			.length;
-	};
-
-	const validateVoltPlanStructure = (plan) => {
-		if (!plan || typeof plan !== 'object') {
-			return { valid: false, message: 'Volt nu a returnat un plan valid.' };
-		}
-
-		const operations = Array.isArray(plan.operations) ? plan.operations : [];
-		const courseUpdates = plan.course_updates && typeof plan.course_updates === 'object' ? plan.course_updates : null;
-		if (!courseUpdates && operations.length === 0) {
-			return { valid: false, message: 'Planul Volt nu conține schimbări aplicabile.' };
-		}
-
-		const lessonOperations = operations.filter((op) => {
-			if (!op || typeof op !== 'object') return false;
-			const opType = String(op.op || '').trim();
-			return (
-				opType === 'create_lesson' ||
-				opType === 'createLesson' ||
-				opType === 'update_lesson' ||
-				opType === 'updateLesson'
-			);
-		});
-
-		for (const lessonOp of lessonOperations) {
-			const opType = String(lessonOp.op || '').trim();
-			const content = getLessonContentFromPlanItem(lessonOp);
-			const lineCount = countLessonContentLines(content);
-			if (opType === 'create_lesson' || opType === 'createLesson') {
-				if (!content || lineCount < 4) {
-					return {
-						valid: false,
-						message: `Lecția "${lessonOp.title || 'fără titlu'}" nu are conținut suficient.`,
-					};
-				}
-			}
-
-			if (opType === 'update_lesson' || opType === 'updateLesson') {
-				if (content && lineCount < 4) {
-					return {
-						valid: false,
-						message: `Lecția "${lessonOp.title || 'fără titlu'}" are conținut prea scurt.`,
-					};
-				}
-			}
-		}
-
-		// Doar crearea unui modul NOU fără lecții este suspectă (modul gol).
-		// Update/redenumire/reordonare de module nu necesită lecții.
-		const createModuleWithoutLessons = operations.some((op) => {
-			if (!op || typeof op !== 'object') return false;
-			const opType = String(op.op || '').trim();
-			if (opType !== 'create_module' && opType !== 'createModule') return false;
-			const nestedLessons = Array.isArray(op.lessons) ? op.lessons : [];
-			return nestedLessons.length === 0 && lessonOperations.length === 0;
-		});
-
-		if (createModuleWithoutLessons) {
-			return {
-				valid: false,
-				message: 'Planul Volt creează un modul nou fără lecții. Cere-i lui Volt să includă conținut pentru modul.',
-			};
-		}
-
-		return { valid: true, operations, courseUpdates };
-	};
-
-	const handleApplyVoltPlan = async (planPayload) => {
-		const plan = planPayload?.plan ?? planPayload;
-		const validation = validateVoltPlanStructure(plan);
-		if (!validation.valid) {
-			showToast(validation.message, 'error');
-			return;
-		}
-
-		const { operations, courseUpdates } = validation;
-
-		// Anulează orice salvare automată în așteptare ca să nu suprascrie modificările lui Volt
-		// cu conținutul vechi din editor după ce planul e aplicat.
+	};	const handleApplyVoltPlan = async (planPayload) => {
 		if (contentSaveTimeoutRef.current) {
 			clearTimeout(contentSaveTimeoutRef.current);
 			contentSaveTimeoutRef.current = null;
 		}
 		pendingContentRef.current = null;
-
-		const allowedCourseKeys = [
-			'title',
-			'description',
-			'short_description',
-			'card_color',
-			'level',
-			'status',
-			'visibility',
-			'estimated_duration_hours',
-			'sequential_unlock',
-			'min_test_score',
-			'has_certificate',
-			'marketing_tags',
-		];
-		const filteredCourseUpdates = courseUpdates
-			? Object.fromEntries(
-				Object.entries(courseUpdates).filter(([key, value]) => allowedCourseKeys.includes(key) && value !== undefined)
-			)
-			: null;
-
-		const applyLessonsForModule = async (courseIdValue, moduleIdValue, lessons = []) => {
-			if (!Number.isFinite(Number(moduleIdValue)) || !Array.isArray(lessons) || lessons.length === 0) {
-				return 0;
-			}
-
-			let createdCount = 0;
-			for (const lessonItem of lessons) {
-				if (!lessonItem || typeof lessonItem !== 'object') continue;
-				const lessonContent = getLessonContentFromPlanItem(lessonItem);
-				if (!lessonContent) {
-					throw new Error(`Lecția "${lessonItem.title || 'fără titlu'}" nu are conținut.`);
-				}
-				if (countLessonContentLines(lessonContent) < 4) {
-					throw new Error(`Lecția "${lessonItem.title || 'fără titlu'}" are conținut prea scurt.`);
-				}
-				await adminService.builderCreateLesson(courseIdValue, {
-					module_id: Number(moduleIdValue),
-					title: lessonItem.title || 'Lecție nouă',
-					content: lessonContent,
-					status: lessonItem.status || 'draft',
-					order: lessonItem.order ?? undefined,
-					is_preview: lessonItem.is_preview ?? undefined,
-				});
-				createdCount += 1;
-			}
-
-			return createdCount;
-		};
-
 		setCourseActionLoading(true);
 		try {
-			if (filteredCourseUpdates && Object.keys(filteredCourseUpdates).length > 0) {
-				await adminService.updateCourse(courseId, filteredCourseUpdates);
-			}
-
-			const structureOps = [];
-			let appliedSteps = 0;
-
-			for (const rawOp of operations) {
-				if (!rawOp || typeof rawOp !== 'object') continue;
-				const opType = String(rawOp.op || '').trim();
-
-				if (opType === 'create_module' || opType === 'createModule') {
-					const modulePayload = {
-						title: rawOp.title || 'Modul nou',
-						description: rawOp.description || '',
-						status: rawOp.status || 'draft',
-						order: rawOp.order ?? undefined,
-					};
-					const createdModuleResponse = await adminService.builderCreateModule(courseId, modulePayload);
-					const createdModule = createdModuleResponse?.module
-						|| createdModuleResponse?.data?.module
-						|| createdModuleResponse?.data
-						|| createdModuleResponse;
-					const createdModuleId = Number(createdModule?.id || createdModule?.module_id || createdModuleResponse?.id);
-					appliedSteps++;
-
-					if (Number.isFinite(createdModuleId) && Array.isArray(rawOp.lessons)) {
-						for (const lessonItem of rawOp.lessons) {
-							if (!lessonItem || typeof lessonItem !== 'object') continue;
-							const lessonContent = getLessonContentFromPlanItem(lessonItem);
-							if (!lessonContent) {
-								throw new Error(`Lecția "${lessonItem.title || 'fără titlu'}" nu are conținut.`);
-							}
-							if (countLessonContentLines(lessonContent) < 4) {
-								throw new Error(`Lecția "${lessonItem.title || 'fără titlu'}" are conținut prea scurt.`);
-							}
-							await adminService.builderCreateLesson(courseId, {
-								module_id: createdModuleId,
-								title: lessonItem.title || 'Lecție nouă',
-								content: lessonContent,
-								status: lessonItem.status || 'draft',
-								order: lessonItem.order ?? undefined,
-								is_preview: lessonItem.is_preview ?? undefined,
-							});
-							appliedSteps++;
-						}
-					}
-					continue;
-				}
-
-				if (opType === 'update_module' || opType === 'updateModule') {
-					if (!rawOp.module_id) continue;
-					const payload = {};
-					if (rawOp.title !== undefined) payload.title = rawOp.title;
-					if (rawOp.description !== undefined) payload.description = rawOp.description;
-					if (rawOp.status !== undefined) payload.status = rawOp.status;
-					if (rawOp.order !== undefined) payload.order = rawOp.order;
-					if (Object.keys(payload).length > 0) {
-						await adminService.updateModule(rawOp.module_id, payload);
-						appliedSteps++;
-					}
-					if (Array.isArray(rawOp.lessons) && rawOp.lessons.length > 0) {
-						appliedSteps += await applyLessonsForModule(courseId, rawOp.module_id, rawOp.lessons);
-					}
-					continue;
-				}
-
-				if (opType === 'delete_module' || opType === 'deleteModule') {
-					if (!rawOp.module_id) continue;
-					await adminService.deleteModule(rawOp.module_id);
-					appliedSteps++;
-					continue;
-				}
-
-				if (opType === 'create_lesson' || opType === 'createLesson') {
-					const payload = {
-						module_id: rawOp.module_id ?? null,
-						title: rawOp.title || 'Lecție nouă',
-						content: getLessonContentFromPlanItem(rawOp),
-						status: rawOp.status || 'draft',
-						order: rawOp.order ?? undefined,
-						is_preview: rawOp.is_preview ?? undefined,
-					};
-					if (!payload.content) {
-						throw new Error(`Lecția "${payload.title}" nu are conținut.`);
-					}
-					if (countLessonContentLines(payload.content) < 4) {
-						throw new Error(`Lecția "${payload.title}" are conținut prea scurt.`);
-					}
-					await adminService.builderCreateLesson(courseId, payload);
-					appliedSteps++;
-					continue;
-				}
-
-				if (opType === 'update_lesson' || opType === 'updateLesson') {
-					if (!rawOp.lesson_id) continue;
-					const payload = {};
-					if (rawOp.title !== undefined) payload.title = rawOp.title;
-					if (rawOp.content !== undefined || rawOp.body !== undefined || rawOp.html !== undefined) {
-						payload.content = getLessonContentFromPlanItem(rawOp);
-					}
-					if (rawOp.status !== undefined) payload.status = rawOp.status;
-					if (rawOp.is_preview !== undefined) payload.is_preview = rawOp.is_preview;
-					if (rawOp.order !== undefined) payload.order = rawOp.order;
-					if (payload.content === '') {
-						throw new Error(`Lecția "${rawOp.title || 'fără titlu'}" nu are conținut.`);
-					}
-					if (countLessonContentLines(payload.content) < 4) {
-						throw new Error(`Lecția "${rawOp.title || 'fără titlu'}" are conținut prea scurt.`);
-					}
-					if (Object.keys(payload).length > 0) {
-						await adminService.builderUpdateLesson(courseId, rawOp.lesson_id, payload);
-						appliedSteps++;
-					}
-					continue;
-				}
-
-				if (opType === 'delete_lesson' || opType === 'deleteLesson') {
-					if (!rawOp.lesson_id) continue;
-					await adminService.deleteLesson(rawOp.lesson_id);
-					appliedSteps++;
-					continue;
-				}
-
-				if (opType === 'reorderModules' || opType === 'reorder_modules') {
-					if (Array.isArray(rawOp.module_ids) && rawOp.module_ids.length > 0) {
-						structureOps.push({ op: 'reorderModules', module_ids: rawOp.module_ids });
-					}
-					continue;
-				}
-
-				if (opType === 'reorderLessons' || opType === 'reorder_lessons') {
-					if (rawOp.module_id && Array.isArray(rawOp.lesson_ids) && rawOp.lesson_ids.length > 0) {
-						structureOps.push({
-							op: 'reorderLessons',
-							module_id: rawOp.module_id,
-							lesson_ids: rawOp.lesson_ids,
-						});
-					}
-					continue;
-				}
-
-				if (opType === 'moveLesson' || opType === 'move_lesson') {
-					if (rawOp.lesson_id && rawOp.to_module_id) {
-						structureOps.push({
-							op: 'moveLesson',
-							lesson_id: rawOp.lesson_id,
-							to_module_id: rawOp.to_module_id,
-							to_index: rawOp.to_index ?? 0,
-						});
-					}
-				}
-			}
-
-			if (structureOps.length > 0) {
-				await adminService.patchCourseBuilderStructure(courseId, structureOps);
-				appliedSteps += structureOps.length;
-			}
-
+			const { appliedSteps } = await applyVoltCoursePlan(courseId, planPayload);
 			const freshData = await fetchStructure(true);
-			// Sincronizează editorul deschis cu noul conținut salvat de Volt ÎNAINTE de remontare,
-			// altfel editorul ar afișa conținutul vechi (RTE nu recitește `value` după montare).
 			if (selectedLessonId != null) {
 				const freshLessons = Array.isArray(freshData?.lessons)
 					? freshData.lessons
@@ -1377,9 +1162,7 @@ const AdminCourseBuilderPage = () => {
 					lastPersistedLessonContentRef.current = freshContent;
 				}
 			}
-			// Forțează remontarea editorului cu conținutul proaspăt.
 			setLessonEditorRefreshKey((prev) => prev + 1);
-			setShowVoltAssistant(false);
 			showToast(`Volt a aplicat ${appliedSteps} schimbări în builder.`, 'success');
 		} catch (e) {
 			console.error('Volt plan apply failed:', e);
@@ -1390,19 +1173,58 @@ const AdminCourseBuilderPage = () => {
 	};
 
 	const handleLessonStatusToggle = async (lessonId, nextStatus) => {
+		if (nextStatus === 'draft') {
+			const lesson = allLessons.find((item) => Number(item.id) === Number(lessonId));
+			const title = lesson?.title || 'această lecție';
+			if (!window.confirm(`Retragi lecția „${title}” din publicare? Cursanții nu o vor mai vedea ca lecție publicată.`)) {
+				return;
+			}
+		}
 		try {
 			await adminService.builderUpdateLesson(courseId, lessonId, { status: nextStatus });
 			await fetchStructure(true);
-			showToast(nextStatus === 'published' ? 'Lectia a fost publicata.' : 'Lectia a fost retrasa din publicare.', 'success');
+			showToast(nextStatus === 'published' ? 'Lecția a fost publicată.' : 'Lecția a fost retrasă din publicare.', 'success');
 		} catch (e) {
 			console.error('Lesson status toggle failed:', e);
-			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul lectiei.', 'error');
+			showToast(e?.response?.data?.message || 'Nu am putut actualiza statusul lecției.', 'error');
+		}
+	};
+
+	const handleDuplicateLesson = async (lessonItem) => {
+		if (!lessonItem?.id) return;
+		try {
+			const result = await adminService.builderCreateLesson(courseId, {
+				module_id: lessonItem.module_id ?? null,
+				title: `${lessonItem.title || 'Lecție'} (copie)`,
+				content: lessonItem.content || '',
+				type: lessonItem.type || 'text',
+				video_url: lessonItem.video_url || null,
+				duration_minutes: lessonItem.duration_minutes || null,
+				status: 'draft',
+			});
+			const lesson = result?.lesson ?? result;
+			await fetchStructure(true);
+			if (lesson?.id) {
+				setSelectedLessonId(lesson.id);
+				setSelectedModuleId(lesson.module_id ?? lessonItem.module_id ?? null);
+				setShowTestCreator(false);
+			}
+			showToast('Lecția a fost duplicată ca ciornă.', 'success');
+		} catch (e) {
+			console.error('Duplicate lesson failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut duplica lecția.', 'error');
 		}
 	};
 
 	const handleTestStatusToggle = async (courseTestItem, nextStatus) => {
 		const testId = courseTestItem?.test_id;
 		if (!testId) return;
+		if (nextStatus === 'draft') {
+			const title = courseTestItem?.test?.title || `Test #${testId}`;
+			if (!window.confirm(`Retragi testul „${title}” din publicare? Cursanții nu îl vor mai putea începe ca test publicat.`)) {
+				return;
+			}
+		}
 		try {
 			await adminService.updateTest(testId, { status: nextStatus });
 			setCourseAttachedTests((prev) =>
@@ -1627,6 +1449,7 @@ const AdminCourseBuilderPage = () => {
 										setSelectedModuleId(moduleItem?.id ?? null);
 										setSelectedLessonId(lessonItem.id);
 										setShowTestCreator(false);
+										closeOutlineIfMobile();
 									}}
 								>
 									<span className="admin-course-builder-sidebar-lesson-num">{currentStep}</span>
@@ -1634,28 +1457,15 @@ const AdminCourseBuilderPage = () => {
 										{lessonItem.title || `Lecție ${currentStep}`}
 									</span>
 								</button>
-								<button
-									type="button"
-									className={`admin-course-builder-sidebar-lesson-icon-btn ${lessonItem.status === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
-									onClick={() => handleLessonStatusToggle(lessonItem.id, lessonItem.status === 'published' ? 'draft' : 'published')}
-									title={lessonItem.status === 'published' ? 'Publicată — click pentru a retrage' : 'Ciornă — click pentru a publica'}
-									aria-label={lessonItem.status === 'published' ? 'Lecție publicată' : 'Lecție nepublicată'}
-								>
-									{lessonItem.status === 'published' ? (
-										<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-									) : (
-										<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-									)}
-								</button>
-								<button
-									type="button"
-									className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-									onClick={() => handleDeleteLesson(lessonItem)}
-									title="Șterge lecția"
-									aria-label="Șterge lecția"
-								>
-									<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-								</button>
+								<OutlineItemMenu
+									statusPublished={lessonItem.status === 'published'}
+									statusNoun="lecție"
+									onPublish={() => handleLessonStatusToggle(lessonItem.id, 'published')}
+									onUnpublish={() => handleLessonStatusToggle(lessonItem.id, 'draft')}
+									onDuplicate={() => handleDuplicateLesson(lessonItem)}
+									onDelete={() => handleDeleteLesson(lessonItem)}
+									deleteLabel="Șterge"
+								/>
 							</div>
 						</li>
 					</React.Fragment>
@@ -1697,37 +1507,24 @@ const AdminCourseBuilderPage = () => {
 							<button
 								type="button"
 								className="admin-course-builder-sidebar-test-main"
-								onClick={() => loadInlineTestById(courseTestItem.test_id)}
+								onClick={() => {
+									loadInlineTestById(courseTestItem.test_id);
+									closeOutlineIfMobile();
+								}}
 							>
 								<span className="admin-course-builder-sidebar-test-tag">Test</span>
 								<span className="admin-course-builder-sidebar-test-title">
 									{courseTestItem?.test?.title || `Test #${courseTestItem.test_id}`}
 								</span>
 							</button>
-							<button
-								type="button"
-								className={`admin-course-builder-sidebar-lesson-icon-btn ${testStatus === 'published' ? 'is-lesson-published' : 'is-lesson-draft'}`}
-								onClick={() => handleTestStatusToggle(courseTestItem, testStatus === 'published' ? 'draft' : 'published')}
-								title={testStatus === 'published' ? 'Publicat — click pentru a retrage' : 'Ciornă — click pentru a publica'}
-								aria-label={testStatus === 'published' ? 'Test publicat' : 'Test nepublicat'}
-							>
-								{testStatus === 'published' ? (
-									<Eye aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-								) : (
-									<EyeSlash aria-hidden="true" size={17} weight="bold" color="#2563eb" />
-								)}
-							</button>
-							{canMutateInAdminArea ? (
-								<button
-									type="button"
-									className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-									onClick={() => handleDetachTestFromCourse(courseTestItem)}
-									title="Elimină testul din curs"
-									aria-label="Elimină testul din curs"
-								>
-									<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-								</button>
-							) : null}
+							<OutlineItemMenu
+								statusPublished={testStatus === 'published'}
+								statusNoun="test"
+								onPublish={() => handleTestStatusToggle(courseTestItem, 'published')}
+								onUnpublish={() => handleTestStatusToggle(courseTestItem, 'draft')}
+								onDelete={canMutateInAdminArea ? () => handleDetachTestFromCourse(courseTestItem) : undefined}
+								deleteLabel="Elimină din curs"
+							/>
 						</div>
 					</li>
 				</React.Fragment>
@@ -1768,6 +1565,14 @@ const AdminCourseBuilderPage = () => {
 			}`}
 		>
 			<div className="admin-course-builder-layout admin-course-builder-layout-clean">
+				{builderSidebarVisible && (
+					<button
+						type="button"
+						className="admin-course-builder-mobile-outline-backdrop"
+						aria-label="Închide structura cursului"
+						onClick={() => setBuilderSidebarVisible(false)}
+					/>
+				)}
 				<aside
 					className={`admin-course-builder-sidebar admin-course-builder-sidebar-clean admin-course-builder-sidebar-detached ${
 						builderSidebarVisible ? 'is-visible' : 'is-hidden'
@@ -1827,19 +1632,6 @@ const AdminCourseBuilderPage = () => {
 												}}
 											>
 												Test nou
-											</button>
-											<button
-												type="button"
-												onClick={() => {
-													setQuickAddMenuOpen(false);
-													if (isVoltEnabled()) {
-														setShowVoltTestModal(true);
-													} else {
-														notifyVoltComingSoon(showToast);
-													}
-												}}
-											>
-												Test cu Volt
 											</button>
 										</div>
 									)}
@@ -2039,48 +1831,60 @@ const AdminCourseBuilderPage = () => {
 
 					<div className="admin-course-builder-sidebar-footer">
 						<div className="admin-course-builder-actions admin-course-builder-actions-in-sidebar">
-							<span className={`admin-course-builder-course-status-badge is-${String(course?.status || 'draft')}`}>
-								{course?.status === 'published' ? 'Publicat' : 'Ciornă'}
-							</span>
-							<button
-								type="button"
-								className="admin-btn admin-btn-secondary"
-								onClick={handleRunQualityAudit}
-								disabled={qualityAuditLoading}
-							>
-								{qualityAuditLoading ? 'QA...' : 'QA Volt'}
-							</button>
-							{course?.status !== 'published' && (
-								<button
-									type="button"
-									className="admin-btn admin-btn-primary"
-									onClick={() => handleCourseStatusAction('publish')}
-									disabled={courseActionLoading}
-								>
-									{courseActionLoading ? 'Se procesează...' : 'Publică'}
-								</button>
-							)}
-							{course?.status === 'published' && (
-								<button
-									type="button"
-									className="admin-btn admin-btn-secondary"
-									onClick={() => handleCourseStatusAction('unpublish')}
-									disabled={courseActionLoading}
-								>
-									{courseActionLoading ? 'Se procesează...' : 'Retrage'}
-								</button>
-							)}
-							<button
-								type="button"
-								className="admin-course-builder-sidebar-lesson-icon-btn is-danger is-delete"
-								onClick={handleDeleteCourse}
-								disabled={courseActionLoading}
-								title="Șterge curs"
-								aria-label="Șterge curs"
-							>
-								<Trash aria-hidden="true" size={17} weight="bold" color="#dc2626" />
-							</button>
-<AutoSaveIndicator status={lessonSaveStatus} />
+							{(() => {
+								const canPublish = !isCoursePublished || hasUnpublishedEdits;
+								return (
+									<>
+										<div className="admin-course-builder-publish-state">
+											<span className={`admin-course-builder-course-status-badge is-${String(course?.status || 'draft')}${hasUnpublishedEdits ? ' is-editing' : ''}`}>
+												{coursePublishStatusLabel}
+											</span>
+											<p className="admin-course-builder-publish-state-copy">{coursePublishStatusHint}</p>
+											<AutoSaveIndicator
+												status={lessonSaveStatus}
+												liveHint={hasUnpublishedEdits}
+												onRetry={flushPendingLessonContentSave}
+											/>
+										</div>
+										{canPublish ? (
+											<button
+												type="button"
+												className="admin-btn admin-btn-primary admin-course-builder-actions-primary"
+												onClick={() => handleCourseStatusAction('publish')}
+												disabled={courseActionLoading}
+											>
+												{courseActionLoading ? 'Se procesează…' : hasUnpublishedEdits ? 'Publică modificările' : 'Publică'}
+											</button>
+										) : null}
+										<button
+											type="button"
+											className="admin-btn admin-btn-secondary"
+											onClick={handlePreviewAsStudent}
+										>
+											Previzualizează ca elev
+										</button>
+										{isCoursePublished ? (
+											<button
+												type="button"
+												className="admin-btn admin-btn-secondary admin-course-builder-actions-unpublish"
+												onClick={() => handleCourseStatusAction('unpublish')}
+												disabled={courseActionLoading}
+											>
+												{courseActionLoading ? 'Se procesează…' : 'Retrage'}
+											</button>
+										) : null}
+										<button
+											type="button"
+											className="admin-course-builder-actions-delete"
+											onClick={handleDeleteCourse}
+											disabled={courseActionLoading}
+										>
+											<Trash aria-hidden="true" size={16} weight="bold" color="#dc2626" />
+											Șterge curs
+										</button>
+									</>
+								);
+							})()}
 						</div>
 					</div>
 				</aside>
@@ -2089,16 +1893,38 @@ const AdminCourseBuilderPage = () => {
 						type="button"
 						className="admin-course-builder-sidebar-show-btn"
 						onClick={() => setBuilderSidebarVisible(true)}
-						aria-label="Afișează meniul builder"
-						title="Afișează meniul builder"
+						aria-label="Afișează structura cursului"
+						title="Structură curs"
 					>
 						<span className="admin-course-builder-icon-wrap" aria-hidden="true">
 							<CaretDoubleRight size={16} weight="bold" color="currentColor" aria-hidden="true" />
 						</span>
+						<span className="admin-course-builder-sidebar-show-label">Structură</span>
 					</button>
 				)}
 
 				<div className="admin-course-builder-workspace admin-course-builder-workspace-clean">
+					<div className={`admin-course-builder-live-banner is-${hasUnpublishedEdits ? 'editing' : isCoursePublished ? 'live' : 'draft'}`}>
+						<div className="admin-course-builder-live-banner-copy">
+							<strong>{coursePublishStatusLabel}</strong>
+							<p>{coursePublishStatusHint}</p>
+						</div>
+						<div className="admin-course-builder-live-banner-actions">
+							<button type="button" className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
+								Previzualizează ca elev
+							</button>
+							{!isCoursePublished || hasUnpublishedEdits ? (
+								<button
+									type="button"
+									className="admin-btn admin-btn-primary"
+									onClick={() => handleCourseStatusAction('publish')}
+									disabled={courseActionLoading}
+								>
+									{courseActionLoading ? 'Se procesează…' : hasUnpublishedEdits ? 'Publică modificările' : 'Publică'}
+								</button>
+							) : null}
+						</div>
+					</div>
 					<div className="admin-course-builder-workspace-content">
 						{qualityAuditReport && (
 							<section className="admin-course-builder-qa-panel">
@@ -2210,67 +2036,18 @@ const AdminCourseBuilderPage = () => {
 				</div>
 			</div>
 
-			<button
-				type="button"
-				className={`admin-course-builder-volt-fab${isVoltEnabled() ? '' : ' admin-course-builder-volt-fab--soon'}`}
-				onClick={() => (isVoltEnabled() ? setShowVoltAssistant(true) : notifyVoltComingSoon(showToast))}
-				title={isVoltEnabled() ? 'Deschide Volt pentru Builder' : 'Volt va fi disponibil în curând'}
-				aria-label={isVoltEnabled() ? 'Volt — deschide asistentul' : 'Volt — va fi disponibil în curând'}
-			>
-				<span className="admin-course-builder-volt-fab-glow" aria-hidden="true" />
-				<span className="admin-course-builder-volt-fab-label" aria-hidden="true">
-					<Lightning size={20} weight="fill" className="admin-course-builder-volt-fab-icon" />
-				</span>
-				<span className="admin-course-builder-volt-fab-copy">
-					<span className="admin-course-builder-volt-fab-text">Volt</span>
-					{!isVoltEnabled() && <span className="admin-course-builder-volt-fab-badge">În curând</span>}
-				</span>
-			</button>
-
-			{showVoltAssistant && (
-				<div className="ai-chat-modal-overlay">
-					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
-						<AICourseChat
-							initialCourseId={courseId}
-							selectedModuleId={selectedModuleId}
-							selectedLessonId={selectedLessonId}
-							selectedLessonDraft={
-								selectedLesson
-									? {
-										id: selectedLesson.id,
-										title: selectedLesson.title || '',
-										content: lessonContent || '',
-									}
-									: null
-							}
-							mode="assist"
-							title="⚡ Volt pentru Builder"
-                        welcomeMessage={`Sunt Volt. Lucrezi la cursul "${course?.title || 'cursul curent'}". Știu structura curentă (module, lecții, conținut) și pot modifica doar ce e nevoie. Dacă ai o lecție selectată, o prioritizez.`}
-							showPlanPreview={false}
-							autoApplyPlan={true}
-							onPlanGenerated={() => {}}
-							onApplyPlan={handleApplyVoltPlan}
-							onClose={() => setShowVoltAssistant(false)}
-						/>
-					</div>
-				</div>
-			)}
-
-			<AITestGenerateModal
-				open={showVoltTestModal}
-				onClose={() => setShowVoltTestModal(false)}
-				onSaved={handleVoltTestSaved}
-				presetCourseId={courseId}
-				presetCourseData={course}
-				attachByDefault
-				initialScope={selectedVoltTestScope.scope}
-				initialScopeId={selectedVoltTestScope.scopeId}
-			/>
-
 			{showCreateTestModal && (
-				<div className="admin-course-builder-test-modal-overlay">
-					<div className="admin-course-builder-test-modal" onClick={(e) => e.stopPropagation()}>
-						<h3>Creează test</h3>
+				<Modal
+					isOpen={showCreateTestModal}
+					onClose={() => { if (!creatingTestFromModal) setShowCreateTestModal(false); }}
+					closeOnBackdropClick={!creatingTestFromModal}
+					closeOnEscape={!creatingTestFromModal}
+					ariaLabelledby="inline-test-modal-heading"
+					className="admin-course-builder-test-modal-overlay"
+					unstyledContent
+				>
+					<div className="admin-course-builder-test-modal">
+						<h3 id="inline-test-modal-heading">Creează test</h3>
 						<form onSubmit={handleCreateTestFromModal} className="admin-course-builder-test-modal-form">
 							<label htmlFor="inline-test-modal-title">Titlu test *</label>
 							<input
@@ -2279,7 +2056,9 @@ const AdminCourseBuilderPage = () => {
 								value={createTestTitle}
 								onChange={(e) => setCreateTestTitle(e.target.value)}
 								placeholder="Ex: Evaluare modul 1"
-								autoFocus
+								data-modal-initial-focus
+								required
+								aria-required="true"
 							/>
 							<div className="admin-course-builder-test-modal-actions">
 								<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowCreateTestModal(false)} disabled={creatingTestFromModal}>
@@ -2291,19 +2070,19 @@ const AdminCourseBuilderPage = () => {
 							</div>
 						</form>
 					</div>
-				</div>
+				</Modal>
 			)}
 
 			<PublishCourseModal
 				open={publishModalOpen}
 				onClose={() => {
 					setPublishModalOpen(false);
-					setPublishValidationReport(null);
 				}}
 				course={course}
 				validationReport={publishValidationReport}
 				onValidate={handleValidateForPublish}
 				onPublished={handleCoursePublished}
+				onFixIssue={handleFixPublishIssue}
 			/>
 
 		</div>

@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../components/common/ConfirmModal';
-import AITestGenerateModal from '../tests/AITestGenerateModal';
-import { isVoltEnabled } from '../../../utils/voltAvailability';
 import './CourseTestsManager.css';
 
 const TYPE_LABELS = { final: 'Test final' };
 
 const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
-	const navigate = useNavigate();
 	const { showToast } = useToast();
 	const [availableTests, setAvailableTests] = useState([]);
 	const [linkedTests, setLinkedTests] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [showLinkModal, setShowLinkModal] = useState(false);
-	const [showVoltTestModal, setShowVoltTestModal] = useState(false);
 	const [selectedTest, setSelectedTest] = useState(null);
 	const [linkOptions, setLinkOptions] = useState({
 		scope: 'course',
@@ -128,16 +123,6 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 		setShowLinkModal(true);
 	};
 
-	const handleVoltTestSaved = (test) => {
-		setShowVoltTestModal(false);
-		showToast('Test generat și atașat cu succes', 'success');
-		fetchData();
-		onUpdate?.();
-		if (test?.id) {
-			navigate(`/admin/tests/${test.id}/builder?section=questions`);
-		}
-	};
-
 	return (
 		<div className="course-tests-manager">
 			<div className="course-tests-header">
@@ -146,15 +131,6 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 					<p>Gestionează testele atribuite acestui curs</p>
 				</div>
 				<div className="course-tests-header-actions">
-					{isVoltEnabled() ? (
-						<button
-							className="admin-btn admin-btn-secondary"
-							onClick={() => setShowVoltTestModal(true)}
-							type="button"
-						>
-							⚡ Generează cu Volt și atașează
-						</button>
-					) : null}
 					<button
 						className="admin-btn admin-btn-primary"
 						onClick={openLinkModal}
@@ -379,15 +355,6 @@ const CourseTestsManager = ({ courseId, courseData, onUpdate }) => {
 				cancelLabel="Anulare"
 				variant="danger"
 				loading={unlinkLoading}
-			/>
-
-			<AITestGenerateModal
-				open={showVoltTestModal}
-				onClose={() => setShowVoltTestModal(false)}
-				onSaved={handleVoltTestSaved}
-				presetCourseId={courseId}
-				presetCourseData={courseData}
-				attachByDefault
 			/>
 		</div>
 	);

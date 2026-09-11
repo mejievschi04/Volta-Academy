@@ -154,7 +154,7 @@
 	--font-size-5xl: 2.5rem;    /* 40px */
 	--font-size-6xl: 3rem;      /* 48px */
 	--font-size-display: 3rem;  /* 48px - Hero headings */
-	--font-size-caption: 0.6875rem; /* 11px - Caption text */
+	--font-size-caption: 0.75rem; /* 12px */
 
 	--font-weight-normal: 400;
 	--font-weight-medium: 500;
@@ -370,6 +370,29 @@ a:hover {
 		--transition-fast: 0ms;
 		--transition-base: 0ms;
 		--transition-smooth: 0ms;
+	}
+}
+
+@media (max-width: 768px) {
+	:root {
+		--transition-fast: 0ms;
+		--transition-base: 0ms;
+		--transition-smooth: 0ms;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+	}
+
+	[class*='spinner'],
+	[class*='spinner']::before,
+	[class*='spinner']::after {
+		animation: spin 0.7s linear infinite !important;
 	}
 }
 

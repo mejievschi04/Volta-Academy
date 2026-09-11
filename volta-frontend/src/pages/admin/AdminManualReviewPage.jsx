@@ -24,7 +24,7 @@ export default function AdminManualReviewPage() {
 		<div className="admin-manual-review-page admin-tests-page">
 			<header className="admin-tests-header">
 				<div>
-					<h1>Verificare manuală</h1>
+					<h1>De corectat</h1>
 					<p className="admin-tests-header-lead">Coadă unică pentru examene și teste cu răspunsuri deschise.</p>
 				</div>
 			</header>

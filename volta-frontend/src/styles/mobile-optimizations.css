@@ -6527,22 +6527,43 @@
 	.va-shell .sidebar-mobile-close { min-width: 44px; min-height: 44px; }
 }
 
-/* Keep lesson controls visible above global navigation in both lesson readers. */
+/* Keep lesson controls on the screen, aligned to the A4 lesson sheet. */
+.va-shell {
+	--lesson-nav-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+	--lesson-sheet-width: 900px;
+	--lesson-sidebar-width: 0px;
+}
+.va-shell .lessons-page-player-layout {
+	--lesson-sidebar-width: 320px;
+}
+.va-shell .lesson-page-main .lesson-page-actions {
+	--lesson-sheet-width: 1200px;
+}
 .va-shell .lessons-page-lesson-viewer .lessons-page-lesson-actions,
 .va-shell .lesson-page-main .lesson-page-actions {
-	position: sticky;
-	bottom: 0;
+	position: fixed;
+	left: calc(var(--lesson-sidebar-width) + (100vw - var(--lesson-sidebar-width)) / 2);
+	right: auto;
+	bottom: var(--lesson-nav-bottom);
 	z-index: 80;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
+	width: min(var(--lesson-sheet-width), calc(100vw - var(--lesson-sidebar-width)));
+	max-width: var(--lesson-sheet-width);
+	transform: translateX(-50%);
 	padding: 16px;
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-primary);
 	border-radius: 16px;
 	box-shadow: 0 -4px 20px rgb(0 0 0 / 12%);
+	box-sizing: border-box;
+}
+.va-shell .lessons-page-lesson-viewer,
+.va-shell .lesson-page-main {
+	padding-bottom: 128px;
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn,
 .va-shell .lesson-page-actions .lesson-page-btn,
@@ -6577,16 +6598,21 @@
 .va-shell .lessons-page-lesson-actions .lessons-page-nav-btn:disabled { opacity: .45; cursor: not-allowed; }
 .va-shell .lesson-page-actions button:focus-visible,
 .va-shell .lessons-page-lesson-actions button:focus-visible { outline: 3px solid var(--text-primary); outline-offset: 3px; }
+@media (max-width: 1024px) {
+	.va-shell .lessons-page-player-layout {
+		--lesson-sidebar-width: 280px;
+	}
+}
 @media (max-width: 768px) {
+	.va-shell .lessons-page-player-layout,
+	.va-shell {
+		--lesson-sidebar-width: 0px;
+	}
 	.va-shell .lessons-page-lesson-viewer .lessons-page-lesson-actions,
 	.va-shell .lesson-page-main .lesson-page-actions {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: var(--student-tab-height, 0px);
-		margin: 0;
-		padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
-		border-radius: 16px 16px 0 0;
+		--lesson-nav-bottom: var(--student-tab-height, 0px);
+		width: min(var(--lesson-sheet-width), calc(100vw - 24px));
+		padding: 12px;
 		flex-wrap: nowrap;
 	}
 	.va-shell .lesson-page-actions .lesson-page-completed-badge { display: none; }

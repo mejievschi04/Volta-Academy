@@ -108,10 +108,7 @@ class StudentDashboardController extends Controller
                     $progress = $this->getCourseProgress($user, $course);
                     return $progress >= 100;
                 })->count(),
-                'total_lessons_completed' => DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('completed', true)
-                    ->count(),
+                'total_lessons_completed' => count($this->completedLessonIds),
                 'total_exams_passed' => $this->getTotalExamsPassed($user),
             ],
         ]);
@@ -241,6 +238,14 @@ class StudentDashboardController extends Controller
             $nextLesson = $this->progressService->getNextIncompleteLesson($user, $course);
             
             if ($nextLesson) {
+                $orderedLessonIds = [];
+                foreach ($course->modules as $module) {
+                    foreach ($module->lessons->sortBy('order')->values() as $lesson) {
+                        $orderedLessonIds[] = (int) $lesson->id;
+                    }
+                }
+                $lessonIndex = array_search((int) $nextLesson->id, $orderedLessonIds, true);
+
                 return [
                     'id' => $nextLesson->id,
                     'title' => $nextLesson->title,
@@ -251,6 +256,8 @@ class StudentDashboardController extends Controller
                     'type' => $nextLesson->type,
                     'duration_minutes' => $nextLesson->duration_minutes,
                     'is_preview' => $nextLesson->is_preview ?? false,
+                    'lesson_number' => $lessonIndex === false ? null : $lessonIndex + 1,
+                    'lesson_count' => count($orderedLessonIds),
                 ];
             }
         }
@@ -327,23 +334,29 @@ class StudentDashboardController extends Controller
     {
         $pendingExams = [];
 
-        foreach ($courses as $course) {
-            $modules = $course->modules;
-            $modules->load(['courseTests' => fn ($q) => $q->where('scope', 'module'),
-                'courseTests.test' => fn ($q) => $q->where('status', 'published')]);
-            $courseTests = CourseTest::where('course_id', $course->id)
-                ->where('scope', 'course')
-                ->with(['test' => fn ($q) => $q->where('status', 'published')])
-                ->get();
+        $publishedView = app(\App\Services\PublishedCourseView::class);
+        $testsByCourseId = CourseTest::query()
+            ->whereIn('course_id', $courses->pluck('id'))
+            ->whereIn('scope', ['module', 'course'])
+            ->with(['test' => fn ($q) => $q->where('status', 'published')])
+            ->get()
+            ->groupBy(fn ($row) => (int) $row->course_id);
 
-            foreach ($modules as $module) {
-                // Process module-level tests
-                foreach ($module->courseTests as $courseTest) {
+        foreach ($courses as $course) {
+            $courseTestRows = $testsByCourseId->get($course->id, collect());
+            $moduleTestsByModuleId = $courseTestRows->where('scope', 'module')->groupBy('scope_id');
+            $courseTests = $courseTestRows->where('scope', 'course');
+
+            foreach ($course->modules as $module) {
+                foreach ($moduleTestsByModuleId->get($module->id, collect()) as $courseTest) {
                     if (!$courseTest->test || $courseTest->test->status !== 'published') {
                         continue;
                     }
                     
                     $test = $courseTest->test;
+                    if (! $publishedView->learnerMayAccessLinkedTest($course, (int) $test->id, request())) {
+                        continue;
+                    }
                     
                     // Check if test is unlocked
                     try {
@@ -385,6 +398,9 @@ class StudentDashboardController extends Controller
                     }
                     
                     $test = $courseTest->test;
+                    if (! $publishedView->learnerMayAccessLinkedTest($course, (int) $test->id, request())) {
+                        continue;
+                    }
                     
                     // For course-level tests
                     try {

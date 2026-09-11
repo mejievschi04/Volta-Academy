@@ -15,6 +15,7 @@ use App\Support\StudentActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CourseProgressController extends Controller
 {
@@ -250,6 +251,12 @@ class CourseProgressController extends Controller
 
             $course = Course::findOrFail($courseId);
 
+            if (! LearningVisibility::isStaff($user) && ($course->status ?? '') !== 'published') {
+                return response()->json([
+                    'message' => 'Cursul nu este disponibil pentru înscriere.',
+                ], 403);
+            }
+
             $existing = DB::table('course_user')
                 ->where('user_id', $user->id)
                 ->where('course_id', $course->id)
@@ -341,6 +348,13 @@ class CourseProgressController extends Controller
             }
 
             $this->progressService->calculateCourseProgress($user, $course);
+
+            $enrolled = LearningVisibility::isEnrolledInCourse($user, (int) $course->id);
+            if (! $enrolled && ! $user->isLearningActivityExempt()) {
+                return response()->json([
+                    'message' => 'Nu ești înscris la acest curs.',
+                ], 403);
+            }
 
             // Aceleași reguli ca isCourseComplete: toate lecțiile + toate testele publicate din course_test
             if (!$this->progressService->isCourseComplete($user, $course)) {
@@ -459,6 +473,13 @@ class CourseProgressController extends Controller
                     'updated_at' => now(),
                 ]
             );
+            $enrollment = true;
+        }
+
+        if (! $enrollment && ! LearningVisibility::isStaff($user)) {
+            return response()->json([
+                'message' => 'Nu ești înscris la acest curs.',
+            ], 403);
         }
 
         $isUnlocked = $this->progressService->isLessonUnlocked($user, $lesson, $module, $course);
@@ -487,6 +508,10 @@ class CourseProgressController extends Controller
     {
         $user = Auth::user();
         $module = Module::with('course')->findOrFail($moduleId);
+        $course = $module->course;
+        if (! $this->learnerMayQueryCourseProgress($user, $course)) {
+            return response()->json(['message' => 'Nu ai acces la acest modul.'], 403);
+        }
         if ($user->isLearningActivityExempt()) {
             return response()->json([
                 'unlocked' => true,
@@ -511,6 +536,9 @@ class CourseProgressController extends Controller
         $user = Auth::user();
         $lesson = Lesson::with(['module', 'module.course', 'course'])->findOrFail($lessonId);
         $course = $lesson->module?->course ?: $lesson->course;
+        if (! $this->learnerMayQueryCourseProgress($user, $course, $lesson)) {
+            return response()->json(['message' => 'Nu ai acces la această lecție.'], 403);
+        }
         if ($user->isLearningActivityExempt()) {
             return response()->json([
                 'unlocked' => true,
@@ -577,6 +605,9 @@ class CourseProgressController extends Controller
             }
 
             $course = Course::findOrFail($courseId);
+            if (! $this->learnerMayQueryCourseProgress($user, $course)) {
+                return response()->json(['message' => 'Nu ești înscris la acest curs.'], 403);
+            }
             $isUnlocked = $this->progressService->isTestUnlocked($user, $test, $course);
             $courseTest = \App\Models\CourseTest::where('test_id', $test->id)
                 ->where('course_id', $courseId)
@@ -607,7 +638,7 @@ class CourseProgressController extends Controller
     public function updateLessonProgress(Request $request, $lessonId)
     {
         $user = Auth::user();
-        $lesson = Lesson::findOrFail($lessonId);
+        $lesson = Lesson::with(['module.course', 'course'])->findOrFail($lessonId);
 
         if ($user->isLearningActivityExempt()) {
             return response()->json([
@@ -617,6 +648,31 @@ class CourseProgressController extends Controller
                 'completed' => false,
                 'auto_completed' => false,
             ]);
+        }
+
+        $course = $lesson->module?->course ?: $lesson->course;
+        if (! $course) {
+            return response()->json(['message' => 'Lecția nu aparține unui curs.'], 400);
+        }
+
+        $coursePublished = ($course->status ?? '') === 'published';
+        $isPreview = (bool) ($lesson->is_preview ?? false);
+        if (! $coursePublished && ! $isPreview) {
+            return response()->json(['message' => 'Lecția nu este disponibilă.'], 403);
+        }
+
+        $enrolled = false;
+        if (Schema::hasTable('course_user')) {
+            $enrolledQuery = \DB::table('course_user')
+                ->where('course_id', $course->id)
+                ->where('user_id', $user->id);
+            if (Schema::hasColumn('course_user', 'enrolled')) {
+                $enrolledQuery->where('enrolled', true);
+            }
+            $enrolled = $enrolledQuery->exists();
+        }
+        if (! $enrolled && ! $isPreview) {
+            return response()->json(['message' => 'Nu ești înscris la acest curs.'], 403);
         }
 
         $validated = $request->validate([
@@ -656,6 +712,16 @@ class CourseProgressController extends Controller
         $shouldAutoComplete = $progressPercentage >= 100 || $lastMilestoneReached >= 100;
         $didAutoCompleteNow = false;
 
+        $module = $lesson->module;
+        if (! LearningVisibility::isStaff($user)
+            && ! $this->progressService->isLessonUnlocked($user, $lesson, $module, $course)
+        ) {
+            return response()->json([
+                'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
+                'locked' => true,
+            ], 403);
+        }
+
         if ($shouldAutoComplete && ! $isAlreadyCompleted) {
             $lesson->loadMissing(['module.course', 'course']);
             $course = $lesson->module?->course ?: $lesson->course;
@@ -674,7 +740,9 @@ class CourseProgressController extends Controller
         if (!empty($validated['add_time_spent_seconds'])) {
             $timeSpent = $existingTime + min(7200, max(0, (int) $validated['add_time_spent_seconds']));
         } elseif (array_key_exists('time_spent_seconds', $validated) && $validated['time_spent_seconds'] !== null) {
-            $timeSpent = max((int) $validated['time_spent_seconds'], $existingTime);
+            $incomingTime = max(0, (int) $validated['time_spent_seconds']);
+            $timeSpent = min($incomingTime, $existingTime + 7200);
+            $timeSpent = max($timeSpent, $existingTime);
         } else {
             $timeSpent = $existingTime;
         }
@@ -715,7 +783,22 @@ class CourseProgressController extends Controller
             'auto_completed' => $didAutoCompleteNow,
         ]);
     }
+
+    private function learnerMayQueryCourseProgress($user, ?Course $course, ?Lesson $lesson = null): bool
+    {
+        if (! $user) {
+            return false;
+        }
+        if ($user->isLearningActivityExempt() || LearningVisibility::isStaff($user)) {
+            return true;
+        }
+        if (! $course || ! LearningVisibility::courseVisibleToLearner($user, $course)) {
+            return false;
+        }
+        if ($lesson && (bool) ($lesson->is_preview ?? false) && ($lesson->status ?? 'draft') === 'published') {
+            return true;
+        }
+
+        return LearningVisibility::isEnrolledInCourse($user, (int) $course->id);
+    }
 }
-
-
-

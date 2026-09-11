@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
+import Modal from '../../common/Modal';
 import { courseCoverSrc } from '../../../utils/imageUrl';
 import '../../../styles/admin-course-builder.css';
 
@@ -118,9 +119,17 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 	if (!open || !course?.id) return null;
 
 	return (
-		<div className="admin-course-builder-test-modal-overlay">
-			<div className="admin-course-builder-test-modal admin-course-builder-course-edit-modal" onClick={(e) => e.stopPropagation()}>
-				<h3>Editare curs</h3>
+		<Modal
+			isOpen={open}
+			onClose={onClose}
+			closeOnBackdropClick={!courseEditSaving}
+			closeOnEscape={!courseEditSaving}
+			ariaLabelledby="course-settings-edit-heading"
+			className="admin-course-builder-test-modal-overlay"
+			unstyledContent
+		>
+			<div className="admin-course-builder-test-modal admin-course-builder-course-edit-modal">
+				<h3 id="course-settings-edit-heading">Editare curs</h3>
 				<div className="admin-course-builder-test-modal-form admin-course-builder-course-edit-form">
 					<div className="admin-course-builder-course-edit-grid">
 						<div className="admin-course-builder-course-edit-field">
@@ -132,6 +141,9 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, title: e.target.value }))}
 								placeholder="Titlu curs"
 								disabled={courseEditSaving}
+								data-modal-initial-focus
+								required
+								aria-required="true"
 							/>
 						</div>
 						<div className="admin-course-builder-course-edit-field">
@@ -354,7 +366,7 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 					</button>
 				</div>
 			</div>
-		</div>
+		</Modal>
 	);
 };
 

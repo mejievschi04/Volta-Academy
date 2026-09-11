@@ -31,7 +31,6 @@ const LoginPage = () => {
 	// Prefetch likely post-login routes for instant navigation
 	useEffect(() => {
 		prefetchRoute('/courses');
-		prefetchRoute('/admin');
 	}, []);
 
 	const handleSubmit = async (e) => {

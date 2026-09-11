@@ -12,7 +12,9 @@ use App\Models\TestResult;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\TestAttemptAnswerOrderService;
+use App\Services\TestAttemptService;
 use App\Services\TestQuestionSelectionService;
+use App\Support\LearningVisibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,15 +28,18 @@ class ExamController extends Controller
     protected $progressService;
     protected TestQuestionSelectionService $questionSelectionService;
     protected TestAttemptAnswerOrderService $answerOrderService;
+    protected TestAttemptService $attemptService;
 
     public function __construct(
         CourseProgressService $progressService,
         TestQuestionSelectionService $questionSelectionService,
-        TestAttemptAnswerOrderService $answerOrderService
+        TestAttemptAnswerOrderService $answerOrderService,
+        TestAttemptService $attemptService
     ) {
         $this->progressService = $progressService;
         $this->questionSelectionService = $questionSelectionService;
         $this->answerOrderService = $answerOrderService;
+        $this->attemptService = $attemptService;
     }
 
     /**
@@ -66,6 +71,123 @@ class ExamController extends Controller
             'message' => 'Testul nu este disponibil.',
             'unpublished' => true,
         ], 403);
+    }
+
+    protected function gateLockedCourseTest(Test $test, $user, ?int $courseId): ?JsonResponse
+    {
+        if (! $courseId || $user->isLearningActivityExempt()) {
+            return null;
+        }
+
+        $course = Course::find($courseId);
+        if (! $course) {
+            return response()->json(['message' => 'Cursul nu a fost găsit.'], 404);
+        }
+
+        $linked = CourseTest::where('course_id', $course->id)->where('test_id', $test->id)->exists();
+        if (! $linked) {
+            return response()->json(['message' => 'Testul nu aparține acestui curs.'], 403);
+        }
+
+        if (! app(\App\Services\ProgressionEngine::class)->isTestUnlocked($user, $test, $course)) {
+            return response()->json([
+                'message' => 'Testul este blocat. Trebuie să promovezi testul anterior.',
+                'locked' => true,
+            ], 403);
+        }
+
+        return null;
+    }
+
+    protected function gateLearnerCourseTest(Test $test, $user, ?int &$courseId): ?JsonResponse
+    {
+        if ($user->isLearningActivityExempt()) {
+            return null;
+        }
+
+        $links = CourseTest::query()->where('test_id', $test->id);
+        $count = (clone $links)->count();
+        if ($count === 0) {
+            return null;
+        }
+
+        if (! $courseId) {
+            if ($count === 1) {
+                $courseId = (int) (clone $links)->value('course_id');
+            } else {
+                return response()->json([
+                    'message' => 'Specifică course_id pentru acest test.',
+                ], 422);
+            }
+        }
+
+        $course = Course::find($courseId);
+        if (! $course) {
+            return response()->json(['message' => 'Cursul nu a fost găsit.'], 404);
+        }
+        if (($course->status ?? '') !== 'published') {
+            return response()->json(['message' => 'Testul nu este disponibil.'], 403);
+        }
+        if (! CourseTest::where('course_id', $course->id)->where('test_id', $test->id)->exists()) {
+            return response()->json(['message' => 'Testul nu aparține acestui curs.'], 403);
+        }
+        if (! LearningVisibility::isEnrolledInCourse($user, (int) $course->id)) {
+            return response()->json([
+                'message' => 'Nu ești înscris la acest curs.',
+                'not_enrolled' => true,
+            ], 403);
+        }
+
+        if (! app(\App\Services\PublishedCourseView::class)->learnerMayAccessLinkedTest($course, (int) $test->id, request())) {
+            return response()->json([
+                'message' => 'Testul nu este disponibil.',
+                'unpublished' => true,
+            ], 403);
+        }
+
+        return null;
+    }
+
+    protected function shouldRevealExamSolutions(object $assessment): bool
+    {
+        if ($assessment instanceof Test) {
+            if (! (bool) ($assessment->show_correct_answers ?? false)) {
+                return false;
+            }
+            if ((bool) ($assessment->show_only_submitted_answers ?? false)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        $settings = is_array($assessment->settings ?? null) ? $assessment->settings : [];
+        if (! (bool) ($settings['show_correct_answers'] ?? false)) {
+            return false;
+        }
+        if ((bool) ($settings['show_only_submitted_answers'] ?? false)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function gateTestTimeLimit(Test $test, ?Carbon $startedAt): ?JsonResponse
+    {
+        $limitMinutes = (int) ($test->time_limit_minutes ?? 0);
+        if ($limitMinutes <= 0 || ! $startedAt) {
+            return null;
+        }
+
+        $expiresAt = $startedAt->copy()->addMinutes($limitMinutes)->addSeconds(15);
+        if (now()->gt($expiresAt)) {
+            return response()->json([
+                'message' => 'Limita de timp a testului a expirat.',
+                'time_expired' => true,
+            ], 403);
+        }
+
+        return null;
     }
 
     /**
@@ -711,23 +833,25 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedTest($test, $user, $courseId)) {
             return $blocked;
         }
+        if ($blocked = $this->gateLearnerCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+        if ($blocked = $this->gateLockedCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
 
-        // Get user's attempts
-        $userAttempts = TestResult::where('test_id', $test->id)
-            ->where('user_id', $user->id)
-            ->when($courseId, function ($query) use ($courseId) {
-                $query->where(function ($scope) use ($courseId) {
-                    $scope->where('course_id', $courseId)
-                        ->orWhereNull('course_id');
-                });
-            })
+        $openAttempt = $this->attemptService
+            ->currentOpenAttempt((int) $user->id, (int) $test->id, $courseId);
+
+        $completedAttempts = $this->attemptService
+            ->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)
             ->orderBy('attempt_number', 'desc')
             ->get();
 
-        $currentAttempt = $userAttempts->count();
-        $latestResult = $userAttempts->first();
+        $currentAttempt = $completedAttempts->count();
+        $latestResult = $completedAttempts->first();
         $remainingAttempts = $test->max_attempts
-            ? max(0, $test->max_attempts - $currentAttempt)
+            ? max(0, $test->max_attempts - $currentAttempt - ($openAttempt ? 1 : 0))
             : null;
         $canRetake = $test->max_attempts
             ? ($remainingAttempts > 0)
@@ -736,35 +860,7 @@ class ExamController extends Controller
         $req = $request ?? request();
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
 
-        /*
-         * Seed-ul determină ordinea/subsetul întrebărilor (randomizare, bancă).
-         * - Rezultat existent + fără new_attempt: folosim același număr de încercare ca la ultimul rezultat,
-         *   ca lista întrebărilor să coincidă cu răspunsurile salvate (altfel „nu merge” la reîncărcare).
-         * - Încercare nouă (new_attempt=1): folosim următorul număr (currentAttempt + 1).
-         */
-        $attemptNumberForSeed = ($latestResult && !$forNewAttempt)
-            ? max(1, (int) $latestResult->attempt_number)
-            : max(1, $currentAttempt + 1);
-
-        // Get questions (supports bank + optional rule-based selection)
-        $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
-
-        $showSolutions = $latestResult && ! $forNewAttempt;
-        // Saved answers use original option indices; review options must use the same order.
-        $fullWire = $showSolutions
-            ? $questions->map(fn ($question) => $this->buildReviewQuestionWire(
-                $test, $question, $user, $attemptNumberForSeed,
-                is_array($latestResult->answers) ? $latestResult->answers : []
-            ))
-            : $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
-        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
-        $transformedQuestions = ($showSolutions && ! $submittedOnly)
-            ? $fullWire
-            : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
-
         $basePassingScore = (int) ($test->passing_score ?? 70);
-
-        // Resolve CourseTest: use course_id when provided (test can be attached to multiple courses)
         $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
         if ($courseId) {
             $courseTestQuery->where('course_id', $courseId);
@@ -776,8 +872,60 @@ class ExamController extends Controller
             ? (int) ($courseTest->passing_score ?? $basePassingScore)
             : $basePassingScore;
 
+        $viewingCompleted = $latestResult && ! $forNewAttempt && ! $openAttempt;
+        $attemptNumberForSeed = $viewingCompleted
+            ? max(1, (int) $latestResult->attempt_number)
+            : max(1, $currentAttempt + 1);
+
+        $activeAttempt = null;
+        if ($viewingCompleted) {
+            $questions = $this->attemptService->hydrateQuestions($latestResult->question_snapshot);
+            if ($questions->isEmpty()) {
+                $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
+            }
+        } else {
+            if ($openAttempt && $this->attemptService->attemptHasExpired($openAttempt)) {
+                $this->attemptService->closeExpiredAttempt($openAttempt);
+                $openAttempt = null;
+            }
+            if ($openAttempt) {
+                $activeAttempt = $openAttempt;
+                $questions = $this->attemptService->hydrateQuestions($openAttempt->question_snapshot);
+                if ($questions->isEmpty()) {
+                    $questions = $this->selectQuestionsForTestAttempt($test, $user, (int) $openAttempt->attempt_number);
+                }
+                $attemptNumberForSeed = max(1, (int) $openAttempt->attempt_number);
+            } else {
+                $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
+                $canStart = ! $user->isLearningActivityExempt()
+                    && ! ($test->max_attempts && ($currentAttempt + 1) > $test->max_attempts);
+                if ($canStart) {
+                    $activeAttempt = $this->attemptService->ensureOpenAttempt(
+                        $test,
+                        $user,
+                        $courseId,
+                        $questions,
+                        $attemptNumberForSeed,
+                        $resolvedPassingScore
+                    );
+                }
+            }
+        }
+
+        $showSolutions = $viewingCompleted && $this->shouldRevealExamSolutions($test);
+        $fullWire = $showSolutions
+            ? $questions->map(fn ($question) => $this->buildReviewQuestionWire(
+                $test, $question, $user, $attemptNumberForSeed,
+                is_array($latestResult->answers) ? $latestResult->answers : []
+            ))
+            : $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
+        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
+        $transformedQuestions = ($showSolutions && ! $submittedOnly)
+            ? $fullWire
+            : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
+
         $hasPassed = $latestResult
-            && (float) ($latestResult->percentage ?? 0) >= (float) $resolvedPassingScore;
+            && (float) ($latestResult->percentage ?? 0) >= (float) ($latestResult->passing_score_applied ?? $resolvedPassingScore);
 
         return response()->json([
             'id' => $test->id,
@@ -797,10 +945,23 @@ class ExamController extends Controller
             'is_required' => (bool) $courseTest,
             'questions' => $transformedQuestions,
             'current_attempt' => $currentAttempt,
-            'remaining_attempts' => $remainingAttempts,
-            'can_retake' => $canRetake,
+            'remaining_attempts' => $test->max_attempts
+                ? max(0, $test->max_attempts - $currentAttempt - ($activeAttempt ? 1 : 0))
+                : null,
+            'can_retake' => $test->max_attempts
+                ? (max(0, $test->max_attempts - $currentAttempt - ($activeAttempt ? 1 : 0)) > 0)
+                : true,
             'has_passed' => $hasPassed,
-            'latest_result' => $latestResult ? [
+            'active_attempt' => $activeAttempt ? [
+                'id' => $activeAttempt->id,
+                'attempt_token' => $activeAttempt->attempt_token,
+                'attempt_number' => $activeAttempt->attempt_number,
+                'started_at' => optional($activeAttempt->started_at)?->toISOString(),
+                'expires_at' => optional($activeAttempt->expires_at)?->toISOString(),
+                'status' => $activeAttempt->status,
+            ] : null,
+            'latest_result' => $viewingCompleted ? [
+                'id' => $latestResult->id,
                 'score' => $latestResult->score ?? 0,
                 'total_points' => $latestResult->max_score ?? $latestResult->total_points ?? 0,
                 'percentage' => $latestResult->percentage ?? 0,
@@ -828,7 +989,7 @@ class ExamController extends Controller
     /** Elimină chei folosite la corectare din payload-ul trimis elevului în timpul testului. */
     protected function stripWireQuestionSolutionKeys(array $q): array
     {
-        unset($q['correct_answer_indices'], $q['correct_answer_index'], $q['is_correct']);
+        unset($q['correct_answer_indices'], $q['correct_answer_index'], $q['is_correct'], $q['explanation']);
         $q['answerIndex'] = null;
         $q['answerIndices'] = null;
         if (isset($q['matching']) && is_array($q['matching'])) {
@@ -949,9 +1110,26 @@ class ExamController extends Controller
         return collect($questions)->map(fn ($question) => $this->mapTestQuestionToStudentWire($test, $question, $user, $attemptNumber));
     }
 
+    protected function orderLegacyExamQuestionsForAttempt(Exam $exam, $user, int $attemptNumber): Collection
+    {
+        $questions = $exam->questions instanceof Collection
+            ? $exam->questions
+            : collect($exam->questions ?? []);
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        if (! (bool) ($settings['shuffle_questions'] ?? false) || $questions->count() < 2) {
+            return $questions->values();
+        }
+
+        $seedBase = 'exam-q:' . $exam->id . ':u' . (int) $user->id . ':a' . max(1, $attemptNumber);
+
+        return $questions
+            ->sortBy(fn ($q) => hash('sha1', $seedBase . ':q' . $q->id))
+            ->values();
+    }
+
     protected function transformLegacyExamQuestionsWire(Exam $exam, $user, int $attemptNumber): Collection
     {
-        return $exam->questions->map(function ($question) use ($user, $attemptNumber) {
+        return $this->orderLegacyExamQuestionsForAttempt($exam, $user, $attemptNumber)->map(function ($question) use ($user, $attemptNumber) {
             $answers = $question->answers;
             $answersCollection = $answers instanceof \Illuminate\Support\Collection
                 ? $answers
@@ -1057,7 +1235,7 @@ class ExamController extends Controller
             : max(1, $currentAttempt + 1);
 
         $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed);
-        $showSolutions = $latestResult && ! $forNewAttempt;
+        $showSolutions = $latestResult && ! $forNewAttempt && $this->shouldRevealExamSolutions($exam);
         $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
         $questions = ($showSolutions && ! $submittedOnly)
             ? $fullWire
@@ -1108,10 +1286,16 @@ class ExamController extends Controller
     {
         $user = Auth::user();
 
-        $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
-        if ($courseId === null && $request->input('course_id') !== null && $request->input('course_id') !== '') {
-            $courseId = (int) $request->input('course_id');
+        $queryCourse = $request->query('course_id');
+        $bodyCourse = $request->input('course_id');
+        $queryId = ($queryCourse !== null && $queryCourse !== '') ? (int) $queryCourse : null;
+        $bodyId = ($bodyCourse !== null && $bodyCourse !== '') ? (int) $bodyCourse : null;
+        if ($queryId && $bodyId && $queryId !== $bodyId) {
+            return response()->json([
+                'message' => 'course_id din query și din body nu coincid.',
+            ], 422);
         }
+        $courseId = $queryId ?? $bodyId;
 
         $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
 
@@ -1134,35 +1318,87 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedTest($test, $user, $courseId)) {
             return $blocked;
         }
+        if ($blocked = $this->gateLearnerCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+        if ($blocked = $this->gateLockedCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
 
         $trackLearning = ! $user->isLearningActivityExempt();
 
         try {
-            // Check attempt limits
-            $userAttempts = $trackLearning
-                ? TestResult::where('test_id', $test->id)
-                    ->where('user_id', $user->id)
-                    ->when($courseId, function ($query) use ($courseId) {
-                        $query->where(function ($scope) use ($courseId) {
-                            $scope->where('course_id', $courseId)
-                                ->orWhereNull('course_id');
-                        });
-                    })
-                    ->get()
-                : collect();
-            
-            $currentAttempt = $trackLearning ? $userAttempts->count() : 0;
-            $nextAttempt = $currentAttempt + 1;
-            
-            if ($trackLearning && $test->max_attempts && $nextAttempt > $test->max_attempts) {
+            return DB::transaction(function () use ($request, $test, $user, $courseId, $trackLearning) {
+            $attemptId = $request->input('attempt_id');
+            $openAttempt = null;
+            if ($trackLearning) {
+                if ($attemptId) {
+                    $openAttempt = TestResult::query()
+                        ->where('id', (int) $attemptId)
+                        ->where('user_id', $user->id)
+                        ->where('test_id', $test->id)
+                        ->lockForUpdate()
+                        ->first();
+                    if ($openAttempt && $openAttempt->course_id && $courseId && (int) $openAttempt->course_id !== (int) $courseId) {
+                        return response()->json([
+                            'message' => 'Încercarea nu aparține acestui curs.',
+                        ], 403);
+                    }
+                    if ($openAttempt && $openAttempt->course_id) {
+                        $courseId = (int) $openAttempt->course_id;
+                    }
+                }
+                if (! $openAttempt) {
+                    $openAttempt = $this->attemptService
+                        ->openAttemptQuery((int) $user->id, (int) $test->id, $courseId)
+                        ->lockForUpdate()
+                        ->first();
+                }
+                if ($openAttempt && $openAttempt->status !== 'in_progress' && $openAttempt->completed_at) {
+                    return response()->json([
+                        'message' => 'Încercarea a fost deja trimisă.',
+                        'result' => [
+                            'id' => $openAttempt->id,
+                            'score' => $openAttempt->score,
+                            'percentage' => $openAttempt->percentage,
+                            'passed' => (bool) $openAttempt->passed,
+                            'attempt_number' => $openAttempt->attempt_number,
+                            'status' => $openAttempt->status,
+                        ],
+                    ]);
+                }
+            }
+
+            $completedCount = $trackLearning
+                ? $this->attemptService->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)->count()
+                : 0;
+            $nextAttempt = $openAttempt
+                ? max(1, (int) $openAttempt->attempt_number)
+                : $completedCount + 1;
+
+            if ($trackLearning && $test->max_attempts && $nextAttempt > $test->max_attempts && ! $openAttempt) {
                 return response()->json([
                     'message' => "Ai atins limita de {$test->max_attempts} încercări pentru acest test.",
                     'max_attempts_reached' => true,
                 ], 403);
             }
-            
-            // Get questions for this attempt (deterministic selection)
-            $questions = $this->selectQuestionsForTestAttempt($test, $user, $nextAttempt);
+
+            $questions = $openAttempt
+                ? $this->attemptService->hydrateQuestions($openAttempt->question_snapshot)
+                : collect();
+            if ($questions->isEmpty() && $openAttempt) {
+                $questions = $this->selectQuestionsForTestAttempt($test, $user, $nextAttempt);
+            }
+            if ($questions->isEmpty() && ! $trackLearning) {
+                $questions = $this->selectQuestionsForTestAttempt($test, $user, $nextAttempt);
+            }
+
+            if ($trackLearning && ! $openAttempt) {
+                return response()->json([
+                    'message' => 'Deschide testul înainte de trimitere.',
+                    'attempt_required' => true,
+                ], 403);
+            }
 
             if ($questions->isEmpty()) {
                 return response()->json([
@@ -1174,14 +1410,24 @@ class ExamController extends Controller
             if (! is_array($answers)) {
                 $answers = [];
             }
-            $startedAt = null;
+            $startedAt = $openAttempt?->started_at;
             $startedAtRaw = $request->input('started_at');
-            if (is_string($startedAtRaw) && trim($startedAtRaw) !== '') {
+            if (! $startedAt && is_string($startedAtRaw) && trim($startedAtRaw) !== '') {
                 try {
                     $startedAt = Carbon::parse($startedAtRaw);
                 } catch (\Throwable $parseError) {
                     $startedAt = null;
                 }
+            }
+
+            if ($openAttempt && $this->attemptService->attemptHasExpired($openAttempt)) {
+                return response()->json([
+                    'message' => 'Limita de timp a testului a expirat.',
+                    'time_expired' => true,
+                ], 403);
+            }
+            if ($blocked = $this->gateTestTimeLimit($test, $startedAt)) {
+                return $blocked;
             }
             
             // Calculate score and count correct answers (for statistics: X din Y întrebări)
@@ -1255,24 +1501,22 @@ class ExamController extends Controller
             
             $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
 
-            // Resolve CourseTest: use course_id from request when provided (test can be in multiple courses)
-            $submittedCourseId = $request->input('course_id', $courseId);
-            $courseId = ($submittedCourseId !== null && $submittedCourseId !== '')
-                ? (int) $submittedCourseId
-                : null;
             $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
             if ($courseId) {
                 $courseTestQuery->where('course_id', $courseId);
             }
             $courseTest = $courseTestQuery->first();
-            $passingScore = $courseTest
+            $livePassingScore = $courseTest
                 ? ($courseTest->passing_score ?? (int) ($test->passing_score ?? 70))
                 : (int) ($test->passing_score ?? 70);
+            $passingScore = ($openAttempt && $openAttempt->passing_score_applied !== null)
+                ? (int) $openAttempt->passing_score_applied
+                : $livePassingScore;
             $passed = !$needsManualReview && $percentage >= $passingScore;
             
             $testResult = null;
             if ($trackLearning) {
-                $testResult = TestResult::create([
+                $payload = [
                     'test_id' => $test->id,
                     'course_id' => $courseId,
                     'user_id' => $user->id,
@@ -1285,11 +1529,22 @@ class ExamController extends Controller
                     'passed' => $passed,
                     'answers' => $answers,
                     'started_at' => $startedAt,
+                    'expires_at' => $openAttempt?->expires_at,
                     'time_taken_minutes' => $startedAt ? max(0, (int) floor($startedAt->diffInSeconds(now()) / 60)) : null,
                     'completed_at' => now(),
                     'status' => $needsManualReview ? 'pending_review' : 'completed',
                     'needs_manual_review' => $needsManualReview,
-                ]);
+                    'question_snapshot' => $openAttempt?->question_snapshot ?: $this->attemptService->snapshotQuestions($questions),
+                    'passing_score_applied' => (int) $passingScore,
+                    'attempt_token' => $openAttempt?->attempt_token ?: (string) \Illuminate\Support\Str::uuid(),
+                    'attempt_scope' => null,
+                ];
+                if ($openAttempt) {
+                    $openAttempt->update($payload);
+                    $testResult = $openAttempt->fresh();
+                } else {
+                    $testResult = TestResult::create($payload);
+                }
             }
 
             // Get course from CourseTest relationship
@@ -1370,6 +1625,11 @@ class ExamController extends Controller
                 ->map(fn ($question) => $this->buildReviewQuestionWire($test, $question, $user, $nextAttempt, $answers))
                 ->filter()
                 ->values()
+                ->map(function (array $q) use ($test) {
+                    return $this->shouldRevealExamSolutions($test)
+                        ? $q
+                        : $this->stripWireQuestionSolutionKeys($q);
+                })
                 ->all();
 
             return response()->json([
@@ -1395,6 +1655,7 @@ class ExamController extends Controller
                     'review_questions' => $reviewQuestions,
                 ],
             ]);
+            });
         } catch (\Exception $e) {
             \Log::error('Error submitting test', [
                 'test_id' => $test->id ?? null,
@@ -1585,6 +1846,11 @@ class ExamController extends Controller
 
         $reviewQuestions = $this->transformLegacyExamQuestionsWire($exam, $user, $nextAttempt)
             ->values()
+            ->map(function (array $q) use ($exam) {
+                return $this->shouldRevealExamSolutions($exam)
+                    ? $q
+                    : $this->stripWireQuestionSolutionKeys($q);
+            })
             ->all();
 
         return response()->json([

@@ -82,7 +82,6 @@ class ModuleAdminController extends Controller
         }
 
         $validated = $request->validate([
-            'course_id' => 'sometimes|required|exists:courses,id',
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'content' => 'nullable|string',
@@ -93,6 +92,12 @@ class ModuleAdminController extends Controller
             'unlock_after_lesson_id' => 'nullable|integer',
             'estimated_duration_minutes' => 'nullable|integer|min:0',
         ]);
+
+        if ($request->exists('course_id') && (int) $request->input('course_id') !== (int) $module->course_id) {
+            return response()->json([
+                'message' => 'Mutarea modulului în alt curs nu este permisă pe acest endpoint.',
+            ], 422);
+        }
 
         // Filter to only columns that exist and are fillable
         $updateData = [];

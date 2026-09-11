@@ -7,8 +7,8 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
 import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
-import AITestGenerateModal from '../../components/admin/tests/AITestGenerateModal';
-import { isVoltEnabled } from '../../utils/voltAvailability';
+import Modal from '../../components/common/Modal';
+import { TEST_EDITOR_DEFAULT } from '../../utils/testQuestionBuilder';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 
@@ -16,7 +16,7 @@ const normalizeTests = (raw) => (Array.isArray(raw) ? raw : []);
 const normalizeTestStatus = (status) => (String(status || 'draft').toLowerCase() === 'published' ? 'published' : 'draft');
 
 function testStatusLabel(status) {
-  return normalizeTestStatus(status) === 'published' ? 'Publicat' : 'Draft';
+  return normalizeTestStatus(status) === 'published' ? 'Publicat' : 'Ciornă';
 }
 
 function testTypeLabel(type) {
@@ -49,7 +49,9 @@ export default function AdminTestsPage() {
   const [statsQuery, setStatsQuery] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [deleteConfirmTest, setDeleteConfirmTest] = useState(null);
-  const [showVoltTestModal, setShowVoltTestModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const pageView = searchParams.get('view') === 'statistics' ? 'statistics' : 'list';
   const selectedTestId = Number(searchParams.get('testId')) || null;
@@ -106,6 +108,43 @@ export default function AdminTestsPage() {
   const openBuilder = (item, section = 'questions') => {
     if (!item?.id) return;
     navigate(`/admin/tests/${item.id}/builder?section=${section}`);
+  };
+
+  const openCreateModal = () => {
+    setCreateTitle('');
+    setShowCreateModal(true);
+  };
+
+  const handleCreateTest = async (event) => {
+    event.preventDefault();
+    const title = createTitle.trim();
+    if (!title || creating) return;
+    setCreating(true);
+    try {
+      const created = await adminService.createTest({
+        title,
+        status: 'draft',
+        type: 'final',
+        passing_score: TEST_EDITOR_DEFAULT.passing_score,
+        randomize_questions: TEST_EDITOR_DEFAULT.randomize_questions,
+        randomize_answers: TEST_EDITOR_DEFAULT.randomize_answers,
+        show_results_immediately: TEST_EDITOR_DEFAULT.show_results_immediately,
+        show_correct_answers: TEST_EDITOR_DEFAULT.show_correct_answers,
+        show_only_submitted_answers: TEST_EDITOR_DEFAULT.show_only_submitted_answers,
+        allow_review: TEST_EDITOR_DEFAULT.allow_review,
+        requires_manual_verification: TEST_EDITOR_DEFAULT.requires_manual_verification,
+      });
+      const newTestId = Number(created?.test?.id ?? created?.id);
+      if (!newTestId) throw new Error('ID test invalid');
+      showSuccess('Test creat.');
+      setShowCreateModal(false);
+      navigate(`/admin/tests/${newTestId}/builder?section=questions`);
+    } catch (e) {
+      console.error('Failed to create test:', e);
+      showError(e?.response?.data?.message || e?.response?.data?.error || 'Nu s-a putut crea testul.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const setPageView = (view, testId = null) => {
@@ -179,16 +218,6 @@ export default function AdminTestsPage() {
     }
   };
 
-  const handleVoltTestSaved = (test) => {
-    if (test?.id) {
-      showSuccess('Test generat cu Volt. Poți continua editarea în builder.');
-      navigate(`/admin/tests/${test.id}/builder?section=questions`);
-      return;
-    }
-    showSuccess('Test generat cu Volt.');
-    loadTests();
-  };
-
   return (
     <div className="admin-tests-page admin-content-list-page">
       <header className="admin-content-list-header">
@@ -203,19 +232,15 @@ export default function AdminTestsPage() {
           {pageView === 'list' ? (
             <div className="admin-content-list-stats" aria-label="Rezumat">
               <span>Total<strong>{listStats.all}</strong></span>
-              <span>Draft<strong>{listStats.draft}</strong></span>
+              <span>Ciornă<strong>{listStats.draft}</strong></span>
               <span>Publicate<strong>{listStats.published}</strong></span>
             </div>
           ) : null}
         </div>
-        {pageView === 'list' && canMutateInAdminArea && isVoltEnabled() ? (
+        {canMutateInAdminArea && pageView === 'list' ? (
           <div className="admin-content-list-header__actions">
-            <button
-              type="button"
-              className="admin-btn admin-btn-primary"
-              onClick={() => setShowVoltTestModal(true)}
-            >
-              ⚡ Generează test cu Volt
+            <button type="button" className="admin-content-list-btn-primary" onClick={openCreateModal}>
+              Creează test
             </button>
           </div>
         ) : null}
@@ -325,7 +350,18 @@ export default function AdminTestsPage() {
         <div className="admin-content-list-empty">{error}</div>
       ) : filteredTests.length === 0 ? (
         <div className="admin-content-list-empty">
-          {tests.length === 0 ? 'Niciun test încă. Creează unul din constructorul de curs.' : 'Niciun rezultat pentru căutare.'}
+          {tests.length === 0 ? (
+            <>
+              <p>Niciun test încă.</p>
+              {canMutateInAdminArea ? (
+                <button type="button" className="admin-content-list-btn-primary" onClick={openCreateModal}>
+                  Creează test
+                </button>
+              ) : null}
+            </>
+          ) : (
+            'Niciun rezultat pentru căutare.'
+          )}
         </div>
       ) : (
         <div className="admin-content-list-grid">
@@ -340,7 +376,7 @@ export default function AdminTestsPage() {
                   { label: 'Setări', onClick: () => openBuilder(item, 'settings'), disabled: busy },
                   status === 'draft'
                     ? { label: busy ? 'Se publică…' : 'Publică', onClick: () => handlePublish(item), disabled: busy, emphasis: true }
-                    : { label: 'Draft', onClick: () => patchTestStatus(item, 'draft'), disabled: busy },
+                    : { label: 'Retrage', onClick: () => patchTestStatus(item, 'draft'), disabled: busy },
                   { label: 'Șterge', onClick: () => setDeleteConfirmTest(item), disabled: busy, danger: true },
                 ]
                 : []),
@@ -368,6 +404,52 @@ export default function AdminTestsPage() {
         </>
       )}
 
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => !creating && setShowCreateModal(false)}
+        closeOnBackdropClick={!creating}
+        closeOnEscape={!creating}
+        unstyledContent
+        ariaLabelledby="admin-test-create-title"
+        className="admin-test-create-overlay"
+      >
+        <form className="admin-team-modal admin-test-create-panel" onSubmit={handleCreateTest}>
+          <div className="admin-team-modal-header">
+            <h2 id="admin-test-create-title" className="admin-team-modal-title">Test nou</h2>
+            <button
+              type="button"
+              className="admin-team-modal-close"
+              onClick={() => !creating && setShowCreateModal(false)}
+              aria-label="Închide"
+            >
+              ×
+            </button>
+          </div>
+          <div className="admin-team-modal-body">
+            <label className="admin-form-label" htmlFor="admin-test-create-name">Titlu</label>
+            <input
+              id="admin-test-create-name"
+              type="text"
+              className="admin-form-input"
+              value={createTitle}
+              onChange={(e) => setCreateTitle(e.target.value)}
+              placeholder="Ex: Evaluare modul 1"
+              data-modal-initial-focus
+              required
+              disabled={creating}
+            />
+          </div>
+          <div className="admin-modal-actions">
+            <button type="button" className="lms-btn-secondary" onClick={() => setShowCreateModal(false)} disabled={creating}>
+              Anulare
+            </button>
+            <button type="submit" className="lms-btn-primary" disabled={!createTitle.trim() || creating}>
+              {creating ? 'Se creează...' : 'Creează'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {deleteConfirmTest ? (
         <div
           className="admin-tests-modal-overlay"
@@ -385,7 +467,7 @@ export default function AdminTestsPage() {
             <p className="admin-tests-delete-lead">
               <strong>{deleteConfirmTest.title || 'Test'}</strong> va fi eliminat. Legăturile din cursuri pot înceta să funcționeze.
             </p>
-            <p className="admin-tests-delete-hint">Pentru a ascunde testul de elevi, mută-l în draft.</p>
+            <p className="admin-tests-delete-hint">Pentru a ascunde testul de elevi, retrage-l din publicare.</p>
             <div className="admin-tests-delete-actions">
               <button type="button" disabled={busyId} onClick={() => setDeleteConfirmTest(null)}>
                 Anulează
@@ -397,12 +479,6 @@ export default function AdminTestsPage() {
           </div>
         </div>
       ) : null}
-
-      <AITestGenerateModal
-        open={showVoltTestModal}
-        onClose={() => setShowVoltTestModal(false)}
-        onSaved={handleVoltTestSaved}
-      />
     </div>
   );
 }

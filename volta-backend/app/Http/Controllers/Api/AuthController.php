@@ -32,6 +32,13 @@ class AuthController extends Controller
             'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
         ]);
 
+        $registrationEnabled = \App\Models\Setting::get('registration_enabled', true);
+        if ($registrationEnabled === false || $registrationEnabled === 0 || $registrationEnabled === '0') {
+            return response()->json([
+                'message' => 'Înregistrările sunt dezactivate. Folosește o invitație sau contactează un administrator.',
+            ], 403);
+        }
+
         $user = User::create([
             'name' => strip_tags($request->name), // Sanitize HTML tags
             'email' => strtolower(trim($request->email)), // Normalize email
@@ -73,6 +80,20 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => ['Contul tău este în așteptarea aprobării. Un administrator va verifica cererea în curând.'],
             ]);
+        }
+
+        if ($user && ($user->status ?? 'active') === 'suspended') {
+            if ($user->suspended_until && now()->gte($user->suspended_until)) {
+                $user->forceFill([
+                    'status' => 'active',
+                    'suspended_reason' => null,
+                    'suspended_until' => null,
+                ])->save();
+            } else {
+                throw ValidationException::withMessages([
+                    'email' => ['Contul tău a fost suspendat.'],
+                ]);
+            }
         }
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -185,30 +206,18 @@ class AuthController extends Controller
             $user = Auth::user();
             
             if (!$user) {
-                // Only log warnings in development
-                if (config('app.debug')) {
-                    $cookies = $request->cookies->all();
-                    $cookieHeader = $request->header('Cookie');
-                    Log::warning('Auth me failed - no user', [
-                        'session_id' => $request->session()->getId(),
-                        'cookies_received' => array_keys($cookies),
-                        'cookie_header' => $cookieHeader ? 'present' : 'missing',
-                    ]);
-                }
-                
                 $responseData = [
                     'error' => 'Neautentificat',
                 ];
-                
-                // Only include debug info in development
+
                 if (config('app.debug')) {
                     $responseData['debug'] = [
                         'has_session' => $request->hasSession(),
-                        'session_id' => $request->session()->getId(),
-                        'cookies_received' => array_keys($cookies),
+                        'session_id' => $request->hasSession() ? $request->session()->getId() : null,
+                        'cookies_received' => array_keys($request->cookies->all()),
                     ];
                 }
-                
+
                 return response()->json($responseData, 401);
             }
 

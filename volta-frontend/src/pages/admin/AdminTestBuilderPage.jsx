@@ -7,7 +7,7 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
-import '../../styles/admin-course-builder.css';
+import { VOLT_TEST_REFRESH_EVENT } from '../../utils/voltCoursePlan';
 import './AdminTestBuilderPage.css';
 
 export default function AdminTestBuilderPage() {
@@ -32,6 +32,15 @@ export default function AdminTestBuilderPage() {
     document.body.classList.add('admin-course-builder-scroll-lock');
     return () => document.body.classList.remove('admin-course-builder-scroll-lock');
   }, []);
+
+  useEffect(() => {
+    const onVoltRefresh = (event) => {
+      if (Number(event.detail?.testId) !== Number(testId)) return;
+      editor.loadTest(testId, section === 'settings' ? 'settings' : 'questions');
+    };
+    window.addEventListener(VOLT_TEST_REFRESH_EVENT, onVoltRefresh);
+    return () => window.removeEventListener(VOLT_TEST_REFRESH_EVENT, onVoltRefresh);
+  }, [editor.loadTest, section, testId]);
 
   const handleSectionChange = (nextSection) => {
     const tab = nextSection === 'settings' ? 'settings' : 'questions';
@@ -112,6 +121,7 @@ export default function AdminTestBuilderPage() {
             }}
             subtitle="Configurezi întrebările și setările testului într-un workspace clar."
             showBuilderSummary
+            showSectionTabs={false}
           />
         </div>
       </div>

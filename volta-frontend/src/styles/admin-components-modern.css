@@ -457,233 +457,293 @@
 }
 
 /* Modal creare mapă – listă cursuri curente */
-/* Course map create/edit modal - compact two-column layout */
-.admin-course-map-modal {
-	max-width: min(760px, 94vw);
+/* Course map create/edit – compact two-column dialog */
+.admin-course-map-modal,
+.admin-course-map-modal.admin-modal-lg {
+	width: min(880px, calc(100vw - 24px));
+	max-width: min(880px, calc(100vw - 24px));
+	max-height: min(90vh, 760px);
 	border-radius: 14px;
 }
 
-.admin-course-map-modal.admin-modal-lg {
-	max-width: min(900px, 96vw);
+.admin-course-map-modal__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--border-primary);
+	flex-shrink: 0;
 }
 
 .admin-course-map-modal .admin-modal-title {
-	padding: 14px 18px;
-	background: color-mix(in srgb, var(--bg-elevated) 92%, var(--text-primary) 8%);
-	border-bottom-color: color-mix(in srgb, var(--border-primary) 88%, transparent);
-	font-size: 1.08rem;
+	padding: 0;
+	border: 0;
+	background: none;
+	font-size: 1.05rem;
 	line-height: 1.25;
 }
 
 .admin-course-map-modal .admin-modal-body {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(248px, 280px);
 	align-items: start;
-	gap: 12px;
-	padding: 14px 18px;
+	gap: 16px 18px;
+	padding: 16px;
 }
 
-.admin-course-map-modal .admin-form-section {
-	margin: 0;
-	padding: 14px;
-	border: 1px solid color-mix(in srgb, var(--border-primary) 86%, transparent);
-	border-radius: 12px;
-	background: color-mix(in srgb, var(--bg-elevated) 82%, var(--bg-primary) 18%);
-	box-shadow: none;
-}
-
-.admin-course-map-modal .admin-course-map-basic-section {
-	min-height: 100%;
-}
-
-.admin-course-map-visibility-fieldset {
-	margin: 14px 0 0;
-	padding: 0;
-	border: 0;
-}
-
-.admin-course-map-visibility-fieldset > .admin-form-label {
-	display: block;
-	margin-bottom: 8px;
-}
-
-.admin-course-map-visibility-options {
-	display: grid;
-	gap: 8px;
-}
-
-.admin-course-map-visibility-option {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 10px 12px;
-	border: 1px solid var(--border-primary);
-	border-radius: 10px;
-	background: var(--bg-secondary);
-	cursor: pointer;
-	transition: border-color 0.16s ease, background 0.16s ease;
-}
-
-.admin-course-map-visibility-option:has(input:checked) {
-	border-color: color-mix(in srgb, var(--color-primary, #ffee00) 45%, var(--border-primary));
-	background: color-mix(in srgb, var(--color-primary, #ffee00) 8%, var(--bg-secondary));
-}
-
-.admin-course-map-visibility-option input {
-	margin-top: 3px;
-	flex-shrink: 0;
-}
-
-.admin-course-map-visibility-option span {
+.admin-course-map-modal__identity,
+.admin-course-map-modal__aside,
+.admin-course-map-modal__preview {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 8px;
+	min-width: 0;
 }
 
-.admin-course-map-visibility-option strong {
-	font-size: 0.88rem;
-	color: var(--text-primary);
+.admin-course-map-modal__preview {
+	grid-column: 3;
+	grid-row: 1;
+	padding: 10px;
+	border: 1px solid var(--border-primary);
+	border-radius: 12px;
+	background: var(--bg-secondary);
 }
 
-.admin-course-map-visibility-option small {
-	font-size: 0.78rem;
-	color: var(--text-secondary);
-	line-height: 1.35;
+.admin-course-map-modal__tile-frame {
+	height: 292px;
+	overflow: hidden;
+	display: flex;
+	justify-content: center;
+	pointer-events: none;
 }
 
-.admin-course-map-modal .admin-course-map-style-section {
-	display: grid;
-	gap: 10px;
+.admin-course-map-modal__tile {
+	transform: scale(0.68);
+	transform-origin: top center;
 }
 
-.admin-course-map-modal .admin-course-map-courses-section {
-	grid-column: 1 / -1;
-}
-
-.admin-course-map-modal .admin-form-section-title {
-	margin-bottom: 10px;
-	font-size: 0.86rem;
-	letter-spacing: 0;
-	color: var(--text-primary);
+@media (max-width: 768px) {
+	.admin-course-map-modal__tile {
+		transform: none;
+		zoom: 0.68;
+	}
 }
 
 .admin-course-map-modal .admin-form-label {
-	margin-bottom: 5px;
-	font-size: 0.82rem;
-}
-
-.admin-course-map-modal .admin-form-label + .admin-form-input,
-.admin-course-map-modal .admin-form-label + select.admin-form-input {
-	margin-bottom: 12px;
+	margin: 0;
+	font-size: 0.78rem;
 }
 
 .admin-course-map-modal .admin-form-input {
-	min-height: 38px;
-	padding: 8px 10px;
-	border-radius: 9px;
+	min-height: 36px;
+	padding: 7px 10px;
+	border-radius: 8px;
 	font-size: 0.9rem;
 }
 
 .admin-course-map-modal textarea.admin-form-input {
-	min-height: 82px;
+	min-height: 64px;
+	resize: vertical;
 }
 
-.admin-course-map-modal .admin-form-hint {
-	margin-top: 2px;
-	font-size: 0.8rem;
-	line-height: 1.35;
+.admin-course-map-visibility-fieldset {
+	margin: 4px 0 0;
+	padding: 0;
+	border: 0;
 }
 
-.admin-course-map-modal .admin-course-map-palette-preview {
-	width: 100%;
-	margin: 0;
-	padding: 8px 10px;
-	border-radius: 9px;
-	background: var(--bg-primary);
-}
-
-.admin-course-map-modal .admin-course-map-color-control {
+.admin-course-map-visibility-options {
 	display: grid;
-	grid-template-columns: 1fr;
-	gap: 8px;
-	margin-top: 0;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
 }
 
-.admin-course-map-modal .admin-course-map-color-input {
+.admin-course-map-visibility-option {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 36px;
+	padding: 0 8px;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: 0.84rem;
+	font-weight: 650;
+	cursor: pointer;
+}
+
+.admin-course-map-visibility-option input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.admin-course-map-visibility-option.is-selected,
+.admin-course-map-visibility-option:has(input:checked) {
+	border-color: color-mix(in srgb, var(--color-primary, #ffee00) 50%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-primary, #ffee00) 14%, var(--bg-secondary));
+}
+
+.admin-course-map-cover-compact {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.admin-course-map-cover-compact__thumb {
+	flex: 0 0 108px;
+	width: 108px;
+	height: 64px;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	background: var(--bg-secondary);
+	color: var(--text-tertiary);
+	font-size: 0.72rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.admin-course-map-cover-compact__thumb img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.admin-course-map-cover-compact__meta {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
 	min-width: 0;
 }
 
-.admin-course-map-modal .admin-course-map-cover-card {
-	grid-template-columns: 1fr;
-	gap: 10px;
-	padding: 10px;
-	border-color: color-mix(in srgb, var(--border-primary) 88%, transparent);
-	border-radius: 12px;
-	background: var(--bg-primary);
-	box-shadow: none;
-}
-
-.admin-course-map-modal .admin-course-map-cover-thumb {
-	max-width: none;
-	border-radius: 10px;
-}
-
-.admin-course-map-modal .admin-course-map-cover-thumb-placeholder {
-	background:
-		linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.08)),
-		var(--bg-secondary);
-}
-
-.admin-course-map-modal .admin-course-map-cover-copy {
-	gap: 8px;
-}
-
-.admin-course-map-modal .admin-course-map-cover-copy-head {
-	align-items: flex-start;
-}
-
 .admin-course-map-modal .admin-course-map-cover-chip {
-	padding: 3px 8px;
-	border-radius: 8px;
-	font-size: 0.72rem;
+	padding: 2px 7px;
+	border-radius: 999px;
+	border: 1px solid var(--border-primary);
+	background: var(--bg-primary);
+	color: var(--text-secondary);
+	font-size: 0.7rem;
+	font-weight: 700;
 }
 
 .admin-course-map-modal .admin-course-map-cover-actions {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
 }
 
 .admin-course-map-modal .admin-course-map-cover-button {
-	width: 100%;
-	min-height: 38px;
-	padding: 8px 10px;
-	border-radius: 9px;
+	min-height: 30px;
+	padding: 4px 10px;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
 	background: var(--bg-elevated);
-	font-size: 0.84rem;
-	box-shadow: none;
+	color: var(--text-primary);
+	font-size: 0.78rem;
+	font-weight: 700;
+	cursor: pointer;
 }
 
-.admin-course-map-modal .admin-course-map-cover-button:hover {
-	background: color-mix(in srgb, var(--bg-elevated) 86%, var(--color-primary, #ffee00) 14%);
-	box-shadow: none;
+.admin-course-map-modal .admin-course-map-cover-button--ghost {
+	background: transparent;
+	color: var(--text-secondary);
+}
+
+.admin-course-map-color-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.admin-course-map-color-row > span:first-child {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.admin-course-map-color-row__controls {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.admin-course-map-color-row__controls input[type='color'] {
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.admin-course-map-color-row__controls .admin-form-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-course-map-color-clear {
+	width: 32px;
+	height: 32px;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.admin-course-map-modal__courses {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	padding-top: 4px;
+	border-top: 1px solid var(--border-primary);
+}
+
+.admin-course-map-modal__courses .admin-form-section-title {
+	margin: 0 0 8px;
+	font-size: 0.82rem;
+}
+
+.admin-course-map-modal .admin-course-map-current-list,
+.admin-course-map-modal .admin-course-map-checkbox-list {
+	max-height: 168px;
+	overflow-y: auto;
 }
 
 .admin-course-map-modal .admin-modal-actions {
-	padding: 12px 18px;
-	background: color-mix(in srgb, var(--bg-elevated) 94%, var(--bg-primary) 6%);
+	padding: 10px 16px;
+	background: var(--bg-elevated);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
 	.admin-course-map-modal .admin-modal-body {
-		grid-template-columns: 1fr;
-		padding: 12px;
+		grid-template-columns: 1fr 1fr;
 	}
 
-	.admin-course-map-modal .admin-modal-title,
-	.admin-course-map-modal .admin-modal-actions {
-		padding-left: 12px;
-		padding-right: 12px;
+	.admin-course-map-modal__preview {
+		grid-column: 1 / -1;
+		grid-row: auto;
+	}
+
+	.admin-course-map-modal__courses {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 640px) {
+	.admin-course-map-modal .admin-modal-body {
+		grid-template-columns: 1fr;
 	}
 }
 

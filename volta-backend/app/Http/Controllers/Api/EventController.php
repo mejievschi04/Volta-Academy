@@ -69,6 +69,7 @@ class EventController extends Controller
         if (Auth::check()) {
             $events->getCollection()->transform(function($event) {
                 $event = $this->addUserEventData($event);
+                $event = $this->hideRestrictedEventLinks($event);
                 $event->is_upcoming = $event->is_upcoming;
                 $event->is_live = $event->is_live;
                 $event->is_completed = $event->is_completed;
@@ -76,6 +77,7 @@ class EventController extends Controller
             });
         } else {
             $events->getCollection()->transform(function($event) {
+                $event = $this->hideRestrictedEventLinks($event);
                 $event->is_upcoming = $event->is_upcoming;
                 $event->is_live = $event->is_live;
                 $event->is_completed = $event->is_completed;
@@ -109,6 +111,8 @@ class EventController extends Controller
             $event = $this->addUserEventData($event);
         }
 
+        $event = $this->hideRestrictedEventLinks($event);
+
         // Add public metrics
         $event->is_full = $event->is_full;
         $event->is_upcoming = $event->is_upcoming;
@@ -126,84 +130,79 @@ class EventController extends Controller
      */
     public function register(Request $request, $id)
     {
-        $event = Event::where('status', 'published')
-            ->orWhere('status', 'upcoming')
-            ->findOrFail($id);
-
         $user = Auth::user();
 
-        // Check if event is full
-        if ($event->is_full) {
-            return response()->json([
-                'message' => 'Evenimentul este plin',
-            ], 400);
+        if (! Schema::hasTable('event_user')) {
+            return response()->json(['message' => 'Înscrierea nu este disponibilă'], 400);
         }
 
-        // Check if already registered
-        if (Schema::hasTable('event_user')) {
-            $existing = DB::table('event_user')
-                ->where('event_id', $event->id)
-                ->where('user_id', $user->id)
-                ->first();
+        try {
+            $event = DB::transaction(function () use ($id, $user) {
+                $event = Event::where(function ($q) {
+                    $q->where('status', 'published')->orWhere('status', 'upcoming');
+                })->lockForUpdate()->findOrFail($id);
 
-            if ($existing && $existing->registered) {
-                return response()->json([
-                    'message' => 'Ești deja înscris la acest eveniment',
-                ], 400);
-            }
-        }
-
-        // Check if event is included in a course
-        if ($event->access_type === 'course_included') {
-            // Check if user is enrolled in the course
-            if (!$event->course_id) {
-                return response()->json([
-                    'message' => 'Evenimentul nu este asociat cu un curs',
-                ], 400);
-            }
-
-            if (Schema::hasTable('course_user')) {
-                $enrolled = DB::table('course_user')
-                    ->where('course_id', $event->course_id)
+                $existing = DB::table('event_user')
+                    ->where('event_id', $event->id)
                     ->where('user_id', $user->id)
-                    ->where(function($q) {
-                        if (Schema::hasColumn('course_user', 'enrolled')) {
-                            $q->where('enrolled', true);
-                        } else {
-                            $q->whereNotNull('course_id');
-                        }
-                    })
-                    ->exists();
+                    ->first();
 
-                if (!$enrolled) {
-                    return response()->json([
-                        'message' => 'Trebuie să fii înscris la cursul asociat pentru a participa la acest eveniment',
-                    ], 400);
+                if ($existing && $existing->registered) {
+                    abort(400, 'Ești deja înscris la acest eveniment');
                 }
-            }
-        }
 
-        // Register user
-        if (Schema::hasTable('event_user')) {
-            DB::table('event_user')->updateOrInsert(
-                [
-                    'event_id' => $event->id,
-                    'user_id' => $user->id,
-                ],
-                [
-                    'registered' => true,
-                    'registered_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-        }
+                if ($event->access_type === 'course_included') {
+                    if (!$event->course_id) {
+                        abort(400, 'Evenimentul nu este asociat cu un curs');
+                    }
+                    if (Schema::hasTable('course_user')) {
+                        $enrolled = DB::table('course_user')
+                            ->where('course_id', $event->course_id)
+                            ->where('user_id', $user->id)
+                            ->where(function ($q) {
+                                if (Schema::hasColumn('course_user', 'enrolled')) {
+                                    $q->where('enrolled', true);
+                                } else {
+                                    $q->whereNotNull('course_id');
+                                }
+                            })
+                            ->exists();
+                        if (!$enrolled) {
+                            abort(400, 'Trebuie să fii înscris la cursul asociat pentru a participa la acest eveniment');
+                        }
+                    }
+                }
 
-        // Update event KPI
-        $event->updateKPIs();
+                $registeredCount = (int) DB::table('event_user')
+                    ->where('event_id', $event->id)
+                    ->where('registered', true)
+                    ->count();
+                if ($event->max_capacity && $registeredCount >= (int) $event->max_capacity) {
+                    abort(400, 'Evenimentul este plin');
+                }
+
+                DB::table('event_user')->updateOrInsert(
+                    [
+                        'event_id' => $event->id,
+                        'user_id' => $user->id,
+                    ],
+                    [
+                        'registered' => true,
+                        'registered_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+
+                $event->updateKPIs();
+                return $event->fresh();
+            });
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getStatusCode());
+        }
 
         return response()->json([
             'message' => 'Te-ai înscris cu succes la eveniment',
-            'event' => $this->addUserEventData($event->fresh()),
+            'event' => $this->addUserEventData($event),
         ]);
     }
 
@@ -226,6 +225,19 @@ class EventController extends Controller
             if (!$registration) {
                 return response()->json([
                     'message' => 'Nu ești înscris la acest eveniment',
+                ], 400);
+            }
+
+            $startsAt = $event->start_date ? Carbon::parse($event->start_date) : null;
+            $endsAt = $event->end_date ? Carbon::parse($event->end_date) : null;
+            if ($startsAt && now()->lt($startsAt)) {
+                return response()->json([
+                    'message' => 'Prezența poate fi înregistrată doar după începerea evenimentului.',
+                ], 400);
+            }
+            if ($endsAt && now()->gt($endsAt->copy()->addDay())) {
+                return response()->json([
+                    'message' => 'Fereastra de prezență pentru acest eveniment s-a încheiat.',
                 ], 400);
             }
 
@@ -268,6 +280,9 @@ class EventController extends Controller
             $registration = DB::table('event_user')
                 ->where('event_id', $event->id)
                 ->where('user_id', $user->id)
+                ->where(function ($q) {
+                    $q->where('registered', true)->orWhere('attended', true);
+                })
                 ->first();
 
             if (!$registration) {
@@ -401,6 +416,42 @@ class EventController extends Controller
         $event->user_registered_at = $userEvent ? $userEvent->registered_at : null;
         $event->user_attended_at = $userEvent ? $userEvent->attended_at : null;
         $event->user_replay_watched_at = $userEvent ? $userEvent->replay_watched_at : null;
+
+        return $event;
+    }
+
+    private function userCanSeeEventLinks($event): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+        if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return true;
+        }
+        if ((int) ($event->instructor_id ?? 0) === (int) $user->id) {
+            return true;
+        }
+        if (! Schema::hasTable('event_user')) {
+            return false;
+        }
+
+        return DB::table('event_user')
+            ->where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('registered', true)
+            ->exists();
+    }
+
+    private function hideRestrictedEventLinks($event)
+    {
+        if ($this->userCanSeeEventLinks($event)) {
+            return $event;
+        }
+
+        $event->live_link = null;
+        $event->replay_url = null;
+        $event->makeHidden(['live_link', 'replay_url']);
 
         return $event;
     }

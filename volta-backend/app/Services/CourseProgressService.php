@@ -18,13 +18,100 @@ class CourseProgressService
 {
     protected ProgressionEngine $progressionEngine;
 
+    /** @var array<int, array<int, object>> */
+    private array $lessonProgressByUser = [];
+
+    /** @var array<string, float> */
+    private array $courseProgressMemo = [];
+
+    /** @var array<string, array> */
+    private array $accessStatusMemo = [];
+
     public function __construct(ProgressionEngine $progressionEngine)
     {
         $this->progressionEngine = $progressionEngine;
     }
 
+    private function forgetUserProgressCache(User $user, ?int $courseId = null): void
+    {
+        unset($this->lessonProgressByUser[$user->id]);
+        if ($courseId !== null) {
+            unset($this->courseProgressMemo[$user->id . ':' . $courseId], $this->accessStatusMemo[$user->id . ':' . $courseId]);
+            return;
+        }
+        $prefix = $user->id . ':';
+        foreach (array_keys($this->courseProgressMemo) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->courseProgressMemo[$key]);
+            }
+        }
+        foreach (array_keys($this->accessStatusMemo) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->accessStatusMemo[$key]);
+            }
+        }
+    }
+
+    /**
+     * @return array<int, object>
+     */
+    private function lessonProgressMap(User $user): array
+    {
+        if (isset($this->lessonProgressByUser[$user->id])) {
+            return $this->lessonProgressByUser[$user->id];
+        }
+
+        $map = [];
+        foreach (DB::table('lesson_progress')->where('user_id', $user->id)->get(['lesson_id', 'completed', 'progress_percentage']) as $row) {
+            $map[(int) $row->lesson_id] = $row;
+        }
+
+        return $this->lessonProgressByUser[$user->id] = $map;
+    }
+
+    /**
+     * @return array<int, true>
+     */
+    private function passedTestIdSet(User $user, int $courseId): array
+    {
+        $ids = [];
+        foreach (DB::table('test_results')
+            ->where('user_id', $user->id)
+            ->where('course_id', $courseId)
+            ->where('passed', true)
+            ->pluck('test_id') as $id) {
+            $ids[(int) $id] = true;
+        }
+
+        return $ids;
+    }
+
+    private function hasPassedTestResult(User $user, int $testId, int $courseId, ?array $passedIds = null): bool
+    {
+        $passedIds ??= $this->passedTestIdSet($user, $courseId);
+
+        return isset($passedIds[$testId]);
+    }
+
+    private function progressRowIsComplete(?object $row): bool
+    {
+        if (!$row) {
+            return false;
+        }
+
+        return (bool) ($row->completed ?? false) || (int) ($row->progress_percentage ?? 0) >= 100;
+    }
+
     protected function getCourseRootLessons(Course $course)
     {
+        if ($course->relationLoaded('lessons')) {
+            return $course->lessons
+                ->whereNull('module_id')
+                ->where('status', 'published')
+                ->sortBy('order')
+                ->values();
+        }
+
         return $course->lessons()
             ->whereNull('module_id')
             ->where('status', 'published')
@@ -38,16 +125,7 @@ class CourseProgressService
             return false;
         }
 
-        $lessonProgress = DB::table('lesson_progress')
-            ->where('user_id', $user->id)
-            ->where('lesson_id', $lessonId)
-            ->first();
-
-        if (!$lessonProgress) {
-            return false;
-        }
-
-        return (bool) ($lessonProgress->completed ?? false) || (int) ($lessonProgress->progress_percentage ?? 0) >= 100;
+        return $this->progressRowIsComplete($this->lessonProgressMap($user)[$lessonId] ?? null);
     }
     /**
      * Calculate course progress for a user
@@ -56,6 +134,11 @@ class CourseProgressService
     {
         if ($user->isLearningActivityExempt()) {
             return 0;
+        }
+
+        $memoKey = $user->id . ':' . $course->id;
+        if (isset($this->courseProgressMemo[$memoKey])) {
+            return $this->courseProgressMemo[$memoKey];
         }
 
         $lessonIds = Lesson::query()
@@ -69,14 +152,13 @@ class CourseProgressService
             })
             ->pluck('id');
         $totalLessons = $lessonIds->count();
-        $completedLessons = $totalLessons === 0 ? 0 : DB::table('lesson_progress')
-            ->where('user_id', $user->id)
-            ->whereIn('lesson_id', $lessonIds)
-            ->where(fn ($query) => $query->where('completed', true)->orWhere('progress_percentage', '>=', 100))
-            ->distinct()->count('lesson_id');
+        $progressMap = $this->lessonProgressMap($user);
+        $completedLessons = $totalLessons === 0 ? 0 : $lessonIds->filter(
+            fn ($id) => $this->progressRowIsComplete($progressMap[(int) $id] ?? null)
+        )->count();
 
         if ($totalLessons === 0) {
-            return 0;
+            return $this->courseProgressMemo[$memoKey] = 0;
         }
 
         $progress = ($completedLessons / $totalLessons) * 100;
@@ -86,25 +168,33 @@ class CourseProgressService
         if ($progress >= 100) {
             $isComplete = $this->isCourseComplete($user, $course);
         }
-        
-        // Update course_user progress and completion status
-        // Cast to int - course_user.progress_percentage is integer
-        $updateData = [
-            'progress_percentage' => (int) round($progress, 0),
-            'updated_at' => Carbon::now(),
-        ];
-        
-        // If course is complete, mark it as completed
-        if ($isComplete) {
-            $updateData['completed_at'] = Carbon::now();
-        }
-        
-        DB::table('course_user')
+
+        $intPct = (int) round($progress, 0);
+        $row = DB::table('course_user')
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
-            ->update($updateData);
+            ->first(['progress_percentage', 'completed_at']);
 
-        return round($progress, 2);
+        $needsUpdate = $row && (
+            (int) ($row->progress_percentage ?? 0) !== $intPct
+            || ($isComplete && empty($row->completed_at))
+        );
+
+        if ($needsUpdate) {
+            $updateData = [
+                'progress_percentage' => $intPct,
+                'updated_at' => Carbon::now(),
+            ];
+            if ($isComplete && empty($row->completed_at)) {
+                $updateData['completed_at'] = Carbon::now();
+            }
+            DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->update($updateData);
+        }
+
+        return $this->courseProgressMemo[$memoKey] = round($progress, 2);
     }
 
     /**
@@ -116,16 +206,17 @@ class CourseProgressService
             return 0;
         }
 
-        $lessonIds = $module->lessons()->where('status', 'published')->pluck('id');
+        $lessonIds = $module->relationLoaded('lessons')
+            ? $module->lessons->where('status', 'published')->pluck('id')
+            : $module->lessons()->where('status', 'published')->pluck('id');
         if ($lessonIds->isEmpty()) {
             return 0;
         }
 
-        $completed = DB::table('lesson_progress')
-            ->where('user_id', $user->id)
-            ->whereIn('lesson_id', $lessonIds)
-            ->where(fn ($query) => $query->where('completed', true)->orWhere('progress_percentage', '>=', 100))
-            ->distinct()->count('lesson_id');
+        $progressMap = $this->lessonProgressMap($user);
+        $completed = $lessonIds->filter(
+            fn ($id) => $this->progressRowIsComplete($progressMap[(int) $id] ?? null)
+        )->count();
         $progress = ($completed / $lessonIds->count()) * 100;
 
         return round($progress, 2);
@@ -232,6 +323,8 @@ class CourseProgressService
             ]
         );
 
+        $this->forgetUserProgressCache($user, $lesson->course_id ?? $lesson->module?->course_id);
+
         ActivityLog::create([
             'user_id' => $user->id,
             'action' => 'completed_lesson',
@@ -317,15 +410,11 @@ class CourseProgressService
             return false;
         }
 
+        $passedIds = $this->passedTestIdSet($user, (int) $module->course_id);
+
         // Check if all lessons are completed
         foreach ($lessons as $lesson) {
-            $isCompleted = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $lesson->id)
-                ->where('completed', true)
-                ->exists();
-
-            if (!$isCompleted) {
+            if (!$this->isLessonMarkedComplete($user, $lesson->id)) {
                 return false;
             }
         }
@@ -343,12 +432,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $hasPassed = DB::table('test_results')
-                    ->where('user_id', $user->id)
-                    ->where('test_id', $test->id)
-                    ->where('percentage', '>=', $courseTest->passing_score)
-                    ->where('passed', true)
-                    ->exists();
+                $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
                 if (!$hasPassed) {
                     return false;
@@ -368,12 +452,7 @@ class CourseProgressService
                 continue;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             if (!$hasPassed) {
                 return false;
@@ -394,6 +473,7 @@ class CourseProgressService
 
         $modules = $course->modules()->where('status', 'published')->get();
         $rootLessons = $this->getCourseRootLessons($course);
+        $passedIds = $this->passedTestIdSet($user, (int) $course->id);
 
         if ($modules->isEmpty() && $rootLessons->isEmpty()) {
             return false;
@@ -415,12 +495,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $hasPassed = DB::table('test_results')
-                    ->where('user_id', $user->id)
-                    ->where('test_id', $test->id)
-                    ->where('percentage', '>=', $courseTest->passing_score)
-                    ->where('passed', true)
-                    ->exists();
+                $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
                 if (!$hasPassed) {
                     return false;
@@ -446,12 +521,7 @@ class CourseProgressService
                 continue;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             if (!$hasPassed) {
                 return false;
@@ -469,12 +539,7 @@ class CourseProgressService
                 continue;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             if (!$hasPassed) {
                 return false;
@@ -532,10 +597,12 @@ class CourseProgressService
             }
         }
 
-        $modules = $course->modules()
-            ->where('status', 'published')
-            ->orderBy('order')
-            ->get();
+        $modules = $course->relationLoaded('modules')
+            ? $course->modules->where('status', 'published')->sortBy('order')->values()
+            : $course->modules()
+                ->where('status', 'published')
+                ->orderBy('order')
+                ->get();
 
         foreach ($modules as $module) {
             // Check if module is unlocked
@@ -543,10 +610,12 @@ class CourseProgressService
                 continue;
             }
 
-            $lessons = $module->lessons()
-                ->where('status', 'published')
-                ->orderBy('order')
-                ->get();
+            $lessons = $module->relationLoaded('lessons')
+                ? $module->lessons->where('status', 'published')->sortBy('order')->values()
+                : $module->lessons()
+                    ->where('status', 'published')
+                    ->orderBy('order')
+                    ->get();
 
             foreach ($lessons as $lesson) {
                 // Check if lesson is unlocked
@@ -570,6 +639,7 @@ class CourseProgressService
      */
     public function getNextIncompleteTest(User $user, Course $course): ?Test
     {
+        $passedIds = $this->passedTestIdSet($user, (int) $course->id);
         $rootLessons = $this->getCourseRootLessons($course);
         foreach ($rootLessons as $lesson) {
             if (!$this->isLessonUnlocked($user, $lesson, null, $course)) {
@@ -592,12 +662,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $hasPassed = DB::table('test_results')
-                    ->where('user_id', $user->id)
-                    ->where('test_id', $test->id)
-                    ->where('percentage', '>=', $courseTest->passing_score)
-                    ->where('passed', true)
-                    ->exists();
+                $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
                 if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
                     return $test;
@@ -625,11 +690,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $lessonCompleted = DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('lesson_id', $lesson->id)
-                    ->where('completed', true)
-                    ->exists();
+                $lessonCompleted = $this->isLessonMarkedComplete($user, $lesson->id);
 
                 if (!$lessonCompleted) {
                     continue;
@@ -647,12 +708,7 @@ class CourseProgressService
                         continue;
                     }
 
-                    $hasPassed = DB::table('test_results')
-                        ->where('user_id', $user->id)
-                        ->where('test_id', $test->id)
-                        ->where('percentage', '>=', $courseTest->passing_score)
-                        ->where('passed', true)
-                        ->exists();
+                    $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
                     if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
                         return $test;
@@ -672,12 +728,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $hasPassed = DB::table('test_results')
-                    ->where('user_id', $user->id)
-                    ->where('test_id', $test->id)
-                    ->where('percentage', '>=', $courseTest->passing_score)
-                    ->where('passed', true)
-                    ->exists();
+                $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
                 if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
                     return $test;
@@ -696,12 +747,7 @@ class CourseProgressService
                 continue;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             if (!$hasPassed && $this->isTestUnlocked($user, $test, $course)) {
                 return $test;
@@ -727,12 +773,7 @@ class CourseProgressService
                 continue;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             if (!$hasPassed) {
                 return false;
@@ -765,8 +806,16 @@ class CourseProgressService
      */
     public function getUserAccessStatus(User $user, Course $course): array
     {
-        $modules = $course->modules()->where('status', 'published')->orderBy('order')->get();
+        $memoKey = $user->id . ':' . $course->id;
+        if (isset($this->accessStatusMemo[$memoKey])) {
+            return $this->accessStatusMemo[$memoKey];
+        }
+
+        $modules = $course->relationLoaded('modules')
+            ? $course->modules->where('status', 'published')->sortBy('order')->values()
+            : $course->modules()->where('status', 'published')->orderBy('order')->get();
         $rootLessons = $this->getCourseRootLessons($course);
+        $progressMap = $this->lessonProgressMap($user);
         $accessStatus = [
             'course_progress' => $this->calculateCourseProgress($user, $course),
             'modules' => [],
@@ -787,18 +836,14 @@ class CourseProgressService
             return $row->scope . ':' . ($sid === null ? 'null' : (string) $sid);
         });
 
-        $progressForCourseTest = function (CourseTest $courseTest) use ($user, $course): ?array {
+        $passedIds = $this->passedTestIdSet($user, (int) $course->id);
+        $progressForCourseTest = function (CourseTest $courseTest) use ($user, $course, $passedIds): ?array {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 return null;
             }
 
-            $hasPassed = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('percentage', '>=', $courseTest->passing_score)
-                ->where('passed', true)
-                ->exists();
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
 
             return [
                 'test_id' => $test->id,
@@ -828,24 +873,15 @@ class CourseProgressService
                 ->values()
                 ->all();
 
-            $lessons = $module->lessons()->where('status', 'published')->orderBy('order')->get();
+            $lessons = $module->relationLoaded('lessons')
+                ? $module->lessons->where('status', 'published')->sortBy('order')->values()
+                : $module->lessons()->where('status', 'published')->orderBy('order')->get();
             foreach ($lessons as $lesson) {
                 $isLessonUnlocked = $this->isLessonUnlocked($user, $lesson, $module, $course);
                 
-                // Check if lesson is completed (either marked as completed OR has 100% progress)
-                $lessonProgress = DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('lesson_id', $lesson->id)
-                    ->first();
-                
-                $isCompleted = false;
-                $progressPercentage = 0;
-                
-                if ($lessonProgress) {
-                    $progressPercentage = $lessonProgress->progress_percentage ?? 0;
-                    // Lesson is completed if marked as completed OR has 100% progress
-                    $isCompleted = ($lessonProgress->completed ?? false) || ($progressPercentage >= 100);
-                }
+                $lessonProgress = $progressMap[(int) $lesson->id] ?? null;
+                $progressPercentage = $lessonProgress->progress_percentage ?? 0;
+                $isCompleted = $this->progressRowIsComplete($lessonProgress);
 
                 $lessonTestsProgress = $ctByKey->get('lesson:' . $lesson->id, collect())
                     ->map($progressForCourseTest)
@@ -866,12 +902,8 @@ class CourseProgressService
             $accessStatus['modules'][] = $moduleData;
         }
 
-        $accessStatus['root_lessons'] = $rootLessons->map(function ($lesson) use ($user, $course, $ctByKey, $progressForCourseTest) {
-            $lessonProgress = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $lesson->id)
-                ->first();
-
+        $accessStatus['root_lessons'] = $rootLessons->map(function ($lesson) use ($user, $course, $ctByKey, $progressForCourseTest, $progressMap) {
+            $lessonProgress = $progressMap[(int) $lesson->id] ?? null;
             $progressPercentage = $lessonProgress->progress_percentage ?? 0;
 
             return [
@@ -894,7 +926,7 @@ class CourseProgressService
             ->values()
             ->all();
 
-        return $accessStatus;
+        return $this->accessStatusMemo[$memoKey] = $accessStatus;
     }
 }
 

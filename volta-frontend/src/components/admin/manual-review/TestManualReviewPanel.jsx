@@ -264,7 +264,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 						aria-labelledby="admin-tests-review-title"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<h3 id="admin-tests-review-title">Verificare manuală</h3>
+						<h3 id="admin-tests-review-title">De corectat</h3>
 						<p className="admin-tests-review-sub">
 							{reviewTarget.user?.name || reviewTarget.user?.email || 'Elev'} · {reviewTarget.test?.title || 'Test'}
 						</p>

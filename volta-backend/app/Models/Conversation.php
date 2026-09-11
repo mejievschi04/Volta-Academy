@@ -55,7 +55,7 @@ class Conversation extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'conversation_participants')
-            ->withPivot('group_role')
+            ->withPivot(['group_role', 'last_read_at'])
             ->withTimestamps();
     }
 
@@ -104,10 +104,19 @@ class Conversation extends Model
      */
     public function getUnreadCount($userId)
     {
-        return $this->messages()
-            ->where('sender_id', '!=', $userId)
-            ->where('read', false)
-            ->count();
+        $query = $this->messages()->where('sender_id', '!=', $userId);
+
+        if ($this->is_group) {
+            $participant = $this->participants()->where('users.id', $userId)->first();
+            $lastReadAt = $participant?->pivot?->last_read_at;
+            if ($lastReadAt) {
+                $query->where('created_at', '>', $lastReadAt);
+            }
+
+            return $query->count();
+        }
+
+        return $query->where('read', false)->count();
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Services\AIKnowledgeService;
 use App\Services\CourseBuilderService;
 use App\Services\VoltDataInsightService;
 use App\Services\VoltPromptService;
+use App\Support\LearningVisibility;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -210,6 +211,10 @@ class AIController extends Controller
         }
 
         $lesson = $lessonQuery->findOrFail($lessonId);
+        $user = auth()->user();
+        if (! LearningVisibility::learnerMaySeeLessonBody($user, $lesson, $lesson->course)) {
+            return response()->json(['error' => 'Nu ai acces la această lecție.'], 403);
+        }
         $lessonText = $this->extractStudyToolLessonText($lesson);
 
         if (mb_strlen($lessonText) < 80) {

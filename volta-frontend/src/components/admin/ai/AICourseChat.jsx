@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
 import { openaiService } from '../../../services/openaiService';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import { buildCourseCreationPromptFromBrief } from '../../../utils/voltAiPrompts';
+import { detectVoltWorkspaceIntent } from '../../../utils/detectVoltWorkspaceIntent';
+import { applyVoltCoursePlan, summarizeVoltPlanOperations, VOLT_TEST_REFRESH_EVENT } from '../../../utils/voltCoursePlan';
+import { describeVoltPageContext, getVoltPageContext } from '../../../utils/getVoltPageContext';
 import {
 	buildStructuredExcelRows,
 	downloadStructuredExcel,
@@ -12,6 +16,17 @@ import {
 } from '../../../utils/statisticsExcelExport';
 import { isVoltEnabled, notifyVoltComingSoon, VOLT_COMING_SOON_MESSAGE } from '../../../utils/voltAvailability';
 import './AIChat.css';
+
+function summarizeCoursePlan(plan) {
+	const modules = plan?.modules || plan?.course?.modules || [];
+	if (!Array.isArray(modules) || modules.length === 0) return [];
+	return modules.slice(0, 12).map((mod) => ({
+		title: String(mod.title || mod.name || 'Modul'),
+		lessons: Array.isArray(mod.lessons)
+			? mod.lessons.slice(0, 8).map((lesson) => String(lesson.title || lesson.name || 'Lecție'))
+			: [],
+	}));
+}
 
 const AICourseChat = ({
 	onCourseGenerated,
@@ -22,39 +37,59 @@ const AICourseChat = ({
 	selectedModuleId = null,
 	selectedLessonId = null,
 	selectedLessonDraft = null,
-	mode = 'create', // create | assist
-	title = '⚡ Volt Course Creator',
+	mode = 'create', // create | assist | workspace
+	title = 'Generează o ciornă cu Volt',
+	titleId = 'volt-chat-title',
 	welcomeMessage = null,
 	showPlanPreview = true,
 	autoApplyPlan = false,
 	quickActions = [],
+	initialTitle = '',
+	initialDescription = '',
+	embed = false,
+	onTestGenerated = null,
+	onMapGenerated = null,
+	initialTestId = null,
+	initialMapId = null,
 }) => {
 	const { showToast } = useToast();
+	const location = useLocation();
+	const pageContext = getVoltPageContext(location);
 	const [messages, setMessages] = useState(() => {
 		// În modul "create", subtitlul din header transmite deja mesajul de bun venit — evităm dublarea.
-		if (mode === 'create' && !welcomeMessage) {
-			return [];
+		if ((mode === 'create' || mode === 'workspace') && !welcomeMessage) {
+			return mode === 'workspace'
+				? [{
+					role: 'assistant',
+					content: `Sunt Volt. ${describeVoltPageContext(getVoltPageContext(typeof window === 'undefined' ? {} : { pathname: window.location.pathname, search: window.location.search }))}`,
+				}]
+				: [];
 		}
 		return [
 			{
 				role: 'assistant',
 				content: welcomeMessage || (mode === 'assist'
 					? 'Sunt Volt. Pot modifica și genera lecții, module și conținutul lor. Spune-mi ce vrei să schimbăm.'
-					: 'Sunt Volt. Pot genera cursul complet, cu module, lecții și conținutul lor. Dacă îmi lipsesc detalii, te întreb pe rând.'),
+					: 'Sunt Volt. Pregătesc o ciornă cu module și lecții pe care le poți revizui. Dacă îmi lipsesc detalii, te întreb pe rând.'),
 			},
 		];
 	});
 	const [input, setInput] = useState('');
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [isDirectExporting, setIsDirectExporting] = useState(false);
-	const [generatedPlan, setGeneratedPlan] = useState(null);
+	const [pendingCreatedCourse, setPendingCreatedCourse] = useState(null);
 	const [attachedDocuments, setAttachedDocuments] = useState([]);
 	const [attachmentUploading, setAttachmentUploading] = useState(false);
-	const [currentCourseId, setCurrentCourseId] = useState(initialCourseId); // Track current course ID
+	const [currentCourseId, setCurrentCourseId] = useState(initialCourseId);
+	const [currentTestId, setCurrentTestId] = useState(initialTestId);
+	const [currentMapId, setCurrentMapId] = useState(initialMapId);
+	const [pendingDraft, setPendingDraft] = useState(null);
+	const [generatedPlan, setGeneratedPlan] = useState(null);
+	const [isApplying, setIsApplying] = useState(false);
 	const [guidedBrief, setGuidedBrief] = useState({
-		topic: '',
-		courseTitle: '',
-		description: '',
+		topic: initialTitle || '',
+		courseTitle: initialTitle || '',
+		description: initialDescription || '',
 		targetAudience: '',
 		level: 'incepator',
 		style: 'practic',
@@ -69,6 +104,12 @@ const AICourseChat = ({
 	useEffect(() => {
 		scrollToBottom();
 	}, [messages]);
+
+	useEffect(() => {
+		setCurrentCourseId(initialCourseId ?? pageContext.courseId ?? null);
+		setCurrentTestId(initialTestId ?? pageContext.testId ?? null);
+		setCurrentMapId(initialMapId ?? pageContext.mapId ?? null);
+	}, [initialCourseId, initialTestId, initialMapId, pageContext.courseId, pageContext.testId, pageContext.mapId]);
 
 	const scrollToBottom = () => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -286,6 +327,118 @@ const AICourseChat = ({
 		}
 	};
 
+	const finishAssistantMessage = (content) => {
+		setMessages((prev) => {
+			const next = [...prev];
+			next[next.length - 1] = { ...next[next.length - 1], content };
+			return next;
+		});
+	};
+
+	const mapVoltTestQuestions = (rawQuestions) => {
+		if (!Array.isArray(rawQuestions)) return [];
+		return rawQuestions
+			.map((q, index) => {
+				const options = Array.isArray(q.options) ? q.options : (Array.isArray(q.answers) ? q.answers : []);
+				const correctIndex = Number.isFinite(Number(q.correct_answer))
+					? Number(q.correct_answer)
+					: options.findIndex((opt) => opt && typeof opt === 'object' && opt.is_correct);
+				const answers = options.map((opt, optIndex) => {
+					if (opt && typeof opt === 'object') {
+						return {
+							text: String(opt.text || opt.label || ''),
+							is_correct: Boolean(opt.is_correct) || optIndex === correctIndex,
+						};
+					}
+					return { text: String(opt), is_correct: optIndex === correctIndex };
+				});
+				return {
+					type: q.type || 'multiple_choice',
+					content: String(q.question || q.content || ''),
+					answers,
+					points: Number(q.points) || 1,
+					order: index,
+					explanation: q.explanation || '',
+				};
+			})
+			.filter((q) => q.content && q.answers.length >= 2);
+	};
+
+	const applyPendingDraft = async () => {
+		if (!pendingDraft || isApplying) return;
+		setIsApplying(true);
+		try {
+			if (pendingDraft.kind === 'test') {
+				if (pendingDraft.action === 'update' && currentTestId) {
+					const updated = await adminService.updateTest(currentTestId, {
+						title: pendingDraft.title,
+						description: pendingDraft.description,
+						questions: pendingDraft.questions,
+					});
+					const test = updated?.test || updated;
+					if (typeof window !== 'undefined') {
+						window.dispatchEvent(new CustomEvent(VOLT_TEST_REFRESH_EVENT, { detail: { testId: Number(currentTestId) } }));
+					}
+					showToast('Testul a fost actualizat.', 'success');
+					setPendingDraft(null);
+					onTestGenerated?.(test);
+					return;
+				}
+				const created = await adminService.createTest({
+					title: pendingDraft.title,
+					description: pendingDraft.description || '',
+					type: 'final',
+					status: 'draft',
+					questions: pendingDraft.questions,
+				});
+				const test = created?.test || created;
+				showToast('Test creat cu Volt.', 'success');
+				setPendingDraft(null);
+				onTestGenerated?.(test);
+				return;
+			}
+
+			if (pendingDraft.kind === 'map') {
+				if (pendingDraft.action === 'update' && currentMapId) {
+					const updated = await adminService.updateCourseMap(currentMapId, {
+						name: pendingDraft.name,
+						description: pendingDraft.description,
+					});
+					if (Array.isArray(pendingDraft.course_ids) && pendingDraft.course_ids.length) {
+						try {
+							await adminService.attachCoursesToMap(currentMapId, pendingDraft.course_ids);
+						} catch (attachErr) {
+							console.warn('Map updated but courses were not attached', attachErr);
+						}
+					}
+					showToast('Mapa a fost actualizată.', 'success');
+					setPendingDraft(null);
+					onMapGenerated?.(updated);
+					return;
+				}
+				const created = await adminService.createCourseMap({
+					name: pendingDraft.name,
+					description: pendingDraft.description,
+				});
+				const map = created?.id ? created : created?.data || created;
+				if (Array.isArray(pendingDraft.course_ids) && pendingDraft.course_ids.length && map?.id) {
+					try {
+						await adminService.attachCoursesToMap(map.id, pendingDraft.course_ids);
+					} catch (attachErr) {
+						console.warn('Map created but courses were not attached', attachErr);
+					}
+				}
+				showToast('Mapă creată cu Volt.', 'success');
+				setPendingDraft(null);
+				onMapGenerated?.(map);
+			}
+		} catch (error) {
+			showToast(error?.response?.data?.error || error?.message || 'Nu am putut aplica propunerea.', 'error');
+		} finally {
+			setIsApplying(false);
+		}
+	};
+
 	const submitPrompt = async (promptText) => {
 		if (isGenerating) return;
 		if (!isVoltEnabled()) {
@@ -293,7 +446,126 @@ const AICourseChat = ({
 			return;
 		}
 
-		const briefPayload = getGuidedBriefPayload();
+		const intent = mode === 'workspace'
+			? detectVoltWorkspaceIntent(promptText, {
+				...pageContext,
+				courseId: currentCourseId || pageContext.courseId,
+				testId: currentTestId || pageContext.testId,
+				mapId: currentMapId || pageContext.mapId,
+			})
+			: null;
+		const runMode = intent === 'edit_course'
+			? 'assist'
+			: (intent === 'create_course' ? 'create' : mode);
+
+		if (mode === 'workspace' && ['answer', 'test', 'edit_test', 'map', 'edit_map'].includes(intent)) {
+			const userMessage = { role: 'user', content: promptText.trim() };
+			setMessages((prev) => [...prev, userMessage, { role: 'assistant', content: '…' }]);
+			setInput('');
+			setIsGenerating(true);
+			setPendingDraft(null);
+			try {
+				let streamed = '';
+				const history = messages.map((m) => ({ role: m.role, content: m.content }));
+				if (intent === 'answer') {
+					await openaiService.streamCourseGeneration(
+						promptText.trim(),
+						history,
+						null,
+						(chunk) => {
+							if (!chunk) return;
+							streamed += chunk;
+							finishAssistantMessage(streamed);
+						},
+						null,
+						{ type: 'tutor', mode: 'admin_tutor' }
+					);
+					if (!streamed.trim()) {
+						finishAssistantMessage('Nu am putut genera un răspuns. Încearcă să reformulezi.');
+					}
+					return;
+				}
+
+				if (intent === 'test' || intent === 'edit_test') {
+					const editingTest = intent === 'edit_test' && currentTestId;
+					const testPrompt = editingTest
+						? `${promptText.trim()}\n\nEditezi testul ID ${currentTestId}. Răspunde JSON cu title, description și questions. Dacă cererea e o adăugare, propune întrebările noi plus cele esențiale din context.`
+						: promptText.trim();
+					await openaiService.streamTestGeneration(
+						testPrompt,
+						history,
+						currentCourseId,
+						(chunk) => {
+							if (!chunk) return;
+							streamed += chunk;
+							finishAssistantMessage(streamed);
+						}
+					);
+					const parsed = extractJsonFromText(streamed);
+					const questions = mapVoltTestQuestions(parsed?.questions);
+					if (!parsed?.title || questions.length === 0) {
+						finishAssistantMessage(streamed.trim() || 'Nu am putut pregăti un test valid. Adaugă mai multe detalii.');
+						return;
+					}
+					setPendingDraft({
+						kind: 'test',
+						action: editingTest ? 'update' : 'create',
+						title: parsed.title,
+						description: parsed.description || '',
+						questions,
+					});
+					finishAssistantMessage(
+						editingTest
+							? `Am pregătit ${questions.length} întrebări pentru testul deschis. Verifică sumarul și apasă Aplică.`
+							: `Am pregătit ciorna testului „${parsed.title}” (${questions.length} întrebări). Aplic doar după confirmare.`
+					);
+					return;
+				}
+
+				const editingMap = intent === 'edit_map' && currentMapId;
+				const mapPrompt = `${promptText.trim()}\n\n${editingMap
+					? `Editezi mapa ID ${currentMapId}. `
+					: ''}Dacă cererea este o mapă de cursuri, răspunde doar JSON valid: {"response_type":"map","name":"...","description":"...","course_ids":[]}. Folosește ID-uri de curs doar dacă le știi din context.`;
+				await openaiService.streamCourseGeneration(
+					mapPrompt,
+					history,
+					null,
+					(chunk) => {
+						if (!chunk) return;
+						streamed += chunk;
+						finishAssistantMessage(streamed);
+					},
+					null,
+					{ type: 'tutor', mode: 'admin_tutor' }
+				);
+				const parsed = extractJsonFromText(streamed);
+				const mapName = String(parsed?.name || parsed?.title || '').trim();
+				if (!mapName) {
+					finishAssistantMessage(streamed.trim() || 'Spune-mi numele mapei ca să o pregătesc.');
+					return;
+				}
+				setPendingDraft({
+					kind: 'map',
+					action: editingMap ? 'update' : 'create',
+					name: mapName,
+					description: parsed.description || null,
+					course_ids: Array.isArray(parsed.course_ids) ? parsed.course_ids : [],
+				});
+				finishAssistantMessage(
+					editingMap
+						? `Am pregătit actualizarea mapei „${mapName}”. Aplic doar după confirmare.`
+						: `Am pregătit mapa „${mapName}”. Aplic doar după confirmare.`
+				);
+			} catch (error) {
+				console.error('Volt workspace error:', error);
+				finishAssistantMessage(error?.response?.data?.error || error?.message || 'A apărut o eroare.');
+			} finally {
+				setIsGenerating(false);
+			}
+			return;
+		}
+
+		const briefPayload = mode === 'workspace' ? null : getGuidedBriefPayload();
 		const basePrompt = buildCourseCreationPromptFromBrief(briefPayload, promptText);
 		if (!basePrompt?.trim()) return;
 
@@ -304,6 +576,7 @@ const AICourseChat = ({
 		setInput('');
 		setIsGenerating(true);
 		setGeneratedPlan(null);
+		setPendingDraft(null);
 		let waitingHintTimer = null;
 		let firstChunkReceived = false;
 
@@ -313,13 +586,13 @@ const AICourseChat = ({
 			let buildModeDetected = false;
 			const assistantMessage = {
 				role: 'assistant',
-				content: mode === 'create'
+				content: runMode === 'create'
 					? '⚙️ Generez cursul. Dacă îmi lipsesc detalii, te întreb pe rând.'
 					: '',
 			};
 			setMessages(prev => [...prev, assistantMessage]);
 
-			if (mode === 'create') {
+			if (runMode === 'create') {
 				waitingHintTimer = window.setTimeout(() => {
 					if (firstChunkReceived) return;
 					setMessages(prev => {
@@ -333,7 +606,7 @@ const AICourseChat = ({
 				}, 12000);
 			}
 
-			console.log(mode === 'assist' ? 'Starting builder diff stream...' : 'Starting course generation stream...');
+			console.log(runMode === 'assist' ? 'Starting builder diff stream...' : 'Starting course generation stream...');
 
 			let courseId = null;
 			let streamResponseType = '';
@@ -349,7 +622,7 @@ const AICourseChat = ({
 				rawResponse += chunk;
 
 				// Hide raw JSON in create/assist modes and show build-progress instead.
-				if (mode === 'create' || mode === 'assist') {
+				if (runMode === 'create' || runMode === 'assist') {
 					const trimmed = rawResponse.trimStart();
 					const looksLikeJson =
 						trimmed.startsWith('{') ||
@@ -361,7 +634,7 @@ const AICourseChat = ({
 					if (looksLikeJson) {
 						const responseType = getResponseTypeFromText(rawResponse);
 						buildModeDetected = true;
-						const phase = mode === 'assist'
+						const phase = runMode === 'assist'
 							? (rawResponse.length < 900
 								? '⚙️ Analizez structura curentă'
 								: rawResponse.length < 1900
@@ -424,7 +697,7 @@ const AICourseChat = ({
 					streamHandler,
 					dataHandler,
 					{
-						mode: mode === 'assist' ? 'builder_diff' : 'guided_creation:full',
+						mode: runMode === 'assist' ? 'builder_diff' : 'guided_creation:full',
 						courseId: currentCourseId,
 						initialCourseId: currentCourseId,
 						selectedModuleId: selectedModuleId ?? null,
@@ -436,7 +709,7 @@ const AICourseChat = ({
 				);
 
 			if (streamResult?.content && !assistantResponse) {
-				if (mode === 'create') {
+				if (runMode === 'create') {
 					rawResponse = streamResult.content;
 				} else {
 					assistantResponse = streamResult.content;
@@ -456,7 +729,7 @@ const AICourseChat = ({
 				assistantResponse = rawResponse;
 			}
 
-			if (mode === 'assist') {
+			if (runMode === 'assist') {
 				if (streamResponseType === 'clarification' && streamClarificationText) {
 					setMessages(prev => {
 						const newMessages = [...prev];
@@ -475,14 +748,18 @@ const AICourseChat = ({
 					setGeneratedPlan(plan);
 					const hasOperations = Array.isArray(plan.operations) && plan.operations.length > 0;
 					const needsClarification = plan.needs_confirmation === true || Boolean(plan.clarification_question);
-					if (autoApplyPlan && onApplyPlan && hasOperations && !needsClarification) {
-						await onApplyPlan(plan);
+					const applyHandler = onApplyPlan || (currentCourseId
+						? (nextPlan) => applyVoltCoursePlan(currentCourseId, nextPlan)
+						: null);
+					const shouldAutoApply = autoApplyPlan && applyHandler && hasOperations && !needsClarification;
+					if (shouldAutoApply) {
+						const result = await applyHandler(plan);
 						setGeneratedPlan(null);
 						setMessages(prev => {
 							const newMessages = [...prev];
 							newMessages[newMessages.length - 1] = {
 								...newMessages[newMessages.length - 1],
-								content: '✅ Am aplicat modificările direct în builder.',
+								content: `✅ Am aplicat ${result?.appliedSteps ?? 'modificările'} în curs.`,
 							};
 							return newMessages;
 						});
@@ -524,17 +801,17 @@ const AICourseChat = ({
 			).trim();
 
 			if (courseId) {
-				setCurrentCourseId(courseId); // Save course ID for future requests
+				const wasExisting = Boolean(currentCourseId);
+				setCurrentCourseId(courseId);
+				setPendingCreatedCourse({ id: courseId, created: !wasExisting, plan: parsedCourse });
+				const modulePreview = summarizeCoursePlan(parsedCourse);
+				const previewLines = modulePreview.length
+					? modulePreview.map((mod) => `• ${mod.title}${mod.lessons.length ? ` (${mod.lessons.length} lecții)` : ''}`).join('\n')
+					: '';
 				setMessages(prev => [...prev, {
 					role: 'assistant',
-					content: `✅ Cursul a fost ${currentCourseId ? 'actualizat' : 'creat'} cu succes în background!\n\nID curs: ${courseId}\n\nPoți continua conversația sau să îmi spui dacă vrei să modific ceva.`
+					content: `Am pregătit o ciornă. Verifică structura mai jos, apoi deschide-o în builder.\n\nID curs: ${courseId}${previewLines ? `\n\n${previewLines}` : ''}`,
 				}]);
-				
-				// Don't redirect - user stays in chat
-				// Optionally reload courses list if callback is provided
-				if (onCourseGenerated) {
-					onCourseGenerated({ id: courseId, created: !currentCourseId });
-				}
 			} else if (responseType === 'clarification' && clarificationText) {
 				setMessages(prev => {
 					const newMessages = [...prev];
@@ -713,7 +990,7 @@ const AICourseChat = ({
 		)
 		: Boolean(input.trim());
 
-	const liveStatusTitle = isDirectExporting ? '⚙️ Volt pregătește exportul Excel' : '⚙️ Volt construiește cursul';
+	const liveStatusTitle = isDirectExporting ? 'Volt pregătește exportul Excel' : 'Volt pregătește ciorna';
 	const liveStatusSubtitle = isDirectExporting
 		? 'Analizez cererea, extrag datele și pregătesc fișierul.'
 		: 'Verific detaliile, cer clarificări doar dacă lipsesc informații și apoi finalizez.';
@@ -721,13 +998,13 @@ const AICourseChat = ({
 
 	if (!isVoltEnabled()) {
 		return (
-			<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}`}>
+			<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}${embed ? ' ai-chat-container-embed' : ''}`}>
 				<div className="ai-chat-header">
 					<div className="ai-chat-header-title-wrap">
-						<h2>{title}</h2>
+						<h2 id={titleId}>{title}</h2>
 					</div>
 					{onClose && (
-						<button type="button" className="ai-chat-close" onClick={onClose}>
+						<button type="button" className="ai-chat-close" onClick={onClose} aria-label="Închide">
 							×
 						</button>
 					)}
@@ -740,23 +1017,25 @@ const AICourseChat = ({
 	}
 
 	return (
-		<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}`}>
+		<div className={`ai-chat-container ${mode === 'create' ? 'ai-chat-container-create' : ''}${embed ? ' ai-chat-container-embed' : ''}`}>
+			{!embed && (
 			<div className="ai-chat-header">
 				<div className="ai-chat-header-title-wrap">
-					<h2>{title}</h2>
+					<h2 id={titleId}>{title}</h2>
 					{mode === 'create' && (
 						<p className="ai-chat-header-subtitle">
-							Pot genera cursul complet. Dacă lipsește ceva, te întreb pe rând.
+							Rezultatul este o ciornă: structură și propuneri de lecții de verificat înainte de publicare.
 						</p>
 					)}
 				</div>
 				{onClose && (
-					<button className="ai-chat-close" onClick={onClose}>
+					<button type="button" className="ai-chat-close" onClick={onClose} aria-label="Închide">
 						×
 					</button>
 				)}
 			</div>
-			{mode === 'create' && (
+			)}
+			{mode === 'create' && !embed && (
 				<div className="ai-chat-guided-brief">
 					<input
 						type="text"
@@ -927,15 +1206,99 @@ const AICourseChat = ({
 				</div>
 			)}
 
-			{mode === 'assist' && showPlanPreview && generatedPlan && (
+			{(mode === 'create' || mode === 'workspace') && pendingCreatedCourse && (
 				<div className="ai-chat-preview ai-chat-plan-preview">
-					<h3>Modificări propuse</h3>
+					<h3>Ciornă pregătită</h3>
+					<div className="ai-chat-preview-content">
+						<p>Rezultatul trebuie revizuit înainte de publicare. Poți ajusta modulele și lecțiile în builder.</p>
+						{summarizeCoursePlan(pendingCreatedCourse.plan).length > 0 ? (
+							<ul>
+								{summarizeCoursePlan(pendingCreatedCourse.plan).map((mod) => (
+									<li key={mod.title}>
+										<strong>{mod.title}</strong>
+										{mod.lessons.length ? ` — ${mod.lessons.join(', ')}` : ''}
+									</li>
+								))}
+							</ul>
+						) : null}
+					</div>
+					<div className="ai-chat-plan-actions">
+						<button
+							type="button"
+							className="ai-chat-btn ai-chat-btn-primary"
+							onClick={() => onCourseGenerated?.(pendingCreatedCourse)}
+						>
+							Deschide ciorna în builder
+						</button>
+					</div>
+				</div>
+			)}
+
+			{pendingDraft && (
+				<div className="ai-chat-preview ai-chat-plan-preview">
+					<h3>{pendingDraft.action === 'update' ? 'Confirmă actualizarea' : 'Confirmă crearea'}</h3>
+					<div className="ai-chat-preview-content">
+						{pendingDraft.kind === 'test' ? (
+							<>
+								<p><strong>Test:</strong> {pendingDraft.title}</p>
+								<p>{pendingDraft.questions.length} întrebări vor fi salvate ca ciornă.</p>
+								<ul>
+									{pendingDraft.questions.slice(0, 8).map((question, index) => (
+										<li key={`${question.content}-${index}`}>{question.content}</li>
+									))}
+								</ul>
+							</>
+						) : (
+							<>
+								<p><strong>Mapă:</strong> {pendingDraft.name}</p>
+								{pendingDraft.description ? <p>{pendingDraft.description}</p> : null}
+								{pendingDraft.course_ids?.length ? (
+									<p>{pendingDraft.course_ids.length} cursuri vor fi atașate.</p>
+								) : null}
+							</>
+						)}
+					</div>
+					<div className="ai-chat-plan-actions">
+						<button
+							type="button"
+							className="ai-chat-btn ai-chat-btn-primary"
+							onClick={applyPendingDraft}
+							disabled={isApplying}
+						>
+							{isApplying ? 'Se aplică…' : 'Aplică'}
+						</button>
+						<button
+							type="button"
+							className="ai-chat-btn ai-chat-btn-secondary"
+							onClick={() => setPendingDraft(null)}
+							disabled={isApplying}
+						>
+							Renunță
+						</button>
+					</div>
+				</div>
+			)}
+
+			{(mode === 'assist' || mode === 'workspace') && showPlanPreview && generatedPlan && (
+				<div className="ai-chat-preview ai-chat-plan-preview">
+					<h3>Confirmă modificările în curs</h3>
 					<div className="ai-chat-preview-content">
 						{generatedPlan.summary && <p><strong>Sumar:</strong> {generatedPlan.summary}</p>}
 						{generatedPlan.clarification_question && (
 							<p><strong>Întrebare:</strong> {generatedPlan.clarification_question}</p>
 						)}
-						<p><strong>Operații:</strong> {Array.isArray(generatedPlan.operations) ? generatedPlan.operations.length : 0}</p>
+						<p>
+							<strong>{summarizeVoltPlanOperations(generatedPlan).total} operații</strong>
+							{` · ${summarizeVoltPlanOperations(generatedPlan).counts.create} noi · ${summarizeVoltPlanOperations(generatedPlan).counts.update} actualizări · ${summarizeVoltPlanOperations(generatedPlan).counts.delete} ștergeri`}
+						</p>
+						{summarizeVoltPlanOperations(generatedPlan).counts.delete > 0 && (
+							<p className="ai-chat-plan-warning"><strong>Atenție:</strong> unele elemente vor fi șterse.</p>
+						)}
+						<ul>
+							{summarizeVoltPlanOperations(generatedPlan).lines.slice(0, 10).map((line, index) => (
+								<li key={`${line}-${index}`}>{line}</li>
+							))}
+						</ul>
 						{Array.isArray(generatedPlan.operations) && generatedPlan.operations.some((op) => {
 							if (!op || typeof op !== 'object') return false;
 							const opType = String(op.op || '').trim();
@@ -948,17 +1311,33 @@ const AICourseChat = ({
 						<button
 							type="button"
 							className="ai-chat-btn ai-chat-btn-primary"
-							onClick={() => onApplyPlan?.(generatedPlan)}
-							disabled={!Array.isArray(generatedPlan.operations) || generatedPlan.operations.length === 0}
+							onClick={async () => {
+								const applyHandler = onApplyPlan || (currentCourseId
+									? (nextPlan) => applyVoltCoursePlan(currentCourseId, nextPlan)
+									: null);
+								if (!applyHandler) return;
+								setIsApplying(true);
+								try {
+									const result = await applyHandler(generatedPlan);
+									setGeneratedPlan(null);
+									showToast(`Volt a aplicat ${result?.appliedSteps ?? 'modificările'}.`, 'success');
+								} catch (error) {
+									showToast(error?.message || 'Nu am putut aplica modificările.', 'error');
+								} finally {
+									setIsApplying(false);
+								}
+							}}
+							disabled={isApplying || !Array.isArray(generatedPlan.operations) || generatedPlan.operations.length === 0}
 						>
-							Aplică modificările
+							{isApplying ? 'Se aplică…' : 'Aplică modificările'}
 						</button>
 						<button
 							type="button"
 							className="ai-chat-btn ai-chat-btn-secondary"
 							onClick={() => setGeneratedPlan(null)}
+							disabled={isApplying}
 						>
-							Refă modificările
+							Renunță
 						</button>
 					</div>
 				</div>
@@ -987,7 +1366,9 @@ const AICourseChat = ({
 					className="ai-chat-input"
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
-					placeholder={mode === 'create' ? 'Ex: vreau un curs de React pentru începători, orientat pe practică' : 'Scrie cererea ta...'}
+					placeholder={mode === 'workspace'
+						? 'Creează un curs, o mapă, un test sau întreabă despre platformă…'
+						: mode === 'create' ? 'Ex: vreau un curs de React pentru începători, orientat pe practică' : 'Scrie cererea ta...'}
 					disabled={isGenerating}
 				/>
 				<button

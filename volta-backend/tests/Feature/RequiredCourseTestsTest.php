@@ -42,11 +42,11 @@ class RequiredCourseTestsTest extends TestCase
         $this->assertTrue($service->isCourseComplete($student, $course));
     }
 
-    public function test_attachment_cannot_be_optional(): void
+    public function test_attachment_can_remain_optional(): void
     {
         $link = app(CourseBuilderService::class)->attachTest(
             Course::factory()->published()->create(), Test::factory()->published()->create(), ['required' => false]
         );
-        $this->assertTrue($link->required);
+        $this->assertFalse($link->required);
     }
 }

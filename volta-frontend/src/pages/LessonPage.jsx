@@ -244,8 +244,12 @@ const LessonPage = () => {
 			}
 		} catch (err) {
 			console.error('Error fetching lesson:', err);
-			setError('Nu s-a putut încărca lecția');
-			showToast('Eroare la încărcarea lecției', 'error');
+			const locked = err?.response?.status === 403 && err?.response?.data?.locked;
+			const message = locked
+				? (err.response.data.message || 'Lecția este blocată. Completează lecțiile anterioare.')
+				: (err?.response?.data?.message || 'Nu s-a putut încărca lecția');
+			setError(message);
+			showToast(message, 'error');
 		} finally {
 			setLoading(false);
 		}

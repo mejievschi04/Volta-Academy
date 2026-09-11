@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import { useToast } from '../contexts/ToastContextShared.js';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { toImageUrl } from '../utils/imageUrl';
+import RichTextHtml from '../components/RichTextHtml';
 import '../styles/library-reader-page.css';
 
 function isPdfItem(item) {
@@ -201,10 +202,9 @@ const LibraryReaderPage = () => {
 					) : null}
 					<h1 className="library-reader-article-title">{item.title}</h1>
 					{item.description ? <p className="library-reader-article-lead">{item.description}</p> : null}
-					<div
-						className="library-reader-article-body lesson-preview-content"
-						dangerouslySetInnerHTML={{ __html: item.body || '' }}
-					/>
+					<div className="library-reader-article-body lesson-preview-content">
+						<RichTextHtml html={item.body || ''} />
+					</div>
 				</article>
 			</div>
 		);

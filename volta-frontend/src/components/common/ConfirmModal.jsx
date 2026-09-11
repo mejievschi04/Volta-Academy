@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useId } from 'react';
 import Modal from './Modal';
 import './ConfirmModal.css';
 
@@ -27,6 +27,8 @@ function ConfirmModal({
 }) {
 	const cancelBtnRef = useRef(null);
 	const confirmBtnRef = useRef(null);
+	const titleId = useId();
+	const descId = useId();
 
 	useEffect(() => {
 		if (!open) return;
@@ -55,15 +57,15 @@ function ConfirmModal({
 			onClose={onClose}
 			closeOnBackdropClick={!loading}
 			closeOnEscape={!loading}
-			ariaLabelledby="confirm-modal-title"
-			ariaDescribedby="confirm-modal-desc"
+			ariaLabelledby={titleId}
+			ariaDescribedby={descId}
 			className="confirm-modal-overlay"
 		>
 			<div className="confirm-modal">
-				<h2 id="confirm-modal-title" className="confirm-modal-title">
+				<h2 id={titleId} className="confirm-modal-title">
 					{title}
 				</h2>
-				<p id="confirm-modal-desc" className="confirm-modal-message">
+				<p id={descId} className="confirm-modal-message">
 					{message}
 				</p>
 				<div className="confirm-modal-actions">

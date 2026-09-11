@@ -12,7 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withCommands()
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->command('volta:backup')->hourly();
+    })
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'account.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
+        ]);
+
         // În spatele Nginx / Docker, X-Forwarded-Proto și IP corect pentru HTTPS, rate limit, sesiuni.
         $middleware->trustProxies(at: '*');
 

@@ -24,13 +24,13 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
-        // Port 8000 e adesea ocupat de alte proiecte locale; Volta backend: php artisan serve --port=8001
-        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8001',
+        // Implicit: php artisan serve (8000). Alt port: VOLTA_BACKEND_URL=http://localhost:8001 npm run dev
+        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
       '/storage': {
-        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8001',
+        target: process.env.VOLTA_BACKEND_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
@@ -53,6 +53,11 @@ export default defineConfig({
       output: {
         onlyExplicitManualChunks: true,
         manualChunks(id) {
+          if (id.includes('/node_modules/three/')) return 'three';
+          if (id.includes('/node_modules/@phosphor-icons/')) return 'icons-phosphor';
+          if (id.includes('/node_modules/lucide-react/')) return 'icons-lucide';
+          if (id.includes('/node_modules/xlsx/')) return 'xlsx';
+          if (id.includes('/node_modules/pdfjs-dist/') || id.includes('/node_modules/pdf-lib/')) return 'pdf';
           if (id.includes('/node_modules/recharts/')) return 'charts';
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-vendor';
         },
@@ -86,7 +91,10 @@ export default defineConfig({
       '@dnd-kit/core',
       '@dnd-kit/sortable',
       '@dnd-kit/utilities',
+      '@phosphor-icons/react',
+      'lucide-react',
       'recharts',
+      'three',
     ],
   },
 })

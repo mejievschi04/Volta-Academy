@@ -615,6 +615,7 @@ class UserAdminController extends Controller
                 ? \Carbon\Carbon::parse($validated['suspended_until']) 
                 : null;
             $user->save();
+            $user->tokens()->delete();
         }
         
         return response()->json([

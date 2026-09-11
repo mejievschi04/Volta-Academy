@@ -8,14 +8,13 @@ const prefetched = new Set();
 if (typeof requestIdleCallback !== 'undefined') {
 	requestIdleCallback(
 		() => {
-			Promise.all([
-				import('../pages/CoursesPage'),
-				import('../pages/admin/AdminDashboardPage'),
-			]).then(() => {
-				['/courses', '/admin'].forEach((p) => prefetched.add(p));
-			}).catch(() => {});
+			import('../pages/CoursesPage')
+				.then(() => {
+					prefetched.add('/courses');
+				})
+				.catch(() => {});
 		},
-		{ timeout: 2000 }
+		{ timeout: 2500 }
 	);
 }
 

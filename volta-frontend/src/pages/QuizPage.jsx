@@ -6,6 +6,7 @@ import { quizService } from '../services/api';
 import { useAuth } from '../contexts/AuthContextShared.js';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
+import { isChoiceAnswered } from '../utils/examChoiceQuestions';
 
 const QuizPage = () => {
 	const { courseId } = useParams();
@@ -23,6 +24,7 @@ const QuizPage = () => {
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 	const [, setIsMobile] = useState(window.innerWidth < 1024);
 	const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
+	const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 	const [timeRemaining, setTimeRemaining] = useState(null);
 	const [startTime, setStartTime] = useState(null);
 	const observerRef = useRef(null);
@@ -194,6 +196,19 @@ const QuizPage = () => {
         }
 	}, [courseId, answers, submitted]);
     latestSubmitRef.current = handleSubmit;
+
+	const quizQuestions = quiz?.questions || [];
+	const answeredQuestionsCount = quizQuestions.filter((q) => isChoiceAnswered(q, answers[q.id])).length;
+	const unansweredQuestionIndexes = quizQuestions
+		.map((q, idx) => (isChoiceAnswered(q, answers[q.id]) ? null : idx))
+		.filter((idx) => idx != null);
+	const requestSubmit = useCallback(() => {
+		if (timeRemaining === 0) {
+			handleSubmit();
+			return;
+		}
+		setConfirmSubmitOpen(true);
+	}, [timeRemaining, handleSubmit]);
 
 	const handleSave = useCallback(() => {
 		setSaved(true);
@@ -1219,7 +1234,24 @@ const QuizPage = () => {
 
                 {!submitted && !saved && <TestAttemptFooter currentIndex={currentQuestionIndex}
                     total={quiz.questions?.length ?? 0} onNavigate={scrollToQuestion}
-                    onSubmit={handleSubmit} submitting={submitting} backTo={`/courses/${courseId}`} />}
+                    onSubmit={handleSubmit} submitting={submitting} backTo={`/courses/${courseId}`}
+                    canSubmit={timeRemaining === 0 || quizQuestions.some((q) => isChoiceAnswered(q, answers[q.id]))}
+                    confirmOpen={confirmSubmitOpen}
+                    answeredCount={answeredQuestionsCount}
+                    unansweredCount={unansweredQuestionIndexes.length}
+                    flaggedCount={flaggedQuestions.size}
+                    onRequestSubmit={requestSubmit}
+                    onConfirmSubmit={() => {
+                        setConfirmSubmitOpen(false);
+                        handleSubmit();
+                    }}
+                    onCancelConfirm={() => setConfirmSubmitOpen(false)}
+                    onJumpUnanswered={() => {
+                        const first = unansweredQuestionIndexes[0];
+                        setConfirmSubmitOpen(false);
+                        if (first != null) scrollToQuestion(first);
+                    }}
+                />}
 
 				{/* Save Result Button */}
 				{!saved && submitted && result && (

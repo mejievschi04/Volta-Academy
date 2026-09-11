@@ -582,14 +582,19 @@ class MessageController extends Controller
             abort(403, 'Nu ai acces la această conversație.');
         }
 
-        // Mark all messages from other participant as read
-        Message::where('conversation_id', $conversationId)
-            ->where('sender_id', '!=', $user->id)
-            ->where('read', false)
-            ->update([
-                'read' => true,
-                'read_at' => now(),
+        if ($conversation->is_group) {
+            $conversation->participants()->updateExistingPivot($user->id, [
+                'last_read_at' => now(),
             ]);
+        } else {
+            Message::where('conversation_id', $conversationId)
+                ->where('sender_id', '!=', $user->id)
+                ->where('read', false)
+                ->update([
+                    'read' => true,
+                    'read_at' => now(),
+                ]);
+        }
 
         return response()->json([
             'message' => 'Conversation marked as read',

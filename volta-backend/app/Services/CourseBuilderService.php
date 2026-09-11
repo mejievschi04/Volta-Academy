@@ -84,6 +84,7 @@ class CourseBuilderService
     public function applyStructurePatch(int $courseId, array $ops, ?User $actor = null): array
     {
         $course = Course::findOrFail($courseId);
+        $this->markPublishedCourseEditing($course->id);
 
         DB::transaction(function () use ($course, $ops, $actor) {
             foreach ($ops as $op) {
@@ -239,6 +240,7 @@ class CourseBuilderService
      */
     public function createContentBlock(Lesson $lesson, array $data): ContentBlock
     {
+        $this->markPublishedCourseEditing($lesson->course_id);
         $maxOrder = ContentBlock::where('lesson_id', $lesson->id)->max('order') ?? -1;
 
         return ContentBlock::create([
@@ -256,12 +258,14 @@ class CourseBuilderService
 
     public function updateContentBlock(ContentBlock $block, array $data): ContentBlock
     {
+        $this->markPublishedCourseEditing($block->lesson?->course_id);
         $block->update($data);
         return $block->fresh();
     }
 
     public function reorderContentBlocks(Lesson $lesson, array $contentBlockIds): void
     {
+        $this->markPublishedCourseEditing($lesson->course_id);
         DB::transaction(function () use ($lesson, $contentBlockIds) {
             foreach ($contentBlockIds as $index => $blockId) {
                 ContentBlock::where('id', $blockId)
@@ -274,6 +278,7 @@ class CourseBuilderService
     public function deleteContentBlock(ContentBlock $block): void
     {
         $lesson = $block->lesson;
+        $this->markPublishedCourseEditing($lesson?->course_id);
         $block->delete();
 
         if ($lesson) {
@@ -289,7 +294,7 @@ class CourseBuilderService
      */
     public function cloneCourse(int $courseId, ?User $actor = null, bool $includeTeams = true): Course
     {
-        $source = Course::with(['modules.lessons.contentBlocks', 'teams'])->findOrFail($courseId);
+        $source = Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'teams'])->findOrFail($courseId);
 
         return DB::transaction(function () use ($source, $actor, $includeTeams) {
             $newCourse = $source->replicate();
@@ -302,6 +307,7 @@ class CourseBuilderService
             }
 
             $moduleIdMap = [];
+            $lessonIdMap = [];
             foreach ($source->modules as $module) {
                 $newModule = $module->replicate();
                 $newModule->course_id = $newCourse->id;
@@ -313,6 +319,7 @@ class CourseBuilderService
                     $newLesson->course_id = $newCourse->id;
                     $newLesson->module_id = $newModule->id;
                     $newLesson->save();
+                    $lessonIdMap[$lesson->id] = $newLesson->id;
 
                     foreach ($lesson->contentBlocks as $block) {
                         $newBlock = $block->replicate();
@@ -322,26 +329,50 @@ class CourseBuilderService
                 }
             }
 
-            // Duplicate course_test pivot rows and remap scope_id for modules/lessons
+            foreach ($source->lessons->whereNull('module_id') as $lesson) {
+                $newLesson = $lesson->replicate();
+                $newLesson->course_id = $newCourse->id;
+                $newLesson->module_id = null;
+                $newLesson->save();
+                $lessonIdMap[$lesson->id] = $newLesson->id;
+
+                foreach ($lesson->contentBlocks as $block) {
+                    $newBlock = $block->replicate();
+                    $newBlock->lesson_id = $newLesson->id;
+                    $newBlock->save();
+                }
+            }
+
+            // Duplicate course_test rows onto cloned tests so edits do not mutate the source.
             $pivotRows = CourseTest::where('course_id', $source->id)->get();
+            $testIdMap = [];
+            foreach ($pivotRows->pluck('test_id')->unique()->filter() as $oldTestId) {
+                $sourceTest = Test::with('questions')->find($oldTestId);
+                if (! $sourceTest) {
+                    continue;
+                }
+                $newTest = $sourceTest->replicate();
+                $newTest->status = 'draft';
+                $newTest->save();
+                foreach ($sourceTest->questions as $question) {
+                    $cloneQuestion = $question->replicate();
+                    $cloneQuestion->test_id = $newTest->id;
+                    $cloneQuestion->save();
+                }
+                $testIdMap[(int) $oldTestId] = $newTest->id;
+            }
             foreach ($pivotRows as $row) {
                 $newRow = $row->replicate();
                 $newRow->course_id = $newCourse->id;
+                $newRow->test_id = $testIdMap[(int) $row->test_id] ?? $row->test_id;
+                if ($row->unlock_after_test_id) {
+                    $newRow->unlock_after_test_id = $testIdMap[(int) $row->unlock_after_test_id] ?? null;
+                }
                 if ($row->scope === 'module' && $row->scope_id) {
                     $newRow->scope_id = $moduleIdMap[$row->scope_id] ?? null;
                 }
                 if ($row->scope === 'lesson' && $row->scope_id) {
-                    // Find new lesson by (module mapping + order) fallback: keep null if not found
-                    $oldLesson = Lesson::find($row->scope_id);
-                    if ($oldLesson && isset($moduleIdMap[$oldLesson->module_id])) {
-                        $newLesson = Lesson::where('course_id', $newCourse->id)
-                            ->where('module_id', $moduleIdMap[$oldLesson->module_id])
-                            ->where('order', $oldLesson->order)
-                            ->first();
-                        $newRow->scope_id = $newLesson?->id;
-                    } else {
-                        $newRow->scope_id = null;
-                    }
+                    $newRow->scope_id = $lessonIdMap[$row->scope_id] ?? null;
                 }
                 $newRow->save();
             }
@@ -492,9 +523,10 @@ class CourseBuilderService
             foreach ($lessonsData as $l) {
                 if (!is_array($l)) continue;
                 $oldLessonId = (int)($l['id'] ?? 0);
-                $oldModuleId = (int)($l['module_id'] ?? 0);
-                $newModuleId = $moduleIdMap[$oldModuleId] ?? null;
-                if (!$newModuleId) {
+                $rawModuleId = $l['module_id'] ?? null;
+                $oldModuleId = ($rawModuleId === null || $rawModuleId === '') ? 0 : (int) $rawModuleId;
+                $newModuleId = $oldModuleId > 0 ? ($moduleIdMap[$oldModuleId] ?? null) : null;
+                if ($oldModuleId > 0 && !$newModuleId) {
                     continue;
                 }
 
@@ -569,7 +601,7 @@ class CourseBuilderService
                     'test_id' => (int)($row['test_id'] ?? 0),
                     'scope' => $scope,
                     'scope_id' => $scopeId,
-                    'required' => true,
+                    'required' => array_key_exists('required', $row) ? (bool) $row['required'] : true,
                     'passing_score' => $row['passing_score'] ?? 70,
                     'order' => $row['order'] ?? 0,
                     'unlock_after_previous' => (bool)($row['unlock_after_previous'] ?? false),
@@ -613,7 +645,10 @@ class CourseBuilderService
             $createData['level'] = $data['level'] ?? null;
         }
         if (Schema::hasColumn($table, 'status')) {
-            $createData['status'] = $data['status'] ?? 'draft';
+            $createData['status'] = 'draft';
+        }
+        if (Schema::hasColumn($table, 'workflow_status')) {
+            $createData['workflow_status'] = 'draft';
         }
         if (Schema::hasColumn($table, 'settings')) {
             $createData['settings'] = $settings;
@@ -695,20 +730,60 @@ class CourseBuilderService
      */
     public function publishDraftLinkedAssessmentsForCourse(int $courseId): void
     {
-        $linkedTestIds = CourseTest::query()
+        $links = CourseTest::query()
             ->where('course_id', $courseId)
-            ->pluck('test_id')
-            ->unique()
-            ->filter()
-            ->values()
-            ->all();
+            ->get(['test_id', 'required']);
 
-        if (count($linkedTestIds) > 0) {
-            Test::query()
-                ->whereIn('id', $linkedTestIds)
-                ->where('status', '!=', 'published')
-                ->update(['status' => 'published']);
+        $linkedTestIds = $links->pluck('test_id')->unique()->filter()->values()->all();
+        if ($linkedTestIds === []) {
+            return;
         }
+
+        $requiredIds = $links->where('required', true)->pluck('test_id')->map(fn ($id) => (int) $id)->all();
+        $publisher = app(TestBuilderService::class);
+        $tests = Test::query()
+            ->whereIn('id', $linkedTestIds)
+            ->where('status', '!=', 'published')
+            ->with(['questions', 'questionBank'])
+            ->get();
+
+        foreach ($tests as $test) {
+            try {
+                $publisher->publishTest($test);
+            } catch (\Throwable $e) {
+                if (in_array((int) $test->id, $requiredIds, true)) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    /**
+     * Single publish pipeline: validate, go live, snapshot.
+     *
+     * @return array{ok: bool, course?: Course, errors?: mixed}
+     */
+    public function publishLive(Course $course, ?User $actor = null, array $teamIds = [], bool $catalogOutsideMap = false): array
+    {
+        $course->load(['modules.lessons.contentBlocks']);
+        $report = app(CourseBuilderValidator::class)->validate($course);
+        if (! ($report['ok'] ?? false)) {
+            return $report;
+        }
+
+        DB::transaction(function () use ($course, $actor, $teamIds, $catalogOutsideMap) {
+            $course->update(['status' => 'published', 'workflow_status' => 'published']);
+            \App\Support\CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
+            Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
+            Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
+            if (Schema::hasTable('course_team') && $teamIds !== []) {
+                $course->teams()->sync($teamIds);
+            }
+            $this->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+            $this->createCourseVersionSnapshot($course->id, $actor, 'published');
+        });
+
+        return ['ok' => true, 'course' => $course->fresh()];
     }
 
     /**
@@ -755,6 +830,7 @@ class CourseBuilderService
             }
         }
 
+        $this->markPublishedCourseEditing($course->id);
         $course->update($updateData);
 
         return $course->fresh();
@@ -803,6 +879,7 @@ class CourseBuilderService
      */
     public function attachTest(Course $course, Test $test, array $options = []): CourseTest
     {
+        $this->markPublishedCourseEditing($course->id);
         $courseTest = CourseTest::updateOrCreate(
             [
                 'course_id' => $course->id,
@@ -811,7 +888,7 @@ class CourseBuilderService
                 'scope_id' => $options['scope_id'] ?? null,
             ],
             [
-                'required' => true,
+                'required' => array_key_exists('required', $options) ? (bool) $options['required'] : true,
                 'passing_score' => $options['passing_score'] ?? 70,
                 'order' => $options['order'] ?? 0,
                 'unlock_after_previous' => $options['unlock_after_previous'] ?? false,
@@ -846,7 +923,7 @@ class CourseBuilderService
      */
     public function createModule(Course $course, array $data): Module
     {
-        // Get next order
+        $this->markPublishedCourseEditing($course->id);
         $maxOrder = Module::where('course_id', $course->id)->max('order') ?? -1;
 
         return Module::create([
@@ -855,7 +932,7 @@ class CourseBuilderService
             'description' => $data['description'] ?? null,
             'content' => $data['content'] ?? null,
             'order' => $data['order'] ?? ($maxOrder + 1),
-            'status' => $data['status'] ?? 'published',
+            'status' => $this->defaultNewContentStatus($course, $data['status'] ?? null),
         ]);
     }
 
@@ -864,7 +941,8 @@ class CourseBuilderService
      */
     public function createLesson(Module $module, array $data): Lesson
     {
-        // Get next order
+        $course = $module->course ?? Course::find($module->course_id);
+        $this->markPublishedCourseEditing($course?->id);
         $maxOrder = Lesson::where('module_id', $module->id)->max('order') ?? -1;
 
         return Lesson::create([
@@ -876,7 +954,7 @@ class CourseBuilderService
             'type' => $data['type'] ?? 'text',
             'duration_minutes' => $data['duration_minutes'] ?? null,
             'order' => $data['order'] ?? ($maxOrder + 1),
-            'status' => $data['status'] ?? 'published',
+            'status' => $this->defaultNewContentStatus($course, $data['status'] ?? null),
             'is_preview' => $data['is_preview'] ?? false,
         ]);
     }
@@ -886,6 +964,7 @@ class CourseBuilderService
      */
     public function createCourseLesson(Course $course, array $data): Lesson
     {
+        $this->markPublishedCourseEditing($course->id);
         $maxOrder = Lesson::where('course_id', $course->id)
             ->whereNull('module_id')
             ->max('order') ?? -1;
@@ -899,7 +978,7 @@ class CourseBuilderService
             'type' => $data['type'] ?? 'text',
             'duration_minutes' => $data['duration_minutes'] ?? null,
             'order' => $data['order'] ?? ($maxOrder + 1),
-            'status' => $data['status'] ?? 'published',
+            'status' => $this->defaultNewContentStatus($course, $data['status'] ?? null),
             'is_preview' => $data['is_preview'] ?? false,
         ]);
     }
@@ -909,6 +988,7 @@ class CourseBuilderService
      */
     public function updateModule(Module $module, array $data): Module
     {
+        $this->markPublishedCourseEditing($module->course_id);
         $module->update($data);
         return $module->fresh();
     }
@@ -918,6 +998,7 @@ class CourseBuilderService
      */
     public function updateLesson(Lesson $lesson, array $data): Lesson
     {
+        $this->markPublishedCourseEditing($lesson->course_id);
         if (array_key_exists('content', $data)) {
             $incoming = $data['content'];
             $isEmpty = $incoming === null || (is_string($incoming) && trim($incoming) === '');
@@ -938,6 +1019,7 @@ class CourseBuilderService
      */
     public function deleteModule(Module $module): bool
     {
+        $this->markPublishedCourseEditing($module->course_id);
         return DB::transaction(function () use ($module) {
             $lessons = $module->lessons()->get();
 
@@ -970,6 +1052,7 @@ class CourseBuilderService
      */
     public function deleteLesson(Lesson $lesson): bool
     {
+        $this->markPublishedCourseEditing($lesson->course_id);
         return DB::transaction(function () use ($lesson) {
             CourseTest::where('course_id', $lesson->course_id)
                 ->where('scope', 'lesson')
@@ -1076,5 +1159,31 @@ class CourseBuilderService
         foreach ($ids as $index => $lessonId) {
             Lesson::where('id', $lessonId)->update(['order' => $index]);
         }
+    }
+
+    protected function markPublishedCourseEditing(?int $courseId): void
+    {
+        if (! $courseId) {
+            return;
+        }
+
+        $course = Course::query()->find($courseId);
+        if (! $course || ($course->status ?? '') !== 'published') {
+            return;
+        }
+        if (($course->workflow_status ?? '') === 'editing') {
+            return;
+        }
+
+        $course->forceFill(['workflow_status' => 'editing'])->save();
+    }
+
+    protected function defaultNewContentStatus(?Course $course, ?string $requested): string
+    {
+        if ($course && ($course->status ?? '') === 'published') {
+            return 'draft';
+        }
+
+        return $requested ?: 'published';
     }
 }

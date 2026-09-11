@@ -30,12 +30,17 @@ class TestResult extends Model
         'attempt_number',
         'answers',
         'started_at',
+        'expires_at',
         'completed_at',
         'reviewed_at',
         'status',
         'needs_manual_review',
         'manual_review_scores',
         'reviewed_by',
+        'question_snapshot',
+        'passing_score_applied',
+        'attempt_token',
+        'attempt_scope',
     ];
 
     protected $casts = [
@@ -43,7 +48,9 @@ class TestResult extends Model
         'percentage' => 'decimal:2',
         'answers' => 'array',
         'manual_review_scores' => 'array',
+        'question_snapshot' => 'array',
         'started_at' => 'datetime',
+        'expires_at' => 'datetime',
         'completed_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'needs_manual_review' => 'boolean',

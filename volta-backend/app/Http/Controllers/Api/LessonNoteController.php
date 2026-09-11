@@ -62,10 +62,12 @@ class LessonNoteController extends Controller
         if ($user->isAdmin()) {
             return true;
         }
-        if ($lesson->is_preview) {
-            return true;
-        }
         $course = $lesson->course;
+        if ($lesson->is_preview) {
+            return ($lesson->status ?? 'draft') === 'published'
+                && $course
+                && ($course->status ?? 'draft') === 'published';
+        }
         if (! $course) {
             return false;
         }

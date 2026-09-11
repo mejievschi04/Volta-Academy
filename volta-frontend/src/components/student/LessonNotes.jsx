@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { useAuth } from '../../contexts/AuthContextShared.js';
 
-const LessonNotes = (props) => <LessonNotesEditor key={props.lessonId} {...props} />;
+const LessonNotes = (props) => {
+	const { user } = useAuth();
+	return <LessonNotesEditor key={`${user?.id || 'anon'}_${props.lessonId}`} {...props} />;
+};
 
 const LessonNotesEditor = ({ lessonId, initialNotes = '' }) => {
-	const [notes, setNotes] = useState(() => localStorage.getItem(`lesson_notes_${lessonId}`) ?? initialNotes);
+	const { user } = useAuth();
+	const storageKey = user?.id && lessonId ? `lesson_notes_${user.id}_${lessonId}` : null;
+	const [notes, setNotes] = useState(
+		() => (storageKey ? (localStorage.getItem(storageKey) ?? initialNotes) : initialNotes)
+	);
 	const { saveStatus } = useAutoSave(
 		notes,
 		async (data) => {
-			// Save notes to localStorage (or API in future)
-			localStorage.setItem(`lesson_notes_${lessonId}`, data);
+			if (!storageKey) return;
+			localStorage.setItem(storageKey, data);
 		},
-		1000 // 1 second delay
+		1000
 	);
-
-
 
 	return (
 		<div className="student-lesson-notes">
@@ -42,4 +48,3 @@ const LessonNotesEditor = ({ lessonId, initialNotes = '' }) => {
 };
 
 export default LessonNotes;
-

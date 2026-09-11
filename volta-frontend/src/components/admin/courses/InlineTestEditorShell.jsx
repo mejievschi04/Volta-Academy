@@ -16,6 +16,7 @@ export default function InlineTestEditorShell({
   subtitle = 'Configurezi testul în același editor ca în constructorul de curs.',
   showImportButton = true,
   showBuilderSummary = false,
+  showSectionTabs = true,
   courseId = null,
 }) {
   const {
@@ -115,6 +116,7 @@ export default function InlineTestEditorShell({
           </div>
         ) : null}
 
+        {showSectionTabs ? (
         <div className="admin-course-builder-test-tabs">
           <button
             type="button"
@@ -131,6 +133,7 @@ export default function InlineTestEditorShell({
             Setări
           </button>
         </div>
+        ) : null}
       </div>
 
       <div className="admin-course-builder-test-layout">

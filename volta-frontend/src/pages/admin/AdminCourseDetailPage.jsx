@@ -228,7 +228,6 @@ const AdminCourseDetailPage = () => {
 				open={publishModalOpen}
 				onClose={() => {
 					setPublishModalOpen(false);
-					setPublishValidationReport(null);
 				}}
 				course={course}
 				validationReport={publishValidationReport}
@@ -238,6 +237,15 @@ const AdminCourseDetailPage = () => {
 					setPublishModalOpen(false);
 					setPublishValidationReport(null);
 					fetchCourseData();
+				}}
+				onFixIssue={(issue) => {
+					if (!course?.id || !issue?.kind || !issue.id) return;
+					const params = new URLSearchParams({
+						focus: issue.kind === 'test' ? 'test' : issue.kind,
+						id: String(issue.id),
+					});
+					setPublishModalOpen(false);
+					navigate(`/admin/courses/${course.id}/builder?${params.toString()}`);
 				}}
 			/>
 

@@ -21,8 +21,14 @@ const api = axios.create({
   },
 });
 
-/** Înainte de POST stateful (login, logout, …): setează cookie-ul XSRF (ruta e în api.php + middleware web). */
+function hasXsrfCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((part) => part.trim().startsWith("XSRF-TOKEN="));
+}
+
+/** Înainte de POST stateful (login, logout, …): setează cookie-ul XSRF dacă lipsește. */
 export async function ensureApiCsrfCookie() {
+  if (hasXsrfCookie()) return;
   await api.get("/csrf-cookie");
 }
 

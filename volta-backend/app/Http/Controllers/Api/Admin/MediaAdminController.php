@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ContentBlock;
+use App\Models\Lesson;
 use App\Models\MediaAsset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -76,6 +78,19 @@ class MediaAdminController extends Controller
             abort(403, 'Acces interzis. Poți șterge doar fișierele încărcate de tine.');
         }
 
+        $usages = $this->findMediaUsages($asset);
+        if (count($usages) > 0 && ! $request->boolean('force')) {
+            return response()->json([
+                'message' => 'Fișierul este folosit în conținut. Elimină referințele sau trimite force=1.',
+                'in_use' => true,
+                'usages' => $usages,
+            ], 409);
+        }
+
+        if (count($usages) > 0 && $request->boolean('force')) {
+            $this->scrubMediaUsages($asset, $usages);
+        }
+
         if ($asset->path) {
             Storage::disk($asset->disk ?: 'public')->delete($asset->path);
         }
@@ -85,6 +100,102 @@ class MediaAdminController extends Controller
         return response()->json([
             'message' => 'Media deleted',
         ]);
+    }
+
+    private function findMediaUsages(MediaAsset $asset): array
+    {
+        $needles = array_values(array_filter([
+            $asset->path,
+            $asset->filename,
+            $asset->getUrlAttribute(),
+        ]));
+        if ($needles === []) {
+            return [];
+        }
+
+        $usages = [];
+        $blocks = ContentBlock::query()->with('lesson:id,title,course_id')->get(['id', 'lesson_id', 'source', 'payload']);
+        foreach ($blocks as $block) {
+            $haystack = json_encode([$block->source, $block->payload], JSON_UNESCAPED_SLASHES);
+            foreach ($needles as $needle) {
+                if ($needle && $haystack && str_contains($haystack, $needle)) {
+                    $usages[] = [
+                        'type' => 'content_block',
+                        'id' => $block->id,
+                        'lesson_id' => $block->lesson_id,
+                        'lesson_title' => $block->lesson?->title,
+                        'course_id' => $block->lesson?->course_id,
+                    ];
+                    break;
+                }
+            }
+        }
+
+        $lessons = Lesson::query()->get(['id', 'title', 'course_id', 'content', 'video_url']);
+        foreach ($lessons as $lesson) {
+            $haystack = (string) ($lesson->content ?? '') . ' ' . (string) ($lesson->video_url ?? '');
+            foreach ($needles as $needle) {
+                if ($needle && str_contains($haystack, $needle)) {
+                    $usages[] = [
+                        'type' => 'lesson',
+                        'id' => $lesson->id,
+                        'lesson_id' => $lesson->id,
+                        'lesson_title' => $lesson->title,
+                        'course_id' => $lesson->course_id,
+                    ];
+                    break;
+                }
+            }
+        }
+
+        return $usages;
+    }
+
+    private function scrubMediaUsages(MediaAsset $asset, array $usages): void
+    {
+        $needles = array_values(array_filter([
+            $asset->path,
+            $asset->filename,
+            $asset->getUrlAttribute(),
+        ]));
+        if ($needles === []) {
+            return;
+        }
+
+        foreach ($usages as $usage) {
+            if (($usage['type'] ?? '') === 'content_block') {
+                $block = ContentBlock::find($usage['id'] ?? 0);
+                if (! $block) {
+                    continue;
+                }
+                $block->source = is_string($block->source) ? str_replace($needles, '', $block->source) : $block->source;
+                $block->payload = $this->scrubNeedles($block->payload, $needles);
+                $block->save();
+                continue;
+            }
+
+            if (($usage['type'] ?? '') === 'lesson') {
+                $lesson = Lesson::find($usage['id'] ?? 0);
+                if (! $lesson) {
+                    continue;
+                }
+                $lesson->content = is_string($lesson->content) ? str_replace($needles, '', $lesson->content) : $lesson->content;
+                $lesson->video_url = is_string($lesson->video_url) ? str_replace($needles, '', $lesson->video_url) : $lesson->video_url;
+                $lesson->save();
+            }
+        }
+    }
+
+    private function scrubNeedles(mixed $value, array $needles): mixed
+    {
+        if (is_string($value)) {
+            return str_replace($needles, '', $value);
+        }
+        if (is_array($value)) {
+            return array_map(fn ($item) => $this->scrubNeedles($item, $needles), $value);
+        }
+
+        return $value;
     }
 }
 

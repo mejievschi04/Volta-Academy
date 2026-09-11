@@ -64,7 +64,12 @@ class ProgressionEngine
                 ->first();
 
             if ($previousTest) {
-                $hasPassed = $this->hasUserPassedTest($user, $previousTest->test_id, $courseTest->passing_score);
+                $hasPassed = $this->hasUserPassedTest(
+                    $user,
+                    (int) $previousTest->test_id,
+                    (int) ($previousTest->passing_score ?? 70),
+                    (int) $course->id
+                );
                 if (!$hasPassed) {
                     return false;
                 }
@@ -72,7 +77,15 @@ class ProgressionEngine
         }
 
         if ($courseTest->unlock_after_test_id) {
-            $hasPassed = $this->hasUserPassedTest($user, $courseTest->unlock_after_test_id, $courseTest->passing_score);
+            $prerequisite = CourseTest::where('course_id', $course->id)
+                ->where('test_id', $courseTest->unlock_after_test_id)
+                ->first();
+            $hasPassed = $this->hasUserPassedTest(
+                $user,
+                (int) $courseTest->unlock_after_test_id,
+                (int) ($prerequisite->passing_score ?? $courseTest->passing_score ?? 70),
+                (int) $course->id
+            );
             if (!$hasPassed) {
                 return false;
             }
@@ -103,7 +116,8 @@ class ProgressionEngine
             return true;
         }
 
-        $previousLesson = Lesson::where('module_id', $lesson->module_id)
+        $previousLesson = Lesson::where('course_id', $course->id)
+            ->where('module_id', $lesson->module_id)
             ->where('order', '<', $lesson->order)
             ->whereIn('status', ['published', 'draft'])
             ->orderBy('order', 'desc')
@@ -157,12 +171,12 @@ class ProgressionEngine
             foreach ($requiredTests as $courseTest) {
                 $test = $courseTest->test;
                 if ($test && $test->status === 'published') {
-                    $hasPassed = DB::table('test_results')
-                        ->where('user_id', $user->id)
-                        ->where('test_id', $test->id)
-                        ->where('percentage', '>=', $courseTest->passing_score)
-                        ->where('passed', true)
-                        ->exists();
+                    $hasPassed = $this->hasUserPassedTest(
+                        $user,
+                        (int) $test->id,
+                        (int) ($courseTest->passing_score ?? 70),
+                        (int) $course->id
+                    );
                     if (!$hasPassed) {
                         return false;
                     }
@@ -175,13 +189,13 @@ class ProgressionEngine
         return true;
     }
 
-    protected function hasUserPassedTest(User $user, int $testId, int $passingScore = 70): bool
+    protected function hasUserPassedTest(User $user, int $testId, int $passingScore = 70, ?int $courseId = null): bool
     {
         return DB::table('test_results')
             ->where('user_id', $user->id)
             ->where('test_id', $testId)
-            ->where('percentage', '>=', $passingScore)
             ->where('passed', true)
+            ->when($courseId, fn ($q) => $q->where('course_id', $courseId))
             ->exists();
     }
 }

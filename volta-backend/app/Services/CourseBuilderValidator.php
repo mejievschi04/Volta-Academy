@@ -64,6 +64,22 @@ class CourseBuilderValidator
             $this->validateLesson($lesson, $addError);
         }
 
+        $course->loadMissing(['courseTests.test.questions', 'courseTests.test.questionBank.questions']);
+        foreach ($course->courseTests ?? [] as $courseTest) {
+            $test = $courseTest->test;
+            if (! $test) {
+                continue;
+            }
+            $questionCount = $this->linkedTestQuestionCount($test);
+            if ((bool) ($courseTest->required ?? false) && $questionCount === 0) {
+                $addError(
+                    'assessment.questions.required',
+                    "course_tests.{$courseTest->id}",
+                    'Testul obligatoriu „' . ($test->title ?: 'fără titlu') . '” nu are întrebări și nu poate fi publicat odată cu cursul.'
+                );
+            }
+        }
+
         if ($course->sequential_unlock) {
             $addWarning('course.sequential_unlock.enabled', 'course.sequential_unlock', 'Sequential unlock este activ; verifica dependentele si lectiile preview.');
         }
@@ -199,16 +215,58 @@ class CourseBuilderValidator
             $addError('lesson.title.required', "lessons.{$lesson->id}.title", 'Titlul lectiei este obligatoriu.');
         }
 
-        $blocks = $lesson->contentBlocks ?? collect();
-        $hasLegacyContent = trim((string) ($lesson->content ?? '')) !== '';
-
-        if ($blocks->count() === 0 && !$hasLegacyContent) {
+        $hasUsableContent = $this->lessonHasUsableContent($lesson);
+        if (! $hasUsableContent) {
             $addError(
                 'lesson.content.required',
                 "lessons.{$lesson->id}.content",
-                'Lectia trebuie sa contina continut (minim un content block sau text).'
+                'Lectia trebuie sa contina continut utilizabil (text, video, fisier sau bloc vizibil cu sursa).'
             );
         }
+    }
+
+    protected function lessonHasUsableContent($lesson): bool
+    {
+        if ($this->htmlHasText((string) ($lesson->content ?? ''))) {
+            return true;
+        }
+        if (trim((string) ($lesson->video_url ?? '')) !== '') {
+            return true;
+        }
+
+        foreach ($lesson->contentBlocks ?? collect() as $block) {
+            if (isset($block->visible) && $block->visible === false) {
+                continue;
+            }
+            $type = (string) ($block->type ?? '');
+            $source = trim((string) ($block->source ?? ''));
+            $payload = is_array($block->payload ?? null) ? $block->payload : [];
+            $payloadText = '';
+            foreach (['content', 'text', 'html', 'description', 'transcript', 'instructions'] as $key) {
+                if (!empty($payload[$key]) && is_scalar($payload[$key])) {
+                    $payloadText .= ' ' . $payload[$key];
+                }
+            }
+            if (in_array($type, ['video', 'file', 'image', 'pdf', 'document'], true)) {
+                if ($source !== '' || !empty($payload['url']) || !empty($payload['src']) || !empty($payload['path'])) {
+                    return true;
+                }
+                continue;
+            }
+            if ($source !== '' || $this->htmlHasText($payloadText)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function htmlHasText(string $html): bool
+    {
+        $text = trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $text = preg_replace('/\x{00a0}|\s+/u', ' ', $text ?? '') ?? '';
+
+        return trim($text) !== '';
     }
 
     protected function lessonTextLength($lesson): int
@@ -232,5 +290,14 @@ class CourseBuilderValidator
         $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(implode(' ', $parts)), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
 
         return mb_strlen($text);
+    }
+
+    protected function linkedTestQuestionCount($test): int
+    {
+        if (($test->question_source ?? '') === 'bank' && $test->questionBank) {
+            return (int) $test->questionBank->questions->count();
+        }
+
+        return (int) $test->questions->count();
     }
 }

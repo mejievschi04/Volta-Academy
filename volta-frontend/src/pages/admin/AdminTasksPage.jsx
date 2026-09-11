@@ -39,7 +39,7 @@ const AdminTasksPage = () => {
 					</li>
 					<li>
 						<Link to="/admin/content?tab=manual-review" className="lms-btn-secondary" style={{ display: 'inline-block' }}>
-							Verificare manuală conținut
+							De corectat
 						</Link>
 					</li>
 				</ul>

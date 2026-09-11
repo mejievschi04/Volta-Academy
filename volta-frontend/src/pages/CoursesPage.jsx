@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
-import { courseMapsService, adminService, examService, coursesService, profileService } from '../services/api';
+import { courseMapsService, adminService, examService, coursesService, profileService, dashboardService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
 import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
@@ -10,6 +10,7 @@ import CourseMapFolderTile from '../components/ui/CourseMapFolderTile';
 import { courseCoverSrc, mapFolderCardImageUrl } from '../utils/imageUrl';
 import { hexToHslSpace } from '../lib/hexToHsl';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
+import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import './CoursesPage.css';
 import '../styles/learning-experience.css';
 
@@ -18,11 +19,11 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Parcursuri și cursuri' },
 	{ id: 'in_progress', label: 'Nefinalizate', statKey: 'in_progress' },
 	{ id: 'not_accessed', label: 'Neîncepute', statKey: 'not_accessed' },
+	{ id: 'maps', label: 'Parcursuri și cursuri' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	{ id: 'exams', label: 'Teste' },
+	{ id: 'exams', label: 'Examene' },
 ];
 
 const STUDENT_FILTER_TITLES = {
@@ -45,7 +46,8 @@ const CoursesPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [studentFilter, setStudentFilter] = useState('maps');
+	const [studentFilter, setStudentFilter] = useState('in_progress');
+	const studentFilterReadyRef = useRef(false);
 	const [assignedCourseStats, setAssignedCourseStats] = useState(null);
 	const [assignedCourses, setAssignedCourses] = useState({
 		all: [],
@@ -53,6 +55,7 @@ const CoursesPage = () => {
 		not_accessed: [],
 		completed: [],
 	});
+	const [nextLesson, setNextLesson] = useState(null);
 	const fetchingRef = useRef(false);
 
 	useEffect(() => {
@@ -71,13 +74,18 @@ const CoursesPage = () => {
 					const list = mapsData?.data ?? (Array.isArray(mapsData) ? mapsData : []);
 					setCourseMaps(Array.isArray(list) ? list : []);
 				} else {
-					const [mapsData, profileData] = await Promise.all([
+					const [mapsData, profileData, dashboardData] = await Promise.all([
 						courseMapsService.getMaps(),
 						profileService.getProfile().catch((profileErr) => {
 							console.error('Error fetching profile courses:', profileErr);
 							return null;
 						}),
+						dashboardService.getStudentDashboard().catch((dashErr) => {
+							console.error('Error fetching resume lesson:', dashErr);
+							return null;
+						}),
 					]);
+					setNextLesson(dashboardData?.next_lesson || null);
 
 					const rows = Array.isArray(mapsData) ? mapsData : [];
 					setCourseMaps(rows.filter(isStudentVisibleMap));
@@ -119,6 +127,15 @@ const CoursesPage = () => {
 
 		fetchCourses();
 	}, [authLoading, isAdmin]);
+
+	useEffect(() => {
+		if (isAdmin || loading || studentFilterReadyRef.current) return;
+		studentFilterReadyRef.current = true;
+		const hasInProgress = (assignedCourses.in_progress || []).length > 0 || Boolean(nextLesson);
+		if (!hasInProgress) {
+			setStudentFilter('maps');
+		}
+	}, [isAdmin, loading, assignedCourses.in_progress, nextLesson]);
 
 	const filteredCourseMaps = useMemo(() => {
 		let rows = Array.isArray(courseMaps) ? [...courseMaps] : [];
@@ -255,11 +272,16 @@ const CoursesPage = () => {
 	return (
 		<div className={`courses-page-modern ${!isAdmin ? 'courses-page-student' : ''}`}>
 			<div className={!isAdmin ? 'courses-page-student-main' : undefined}>
+				{!isAdmin && nextLesson ? (
+					<div className="courses-page-resume-wrap">
+						<ResumeLearningWidget variant="banner" nextLesson={nextLesson} />
+					</div>
+				) : null}
 				<div className="courses-page-hero">
 					<div className={`courses-page-hero-content${!isAdmin ? ' courses-page-hero-content--student' : ''}`}>
 						<div className="courses-page-hero-text">
 							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : 'Cursuri'}</h1>
-							{!isAdmin && <p className="courses-catalog-description">Continuă ce ai început sau alege următorul curs. Testele sunt într-o secțiune separată.</p>}
+							{!isAdmin && <p className="courses-catalog-description">Continuă de unde ai rămas sau alege următorul curs.</p>}
 							{!isAdmin ? (
 								<div className="courses-page-student-filters" role="group" aria-label="Filtrare cursuri">
 									{STUDENT_COURSE_FILTERS.map((filter) => {
@@ -287,13 +309,11 @@ const CoursesPage = () => {
 							<input
 								type="text"
 								className="courses-page-search-input"
-								aria-label={studentFilter === 'exams' ? 'Caută teste' : 'Caută cursuri'}
+								aria-label={studentFilter === 'exams' ? 'Caută examene' : 'Caută cursuri'}
 								placeholder={
 									!isAdmin && studentFilter === 'exams'
-										? 'Caută un test...'
-										: !isAdmin && studentFilter !== 'maps'
-											? 'Caută după titlu sau descriere...'
-											: 'Caută după titlu sau descriere...'
+										? 'Caută un examen...'
+										: 'Caută după titlu sau descriere...'
 								}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
@@ -330,6 +350,29 @@ const CoursesPage = () => {
 				</div>
 
 				<div className="courses-page-content">
+					{!isAdmin ? (
+						<>
+							{(assignedCourses.all || []).length === 0
+								&& !nextLesson
+								&& standaloneCourses.length === 0
+								&& (Array.isArray(courseMaps) ? courseMaps : []).length === 0 ? (
+								<section className="courses-page-empty-assigned" aria-label="Cursuri atribuite">
+									<h2 className="courses-page-empty-title">Nu ai încă un curs atribuit</h2>
+									<p className="courses-page-empty-text">
+										Când un administrator îți alocă un curs, îl vei găsi aici și vei putea continua lecția din acest ecran.
+										Dacă ai nevoie de acces, trimite un mesaj echipei.
+									</p>
+									<button
+										type="button"
+										className="courses-page-btn courses-page-btn-secondary"
+										onClick={() => navigate('/messages')}
+									>
+										Deschide mesajele
+									</button>
+								</section>
+							) : null}
+						</>
+					) : null}
 					{!isAdmin && studentFilter !== 'maps' && studentFilter !== 'exams' ? (
 						<section className="courses-page-filtered-section" aria-label={STUDENT_FILTER_TITLES[studentFilter]}>
 							<div className="courses-page-filtered-header">

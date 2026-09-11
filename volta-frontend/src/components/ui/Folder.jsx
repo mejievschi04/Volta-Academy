@@ -22,7 +22,7 @@ const darkenColor = (hex, percent) => {
 	return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 };
 
-const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, className = '' }) => {
+const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, className = '', interactive = true }) => {
 	const maxItems = 3;
 	const papers = items.slice(0, maxItems);
 	while (papers.length < maxItems) {
@@ -39,7 +39,12 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, cl
 	const paper2 = darkenColor('#ffffff', 0.05);
 	const paper3 = '#ffffff';
 
-	const handleClick = () => {
+	const handleClick = (event) => {
+		if (!interactive) return;
+		if (typeof window !== 'undefined' && window.matchMedia('(hover: none), (max-width: 768px)').matches) {
+			return;
+		}
+		event.stopPropagation();
 		setOpen((prev) => !prev);
 		if (open) {
 			setPaperOffsets(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));

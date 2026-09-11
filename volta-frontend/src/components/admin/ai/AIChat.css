@@ -333,6 +333,17 @@
 	font-weight: var(--font-weight-semibold, 600);
 }
 
+.ai-chat-preview-content ul {
+	margin: 0.5rem 0 0;
+	padding-left: 1.1rem;
+}
+
+.ai-chat-preview-content li {
+	margin: 0 0 0.25rem;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--text-secondary);
+}
+
 .ai-chat-guided-brief {
 	padding: 12px 14px;
 	border-bottom: 1px solid var(--border-primary, var(--border-secondary));

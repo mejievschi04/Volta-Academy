@@ -22,7 +22,11 @@ class StudentSessionLogger
             return;
         }
 
-        if (! Schema::hasTable('activity_logs')) {
+        static $activityLogsReady = null;
+        if ($activityLogsReady === null) {
+            $activityLogsReady = Schema::hasTable('activity_logs');
+        }
+        if (! $activityLogsReady) {
             return;
         }
 
@@ -32,7 +36,8 @@ class StudentSessionLogger
         }
 
         $dedupeKey = 'volta_student_session:' . $user->id . ':' . $sessionRef;
-        if (Cache::has($dedupeKey)) {
+        $ttlMinutes = max(1, (int) config('session.lifetime', 120));
+        if (! Cache::add($dedupeKey, true, now()->addMinutes($ttlMinutes))) {
             return;
         }
 
@@ -49,9 +54,6 @@ class StudentSessionLogger
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
-
-        $ttlMinutes = max(1, (int) config('session.lifetime', 120));
-        Cache::put($dedupeKey, true, now()->addMinutes($ttlMinutes));
     }
 
     private static function sessionReference(Request $request): ?string

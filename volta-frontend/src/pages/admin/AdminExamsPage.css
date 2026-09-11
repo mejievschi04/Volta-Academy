@@ -3558,11 +3558,12 @@
 }
 
 .admin-exams-create-modal {
-	width: min(100%, 960px);
+	width: min(100%, 520px);
 	padding: 0;
-	display: grid;
-	grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
-	min-height: min(680px, 86vh);
+	display: flex;
+	flex-direction: column;
+	min-height: auto;
+	grid-template-columns: none;
 }
 
 .admin-exams-create-modal::before,
@@ -5403,4 +5404,72 @@
 	color: var(--text-tertiary, #9ca3af);
 	font-size: 0.78rem;
 	line-height: 1.35;
+}
+
+.admin-exam-create-overlay .admin-exam-create-panel {
+	width: min(440px, calc(100vw - 32px));
+}
+
+.admin-exam-create-panel .admin-team-modal-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.admin-exam-create-panel .admin-form-label {
+	margin: 4px 0 0;
+	font-size: 0.78rem;
+}
+
+.admin-exam-create-panel textarea.admin-form-input {
+	min-height: 72px;
+	resize: vertical;
+}
+
+.admin-exam-create-panel .admin-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 16px 16px;
+	border-top: 1px solid var(--border-primary);
+}
+
+.admin-exams-builder-refined .admin-exams-builder-workflow .admin-exams-builder-tabs,
+.admin-exams-builder-refined .admin-exams-builder-tabs {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.admin-exams-builder-refined .admin-exams-builder-tabs button,
+.admin-exams-builder-refined .admin-exams-builder-workflow .admin-exams-builder-tabs button {
+	min-height: 52px;
+	padding: 8px 10px;
+}
+
+.admin-exams-builder-refined .admin-exams-builder-card-head {
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.admin-exams-builder-refined .admin-exams-builder-card-title {
+	margin-bottom: 12px;
+}
+
+.admin-exams-builder-refined .admin-exams-builder-summary-head {
+	margin-bottom: 2px;
+}
+
+@media (max-width: 1040px) {
+	.admin-exams-builder-refined .admin-exams-builder-workflow .admin-exams-builder-tabs,
+	.admin-exams-builder-refined .admin-exams-builder-tabs {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 760px) {
+	.admin-exams-builder-refined .admin-exams-builder-workflow .admin-exams-builder-tabs,
+	.admin-exams-builder-refined .admin-exams-builder-tabs {
+		grid-template-columns: 1fr;
+	}
 }

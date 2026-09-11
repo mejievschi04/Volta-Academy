@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { lessonNotesService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContextShared.js';
 import './NoteTakingSystem.css';
 
 /**
@@ -12,7 +13,10 @@ import './NoteTakingSystem.css';
  * - Export notes
  * - Search notes
  */
-const NoteTakingSystem = (props) => <LessonNoteEditor key={props.lessonId} {...props} />;
+const NoteTakingSystem = (props) => {
+	const { user } = useAuth();
+	return <LessonNoteEditor key={`${user?.id || 'anon'}_${props.lessonId}`} {...props} />;
+};
 
 const LessonNoteEditor = ({
 	lessonId, 
@@ -22,12 +26,9 @@ const LessonNoteEditor = ({
 	onNoteUpdated,
 	onNoteDeleted 
 }) => {
-	const [notes, setNotes] = useState(() => {
-        try {
-            const saved = JSON.parse(localStorage.getItem(`notes_${lessonId}`) || '[]');
-            return Array.isArray(saved) ? saved : [];
-        } catch { return []; }
-    });
+	const { user } = useAuth();
+	const notesStorageKey = user?.id && lessonId ? `notes_${user.id}_${lessonId}` : null;
+	const [notes, setNotes] = useState([]);
     const [notesLoaded, setNotesLoaded] = useState(false);
 	const [activeNote, setActiveNote] = useState(null);
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -40,24 +41,48 @@ const LessonNoteEditor = ({
         if (!lessonId) return;
         let cancelled = false;
         lessonNotesService.getNotes(lessonId).then((data) => {
-            if (!cancelled && Array.isArray(data?.notes)) setNotes(data.notes);
+            if (cancelled) return;
+            if (Array.isArray(data?.notes)) {
+                setNotes(data.notes);
+                return;
+            }
+            if (!notesStorageKey) {
+                setNotes([]);
+                return;
+            }
+            try {
+                const saved = JSON.parse(localStorage.getItem(notesStorageKey) || '[]');
+                setNotes(Array.isArray(saved) ? saved : []);
+            } catch {
+                setNotes([]);
+            }
         }).catch(() => {
-            // Keep the local copy when the server cannot be reached.
+            if (cancelled) return;
+            if (!notesStorageKey) {
+                setNotes([]);
+                return;
+            }
+            try {
+                const saved = JSON.parse(localStorage.getItem(notesStorageKey) || '[]');
+                setNotes(Array.isArray(saved) ? saved : []);
+            } catch {
+                setNotes([]);
+            }
         }).finally(() => {
             if (!cancelled) setNotesLoaded(true);
         });
         return () => { cancelled = true; };
-    }, [lessonId]);
+    }, [lessonId, notesStorageKey]);
 
-	// Copie locală pentru offline / fallback
+	// Copie locală pentru offline / fallback — cheie per utilizator + lecție
 	useEffect(() => {
-		if (!lessonId || !notesLoaded) return;
+		if (!notesStorageKey || !notesLoaded) return;
 		try {
-			localStorage.setItem(`notes_${lessonId}`, JSON.stringify(notes));
+			localStorage.setItem(notesStorageKey, JSON.stringify(notes));
 		} catch {
 			/* quota */
 		}
-	}, [notes, lessonId, notesLoaded]);
+	}, [notes, notesStorageKey, notesLoaded]);
 
 	useAutoSave(
 		{ lessonId, notes },
@@ -67,6 +92,7 @@ const LessonNoteEditor = ({
 				await lessonNotesService.saveNotes(data.lessonId, data.notes);
 			} catch (e) {
 				console.error('Failed to save lesson notes to server:', e);
+				throw e;
 			}
 		},
 		2000,

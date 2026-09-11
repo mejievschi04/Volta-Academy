@@ -7,6 +7,7 @@ use App\Models\ExamResult;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Services\TestAttemptAnswerOrderService;
+use App\Services\TestAttemptService;
 use App\Services\TestQuestionSelectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,13 +19,16 @@ class ExamResultController extends Controller
 {
     protected TestQuestionSelectionService $questionSelectionService;
     protected TestAttemptAnswerOrderService $answerOrderService;
+    protected TestAttemptService $attemptService;
 
     public function __construct(
         TestQuestionSelectionService $questionSelectionService,
-        TestAttemptAnswerOrderService $answerOrderService
+        TestAttemptAnswerOrderService $answerOrderService,
+        TestAttemptService $attemptService
     ) {
         $this->questionSelectionService = $questionSelectionService;
         $this->answerOrderService = $answerOrderService;
+        $this->attemptService = $attemptService;
     }
 
     protected function coursePayloadFromTestResult(TestResult $result): ?array
@@ -90,6 +94,39 @@ class ExamResultController extends Controller
             unset($wire['matching']['correctMap']);
         }
 
+        if (isset($wire['ordering']) && is_array($wire['ordering'])) {
+            unset($wire['ordering']['correctOrder']);
+        }
+
+        return $wire;
+    }
+
+    protected function hideUnrevealedSolutionKeys(array $wire): array
+    {
+        unset(
+            $wire['correct_answer_index'],
+            $wire['correct_answer_indices'],
+            $wire['answerIndex'],
+            $wire['answerIndices'],
+            $wire['explanation']
+        );
+
+        if (isset($wire['answers']) && is_array($wire['answers'])) {
+            $wire['answers'] = array_map(function ($answer) {
+                if (! is_array($answer)) {
+                    return $answer;
+                }
+                if (! ($answer['is_selected'] ?? false)) {
+                    unset($answer['is_correct']);
+                }
+
+                return $answer;
+            }, $wire['answers']);
+        }
+
+        if (isset($wire['matching']) && is_array($wire['matching'])) {
+            unset($wire['matching']['correctMap']);
+        }
         if (isset($wire['ordering']) && is_array($wire['ordering'])) {
             unset($wire['ordering']['correctOrder']);
         }
@@ -895,14 +932,17 @@ class ExamResultController extends Controller
                 // Rebuild exact question set for this attempt (same deterministic selection as exam submit/show)
                 $questions = collect();
                 try {
-                    if (!$testResult->test->relationLoaded('questionBank')) {
-                        $testResult->test->load('questionBank');
+                    $questions = $this->attemptService->hydrateQuestions($testResult->question_snapshot);
+                    if ($questions->isEmpty()) {
+                        if (!$testResult->test->relationLoaded('questionBank')) {
+                            $testResult->test->load('questionBank');
+                        }
+                        $questions = $this->selectQuestionsForTestAttempt(
+                            $testResult->test,
+                            (int) $testResult->user_id,
+                            (int) ($testResult->attempt_number ?? 1)
+                        );
                     }
-                    $questions = $this->selectQuestionsForTestAttempt(
-                        $testResult->test,
-                        (int) $testResult->user_id,
-                        (int) ($testResult->attempt_number ?? 1)
-                    );
                 } catch (\Exception $e) {
                     Log::warning('Error rebuilding attempt questions for test result', [
                         'test_result_id' => $testResult->id,
@@ -917,6 +957,7 @@ class ExamResultController extends Controller
                 }
 
                 $submittedOnly = $this->shouldShowOnlySubmittedAnswers($testResult->test);
+                $revealSolutions = (bool) ($testResult->test->show_correct_answers ?? false) && ! $submittedOnly;
                 
                 return response()->json([
                     'id' => $testResult->id,
@@ -955,15 +996,19 @@ class ExamResultController extends Controller
                         'type' => $testResult->test->type,
                         'status' => $testResult->test->status,
                         'course' => $course,
-                        'questions' => $questions->map(function($question) use ($userAnswers, $testResult, $submittedOnly) {
+                        'questions' => $questions->map(function($question) use ($userAnswers, $testResult, $revealSolutions, $submittedOnly) {
                             $wire = $this->buildTestQuestionResultWire($testResult, $question, $userAnswers);
                             if (! $wire) {
                                 return null;
                             }
 
-                            return $submittedOnly
-                                ? $this->sanitizeQuestionWireForSubmittedOnly($wire)
-                                : $wire;
+                            if ($submittedOnly) {
+                                return $this->sanitizeQuestionWireForSubmittedOnly($wire);
+                            }
+
+                            return $revealSolutions
+                                ? $wire
+                                : $this->hideUnrevealedSolutionKeys($wire);
                         })->filter(function($q) {
                             return $q !== null;
                         }),

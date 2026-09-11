@@ -45,13 +45,21 @@ class ExamBankQuestionSyncService
 
         $pool = $this->basePool($folderIds, $selectionMode, $actor);
         if ($pool->isEmpty()) {
-            return 0;
+            return DB::transaction(function () use ($exam) {
+                ExamQuestion::where('exam_id', $exam->id)->delete();
+
+                return 0;
+            });
         }
 
         if ($selectionMode === 'tags' && $tagList !== []) {
             $pool = $this->filterByTags($pool, $tagList);
             if ($pool->isEmpty()) {
-                return 0;
+                return DB::transaction(function () use ($exam) {
+                    ExamQuestion::where('exam_id', $exam->id)->delete();
+
+                    return 0;
+                });
             }
         }
 
@@ -158,20 +166,24 @@ class ExamBankQuestionSyncService
 
     protected function applyCountAndStarred(Collection $matched, int $count, bool $includeStarred, string $seedBase): Collection
     {
-        if ($includeStarred) {
-            $starred = $matched->filter(fn ($q) => (bool) $q->is_starred)->sortBy('id')->values();
-            $nonStarred = $matched->reject(fn ($q) => (bool) $q->is_starred)->values();
-            $nonStarred = $this->orderDeterministic($nonStarred, $seedBase . ':ns');
-            if ($count > 0) {
-                $nonStarred = $nonStarred->take($count)->values();
-            }
-
-            return $starred->concat($nonStarred)->unique('id')->values();
+        $ordered = $this->orderDeterministic($matched, $seedBase);
+        if ($count <= 0) {
+            return $ordered;
         }
 
-        $ordered = $this->orderDeterministic($matched, $seedBase);
+        if (! $includeStarred) {
+            return $ordered->take($count)->values();
+        }
 
-        return $count > 0 ? $ordered->take($count)->values() : $ordered;
+        $starred = $ordered->filter(fn ($q) => (bool) $q->is_starred)->values();
+        $nonStarred = $ordered->reject(fn ($q) => (bool) $q->is_starred)->values();
+        $selected = $starred->take($count)->values();
+        $remaining = $count - $selected->count();
+        if ($remaining > 0) {
+            $selected = $selected->concat($nonStarred->take($remaining))->values();
+        }
+
+        return $selected->values();
     }
 
     protected function mapQuestionType(?string $type): string

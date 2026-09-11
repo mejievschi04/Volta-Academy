@@ -184,16 +184,11 @@ const LessonsPage = () => {
 			window.history.replaceState({}, '', `/courses/${courseId}?lesson=${lessonId}`);
 		} catch (err) {
 			console.error('Error loading lesson:', err);
-			showToast('Eroare la încărcarea lecției', 'error');
+			const locked = err?.response?.status === 403 && err?.response?.data?.locked;
+			showToast(locked ? (err.response.data.message || 'Lecția este blocată.') : 'Eroare la încărcarea lecției', 'error');
 		} finally {
 			setCurrentLessonLoading(false);
 		}
-	};
-
-	const handleLessonClick = (lessonId) => {
-		setSelectedLessonId(lessonId);
-		setSidebarOpen(false); // Close sidebar on mobile when selecting lesson
-		scrollAppToTop({ behavior: 'instant' });
 	};
 
 	const toggleModule = (moduleId) => {
@@ -239,6 +234,30 @@ const LessonsPage = () => {
 	}, [selectedLessonId, isCompleted, user?.id, refreshCourseProgress, showToast]);
 
 	const isLessonCompleted = (lessonId) => isLessonMarkedComplete(progress, lessonId);
+
+	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
+	const isLessonUnlockedForPlayer = (lessonId, lesson = null) => {
+		if (isPlayerStaff) return true;
+		if (lesson?.is_preview) return true;
+		if (!progress) return true;
+		const fromRoot = progress.root_lessons?.find((x) => Number(x.id) === Number(lessonId));
+		if (fromRoot) return Boolean(fromRoot.unlocked);
+		for (const mod of progress.modules || []) {
+			const found = mod.lessons?.find((x) => Number(x.id) === Number(lessonId));
+			if (found) return Boolean(found.unlocked);
+		}
+		return true;
+	};
+
+	const handleLessonClick = (lessonId, lesson = null) => {
+		if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
+			showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
+			return;
+		}
+		setSelectedLessonId(lessonId);
+		setSidebarOpen(false);
+		scrollAppToTop({ behavior: 'instant' });
+	};
 
 
 
@@ -553,8 +572,8 @@ const LessonsPage = () => {
 											<Fragment key={lesson.id}>
 												<button
 													type="button"
-													className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-													onClick={() => handleLessonClick(lesson.id)}
+													className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
+													onClick={() => handleLessonClick(lesson.id, lesson)}
 												>
 													<div className="lessons-page-sidebar-lesson-icon">
 														{isCompleted ? (
@@ -630,8 +649,8 @@ const LessonsPage = () => {
 														<Fragment key={lesson.id}>
 															<button
 																type="button"
-																className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-																onClick={() => handleLessonClick(lesson.id)}
+																className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
+																onClick={() => handleLessonClick(lesson.id, lesson)}
 															>
 																<div className="lessons-page-sidebar-lesson-icon">
 																	{isCompleted ? (

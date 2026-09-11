@@ -8,6 +8,7 @@ use App\Models\CourseTest;
 use App\Support\CourseCatalog;
 use App\Support\CourseViews;
 use App\Support\LearningVisibility;
+use App\Services\PublishedCourseView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -123,6 +124,15 @@ class CourseController extends Controller
                 }
             ])->findOrFail($id);
 
+            $publishedView = app(PublishedCourseView::class);
+            $liveSnapshot = $publishedView->shouldServeSnapshot($course, $request)
+                ? $publishedView->latestPublishedSnapshot((int) $course->id)
+                : null;
+            if ($liveSnapshot) {
+                $publishedView->filterCourseLessons($course, $liveSnapshot);
+            }
+            $liveTestIds = $publishedView->liveTestIds($course, $request);
+
             CourseViews::recordView($course, $isStaff);
 
             $user = $request->user();
@@ -142,8 +152,11 @@ class CourseController extends Controller
             foreach ($course->modules as $module) {
                 foreach ($module->lessons as $lesson) {
                     $rows = $lessonScopeRows->get($lesson->id, collect());
-                    $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                    $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests, $liveTestIds) {
                         if (!$courseTest->test) {
+                            return null;
+                        }
+                        if ($liveTestIds !== null && ! in_array((int) $courseTest->test_id, $liveTestIds, true)) {
                             return null;
                         }
                         if (!$showDraftLinkedTests && $courseTest->test->status !== 'published') {
@@ -170,8 +183,11 @@ class CourseController extends Controller
 
             foreach ($course->lessons as $lesson) {
                 $rows = $lessonScopeRows->get($lesson->id, collect());
-                $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                $lesson->setAttribute('course_tests', $rows->map(function ($courseTest) use ($course, $showDraftLinkedTests, $liveTestIds) {
                     if (!$courseTest->test) {
+                        return null;
+                    }
+                    if ($liveTestIds !== null && ! in_array((int) $courseTest->test_id, $liveTestIds, true)) {
                         return null;
                     }
                     if (!$showDraftLinkedTests && $courseTest->test->status !== 'published') {
@@ -197,7 +213,10 @@ class CourseController extends Controller
             
             // Transform courseTests to exams format for frontend compatibility (doar Test / course_test)
             foreach ($course->modules as $module) {
-                $moduleExams = $module->courseTests->map(function ($courseTest) use ($course, $showDraftLinkedTests) {
+                $moduleExams = $module->courseTests->map(function ($courseTest) use ($course, $showDraftLinkedTests, $liveTestIds) {
+                    if ($liveTestIds !== null && ! in_array((int) $courseTest->test_id, $liveTestIds, true)) {
+                        return null;
+                    }
                     if ($courseTest->test && ($showDraftLinkedTests || $courseTest->test->status === 'published')) {
                         return [
                             'id' => $courseTest->test->id,
@@ -235,6 +254,9 @@ class CourseController extends Controller
                     ->get();
                 
                 foreach ($courseLevelTests as $courseTest) {
+                    if ($liveTestIds !== null && ! in_array((int) $courseTest->test_id, $liveTestIds, true)) {
+                        continue;
+                    }
                     if ($courseTest->test && ($showDraftLinkedTests || $courseTest->test->status === 'published')) {
                         $allExams[] = [
                             'id' => $courseTest->test->id,
@@ -286,6 +308,8 @@ class CourseController extends Controller
                 }
             }
             
+            $this->redactRestrictedLessonBodies($course, $user);
+
             return response()->json($course);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             throw $e;
@@ -381,6 +405,35 @@ class CourseController extends Controller
         }
 
         return $progress;
+    }
+
+    private function redactRestrictedLessonBodies(Course $course, $user): void
+    {
+        $redact = function ($lesson) use ($user, $course) {
+            if (! $lesson || LearningVisibility::learnerMaySeeLessonBody($user, $lesson, $course)) {
+                return;
+            }
+            $lesson->content = null;
+            $lesson->video_url = null;
+            $lesson->setRelation('contentBlocks', collect());
+            $lesson->setAttribute('content_restricted', true);
+        };
+
+        if ($course->relationLoaded('lessons')) {
+            foreach ($course->lessons as $lesson) {
+                $redact($lesson);
+            }
+        }
+        if ($course->relationLoaded('modules')) {
+            foreach ($course->modules as $module) {
+                if (! $module->relationLoaded('lessons')) {
+                    continue;
+                }
+                foreach ($module->lessons as $lesson) {
+                    $redact($lesson);
+                }
+            }
+        }
     }
 
     /**

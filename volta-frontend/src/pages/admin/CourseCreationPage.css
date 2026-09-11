@@ -102,6 +102,7 @@
 	font-size: 1rem;
 	font-weight: 700;
 	color: var(--text-primary);
+	line-height: 1.25;
 }
 
 .course-creation-mode-card-desc {
@@ -211,6 +212,11 @@
 	color: var(--text-secondary);
 }
 
+.course-creation-simple-input:invalid:not(:placeholder-shown),
+.course-creation-simple-input[aria-invalid="true"] {
+	border-color: var(--color-error);
+}
+
 .course-creation-simple-error {
 	padding: var(--space-3);
 	margin-bottom: var(--space-4);
@@ -219,6 +225,22 @@
 	border-radius: 8px;
 	color: var(--color-error);
 	font-size: var(--font-size-sm);
+}
+
+.course-creation-simple-field .course-creation-simple-error {
+	margin-top: var(--space-2);
+	margin-bottom: 0;
+}
+
+.course-creation-availability {
+	margin: 0 0 var(--space-4);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+	line-height: 1.5;
+}
+
+.course-creation-mode-card.is-unavailable {
+	opacity: 0.92;
 }
 
 .course-creation-simple-actions {

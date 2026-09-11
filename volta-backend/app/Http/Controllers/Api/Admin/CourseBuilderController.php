@@ -18,6 +18,7 @@ use App\Services\CourseBuilderValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class CourseBuilderController extends Controller
 {
@@ -243,6 +244,8 @@ class CourseBuilderController extends Controller
             'duration_minutes' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'order' => 'nullable|integer|min:0',
+            'video_url' => 'nullable|string|max:2048',
+            'content' => 'nullable|string',
         ]);
 
         // Ensure builder lessons can exist without legacy `content` field (content blocks are canonical)
@@ -291,12 +294,28 @@ class CourseBuilderController extends Controller
             'duration_minutes' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'is_locked' => 'nullable|boolean',
-            'unlock_after_lesson_id' => 'nullable|exists:lessons,id',
+            'unlock_after_lesson_id' => [
+                'nullable',
+                Rule::exists('lessons', 'id')->where(fn ($q) => $q->where('course_id', $courseId)),
+            ],
             'content' => 'nullable|string',
             'video_url' => 'nullable|string',
             'resources' => 'nullable|array',
             'attachments' => 'nullable|array',
+            'expected_updated_at' => 'nullable|date',
         ]);
+
+        if (! empty($validated['expected_updated_at']) && $lesson->updated_at) {
+            $expected = \Carbon\Carbon::parse($validated['expected_updated_at'])->timestamp;
+            if (abs($lesson->updated_at->timestamp - $expected) > 1) {
+                return response()->json([
+                    'message' => 'Lecția a fost modificată între timp. Reîncarcă și aplică din nou.',
+                    'conflict' => true,
+                    'lesson' => $lesson->fresh(),
+                ], 409);
+            }
+        }
+        unset($validated['expected_updated_at']);
 
         $old = $lesson->toArray();
         $lesson = $this->courseBuilderService->updateLesson($lesson, $validated);
@@ -527,11 +546,6 @@ class CourseBuilderController extends Controller
         $course->load(['modules.lessons', 'modules.lessons.contentBlocks']);
         $oldStatus = $course->status;
         $oldWorkflowStatus = $course->workflow_status;
-        $report = $this->courseBuilderValidator->validate($course);
-
-        if (!($report['ok'] ?? false)) {
-            return response()->json($report, 422);
-        }
 
         $validated = $request->validate([
             'team_ids' => 'nullable|array',
@@ -541,27 +555,13 @@ class CourseBuilderController extends Controller
         $teamIds = $validated['team_ids'] ?? [];
         $catalogOutsideMap = (bool) ($validated['catalog_outside_map'] ?? false);
 
-        DB::transaction(function () use ($course, $teamIds, $catalogOutsideMap) {
-            $course->update(['status' => 'published', 'workflow_status' => 'published']);
-            CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
-            Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            if (\Illuminate\Support\Facades\Schema::hasTable('course_team')) {
-                $course->teams()->sync($teamIds);
-            }
-            $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
-        });
+        $published = $this->courseBuilderService->publishLive($course, $request->user(), $teamIds, $catalogOutsideMap);
+        if (! ($published['ok'] ?? false)) {
+            return response()->json($published, 422);
+        }
+        $course = $published['course'] ?? $course->fresh();
 
         $notifiedCount = 0;
-        try {
-            $this->courseBuilderService->createCourseVersionSnapshot($course->id, $request->user(), 'published');
-        } catch (\Throwable $e) {
-            \Log::warning('CourseBuilderController::publish - createCourseVersionSnapshot failed', [
-                'course_id' => $courseId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         try {
             $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished(
                 $course,

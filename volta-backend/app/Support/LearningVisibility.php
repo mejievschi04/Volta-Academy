@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class LearningVisibility
@@ -52,5 +53,48 @@ class LearningVisibility
         if (! $isStaff && Schema::hasColumn('modules', 'status')) {
             $query->where('status', 'published');
         }
+    }
+
+    public static function isEnrolledInCourse(?User $user, int $courseId): bool
+    {
+        if (! $user) {
+            return false;
+        }
+        if (self::isStaff($user)) {
+            return true;
+        }
+        if (! Schema::hasTable('course_user')) {
+            return false;
+        }
+
+        $query = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('course_id', $courseId);
+        if (Schema::hasColumn('course_user', 'enrolled')) {
+            $query->where('enrolled', true);
+        }
+
+        return $query->exists();
+    }
+
+    public static function learnerMaySeeLessonBody(?User $user, object $lesson, ?object $course): bool
+    {
+        if (self::isStaff($user)) {
+            return true;
+        }
+
+        $lessonPublished = ($lesson->status ?? 'draft') === 'published';
+        $coursePublished = ! $course || ($course->status ?? 'draft') === 'published';
+        if (! $lessonPublished || ! $coursePublished) {
+            return false;
+        }
+        if ((bool) ($lesson->is_preview ?? false)) {
+            return true;
+        }
+        if (! $course) {
+            return false;
+        }
+
+        return self::isEnrolledInCourse($user, (int) $course->id);
     }
 }

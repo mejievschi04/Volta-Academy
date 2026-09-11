@@ -939,7 +939,7 @@ class ExamAdminController extends Controller
 
         $olderThanDays = (int) ($validated['older_than_days'] ?? 30);
         $cutoff = now()->subDays($olderThanDays);
-        $manualTypes = [];
+        $manualTypes = ['essay'];
 
         $query = ExamResult::with([
             'exam.questions',

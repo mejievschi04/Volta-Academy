@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
 	DndContext,
@@ -24,8 +24,6 @@ import {
 import { useCoursePublishFromCard } from '../../hooks/useCoursePublishFromCard';
 import { adminService } from '../../services/api';
 import BuildCourseModal from '../../components/admin/courses/BuildCourseModal';
-import AICourseChat from '../../components/admin/ai/AICourseChat';
-import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import { courseCoverSrc } from '../../utils/imageUrl';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
@@ -159,10 +157,7 @@ const AdminCoursesPage = () => {
 	const [creating, setCreating] = useState(false);
 	const [error, setError] = useState(null);
 	const [search, setSearch] = useState('');
-	const [showCreateMenu, setShowCreateMenu] = useState(false);
 	const [showBuildModal, setShowBuildModal] = useState(false);
-	const [showAiCourseChat, setShowAiCourseChat] = useState(false);
-	const createMenuRef = useRef(null);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -194,16 +189,6 @@ const AdminCoursesPage = () => {
 	useEffect(() => {
 		fetchCourses();
 	}, [fetchCourses]);
-
-	useEffect(() => {
-		const handleOutsideClick = (event) => {
-			if (createMenuRef.current && !createMenuRef.current.contains(event.target)) {
-				setShowCreateMenu(false);
-			}
-		};
-		document.addEventListener('mousedown', handleOutsideClick);
-		return () => document.removeEventListener('mousedown', handleOutsideClick);
-	}, []);
 
 	const handleBuildSubmit = async ({ title, description, image, pdfFile }) => {
 		setCreating(true);
@@ -248,14 +233,6 @@ const AdminCoursesPage = () => {
 			console.error('Error creating course:', err);
 		} finally {
 			setCreating(false);
-		}
-	};
-
-	const handleAiCourseGenerated = (course) => {
-		if (course?.id) {
-			setShowAiCourseChat(false);
-			fetchCourses();
-			navigate(`/admin/courses/${course.id}/builder`);
 		}
 	};
 
@@ -322,38 +299,16 @@ const AdminCoursesPage = () => {
 					loading={creating}
 				/>
 			)}
-			{showAiCourseChat && canMutateInAdminArea && (
-				<div className="ai-chat-modal-overlay">
-					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
-						<AICourseChat
-							onCourseGenerated={handleAiCourseGenerated}
-							onClose={() => setShowAiCourseChat(false)}
-						/>
-					</div>
-				</div>
-			)}
 			<header className="admin-courses-clean-header">
 				<div>
-					<h1>Cursuri</h1>
+					<h1>Toate cursurile</h1>
 					<p>Creează și administrează conținutul academiei într-un mod simplu.</p>
 				</div>
 				<div className="admin-courses-clean-right">
 					{canMutateInAdminArea && (
-					<div className="admin-courses-create-wrap" ref={createMenuRef}>
-						<button type="button" className="admin-courses-create-btn" onClick={() => setShowCreateMenu((prev) => !prev)}>
+						<button type="button" className="admin-courses-create-btn" onClick={() => navigate('/admin/courses/new')}>
 							+ Creează curs
 						</button>
-						{showCreateMenu && (
-							<div className="admin-courses-create-menu">
-								<button type="button" onClick={() => { setShowCreateMenu(false); navigate('/admin/courses/new'); }}>
-									Curs nou
-								</button>
-								<button type="button" onClick={() => { setShowCreateMenu(false); if (isVoltEnabled()) { setShowAiCourseChat(true); } else { notifyVoltComingSoon(showToast); } }}>
-									Curs cu Volt
-								</button>
-							</div>
-						)}
-					</div>
 					)}
 					<div className="admin-courses-top-links">
 					{canMutateInAdminArea && (
@@ -393,7 +348,7 @@ const AdminCoursesPage = () => {
 						<div className="admin-courses-clean-grid">
 							{orderedCourses.map((course) => {
 								const coverSrc = courseCoverSrc(course);
-								const statusLabel = String(course.status || 'draft').toLowerCase() === 'published' ? 'Publicat' : 'Draft';
+								const statusLabel = String(course.status || 'draft').toLowerCase() === 'published' ? 'Publicat' : 'Ciornă';
 								const accentColor = course.card_color || '#6366f1';
 								return (
 									<SortableAdminCourseCard
@@ -418,7 +373,7 @@ const AdminCoursesPage = () => {
 				<div className="admin-courses-clean-grid">
 					{filteredCourses.map((course) => {
 						const coverSrc = courseCoverSrc(course);
-						const statusLabel = String(course.status || 'draft').toLowerCase() === 'published' ? 'Publicat' : 'Draft';
+						const statusLabel = String(course.status || 'draft').toLowerCase() === 'published' ? 'Publicat' : 'Ciornă';
 						const accentColor = course.card_color || '#6366f1';
 						return (
 							<StaticAdminCourseCard

@@ -1,25 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
-import AICourseChat from '../../components/admin/ai/AICourseChat';
-import { isVoltEnabled, notifyVoltComingSoon } from '../../utils/voltAvailability';
 import './CourseCreationPage.css';
+
+const TITLE_ID = 'course-create-title';
+const TITLE_HINT_ID = 'course-create-title-hint';
+const TITLE_ERROR_ID = 'course-create-title-error';
+const DESC_ID = 'course-create-description';
+const FORM_ERROR_ID = 'course-create-form-error';
+const PRIMARY_HINT_ID = 'course-create-primary-hint';
 
 const CourseCreationPage = () => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
 	const { canMutateInAdminArea } = useAuth();
+	const titleInputRef = useRef(null);
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [creationMode, setCreationMode] = useState('manual');
-	const [showAiCourseChat, setShowAiCourseChat] = useState(false);
+	const [titleError, setTitleError] = useState('');
 
 	useEffect(() => {
 		if (!canMutateInAdminArea) {
@@ -30,9 +35,11 @@ const CourseCreationPage = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setError('');
+		setTitleError('');
 		const t = title?.trim();
 		if (!t) {
-			setError('Titlul este obligatoriu.');
+			setTitleError('Titlul este obligatoriu.');
+			titleInputRef.current?.focus();
 			return;
 		}
 
@@ -69,13 +76,7 @@ const CourseCreationPage = () => {
 		}
 	};
 
-	const handleAiCourseGenerated = (course) => {
-		if (course?.id) {
-			setShowAiCourseChat(false);
-			showToast('Curs creat asistat de Volt.', 'success');
-			navigate(`/admin/courses/${course.id}/builder`);
-		}
-	};
+	const primaryHint = loading ? 'Se creează cursul. Așteaptă finalizarea.' : null;
 
 	if (!canMutateInAdminArea) {
 		return null;
@@ -83,16 +84,6 @@ const CourseCreationPage = () => {
 
 	return (
 		<div className="admin-container course-creation-simple-page">
-			{showAiCourseChat && (
-				<div className="ai-chat-modal-overlay">
-					<div className="ai-chat-modal" onClick={(e) => e.stopPropagation()}>
-						<AICourseChat
-							onCourseGenerated={handleAiCourseGenerated}
-							onClose={() => setShowAiCourseChat(false)}
-						/>
-					</div>
-				</div>
-			)}
 			<div className="course-creation-simple-card">
 				<header className="course-creation-simple-header">
 					<button
@@ -105,63 +96,45 @@ const CourseCreationPage = () => {
 					</button>
 					<h1 className="course-creation-simple-title">Creează curs nou</h1>
 					<p className="course-creation-simple-subtitle">
-						Alege una dintre cele două căi: curs creat cu Volt sau curs creat manual.
+						Completezi titlul și descrierea, apoi continui în Builder.
 					</p>
 				</header>
 
-				<form onSubmit={handleSubmit} className="course-creation-simple-form">
-					<div className="course-creation-mode-switch">
-						<button
-							type="button"
-							className={`course-creation-mode-card${creationMode === 'manual' ? ' is-active' : ''}`}
-							onClick={() => {
-								setCreationMode('manual');
-								setShowAiCourseChat(false);
-							}}
-							disabled={loading}
-						>
-							<span className="course-creation-mode-card-label">Curs</span>
-							<span className="course-creation-mode-card-title">Creează manual</span>
-							<span className="course-creation-mode-card-desc">Completezi titlul și descrierea, apoi intri în Builder.</span>
-						</button>
-						<button
-							type="button"
-							className={`course-creation-mode-card${creationMode === 'volt' ? ' is-active' : ''}`}
-							onClick={() => {
-								setCreationMode('volt');
-								if (isVoltEnabled()) {
-									setShowAiCourseChat(true);
-								} else {
-									notifyVoltComingSoon(showToast);
-								}
-							}}
-							disabled={loading}
-						>
-							<span className="course-creation-mode-card-label">Volt</span>
-							<span className="course-creation-mode-card-title">Creează cu Volt</span>
-							<span className="course-creation-mode-card-desc">Volt îți construiește cursul complet cu module și lecții.</span>
-						</button>
-					</div>
-
+				<form onSubmit={handleSubmit} className="course-creation-simple-form" noValidate>
 					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">
+						<label className="course-creation-simple-label" htmlFor={TITLE_ID}>
 							Titlu curs <span className="course-creation-simple-required">*</span>
 						</label>
 						<input
+							id={TITLE_ID}
+							ref={titleInputRef}
 							type="text"
 							placeholder="Titlul cursului"
 							value={title}
-							onChange={(e) => setTitle(e.target.value)}
+							onChange={(e) => {
+								setTitle(e.target.value);
+								if (titleError) setTitleError('');
+							}}
 							className="course-creation-simple-input"
 							autoFocus
 							disabled={loading}
+							required
+							aria-required="true"
+							aria-invalid={titleError ? 'true' : 'false'}
+							aria-describedby={`${TITLE_HINT_ID}${titleError ? ` ${TITLE_ERROR_ID}` : ''}`}
 						/>
-						<p className="course-creation-simple-hint">După creare poți adăuga lecții și teste.</p>
+						<p id={TITLE_HINT_ID} className="course-creation-simple-hint">După creare poți adăuga lecții și teste.</p>
+						{titleError ? (
+							<p id={TITLE_ERROR_ID} className="course-creation-simple-error" role="alert">
+								{titleError}
+							</p>
+						) : null}
 					</div>
 
 					<div className="course-creation-simple-field">
-						<label className="course-creation-simple-label">Descriere</label>
+						<label className="course-creation-simple-label" htmlFor={DESC_ID}>Descriere</label>
 						<textarea
+							id={DESC_ID}
 							placeholder="Scopul și conținutul cursului (opțional)"
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
@@ -171,7 +144,13 @@ const CourseCreationPage = () => {
 						/>
 					</div>
 
-					{error && <div className="course-creation-simple-error" role="alert">{error}</div>}
+					{error ? (
+						<div id={FORM_ERROR_ID} className="course-creation-simple-error" role="alert">{error}</div>
+					) : null}
+
+					{primaryHint ? (
+						<p id={PRIMARY_HINT_ID} className="course-creation-availability" role="status">{primaryHint}</p>
+					) : null}
 
 					<div className="course-creation-simple-actions">
 						<button
@@ -183,14 +162,12 @@ const CourseCreationPage = () => {
 							Anulare
 						</button>
 						<button
-							type={creationMode === 'volt' ? 'button' : 'submit'}
+							type="submit"
 							className="course-creation-simple-btn-primary"
-							onClick={creationMode === 'volt'
-								? () => (isVoltEnabled() ? setShowAiCourseChat(true) : notifyVoltComingSoon(showToast))
-								: undefined}
 							disabled={loading}
+							aria-describedby={primaryHint ? PRIMARY_HINT_ID : (error ? FORM_ERROR_ID : undefined)}
 						>
-							{loading ? 'Se creează...' : creationMode === 'volt' ? 'Deschide Volt' : 'Creează curs'}
+							{loading ? 'Se creează...' : 'Creează curs'}
 						</button>
 					</div>
 				</form>

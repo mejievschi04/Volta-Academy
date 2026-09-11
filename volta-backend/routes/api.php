@@ -62,7 +62,7 @@ Route::middleware('throttle:120,1')->group(function () {
     Route::get('/courses/{id}', [CourseController::class, 'show'])->whereNumber('id');
     Route::get('/lessons/{id}', [\App\Http\Controllers\Api\LessonController::class, 'show']);
     Route::get('/events', [EventController::class, 'index']);
-    Route::get('/events/{id}', [EventController::class, 'show']);
+    Route::get('/events/{id}', [EventController::class, 'show'])->whereNumber('id');
     Route::get('/builder-media/{courseId}/{mediaId}', [CourseBuilderController::class, 'serveMediaFilePublic']);
 });
 
@@ -91,12 +91,12 @@ Route::post('/auth/register', [\App\Http\Controllers\Api\AuthController::class, 
 Route::get('/auth/invitations/{token}', [RegistrationInvitationController::class, 'show'])->middleware('throttle:60,1');
 Route::post('/auth/invitations/{token}/accept', [RegistrationInvitationController::class, 'accept'])->middleware('throttle:15,1');
 Route::post('/auth/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])->middleware('throttle:15,1'); // 15 attempts per minute
-Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware('auth:sanctum');
-Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'throttle:60,1']);
+Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware(['auth:sanctum', 'account.active']);
+Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me'])->middleware(['auth:sanctum', 'account.active']);
+Route::post('/auth/change-password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'account.active', 'throttle:60,1']);
 
 // Mesagerie: limită dedicată — GET (polling) separat de POST/PATCH ca să nu dea 429 la trimiteri + polling simultan.
-Route::middleware(['auth:sanctum', 'throttle:api-messages-read'])->group(function () {
+Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-read'])->group(function () {
     Route::get('/messages/unread-count', [\App\Http\Controllers\Api\MessageController::class, 'getUnreadCount']);
     Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
     Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
@@ -105,7 +105,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-messages-read'])->group(functio
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
 });
 
-Route::middleware(['auth:sanctum', 'throttle:api-messages-write'])->group(function () {
+Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-write'])->group(function () {
     Route::post('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'createConversation']);
     Route::patch('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'updateConversation']);
     Route::delete('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'destroyConversation']);
@@ -118,7 +118,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-messages-write'])->group(functi
 });
 
 // Protected routes (require authentication) with rate limiting
-Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
+Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/profile', [ProfileController::class, 'index']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -193,10 +193,10 @@ Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
     
     // User Events
     Route::get('/events/my', [EventController::class, 'myEvents']);
-    Route::post('/events/{id}/register', [EventController::class, 'register']);
-    Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration']);
-    Route::post('/events/{id}/mark-attendance', [EventController::class, 'markAttendance']);
-    Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched']);
+    Route::post('/events/{id}/register', [EventController::class, 'register'])->whereNumber('id');
+    Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration'])->whereNumber('id');
+    Route::post('/events/{id}/mark-attendance', [EventController::class, 'markAttendance'])->whereNumber('id');
+    Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched'])->whereNumber('id');
 
     // Admin AI Assistant
     Route::post('/ai/extract-document', [\App\Http\Controllers\AIController::class, 'extractDocumentContext']);
@@ -205,6 +205,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-app'])->group(function () {
 // Admin routes (require admin role) with rate limiting
 Route::middleware([
     'auth:sanctum',
+    'account.active',
     \App\Http\Middleware\StaffAreaAccessMiddleware::class,
     \App\Http\Middleware\AnalystReadOnlyMiddleware::class,
     \App\Http\Middleware\InstructorContentScopeMiddleware::class,

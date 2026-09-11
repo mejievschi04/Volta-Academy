@@ -19,6 +19,7 @@ class TestSubmissionFlowTest extends TestCase
         $first = Question::factory()->create(['test_id' => $test->id, 'points' => 3]);
         $second = Question::factory()->create(['test_id' => $test->id, 'points' => 1]);
         $this->actingAs($student, 'sanctum');
+        $this->getJson("/api/exams/{$test->id}")->assertOk();
         $response = $this->postJson("/api/exams/{$test->id}/submit", ['answers' => [
             $first->id => 0, $second->id => 1,
         ]])->assertOk()->assertJsonPath('result.score', 3)
@@ -53,6 +54,7 @@ class TestSubmissionFlowTest extends TestCase
             $question->answers()->create(['answer_text' => 'Greșit', 'is_correct' => false, 'order' => 1]);
             $answers[$question->id] = $index;
         }
+        $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/enroll")->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/quiz/submit", [
             'answers' => $answers,
         ])->assertOk()->assertJsonPath('percentage', 50)->assertJsonPath('passed', false);
@@ -63,6 +65,7 @@ class TestSubmissionFlowTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create();
         $question = Question::factory()->create(['test_id' => $test->id, 'type' => 'essay', 'answers' => []]);
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$question->id => 'Răspuns de verificat'],
         ])->assertOk()->assertJsonPath('result.status', 'pending_review')

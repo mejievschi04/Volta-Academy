@@ -973,6 +973,104 @@
 	padding: 0 var(--space-8) var(--space-10);
 }
 
+.courses-page-resume-wrap {
+	padding: var(--space-5) var(--space-8) 0;
+}
+
+.courses-page-resume {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4);
+	margin: 0;
+	padding: var(--space-5) var(--space-6);
+	border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--border-primary));
+	border-radius: 16px;
+	background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-elevated, #fff));
+	box-shadow: var(--shadow-sm);
+}
+
+.courses-page-resume-copy {
+	min-width: 0;
+	flex: 1;
+}
+
+.courses-page-resume .courses-page-btn {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.courses-page-resume-kicker {
+	margin: 0 0 4px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.courses-page-resume-title {
+	margin: 0;
+	font-size: 1.125rem;
+	line-height: 1.3;
+	color: var(--text-primary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.courses-page-resume-meta,
+.courses-page-resume-lesson {
+	margin: 4px 0 0;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+}
+
+.courses-page-resume-lesson {
+	font-weight: 600;
+	color: var(--text-primary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.courses-page-empty-assigned {
+	margin: 0 0 var(--space-6);
+	padding: var(--space-6) var(--space-7);
+	border: 1px dashed var(--border-primary);
+	border-radius: var(--radius-xl, 16px);
+	background: var(--bg-secondary, transparent);
+}
+
+.courses-page-empty-assigned .courses-page-empty-title {
+	margin-top: 0;
+}
+
+.courses-page-empty-assigned .courses-page-btn {
+	margin-top: var(--space-4);
+}
+
+@media (max-width: 768px) {
+	.courses-page-resume-wrap {
+		padding: var(--space-4) var(--space-4) 0;
+	}
+
+	.courses-page-resume {
+		flex-direction: column;
+		align-items: stretch;
+		padding: var(--space-4);
+	}
+
+	.courses-page-resume-title,
+	.courses-page-resume-lesson {
+		white-space: normal;
+	}
+
+	.courses-page-resume .courses-page-btn {
+		width: 100%;
+	}
+}
+
 /* Grid View - layout ordonat, spațiu pentru tab-urile care ies în afară */
 .courses-page-grid {
 	display: grid;
@@ -1777,11 +1875,11 @@
 	}
 
 	.courses-page-student .course-map-folder-tile__hit {
-		touch-action: manipulation;
+		touch-action: pan-y;
 	}
 
 	.courses-page-student .course-map-folder-tile__hit:active {
-		transform: scale(0.985);
+		transform: none;
 	}
 }
 

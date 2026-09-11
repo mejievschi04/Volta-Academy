@@ -22,7 +22,7 @@ import ScrollToTop from './components/common/ScrollToTop';
 import { prefetchRoute } from './utils/prefetch';
 import { toImageUrl } from './utils/imageUrl';
 import { isStaffAdminRole } from './constants/staffRoles';
-import { messagesService } from './services/api';
+import { messagesService, adminService } from './services/api';
 import {
 	ArrowLeft,
 	BookOpenText,
@@ -193,18 +193,21 @@ function AuthenticatedLayout({ children, authContext }) {
 	const location = useLocation();
 	const isAdminContentSubmenuChildActive = React.useCallback(
 		(child) => {
+			const childParams = new URLSearchParams(child.search || '');
+			const childTab = childParams.get('tab');
+			const childView = childParams.get('view') || '';
 			if (location.pathname.startsWith('/admin/maps/')) {
-				if (child.path !== '/admin/content') return false;
-				const childParams = new URLSearchParams(child.search || '');
-				if (childParams.get('tab') !== 'courses') return false;
-				const childView = childParams.get('view');
-				if (childView === 'maps') return true;
-				if (!childView && user?.actualRole === 'instructor') return true;
-				return false;
+				return child.path === '/admin/content' && childTab === 'courses' && childView === 'maps';
 			}
-			const childTab = child.search ? new URLSearchParams(child.search).get('tab') : null;
-			const currentTab = new URLSearchParams(location.search).get('tab');
-			return location.pathname === child.path && (!childTab || currentTab === childTab);
+			if (location.pathname !== child.path) return false;
+			const currentTab = new URLSearchParams(location.search).get('tab') || 'courses';
+			const currentView = new URLSearchParams(location.search).get('view') || '';
+			if (!childTab || currentTab !== childTab) return false;
+			if (childTab !== 'courses') return true;
+			const showingMaps = currentView === 'maps' || (currentView === '' && user?.actualRole !== 'instructor');
+			if (childView === 'maps') return showingMaps;
+			if (childView === 'list') return !showingMaps;
+			return currentView === childView;
 		},
 		[location.pathname, location.search, user?.actualRole]
 	);
@@ -229,9 +232,6 @@ function AuthenticatedLayout({ children, authContext }) {
 	const isAdminPage = location.pathname.startsWith('/admin');
 	const isStaffLibraryPage = (isLibraryPage || isGuidesPage) && hasStaffAdminShell && user?.role !== 'student';
 	const isAdminShellPage = isAdminPage || isStaffLibraryPage;
-	// Pe paginile de builder (curs/teste) există deja un Volt contextual,
-	// așa că ascundem widget-ul global ca să nu apară două butoane Volt.
-	const hasContextualVoltAssistant = /^\/admin\/(courses|tests)\/[^/]+\/builder/.test(location.pathname);
 	
 	// Track if we came from admin context for messages page
 	const [cameFromAdmin, setCameFromAdmin] = React.useState(() => {
@@ -283,6 +283,7 @@ function AuthenticatedLayout({ children, authContext }) {
 		return saved !== null ? saved === 'true' : false;
 	});
 	const [messagesUnreadCount, setMessagesUnreadCount] = React.useState(0);
+	const [pendingReviewCount, setPendingReviewCount] = React.useState(0);
 	const unreadPollingInFlightRef = React.useRef(false);
 	const unreadPollingFailuresRef = React.useRef(0);
 	const unreadPollingCooldownUntilRef = React.useRef(0);
@@ -476,6 +477,34 @@ function AuthenticatedLayout({ children, authContext }) {
 		};
 	}, [loadMessagesUnreadCount, user]);
 
+	const loadPendingReviewCount = React.useCallback(async () => {
+		if (!user || !isStaffAdminRole(user?.actualRole)) {
+			setPendingReviewCount(0);
+			return;
+		}
+		try {
+			const [tests, exams] = await Promise.all([
+				adminService.getPendingTestReviews(),
+				adminService.getPendingExamReviews(),
+			]);
+			const testCount = Array.isArray(tests) ? tests.length : 0;
+			const examCount = Array.isArray(exams) ? exams.length : (Array.isArray(exams?.data) ? exams.data.length : 0);
+			setPendingReviewCount(testCount + examCount);
+		} catch {
+			/* keep last count */
+		}
+	}, [user]);
+
+	React.useEffect(() => {
+		if (!user || !isStaffAdminRole(user?.actualRole)) {
+			setPendingReviewCount(0);
+			return;
+		}
+		loadPendingReviewCount();
+		const intervalId = window.setInterval(loadPendingReviewCount, 60000);
+		return () => clearInterval(intervalId);
+	}, [loadPendingReviewCount, user]);
+
 	React.useEffect(() => {
 		const handleConversationRead = () => {
 			setMessagesUnreadCount((current) => Math.max(0, current - 1));
@@ -661,24 +690,25 @@ function AuthenticatedLayout({ children, authContext }) {
 		},
 		{
 			path: '/admin/content',
-			label: 'Content',
+			label: 'Conținut',
 			icon: (
 				<SquaresFour size={18} weight="duotone" aria-hidden />
 			),
 			children:
 				user?.actualRole === 'instructor'
 					? [
-						{ path: '/admin/content', search: '?tab=courses', label: 'Cursuri' },
+						{ path: '/admin/content', search: '?tab=courses&view=list', label: 'Toate cursurile' },
 						{ path: '/admin/content', search: '?tab=tests', label: 'Teste' },
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
-						{ path: '/admin/content', search: '?tab=manual-review', label: 'Verificare manuală' },
+						{ path: '/admin/content', search: '?tab=manual-review', label: 'De corectat', badge: pendingReviewCount },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
 					]
 					: [
-						{ path: '/admin/content', search: '?tab=courses&view=maps', label: 'Cursuri' },
+						{ path: '/admin/content', search: '?tab=courses&view=list', label: 'Toate cursurile' },
+						{ path: '/admin/content', search: '?tab=courses&view=maps', label: 'Mape' },
 						{ path: '/admin/content', search: '?tab=tests', label: 'Teste' },
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
-						{ path: '/admin/content', search: '?tab=manual-review', label: 'Verificare manuală' },
+						{ path: '/admin/content', search: '?tab=manual-review', label: 'De corectat', badge: pendingReviewCount },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
 					],
 		},
@@ -893,7 +923,14 @@ function AuthenticatedLayout({ children, authContext }) {
 																		if (window.innerWidth <= 768) setIsSidebarExpanded(false);
 																	}}
 																>
-																	<span className="modern-nav-item-label va-nav-label">{child.label}</span>
+																	<span className="va-nav-label-row">
+																		<span className="modern-nav-item-label va-nav-label">{child.label}</span>
+																		{child.badge > 0 ? (
+																			<span className="messages-menu-badge" aria-label={`${child.badge} lucrări de corectat`}>
+																				{child.badge > 99 ? '99+' : child.badge}
+																			</span>
+																		) : null}
+																	</span>
 																</Link>
 															);
 														})}
@@ -952,7 +989,7 @@ function AuthenticatedLayout({ children, authContext }) {
 									ref={adminContentFlyoutPortalRef}
 									className="admin-content-submenu-portal"
 									role="menu"
-									aria-label="Content"
+									aria-label="Conținut"
 									style={{
 										position: 'fixed',
 										top: contentFlyoutPos.top,
@@ -981,7 +1018,14 @@ function AuthenticatedLayout({ children, authContext }) {
 													if (window.innerWidth <= 768) setIsSidebarExpanded(false);
 												}}
 											>
-												<span className="modern-nav-item-label va-nav-label">{child.label}</span>
+												<span className="va-nav-label-row">
+													<span className="modern-nav-item-label va-nav-label">{child.label}</span>
+													{child.badge > 0 ? (
+														<span className="messages-menu-badge" aria-label={`${child.badge} lucrări de corectat`}>
+															{child.badge > 99 ? '99+' : child.badge}
+														</span>
+													) : null}
+												</span>
 											</Link>
 										);
 									})}
@@ -1321,7 +1365,7 @@ function AuthenticatedLayout({ children, authContext }) {
 				</>
 			)}
 
-			{user && isTrueAdminAccount && user.role === 'admin' && !showUserLayout && isVoltEnabled() && !hasContextualVoltAssistant && (
+			{user && isTrueAdminAccount && user.role === 'admin' && isVoltEnabled() && (
 				<Suspense fallback={null}>
 					<VoltAssistantWidget />
 				</Suspense>

@@ -655,17 +655,17 @@ Scop:
 - Folosești datele din context (`platform_data`, `catalog_summary`, `relevant_courses`, `context_chunks`) ca sursă principală.
 - Nu inventezi cifre. Dacă o valoare lipsește, spui clar că nu este disponibilă în date.
 
-Format răspuns (OBLIGATORIU):
-- Răspuns în text natural, în română, clar și concis (poți folosi paragrafe scurte și liste cu bullet).
-- INTERZIS: JSON de tip curs/test (`response_type`, `modules`, `lessons`, `title`, `assumptions` etc.).
-- INTERZIS: a transforma statisticile sau analizele într-un „curs” cu module și lecții.
-- INTERZIS: a răspunde ca un generator de conținut LCMS când utilizatorul cere date, sumar sau insight-uri.
-- Pentru întrebări analitice (ex: rate de finalizare, elevi activi, top studenți, elevi în risc): oferă cifre concrete, observații și 2-4 recomandări acționabile.
-- Pentru întrebări despre conținut educațional: explică pe scurt, cu exemple din context.
+Format răspuns:
+- Pentru întrebări despre date sau platformă: text natural, în română, clar și concis. Nu transforma analizele într-un curs cu module.
+- Nu inventa cifre. Dacă o valoare lipsește, spui clar că nu este disponibilă în date.
+- Pentru întrebări analitice: cifre concrete, observații și 2-4 recomandări.
 - Pentru export Excel detaliat: sugerează butonul „Excel” din chat.
+- Dacă utilizatorul cere explicit o mapă de cursuri, răspunzi doar JSON valid:
+  {"response_type":"map","name":"...","description":"...","course_ids":[]}
 
-Creare conținut:
-- Dacă utilizatorul cere explicit crearea unui curs sau test, spune-i să folosească builder-ul dedicat (Cursuri → Creează cu Volt / Teste → Generează cu Volt), nu genera structură de curs aici.
+Creare și editare:
+- Utilizatorul lucrează din acest chat. Nu-l trimite la alte butoane Volt.
+- Crearea de cursuri și teste este tratată de alte fluxuri; la întrebări rămâi pe răspuns text, exceptând mapa de mai sus.
 PROMPT;
     }
 

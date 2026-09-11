@@ -289,12 +289,12 @@ const AdminDashboardPage = () => {
 				<article className="hero-stat hero-stat-green">
 					<p className="hero-stat-label">Cursuri publicate</p>
 					<p className="hero-stat-value">{formatNumber(publishedCourses)}</p>
-					<p className="hero-stat-meta">Total: {formatNumber(totalCourses)} · Draft: {formatNumber(draftCourses)}</p>
+					<p className="hero-stat-meta">Total: {formatNumber(totalCourses)} · Ciornă: {formatNumber(draftCourses)}</p>
 				</article>
 				<article className="hero-stat">
 					<p className="hero-stat-label">Teste publicate</p>
 					<p className="hero-stat-value">{formatNumber(publishedTests)}</p>
-					<p className="hero-stat-meta">Total: {formatNumber(totalTests)} · Draft: {formatNumber(draftTests)}</p>
+					<p className="hero-stat-meta">Total: {formatNumber(totalTests)} · Ciornă: {formatNumber(draftTests)}</p>
 				</article>
 				<article className="hero-stat hero-stat-cyan">
 					<p className="hero-stat-label">Rată finalizare</p>

@@ -27,7 +27,7 @@ class TestBuilderService
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'type' => $data['type'] ?? 'final',
-            'status' => $data['status'] ?? 'draft',
+            'status' => 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => $data['max_attempts'] ?? null,
             'passing_score' => isset($data['passing_score']) ? (int) $data['passing_score'] : 70,
@@ -55,6 +55,10 @@ class TestBuilderService
         // Add questions if provided
         if (isset($data['questions']) && is_array($data['questions'])) {
             $this->addQuestionsToTest($test, $data['questions']);
+        }
+
+        if (($data['status'] ?? 'draft') === 'published') {
+            return $this->publishTest($test->fresh());
         }
 
         return $test;
@@ -192,16 +196,17 @@ class TestBuilderService
      */
     public function publishTest(Test $test): Test
     {
-        // Validate test has questions
-        if ($test->question_source === 'direct' && $test->questions()->count() === 0) {
+        $source = $test->question_source ?: 'direct';
+
+        if ($source === 'direct' && $test->questions()->count() === 0) {
             throw new \Exception('Cannot publish test without questions');
         }
 
-        if ($test->question_source === 'bank' && !$test->questionBank) {
+        if ($source === 'bank' && !$test->questionBank) {
             throw new \Exception('Cannot publish test without question bank');
         }
 
-        if ($test->question_source === 'bank' && $test->questionBank->questions()->count() === 0) {
+        if ($source === 'bank' && $test->questionBank->questions()->count() === 0) {
             throw new \Exception('Cannot publish test with empty question bank');
         }
 

@@ -9,9 +9,13 @@ use App\Models\Course;
 use App\Models\Team;
 use App\Models\Event;
 use App\Models\Exam;
+use App\Models\Test;
 use App\Models\ActivityLog;
 use App\Models\Module;
 use App\Models\Lesson;
+use App\Models\ContentBlock;
+use App\Models\Question;
+use App\Models\CourseTest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -127,12 +131,23 @@ class SettingsController extends Controller
     public function export()
     {
         $data = [
+            'format_version' => 2,
+            'backup_complete' => false,
+            'backup_scope' => 'partial_settings_export',
+            'missing' => [
+                'storage_files',
+                'media_binaries',
+                'full_test_results',
+                'message_threads',
+            ],
+            'warning' => 'Acest export nu este un backup LMS complet. Pentru recuperare folosiți dump-ul bazei de date și copia storage.',
             'export_date' => now()->toISOString(),
             'users' => User::with(['teams', 'courses'])->get(),
-            'courses' => Course::with(['modules.lessons', 'teacher'])->get(),
+            'courses' => Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'teacher', 'courseTests.test.questions'])->get(),
             'teams' => Team::with(['users', 'courses', 'owner'])->get(),
             'events' => Event::with(['instructor'])->get(),
             'exams' => Exam::with(['course', 'questions.answers'])->get(),
+            'tests' => Test::with(['questions'])->get(),
             'activity_logs' => ActivityLog::with(['user'])->latest()->limit(1000)->get(),
             'settings' => Setting::all(),
         ];
@@ -195,6 +210,7 @@ class SettingsController extends Controller
             }
 
             DB::beginTransaction();
+            \Illuminate\Database\Eloquent\Model::unguard();
 
             // Import settings
             if (isset($data['settings']) && is_array($data['settings'])) {
@@ -212,58 +228,68 @@ class SettingsController extends Controller
                 }
             }
 
-            // Import users (skip if they exist by email)
             if (isset($data['users']) && is_array($data['users'])) {
                 foreach ($data['users'] as $userData) {
-                    if (isset($userData['email'])) {
-                        User::updateOrCreate(
-                            ['email' => $userData['email']],
-                            array_intersect_key($userData, array_flip(['name', 'email', 'role', 'password']))
-                        );
+                    if (! isset($userData['email'])) {
+                        continue;
                     }
+                    $attrs = $this->scalarAttributes($userData, ['password', 'remember_token']);
+                    $attrs['email'] = $userData['email'];
+                    User::updateOrCreate(
+                        ['email' => $userData['email']],
+                        $attrs
+                    );
                 }
             }
 
-            // Categories are no longer supported - skip import
-
-            // Import courses
             if (isset($data['courses']) && is_array($data['courses'])) {
                 foreach ($data['courses'] as $courseData) {
-                    if (isset($courseData['id'])) {
-                        $modules = $courseData['modules'] ?? [];
-                        unset($courseData['modules']);
-                        
-                        $course = Course::updateOrCreate(
-                            ['id' => $courseData['id']],
-                            $courseData
+                    if (! isset($courseData['id'])) {
+                        continue;
+                    }
+                    $modules = $courseData['modules'] ?? [];
+                    $rootLessons = $courseData['lessons'] ?? [];
+                    $course = $this->persistById(Course::class, $courseData['id'], $this->scalarAttributes($courseData));
+
+                    foreach ($modules as $moduleData) {
+                        if (! is_array($moduleData) || ! isset($moduleData['id'])) {
+                            continue;
+                        }
+                        $lessons = $moduleData['lessons'] ?? [];
+                        $module = $this->persistById(
+                            Module::class,
+                            $moduleData['id'],
+                            array_merge($this->scalarAttributes($moduleData), ['course_id' => $course->id])
                         );
-
-                        // Import modules and lessons
-                        if (!empty($modules)) {
-                            foreach ($modules as $moduleData) {
-                                if (isset($moduleData['id'])) {
-                                    $lessons = $moduleData['lessons'] ?? [];
-                                    unset($moduleData['lessons']);
-                                    
-                                    $module = Module::updateOrCreate(
-                                        ['id' => $moduleData['id']],
-                                        array_merge($moduleData, ['course_id' => $course->id])
-                                    );
-
-                                    // Import lessons
-                                    if (!empty($lessons)) {
-                                        foreach ($lessons as $lessonData) {
-                                            if (isset($lessonData['id'])) {
-                                                Lesson::updateOrCreate(
-                                                    ['id' => $lessonData['id']],
-                                                    array_merge($lessonData, ['module_id' => $module->id])
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
+                        foreach ($lessons as $lessonData) {
+                            if (is_array($lessonData) && isset($lessonData['id'])) {
+                                $this->importLessonRecord($lessonData, $course->id, $module->id);
                             }
                         }
+                    }
+
+                    foreach ($rootLessons as $lessonData) {
+                        if (! is_array($lessonData) || ! isset($lessonData['id'])) {
+                            continue;
+                        }
+                        if (! empty($lessonData['module_id'])) {
+                            continue;
+                        }
+                        $this->importLessonRecord($lessonData, $course->id, null);
+                    }
+
+                    $courseTests = $courseData['course_tests'] ?? $courseData['courseTests'] ?? [];
+                    foreach ($courseTests as $link) {
+                        if (! is_array($link) || ! isset($link['id'])) {
+                            continue;
+                        }
+                        $this->persistById(
+                            CourseTest::class,
+                            $link['id'],
+                            array_merge($this->scalarAttributes($link), [
+                                'course_id' => $course->id,
+                            ])
+                        );
                     }
                 }
             }
@@ -276,10 +302,7 @@ class SettingsController extends Controller
                         $courses = $teamData['courses'] ?? [];
                         unset($teamData['users'], $teamData['courses']);
                         
-                        $team = Team::updateOrCreate(
-                            ['id' => $teamData['id']],
-                            $teamData
-                        );
+                        $team = $this->persistById(Team::class, $teamData['id'], $this->scalarAttributes($teamData));
 
                         // Attach users
                         if (!empty($users)) {
@@ -300,7 +323,43 @@ class SettingsController extends Controller
                 }
             }
 
+            if (isset($data['tests']) && is_array($data['tests'])) {
+                foreach ($data['tests'] as $testData) {
+                    if (! is_array($testData) || ! isset($testData['id'])) {
+                        continue;
+                    }
+                    $questions = $testData['questions'] ?? [];
+                    $attrs = $this->scalarAttributes($testData);
+                    if (empty($attrs['created_by'])) {
+                        $attrs['created_by'] = auth()->id();
+                    }
+                    $this->persistById(Test::class, $testData['id'], $attrs);
+                    foreach ($questions as $questionData) {
+                        if (! is_array($questionData) || ! isset($questionData['id'])) {
+                            continue;
+                        }
+                        $this->persistById(
+                            Question::class,
+                            $questionData['id'],
+                            array_merge($this->scalarAttributes($questionData), [
+                                'test_id' => $testData['id'],
+                            ])
+                        );
+                    }
+                }
+            }
+
+            if (isset($data['events']) && is_array($data['events'])) {
+                foreach ($data['events'] as $eventData) {
+                    if (! is_array($eventData) || ! isset($eventData['id'])) {
+                        continue;
+                    }
+                    $this->persistById(Event::class, $eventData['id'], $this->scalarAttributes($eventData));
+                }
+            }
+
             DB::commit();
+            \Illuminate\Database\Eloquent\Model::reguard();
 
             return response()->json([
                 'message' => 'Backup-ul a fost importat cu succes',
@@ -308,15 +367,61 @@ class SettingsController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Database\Eloquent\Model::reguard();
             return response()->json([
                 'message' => 'Eroare la importarea backup-ului: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Cast value based on type
-     */
+    private function importLessonRecord(array $lessonData, int $courseId, ?int $moduleId): void
+    {
+        $blocks = $lessonData['content_blocks'] ?? $lessonData['contentBlocks'] ?? [];
+        $lesson = $this->persistById(
+            Lesson::class,
+            $lessonData['id'],
+            array_merge($this->scalarAttributes($lessonData), [
+                'course_id' => $courseId,
+                'module_id' => $moduleId,
+            ])
+        );
+
+        foreach ($blocks as $blockData) {
+            if (! is_array($blockData) || ! isset($blockData['id'])) {
+                continue;
+            }
+            $this->persistById(
+                ContentBlock::class,
+                $blockData['id'],
+                array_merge($this->scalarAttributes($blockData), [
+                    'lesson_id' => $lesson->id,
+                ])
+            );
+        }
+    }
+
+    private function persistById(string $class, $id, array $attrs)
+    {
+        $attrs['id'] = $id;
+
+        return $class::updateOrCreate(['id' => $id], $attrs);
+    }
+
+    private function scalarAttributes(array $row, array $deny = []): array
+    {
+        unset($row['id']);
+        foreach ($row as $key => $value) {
+            if (is_array($value) || is_object($value)) {
+                unset($row[$key]);
+            }
+        }
+        foreach ($deny as $key) {
+            unset($row[$key]);
+        }
+
+        return $row;
+    }
+
     private function castValue($value, $type)
     {
         switch ($type) {

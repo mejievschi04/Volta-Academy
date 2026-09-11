@@ -805,11 +805,12 @@
 
 	.course-map-course-card--showcase-wrap .course-showcase-card__hit {
 		min-height: 260px;
-		touch-action: manipulation;
+		touch-action: pan-y;
 	}
 
+	.course-map-course-card--showcase-wrap .course-showcase-card__hit:hover,
 	.course-map-course-card--showcase-wrap .course-showcase-card__hit:active {
-		transform: scale(0.99);
+		transform: none;
 	}
 
 	.course-map-page-empty {

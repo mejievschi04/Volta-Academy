@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { LightbulbFilament } from '@phosphor-icons/react';
 import logoShort from '../assets/Volta Logo 2@300x 1.png';
-import LiquidEther from './backgrounds/LiquidEther';
 import './SplashScreen.css';
+
+const LiquidEther = lazy(() => import('./backgrounds/LiquidEther'));
 
 const TYPEWRITER_TEXT = 'VOLTA ACADEMY';
 const SPLASH_LIQUID_COLORS = ['#7a7000', '#ffee00', '#ffee00'];
@@ -52,14 +53,16 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 			<div className="splash-light-overlay" aria-hidden="true" />
 
 			<div className="splash-login-like-background" aria-hidden="true">
-				<LiquidEther
-					className="splash-login-liquid-ether"
-					resolution={0.4}
-					autoDemo={true}
-					autoSpeed={0.45}
-					autoIntensity={1.55}
-					colors={SPLASH_LIQUID_COLORS}
-				/>
+				<Suspense fallback={null}>
+					<LiquidEther
+						className="splash-login-liquid-ether"
+						resolution={0.4}
+						autoDemo={true}
+						autoSpeed={0.45}
+						autoIntensity={1.55}
+						colors={SPLASH_LIQUID_COLORS}
+					/>
+				</Suspense>
 				<div className="splash-login-gradient" />
 				<div className="splash-login-pattern" />
 				<div className="splash-logo-center-mask" />

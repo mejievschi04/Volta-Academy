@@ -255,6 +255,38 @@
 	.courses-page-student .course-map-folder-tile__visual {
 		width: min(100%, 300px);
 	}
+
+	.course-map-folder-tile__hit,
+	.course-map-folder-tile__hit:hover,
+	.course-map-folder-tile__hit:focus-visible,
+	.course-map-folder-tile__hit:active {
+		transform: none !important;
+		touch-action: pan-y;
+	}
+
+	.course-map-folder-tile__visual {
+		pointer-events: none;
+	}
+
+	.course-map-folder-tile__hit:hover .course-map-folder-tile__visual,
+	.course-map-folder-tile__hit:focus-visible .course-map-folder-tile__visual,
+	.course-map-folder-tile__hit:hover .rb-paper,
+	.course-map-folder-tile__hit:focus-visible .rb-paper,
+	.course-map-folder-tile__hit:hover .rb-folder:not(.rb-folder--has-cover) .rb-folder__front,
+	.course-map-folder-tile__hit:focus-visible .rb-folder:not(.rb-folder--has-cover) .rb-folder__front,
+	.course-map-folder-tile__hit:hover .rb-folder:not(.rb-folder--has-cover) .rb-folder__front.right,
+	.course-map-folder-tile__hit:focus-visible .rb-folder:not(.rb-folder--has-cover) .rb-folder__front.right,
+	.course-map-folder-tile__hit:hover .rb-folder--has-cover .rb-folder__front--lid,
+	.course-map-folder-tile__hit:focus-visible .rb-folder--has-cover .rb-folder__front--lid,
+	.course-map-folder-tile__hit:hover .rb-folder--has-cover .rb-paper,
+	.course-map-folder-tile__hit:focus-visible .rb-folder--has-cover .rb-paper {
+		transform: none !important;
+	}
+
+	.course-map-folder-tile .rb-folder--has-cover .rb-folder__back {
+		perspective: none;
+		transform-style: flat;
+	}
 }
 
 @media (max-width: 640px) {

@@ -474,7 +474,7 @@ class CourseAdminController extends Controller
             'card_color' => $validated['card_color'] ?? null,
             'teacher_id' => $validated['teacher_id'] ?? null,
             'reward_points' => $validated['reward_points'] ?? 50,
-            'status' => $validated['status'] ?? 'draft',
+            'status' => 'draft',
             'access_type' => $validated['access_type'] ?? 'free',
             'enrollment_type' => $validated['enrollment_type'] ?? 'open',
             'price' => 0,
@@ -640,10 +640,18 @@ class CourseAdminController extends Controller
         }
 
         $previousStatus = $course->status;
+        $wantsPublish = (($data['status'] ?? null) === 'published') && $previousStatus !== 'published';
+        if ($wantsPublish) {
+            unset($data['status']);
+        }
         $course = $this->courseBuilderService->updateCourse($course, $data);
 
-        if ($course->status === 'published' && $previousStatus !== 'published') {
-            $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
+        if ($wantsPublish) {
+            $published = $this->courseBuilderService->publishLive($course, $request->user());
+            if (! ($published['ok'] ?? false)) {
+                return response()->json($published, 422);
+            }
+            $course = $published['course'] ?? $course->fresh();
             $this->notifyStudentsCoursePublished($course, $previousStatus);
         }
 
@@ -907,12 +915,11 @@ class CourseAdminController extends Controller
 
         switch ($action) {
             case 'publish':
-                if (Schema::hasColumn('courses', 'status')) {
-                    $previousStatus = $course->status;
-                    $course->update(['status' => 'published']);
-                    $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
-                    $this->notifyStudentsCoursePublished($course->fresh(), $previousStatus);
+                $published = $this->courseBuilderService->publishLive($course, $request->user());
+                if (! ($published['ok'] ?? false)) {
+                    return response()->json($published, 422);
                 }
+                $this->notifyStudentsCoursePublished($published['course'] ?? $course->fresh(), $course->status);
                 break;
             case 'unpublish':
                 if (Schema::hasColumn('courses', 'status')) {
@@ -920,11 +927,7 @@ class CourseAdminController extends Controller
                 }
                 break;
             case 'duplicate':
-                $newCourse = $course->replicate();
-                $newCourse->title = $course->title . ' (Copy)';
-                $newCourse->status = 'draft';
-                $newCourse->save();
-                // Duplicate modules if needed
+                $course = $this->courseBuilderService->cloneCourse((int) $course->id, $request->user());
                 break;
             default:
                 return response()->json(['message' => 'Acțiune invalidă'], 400);
@@ -966,13 +969,13 @@ class CourseAdminController extends Controller
                 try {
                     switch ($validated['action']) {
                         case 'publish':
-                            if (Schema::hasColumn('courses', 'status')) {
-                                $previousStatus = $course->status;
-                                $course->update(['status' => 'published']);
-                                $this->courseBuilderService->publishDraftLinkedAssessmentsForCourse((int) $course->id);
-                                $this->notifyStudentsCoursePublished($course->fresh(), $previousStatus);
-                                $updated++;
+                            $published = $this->courseBuilderService->publishLive($course, $request->user());
+                            if (! ($published['ok'] ?? false)) {
+                                $errors[] = "Cursul {$course->id} nu a putut fi publicat.";
+                                break;
                             }
+                            $this->notifyStudentsCoursePublished($published['course'] ?? $course->fresh(), $course->status);
+                            $updated++;
                             break;
                         case 'unpublish':
                             if (Schema::hasColumn('courses', 'status')) {

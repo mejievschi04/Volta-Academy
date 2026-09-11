@@ -17,7 +17,7 @@ import './QuestionBankBuilder.css';
  */
 const STEPS = [
 	{ id: 0, label: 'Setup', short: 'Setup' },
-	{ id: 1, label: 'Content', short: 'Conținut' },
+	{ id: 1, label: 'Conținut', short: 'Conținut' },
 	{ id: 2, label: 'Rules', short: 'Reguli' },
 	{ id: 3, label: 'Review & Publish', short: 'Review' },
 ];

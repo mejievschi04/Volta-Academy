@@ -166,18 +166,19 @@ class ProfileController extends Controller
 
         $file = $request->file('avatar');
         $ext = $file->getClientOriginalExtension() ?: 'jpg';
-        $path = $file->storeAs('avatars', $user->id . '_' . time() . '.' . $ext, 'public');
+        $path = $file->storeAs('avatars', $user->id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext, 'public');
+        $oldAvatar = $user->avatar;
 
-        if ($user->avatar) {
+        $user->avatar = $path;
+        $user->save();
+
+        if ($oldAvatar && $oldAvatar !== $path) {
             try {
-                Storage::disk('public')->delete($user->avatar);
+                Storage::disk('public')->delete($oldAvatar);
             } catch (\Exception $e) {
                 Log::warning('Could not delete old avatar: ' . $e->getMessage());
             }
         }
-
-        $user->avatar = $path;
-        $user->save();
 
         Cache::forget("profile_user_{$user->id}");
 

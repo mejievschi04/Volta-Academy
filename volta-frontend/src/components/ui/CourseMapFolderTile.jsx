@@ -56,7 +56,7 @@ const CourseMapFolderTile = ({
 						{courseCount} {courseCount === 1 ? 'curs' : 'cursuri'}
 					</span>
 					<div className="course-map-folder-tile__visual" aria-hidden>
-						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} />
+						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} interactive={false} />
 					</div>
 				</div>
 

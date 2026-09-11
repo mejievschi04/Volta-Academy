@@ -153,7 +153,11 @@ class TestAdminController extends Controller
             $validated['question_set_id'] = null;
         }
 
-        $test = $this->testBuilderService->createTest($validated, $creator);
+        try {
+            $test = $this->testBuilderService->createTest($validated, $creator);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         ActivityLog::create([
             'user_id' => $creator->id,
@@ -1577,10 +1581,7 @@ class TestAdminController extends Controller
         $newScore = min((float) $validated['score'], (float) $maxScore);
         $newPercentage = round(($newScore / $maxScore) * 100, 2);
 
-        $courseTest = \App\Models\CourseTest::where('test_id', $result->test_id)->first();
-        $passingScore = $courseTest
-            ? (int) ($courseTest->passing_score ?? $result->test->passing_score ?? 70)
-            : (int) ($result->test->passing_score ?? 70);
+        $passingScore = $this->resolveResultPassingScore($result);
         $newPassed = $newPercentage >= $passingScore;
 
         $manualScores = is_array($result->manual_review_scores) ? $result->manual_review_scores : [];
@@ -1671,7 +1672,7 @@ class TestAdminController extends Controller
         }
 
         $rows = $query->get();
-        $manualTypes = [];
+        $manualTypes = ['essay'];
         $toClearIds = [];
 
         foreach ($rows as $row) {
@@ -1932,10 +1933,16 @@ class TestAdminController extends Controller
         $manualScore = 0;
         $manualScores = [];
 
-        $questions = $result->test->question_source === 'bank' && $result->test->questionBank
-            ? $result->test->questionBank->questions
-            : $result->test->questions;
-        $questionIds = $questions->pluck('id')->toArray();
+        $questions = collect();
+        $hydrated = app(\App\Services\TestAttemptService::class)->hydrateQuestions($result->question_snapshot);
+        if ($hydrated->isNotEmpty()) {
+            $questions = $hydrated;
+        } elseif ($result->test) {
+            $questions = $result->test->question_source === 'bank' && $result->test->questionBank
+                ? $result->test->questionBank->questions
+                : $result->test->questions;
+        }
+        $questionIds = $questions->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         foreach ($validated['manual_review_scores'] as $reviewScore) {
             $qid = (int) $reviewScore['question_id'];
@@ -1952,6 +1959,9 @@ class TestAdminController extends Controller
 
             $maxPoints = (int) ($question->points ?? 1);
             $givenScore = min((float) $reviewScore['score'], $maxPoints);
+            if (isset($manualScores[$qid])) {
+                continue;
+            }
             $manualScore += $givenScore;
             $manualScores[$qid] = [
                 'score' => $givenScore,
@@ -1967,11 +1977,11 @@ class TestAdminController extends Controller
         }
 
         $totalPoints = (int) ($result->max_score ?? 0) ?: 1;
-        $newTotalScore = $autoScore + $manualScore;
+        $newTotalScore = min($autoScore + $manualScore, $totalPoints);
         $newPercentage = $totalPoints > 0 ? round(($newTotalScore / $totalPoints) * 100, 2) : 0;
+        $newPercentage = min(100, max(0, $newPercentage));
 
-        $courseTest = \App\Models\CourseTest::where('test_id', $result->test_id)->first();
-        $passingScore = $courseTest ? ($courseTest->passing_score ?? 70) : 70;
+        $passingScore = $this->resolveResultPassingScore($result);
         $newPassed = $newPercentage >= $passingScore;
 
         $result->update([
@@ -1992,5 +2002,23 @@ class TestAdminController extends Controller
             'message' => 'Verificare manuală salvată cu succes',
             'result' => $result->load(['test', 'user:id,name,email']),
         ]);
+    }
+
+    private function resolveResultPassingScore(TestResult $result): int
+    {
+        if ($result->passing_score_applied !== null && $result->passing_score_applied !== '') {
+            return (int) $result->passing_score_applied;
+        }
+        $base = (int) ($result->test->passing_score ?? 70);
+        $query = \App\Models\CourseTest::where('test_id', $result->test_id);
+        if ($result->course_id) {
+            $query->where('course_id', $result->course_id);
+        }
+        $courseTest = $query->first();
+        if ($courseTest && $courseTest->passing_score !== null) {
+            return (int) $courseTest->passing_score;
+        }
+
+        return $base;
     }
 }

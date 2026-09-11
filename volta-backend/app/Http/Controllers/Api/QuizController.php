@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\ActivityLog;
+use App\Support\LearningVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -253,8 +254,10 @@ class QuizController extends Controller
         }
 
         $course = Course::findOrFail($courseId);
+        if (! LearningVisibility::courseVisibleToLearner($user, $course)) {
+            return response()->json(['message' => 'Curs negăsit.'], 404);
+        }
 
-        // Load exam for this course
         $exam = Exam::with(['questions.answers' => function ($query) {
             $query->orderBy('order');
         }])->where('course_id', $courseId)->first();
@@ -263,6 +266,13 @@ class QuizController extends Controller
             return response()->json([
                 'error' => 'Nu există test disponibil pentru acest curs',
             ], 404);
+        }
+
+        if (($exam->status ?? 'draft') !== 'published' && ! LearningVisibility::isStaff($user)) {
+            return response()->json(['message' => 'Testul nu este disponibil.'], 403);
+        }
+        if (! LearningVisibility::isEnrolledInCourse($user, (int) $course->id)) {
+            return response()->json(['message' => 'Nu ești înscris la acest curs.'], 403);
         }
 
         $existingResults = ExamResult::where('exam_id', $exam->id)
@@ -283,8 +293,11 @@ class QuizController extends Controller
             }
         }
 
-        $questionsWire = $this->examQuestionsToQuizWire($exam, $latestResult !== null);
         $settings = is_array($exam->settings) ? $exam->settings : [];
+        $revealSolutions = $latestResult !== null
+            && (bool) ($settings['show_correct_answers'] ?? false)
+            && ! (bool) ($settings['show_only_submitted_answers'] ?? false);
+        $questionsWire = $this->examQuestionsToQuizWire($exam, $revealSolutions);
 
         return response()->json([
             'id' => $exam->id,
@@ -321,6 +334,9 @@ class QuizController extends Controller
         }
 
         $course = Course::with('modules')->findOrFail($courseId);
+        if (! LearningVisibility::courseVisibleToLearner($user, $course)) {
+            return response()->json(['message' => 'Curs negăsit.'], 404);
+        }
         $answers = $request->input('answers', []);
 
         // Load exam with questions and answers
@@ -332,6 +348,13 @@ class QuizController extends Controller
             return response()->json([
                 'error' => 'Nu există test disponibil pentru acest curs',
             ], 404);
+        }
+
+        if (($exam->status ?? 'draft') !== 'published' && ! LearningVisibility::isStaff($user)) {
+            return response()->json(['message' => 'Testul nu este disponibil.'], 403);
+        }
+        if (! LearningVisibility::isEnrolledInCourse($user, (int) $course->id)) {
+            return response()->json(['message' => 'Nu ești înscris la acest curs.'], 403);
         }
 
         // Check if user can submit (check attempt limits)
@@ -443,69 +466,30 @@ class QuizController extends Controller
                 ]
             );
             
-            // Update course progress if exam is passed
-            // Course is completed when exam is passed (modules don't need individual completion)
             if ($passed) {
-                // Calculate progress percentage (always 100% when course is completed)
-                $progressPercentage = 100;
-                
-                // Course is completed
-                $isCompleted = true;
-                
-                // Update course_user entry
-                $existingRecord = DB::table('course_user')
-                    ->where('course_id', $course->id)
-                    ->where('user_id', $user->id)
-                    ->first();
-
-                if ($existingRecord) {
-                    // Update existing record
-                    DB::table('course_user')
-                        ->where('course_id', $course->id)
-                        ->where('user_id', $user->id)
-                        ->update([
-                            'progress_percentage' => $progressPercentage,
-                            'completed_at' => $isCompleted ? now() : null,
-                            'started_at' => $existingRecord->started_at ?: now(),
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    // Insert new record
-                    DB::table('course_user')
-                        ->insert([
-                            'course_id' => $course->id,
-                            'user_id' => $user->id,
-                            'progress_percentage' => $progressPercentage,
-                            'completed_at' => $isCompleted ? now() : null,
-                            'started_at' => now(),
-                            'is_mandatory' => false,
-                            'enrolled' => true,
-                            'enrolled_at' => now(),
-                            'assigned_at' => now(),
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                try {
+                    app(\App\Services\CourseProgressService::class)->calculateCourseProgress($user, $course);
+                } catch (\Throwable $e) {
+                    \Log::warning('Quiz pass progress recalculation failed', [
+                        'course_id' => $course->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-                
-                $wasAlreadyCompleted = \App\Support\StudentActivityLogger::courseWasAlreadyCompleted($user->id, $course->id);
-                if (! $wasAlreadyCompleted && \App\Support\StudentActivityLogger::logCompletedCourseIfFirst($user, $course)) {
-                    app(\App\Services\NotificationService::class)->notifyCourseCompleted($user, $course);
-                }
-                
-                // Invalidate cache for dashboard and profile
-                Cache::forget("dashboard_user_{$user->id}_stats");
-                Cache::forget("profile_user_{$user->id}");
             }
         }
         
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $revealSolutions = (bool) ($settings['show_correct_answers'] ?? false)
+            && ! (bool) ($settings['show_only_submitted_answers'] ?? false);
+
         return response()->json([
             'score' => $score,
             'total' => $totalPoints,
             'maxScore' => $exam->max_score,
             'passed' => $passed,
             'percentage' => $percentage,
-            'show_only_submitted_answers' => (bool) ((is_array($exam->settings) ? $exam->settings : [])['show_only_submitted_answers'] ?? false),
-            'review_questions' => $this->examQuestionsToQuizWire($exam, true),
+            'show_only_submitted_answers' => (bool) ($settings['show_only_submitted_answers'] ?? false),
+            'review_questions' => $this->examQuestionsToQuizWire($exam, $revealSolutions),
         ]);
     }
 

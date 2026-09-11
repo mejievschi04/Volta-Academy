@@ -1,10 +1,27 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const ResumeLearningWidget = ({ nextLesson }) => {
+function resumeMetaLine(nextLesson) {
+	const parts = [];
+	const number = Number(nextLesson.lesson_number);
+	const count = Number(nextLesson.lesson_count);
+	if (Number.isFinite(number) && number > 0 && Number.isFinite(count) && count > 0) {
+		parts.push(`Lecția ${number} din ${count}`);
+	} else if (nextLesson.module_title) {
+		parts.push(nextLesson.module_title);
+	}
+	if (nextLesson.duration_minutes) {
+		parts.push(`aproximativ ${nextLesson.duration_minutes} minute`);
+	}
+	return parts.join(' · ');
+}
+
+const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 	const navigate = useNavigate();
+	const isBanner = variant === 'banner';
 
 	if (!nextLesson) {
+		if (isBanner) return null;
 		return (
 			<div className="student-widget student-resume-widget">
 				<div className="student-widget-header">
@@ -21,6 +38,26 @@ const ResumeLearningWidget = ({ nextLesson }) => {
 		navigate(`/courses/${nextLesson.course_id}/lessons/${nextLesson.id}`);
 	};
 
+	const meta = resumeMetaLine(nextLesson);
+
+	if (isBanner) {
+		return (
+			<section className="courses-page-resume" aria-label="Continuă învățarea">
+				<div className="courses-page-resume-copy">
+					<p className="courses-page-resume-kicker">Continuă</p>
+					<h2 className="courses-page-resume-title">{nextLesson.course_title || 'Cursul tău'}</h2>
+					{meta ? <p className="courses-page-resume-meta">{meta}</p> : null}
+					{nextLesson.title ? (
+						<p className="courses-page-resume-lesson">{nextLesson.title}</p>
+					) : null}
+				</div>
+				<button type="button" className="courses-page-btn courses-page-btn-primary" onClick={handleResume}>
+					Continuă lecția
+				</button>
+			</section>
+		);
+	}
+
 	return (
 		<div className="student-widget student-resume-widget">
 			<div className="student-widget-header">
@@ -32,19 +69,22 @@ const ResumeLearningWidget = ({ nextLesson }) => {
 					<div className="student-resume-module">{nextLesson.module_title}</div>
 					<div className="student-resume-lesson">
 						<span className="student-resume-lesson-icon">
-							{nextLesson.type === 'video' ? '🎥' : 
-							 nextLesson.type === 'text' ? '📄' : 
+							{nextLesson.type === 'video' ? '🎥' :
+							 nextLesson.type === 'text' ? '📄' :
 							 nextLesson.type === 'live' ? '🔴' : '📚'}
 						</span>
 						<span className="student-resume-lesson-title">{nextLesson.title}</span>
 					</div>
-					{nextLesson.duration_minutes && (
+					{meta ? (
+						<div className="student-resume-duration">{meta}</div>
+					) : nextLesson.duration_minutes ? (
 						<div className="student-resume-duration">
 							⏱️ {nextLesson.duration_minutes} min
 						</div>
-					)}
+					) : null}
 				</div>
-				<button 
+				<button
+					type="button"
 					className="student-btn student-btn-primary student-btn-resume"
 					onClick={handleResume}
 				>
@@ -56,4 +96,3 @@ const ResumeLearningWidget = ({ nextLesson }) => {
 };
 
 export default ResumeLearningWidget;
-
