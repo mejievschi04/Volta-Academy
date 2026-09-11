@@ -57,6 +57,9 @@ export default defineConfig({
           if (id.includes('/node_modules/@phosphor-icons/')) return 'icons-phosphor';
           if (id.includes('/node_modules/lucide-react/')) return 'icons-lucide';
           if (id.includes('/node_modules/xlsx/')) return 'xlsx';
+          if (id.includes('pdfjs-dist') && id.includes('pdf.worker')) {
+            return;
+          }
           if (id.includes('/node_modules/pdfjs-dist/') || id.includes('/node_modules/pdf-lib/')) return 'pdf';
           if (id.includes('/node_modules/recharts/')) return 'charts';
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-vendor';
@@ -82,19 +85,20 @@ export default defineConfig({
     assetsDir: 'assets',
   },
   // Optimize dependencies - pre-bundle for faster dev startup
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'axios',
-      '@dnd-kit/core',
-      '@dnd-kit/sortable',
-      '@dnd-kit/utilities',
-      '@phosphor-icons/react',
-      'lucide-react',
-      'recharts',
-      'three',
-    ],
-  },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'axios',
+        '@dnd-kit/core',
+        '@dnd-kit/sortable',
+        '@dnd-kit/utilities',
+        '@phosphor-icons/react',
+        'lucide-react',
+        'recharts',
+        'three',
+      ],
+      exclude: ['pdfjs-dist'],
+    },
 })

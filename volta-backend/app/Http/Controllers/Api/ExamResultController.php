@@ -892,31 +892,48 @@ class ExamResultController extends Controller
         try {
             $user = Auth::user();
             $preferredType = $request->query('type');
-            
-            // Try to find as TestResult first (new system)
-            $testResult = $preferredType === 'exam' ? null : TestResult::with([
+
+            $loadTestResult = fn () => TestResult::with([
                 'test',
-                'test.questions' => function($query) {
+                'test.questions' => function ($query) {
                     $query->orderBy('order');
                 },
-                'test.questionBank' => function($query) {
+                'test.questionBank' => function ($query) {
                     $query->select('id', 'title', 'description');
                 },
-                'test.questionBank.questions' => function($query) {
+                'test.questionBank.questions' => function ($query) {
                     $query->orderBy('order');
                 },
                 'course:id,title',
                 'test.courses:id,title',
             ])
-            ->where('user_id', $user->id)
-            ->find($id);
-            
+                ->where('user_id', $user->id)
+                ->find($id);
+
+            $testResult = $preferredType === 'exam' ? null : $loadTestResult();
+
             if ($testResult) {
-                // Check if test exists
                 if (!$testResult->test) {
                     return response()->json([
-                        'error' => 'Testul asociat acestui rezultat nu a fost găsit',
-                    ], 404);
+                        'id' => $testResult->id,
+                        'type' => 'test',
+                        'exam_id' => null,
+                        'test_id' => $testResult->test_id,
+                        'course_id' => $testResult->course_id,
+                        'user_id' => $testResult->user_id,
+                        'attempt_number' => $testResult->attempt_number,
+                        'score' => $testResult->score,
+                        'max_score' => $testResult->max_score ?? $testResult->score,
+                        'total_points' => $testResult->max_score ?? $testResult->score,
+                        'percentage' => $testResult->percentage,
+                        'passed' => $testResult->passed,
+                        'answers' => is_array($testResult->answers) ? $testResult->answers : [],
+                        'completed_at' => $testResult->completed_at,
+                        'needs_manual_review' => $testResult->status === 'pending_review' || (bool) ($testResult->needs_manual_review ?? false),
+                        'status' => $testResult->status,
+                        'test' => null,
+                        'exam' => null,
+                    ]);
                 }
                 
                 try {
@@ -1017,7 +1034,7 @@ class ExamResultController extends Controller
             }
             
             // Fallback to legacy ExamResult (only if exam_results table exists)
-            if ($preferredType === 'test' || !Schema::hasTable('exam_results')) {
+            if (! Schema::hasTable('exam_results')) {
                 return response()->json([
                     'error' => 'Rezultatul nu a fost găsit',
                 ], 404);
@@ -1033,7 +1050,37 @@ class ExamResultController extends Controller
                 }
             ])
             ->where('user_id', $user->id)
-            ->findOrFail($id);
+            ->find($id);
+
+            if (! $examResult) {
+                if ($preferredType === 'exam') {
+                    $request->query->set('type', 'test');
+                    return $this->show($request, $id);
+                }
+
+                return response()->json([
+                    'error' => 'Rezultatul nu a fost găsit',
+                ], 404);
+            }
+
+            if (! $examResult->exam) {
+                return response()->json([
+                    'id' => $examResult->id,
+                    'type' => 'exam',
+                    'exam_id' => $examResult->exam_id,
+                    'test_id' => null,
+                    'user_id' => $examResult->user_id,
+                    'attempt_number' => $examResult->attempt_number,
+                    'score' => $examResult->score,
+                    'max_score' => $examResult->total_points ?? $examResult->score,
+                    'total_points' => $examResult->total_points ?? $examResult->score,
+                    'percentage' => $examResult->percentage,
+                    'passed' => $examResult->passed,
+                    'answers' => $examResult->answers ?? [],
+                    'completed_at' => $examResult->completed_at,
+                    'exam' => null,
+                ]);
+            }
             
             // Get user answers
             $userAnswers = $examResult->answers ?? [];

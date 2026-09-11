@@ -365,9 +365,17 @@ export const examResultsService = {
   },
   
   getById: async (id, type = null) => {
-    const params = type ? { type } : {};
-    const response = await api.get(`/exam-results/${id}`, { params });
-    return response.data;
+    try {
+      const params = type ? { type } : {};
+      const response = await api.get(`/exam-results/${id}`, { params });
+      return response.data;
+    } catch (err) {
+      if (type && err?.response?.status === 404) {
+        const response = await api.get(`/exam-results/${id}`);
+        return response.data;
+      }
+      throw err;
+    }
   },
 };
 
@@ -450,6 +458,17 @@ export const libraryService = {
     const response = await api.get(`/library/items/${id}/download`, {
       responseType: 'blob',
     });
+    const payload = response.data;
+    if (payload instanceof Blob && payload.type && payload.type.includes('application/json')) {
+      const text = await payload.text();
+      let message = 'Descărcarea a eșuat.';
+      try {
+        message = JSON.parse(text)?.message || message;
+      } catch {
+        /* păstrăm mesajul implicit */
+      }
+      throw new Error(message);
+    }
     let name = fallbackName;
     const cd = response.headers['content-disposition'];
     if (cd && typeof cd === 'string') {

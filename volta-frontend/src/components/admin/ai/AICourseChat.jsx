@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
 import { openaiService } from '../../../services/openaiService';
 import { adminService } from '../../../services/api';
 
@@ -282,6 +281,7 @@ const AICourseChat = ({
 
 				if (mime === 'application/pdf' || lowerName.endsWith('.pdf')) {
 					type = 'pdf';
+					const { extractPdfTextAsHtml } = await import('../../../utils/pdfTextExtractor');
 					const html = await extractPdfTextAsHtml(file);
 					text = stripHtmlToText(html);
 				} else if (mime === 'text/plain' || lowerName.endsWith('.txt')) {

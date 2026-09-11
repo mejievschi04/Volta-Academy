@@ -28,8 +28,6 @@ import {
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
-import { estimatePdfContentPreviewHeight } from '../utils/pdfTextExtractor';
-import { getPdfPageCount, slicePdfFileByRange } from '../utils/pdfRangeUtils';
 import { toImageUrl } from '../utils/imageUrl';
 import { stripRichTextEditorChrome } from '../utils/richTextContent';
 import { adminService } from '../services/api';
@@ -1218,6 +1216,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 				return;
 			}
 			try {
+				const { getPdfPageCount } = await import('../utils/pdfRangeUtils');
 				const pageCount = await getPdfPageCount(file);
 				setPdfFile(file);
 				setPdfFileName(file.name);
@@ -1239,6 +1238,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 			let fileToUpload = pdfFile;
 			const canSlice = pdfTotalPages > 0 && (pdfStartPage > 1 || pdfEndPage < pdfTotalPages);
 			if (canSlice) {
+				const { slicePdfFileByRange } = await import('../utils/pdfRangeUtils');
 				fileToUpload = await slicePdfFileByRange(pdfFile, pdfStartPage, pdfEndPage);
 			}
 
@@ -1264,6 +1264,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 			if (!normalizedUrl) {
 				throw new Error('Nu am primit URL pentru PDF.');
 			}
+			const { estimatePdfContentPreviewHeight } = await import('../utils/pdfTextExtractor');
 			const adaptiveHeight = await estimatePdfContentPreviewHeight(fileToUpload);
 			const safeViewportHeight = adaptiveHeight;
 

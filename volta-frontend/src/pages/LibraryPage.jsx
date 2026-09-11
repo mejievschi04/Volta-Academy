@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { renderPdfFirstPageAsJpegBlob } from '../utils/renderPdfFirstPageCover';
 import { UploadSimple } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 
@@ -192,6 +191,7 @@ const LibraryPage = () => {
 			const looksPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
 			if (looksPdf) {
 				try {
+					const { renderPdfFirstPageAsJpegBlob } = await import('../utils/renderPdfFirstPageCover');
 					coverBlob = await renderPdfFirstPageAsJpegBlob(f);
 				} catch (coverErr) {
 					logger.warn('Copertă PDF (browser):', coverErr);

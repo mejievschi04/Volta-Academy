@@ -1365,10 +1365,12 @@ function AuthenticatedLayout({ children, authContext }) {
 				</>
 			)}
 
-			{user && isTrueAdminAccount && user.role === 'admin' && isVoltEnabled() && (
-				<Suspense fallback={null}>
-					<VoltAssistantWidget />
-				</Suspense>
+            {user && isTrueAdminAccount && user.role === 'admin' && isVoltEnabled() && (
+				<ErrorBoundary fallback={() => null}>
+					<Suspense fallback={null}>
+						<VoltAssistantWidget />
+					</Suspense>
+				</ErrorBoundary>
 			)}
 		</div>
 	);

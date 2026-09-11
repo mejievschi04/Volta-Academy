@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Lightning, X } from '@phosphor-icons/react';
-import AICourseChat from '../admin/ai/AICourseChat';
+import ErrorBoundary from '../common/ErrorBoundary';
 import { applyVoltCoursePlan } from '../../utils/voltCoursePlan';
 import { describeVoltPageContext, getVoltPageContext } from '../../utils/getVoltPageContext';
 import './VoltAssistantWidget.css';
+
+const AICourseChat = lazy(() => import('../admin/ai/AICourseChat'));
 
 const VoltAssistantWidget = () => {
 	const [open, setOpen] = useState(false);
@@ -48,7 +50,11 @@ const VoltAssistantWidget = () => {
 							</button>
 						</header>
 						<div className="volt-widget-chat">
-							<AICourseChat
+							<ErrorBoundary fallback={() => (
+								<p className="volt-widget-loading">Volt nu a putut porni. Închide și deschide din nou.</p>
+							)}>
+								<Suspense fallback={<p className="volt-widget-loading">Se încarcă Volt…</p>}>
+									<AICourseChat
 								embed
 								mode="workspace"
 								title="Volt"
@@ -79,7 +85,9 @@ const VoltAssistantWidget = () => {
 									}
 									navigate('/admin/content?tab=courses&view=maps');
 								}}
-							/>
+								/>
+								</Suspense>
+							</ErrorBoundary>
 						</div>
 					</div>
 				</div>

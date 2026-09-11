@@ -17,8 +17,6 @@ import {
 } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
 import { openaiService } from '../../../services/openaiService';
-import { extractPdfTextAsHtml } from '../../../utils/pdfTextExtractor';
-
 import { AI_QUESTION_TYPE_OPTIONS, DEFAULT_AI_QUESTION_TYPES, getAiQuestionTypeLabel } from '../question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModalShared.js';
 import '../../../pages/admin/AdminQuestionBanksPage.css';
 import './AITestGenerateModal.css';
@@ -378,6 +376,7 @@ const AITestGenerateModal = ({
 
       if (mime === 'application/pdf' || lowerName.endsWith('.pdf')) {
         type = 'pdf';
+        const { extractPdfTextAsHtml } = await import('../../../utils/pdfTextExtractor');
         const html = await extractPdfTextAsHtml(file);
         text = stripHtmlToText(html);
       } else if (mime === 'text/plain' || lowerName.endsWith('.txt') || lowerName.endsWith('.csv') || mime.includes('csv')) {
