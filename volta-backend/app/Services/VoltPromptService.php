@@ -503,8 +503,7 @@ PROMPT;
         $prompt .= '  "points": 1,' . "\n";
         $prompt .= '  "explanation": "Explicatia raspunsului corect",' . "\n";
         $prompt .= '  "difficulty": "easy|medium|hard",' . "\n";
-        $prompt .= '  "cognitive_level": "recall|understanding|application|analysis",' . "\n";
-        $prompt .= '  "tags": ["tag1", "tag2"]' . "\n";
+        $prompt .= '  "cognitive_level": "recall|understanding|application|analysis"' . "\n";
         $prompt .= "}\n\n";
         $prompt .= "Exemple answers dupa tip:\n";
         if (array_intersect($typeList, ['multiple_choice', 'single_choice', 'true_false'])) {
@@ -593,8 +592,7 @@ PROMPT;
         $prompt .= '      "points": 1,' . "\n";
         $prompt .= '      "explanation": "Explicatia raspunsului corect",' . "\n";
         $prompt .= '      "difficulty": "easy|medium|hard",' . "\n";
-        $prompt .= '      "cognitive_level": "' . (!empty($cognitiveLevelList) ? implode('|', $cognitiveLevelList) : 'recall|understanding|application|analysis') . '",' . "\n";
-        $prompt .= '      "tags": ["tag1", "tag2"]' . "\n";
+        $prompt .= '      "cognitive_level": "' . (!empty($cognitiveLevelList) ? implode('|', $cognitiveLevelList) : 'recall|understanding|application|analysis') . '"' . "\n";
         $prompt .= "    }\n";
         $prompt .= "  ]\n";
         $prompt .= "}\n\n";
@@ -630,8 +628,7 @@ PROMPT;
             '  ],\n' .
             '  "points": 1,\n' .
             '  "explanation": "Explicatie",\n' .
-            '  "difficulty": "easy|medium|hard",\n' .
-            '  "tags": ["tag1"]\n' .
+            '  "difficulty": "easy|medium|hard"\n' .
             "}\n";
     }
 

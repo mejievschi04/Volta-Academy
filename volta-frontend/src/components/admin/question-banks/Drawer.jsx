@@ -1,6 +1,5 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import Tag from './Tag';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const normalizeAnswers = (answers) => {
@@ -61,7 +60,6 @@ const normalizeOrderingItems = (answers) => {
 const Drawer = ({ open, question, onClose, onEdit }) => {
   if (!open || !question) return null;
 
-  const tags = question?.tags || question?.metadata?.tags || [];
   const answers = normalizeAnswers(question?.answers);
   const matchingPairs = normalizeMatchingPairs(question?.answers);
   const orderingItems = normalizeOrderingItems(question?.answers);
@@ -116,9 +114,6 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
             </ul>
           </div>
         )}
-        <div className="qb-drawer-tags">
-          {Array.isArray(tags) && tags.map((tag) => <Tag key={`${question.id}-${tag?.id || tag?.name || tag}`}>{tag?.name || tag}</Tag>)}
-        </div>
         {typeof onEdit === 'function' && (
           <div className="qb-modal-actions">
             <button type="button" className="lms-btn-primary" onClick={() => onEdit(question)}>

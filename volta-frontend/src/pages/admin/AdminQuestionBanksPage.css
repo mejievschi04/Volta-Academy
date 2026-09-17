@@ -2373,6 +2373,96 @@
 	color: var(--text-primary);
 }
 
+.qb-catalog-nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+	min-width: 0;
+}
+
+.qb-catalog-crumbs {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.88rem;
+}
+
+.qb-crumb {
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.qb-page button.qb-crumb {
+	min-height: 0 !important;
+	min-width: 0 !important;
+	height: auto !important;
+	width: auto !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	font-size: inherit !important;
+	color: inherit !important;
+}
+
+button.qb-crumb:hover {
+	color: var(--text-primary);
+}
+
+.qb-crumb.is-active {
+	color: var(--text-primary);
+	font-weight: 700;
+}
+
+.qb-page button.qb-catalog-back {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	justify-self: start;
+	width: max-content !important;
+	min-width: 0 !important;
+	min-height: 32px !important;
+	height: 32px;
+	margin: 0;
+	padding: 0 8px !important;
+	gap: 4px !important;
+	border: 0 !important;
+	border-radius: 8px !important;
+	background: transparent !important;
+	color: var(--text-secondary) !important;
+	font-size: 0.84rem !important;
+	font-weight: 650;
+	line-height: 1;
+	box-shadow: none !important;
+	cursor: pointer;
+}
+
+.qb-page button.qb-catalog-back:hover {
+	background: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
+}
+
+.qb-folder-card[type='button'] {
+	width: 100%;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+	color: inherit;
+}
+
+.qb-questions-list--readonly .qb-question-row {
+	grid-template-columns: 30px 1fr auto;
+}
+
 .qb-catalog-scope {
 	display: inline-flex;
 	flex-wrap: wrap;
@@ -3039,3 +3129,4 @@ html[data-theme='dark'] .qb-page .qb-star-btn.is-starred {
 		width: 100%;
 	}
 }
+

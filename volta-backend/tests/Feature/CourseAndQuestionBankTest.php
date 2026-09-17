@@ -88,7 +88,6 @@ class CourseAndQuestionBankTest extends TestCase
             'title' => 'Bancă PHP',
             'description' => 'Întrebări despre PHP',
             'status' => 'draft',
-            'tags' => ['PHP', 'Backend'],
         ]);
 
         $createResponse->assertCreated()

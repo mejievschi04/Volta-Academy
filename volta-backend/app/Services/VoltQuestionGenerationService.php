@@ -1189,7 +1189,6 @@ private function buildDeterministicFallbackReviewQuestion(string $courseContent,
         'points' => 1,
         'explanation' => 'Răspunsul corect reproduce o afirmație concretă din materialul de studiu.',
         'difficulty' => in_array($difficulty, ['easy', 'medium', 'hard'], true) ? $difficulty : 'medium',
-        'tags' => ['ai_fallback'],
     ];
 }
 
@@ -1608,10 +1607,6 @@ private function formatQuestionsForDatabase(array $questions): array
 
         $answers = $this->testBuilderService->normalizeQuestionAnswersForType($qType, $answers);
 
-        $rawTags = is_array($question['tags'] ?? null) ? $question['tags'] : [];
-        $tags = array_values(array_unique(array_filter(array_map(function ($tag) {
-            return trim((string) $tag);
-        }, $rawTags))));
         $difficulty = (string) ($question['difficulty'] ?? 'medium');
         if (!in_array($difficulty, ['easy', 'medium', 'hard'], true)) {
             $difficulty = 'medium';
@@ -1623,7 +1618,6 @@ private function formatQuestionsForDatabase(array $questions): array
 
         $metadata = [
             'difficulty' => $difficulty,
-            'tags' => $tags,
             'source' => 'ai_draft',
         ];
         if ($cognitiveLevel !== null) {

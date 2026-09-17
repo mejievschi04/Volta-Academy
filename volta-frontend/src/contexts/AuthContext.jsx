@@ -1,6 +1,6 @@
 import { setVoltCapabilities } from '../utils/voltAvailability';
 import { AuthContext } from './AuthContextShared.js';
-import React, {   useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { ensureApiCsrfCookie } from '../api';
 import { authService } from '../services/api';
 
@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
 	const [rawUser, setRawUser] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [adminViewMode, setAdminViewModeState] = useState(readStoredAdminView);
+	const authCheckId = useRef(0);
 
 	const setAdminViewMode = useCallback((mode) => {
 		if (mode !== 'admin' && mode !== 'student') return;
@@ -70,34 +71,49 @@ export const AuthProvider = ({ children }) => {
 		return ar === 'admin' || ar === 'instructor';
 	}, [user]);
 
-	useEffect(() => {
-		(async () => {
-			try {
-				await ensureApiCsrfCookie();
-			} catch {
-				/* rețea / backend indisponibil */
-			}
-			await checkAuth();
-		})();
-	}, []);
-
-	const checkAuth = async () => {
+	const checkAuth = useCallback(async () => {
+		const id = ++authCheckId.current;
 		try {
 			const data = await authService.me();
+			if (id !== authCheckId.current) return;
 			setVoltCapabilities(data?.user?.capabilities);
 			setRawUser(data?.user ?? null);
 		} catch {
 			// Rețea / 5xx pe /auth/me: nu ștergem sesiunea din UI (evită logout fals).
 			// 401 e tratat în authService.me() → { user: null }, fără throw.
 		} finally {
-			setLoading(false);
+			if (id === authCheckId.current) {
+				setLoading(false);
+			}
 		}
-	};
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			try {
+				await ensureApiCsrfCookie();
+			} catch {
+				/* rețea / backend indisponibil */
+			}
+			if (cancelled) {
+				setLoading(false);
+				return;
+			}
+			await checkAuth();
+		})();
+		return () => {
+			cancelled = true;
+			authCheckId.current += 1;
+		};
+	}, [checkAuth]);
 
 	const login = async (email, password) => {
+		authCheckId.current += 1;
 		const data = await authService.login(email, password);
 		setVoltCapabilities(data.user?.capabilities);
 		setRawUser(data.user);
+		setLoading(false);
 		return data;
 	};
 

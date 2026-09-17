@@ -10,7 +10,7 @@ import {
   Search,
   Sparkles,
   Star,
-  Tags,
+  Layers,
   Trash2,
 } from 'lucide-react';
 import Modal from '../../components/common/Modal';
@@ -20,7 +20,6 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { adminService } from '../../services/api';
 import Drawer from '../../components/admin/question-banks/Drawer';
 import QuestionRow from '../../components/admin/question-banks/QuestionRow';
-import Tag from '../../components/admin/question-banks/Tag';
 import QuestionBuilderEditor from '../../components/admin/question-banks/QuestionBuilderEditor';
 import AIGenerateQuestionsModal from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModal';
 import { DEFAULT_AI_QUESTION_TYPES } from '../../components/admin/question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModalShared.js';
@@ -56,7 +55,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ title: '', description: '', tagsText: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [questionEditorOpen, setQuestionEditorOpen] = useState(false);
   const [questionEditorSaving, setQuestionEditorSaving] = useState(false);
   const [questionEditorNumber, setQuestionEditorNumber] = useState(1);
@@ -96,11 +95,9 @@ const AdminQuestionBankFolderDetailsPage = () => {
       ]);
       setFolder(folderData);
       setQuestions(Array.isArray(questionData) ? questionData : []);
-      const tags = (folderData?.tags || []).map((t) => t.name).join(', ');
       setEditForm({
         title: folderData?.title || '',
         description: folderData?.description || '',
-        tagsText: tags,
       });
     } catch {
       error('Nu am putut încărca folderul.');
@@ -159,20 +156,9 @@ const AdminQuestionBankFolderDetailsPage = () => {
       const matchesType = typeFilter === 'all' || question?.type === typeFilter;
       if (!matchesType) return false;
       if (!query) return true;
-      const tags = question?.tags || question?.metadata?.tags || [];
-      const tagText = Array.isArray(tags) ? tags.map((tag) => tag?.name || tag).join(' ') : '';
-      return `${stripHtml(question?.content || '')} ${tagText}`.toLowerCase().includes(query);
+      return stripHtml(question?.content || '').toLowerCase().includes(query);
     });
   }, [questions, search, typeFilter]);
-
-  const normalizedTags = useMemo(
-    () =>
-      editForm.tagsText
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-    [editForm.tagsText]
-  );
 
   const resolveValidCourseId = (candidateId = aiSelectedCourseId) => {
     const parsed = Number.parseInt(String(candidateId), 10);
@@ -254,7 +240,6 @@ const AdminQuestionBankFolderDetailsPage = () => {
       await adminService.updateQuestionBank(id, {
         title: editForm.title.trim(),
         description: editForm.description.trim() || null,
-        tags: normalizedTags,
       });
       success('Folder actualizat.');
       setEditOpen(false);
@@ -423,11 +408,6 @@ const AdminQuestionBankFolderDetailsPage = () => {
             <p className="qb-page-eyebrow">Folder întrebări</p>
             <h1>{folder?.title || 'Detalii folder'}</h1>
             {folder?.description ? <p className="qb-detail-description">{folder.description}</p> : null}
-            <div className="qb-folder-tags">
-              {(folder?.tags || []).map((tag) => (
-                <Tag key={tag.id}>{tag.name}</Tag>
-              ))}
-            </div>
           </div>
 
           {!readOnly ? (
@@ -464,7 +444,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
             </div>
           </div>
           <div className="qb-overview-item">
-            <Tags size={18} aria-hidden />
+            <Layers size={18} aria-hidden />
             <div>
               <strong>{loading ? '...' : uniqueTypes.length}</strong>
               <span>tipuri de întrebări</span>
@@ -609,13 +589,6 @@ const AdminQuestionBankFolderDetailsPage = () => {
             rows={3}
             value={editForm.description}
             onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
-          />
-          <label htmlFor="qb-edit-folder-tags">Tag-uri separate prin virgulă</label>
-          <input
-            id="qb-edit-folder-tags"
-            className="admin-form-input"
-            value={editForm.tagsText}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, tagsText: e.target.value }))}
           />
           <div className="qb-modal-actions">
             <button type="button" className="lms-btn-secondary" onClick={() => setEditOpen(false)}>

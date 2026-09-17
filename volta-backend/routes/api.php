@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\Admin\CourseAdminController;
 use App\Http\Controllers\Api\Admin\CourseBuilderController;
 use App\Http\Controllers\Api\Admin\QuestionAdminController;
+use App\Http\Controllers\Api\Admin\QuestionCatalogAdminController;
 use App\Http\Controllers\Api\Admin\ExamAdminController;
 use App\Http\Controllers\Api\Admin\EventAdminController;
 use App\Http\Controllers\Api\Admin\DashboardAdminController;
@@ -336,13 +337,13 @@ Route::middleware([
     Route::post('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'addQuestion']);
     Route::post('/tests/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'reorderQuestions']);
     Route::get('/questions', [QuestionAdminController::class, 'index']);
-    Route::get('/questions/tag-suggestions', [QuestionAdminController::class, 'tagSuggestions']);
+    Route::get('/question-catalog/maps', [QuestionCatalogAdminController::class, 'maps']);
+    Route::get('/question-catalog/maps/{mapId}/tests', [QuestionCatalogAdminController::class, 'tests']);
     Route::post('/questions/bulk-move', [QuestionAdminController::class, 'bulkMove']);
     Route::post('/questions/{id}/toggle-star', [QuestionAdminController::class, 'toggleStar']);
     Route::put('/questions/{id}', [QuestionAdminController::class, 'update']);
     Route::delete('/questions/{id}', [QuestionAdminController::class, 'destroy']);
     Route::post('/questions/{id}/improve', [QuestionAdminController::class, 'improveWithAi']);
-    Route::post('/questions/{id}/auto-tag', [QuestionAdminController::class, 'autoTagWithAi']);
     Route::post('/tests/{id}/link-to-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'linkToCourse']);
     Route::post('/tests/{id}/unlink-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'unlinkFromCourse']);
     

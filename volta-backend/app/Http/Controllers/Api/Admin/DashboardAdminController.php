@@ -1494,7 +1494,7 @@ class DashboardAdminController extends Controller
             : 0;
 
         $topicBucket = [];
-        $recentResults = TestResult::with(['test.questions', 'test.questionBank.questions'])
+        $recentResults = TestResult::with('test')
             ->whereNotNull('completed_at')
             ->whereBetween('completed_at', [$start, $end])
             ->orderByDesc('completed_at')
@@ -1502,44 +1502,19 @@ class DashboardAdminController extends Controller
             ->get();
 
         foreach ($recentResults as $result) {
-            $questions = collect();
-            if ($result->test) {
-                $questions = $result->test->question_source === 'bank' && $result->test->questionBank
-                    ? $result->test->questionBank->questions
-                    : $result->test->questions;
+            $topic = trim((string) ($result->test?->title ?: 'General')) ?: 'General';
+            if (!isset($topicBucket[$topic])) {
+                $topicBucket[$topic] = [
+                    'topic' => $topic,
+                    'attempts' => 0,
+                    'passed' => 0,
+                    'avg_percentage' => 0.0,
+                    'percentage_sum' => 0.0,
+                ];
             }
-            $tagsForResult = [];
-            foreach ($questions as $question) {
-                $meta = is_array($question->metadata) ? $question->metadata : [];
-                $rawTags = $meta['tags'] ?? [];
-                $tags = [];
-                if (is_string($rawTags)) {
-                    $tags = array_values(array_filter(array_map('trim', explode(',', $rawTags))));
-                } elseif (is_array($rawTags)) {
-                    $tags = array_values(array_filter(array_map(fn ($t) => trim((string) $t), $rawTags)));
-                }
-                if (empty($tags)) {
-                    $tags = ['General'];
-                }
-                foreach ($tags as $tag) {
-                    $tagsForResult[$tag] = true;
-                }
-            }
-
-            foreach (array_keys($tagsForResult) as $tag) {
-                if (!isset($topicBucket[$tag])) {
-                    $topicBucket[$tag] = [
-                        'topic' => $tag,
-                        'attempts' => 0,
-                        'passed' => 0,
-                        'avg_percentage' => 0.0,
-                        'percentage_sum' => 0.0,
-                    ];
-                }
-                $topicBucket[$tag]['attempts'] += 1;
-                $topicBucket[$tag]['passed'] += $result->passed ? 1 : 0;
-                $topicBucket[$tag]['percentage_sum'] += (float) ($result->percentage ?? 0);
-            }
+            $topicBucket[$topic]['attempts'] += 1;
+            $topicBucket[$topic]['passed'] += $result->passed ? 1 : 0;
+            $topicBucket[$topic]['percentage_sum'] += (float) ($result->percentage ?? 0);
         }
 
         $topicOutcomes = array_map(function ($entry) {

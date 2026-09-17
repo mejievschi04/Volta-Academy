@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\QuestionBank;
 use App\Models\Question;
-use App\Models\Tag;
 use App\Models\Test;
 use App\Services\TestBuilderService;
 use App\Services\VoltQuestionGenerationService;
@@ -13,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * QuestionBankAdminController
@@ -39,7 +37,7 @@ class QuestionBankAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = QuestionBank::with(['creator', 'questions', 'tags'])
+        $query = QuestionBank::with(['creator', 'questions'])
             ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count']);
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());
@@ -80,22 +78,6 @@ class QuestionBankAdminController extends Controller
             });
         }
 
-        // Filter by tag presence in question metadata.tags[]
-        if ($request->filled('tag')) {
-            $tag = trim((string) $request->tag);
-            $query->whereHas('questions', function ($q) use ($tag) {
-                $q->whereJsonContains('metadata->tags', $tag);
-            });
-        }
-
-        if ($request->filled('folder_tag')) {
-            $folderTag = trim((string) $request->folder_tag);
-            $query->whereHas('tags', function ($q) use ($folderTag) {
-                $q->where('slug', Str::slug($folderTag))
-                    ->orWhere('name', $folderTag);
-            });
-        }
-
         $banks = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json($banks);
@@ -106,7 +88,7 @@ class QuestionBankAdminController extends Controller
      */
     public function show($id)
     {
-        $bank = QuestionBank::with(['creator', 'questions', 'tests', 'tags'])
+        $bank = QuestionBank::with(['creator', 'questions', 'tests'])
             ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count'])
             ->findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
@@ -124,8 +106,6 @@ class QuestionBankAdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:draft,published',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string|max:50',
             'questions' => 'nullable|array',
             'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
             'questions.*.content' => 'required|string',
@@ -137,11 +117,10 @@ class QuestionBankAdminController extends Controller
 
         $creator = Auth::user();
         $bank = $this->testBuilderService->createQuestionBank($validated, $creator);
-        $this->syncFolderTags($bank, $validated['tags'] ?? []);
 
         return response()->json([
             'message' => 'Question bank created successfully',
-            'bank' => $bank->load(['questions', 'creator', 'tags']),
+            'bank' => $bank->load(['questions', 'creator']),
         ], 201);
     }
 
@@ -159,20 +138,13 @@ class QuestionBankAdminController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:draft,published',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string|max:50',
         ]);
 
-        $updateData = $validated;
-        unset($updateData['tags']);
-        $bank->update($updateData);
-        if (array_key_exists('tags', $validated)) {
-            $this->syncFolderTags($bank, $validated['tags'] ?? []);
-        }
+        $bank->update($validated);
 
         return response()->json([
             'message' => 'Question bank updated successfully',
-            'bank' => $bank->load(['questions', 'creator', 'tags']),
+            'bank' => $bank->load(['questions', 'creator']),
         ]);
     }
 
@@ -240,26 +212,6 @@ class QuestionBankAdminController extends Controller
         return response()->json($bank->questions);
     }
 
-    protected function syncFolderTags(QuestionBank $bank, array $tags): void
-    {
-        $normalized = collect($tags)
-            ->map(fn ($t) => trim((string) $t))
-            ->filter()
-            ->unique()
-            ->values();
-
-        $tagIds = $normalized->map(function (string $name) {
-            $slug = Str::slug($name);
-            $tag = Tag::firstOrCreate(
-                ['slug' => $slug],
-                ['name' => $name]
-            );
-            return $tag->id;
-        })->all();
-
-        $bank->tags()->sync($tagIds);
-    }
-
     /**
      * Add a single question to bank
      */
@@ -276,6 +228,10 @@ class QuestionBankAdminController extends Controller
             'explanation' => 'nullable|string',
             'metadata' => 'nullable|array',
         ]);
+
+        if (isset($validated['metadata']) && is_array($validated['metadata'])) {
+            unset($validated['metadata']['tags']);
+        }
 
         $this->testBuilderService->addQuestionsToBank($bank, [$validated]);
 
@@ -303,6 +259,10 @@ class QuestionBankAdminController extends Controller
             'explanation' => 'nullable|string',
             'metadata' => 'nullable|array',
         ]);
+
+        if (isset($validated['metadata']) && is_array($validated['metadata'])) {
+            unset($validated['metadata']['tags']);
+        }
 
         $question->update($validated);
 

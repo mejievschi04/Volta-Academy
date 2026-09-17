@@ -241,7 +241,7 @@ class ExamAdminController extends Controller
             $examData['is_required'] = (bool)$validated['is_required'];
         }
         if (array_key_exists('settings', $validated)) {
-            $examData['settings'] = $validated['settings'];
+            $examData['settings'] = $this->sanitizeExamSettings($validated['settings']);
         }
         if (Schema::hasColumn('exams', 'created_by')) {
             $examData['created_by'] = (int) auth()->id();
@@ -432,7 +432,7 @@ class ExamAdminController extends Controller
             $updateData['is_required'] = (bool)$validated['is_required'];
         }
         if (array_key_exists('settings', $validated)) {
-            $updateData['settings'] = $validated['settings'];
+            $updateData['settings'] = $this->sanitizeExamSettings($validated['settings']);
         }
         
         try {
@@ -566,9 +566,11 @@ class ExamAdminController extends Controller
             $this->assertExamAccessibleByInstructor($source);
         }
 
-        $copySettings = is_array($source->settings)
-            ? json_decode(json_encode($source->settings), true)
-            : [];
+        $copySettings = $this->sanitizeExamSettings(
+            is_array($source->settings)
+                ? json_decode(json_encode($source->settings), true)
+                : []
+        );
 
         $baseTitle = isset($validated['title']) && trim((string) $validated['title']) !== ''
             ? trim($validated['title'])
@@ -1134,5 +1136,14 @@ class ExamAdminController extends Controller
             'message' => 'Verificare manuală salvată cu succes',
             'result' => $result->load(['exam.course', 'user:id,name,email']),
         ]);
+    }
+
+    private function sanitizeExamSettings($settings): array
+    {
+        $settings = is_array($settings) ? $settings : [];
+        unset($settings['tags']);
+        $settings['selection_mode'] = 'folders';
+
+        return $settings;
     }
 }

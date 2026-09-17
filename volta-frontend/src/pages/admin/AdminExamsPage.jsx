@@ -51,9 +51,7 @@ const DEFAULT_SETTINGS = {
   deadlineAt: '',
   deadlineDays: 7,
   contentBankId: null,
-  selectionMode: 'folders',
   selectedFolderIds: [],
-  selectedTags: [],
   includeStarred: true,
   questionCount: 10,
 };
@@ -109,7 +107,6 @@ export default function AdminExamsPage() {
   const [examSettings, setExamSettings] = useState(DEFAULT_SETTINGS);
   const [showContentModal, setShowContentModal] = useState(false);
   const [contentBanks, setContentBanks] = useState([]);
-  const [questionTags, setQuestionTags] = useState([]);
   const [contentBanksLoading, setContentBanksLoading] = useState(false);
   const [contentBanksError, setContentBanksError] = useState('');
   const [contentSearch, setContentSearch] = useState('');
@@ -168,10 +165,7 @@ export default function AdminExamsPage() {
   const builderHeroAccent = published ? 'var(--color-success)' : 'var(--color-warning)';
 
   const deleteConfirmTitle = deleteConfirmExam?.title || 'Examen';
-  const contentSelectionLabel = examSettings.selectionMode === 'folders' ? 'Foldere' : 'Tag-uri';
-  const contentSelectionCount = examSettings.selectionMode === 'folders'
-    ? examSettings.selectedFolderIds.length
-    : examSettings.selectedTags.length;
+  const contentSelectionCount = examSettings.selectedFolderIds.length;
   const studentsDraftCount = studentsDraftSelected.length;
   const previewQuestionCount = Array.isArray(previewData?.questions) ? previewData.questions.length : 0;
   const activeBuilderSection = EXAM_BUILDER_SECTIONS.find((section) => section.id === activeSection) || EXAM_BUILDER_SECTIONS[0];
@@ -288,9 +282,9 @@ export default function AdminExamsPage() {
       showOnlySubmittedAnswers: Boolean(item?.settings?.show_only_submitted_answers),
       navigationMode: item?.settings?.navigation_mode || 'sequential', deadlineType: item?.settings?.deadline_type || 'none',
       deadlineAt: localDateTime(item?.settings?.deadline_at), deadlineDays: Number(item?.settings?.deadline_days ?? 7) || 7,
-      contentBankId: item?.settings?.question_bank_id || null, selectionMode: item?.settings?.selection_mode || 'folders',
+      contentBankId: item?.settings?.question_bank_id || null,
       selectedFolderIds: Array.isArray(item?.settings?.folder_ids) ? item.settings.folder_ids : [],
-      selectedTags: Array.isArray(item?.settings?.tags) ? item.settings.tags : [], includeStarred: item?.settings?.include_starred !== false,
+      includeStarred: item?.settings?.include_starred !== false,
       questionCount: Number(item?.settings?.question_count ?? item?.question_selection?.count ?? 10) || 10,
     });
     setExamAccess({ mode: item?.settings?.access_mode || 'all_students', selectedStudents: Array.isArray(item?.settings?.selected_students) ? item.settings.selected_students.map((id) => Number(id)).filter(Boolean) : [] });
@@ -345,10 +339,10 @@ export default function AdminExamsPage() {
           deadline_days: examSettings.deadlineType === 'relative' ? Math.max(1, Number(examSettings.deadlineDays || 1)) : null,
           question_bank_id: examSettings.contentBankId || null,
           instructions: examSettings.instructions || null, access_mode: examAccess.mode, selected_students: examAccess.selectedStudents,
-          selection_mode: examSettings.selectionMode, folder_ids: examSettings.selectedFolderIds, tags: examSettings.selectedTags,
+          selection_mode: 'folders', folder_ids: examSettings.selectedFolderIds,
           include_starred: examSettings.includeStarred, question_count: Number(examSettings.questionCount || 0),
         },
-        question_selection: { mode: 'random', count: Number(examSettings.questionCount || 0), folder_ids: examSettings.selectedFolderIds, tags: examSettings.selectedTags, include_starred: examSettings.includeStarred },
+        question_selection: { mode: 'random', count: Number(examSettings.questionCount || 0), folder_ids: examSettings.selectedFolderIds, include_starred: examSettings.includeStarred },
       };
       if (activeExamDraft.id) {
         const response = await adminService.updateExam(activeExamDraft.id, payload);
@@ -405,11 +399,11 @@ export default function AdminExamsPage() {
   };  const handleOpenContentModal = async () => {
     setShowContentModal(true); setContentBanksLoading(true); setContentBanksError('');
     try {
-      const [banks, tags] = await Promise.all([adminService.getQuestionBanks(), adminService.getQuestionTagSuggestions()]);
-      setContentBanks(Array.isArray(banks) ? banks : []); setQuestionTags(Array.isArray(tags) ? tags : []);
+      const banks = await adminService.getQuestionBanks();
+      setContentBanks(Array.isArray(banks) ? banks : []);
     } catch (e) {
       console.error('Failed to load content sources:', e);
-      setContentBanks([]); setQuestionTags([]); setContentBanksError('Nu s-au putut încărca băncile de întrebări.');
+      setContentBanks([]); setContentBanksError('Nu s-au putut încărca băncile de întrebări.');
     } finally { setContentBanksLoading(false); }
   };
   const handleConfirmContentSelection = async () => { setContentConfirmLoading(true); try { const ok = await handleSaveExam(); if (ok) setShowContentModal(false); } finally { setContentConfirmLoading(false); } };
@@ -684,13 +678,6 @@ export default function AdminExamsPage() {
           </div>
           <div className="admin-exams-builder-field-grid">
             <label>
-              Mod de selecție
-              <select value={examSettings.selectionMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, selectionMode: e.target.value }))}>
-                <option value="folders">Foldere</option>
-                <option value="tags">Etichete</option>
-              </select>
-            </label>
-            <label>
               Număr de întrebări
               <input type="number" min={1} max={200} value={examSettings.questionCount} onChange={(e) => setExamSettings((prev) => ({ ...prev, questionCount: Math.max(1, Number(e.target.value || 1)) }))} />
             </label>
@@ -702,7 +689,7 @@ export default function AdminExamsPage() {
           <div className="admin-exams-builder-summary-inline" aria-label="Rezumat selecție">
             <div>
               <span className="admin-exams-modern-summary-label">Selecție</span>
-              <strong>{examSettings.selectionMode === 'folders' ? `${examSettings.selectedFolderIds.length} foldere` : `${examSettings.selectedTags.length} etichete`}</strong>
+              <strong>{`${examSettings.selectedFolderIds.length} foldere`}</strong>
             </div>
             <div>
               <span className="admin-exams-modern-summary-label">În examen</span>
@@ -1099,7 +1086,7 @@ export default function AdminExamsPage() {
               </div>
               <div className="admin-exams-content-mode-option">
                 <span>Mod activ</span>
-                <strong>{contentSelectionLabel}</strong>
+                <strong>Foldere</strong>
               </div>
             </div>
             <div className="admin-exams-content-summary-row">
@@ -1108,7 +1095,7 @@ export default function AdminExamsPage() {
               <span className="admin-exams-content-summary-chip">{contentOnlyWithQuestions ? 'Doar cu întrebări' : 'Toate băncile'}</span>
             </div>
             <div className="admin-exams-content-toolbar">
-              <input type="search" placeholder="Caută bancă sau tag..." value={contentSearch} onChange={(e) => setContentSearch(e.target.value)} />
+              <input type="search" placeholder="Caută bancă..." value={contentSearch} onChange={(e) => setContentSearch(e.target.value)} />
               <select value={contentSort} onChange={(e) => setContentSort(e.target.value)}>
                 <option value="questions_desc">Cele mai multe întrebări</option>
                 <option value="questions_asc">Cele mai puține întrebări</option>
@@ -1126,13 +1113,6 @@ export default function AdminExamsPage() {
             </div>
             <div className="admin-tests-modal-grid admin-exams-content-settings-grid">
               <label>
-                Mod selecție
-                <select value={examSettings.selectionMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, selectionMode: e.target.value }))}>
-                  <option value="folders">Foldere</option>
-                  <option value="tags">Tag-uri</option>
-                </select>
-              </label>
-              <label>
                 Număr întrebări
                 <input type="number" min={1} max={200} value={examSettings.questionCount} onChange={(e) => setExamSettings((prev) => ({ ...prev, questionCount: Math.max(1, Number(e.target.value || 1)) }))} />
               </label>
@@ -1142,8 +1122,7 @@ export default function AdminExamsPage() {
               <p>Se încarcă băncile...</p>
             ) : (
               <div className="admin-exams-content-banks">
-                {examSettings.selectionMode === 'folders'
-                  ? filteredContentBanks.map((bank) => (
+                {filteredContentBanks.map((bank) => (
                     <button
                       key={bank.id}
                       type="button"
@@ -1161,24 +1140,6 @@ export default function AdminExamsPage() {
                         <p>{bank.description || 'Fără descriere'}</p>
                       </div>
                       <span className="admin-exams-content-bank-count">{bank.questions_count || 0} disponibile</span>
-                    </button>
-                  ))
-                  : questionTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={`admin-exams-content-bank-item ${examSettings.selectedTags.includes(tag) ? 'is-active' : ''}`}
-                      onClick={() => setExamSettings((prev) => ({
-                        ...prev,
-                        selectedTags: prev.selectedTags.includes(tag)
-                          ? prev.selectedTags.filter((value) => value !== tag)
-                          : [...prev.selectedTags, tag],
-                      }))}
-                    >
-                      <div className="admin-exams-content-bank-main">
-                        <strong>{tag}</strong>
-                        <p>Tag de selecție</p>
-                      </div>
                     </button>
                   ))}
               </div>

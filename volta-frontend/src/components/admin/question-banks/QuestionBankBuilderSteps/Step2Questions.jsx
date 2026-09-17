@@ -105,7 +105,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		explanation: '',
 		metadata: {
 			difficulty: '',
-			tags: [],
 		},
 	});
 
@@ -297,7 +296,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 		try {
 			const metaDifficulty = questionForm.metadata?.difficulty || '';
-			const metaTags = Array.isArray(questionForm.metadata?.tags) ? questionForm.metadata.tags : [];
 			const normalizedAnswers = normalizeQuestionAnswers(questionForm.type, questionForm.answers);
 
 			const questionData = {
@@ -308,7 +306,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				explanation: questionForm.explanation || '',
 				metadata: {
 					difficulty: metaDifficulty || null,
-					tags: metaTags,
 				},
 			};
 
@@ -346,7 +343,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				explanation: '',
 				metadata: {
 					difficulty: '',
-					tags: [],
 				},
 			});
 			setQuestionFormErrors({ content: '', answers: '', correct: '' });
@@ -391,11 +387,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		const question = data.questions?.[index];
 		if (question) {
 			const meta = question.metadata || {};
-			const tags = Array.isArray(meta.tags)
-				? meta.tags
-				: typeof meta.tags === 'string'
-					? meta.tags.split(',').map((t) => t.trim()).filter(Boolean)
-					: [];
 
 			setQuestionForm({
 				type: question.type || 'multiple_choice',
@@ -405,7 +396,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 				explanation: question.explanation || '',
 				metadata: {
 					difficulty: meta.difficulty || '',
-					tags,
 				},
 			});
 			setEditingQuestion(index);
@@ -418,11 +408,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 		const answers = normalizeQuestionAnswers(question.type || 'multiple_choice', question.answers || []);
 		const meta = question.metadata || {};
-		const tags = Array.isArray(meta.tags)
-			? [...meta.tags]
-			: typeof meta.tags === 'string'
-				? meta.tags.split(',').map((t) => t.trim()).filter(Boolean)
-				: [];
 
 		const questionData = {
 			type: question.type || 'multiple_choice',
@@ -432,7 +417,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			explanation: question.explanation || '',
 			metadata: {
 				difficulty: meta.difficulty || null,
-				tags,
 			},
 		};
 
@@ -859,28 +843,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					</div>
 
 					<div className="admin-form-group">
-						<label className="admin-form-label">Tag-uri</label>
-						<input
-							type="text"
-							className="admin-form-input"
-							value={(questionForm.metadata?.tags || []).join(', ')}
-							onChange={(e) =>
-								setQuestionForm({
-									...questionForm,
-									metadata: {
-										...(questionForm.metadata || {}),
-										tags: e.target.value
-											.split(',')
-											.map((t) => t.trim())
-											.filter(Boolean),
-									},
-								})
-							}
-							placeholder="Etichete separate prin virgulă"
-						/>
-					</div>
-
-					<div className="admin-form-group">
 						<label className="admin-form-label">Explicație (feedback)</label>
 						<textarea
 							className="admin-form-textarea"
@@ -914,7 +876,6 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									explanation: '',
 									metadata: {
 											difficulty: '',
-											tags: [],
 										},
 									});
 								}}

@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Materializează întrebări din bănci (foldere/tag-uri) în exam_questions la salvare,
+ * Materializează întrebări din bănci (foldere) în exam_questions la salvare,
  * ca elevii să primească același set ca la examenele legacy.
  */
 class ExamBankQuestionSyncService
@@ -38,29 +38,16 @@ class ExamBankQuestionSyncService
         }
 
         $folderIds = $this->normalizeIds($settings['folder_ids'] ?? []);
-        $selectionMode = (string) ($settings['selection_mode'] ?? 'folders');
-        $tagList = $this->normalizeTags($settings['tags'] ?? []);
         $count = max(0, (int) ($settings['question_count'] ?? 0));
         $includeStarred = ! array_key_exists('include_starred', $settings) || (bool) $settings['include_starred'];
 
-        $pool = $this->basePool($folderIds, $selectionMode, $actor);
+        $pool = $this->basePool($folderIds, $actor);
         if ($pool->isEmpty()) {
             return DB::transaction(function () use ($exam) {
                 ExamQuestion::where('exam_id', $exam->id)->delete();
 
                 return 0;
             });
-        }
-
-        if ($selectionMode === 'tags' && $tagList !== []) {
-            $pool = $this->filterByTags($pool, $tagList);
-            if ($pool->isEmpty()) {
-                return DB::transaction(function () use ($exam) {
-                    ExamQuestion::where('exam_id', $exam->id)->delete();
-
-                    return 0;
-                });
-            }
         }
 
         $seedBase = 'exam-sync:' . $exam->id;
@@ -90,71 +77,26 @@ class ExamBankQuestionSyncService
         return array_values(array_unique(array_filter(array_map('intval', $raw))));
     }
 
-    protected function normalizeTags($raw): array
+    protected function basePool(array $folderIds, ?User $actor): Collection
     {
-        if (! is_array($raw)) {
-            return [];
+        if ($folderIds === []) {
+            return collect();
         }
 
-        return array_values(array_unique(array_filter(array_map(function ($t) {
-            return mb_strtolower(trim((string) $t));
-        }, $raw))));
-    }
+        $query = Question::query()
+            ->whereIn('question_bank_id', $folderIds)
+            ->orderBy('question_bank_id')
+            ->orderBy('order');
 
-    protected function basePool(array $folderIds, string $selectionMode, ?User $actor): Collection
-    {
-        if ($folderIds !== []) {
-            $query = Question::query()
-                ->whereIn('question_bank_id', $folderIds)
-                ->orderBy('question_bank_id')
-                ->orderBy('order');
-
-            if ($actor && $actor->isInstructor()) {
-                $allowedBankIds = QuestionBank::query()
-                    ->where('created_by', $actor->id)
-                    ->whereIn('id', $folderIds)
-                    ->pluck('id');
-                $query->whereIn('question_bank_id', $allowedBankIds);
-            }
-
-            return $query->get();
+        if ($actor && $actor->isInstructor()) {
+            $allowedBankIds = QuestionBank::query()
+                ->where('created_by', $actor->id)
+                ->whereIn('id', $folderIds)
+                ->pluck('id');
+            $query->whereIn('question_bank_id', $allowedBankIds);
         }
 
-        if ($selectionMode === 'tags' && $actor) {
-            $bankQuery = QuestionBank::query();
-            if ($actor->isInstructor()) {
-                $bankQuery->where('created_by', $actor->id);
-            }
-            $bankIds = $bankQuery->pluck('id');
-            if ($bankIds->isEmpty()) {
-                return collect();
-            }
-
-            return Question::query()
-                ->whereIn('question_bank_id', $bankIds)
-                ->orderBy('question_bank_id')
-                ->orderBy('order')
-                ->get();
-        }
-
-        return collect();
-    }
-
-    protected function filterByTags(Collection $pool, array $tagList): Collection
-    {
-        return $pool->filter(function ($q) use ($tagList) {
-            $meta = is_array($q->metadata) ? $q->metadata : [];
-            $qTags = $meta['tags'] ?? [];
-            if (is_string($qTags)) {
-                $qTags = array_map('trim', explode(',', $qTags));
-            }
-            if (! is_array($qTags)) {
-                $qTags = [];
-            }
-            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string) $t)), $qTags)));
-
-            return $tagList !== [] && count(array_intersect($tagList, $qTags)) > 0;
-        })->values();
+        return $query->get();
     }
 
     protected function orderDeterministic(Collection $questions, string $seedBase): Collection

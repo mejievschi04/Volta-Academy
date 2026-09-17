@@ -94,7 +94,6 @@ class TestQuestionSelectionService
         $mode = (string) ($selection['mode'] ?? '');
         $count = max(0, (int) ($selection['count'] ?? 0));
         $difficulty = $selection['difficulty'] ?? null;
-        $tags = $selection['tags'] ?? null;
         $includeStarred = !array_key_exists('include_starred', $selection) || (bool) $selection['include_starred'];
 
         $difficultyList = [];
@@ -105,31 +104,11 @@ class TestQuestionSelectionService
             $difficultyList = array_values(array_filter(array_map('strval', $difficulty)));
         }
 
-        $tagList = [];
-        if (is_string($tags) && $tags !== '') {
-            $tagList = [$tags];
-        }
-        if (is_array($tags)) {
-            $tagList = array_values(array_filter(array_map('strval', $tags)));
-        }
-        $tagList = array_values(array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $tagList)));
-
-        $matched = $all->filter(function ($q) use ($difficultyList, $tagList) {
+        $matched = $all->filter(function ($q) use ($difficultyList) {
             $meta = is_array($q->metadata) ? $q->metadata : [];
             $qDifficulty = isset($meta['difficulty']) ? (string) $meta['difficulty'] : '';
-            $qTags = $meta['tags'] ?? [];
-            if (is_string($qTags)) {
-                $qTags = array_map('trim', explode(',', $qTags));
-            }
-            if (!is_array($qTags)) {
-                $qTags = [];
-            }
-            $qTags = array_values(array_filter(array_map(fn ($t) => mb_strtolower(trim((string) $t)), $qTags)));
 
             if (!empty($difficultyList) && !in_array($qDifficulty, $difficultyList, true)) {
-                return false;
-            }
-            if (!empty($tagList) && empty(array_intersect($tagList, $qTags))) {
                 return false;
             }
             return true;

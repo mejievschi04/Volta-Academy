@@ -1,6 +1,5 @@
 import React from 'react';
 import { MoreVertical, Star, Trash2 } from 'lucide-react';
-import Tag from './Tag';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const QUESTION_TYPE_LABELS = {
@@ -22,7 +21,6 @@ const QuestionRow = ({
   onDelete,
   readOnly = false,
 }) => {
-  const tags = question?.tags || question?.metadata?.tags || [];
   const questionText = stripHtml(question?.content || '');
   const questionTypeLabel = QUESTION_TYPE_LABELS[question?.type] || question?.type || 'N/A';
 
@@ -49,12 +47,6 @@ const QuestionRow = ({
       )}
       <button type="button" className="qb-question-main" onClick={() => onOpenDrawer(question)}>
         <span className="qb-question-text">{questionText}</span>
-        <span className="qb-question-tags">
-          {Array.isArray(tags) &&
-            tags.map((tag) => (
-              <Tag key={`${question.id}-${tag?.id || tag?.name || tag}`}>{tag?.name || tag}</Tag>
-            ))}
-        </span>
       </button>
       <div className="qb-question-right">
         <span className="qb-question-type">{questionTypeLabel}</span>

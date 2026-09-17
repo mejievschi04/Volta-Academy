@@ -925,13 +925,6 @@ export const adminService = {
     return response.data;
   },
 
-  getQuestionTagSuggestions: async (search = '') => {
-    const response = await api.get('/admin/questions/tag-suggestions', {
-      params: search ? { search } : {},
-    });
-    return Array.isArray(response?.data?.tags) ? response.data.tags : [];
-  },
-
   updateQuestion: async (questionId, questionData) => {
     const response = await api.put(`/admin/questions/${questionId}`, questionData);
     return response.data;
@@ -1012,6 +1005,16 @@ export const adminService = {
   },
 
   // Question Banks
+  getQuestionCatalogMaps: async (params = {}) => {
+    const response = await api.get('/admin/question-catalog/maps', { params });
+    return Array.isArray(response.data?.data) ? response.data.data : [];
+  },
+
+  getQuestionCatalogMapTests: async (mapId, params = {}) => {
+    const response = await api.get(`/admin/question-catalog/maps/${mapId}/tests`, { params });
+    return response.data;
+  },
+
   getQuestionBanks: async (params = {}) => {
     const response = await api.get('/admin/question-banks', { params });
     const data = response.data;
@@ -1091,12 +1094,6 @@ export const adminService = {
         timeout: parseInt(import.meta.env.VITE_AI_API_TIMEOUT || '120000', 10),
       }
     );
-    return response.data;
-  },
-
-  autoTagQuestionWithVolt: async (questionId) => {
-    assertVoltEnabled();
-    const response = await api.post(`/admin/questions/${questionId}/auto-tag`);
     return response.data;
   },
 
