@@ -5781,7 +5781,8 @@
 		display: flex !important;
 		align-items: center !important;
 		justify-content: flex-start !important;
-		background-color: var(--bg-primary) !important;
+		background: var(--bg-sidebar-toggle) !important;
+		background-color: var(--bg-sidebar-toggle) !important;
 		overflow-y: auto !important;
 		overflow-x: hidden !important;
 		-webkit-overflow-scrolling: touch !important;
@@ -5792,6 +5793,15 @@
 		position: fixed !important;
 		inset: 0 !important;
 		z-index: 0 !important;
+		background: var(--bg-sidebar-toggle) !important;
+	}
+
+	.modern-auth-gradient {
+		display: none !important;
+	}
+
+	.modern-auth-pattern {
+		background: var(--bg-sidebar-toggle) !important;
 	}
 
 	.modern-auth-content {
@@ -6226,86 +6236,120 @@
 		flex-direction: column !important;
 		align-items: center !important;
 		justify-content: center !important;
-		background: linear-gradient(135deg, var(--bg-sidebar-toggle) 0%, var(--bg-sidebar-toggle-hover) 50%, var(--bg-sidebar-toggle) 100%) !important;
+		background: var(--bg-sidebar-toggle) !important;
 		z-index: 10000 !important;
 		overflow: hidden !important;
 	}
 
+	.splash-light-overlay,
+	.splash-login-like-background,
+	.splash-login-liquid-ether,
+	.splash-login-gradient,
+	.splash-login-pattern,
+	.splash-logo-center-mask,
+	.splash-bulb-container,
+	.splash-typewriter {
+		display: none !important;
+	}
+
 	.splash-content {
-		gap: var(--space-6) !important;
-		padding: var(--space-6) var(--space-4) !important;
-		max-height: 100%;
-		overflow: hidden;
+		position: absolute !important;
+		inset: 0 !important;
+		gap: 0 !important;
+		padding: 0 !important;
+		max-height: none !important;
+		overflow: visible !important;
 	}
 
 	.splash-center-area {
-		min-width: 100px !important;
-		min-height: 100px !important;
-		gap: var(--space-4) !important;
-	}
-
-	.splash-bulb-icon {
-		width: 70px !important;
-		height: 70px !important;
+		position: absolute !important;
+		left: 50% !important;
+		top: auto !important;
+		bottom: calc(50% + 44px) !important;
+		transform: translateX(-50%) !important;
+		min-width: 0 !important;
+		min-height: 0 !important;
+		gap: 0 !important;
 	}
 
 	.splash-logo-container {
 		flex-shrink: 0;
+		opacity: 1 !important;
+		transform: none !important;
+		animation: none !important;
 	}
 
 	.splash-logo-img {
-		width: 100px !important;
-		height: 100px !important;
+		width: 120px !important;
+		height: 120px !important;
 	}
 
-	.splash-typewriter {
-		min-height: 2em;
-		overflow: hidden;
+	.splash-page .splash-brand-title,
+	.splash-brand-title {
+		position: absolute !important;
+		top: 50% !important;
+		left: 50% !important;
+		z-index: 10 !important;
+		margin: 0 !important;
+		transform: translate(-50%, -50%) !important;
+		font-size: 2.15rem !important;
+		font-weight: var(--font-weight-semibold) !important;
+		letter-spacing: 3px !important;
+		text-transform: uppercase !important;
+		color: #ffffff !important;
+		white-space: nowrap !important;
 	}
 
-	.splash-typewriter-text,
-	.splash-typewriter-cursor {
-		font-size: 1.75rem !important;
-		letter-spacing: 2px !important;
+	[data-theme="light"] .splash-page .splash-brand-title {
+		color: #ffffff !important;
 	}
 
-	.splash-review-btn,
-	.splash-start-btn {
-		bottom: max(var(--space-6), env(safe-area-inset-bottom)) !important;
+	.splash-page .splash-start-btn,
+	.splash-start-btn,
+	.splash-loading-dots {
+		position: absolute !important;
+		top: 75% !important;
+		left: 50% !important;
+		right: auto !important;
+		bottom: auto !important;
+		transform: translate(-50%, -50%) !important;
+		animation: none !important;
+	}
+
+	.splash-page .splash-start-btn:hover,
+	.splash-start-btn:hover,
+	.splash-page .splash-start-btn:active,
+	.splash-start-btn:active {
+		transform: translate(-50%, -50%) !important;
+	}
+
+	.splash-powered-by {
+		left: 50% !important;
+		bottom: max(var(--space-5), env(safe-area-inset-bottom)) !important;
+		transform: translateX(-50%) !important;
+		z-index: 10 !important;
 	}
 }
 
 @media (max-width: 480px) {
-	.splash-content {
-		gap: var(--space-4) !important;
-		padding: var(--space-4) var(--space-3) !important;
-	}
-
 	.splash-center-area {
-		min-width: 90px !important;
-		min-height: 90px !important;
-		gap: var(--space-3) !important;
-	}
-
-	.splash-bulb-icon {
-		width: 60px !important;
-		height: 60px !important;
+		bottom: calc(50% + 40px) !important;
 	}
 
 	.splash-logo-img {
-		width: 80px !important;
-		height: 80px !important;
+		width: 104px !important;
+		height: 104px !important;
 	}
 
-	.splash-typewriter-text,
-	.splash-typewriter-cursor {
-		font-size: 1.25rem !important;
-		letter-spacing: 1px !important;
+	.splash-page .splash-brand-title,
+	.splash-brand-title {
+		font-size: 1.7rem !important;
+		letter-spacing: 2px !important;
 	}
 
-	.splash-review-btn,
-	.splash-start-btn {
-		bottom: max(var(--space-6), env(safe-area-inset-bottom)) !important;
+	.splash-powered-by {
+		bottom: max(var(--space-4), env(safe-area-inset-bottom)) !important;
+		font-size: 0.62rem !important;
 	}
 }
 
@@ -6323,28 +6367,18 @@
 	}
 
 	/* Splash - spațiu redus în landscape */
-	.splash-content {
-		padding: var(--space-4) var(--space-4) !important;
-	}
-
 	.splash-center-area {
-		min-height: 70px !important;
-		gap: var(--space-2) !important;
-	}
-
-	.splash-bulb-icon {
-		width: 55px !important;
-		height: 55px !important;
+		bottom: calc(50% + 28px) !important;
 	}
 
 	.splash-logo-img {
-		width: 70px !important;
-		height: 70px !important;
+		width: 72px !important;
+		height: 72px !important;
 	}
 
-	.splash-typewriter-text,
-	.splash-typewriter-cursor {
-		font-size: 1.25rem !important;
+	.splash-brand-title {
+		font-size: 1.4rem !important;
+		letter-spacing: 2px !important;
 	}
 
 	.modern-auth-container {

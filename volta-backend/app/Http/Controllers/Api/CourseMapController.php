@@ -62,6 +62,9 @@ class CourseMapController extends Controller
             }
             if ($hasCoverCol) {
                 $row['cover_image_url'] = $map->cover_image_url;
+                if (Schema::hasColumn('course_maps', 'cover_focus')) {
+                    $row['cover_focus'] = CourseMap::normalizeCoverFocus($map->cover_focus);
+                }
                 $cover = $map->cover_image_url;
                 if ($cover === null || $cover === '') {
                     $row['preview_image_url'] = $previewByMapId[$map->id] ?? null;
@@ -132,6 +135,9 @@ class CourseMapController extends Controller
         }
         if (Schema::hasColumn('course_maps', 'cover_image_path')) {
             $payload['cover_image_url'] = $map->cover_image_url;
+            if (Schema::hasColumn('course_maps', 'cover_focus')) {
+                $payload['cover_focus'] = CourseMap::normalizeCoverFocus($map->cover_focus);
+            }
         }
 
         return response()->json($payload);

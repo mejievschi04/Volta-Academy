@@ -22,7 +22,6 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 	const [formName, setFormName] = useState('');
 	const [formDescription, setFormDescription] = useState('');
 	const [formAccent, setFormAccent] = useState(MAP_ACCENT_FALLBACK);
-	const [formHeaderBg, setFormHeaderBg] = useState('');
 	const [formHeaderText, setFormHeaderText] = useState('');
 
 	useEffect(() => {
@@ -30,7 +29,6 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 		setFormName(map.name || '');
 		setFormDescription(map.description || '');
 		setFormAccent(map.accent_color || MAP_ACCENT_FALLBACK);
-		setFormHeaderBg(map.header_bg_color || '');
 		setFormHeaderText(map.header_text_color || '');
 	}, [open, map]);
 
@@ -54,9 +52,7 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 				name,
 				description: formDescription.trim() || null,
 				accent_color: normalizeColorInputToHex(formAccent, MAP_ACCENT_FALLBACK),
-				header_bg_color: formHeaderBg.trim()
-					? normalizeColorInputToHex(formHeaderBg, null)
-					: null,
+				header_bg_color: normalizeColorInputToHex(formAccent, MAP_ACCENT_FALLBACK),
 				header_text_color: formHeaderText.trim()
 					? normalizeColorInputToHex(formHeaderText, null)
 					: null,
@@ -142,34 +138,6 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 								onChange={(e) => setFormAccent(e.target.value)}
 								placeholder={MAP_ACCENT_FALLBACK}
 							/>
-						</div>
-					</label>
-
-					<label className="course-map-page-header-edit-field">
-						<span>Fundal header</span>
-						<div className="course-map-page-header-edit-color-row">
-							<input
-								type="color"
-								value={normalizeColorInputToHex(formHeaderBg || MAP_ACCENT_FALLBACK, MAP_ACCENT_FALLBACK)}
-								onChange={(e) => setFormHeaderBg(e.target.value)}
-								aria-label="Culoare fundal header"
-							/>
-							<input
-								type="text"
-								className="course-map-page-header-edit-input"
-								value={formHeaderBg}
-								onChange={(e) => setFormHeaderBg(e.target.value)}
-								placeholder="Gradient automat"
-							/>
-							{formHeaderBg.trim() ? (
-								<button
-									type="button"
-									className="course-map-page-header-edit-reset"
-									onClick={() => setFormHeaderBg('')}
-								>
-									Reset
-								</button>
-							) : null}
 						</div>
 					</label>
 

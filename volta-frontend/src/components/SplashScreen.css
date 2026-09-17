@@ -240,12 +240,6 @@
 	animation: splashLoadingPulse 1.2s ease-in-out infinite;
 }
 
-@media (max-width: 768px) {
-	.splash-loading-dots {
-		bottom: max(var(--space-6), env(safe-area-inset-bottom));
-	}
-}
-
 @keyframes splashLoadingPulse {
 	0%, 100% { opacity: 0.5; }
 	50% { opacity: 1; }
@@ -311,6 +305,29 @@
 	transform: scale(0.98);
 }
 
+.splash-page .splash-brand-title,
+.splash-brand-title {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 10;
+	margin: 0;
+	transform: translate(-50%, -50%);
+	font-size: 2.15rem;
+	font-weight: var(--font-weight-semibold);
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	color: #ffffff !important;
+	white-space: nowrap;
+	pointer-events: none;
+	user-select: none;
+}
+
+[data-theme="light"] .splash-page .splash-brand-title,
+[data-theme="light"] .splash-page .splash-powered-by {
+	color: #ffffff !important;
+}
+
 .splash-powered-by {
 	position: absolute;
 	left: 50%;
@@ -323,10 +340,6 @@
 	color: #ffffff !important;
 	pointer-events: none;
 	user-select: none;
-}
-
-[data-theme="light"] .splash-page .splash-powered-by {
-	color: #ffffff !important;
 }
 
 /* Animations */
@@ -412,92 +425,109 @@
 	}
 }
 
-/* Responsive */
+/* Responsive — mobile: static splash, no effects, logo above centered button */
 @media (max-width: 768px) {
+	.splash-page,
+	.splash-page.splash-page--static {
+		background: var(--bg-sidebar-toggle);
+	}
+
+	.splash-light-overlay,
+	.splash-login-like-background,
+	.splash-login-liquid-ether,
+	.splash-login-gradient,
+	.splash-login-pattern,
+	.splash-logo-center-mask,
+	.splash-bulb-container,
+	.splash-typewriter {
+		display: none;
+	}
+
 	.splash-content {
-		gap: var(--space-8);
-		padding: var(--space-6) var(--space-4);
+		position: absolute;
+		inset: 0;
+		z-index: 4;
+		gap: 0;
+		padding: 0;
+		max-height: none;
+		overflow: visible;
 	}
 
 	.splash-center-area {
-		min-width: 100px;
-		min-height: 100px;
+		position: absolute;
+		left: 50%;
+		bottom: calc(50% + 44px);
+		transform: translateX(-50%);
+		min-width: 0;
+		min-height: 0;
+		gap: 0;
 	}
 
-	.splash-bulb-icon {
-		width: 70px;
-		height: 70px;
+	.splash-logo-container,
+	.splash-logo-container.static,
+	.splash-logo-container.logo,
+	.splash-logo-container.typewriter {
+		opacity: 1;
+		transform: none;
+		animation: none;
 	}
 
 	.splash-logo-img {
-		width: 100px;
-		height: 100px;
+		width: 120px;
+		height: 120px;
 	}
 
-	.splash-typewriter-text,
-	.splash-typewriter-cursor {
-		font-size: 1.75rem;
-		letter-spacing: 3px;
+	.splash-page .splash-start-btn,
+	.splash-start-btn,
+	.splash-loading-dots {
+		position: absolute;
+		top: 75%;
+		left: 50%;
+		right: auto;
+		bottom: auto;
+		transform: translate(-50%, -50%);
+		animation: none;
 	}
 
-	.splash-review-btn {
-		bottom: var(--space-6);
-		left: var(--space-6);
-		padding: var(--space-2-5) var(--space-4);
-		font-size: var(--font-size-sm);
+	.splash-page .splash-start-btn:hover,
+	.splash-start-btn:hover,
+	.splash-page .splash-start-btn:active,
+	.splash-start-btn:active {
+		transform: translate(-50%, -50%);
 	}
 
 	.splash-start-btn {
-		bottom: var(--space-6);
-		right: var(--space-6);
 		padding: var(--space-2-5) var(--space-5);
 		font-size: var(--font-size-base);
+	}
+
+	.splash-powered-by {
+		bottom: max(var(--space-5), env(safe-area-inset-bottom));
 	}
 }
 
 @media (max-width: 480px) {
-	.splash-content {
-		gap: var(--space-6);
-		padding: var(--space-4) var(--space-3);
-	}
-
 	.splash-center-area {
-		min-width: 80px;
-		min-height: 80px;
-	}
-
-	.splash-bulb-icon {
-		width: 60px;
-		height: 60px;
+		bottom: calc(50% + 40px);
 	}
 
 	.splash-logo-img {
-		width: 80px;
-		height: 80px;
+		width: 104px;
+		height: 104px;
 	}
 
-	.splash-typewriter-text,
-	.splash-typewriter-cursor {
-		font-size: 1.25rem;
+	.splash-brand-title {
+		font-size: 1.7rem;
 		letter-spacing: 2px;
 	}
 
-	.splash-review-btn {
-		bottom: var(--space-6);
-		left: var(--space-4);
-		padding: var(--space-2) var(--space-3);
-		font-size: 0.8125rem;
-	}
-
 	.splash-start-btn {
-		bottom: var(--space-6);
-		right: var(--space-4);
 		padding: var(--space-2) var(--space-4);
 		font-size: var(--font-size-sm);
 	}
 
 	.splash-powered-by {
-		bottom: var(--space-2);
+		bottom: max(var(--space-4), env(safe-area-inset-bottom));
 		font-size: 0.62rem;
 	}
 }

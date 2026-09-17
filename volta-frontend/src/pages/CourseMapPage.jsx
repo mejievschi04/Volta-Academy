@@ -287,14 +287,10 @@ const CourseMapPage = () => {
 	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
 	const accent = map.accent_color || '#059669';
 	const mapThemeHsl = hexToHslSpace(accent);
-	const headerBgColor = map.header_bg_color?.trim() || '';
 	const headerTextColor = map.header_text_color?.trim() || '';
-	const hasCustomHeaderColors = Boolean(headerBgColor || headerTextColor);
 	const resolvedHeaderText = headerTextColor || '#f8fafc';
 	const headerStyle = {
-		background: headerBgColor
-			? headerBgColor
-			: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #0f172a))`,
+		background: accent,
 		color: resolvedHeaderText,
 		'--map-header-text': resolvedHeaderText,
 	};
@@ -302,7 +298,7 @@ const CourseMapPage = () => {
 	return (
 		<div className={`course-map-page${!isAdmin ? ' course-map-page--student' : ''}`}>
 			<header
-				className={`course-map-page-header course-map-page-header--branded${hasCustomHeaderColors ? ' course-map-page-header--custom-colors' : ''}${canShowMapHeaderEdit ? ' course-map-page-header--has-edit' : ''}`}
+				className={`course-map-page-header course-map-page-header--branded course-map-page-header--custom-colors${canShowMapHeaderEdit ? ' course-map-page-header--has-edit' : ''}`}
 				style={headerStyle}
 			>
 				<div className="course-map-page-header-inner">

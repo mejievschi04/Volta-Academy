@@ -26,7 +26,9 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import { mapFolderCardImageUrl, toImageUrl } from '../../utils/imageUrl';
 import CourseMapFolderTile from '../../components/ui/CourseMapFolderTile';
+import MapCoverFocusEditor from '../../components/admin/course-maps/MapCoverFocusEditor';
 import { normalizeColorInputToHex } from '../../utils/color';
+import { DEFAULT_COVER_FOCUS, normalizeCoverFocus } from '../../utils/coverFocus';
 
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
@@ -119,6 +121,7 @@ function SortableAdminMapShowcase({
 				count={courseCount}
 				color={accentColor}
 				imageUrl={mapFolderCardImageUrl(map)}
+				coverFocus={map.cover_focus}
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topLeftSlot={dragHandle}
@@ -170,6 +173,7 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 				count={courseCount}
 				color={accentColor}
 				imageUrl={mapFolderCardImageUrl(map)}
+				coverFocus={map.cover_focus}
 				onOpen={() => onOpenMap(map)}
 				ctaLabel="Deschide mapa"
 				topRightSlot={
@@ -224,12 +228,12 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formAccent, setFormAccent] = useState(COURSE_MAP_ACCENT_COLORS[0]);
-	const [formHeaderBg, setFormHeaderBg] = useState('');
 	const [formHeaderText, setFormHeaderText] = useState('');
 	const [formVisibility, setFormVisibility] = useState('public');
 	const [coverBusy, setCoverBusy] = useState(false);
 	const [pendingMapCoverFile, setPendingMapCoverFile] = useState(null);
 	const [pendingMapCoverPreviewUrl, setPendingMapCoverPreviewUrl] = useState(null);
+	const [formCoverFocus, setFormCoverFocus] = useState(DEFAULT_COVER_FOCUS);
 	const mapCoverInputRef = useRef(null);
 	const [orderedMaps, setOrderedMaps] = useState([]);
 	const openMapCoverPicker = () => mapCoverInputRef.current?.click();
@@ -295,6 +299,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		setShowCreateModal(false);
 		setPendingMapCoverFile(null);
 		setPendingMapCoverPreviewUrl(null);
+		setFormCoverFocus(DEFAULT_COVER_FOCUS);
 		setCoverBusy(false);
 	}, []);
 
@@ -303,11 +308,11 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		setFormName('');
 		setFormDescription('');
 		setFormAccent(COURSE_MAP_ACCENT_COLORS[0]);
-		setFormHeaderBg('');
 		setFormHeaderText('');
 		setFormVisibility('public');
 		setPendingMapCoverFile(null);
 		setPendingMapCoverPreviewUrl(null);
+		setFormCoverFocus(DEFAULT_COVER_FOCUS);
 		setCoverBusy(false);
 		setShowCreateModal(true);
 	};
@@ -319,10 +324,10 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			setFormName(full.name || '');
 			setFormDescription(full.description || '');
 			setFormAccent(full.accent_color || COURSE_MAP_ACCENT_COLORS[0]);
-			setFormHeaderBg(full.header_bg_color || '');
 			setFormHeaderText(full.header_text_color || '');
 			setPendingMapCoverFile(null);
 			setPendingMapCoverPreviewUrl(null);
+			setFormCoverFocus(normalizeCoverFocus(full.cover_focus));
 			setCoverBusy(false);
 			setAddCourseIds([]);
 			fetchCourses();
@@ -339,9 +344,6 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			return;
 		}
 		const normalizedAccent = normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]);
-		const normalizedHeaderBg = formHeaderBg.trim()
-			? normalizeColorInputToHex(formHeaderBg, null)
-			: null;
 		const normalizedHeaderText = formHeaderText.trim()
 			? normalizeColorInputToHex(formHeaderText, null)
 			: null;
@@ -349,8 +351,9 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			name,
 			description: formDescription || null,
 			accent_color: normalizedAccent,
-			header_bg_color: normalizedHeaderBg,
+			header_bg_color: normalizedAccent,
 			header_text_color: normalizedHeaderText,
+			cover_focus: normalizeCoverFocus(formCoverFocus),
 		};
 		if (!editingMap && isAdmin) {
 			payload.visibility = formVisibility === 'private' ? 'private' : 'public';
@@ -364,7 +367,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 				const createdId = created?.id ?? created?.data?.id ?? null;
 				if (pendingMapCoverFile && createdId) {
 					try {
-						await adminService.uploadCourseMapCover(createdId, pendingMapCoverFile);
+						await adminService.uploadCourseMapCover(createdId, pendingMapCoverFile, normalizeCoverFocus(formCoverFocus));
 					} catch (coverErr) {
 						console.warn('Map created but cover upload failed', coverErr);
 						showToast('Mapa a fost creată, dar coperta nu s-a încărcat', 'error');
@@ -395,14 +398,14 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		const file = event.target.files?.[0];
 		event.target.value = '';
 		if (!file) return;
+		setPendingMapCoverFile(file);
+		setFormCoverFocus(DEFAULT_COVER_FOCUS);
 		if (!editingMap) {
-			setPendingMapCoverFile(file);
 			return;
 		}
-		setPendingMapCoverFile(file);
 		setCoverBusy(true);
 		try {
-			const updated = await adminService.uploadCourseMapCover(editingMap.id, file);
+			const updated = await adminService.uploadCourseMapCover(editingMap.id, file, DEFAULT_COVER_FOCUS);
 			setEditingMap(updated);
 			showToast('Coperta a fost încărcată', 'success');
 			fetchMaps();
@@ -417,6 +420,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 	const handleCoverRemove = async () => {
 		if (!editingMap) {
 			setPendingMapCoverFile(null);
+			setFormCoverFocus(DEFAULT_COVER_FOCUS);
 			return;
 		}
 		if (!editingMap.cover_image_url) return;
@@ -424,6 +428,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		try {
 			const updated = await adminService.deleteCourseMapCover(editingMap.id);
 			setEditingMap(updated);
+			setFormCoverFocus(DEFAULT_COVER_FOCUS);
 			showToast('Coperta a fost eliminată', 'success');
 			fetchMaps();
 		} catch (err) {
@@ -676,20 +681,25 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 							</div>
 
 							<div className="admin-course-map-modal__aside">
-								<div className="admin-course-map-cover-compact">
-									<button
-										type="button"
-										className="admin-course-map-cover-compact__thumb"
-										onClick={openMapCoverPicker}
-										disabled={coverBusy}
-										aria-label="Alege coperta"
-									>
-										{coverPreviewSrc ? (
-											<img src={coverPreviewSrc} alt="" />
-										) : (
+								<div className={`admin-course-map-cover-compact${coverPreviewSrc ? ' admin-course-map-cover-compact--focus' : ''}`}>
+									{coverPreviewSrc ? (
+										<MapCoverFocusEditor
+											src={coverPreviewSrc}
+											value={formCoverFocus}
+											onChange={setFormCoverFocus}
+											disabled={coverBusy}
+										/>
+									) : (
+										<button
+											type="button"
+											className="admin-course-map-cover-compact__thumb"
+											onClick={openMapCoverPicker}
+											disabled={coverBusy}
+											aria-label="Alege coperta"
+										>
 											<span>Copertă</span>
-										)}
-									</button>
+										</button>
+									)}
 									<div className="admin-course-map-cover-compact__meta">
 										<span className="admin-form-label">Copertă</span>
 										<span className="admin-course-map-cover-chip">{coverPreviewLabel}</span>
@@ -726,14 +736,6 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 									onChange={setFormAccent}
 								/>
 								<MapColorRow
-									label="Header"
-									value={formHeaderBg}
-									fallback="#059669"
-									onChange={setFormHeaderBg}
-									canClear
-									onClear={() => setFormHeaderBg('')}
-								/>
-								<MapColorRow
 									label="Text"
 									value={formHeaderText}
 									fallback="#f8fafc"
@@ -753,6 +755,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 										count={previewCourseCount}
 										color={previewAccent}
 										imageUrl={coverPreviewSrc}
+										coverFocus={formCoverFocus}
 										onOpen={() => {}}
 										ctaLabel="Deschide mapa"
 									/>

@@ -7,25 +7,48 @@ const LiquidEther = lazy(() => import('./backgrounds/LiquidEther'));
 
 const TYPEWRITER_TEXT = 'VOLTA ACADEMY';
 const SPLASH_LIQUID_COLORS = ['#7a7000', '#ffee00', '#ffee00'];
+const MOBILE_SPLASH_QUERY = '(max-width: 768px)';
+
+const getIsMobileSplash = () =>
+	typeof window !== 'undefined' && window.matchMedia(MOBILE_SPLASH_QUERY).matches;
 
 const SplashScreen = ({ onStart, appReady = true }) => {
+	const [isMobile, setIsMobile] = useState(getIsMobileSplash);
 	const [displayedText, setDisplayedText] = useState('');
-	const [showButton, setShowButton] = useState(false);
-	const [phase, setPhase] = useState('overlay'); // overlay -> bulb -> bulb-on -> logo -> typewriter
+	const [showButton, setShowButton] = useState(getIsMobileSplash);
+	const [phase, setPhase] = useState(getIsMobileSplash() ? 'static' : 'overlay'); // overlay -> bulb -> bulb-on -> logo -> typewriter
 
-	// Faze: overlay dispare -> bec stins -> bec aprins #FFEE00 -> doar becul dispare, logo rămâne -> typewriter sub logo
 	useEffect(() => {
-		const t1 = setTimeout(() => setPhase('bulb'), 1200);      // overlay gata, bec stins
-		const t2 = setTimeout(() => setPhase('bulb-on'), 2400);  // bec se aprinde (#FFEE00)
-		const t3 = setTimeout(() => setPhase('logo'), 3800);      // bec dispare, logo apare și rămâne
-		const t4 = setTimeout(() => setPhase('typewriter'), 4500); // typewriter sub logo
+		const mq = window.matchMedia(MOBILE_SPLASH_QUERY);
+		const onChange = () => setIsMobile(mq.matches);
+		mq.addEventListener('change', onChange);
+		return () => mq.removeEventListener('change', onChange);
+	}, []);
+
+	// Faze desktop: overlay dispare -> bec stins -> bec aprins #FFEE00 -> doar becul dispare, logo rămâne -> typewriter sub logo
+	// Pe mobile: ecran static, fără efecte
+	useEffect(() => {
+		if (isMobile) {
+			setPhase('static');
+			setShowButton(true);
+			setDisplayedText('');
+			return undefined;
+		}
+
+		setPhase('overlay');
+		setShowButton(false);
+		setDisplayedText('');
+		const t1 = setTimeout(() => setPhase('bulb'), 1200);
+		const t2 = setTimeout(() => setPhase('bulb-on'), 2400);
+		const t3 = setTimeout(() => setPhase('logo'), 3800);
+		const t4 = setTimeout(() => setPhase('typewriter'), 4500);
 		return () => {
 			clearTimeout(t1);
 			clearTimeout(t2);
 			clearTimeout(t3);
 			clearTimeout(t4);
 		};
-	}, []);
+	}, [isMobile]);
 
 	// Typewriter când phase = typewriter
 	useEffect(() => {
@@ -48,44 +71,44 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 	const canShowButtons = showButton && appReady;
 
 	return (
-		<div className={`splash-page splash-phase-${phase}`}>
-			{/* Overlay negru - se estompează în 1.2s */}
-			<div className="splash-light-overlay" aria-hidden="true" />
+		<div className={`splash-page ${isMobile ? 'splash-page--static' : `splash-phase-${phase}`}`}>
+			{!isMobile && (
+				<>
+					<div className="splash-light-overlay" aria-hidden="true" />
 
-			<div className="splash-login-like-background" aria-hidden="true">
-				<Suspense fallback={null}>
-					<LiquidEther
-						className="splash-login-liquid-ether"
-						resolution={0.4}
-						autoDemo={true}
-						autoSpeed={0.45}
-						autoIntensity={1.55}
-						colors={SPLASH_LIQUID_COLORS}
-					/>
-				</Suspense>
-				<div className="splash-login-gradient" />
-				<div className="splash-login-pattern" />
-				<div className="splash-logo-center-mask" />
-			</div>
+					<div className="splash-login-like-background" aria-hidden="true">
+						<Suspense fallback={null}>
+							<LiquidEther
+								className="splash-login-liquid-ether"
+								resolution={0.4}
+								autoDemo={true}
+								autoSpeed={0.45}
+								autoIntensity={1.55}
+								colors={SPLASH_LIQUID_COLORS}
+							/>
+						</Suspense>
+						<div className="splash-login-gradient" />
+						<div className="splash-login-pattern" />
+						<div className="splash-logo-center-mask" />
+					</div>
+				</>
+			)}
 
 			<div className="splash-content">
 				<div className="splash-center-area">
-					{/* Bec - doar lampa dispare după ce se aprinde (#FFEE00) */}
-					{(phase === 'bulb' || phase === 'bulb-on' || phase === 'logo') && (
+					{!isMobile && (phase === 'bulb' || phase === 'bulb-on' || phase === 'logo') && (
 						<div className={`splash-bulb-container ${phase}`}>
 							<LightbulbFilament className="splash-bulb-icon" size={44} weight="duotone" aria-hidden="true" />
 						</div>
 					)}
 
-					{/* Logo - rămâne vizibil, nu dispare */}
-					{(phase === 'logo' || phase === 'typewriter') && (
-						<div className={`splash-logo-container ${phase}`}>
+					{(isMobile || phase === 'logo' || phase === 'typewriter') && (
+						<div className={`splash-logo-container ${isMobile ? 'static' : phase}`}>
 							<img src={logoShort} alt="Volta Academy" className="splash-logo-img" />
 						</div>
 					)}
 
-					{/* Typewriter - dispare cursorul când apar butoanele sau "Se încarcă..." */}
-					{phase === 'typewriter' && (
+					{!isMobile && phase === 'typewriter' && (
 						<div className="splash-typewriter">
 							<span className="splash-typewriter-text">{displayedText}</span>
 							{!showButton && <span className="splash-typewriter-cursor">|</span>}
@@ -93,6 +116,8 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 					)}
 				</div>
 			</div>
+
+			{isMobile && <p className="splash-brand-title">Volta Academy</p>}
 
 			{showButton && (
 				<>
@@ -103,7 +128,7 @@ const SplashScreen = ({ onStart, appReady = true }) => {
 					)}
 				</>
 			)}
-			{canShowButtons && <p className="splash-powered-by">Powered by Mejievski</p>}
+			{(canShowButtons || isMobile) && <p className="splash-powered-by">Powered by Mejievski</p>}
 		</div>
 	);
 };

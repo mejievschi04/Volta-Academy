@@ -59,19 +59,32 @@
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
 }
 
-.course-map-page-header--branded .course-map-page-back {
-	background: rgba(15, 23, 42, 0.35);
-	border-color: rgba(255, 255, 255, 0.22);
-	color: #f8fafc;
+.course-map-page-header--branded .course-map-page-back,
+.course-map-page-header--custom-colors .course-map-page-back,
+.course-map-page-back {
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border-color: rgba(15, 23, 42, 0.14) !important;
+	color: #0f172a !important;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
-.course-map-page-header--branded .course-map-page-back .course-map-page-back-label {
-	color: #f8fafc;
+.course-map-page-header--branded .course-map-page-back .course-map-page-back-label,
+.course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
+.course-map-page-header--branded .course-map-page-back svg,
+.course-map-page-header--custom-colors .course-map-page-back svg,
+.course-map-page-back svg,
+.course-map-page-back-label {
+	color: #0f172a !important;
 }
 
-.course-map-page-header--branded .course-map-page-back:hover {
-	background: rgba(15, 23, 42, 0.55);
-	border-color: rgba(255, 255, 255, 0.35);
+.course-map-page-header--branded .course-map-page-back:hover,
+.course-map-page-header--custom-colors .course-map-page-back:hover,
+.course-map-page-back:hover {
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border-color: rgba(15, 23, 42, 0.22) !important;
+	color: #0f172a !important;
 }
 
 .course-map-page-header--branded:not(.course-map-page-header--custom-colors) .course-map-page-header-edit-btn {
@@ -114,21 +127,8 @@
 }
 
 .course-map-page-header--custom-colors .course-map-page-title,
-.course-map-page-header--custom-colors .course-map-page-description,
-.course-map-page-header--custom-colors .course-map-page-back,
-.course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
-.course-map-page-header--custom-colors .course-map-page-back svg {
+.course-map-page-header--custom-colors .course-map-page-description {
 	color: var(--map-header-text, inherit);
-}
-
-.course-map-page-header--custom-colors .course-map-page-back {
-	background: color-mix(in srgb, currentColor 14%, transparent);
-	border-color: color-mix(in srgb, currentColor 30%, transparent);
-}
-
-.course-map-page-header--custom-colors .course-map-page-back:hover {
-	background: color-mix(in srgb, currentColor 22%, transparent);
-	border-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
 .course-map-page-header--custom-colors .course-map-page-title {
@@ -342,17 +342,21 @@
 	gap: 0.35rem;
 	min-height: 40px;
 	padding: 0 0.75rem 0 0.55rem;
-	background: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border: 1px solid rgba(15, 23, 42, 0.14) !important;
 	border-radius: 999px;
-	color: var(--text-primary);
+	color: #0f172a !important;
 	cursor: pointer;
-	transition: background 0.2s, border-color 0.2s, color 0.2s;
+	transition: background 0.2s, border-color 0.2s;
 	flex-shrink: 0;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
 .course-map-page-back:hover {
-	background: var(--bg-tertiary);
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border-color: rgba(15, 23, 42, 0.22) !important;
 }
 
 .course-map-page-back svg {
@@ -885,8 +889,6 @@
 
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-title,
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-description,
-[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back,
-[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-virtual-badge {
 	color: var(--map-header-text) !important;
 	text-shadow: none;
@@ -896,21 +898,29 @@
 	box-shadow: 0 2px 16px rgba(15, 23, 42, 0.07);
 }
 
-[data-theme="light"] .course-map-page-header--branded .course-map-page-back {
-	background: rgba(255, 255, 255, 0.92);
-	border-color: rgba(15, 23, 42, 0.12);
-	color: var(--text-primary, #0f172a);
-	backdrop-filter: blur(10px);
-	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+[data-theme="light"] .course-map-page-header--branded .course-map-page-back,
+[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back {
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border-color: rgba(15, 23, 42, 0.14) !important;
+	color: #0f172a !important;
+	backdrop-filter: none;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
-[data-theme="light"] .course-map-page-header--branded .course-map-page-back .course-map-page-back-label {
-	color: var(--text-primary, #0f172a);
+[data-theme="light"] .course-map-page-header--branded .course-map-page-back .course-map-page-back-label,
+[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
+[data-theme="light"] .course-map-page-header--branded .course-map-page-back svg,
+[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back svg {
+	color: #0f172a !important;
 }
 
-[data-theme="light"] .course-map-page-header--branded .course-map-page-back:hover {
-	background: #fff;
-	border-color: rgba(15, 23, 42, 0.18);
+[data-theme="light"] .course-map-page-header--branded .course-map-page-back:hover,
+[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back:hover {
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border-color: rgba(15, 23, 42, 0.22) !important;
+	color: #0f172a !important;
 }
 
 [data-theme="light"] .course-map-page-header--branded:not(.course-map-page-header--custom-colors) .course-map-page-header-edit-btn {
@@ -932,8 +942,6 @@
 	text-shadow: none;
 }
 
-[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back,
-[data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-virtual-badge {
 	background: color-mix(in srgb, var(--map-header-text) 14%, transparent);
 	border-color: color-mix(in srgb, var(--map-header-text) 30%, transparent);

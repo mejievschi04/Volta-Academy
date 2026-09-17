@@ -409,6 +409,7 @@ const CoursesPage = () => {
 											count={map.courses_count ?? 0}
 											color={accentColor}
 											imageUrl={mapFolderCardImageUrl(map)}
+											coverFocus={map.cover_focus}
 											progress={map.progress_percentage ?? map.progress ?? 0}
 											onOpen={() => navigate(`/courses/map/${map.id}`)}
 											ctaLabel="Deschide mapa"

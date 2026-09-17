@@ -71,7 +71,8 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 	align-items: center;
 	justify-content: center;
 	padding: var(--space-6);
-	background-color: var(--bg-primary);
+	background: var(--bg-sidebar-toggle);
+	background-color: var(--bg-sidebar-toggle);
 	position: relative;
 	overflow: hidden;
 }
@@ -84,24 +85,13 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 }
 
 .modern-auth-gradient {
-	position: absolute;
-	top: -50%;
-	right: -50%;
-	width: 200%;
-	height: 200%;
-	background: radial-gradient(
-		circle,
-		rgba(99, 102, 241, 0.22) 0%,
-		transparent 70%
-	);
-	z-index: 1;
-	animation: pulse 8s ease-in-out infinite;
+	display: none;
 }
 
 .modern-auth-pattern {
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(135deg, rgba(12, 18, 35, 0.44), rgba(30, 41, 59, 0.58));
+	background: var(--bg-sidebar-toggle);
 	opacity: 1;
 	z-index: 2;
 }

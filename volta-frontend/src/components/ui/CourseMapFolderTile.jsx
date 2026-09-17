@@ -9,6 +9,7 @@ const CourseMapFolderTile = ({
 	count,
 	color = '#e6d800',
 	imageUrl = null,
+	coverFocus = null,
 	progress = null,
 	ctaLabel = 'Deschide mapa',
 	onOpen,
@@ -55,7 +56,7 @@ const CourseMapFolderTile = ({
 						{courseCount} {courseCount === 1 ? 'curs' : 'cursuri'}
 					</span>
 					<div className="course-map-folder-tile__visual" aria-hidden>
-						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} interactive={false} />
+						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} coverFocus={coverFocus} interactive={false} />
 					</div>
 				</div>
 

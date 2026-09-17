@@ -593,6 +593,11 @@
 	align-items: center;
 }
 
+.admin-course-map-cover-compact--focus {
+	flex-direction: column;
+	align-items: stretch;
+}
+
 .admin-course-map-cover-compact__thumb {
 	flex: 0 0 108px;
 	width: 108px;

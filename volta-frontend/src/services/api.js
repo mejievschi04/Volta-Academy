@@ -994,9 +994,12 @@ export const adminService = {
     return response.data;
   },
 
-  uploadCourseMapCover: async (mapId, file) => {
+  uploadCourseMapCover: async (mapId, file, focus) => {
     const formData = new FormData();
     formData.append('cover', file);
+    if (focus) {
+      formData.append('cover_focus', JSON.stringify(focus));
+    }
     const response = await api.post(`/admin/course-maps/${mapId}/cover`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
