@@ -45,6 +45,18 @@ class LessonCompletionTest extends TestCase
                 'progress_percentage' => 100,
             ])
             ->assertOk()
+            ->assertJsonPath('completed', false)
+            ->assertJsonPath('auto_completed', false)
+            ->assertJsonPath('awaiting_dwell', true);
+
+        $this->travel(5)->seconds();
+
+        $this->actingAs($student, 'sanctum')
+            ->putJson("/api/lessons/{$lesson->id}/progress", [
+                'milestone_reached' => 100,
+                'progress_percentage' => 100,
+            ])
+            ->assertOk()
             ->assertJsonPath('completed', true)
             ->assertJsonPath('auto_completed', true);
 
@@ -55,6 +67,23 @@ class LessonCompletionTest extends TestCase
 
         $this->assertNotNull($row);
         $this->assertTrue((bool) $row->completed);
+        $this->assertEquals(100, (int) $row->progress_percentage);
+
+        $this->actingAs($student, 'sanctum')
+            ->putJson("/api/lessons/{$lesson->id}/progress", [
+                'milestone_reached' => 100,
+                'progress_percentage' => 100,
+            ])
+            ->assertOk()
+            ->assertJsonPath('completed', true)
+            ->assertJsonPath('progress_percentage', 100);
+
+        $row = DB::table('lesson_progress')
+            ->where('user_id', $student->id)
+            ->where('lesson_id', $lesson->id)
+            ->first();
+        $this->assertTrue((bool) $row->completed);
+        $this->assertEquals(100, (int) $row->progress_percentage);
 
         $this->assertTrue(
             DB::table('activity_logs')

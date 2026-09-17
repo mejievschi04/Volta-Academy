@@ -137,4 +137,57 @@ class ExamResultsApiTest extends TestCase
             ->assertJsonPath('exam.questions.0.answers.0.is_selected', true)
             ->assertJsonPath('exam.questions.0.answers.0.is_correct', true);
     }
+
+    public function test_exam_results_list_excludes_pending_manual_review(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $owner = User::factory()->create(['role' => 'teacher']);
+        $course = Course::factory()->published()->create(['teacher_id' => $owner->id]);
+        $test = Test::factory()->published()->create(['created_by' => $owner->id]);
+        CourseTest::create([
+            'course_id' => $course->id,
+            'test_id' => $test->id,
+            'scope' => 'course',
+            'scope_id' => $course->id,
+            'required' => true,
+            'passing_score' => 70,
+            'order' => 1,
+        ]);
+
+        TestResult::create([
+            'test_id' => $test->id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'score' => 0,
+            'max_score' => 10,
+            'percentage' => 0,
+            'passed' => false,
+            'attempt_number' => 1,
+            'answers' => ['1' => 'text'],
+            'completed_at' => now(),
+            'status' => 'pending_review',
+            'needs_manual_review' => true,
+        ]);
+
+        $visible = TestResult::create([
+            'test_id' => $test->id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'score' => 80,
+            'max_score' => 100,
+            'percentage' => 80,
+            'passed' => true,
+            'attempt_number' => 2,
+            'answers' => ['1' => 0],
+            'completed_at' => now(),
+            'status' => 'completed',
+            'needs_manual_review' => false,
+        ]);
+
+        $response = $this->actingAs($student, 'sanctum')->getJson('/api/exam-results');
+        $response->assertOk();
+        $ids = collect($response->json())->pluck('id')->all();
+        $this->assertContains($visible->id, $ids);
+        $this->assertCount(1, $ids);
+    }
 }

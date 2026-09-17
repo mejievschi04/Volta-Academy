@@ -52,10 +52,12 @@ function sortableCourseId(courseId) {
 }
 
 function courseMapCourseSubtitle(course, fmtDur) {
-	const views = course.views_count ?? 0;
 	const dur = fmtDur(course.estimated_duration_minutes);
 	const prog = course.progress_percentage ?? 0;
-	return `${views} vizualizări · ${dur} · Finalizat ${prog}%`;
+	const parts = [];
+	if (dur && dur !== '—') parts.push(dur);
+	if (Number(prog) > 0) parts.push(`Progres ${prog}%`);
+	return parts.join(' · ') || 'Curs';
 }
 
 function CourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {

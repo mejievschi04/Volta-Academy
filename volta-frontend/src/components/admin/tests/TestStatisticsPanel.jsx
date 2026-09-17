@@ -44,7 +44,7 @@ const TYPE_LABELS = {
 
 const SECTIONS = [
 	{ id: 'overview', label: 'Prezentare generală', icon: ChartPieSlice },
-	{ id: 'students', label: 'Elevi', icon: Users },
+	{ id: 'students', label: 'Utilizatori', icon: Users },
 	{ id: 'items', label: 'Analiză întrebări', icon: ListChecks },
 ];
 
@@ -201,7 +201,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 		const slug = testTitle.toLowerCase().replace(/\s+/g, '-').slice(0, 40) || `test-${testId}`;
 		const kpiEntries = summary ? [
 			['Încercări', summary.attempts_count ?? 0],
-			['Elevi unici', summary.unique_students ?? 0],
+			['Utilizatori unici', summary.unique_students ?? 0],
 			['Rată promovare', passRate != null ? `${passRate}%` : '—'],
 			['Medie procent', summary.average_percentage != null ? `${summary.average_percentage}%` : '—'],
 			['Prag promovare', `${summary.passing_score ?? 70}%`],
@@ -235,7 +235,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 			periodFrom: dateFrom,
 			periodTo: dateTo,
 			kpiEntries,
-			tableHeaders: ['Finalizat', 'Elev', 'Email', 'Încercare', 'Scor', 'Punctaj maxim', 'Procent', 'Stare'],
+			tableHeaders: ['Finalizat', 'Utilizator', 'Email', 'Încercare', 'Scor', 'Punctaj maxim', 'Procent', 'Stare'],
 			tableRows: studentRows,
 			extraSections: questionExportRows.length ? [{
 				title: 'Analiză pe întrebări',
@@ -310,7 +310,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 				) : (
 					<>
 						<div className="test-stats__kpis">
-							<KpiCard icon={Users} label="Încercări" value={summary.attempts_count} hint={`${summary.unique_students} elevi unici`} accent="#6366f1" />
+							<KpiCard icon={Users} label="Încercări" value={summary.attempts_count} hint={`${summary.unique_students} utilizatori unici`} accent="#6366f1" />
 							<KpiCard icon={CheckCircle} label="Rată promovare" value={passRate != null ? `${passRate}%` : '—'} hint={`${summary.pass_count} promovați`} accent="#10b981" />
 							<KpiCard icon={ChartBar} label="Medie" value={summary.average_percentage != null ? `${summary.average_percentage}%` : '—'} hint={`Scor mediu ${summary.average_score ?? '—'}`} accent="#8b5cf6" />
 							<KpiCard icon={ChartPieSlice} label="Interval" value={`${summary.low_percentage ?? '—'}–${summary.high_percentage ?? '—'}%`} hint={`Prag ${summary.passing_score ?? 70}%`} accent="#0ea5e9" />

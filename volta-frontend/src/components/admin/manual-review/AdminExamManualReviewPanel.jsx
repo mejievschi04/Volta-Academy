@@ -188,7 +188,7 @@ export default function AdminExamManualReviewPanel() {
 							<li key={row.id} className="admin-tests-pending-row">
 								<div className="admin-tests-pending-main">
 									<strong className="admin-tests-pending-test">{row.exam?.title || 'Examen'}</strong>
-									<span className="admin-tests-pending-user">{row.user?.name || row.user?.email || 'Elev'}</span>
+									<span className="admin-tests-pending-user">{row.user?.name || row.user?.email || 'Utilizator'}</span>
 									<span className="admin-tests-pending-meta">
 										Încercarea {row.attempt_number ?? '—'} · {formatCompletedAt(row.completed_at)}
 									</span>
@@ -214,7 +214,7 @@ export default function AdminExamManualReviewPanel() {
 							<div>
 								<h3>Corectare lucrare</h3>
 								<p className="admin-exams-manual-modal-sub">
-									<strong>{manualReviewTarget?.user?.name || 'Elev'}</strong>
+									<strong>{manualReviewTarget?.user?.name || 'Utilizator'}</strong>
 									<span className="admin-exams-manual-modal-dot">·</span>
 									<span>{manualReviewTarget?.exam?.title || 'Examen'}</span>
 									<span className="admin-exams-manual-modal-dot">·</span>

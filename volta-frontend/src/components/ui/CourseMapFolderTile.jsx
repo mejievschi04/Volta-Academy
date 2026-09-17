@@ -25,7 +25,6 @@ const CourseMapFolderTile = ({
 	const classes = ['course-map-folder-tile', className].filter(Boolean).join(' ');
 	const tileStyle = { '--color-primary': color, ...style };
 	const itemNodes = [
-		<span className="course-map-folder-tile__paper-value">{courseCount}</span>,
 		normalizedProgress !== null ? (
 			<span className="course-map-folder-tile__paper-value">{normalizedProgress}%</span>
 		) : null,
@@ -52,7 +51,7 @@ const CourseMapFolderTile = ({
 				<div className="course-map-folder-tile__stage">
 					{topLeftSlot ? <span className="course-map-folder-tile__tl">{topLeftSlot}</span> : null}
 					{topRightSlot ? <span className="course-map-folder-tile__tr">{topRightSlot}</span> : null}
-					<span className="course-map-folder-tile__count" aria-hidden>
+					<span className="course-map-folder-tile__count" hidden aria-hidden>
 						{courseCount} {courseCount === 1 ? 'curs' : 'cursuri'}
 					</span>
 					<div className="course-map-folder-tile__visual" aria-hidden>
@@ -62,7 +61,7 @@ const CourseMapFolderTile = ({
 
 				<div className="course-map-folder-tile__meta">
 					<h3 className="course-map-folder-tile__title">{title || 'Mapa'}</h3>
-					<p className="course-map-folder-tile__subtitle">{subtitle || '\u00A0'}</p>
+					{subtitle ? <p className="course-map-folder-tile__subtitle">{subtitle}</p> : null}
 					<div
 						className={`course-map-folder-tile__progress${normalizedProgress === null ? ' course-map-folder-tile__progress--empty' : ''}`}
 						aria-hidden

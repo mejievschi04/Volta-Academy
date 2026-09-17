@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Course;
-use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Services\UserAssignedCoursesService;
@@ -112,36 +111,28 @@ class UserAdminController extends Controller
             
             $userProgress = $allProgress->get($user->id, collect());
             $completedCourses = 0;
+            $assignedCount = $userProgress->count();
             $totalModules = 0;
             $completedModules = 0;
             
-            // Calculate completed courses and modules (based on completed_at and progress_percentage in course_user table)
-            foreach ($allCourses as $course) {
-                $progress = $userProgress->get($course->id);
-                $moduleCount = $course->modules ? $course->modules->count() : 0;
+            foreach ($userProgress as $progress) {
+                $course = $allCourses->firstWhere('id', $progress->course_id);
+                $moduleCount = $course && $course->modules ? $course->modules->count() : 0;
                 $totalModules += $moduleCount;
-                
-                if ($progress) {
-                    // If course is completed, all modules are considered completed
-                    if ($progress->completed_at) {
-                        $completedCourses++;
-                        $completedModules += $moduleCount;
-                    } else {
-                        // Calculate completed modules based on progress percentage
-                        $courseProgressPercentage = $progress->progress_percentage ?? 0;
-                        if ($courseProgressPercentage > 0) {
-                            $completedModules += round(($courseProgressPercentage / 100) * $moduleCount);
-                        }
-                    }
+                if ($progress->completed_at) {
+                    $completedCourses++;
+                    $completedModules += $moduleCount;
+                } elseif (($progress->progress_percentage ?? 0) > 0 && $moduleCount > 0) {
+                    $completedModules += round(($progress->progress_percentage / 100) * $moduleCount);
                 }
             }
             
-            $user->total_courses = $totalCourses;
+            $user->total_courses = $assignedCount;
             $user->completed_courses = $completedCourses;
             $user->total_modules = $totalModules;
             $user->completed_modules = $completedModules;
-            $user->completion_percentage = $totalCourses > 0 
-                ? round(($completedCourses / $totalCourses) * 100, 1) 
+            $user->completion_percentage = $assignedCount > 0 
+                ? round(($completedCourses / $assignedCount) * 100, 1) 
                 : 0;
             
             return $user;
@@ -202,6 +193,10 @@ class UserAdminController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->input('team_id') === '' || $request->input('team_id') === null) {
+            $request->merge(['team_id' => null]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
             'email' => 'required|string|email|max:255|unique:users',
@@ -231,11 +226,12 @@ class UserAdminController extends Controller
         $validated['email'] = strtolower(trim($validated['email'])); // Normalize email
         $validated['bio'] = isset($validated['bio']) ? strip_tags($validated['bio']) : null; // Sanitize bio
 
-        $user = User::create($validated);
+        $user = User::create(collect($validated)->except('team_id')->all());
 
 		// Attach to team if provided
 		if (!empty($validated['team_id'])) {
 			$user->teams()->syncWithoutDetaching([$validated['team_id']]);
+			app(UserAssignedCoursesService::class)->enrollUserInLinkedTeamCourses($user->fresh());
 		}
         
         // Log user creation
@@ -392,62 +388,22 @@ class UserAdminController extends Controller
         }
 
         $validated = $request->validate([
-            'course_ids' => 'required|array',
+            'course_ids' => 'present|array',
             'course_ids.*' => 'exists:courses,id',
             'is_mandatory' => 'nullable|boolean',
         ]);
 
         $courseIds = $validated['course_ids'];
-        $isMandatory = $validated['is_mandatory'] ?? true; // Implicit obligatoriu
+        $isMandatory = $validated['is_mandatory'] ?? true;
 
-        // Dacă cursul este obligatoriu, verifică dacă are cel puțin un test obligatoriu
-        if ($isMandatory) {
-            $coursesWithoutRequiredTests = [];
-            
-            foreach ($courseIds as $courseId) {
-                $course = \App\Models\Course::find($courseId);
-                if ($course) {
-                    // Verifică dacă cursul are cel puțin un test cu required = true
-                    $hasRequiredTest = CourseTest::where('course_id', $courseId)
-                        ->where('required', true)
-                        ->exists();
-                    
-                    if (!$hasRequiredTest) {
-                        $coursesWithoutRequiredTests[] = [
-                            'id' => $courseId,
-                            'title' => $course->title,
-                        ];
-                    }
-                }
-            }
-            
-            if (!empty($coursesWithoutRequiredTests)) {
-                $courseTitles = implode(', ', array_column($coursesWithoutRequiredTests, 'title'));
-                $courseCount = count($coursesWithoutRequiredTests);
-                $courseWord = $courseCount === 1 ? 'cursul' : 'cursurile';
-                
-                return response()->json([
-                    'error' => 'Cursurile obligatorii trebuie să aibă cel puțin un test obligatoriu',
-                    'message' => $courseCount === 1 
-                        ? "Cursul \"{$courseTitles}\" nu are teste obligatorii. Te rugăm să adaugi cel puțin un test obligatoriu înainte de a-l marca ca obligatoriu."
-                        : "Următoarele cursuri nu au teste obligatorii: {$courseTitles}. Te rugăm să adaugi cel puțin un test obligatoriu pentru fiecare curs înainte de a le marca ca obligatorii.",
-                    'courses' => $coursesWithoutRequiredTests,
-                ], 422);
-            }
-        }
+        $assignment = app(UserAssignedCoursesService::class);
+        $assignment->syncDirectAssignments($user, $courseIds, [
+            'is_mandatory' => $isMandatory,
+            'assigned_at' => now(),
+            'enrolled' => true,
+            'enrolled_at' => now(),
+        ]);
 
-        // Sync courses - remove old assignments and add new ones
-        $syncData = [];
-        foreach ($courseIds as $courseId) {
-            $syncData[$courseId] = [
-                'is_mandatory' => $isMandatory,
-                'assigned_at' => now(),
-            ];
-        }
-
-        $user->assignedCourses()->sync($syncData);
-
-        // Clear cache for affected users
         \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
         \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
 
@@ -457,12 +413,30 @@ class UserAdminController extends Controller
         ]);
     }
 
+    public function markCourseCompleted(Request $request, $id, $courseId)
+    {
+        $user = User::findOrFail($id);
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Nu marcăm progres pentru rolurile administrator sau analist.',
+            ], 422);
+        }
+        $course = Course::findOrFail($courseId);
+        app(\App\Services\CourseProgressService::class)->markCourseCompletedByAdmin($user, $course);
+        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
+        \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+
+        return response()->json([
+            'message' => 'Curs marcat ca finalizat',
+        ]);
+    }
+
     public function removeCourse(Request $request, $id, $courseId)
     {
         $user = User::findOrFail($id);
-        $user->assignedCourses()->detach($courseId);
+        $course = Course::findOrFail($courseId);
+        app(UserAssignedCoursesService::class)->revokeDirectAssignment($user, $course);
 
-        // Clear cache
         \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
         \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
 
@@ -647,8 +621,12 @@ class UserAdminController extends Controller
     {
         $user = User::findOrFail($id);
         
+        $teams = $user->teams()->get();
         $user->teams()->detach();
-        
+        foreach ($teams as $team) {
+            app(UserAssignedCoursesService::class)->revokeTeamOnlyEnrollmentsForUser($user, $team);
+        }
+
         return response()->json([
             'message' => 'Utilizator eliminat din toate echipele',
             'user' => $user->load($this->eagerLoadTeamsCourses()),

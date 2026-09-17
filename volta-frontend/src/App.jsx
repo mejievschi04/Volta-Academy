@@ -15,7 +15,6 @@ import { isVoltEnabled } from './utils/voltAvailability';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
 import AdminViewSwitcher from './components/admin/AdminViewSwitcher';
 import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
-import StudentTopNavCalendar from './components/student/StudentTopNavCalendar';
 import AdminStylesLoader from './components/AdminStylesLoader';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ScrollToTop from './components/common/ScrollToTop';
@@ -85,9 +84,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const StudentActivityPage = lazy(() => import('./pages/StudentActivityPage'));
 const StudentSettingsPage = lazy(() => import('./pages/StudentSettingsPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
-const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
 const ExamResultsPage = lazy(() => import('./pages/ExamResultsPage'));
-const CalendarViewPage = lazy(() => import('./pages/CalendarViewPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const InviteRegisterPage = lazy(() => import('./pages/InviteRegisterPage'));
@@ -157,7 +154,7 @@ function RedirectDetailToCourse() {
 /** Rolul afișat în badge-ul din topnav (cont real, nu modul de vizualizare admin/student). */
 function getTopnavStaffRoleLabel(user, isStudentPreviewMode) {
 	if (!user) return '';
-	if (isStudentPreviewMode) return 'Student';
+	if (isStudentPreviewMode) return 'Utilizator';
 	const ar = user.actualRole ?? user.role ?? 'student';
 	switch (ar) {
 		case 'analyst':
@@ -657,7 +654,7 @@ function AuthenticatedLayout({ children, authContext }) {
 		},
 		{
 			path: '/settings',
-			label: 'Setari',
+			label: 'Setări',
 			icon: (
 				<GearSix size={20} weight="duotone" aria-hidden />
 			)
@@ -742,7 +739,7 @@ function AuthenticatedLayout({ children, authContext }) {
 		},
 		{
 			path: '/admin/activity-logs',
-			label: 'Activitate elevi',
+			label: 'Activitate utilizatori',
 			icon: (
 				<ListBullets size={18} weight="duotone" aria-hidden />
 			)
@@ -1203,6 +1200,7 @@ function AuthenticatedLayout({ children, authContext }) {
 										onClick={() => {
 											if (window.innerWidth <= 768) {
 												setIsSidebarExpanded(false);
+												document.querySelector('.student-mobile-tab[aria-controls="student-mobile-menu"]')?.blur();
 											}
 										}}
 									>
@@ -1277,8 +1275,6 @@ function AuthenticatedLayout({ children, authContext }) {
 						<div className="modern-topnav-right">
 							{user && (
 								<>
-									<StudentTopNavCalendar />
-									{/* Notifications - studenți */}
 									<StudentTopNavNotifications />
 
 									{/* View Switcher (only for admins, hidden in student preview mode) - Desktop only */}
@@ -1533,13 +1529,7 @@ function App() {
 									/>
 									<Route
 										path="/events/:id"
-										element={
-											<UserRoute>
-												<Suspense fallback={<PageLoader />}>
-													<EventDetailPage />
-												</Suspense>
-											</UserRoute>
-										}
+										element={<Navigate to="/events" replace />}
 									/>
 									<Route
 										path="/library"
@@ -1634,11 +1624,11 @@ function App() {
 									<Route
 										path="/profile/activity"
 										element={
-											<UserRoute>
+											<AdminRoute>
 												<Suspense fallback={<PageLoader />}>
 													<StudentActivityPage />
 												</Suspense>
-											</UserRoute>
+											</AdminRoute>
 										}
 									/>
 									<Route

@@ -1,22 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { eventsService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 
-const STATUS_BADGES = {
-	published: { label: 'Publicat', color: '#10b981' },
-	upcoming: { label: 'Viitor', color: '#f59e0b' },
-	live: { label: 'Live', color: '#ef4444' },
-	completed: { label: 'Finalizat', color: '#64748b' },
-	cancelled: { label: 'Anulat', color: '#94a3b8' },
-};
-
 const parseEventDate = (dateString) => {
 	if (!dateString) return null;
-	const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+	const parts = String(dateString).match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
 	if (!parts) return null;
 	return new Date(
 		Number(parts[1]),
@@ -27,43 +18,22 @@ const parseEventDate = (dateString) => {
 	);
 };
 
-const getTimelineGroup = (event) => {
-	if (event?.is_completed || event?.status === 'completed') {
-		return 'completed';
-	}
-	const endDate = parseEventDate(event?.end_date);
-	return endDate && endDate.getTime() < Date.now() ? 'completed' : 'upcoming';
-};
-
 const EventsPage = () => {
-	const navigate = useNavigate();
 	const { success: showSuccess, error: showError } = useToast();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [filters, setFilters] = useState({
-		type: 'all',
-	});
-	useEffect(() => {
-		fetchEvents();
-	}, [filters]);
 
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const data = await eventsService.getAll({ ...filters, date_filter: 'all' });
-			// Handle pagination if present
+			const data = await eventsService.getAll();
 			const eventsList = Array.isArray(data) ? data : (data?.data || []);
 			setEvents(
-				[...eventsList].sort((a, b) => {
-					const aGroup = getTimelineGroup(a);
-					const bGroup = getTimelineGroup(b);
-					if (aGroup !== bGroup) {
-						return aGroup === 'upcoming' ? -1 : 1;
-					}
-					return (parseEventDate(a.start_date)?.getTime() || 0) - (parseEventDate(b.start_date)?.getTime() || 0);
-				}),
+				[...eventsList].sort(
+					(a, b) => (parseEventDate(a.start_date)?.getTime() || 0) - (parseEventDate(b.start_date)?.getTime() || 0),
+				),
 			);
 		} catch (err) {
 			console.error('Error fetching events:', err);
@@ -73,15 +43,9 @@ const EventsPage = () => {
 		}
 	};
 
-	const groupedEvents = useMemo(() => {
-		return events.reduce(
-			(acc, event) => {
-				acc[getTimelineGroup(event)].push(event);
-				return acc;
-			},
-			{ upcoming: [], completed: [] },
-		);
-	}, [events]);
+	useEffect(() => {
+		fetchEvents();
+	}, []);
 
 	const formatDate = (dateString) => {
 		const date = parseEventDate(dateString);
@@ -97,21 +61,6 @@ const EventsPage = () => {
 		return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	};
 
-
-
-
-	const getEventTypeLabel = (type) => {
-		const labels = {
-			live_online: 'Online',
-			physical: 'Fizic',
-		};
-		return labels[type] || type;
-	};
-
-	const getStatusBadge = (event) => {
-		return STATUS_BADGES[event.status] || STATUS_BADGES[getTimelineGroup(event) === 'completed' ? 'completed' : 'upcoming'];
-	};
-
 	const handleRegister = async (eventId, e) => {
 		e.stopPropagation();
 		try {
@@ -124,17 +73,12 @@ const EventsPage = () => {
 		}
 	};
 
-
-
 	if (loading) {
 		return (
 			<div className="va-main fade-in">
 				<div className="skeleton-card" style={{ marginBottom: '2rem' }}>
 					<div className="skeleton skeleton-title"></div>
 					<div className="skeleton skeleton-text"></div>
-				</div>
-				<div className="skeleton-card">
-					<div className="skeleton skeleton-text" style={{ height: '200px' }}></div>
 				</div>
 			</div>
 		);
@@ -143,25 +87,7 @@ const EventsPage = () => {
 	return (
 		<div className="events-page">
 			<div className="events-page-header">
-				<h1 className="events-page-title">
-					Evenimente
-				</h1>
-				<p className="events-page-subtitle">
-					Evenimente online și fizice planificate în platformă.
-				</p>
-			</div>
-
-			{/* Filters */}
-			<div className="va-events-filters">
-				<select
-					value={filters.type}
-					onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-					className="events-filter-select"
-				>
-					<option value="all">Toate</option>
-					<option value="live_online">Online</option>
-					<option value="physical">Fizic</option>
-				</select>
+				<h1 className="events-page-title">Evenimente</h1>
 			</div>
 
 			{error && (
@@ -170,166 +96,92 @@ const EventsPage = () => {
 				</div>
 			)}
 
-			{events.length > 0 && (
-				<div className="va-card" style={{ marginBottom: '1.5rem' }}>
-					<div className="va-card-body" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-						<div style={{ flex: 1, minWidth: '180px' }}>
-							<div style={{ fontSize: '0.8rem', color: 'var(--va-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-								Evenimente viitoare
+			{events.length > 0 ? (
+				<div className="events-grid">
+					{events.map((event) => {
+						const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
+						return (
+							<div key={event.id} className="va-card-enhanced stagger-item">
+								{event.thumbnail && (
+									<div
+										className="events-card-thumbnail"
+										style={{
+											width: '100%',
+											height: '148px',
+											backgroundImage: `url(${event.thumbnail})`,
+											backgroundSize: 'cover',
+											backgroundPosition: 'center',
+											borderRadius: '8px 8px 0 0',
+										}}
+									/>
+								)}
+								<div className="va-card-body">
+									<h3 className="va-card-title">📅 {event.title}</h3>
+									{event.short_description && (
+										<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
+											{event.short_description}
+										</p>
+									)}
+									{event.description ? (
+										<EventDescriptionExpandable text={event.description} className="events-card-desc" />
+									) : null}
+									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
+										{event.instructor && (
+											<div style={{ marginBottom: '0.5rem' }}>
+												👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
+											</div>
+										)}
+										{(event.location || event.live_link) && (
+											<div style={{ marginBottom: '0.5rem' }}>
+												📍 <strong style={{ color: 'var(--va-text)' }}>{event.location || 'Online'}</strong>
+											</div>
+										)}
+										<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+											🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
+											{event.end_date && (
+												<span style={{ marginLeft: '0.5rem' }}>- {formatTime(event.end_date)}</span>
+											)}
+										</div>
+										{event.max_capacity && (
+											<div style={{ marginBottom: '0.5rem' }}>
+												👥 <strong style={{ color: 'var(--va-text)' }}>
+													{event.registrations_count || 0} / {event.max_capacity} înscriși
+													{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
+												</strong>
+											</div>
+										)}
+									</div>
+									<div className="events-card-actions">
+										{!event.user_registered && !isFull && event.status !== 'cancelled' && (
+											<button
+												className="lms-btn-primary"
+												onClick={(e) => handleRegister(event.id, e)}
+											>
+												Înscrie-te
+											</button>
+										)}
+										{event.user_registered && (
+											<button className="lms-btn-secondary" disabled>
+												✓ Înscris
+											</button>
+										)}
+									</div>
+								</div>
 							</div>
-							<div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{groupedEvents.upcoming.length}</div>
-						</div>
-						<div style={{ flex: 1, minWidth: '180px' }}>
-							<div style={{ fontSize: '0.8rem', color: 'var(--va-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-								Evenimente finalizate
-							</div>
-							<div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{groupedEvents.completed.length}</div>
+						);
+					})}
+				</div>
+			) : (
+				<div className="va-card">
+					<div className="va-card-body">
+						<div className="empty-state">
+							<div className="empty-state-icon">📅</div>
+							<div className="empty-state-title">Nu există evenimente</div>
+							<div className="empty-state-description">Nu sunt programate evenimente momentan.</div>
 						</div>
 					</div>
 				</div>
 			)}
-
-			{events.length > 0 ? (
-						<div className="events-grid">
-							{events.map((event) => {
-								const statusBadge = getStatusBadge(event);
-								const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
-								const isCompleted = getTimelineGroup(event) === 'completed';
-
-								
-								return (
-									<div
-										key={event.id}
-										className="va-card-enhanced stagger-item"
-										style={{ cursor: 'pointer' }}
-										onClick={() => navigate(`/events/${event.id}`)}
-									>
-										{event.thumbnail && (
-											<div
-												className="events-card-thumbnail"
-												style={{
-													width: '100%',
-													height: '148px',
-													backgroundImage: `url(${event.thumbnail})`,
-													backgroundSize: 'cover',
-													backgroundPosition: 'center',
-													borderRadius: '8px 8px 0 0',
-												}}
-											/>
-										)}
-										<div className="va-card-body">
-											<div className="events-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-												<h3 className="va-card-title" style={{ marginBottom: 0, flex: 1 }}>
-													📅 {event.title}
-												</h3>
-												{statusBadge && (
-													<span className="events-card-status-badge" style={{
-														padding: '0.25rem 0.75rem',
-														borderRadius: '12px',
-														fontSize: '0.75rem',
-														fontWeight: 'bold',
-														background: statusBadge.color,
-														color: '#fff',
-													}}>
-														{statusBadge.label}
-													</span>
-												)}
-											</div>
-											{event.short_description && (
-												<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
-													{event.short_description}
-												</p>
-											)}
-											{event.description ? (
-												<EventDescriptionExpandable
-													text={event.description}
-													className="events-card-desc"
-												/>
-											) : null}
-											<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
-												<div style={{ marginBottom: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-													<span>🏷️ <strong style={{ color: 'var(--va-text)' }}>{getEventTypeLabel(event.type)}</strong></span>
-												</div>
-												{event.instructor && (
-													<div style={{ marginBottom: '0.5rem' }}>
-														👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
-													</div>
-												)}
-												<div style={{ marginBottom: '0.5rem' }}>
-													📍 <strong style={{ color: 'var(--va-text)' }}>
-														{event.location || event.live_link || 'N/A'}
-													</strong>
-												</div>
-												<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-													🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
-													{event.end_date && (
-														<span style={{ marginLeft: '0.5rem' }}>
-															- {formatTime(event.end_date)}
-														</span>
-													)}
-												</div>
-												{event.max_capacity && (
-													<div style={{ marginBottom: '0.5rem' }}>
-														👥 <strong style={{ color: 'var(--va-text)' }}>
-															{event.registrations_count || 0} / {event.max_capacity} înscriși
-															{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
-														</strong>
-													</div>
-												)}
-											</div>
-											<div className="events-card-actions">
-												<button
-													className="lms-btn-primary"
-													onClick={(e) => {
-														e.stopPropagation();
-														navigate(`/events/${event.id}`);
-													}}
-													style={{ flex: 1 }}
-												>
-													Vezi Detalii
-												</button>
-												{!event.user_registered && !isFull && !isCompleted && event.status !== 'cancelled' && (
-													<button
-														className="lms-btn-secondary"
-														onClick={(e) => handleRegister(event.id, e)}
-														style={{ 
-															background: '#10b981',
-															color: '#fff',
-														}}
-													>
-														{'✓ Înscrie-te'}
-													</button>
-												)}
-												{event.user_registered && (
-													<button
-														className="lms-btn-secondary"
-														disabled
-														style={{ 
-															background: '#10b981',
-															color: '#fff',
-															cursor: 'not-allowed',
-														}}
-													>
-														✓ Înscris
-													</button>
-												)}
-											</div>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					) : (
-						<div className="va-card">
-							<div className="va-card-body">
-								<div className="empty-state">
-									<div className="empty-state-icon">📅</div>
-									<div className="empty-state-title">Nu există evenimente</div>
-									<div className="empty-state-description">Nu sunt programate evenimente momentan.</div>
-								</div>
-							</div>
-						</div>
-					)}
 		</div>
 	);
 };

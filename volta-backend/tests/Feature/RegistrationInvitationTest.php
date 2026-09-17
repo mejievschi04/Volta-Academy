@@ -97,4 +97,38 @@ class RegistrationInvitationTest extends TestCase
         $this->assertTrue(Hash::check('Password123', $user->password));
         $this->assertAuthenticatedAs($user);
     }
+
+    public function test_expiry_reminder_is_queued_for_invitations_near_deadline(): void
+    {
+        Bus::fake([SendRegistrationInvitationEmailJob::class]);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $plainToken = Str::random(64);
+        $due = RegistrationInvitation::create([
+            'email' => 'soon@example.com',
+            'token' => hash('sha256', $plainToken),
+            'encrypted_token' => Crypt::encryptString($plainToken),
+            'role' => 'student',
+            'invited_by' => $admin->id,
+            'expires_at' => now()->addHours(24),
+            'email_status' => 'sent',
+        ]);
+        RegistrationInvitation::create([
+            'email' => 'later@example.com',
+            'token' => hash('sha256', Str::random(64)),
+            'encrypted_token' => Crypt::encryptString(Str::random(64)),
+            'role' => 'student',
+            'invited_by' => $admin->id,
+            'expires_at' => now()->addDays(6),
+            'email_status' => 'sent',
+        ]);
+
+        $this->artisan('volta:remind-invitation-expiry')->assertSuccessful();
+
+        Bus::assertDispatched(
+            SendRegistrationInvitationEmailJob::class,
+            fn ($job) => $job->invitationId === $due->id && $job->isReminder === true
+        );
+        Bus::assertDispatchedTimes(SendRegistrationInvitationEmailJob::class, 1);
+    }
 }

@@ -24,7 +24,7 @@
 @media (max-width: 768px) {
 	.toast-container,
 	.va-toast-container {
-		bottom: max(var(--space-4), env(safe-area-inset-bottom));
+		bottom: calc(var(--student-tab-height, 0px) + var(--space-4));
 		left: 50%;
 		right: auto;
 		transform: translateX(-50%);

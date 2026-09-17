@@ -21,12 +21,14 @@ class RegistrationInvitation extends Model
         'email_status',
         'email_sent_at',
         'email_last_error',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
         'email_sent_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
     ];
 
     public function inviter(): BelongsTo

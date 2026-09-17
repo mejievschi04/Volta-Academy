@@ -17,6 +17,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 	const [savingTeams, setSavingTeams] = useState(false);
 	const [attachBusy, setAttachBusy] = useState(false);
 	const [detachBusy, setDetachBusy] = useState(null);
+	const [completeBusy, setCompleteBusy] = useState(null);
 	const [mandatory, setMandatory] = useState(true);
 	const teamSaveTimer = useRef(null);
 
@@ -64,7 +65,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 			setLearnerOptions(data.learners || []);
 			setLearnerHint(data.hint || '');
 		} catch {
-			showToast('Nu s-au putut încărca elevii', 'error');
+			showToast('Nu s-au putut încărca utilizatorii', 'error');
 		}
 	}, [course?.id, learnerSearch, readOnly, showToast]);
 
@@ -105,7 +106,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 			await adminService.attachLearnersToCourse(course.id, [userId], {
 				is_mandatory: mandatory,
 			});
-			showToast('Curs atribuit elevului', 'success');
+			showToast('Curs atribuit utilizatorului', 'success');
 			setLearnerSearch('');
 			await onUpdated?.();
 		} catch (e) {
@@ -129,6 +130,20 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 		}
 	};
 
+	const markLearnerCompleted = async (userId) => {
+		if (readOnly || !course?.id) return;
+		setCompleteBusy(userId);
+		try {
+			await adminService.markCourseCompleted(userId, course.id);
+			showToast('Curs marcat ca finalizat', 'success');
+			await onUpdated?.();
+		} catch (e) {
+			showToast(e?.response?.data?.message || 'Nu s-a putut marca cursul ca finalizat', 'error');
+		} finally {
+			setCompleteBusy(null);
+		}
+	};
+
 	const pickableLearners = learnerOptions.filter((u) => !assignedIds.has(u.id));
 
 	if (!course?.id) return null;
@@ -136,11 +151,11 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 	return (
 		<section className="course-distribution-panel" aria-labelledby="course-distribution-heading">
 			<h2 id="course-distribution-heading" className="course-distribution-title">
-				Echipe și elevi
+				Echipe și utilizatori
 			</h2>
 			<p className="course-distribution-intro">
-				Atașează echipe la curs (toți membrii pot primi acces prin echipă) și, dacă e nevoie, atribuie cursul direct unor elevi.
-				Atribuirea directă nu șterge celelalte cursuri ale elevului.
+				Atașează echipe la curs (membrii cu rol de utilizator primesc acces automat) și, dacă e nevoie, atribuie cursul direct unor utilizatori.
+				Debifarea unei echipe revocă accesul primit prin echipă, dar nu șterge atribuirile directe. Atribuirea directă nu șterge celelalte cursuri ale utilizatorului.
 			</p>
 
 			<div className="course-distribution-grid">
@@ -182,9 +197,9 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 				</div>
 
 				<div className="course-distribution-card">
-					<h3 className="course-distribution-card-title">Elevi atribuiți direct</h3>
+					<h3 className="course-distribution-card-title">Utilizatori atribuiți direct</h3>
 					{assignedUsers.length === 0 ? (
-						<p className="course-distribution-muted">Niciun elev cu atribuire directă.</p>
+						<p className="course-distribution-muted">Niciun utilizator cu atribuire directă.</p>
 					) : (
 						<ul className="course-distribution-assigned">
 							{assignedUsers.map((u) => (
@@ -194,14 +209,24 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 										<div className="course-distribution-email">{u.email}</div>
 									</div>
 									{!readOnly && (
-										<button
-											type="button"
-											className="course-distribution-btn-remove"
-											disabled={detachBusy === u.id}
-											onClick={() => detachLearner(u.id)}
-										>
-											{detachBusy === u.id ? '…' : 'Elimină'}
-										</button>
+										<div className="course-distribution-row-actions">
+											<button
+												type="button"
+												className="course-distribution-btn-complete"
+												disabled={completeBusy === u.id || detachBusy === u.id}
+												onClick={() => markLearnerCompleted(u.id)}
+											>
+												{completeBusy === u.id ? '…' : 'Marchează finalizat'}
+											</button>
+											<button
+												type="button"
+												className="course-distribution-btn-remove"
+												disabled={detachBusy === u.id || completeBusy === u.id}
+												onClick={() => detachLearner(u.id)}
+											>
+												{detachBusy === u.id ? '…' : 'Elimină'}
+											</button>
+										</div>
 									)}
 								</li>
 							))}
@@ -211,7 +236,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 					{!readOnly && (
 						<div className="course-distribution-add">
 							<label className="course-distribution-label">
-								<span>Caută elev</span>
+								<span>Caută utilizator</span>
 								<input
 									type="search"
 									className="course-distribution-input"
@@ -248,7 +273,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 								</ul>
 							)}
 							{!learnerHint && pickableLearners.length === 0 && learnerOptions.length > 0 && (
-								<p className="course-distribution-muted">Toți elevii din listă au deja acest curs.</p>
+								<p className="course-distribution-muted">Toți utilizatorii din listă au deja acest curs.</p>
 							)}
 							{!learnerHint && pickableLearners.length === 0 && learnerOptions.length === 0 && learnerSearch.trim().length >= 2 && (
 								<p className="course-distribution-muted">Niciun rezultat.</p>

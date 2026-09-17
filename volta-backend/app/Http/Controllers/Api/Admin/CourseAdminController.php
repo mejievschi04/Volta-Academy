@@ -13,6 +13,7 @@ use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Services\CourseBuilderService;
+use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -313,11 +314,9 @@ class CourseAdminController extends Controller
                 },
                 'teacher',
                 'teams',
-                'assignedUsers' => function ($query) {
+                'assignedUsers' => function ($query) use ($course) {
                     $query->select('users.id', 'users.name', 'users.email', 'users.role');
-                    if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
-                        $query->wherePivot('enrolled', true);
-                    }
+                    app(UserAssignedCoursesService::class)->constrainToDirectAssignedUsers($query, $course);
                 },
                 'courseTests.test' => function($query) {
                     $query->with('questions');
@@ -710,19 +709,20 @@ class CourseAdminController extends Controller
         }
 
         $validated = $request->validate([
-            'team_ids' => 'required|array',
+            'team_ids' => 'present|array',
             'team_ids.*' => 'exists:teams,id',
         ]);
 
-        $course->teams()->sync($validated['team_ids']);
+        app(UserAssignedCoursesService::class)->syncCourseTeams(
+            $course,
+            array_map('intval', $validated['team_ids'])
+        );
 
         return response()->json([
             'message' => 'Echipe atașate cu succes',
-            'course' => $course->load(['modules', 'teacher', 'teams', 'assignedUsers' => function ($q) {
+            'course' => $course->load(['modules', 'teacher', 'teams', 'assignedUsers' => function ($q) use ($course) {
                 $q->select('users.id', 'users.name', 'users.email', 'users.role');
-                if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
-                    $q->wherePivot('enrolled', true);
-                }
+                app(UserAssignedCoursesService::class)->constrainToDirectAssignedUsers($q, $course);
             }]),
         ]);
     }
@@ -800,18 +800,6 @@ class CourseAdminController extends Controller
         $userIds = array_values(array_unique(array_map('intval', $validated['user_ids'])));
         $isMandatory = $validated['is_mandatory'] ?? true;
 
-        if ($isMandatory) {
-            $hasRequiredTest = CourseTest::where('course_id', $course->id)
-                ->where('required', true)
-                ->exists();
-            if (! $hasRequiredTest) {
-                return response()->json([
-                    'error' => 'Cursurile obligatorii trebuie să aibă cel puțin un test obligatoriu',
-                    'message' => 'Acest curs nu are teste obligatorii. Bifează „opțional” sau adaugă un test obligatoriu.',
-                ], 422);
-            }
-        }
-
         $teamIdsForInstructor = null;
         if (auth()->user()->isInstructor()) {
             $teamIdsForInstructor = $course->teams()->pluck('teams.id');
@@ -854,18 +842,14 @@ class CourseAdminController extends Controller
             'enrolled_at' => now(),
         ];
 
+        $assignment = app(UserAssignedCoursesService::class);
         foreach ($userIds as $userId) {
-            $user = User::findOrFail($userId);
-            $user->assignedCourses()->syncWithoutDetaching([$course->id => $pivot]);
-            Cache::forget("dashboard_user_{$user->id}_stats");
-            Cache::forget("profile_user_{$user->id}");
+            $assignment->assignCourseDirectly(User::findOrFail($userId), $course, $pivot);
         }
 
-        $course->load(['assignedUsers' => function ($q) {
+        $course->load(['assignedUsers' => function ($q) use ($course) {
             $q->select('users.id', 'users.name', 'users.email', 'users.role');
-            if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
-                $q->wherePivot('enrolled', true);
-            }
+            app(UserAssignedCoursesService::class)->constrainToDirectAssignedUsers($q, $course);
         }]);
 
         return response()->json([
@@ -888,15 +872,13 @@ class CourseAdminController extends Controller
             ], 404);
         }
 
-        $user->assignedCourses()->detach($course->id);
+        app(UserAssignedCoursesService::class)->revokeDirectAssignment($user, $course);
         Cache::forget("dashboard_user_{$user->id}_stats");
         Cache::forget("profile_user_{$user->id}");
 
-        $course->load(['assignedUsers' => function ($q) {
+        $course->load(['assignedUsers' => function ($q) use ($course) {
             $q->select('users.id', 'users.name', 'users.email', 'users.role');
-            if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
-                $q->wherePivot('enrolled', true);
-            }
+            app(UserAssignedCoursesService::class)->constrainToDirectAssignedUsers($q, $course);
         }]);
 
         return response()->json([

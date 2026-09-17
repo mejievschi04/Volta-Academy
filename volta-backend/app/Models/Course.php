@@ -8,6 +8,7 @@ use App\Models\User; // pentru relația teacher
 use App\Models\Module; // pentru relația modules
 use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
 use App\Jobs\SyncAiKnowledgeJob;
+use App\Support\CourseUserPivot;
 use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
@@ -185,7 +186,7 @@ class Course extends Model
 
     public function assignedUsers() {
         return $this->belongsToMany(User::class, 'course_user')
-                    ->withPivot('is_mandatory', 'assigned_at', 'enrolled', 'enrolled_at', 'started_at', 'completed_at', 'progress_percentage')
+                    ->withPivot(CourseUserPivot::columns())
                     ->withTimestamps();
     }
 

@@ -14,11 +14,20 @@
             <div style="height: 6px; background: linear-gradient(90deg, #ffee00 0%, #fbbf24 100%);"></div>
             <div style="padding: 32px 28px;">
                 <h1 style="margin: 0 0 12px; font-size: 24px; line-height: 1.25; color: #0f172a;">
-                    Bine ai venit{{ $recipientName ? ', ' . $recipientName : '' }}!
+                    @if ($isReminder)
+                        Invitația expiră curând{{ $recipientName ? ', ' . $recipientName : '' }}
+                    @else
+                        Bine ai venit{{ $recipientName ? ', ' . $recipientName : '' }}!
+                    @endif
                 </h1>
                 <p style="margin: 0 0 20px; font-size: 16px; color: #475569;">
-                    <strong>{{ $inviterName }}</strong> te-a invitat să te alături platformei Volta Academy.
-                    Apasă butonul de mai jos pentru a-ți crea contul — durează mai puțin de un minut.
+                    @if ($isReminder)
+                        Linkul primit de la <strong>{{ $inviterName }}</strong> pentru Volta Academy expiră în curând.
+                        Activează-ți contul acum ca să nu fie nevoie de o invitație nouă.
+                    @else
+                        <strong>{{ $inviterName }}</strong> te-a invitat să te alături platformei Volta Academy.
+                        Apasă butonul de mai jos pentru a-ți crea contul — durează mai puțin de un minut.
+                    @endif
                 </p>
                 <p style="margin: 0 0 28px;">
                     <a href="{{ $registerUrl }}" style="display: inline-block; background: #0f172a; color: #ffee00; text-decoration: none; padding: 14px 24px; border-radius: 10px; font-weight: 700; font-size: 15px;">

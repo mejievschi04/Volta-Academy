@@ -6,7 +6,6 @@ import {
 	BookOpenText,
 	CalendarBlank,
 	CheckCircle,
-	Clock,
 	Eye,
 	Funnel,
 	MagnifyingGlass,
@@ -26,7 +25,6 @@ import RichTextHtml from '../components/RichTextHtml';
 
 const PASSING_ACCENT = '#22c55e';
 const FAILING_ACCENT = '#ef4444';
-const REVIEW_ACCENT = '#f59e0b';
 const DEFAULT_ACCENT = '#5b72ff';
 
 function asArray(value) {
@@ -66,20 +64,10 @@ function getCourseTitle(result) {
 }
 
 function isPendingReview(result) {
-	return Boolean(result?.needs_manual_review || result?.status === 'pending_review');
+	return Boolean((result?.needs_manual_review || result?.status === 'pending_review') && !result?.reviewed_at);
 }
 
 function getResultState(result) {
-	if (isPendingReview(result) && !result?.reviewed_at) {
-		return {
-			key: 'review',
-			label: 'In verificare',
-			tone: 'review',
-			icon: <Clock size={16} weight="bold" aria-hidden />,
-			accent: REVIEW_ACCENT,
-		};
-	}
-
 	if (result?.passed) {
 		return {
 			key: 'passed',
@@ -92,17 +80,11 @@ function getResultState(result) {
 
 	return {
 		key: 'failed',
-		label: 'Nepromovat',
+		label: 'Nefinalizat',
 		tone: 'failed',
 		icon: <XCircle size={16} weight="bold" aria-hidden />,
 		accent: FAILING_ACCENT,
 	};
-}
-
-function getManualEntry(result, questionId) {
-	const scores = result?.manual_review_scores;
-	if (!scores || typeof scores !== 'object') return null;
-	return scores[questionId] ?? scores[String(questionId)] ?? null;
 }
 
 function renderValueList(values, itemLookup) {
@@ -146,10 +128,7 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 	const hasOptions = options.length > 0 && !['matching', 'ordering'].includes(type);
 	const correctness = question.is_correct;
 	const hasAutoStatus = !submittedOnly && typeof correctness === 'boolean';
-	const manualEntry = getManualEntry(result, question.id);
-	const manualScore = typeof manualEntry === 'object' ? manualEntry?.score : manualEntry;
-	const manualFeedback = typeof manualEntry === 'object' ? manualEntry?.feedback : null;
-	const statusClass = submittedOnly ? 'submitted' : (hasAutoStatus ? (correctness ? 'correct' : 'incorrect') : 'pending');
+	const statusClass = submittedOnly ? 'submitted' : (hasAutoStatus ? (correctness ? 'correct' : 'incorrect') : 'submitted');
 	const matching = question.matching;
 	const ordering = question.ordering;
 	const rightLookup = useMemo(
@@ -179,9 +158,7 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 					<span className={`exam-result-question-status ${correctness ? 'correct' : 'incorrect'}`}>
 						{correctness ? 'Corect' : 'Incorect'}
 					</span>
-				) : submittedOnly ? null : (
-					<span className="exam-result-question-status pending">Evaluare manuala</span>
-				)}
+				) : null}
 			</div>
 
 			<RichTextHtml
@@ -266,13 +243,6 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 				</div>
 			)}
 
-			{manualScore !== null && manualScore !== undefined && (
-				<div className="exam-result-manual-review reviewed">
-					Punctaj manual: {manualScore}
-					{manualFeedback ? <span> - {manualFeedback}</span> : null}
-				</div>
-			)}
-
 			{!submittedOnly && question.explanation && (
 				<div className="exam-result-explanation">
 					<strong>Explicatie:</strong>{' '}
@@ -299,7 +269,7 @@ const ExamResultsPage = () => {
 			setLoading(true);
 			setError(null);
 			const data = await examResultsService.getAll();
-			const list = Array.isArray(data) ? data : [];
+			const list = (Array.isArray(data) ? data : []).filter((row) => !isPendingReview(row));
 			setResults(list);
 			if (!selectedKey && list.length > 0) {
 				const first = list[0];
@@ -372,12 +342,11 @@ const ExamResultsPage = () => {
 
 	const stats = useMemo(() => {
 		const passed = results.filter((result) => getResultState(result).key === 'passed').length;
-		const review = results.filter((result) => getResultState(result).key === 'review').length;
 		const failed = results.filter((result) => getResultState(result).key === 'failed').length;
 		const average = results.length
 			? Math.round(results.reduce((sum, result) => sum + toNumber(result.percentage), 0) / results.length)
 			: 0;
-		return { passed, failed, review, average };
+		return { passed, failed, average };
 	}, [results]);
 
 	// Never display the previous attempt's answers while the new selection is loading.
@@ -388,7 +357,6 @@ const ExamResultsPage = () => {
 	const submittedOnly = Boolean(activeResult?.show_only_submitted_answers);
 	const questions = asArray(activeResult?.exam?.questions);
 	const questionStats = useMemo(() => countAutoGradedQuestions(questions), [questions]);
-	const overallFeedback = activeResult?.manual_review_scores?._meta?.overall_feedback || null;
 	const officialCorrect = toNumber(activeResult?.correct_answers_count);
 	const officialTotal = toNumber(activeResult?.total_questions);
 	const hasOfficialBreakdown = officialTotal > 0 && activeResult?.correct_answers_count != null;
@@ -409,28 +377,21 @@ const ExamResultsPage = () => {
 			<section className="exam-results-page-header">
 				<div className="exam-results-page-header-main">
 					<div className="exam-results-page-header-copy">
-						<span className="exam-results-eyebrow">Student</span>
+						<span className="exam-results-eyebrow">Utilizator</span>
 						<h1 className="exam-results-page-title">Rezultate teste</h1>
-						<p className="exam-results-page-subtitle">
-							Urmareste scorurile, incercarile si raspunsurile salvate pentru testele finalizate.
-						</p>
 					</div>
 					<div className="exam-results-page-header-stats">
 						<div className="exam-results-page-header-stat">
 							<strong>{results.length}</strong>
 							<span>Total</span>
 						</div>
-						<div className="exam-results-page-header-stat is-success">
-							<strong>{stats.passed}</strong>
-							<span>Promovate</span>
-						</div>
 						<div className="exam-results-page-header-stat is-danger">
 							<strong>{stats.failed}</strong>
-							<span>Nepromovate</span>
+							<span>Nefinalizate</span>
 						</div>
-						<div className="exam-results-page-header-stat is-warning">
-							<strong>{stats.review}</strong>
-							<span>In review</span>
+						<div className="exam-results-page-header-stat is-success">
+							<strong>{stats.average}%</strong>
+							<span>Medie</span>
 						</div>
 					</div>
 				</div>
@@ -475,8 +436,7 @@ const ExamResultsPage = () => {
 						<select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} className="exam-results-select">
 							<option value="all">Toate</option>
 							<option value="passed">Promovate</option>
-							<option value="failed">Nepromovate</option>
-							<option value="review">In review</option>
+							<option value="failed">Nefinalizate</option>
 						</select>
 						<select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="exam-results-select">
 							<option value="recent">Recente</option>
@@ -590,11 +550,6 @@ const ExamResultsPage = () => {
 										<div className="exam-result-score-display-date">{formatDate(activeResult.completed_at)}</div>
 									</div>
 								</div>
-								{overallFeedback && (
-									<div className="exam-result-manual-review reviewed">
-										Feedback general: {overallFeedback}
-									</div>
-								)}
 							</div>
 
 							{loadingDetails ? (

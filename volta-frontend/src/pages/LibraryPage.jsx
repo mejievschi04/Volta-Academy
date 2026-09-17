@@ -272,10 +272,6 @@ const LibraryPage = () => {
 			<header className="library-page-header">
 				<div className="library-page-header-copy">
 					<h1 className="library-page-title">Bibliotecă</h1>
-					<p className="library-page-lead">
-						Materiale partajate: cărți, documente, articole și ghiduri. Toți utilizatorii autentificați pot citi
-						și descărca. Administratorii și instructorii pot încărca fișiere sau scrie direct în bibliotecă.
-					</p>
 				</div>
 				{canUpload && (
 					<div className="library-page-header-actions">

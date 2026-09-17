@@ -15,9 +15,9 @@ class LessonController extends Controller
     {
         $isStaff = LearningVisibility::isStaffRequest($request);
 
-        $query = Lesson::with([
+		$query = Lesson::with([
             'course',
-            'module',
+            'module.course',
             'contentBlocks' => function ($q) {
                 $q->orderBy('order')
                     ->where(function ($q) {
@@ -61,16 +61,17 @@ class LessonController extends Controller
         }
 
         $user = $request->user();
+        $course = $lesson->module?->course ?: $lesson->course;
         if (
             $user
             && ! LearningVisibility::isStaff($user)
             && ! (bool) ($lesson->is_preview ?? false)
-            && $lesson->course
+            && $course
             && ! app(\App\Services\CourseProgressService::class)->isLessonUnlocked(
                 $user,
                 $lesson,
                 $lesson->module,
-                $lesson->course
+                $course
             )
         ) {
             return response()->json([

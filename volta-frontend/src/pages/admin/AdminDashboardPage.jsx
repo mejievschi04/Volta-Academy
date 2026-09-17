@@ -240,7 +240,7 @@ const AdminDashboardPage = () => {
 					<strong>{numberFormatter.format(Number(row.sesiuni || 0))}</strong>
 				</p>
 				<p className="dashboard-chart-tooltip-row">
-					<span>Elevi unici</span>
+					<span>Utilizatori unici</span>
 					<strong>{numberFormatter.format(Number(row.elevi || 0))}</strong>
 				</p>
 			</div>
@@ -277,12 +277,12 @@ const AdminDashboardPage = () => {
 
 			<section className="admin-dashboard-clean-hero">
 				<article className="hero-stat">
-					<p className="hero-stat-label">Total elevi</p>
+					<p className="hero-stat-label">Total utilizatori</p>
 					<p className="hero-stat-value">{formatNumber(totalUsersNum)}</p>
 					<p className="hero-stat-meta">Înregistrați în platformă</p>
 				</article>
 				<article className="hero-stat">
-					<p className="hero-stat-label">Elevi activi</p>
+					<p className="hero-stat-label">Utilizatori activi</p>
 					<p className="hero-stat-value">{formatNumber(activeUsersNum)}</p>
 					<p className="hero-stat-meta">Activitate în {periodLabel.toLowerCase()}</p>
 				</article>
@@ -317,7 +317,7 @@ const AdminDashboardPage = () => {
 			<section className="admin-dashboard-clean-grid">
 				<article className="clean-card">
 					<header className="clean-card-header">
-						<h2>Total elevi în platformă</h2>
+						<h2>Total utilizatori în platformă</h2>
 						<span>{periodLabel}</span>
 					</header>
 					<div className="chart-modern-line">
@@ -334,7 +334,7 @@ const AdminDashboardPage = () => {
 									<XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} />
 									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={44} />
 									<Tooltip content={renderTooltip} />
-									<Area type="monotone" dataKey="totalUsers" stroke="var(--color-primary)" strokeWidth={2.2} fill="url(#overviewAreaFill)" name="Total elevi" />
+									<Area type="monotone" dataKey="totalUsers" stroke="var(--color-primary)" strokeWidth={2.2} fill="url(#overviewAreaFill)" name="Total utilizatori" />
 								</AreaChart>
 							</ResponsiveContainer>
 						</div>
@@ -395,14 +395,14 @@ const AdminDashboardPage = () => {
 						<div className="funnel-kpi-foot">
 							<span>Rată finalizare KPI: <strong>{completionRate}</strong></span>
 							<span className="funnel-kpi-foot-sep" aria-hidden>·</span>
-							<span>Total elevi: <strong>{formatNumber(totalUsersNum)}</strong></span>
+							<span>Total utilizatori: <strong>{formatNumber(totalUsersNum)}</strong></span>
 						</div>
 					</div>
 				</article>
 
 				<article className="clean-card">
 					<header className="clean-card-header">
-						<h2>Activitate elevi</h2>
+						<h2>Activitate utilizatori</h2>
 						<span>{periodLabel}</span>
 					</header>
 					<div className="chart-modern-line chart-modern-line-multi">
@@ -413,8 +413,8 @@ const AdminDashboardPage = () => {
 									<XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={28} />
 									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={38} />
 									<Tooltip content={renderTooltip} />
-									<Line type="monotone" dataKey="activeUsers" name="Elevi activi" stroke="var(--color-primary)" strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} />
-									<Line type="monotone" dataKey="newUsers" name="Elevi noi" stroke="var(--text-secondary)" strokeWidth={2.1} dot={false} activeDot={{ r: 3.5 }} />
+									<Line type="monotone" dataKey="activeUsers" name="Utilizatori activi" stroke="var(--color-primary)" strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} />
+									<Line type="monotone" dataKey="newUsers" name="Utilizatori noi" stroke="var(--text-secondary)" strokeWidth={2.1} dot={false} activeDot={{ r: 3.5 }} />
 									<Line type="monotone" dataKey="enrollments" name="Înscrieri noi" stroke="var(--color-success)" strokeWidth={2.1} dot={false} activeDot={{ r: 3.5 }} />
 								</LineChart>
 							</ResponsiveContainer>
@@ -424,8 +424,8 @@ const AdminDashboardPage = () => {
 							<span>{lastLabel}</span>
 						</div>
 						<div className="chart-modern-legend">
-							<span><i className="legend-dot legend-users" />Elevi activi</span>
-							<span><i className="legend-dot legend-active" />Elevi noi</span>
+							<span><i className="legend-dot legend-users" />Utilizatori activi</span>
+							<span><i className="legend-dot legend-active" />Utilizatori noi</span>
 							<span><i className="legend-dot legend-success" />Înscrieri noi</span>
 						</div>
 						{!hasChartData ? <p className="chart-modern-empty">Nu există date pentru perioada selectată.</p> : null}

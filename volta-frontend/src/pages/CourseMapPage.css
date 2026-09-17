@@ -731,8 +731,8 @@
 @media (max-width: 768px) {
 	.course-map-page {
 		overflow-x: clip;
-		min-height: 100dvh;
-		padding-bottom: env(safe-area-inset-bottom, 0);
+		min-height: 0;
+		padding-bottom: 0;
 	}
 
 	.course-map-page-header {
@@ -779,7 +779,7 @@
 	}
 
 	.course-map-page-content {
-		padding: var(--space-4) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom, 0));
+		padding: var(--space-4);
 		max-width: none;
 	}
 

@@ -19,12 +19,13 @@ import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocks
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
+import { useLessonReadCompletion } from '../hooks/useLessonReadCompletion';
+import { LESSON_READ_MILESTONES } from '../utils/lessonReadCompletion';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
+import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import './LessonPage.css';
-
-const LESSON_MILESTONES = [25, 50, 75, 100];
 
 const STUDY_TOOL_OPTIONS = [
 	{ id: 'summary', label: 'Rezumat' },
@@ -57,7 +58,6 @@ const LessonPage = () => {
 	const [isCompleting, setIsCompleting] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
-	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
 	const [studyToolLoading, setStudyToolLoading] = useState('');
 	const [studyToolResult, setStudyToolResult] = useState(null);
 	const [studyToolError, setStudyToolError] = useState('');
@@ -66,6 +66,12 @@ const LessonPage = () => {
 		userId: user?.id,
 		isCompleted,
 		enabled: Boolean(user?.id && lessonId && !['admin', 'analyst'].includes(user?.actualRole || user?.role || '')),
+	});
+
+	const { reachedMilestones } = useLessonReadCompletion({
+		contentRef,
+		lessonId,
+		enabled: Boolean(lesson && user?.id && !isCompleted && !isCompleting && !loading),
 	});
 
 	const completeCurrentLesson = useCallback(async () => {
@@ -96,34 +102,57 @@ const LessonPage = () => {
 	}, [lessonId, loading]);
 
 	useEffect(() => {
-		setReachedMilestones(new Set());
 		sentMilestonesRef.current = new Set();
+		setIsCompleted(false);
 	}, [lessonId]);
 
 	useEffect(() => {
-		const pendingMilestones = LESSON_MILESTONES.filter(
+		const pendingMilestones = LESSON_READ_MILESTONES.filter(
 			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
 		);
 
 		if (!pendingMilestones.length) return;
 
-		pendingMilestones.forEach((milestone) => sentMilestonesRef.current.add(milestone));
+		pendingMilestones.forEach((milestone) => {
+			if (milestone < 100) sentMilestonesRef.current.add(milestone);
+		});
 
 		let cancelled = false;
 
 		const syncMilestones = async () => {
 			for (const milestone of pendingMilestones) {
+				if (milestone >= 100) {
+					for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
+						try {
+							const response = await courseProgressService.updateLessonProgress(lessonId, {
+								milestone,
+								milestone_reached: milestone,
+								progress_percentage: milestone,
+							});
+							if (cancelled) return;
+							if (response?.completed || response?.auto_completed) {
+								sentMilestonesRef.current.add(100);
+								setIsCompleted(true);
+								return;
+							}
+						} catch {
+							if (cancelled) return;
+						}
+						await new Promise((resolve) => setTimeout(resolve, 1500));
+					}
+					continue;
+				}
+
 				try {
 					const response = await courseProgressService.updateLessonProgress(lessonId, {
 						milestone,
 						milestone_reached: milestone,
 						progress_percentage: milestone,
-						completed: milestone >= 100,
 					});
 
 					if (cancelled) return;
 
-					if (response?.completed || response?.auto_completed || milestone >= 100) {
+					if (response?.completed || response?.auto_completed) {
 						setIsCompleted(true);
 					}
 				} catch  {
@@ -139,80 +168,6 @@ const LessonPage = () => {
 			cancelled = true;
 		};
 	}, [lessonId, reachedMilestones]);
-
-	// Auto-complete on scroll
-	useEffect(() => {
-		if (!lesson || isCompleted || isCompleting) return;
-
-	
-		const checkCompletion = () => {
-			if (isCompleted || isCompleting) return;
-
-			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
-			if (!markers.length) return;
-
-			const footerOffset = window.innerWidth <= 768 ? 72 : 0;
-			const viewportBottom = window.innerHeight - footerOffset;
-			const seen = [];
-
-			markers.forEach((marker) => {
-				const milestone = Number(marker.dataset.lessonMilestone);
-				if (!Number.isFinite(milestone)) return;
-				const rect = marker.getBoundingClientRect();
-				if (rect.top <= viewportBottom) {
-					seen.push(milestone);
-				}
-			});
-
-			if (seen.length) {
-				setReachedMilestones((prev) => {
-					const next = new Set(prev);
-					seen.forEach((value) => next.add(value));
-					return next.size === prev.size ? prev : next;
-				});
-			}
-		};
-
-		// Throttle scroll events
-		let ticking = false;
-		const throttledScroll = () => {
-			if (!ticking) {
-				window.requestAnimationFrame(() => {
-					checkCompletion();
-					ticking = false;
-				});
-				ticking = true;
-			}
-		};
-
-		const scrollRoot =
-			contentRef.current?.closest('.va-shell-main') ||
-			contentRef.current?.closest('.va-main');
-
-		const onScroll = () => throttledScroll();
-		if (scrollRoot) {
-			scrollRoot.addEventListener('scroll', onScroll, { passive: true });
-		}
-		window.addEventListener('scroll', onScroll, { passive: true });
-		window.addEventListener('resize', onScroll, { passive: true });
-
-		const checkInitial = setTimeout(() => {
-			checkCompletion();
-		}, 500);
-
-		if (contentRef.current) {
-			checkCompletion();
-		}
-
-		return () => {
-			if (scrollRoot) {
-				scrollRoot.removeEventListener('scroll', onScroll);
-			}
-			window.removeEventListener('scroll', onScroll);
-			window.removeEventListener('resize', onScroll);
-			clearTimeout(checkInitial);
-		};
-	}, [lesson, isCompleted, isCompleting, reachedMilestones]);
 
 	const fetchLessonData = async () => {
 		try {
@@ -500,16 +455,7 @@ const LessonPage = () => {
 
 					{/* Lesson Content */}
 					<div className="lesson-page-body" ref={contentRef}>
-						{LESSON_MILESTONES.map((milestone) => (
-							<div
-								key={`lesson-milestone-${milestone}`}
-								className="lesson-progress-marker"
-								data-lesson-milestone={milestone}
-								style={{ top: `${milestone}%` }}
-								aria-hidden="true"
-							/>
-						))}
-
+						<LessonReadTrackers>
 						{(() => {
 							const blocks = lesson.content_blocks ?? lesson.contentBlocks ?? [];
 							const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
@@ -541,6 +487,7 @@ const LessonPage = () => {
 								</div>
 							);
 						})()}
+						</LessonReadTrackers>
 					</div>
 
 					{user?.actualRole === 'admin' && user?.role === 'admin' && (
@@ -585,13 +532,6 @@ const LessonPage = () => {
 
 					<div className="lesson-page-actions" role="navigation" aria-label="Navigare lecții">
 						<button type="button" className="lesson-page-btn lesson-page-btn-secondary" disabled={previousLessonTarget == null || finalizingCourse} onClick={() => navigate(`/courses/${courseId}/lessons/${previousLessonTarget}`)}><ArrowLeft size={20} weight="bold" aria-hidden /><span>Anterioară</span></button>
-						{isCompleted && (
-							<div className="lesson-page-completed-badge">
-								<Check size={20} weight="bold" aria-hidden />
-								<span>Lecție completată</span>
-							</div>
-						)}
-						
 						<button
 							type="button"
 							className="lesson-page-btn lesson-page-btn-primary"

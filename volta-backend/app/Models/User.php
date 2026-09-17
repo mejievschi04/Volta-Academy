@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Support\CourseUserPivot;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -53,7 +54,7 @@ class User extends Authenticatable
 
     public function assignedCourses() {
         return $this->belongsToMany(Course::class, 'course_user')
-                    ->withPivot('is_mandatory', 'assigned_at', 'enrolled', 'enrolled_at', 'started_at', 'completed_at', 'progress_percentage')
+                    ->withPivot(CourseUserPivot::columns())
                     ->withTimestamps();
     }
 

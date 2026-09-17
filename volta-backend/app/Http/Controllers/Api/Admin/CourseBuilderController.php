@@ -306,13 +306,18 @@ class CourseBuilderController extends Controller
         ]);
 
         if (! empty($validated['expected_updated_at']) && $lesson->updated_at) {
-            $expected = \Carbon\Carbon::parse($validated['expected_updated_at'])->timestamp;
-            if (abs($lesson->updated_at->timestamp - $expected) > 1) {
-                return response()->json([
-                    'message' => 'Lecția a fost modificată între timp. Reîncarcă și aplică din nou.',
-                    'conflict' => true,
-                    'lesson' => $lesson->fresh(),
-                ], 409);
+            try {
+                $expected = \Carbon\Carbon::parse($validated['expected_updated_at'])->utc()->timestamp;
+                $actual = $lesson->updated_at->clone()->utc()->timestamp;
+                if (abs($actual - $expected) > 2) {
+                    return response()->json([
+                        'message' => 'Lecția a fost modificată între timp. Reîncarcă și aplică din nou.',
+                        'conflict' => true,
+                        'lesson' => $lesson->fresh(),
+                    ], 409);
+                }
+            } catch (\Throwable $e) {
+                // Timestamp invalid — nu bloca salvarea din editor.
             }
         }
         unset($validated['expected_updated_at']);

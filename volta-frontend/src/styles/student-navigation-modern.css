@@ -298,46 +298,6 @@
 }
 
 /* ============================================
-   STUDENT CALENDAR (topnav) — același limbaj vizual ca notificările / admin
-   (clasa e partajată cu AdminTopNavControls; CSS-ul admin nu se încarcă pentru studenți)
-   ============================================ */
-.va-shell-topnav .admin-topnav-calendar-btn {
-	width: 40px;
-	height: 40px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	padding: 0;
-	margin: 0;
-	background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-elevated) 100%);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-secondary);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.va-shell-topnav .admin-topnav-calendar-btn:hover {
-	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
-	border-color: var(--color-primary);
-	color: var(--color-primary);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.15);
-	transform: translateY(-1px);
-}
-
-.va-shell-topnav .admin-topnav-calendar-btn:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
-}
-
-.va-shell-topnav .admin-topnav-calendar-btn svg {
-	flex-shrink: 0;
-	display: block;
-}
-
-/* ============================================
    STUDENT NOTIFICATIONS (topnav)
    ============================================ */
 .va-shell-topnav .va-topnav-notifications,
@@ -529,13 +489,17 @@
    2. STUDENT MAIN CONTENT AREA
    ============================================ */
 .va-shell-topnav .va-shell-main {
-	padding-top: 64px; /* Compensate for fixed topnav (64px height) */
-	padding-bottom: 0 !important; /* Elimină bara neagră */
-	height: calc(100vh - 64px);
-	min-height: calc(100vh - 64px);
+	padding-top: var(--app-header-height, 64px);
+	padding-bottom: 0 !important;
+	margin-top: 0;
+	height: 100vh;
+	height: 100dvh;
+	min-height: 100vh;
+	min-height: 100dvh;
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 	background-color: var(--bg-primary) !important;
+	box-sizing: border-box;
 }
 
 .va-shell-topnav .va-main {
@@ -588,7 +552,7 @@
 .va-shell-topnav .unified-course-page,
 .va-shell-topnav .student-achievements-page,
 .va-shell-topnav .events-page {
-	padding: var(--space-2) var(--space-8);
+	padding: var(--space-2) var(--space-8) var(--space-8);
 	height: 100%;
 	overflow-y: auto; /* Allow scroll within container */
 	max-width: 1600px;
@@ -690,48 +654,7 @@
 	}
 }
 
-/* Pagina test — mobile: body scroll, footer fix în shell */
-@media (max-width: 768px) {
-	.va-shell-topnav:has(.student-exam-page) .va-shell-main,
-	.va-shell-topnav:has(.student-exam-page) .va-main {
-		display: flex !important;
-		flex-direction: column !important;
-		height: 100dvh !important;
-		max-height: 100dvh !important;
-		min-height: 0 !important;
-		padding-top: 64px !important;
-		padding-bottom: 0 !important;
-		box-sizing: border-box !important;
-		overflow: hidden !important;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-page {
-		display: flex;
-		flex-direction: column;
-		flex: 1 1 auto;
-		width: 100%;
-		max-width: 1600px;
-		margin: 0 auto;
-		min-height: 0;
-		max-height: 100%;
-		overflow: hidden;
-		box-sizing: border-box;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-body {
-		flex: 1 1 0;
-		min-height: 0;
-		overflow-x: clip;
-		overflow-y: auto;
-		-webkit-overflow-scrolling: touch;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-footer {
-		flex-shrink: 0;
-	}
-}
-
-
+/* Pagina test — mobile: conținutul scrollează între header și footer, fără overlap */
 /* ============================================
    4. RESPONSIVE DESIGN
    ============================================ */
@@ -739,7 +662,7 @@
 	.va-shell-topnav .modern-topnav,
 	.va-shell-topnav .va-topnav {
 		padding: 0 var(--space-4);
-		height: 56px;
+		height: var(--app-header-height, 56px);
 		display: flex !important;
 		visibility: visible !important;
 		opacity: 1 !important;
@@ -759,54 +682,78 @@
 	}
 
 	.va-shell-topnav .va-shell-main {
-		padding-top: 56px !important; /* Mobile topnav height */
+		margin-top: var(--app-header-height, 56px) !important;
+		padding-top: 0 !important; /* Mobile topnav height */
+		overflow-y: auto !important;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior-y: contain;
 	}
 
-	/* Messages page - mobile topnav 56px, full viewport */
-	.va-shell-topnav:has(.messages-page) .va-shell-main,
-	.va-shell-topnav:has(.messages-page) .va-main {
-		height: 100dvh !important;
-		min-height: 100dvh !important;
-		padding-top: 56px !important;
-		padding-bottom: 0 !important;
+	.va-shell-topnav:has(.student-exam-page) .va-shell-main {
+		margin-top: 0 !important;
+		padding-top: var(--app-header-height, 56px) !important;
+		overflow: hidden !important;
+	}
+
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs):not(:has(.messages-page)):not(:has(.student-exam-page)) .va-main,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .courses-page-modern,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .courses-page-student-main,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .courses-page-content,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .course-map-page,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .events-page,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .lessons-page {
+		height: auto !important;
+		max-height: none !important;
+		min-height: 0 !important;
+		overflow: visible !important;
+	}
+
+	/* Messages: fill the shell (already below header and above tabs).
+	   margin-top only on the shell main — applying it to .va-main too left a blank band. */
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs):has(.messages-page) .va-shell-main {
+		display: flex !important;
+		flex-direction: column !important;
+		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px)) !important;
+		min-height: 0 !important;
+		max-height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px)) !important;
+		margin-top: var(--app-header-height, 56px) !important;
+		padding: 0 !important;
 		box-sizing: border-box !important;
 		overflow: hidden !important;
 	}
 
-	.va-shell-topnav .messages-page {
-		position: fixed !important;
-		top: 56px !important;
-		left: 0 !important;
-		right: 0 !important;
-		bottom: 0 !important;
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs):has(.messages-page) .va-main {
+		display: flex !important;
+		flex-direction: column !important;
+		flex: 1 1 auto !important;
+		width: 100% !important;
+		height: 100% !important;
+		min-height: 0 !important;
+		max-height: 100% !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		box-sizing: border-box !important;
+		overflow: hidden !important;
+	}
+
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .messages-page,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .messages-container {
+		position: relative !important;
+		top: auto !important;
+		left: auto !important;
+		right: auto !important;
+		bottom: auto !important;
+		flex: 1 1 auto !important;
 		width: 100% !important;
 		max-width: 100% !important;
-		height: auto !important;
+		height: 100% !important;
 		min-height: 0 !important;
 		margin: 0 !important;
 		border-left: none !important;
+		overflow: hidden !important;
 	}
 
-	/* Pagina test pe mobile — 100dvh cu padding topnav (box-sizing) */
-	.va-shell-topnav:has(.student-exam-page) .va-shell-main,
-	.va-shell-topnav:has(.student-exam-page) .va-main {
-		height: 100dvh !important;
-		max-height: 100dvh !important;
-		padding-top: 56px !important;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-page {
-		padding: 0 !important;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-body {
-		padding: var(--space-3) var(--space-4) !important;
-	}
-
-	.va-shell-topnav:has(.student-exam-page) .student-exam-footer {
-		padding-left: var(--space-4) !important;
-		padding-right: var(--space-4) !important;
-	}
+	/* Pagina test pe mobile — același crom ca restul aplicației */
 
 	/* Nav principal e în drawer; topnav = hamburger + titlu + acțiuni */
 	.va-shell-topnav .modern-topnav-nav.desktop-only,

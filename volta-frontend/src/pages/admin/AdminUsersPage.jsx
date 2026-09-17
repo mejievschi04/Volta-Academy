@@ -151,6 +151,12 @@ const AdminUsersPage = () => {
 			if (!dataToSend.password || dataToSend.password === '') {
 				delete dataToSend.password;
 			}
+			if (!dataToSend.team_id) {
+				delete dataToSend.team_id;
+			}
+			if (!dataToSend.bio) {
+				delete dataToSend.bio;
+			}
 
 			if (editingUser) {
 				// Do not change team on update in this flow
@@ -462,6 +468,7 @@ const AdminUsersPage = () => {
 												</div>
 												<div>
 													<div className="admin-users-table-cell-name" title={user.name}>{user.name}</div>
+													<div className="admin-users-table-cell-email-stacked" title={user.email}>{user.email}</div>
 													{user.bio && (
 														<div className="admin-users-table-cell-bio">
 															{user.bio.substring(0, 50)}{user.bio.length > 50 ? '...' : ''}

@@ -1238,6 +1238,11 @@ export const adminService = {
     const response = await api.get(`/admin/users/${id}`);
     return response.data;
   },
+
+  markCourseCompleted: async (userId, courseId) => {
+    const response = await api.post(`/admin/users/${userId}/courses/${courseId}/complete`);
+    return response.data;
+  },
   
   createUser: async (userData) => {
     const response = await api.post('/admin/users', userData);
@@ -1791,7 +1796,7 @@ export const messagesService = {
       return response.data;
     } catch (error) {
       // Silently fail if endpoint doesn't exist
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 || error.response?.status === 429) {
         return { success: true };
       }
       throw error;

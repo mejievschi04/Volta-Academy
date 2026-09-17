@@ -95,7 +95,6 @@ const ExamPage = () => {
 	const [isMobile, setIsMobile] = useState(() =>
 		typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
 	);
-	const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
 	const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [congratsCourseTitle, setCongratsCourseTitle] = useState('');
@@ -198,7 +197,6 @@ const ExamPage = () => {
 			// În timpul testului nu dezvăluim varianta corectă (UI nu folosește answerIndex până la submit).
 			// După trimitere afișăm mereu rezumatul: corect/greșit, răspunsul tău și (dacă e cazul) varianta corectă.
 			setCurrentQuestionIndex(0);
-			setFlaggedQuestions(new Set());
 			setError(null);
 		} catch (err) {
 			const errorMessage = handleApiError(err, 'fetchExam');
@@ -452,19 +450,6 @@ const ExamPage = () => {
 		}));
 	}, []);
 
-	// Toggle flag
-	const toggleFlag = useCallback((questionId) => {
-		setFlaggedQuestions(prev => {
-			const newSet = new Set(prev);
-			if (newSet.has(questionId)) {
-				newSet.delete(questionId);
-			} else {
-				newSet.add(questionId);
-			}
-			return newSet;
-		});
-	}, []);
-
 	// Scroll to question
 	const scrollToQuestion = useCallback((index) => {
 		if (!exam?.questions || index < 0 || index >= exam.questions.length) return;
@@ -530,10 +515,6 @@ const ExamPage = () => {
 			.map((q, idx) => (isChoiceAnswered(q, answers[q.id]) ? null : idx))
 			.filter((idx) => idx !== null);
 	}, [exam, answers]);
-
-	const questionProgressPercent = exam?.questions?.length
-		? Math.round((answeredQuestionsCount / exam.questions.length) * 100)
-		: 0;
 
 	// Get question status
 	const getQuestionStatus = useCallback((questionId, index) => {
@@ -719,16 +700,17 @@ const ExamPage = () => {
                 if (index >= 0) setCurrentQuestionIndex(index);
             }}>
                 {error && <p role="alert" className="student-exam-error">{error}</p>}
-			{/* Back link */}
-			{courseId ? (
-				<Link to={`/courses/${courseId}`} className="student-exam-back-link">
-					← Înapoi la curs
-				</Link>
-			) : (
-				<Link to="/courses" className="student-exam-back-link">
-					← Înapoi la mape
-				</Link>
-			)}
+			{submitted ? (
+				courseId ? (
+					<Link to={`/courses/${courseId}`} className="student-exam-back-link student-exam-back-link--accent">
+						← Înapoi la curs
+					</Link>
+				) : (
+					<Link to="/courses" className="student-exam-back-link student-exam-back-link--accent">
+						← Înapoi la mape
+					</Link>
+				)
+			) : null}
 
 			{!(isMobile && submitted && result) && (
 			<div className="student-exam-header student-exam-header-compact">
@@ -741,12 +723,6 @@ const ExamPage = () => {
 					)}
 				</div>
 
-				{mobileSingleQuestion && (
-					<p className="student-exam-mobile-q-label">
-						Întrebarea {currentQuestionIndex + 1} din {exam.questions.length}
-					</p>
-				)}
-
 				{exam.current_attempt > 0 && (
 					<div className="student-exam-attempt-info">
 						<span>Încercare {exam.current_attempt}</span>
@@ -757,48 +733,22 @@ const ExamPage = () => {
 						)}
 					</div>
 				)}
-
-				{!submitted && exam.questions.length > 0 && (
-					<div className="student-exam-desktop-meta">
-						<div className="student-exam-desktop-meta-text">
-							<span className="student-exam-desktop-meta-count">
-								{answeredQuestionsCount} / {exam.questions.length} răspunsuri
-							</span>
-							{isSequentialNavigation && (
-								<span className="student-exam-desktop-meta-seq">
-									Întrebarea {currentQuestionIndex + 1} din {exam.questions.length}
-								</span>
-							)}
-						</div>
-						<div
-							className="student-exam-desktop-progress"
-							role="progressbar"
-							aria-valuenow={questionProgressPercent}
-							aria-valuemin={0}
-							aria-valuemax={100}
-							aria-label="Progres răspunsuri"
-						>
-							<div
-								className="student-exam-desktop-progress-fill"
-								style={{ width: `${questionProgressPercent}%` }}
-							/>
-						</div>
-					</div>
-				)}
 			</div>
 			)}
 
 			{/* Navigator + Questions */}
 			{!submitted && (
 				<div className="student-exam-layout">
-					<details className="exam-question-overview" open={isMobile ? undefined : true}>
-					<summary>Întrebări · {answeredQuestionsCount}/{exam.questions.length} completate · {flaggedQuestions.size} de revăzut</summary>
+					{!isMobile ? (
+					<details className="exam-question-overview" open>
+					<summary>
+						Întrebări
+					</summary>
 					<aside className="student-exam-nav" aria-label="Navigare întrebări">
 						<div className="student-exam-nav-title">Întrebări</div>
 						<div className="student-exam-nav-list">
 							{exam.questions.map((q, idx) => {
 								const status = getQuestionStatus(q.id, idx);
-								const isFlagged = flaggedQuestions.has(q.id);
 								const canJumpToQuestion =
 									isMobile || !isSequentialNavigation || idx <= currentQuestionIndex;
 								return (
@@ -806,9 +756,9 @@ const ExamPage = () => {
 										key={q.id}
 										type="button"
 										onClick={() => canJumpToQuestion && scrollToQuestion(idx)}
-										className={`student-exam-nav-item ${status === 'current' ? 'current' : ''} ${status === 'answered' ? 'answered' : ''} ${isFlagged ? 'flagged' : ''}`}
+										className={`student-exam-nav-item ${status === 'current' ? 'current' : ''} ${status === 'answered' ? 'answered' : ''}`}
 										title={`Întrebarea ${idx + 1}`}
-										aria-label={`Întrebarea ${idx + 1}, ${isChoiceAnswered(q, answers[q.id]) ? 'completată' : 'fără răspuns'}${isFlagged ? ', de revăzut' : ''}`}
+										aria-label={`Întrebarea ${idx + 1}, ${isChoiceAnswered(q, answers[q.id]) ? 'completată' : 'fără răspuns'}`}
 										aria-current={status === 'current' ? 'true' : undefined}
 										disabled={!canJumpToQuestion}
 									>
@@ -819,6 +769,7 @@ const ExamPage = () => {
 						</div>
 					</aside>
 					</details>
+					) : null}
 					<div className="student-exam-questions">
 					{visibleQuestions.map((q, idx) => {
 						const actualIndex =
@@ -828,7 +779,6 @@ const ExamPage = () => {
 							const hasOptions = Array.isArray(q.options) && q.options.length > 0;
 							const hasMatching = q.type === 'matching' && q.matching;
 							const hasOrdering = q.type === 'ordering' && q.ordering;
-							const isFlagged = flaggedQuestions.has(q.id);
 
 						return (
 							<div
@@ -837,27 +787,23 @@ const ExamPage = () => {
 								className="student-exam-question"
 							>
 								<div className="student-exam-question-header">
-									<div className="student-exam-question-number">
-										{actualIndex + 1}
-									</div>
+									{submitted ? (
+										<div className="student-exam-question-number">
+											{actualIndex + 1}
+										</div>
+									) : null}
 									<div className="student-exam-question-content">
 										<RichTextHtml
 											html={q.text}
 											className="student-exam-question-text"
 											fallback={<div className="student-exam-question-text">Întrebare fără conținut</div>}
 										/>
-										<div className="student-exam-question-meta">
-											<span className="student-exam-question-points">{q.points || 1} {q.points === 1 ? 'punct' : 'puncte'}</span>
-											{!submitted && (
-												<button
-													onClick={() => toggleFlag(q.id)}
-													className={`student-exam-question-flag ${isFlagged ? 'flagged' : ''}`}
-													title={isFlagged ? 'Elimină marcaj' : 'Marchează pentru revizie'}
-												>
-													🚩
-												</button>
-											)}
-										</div>
+										{(q.comment || q.explanation) && !submitted ? (
+											<RichTextHtml
+												html={q.comment || q.explanation}
+												className="student-exam-question-comment"
+											/>
+										) : null}
 									</div>
 								</div>
 
@@ -1003,7 +949,6 @@ const ExamPage = () => {
                 confirmOpen={confirmSubmitOpen}
                 answeredCount={answeredQuestionsCount}
                 unansweredCount={unansweredQuestionIndexes.length}
-                flaggedCount={flaggedQuestions.size}
                 onRequestSubmit={requestSubmit}
                 onConfirmSubmit={handleSubmit}
                 onCancelConfirm={() => setConfirmSubmitOpen(false)}

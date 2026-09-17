@@ -57,9 +57,6 @@ const AchievementsPage = () => {
 		<div className="student-achievements-page">
 			<div className="student-achievements-header">
 				<h1 className="student-achievements-title">Istoric Realizări</h1>
-				<p className="student-achievements-subtitle">
-					Urmărește-ți progresul și realizările în călătoria ta de învățare
-				</p>
 			</div>
 
 			{/* Statistics */}

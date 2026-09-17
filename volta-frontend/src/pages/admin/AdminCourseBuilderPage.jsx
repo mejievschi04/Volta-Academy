@@ -231,14 +231,31 @@ const AdminCourseBuilderPage = () => {
 	}, []);
 
 	const persistLessonContent = useCallback(async (lessonId, content) => {
+		const applyLessonTimestamp = (lesson) => {
+			if (lesson?.updated_at) {
+				lastPersistedLessonUpdatedAtRef.current = lesson.updated_at;
+			}
+		};
 		const run = async () => {
-			const response = await adminService.builderUpdateLesson(courseId, lessonId, {
+			const send = () => adminService.builderUpdateLesson(courseId, lessonId, {
 				content,
 				expected_updated_at: lastPersistedLessonUpdatedAtRef.current || undefined,
 			});
-			lastPersistedLessonContentRef.current = content ?? '';
-			if (response?.lesson?.updated_at) {
-				lastPersistedLessonUpdatedAtRef.current = response.lesson.updated_at;
+			try {
+				const response = await send();
+				lastPersistedLessonContentRef.current = content ?? '';
+				applyLessonTimestamp(response?.lesson);
+			} catch (e) {
+				const status = e?.response?.status;
+				const serverLesson = e?.response?.data?.lesson;
+				if (status === 409 && serverLesson) {
+					applyLessonTimestamp(serverLesson);
+					const retry = await send();
+					lastPersistedLessonContentRef.current = content ?? '';
+					applyLessonTimestamp(retry?.lesson);
+					return;
+				}
+				throw e;
 			}
 		};
 		const chained = lessonContentSaveChainRef.current.then(run, run);
@@ -271,9 +288,9 @@ const AdminCourseBuilderPage = () => {
 			}
 			setLessonSaveStatus('saved');
 		} catch (e) {
-			console.error('Lesson content save failed:', e);
+			console.error('Lesson content save failed:', e?.response?.data?.message || e?.message || e);
 			setLessonSaveStatus('error');
-			showToast('Eroare la salvarea conținutului lecției.', 'error');
+			showToast(e?.response?.data?.message || 'Eroare la salvarea conținutului lecției.', 'error');
 		}
 	}, [persistLessonContent, showToast]);
 
@@ -843,7 +860,10 @@ const AdminCourseBuilderPage = () => {
 	const handleUpdateLessonTitle = async (lessonId, newTitle) => {
 		if (!newTitle?.trim()) return;
 		try {
-			await adminService.builderUpdateLesson(courseId, lessonId, { title: newTitle.trim() });
+			const response = await adminService.builderUpdateLesson(courseId, lessonId, { title: newTitle.trim() });
+			if (response?.lesson?.updated_at) {
+				lastPersistedLessonUpdatedAtRef.current = response.lesson.updated_at;
+			}
 			showToast('Titlul lecției salvat', 'success');
 			await fetchStructure(true);
 		} catch (e) {
@@ -886,9 +906,9 @@ const AdminCourseBuilderPage = () => {
 				}
 				setLessonSaveStatus('saved');
 			} catch (e) {
-				console.error('Lesson content autosave failed:', e);
+				console.error('Lesson content autosave failed:', e?.response?.data?.message || e?.message || e);
 				setLessonSaveStatus('error');
-				showToast('Autosave eșuat pentru conținutul lecției.', 'error');
+				showToast(e?.response?.data?.message || 'Autosave eșuat pentru conținutul lecției.', 'error');
 			}
 		}, 700);
 	};
@@ -1148,7 +1168,10 @@ const AdminCourseBuilderPage = () => {
 			}
 		}
 		try {
-			await adminService.builderUpdateLesson(courseId, lessonId, { status: nextStatus });
+			const response = await adminService.builderUpdateLesson(courseId, lessonId, { status: nextStatus });
+			if (response?.lesson?.updated_at) {
+				lastPersistedLessonUpdatedAtRef.current = response.lesson.updated_at;
+			}
 			await fetchStructure(true);
 			showToast(nextStatus === 'published' ? 'Lecția a fost publicată.' : 'Lecția a fost retrasă din publicare.', 'success');
 		} catch (e) {

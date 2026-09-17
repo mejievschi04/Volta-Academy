@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands()
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('volta:backup')->hourly();
+        $schedule->command('volta:remind-invitation-expiry')->hourly();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

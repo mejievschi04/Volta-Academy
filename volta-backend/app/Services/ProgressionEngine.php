@@ -116,19 +116,29 @@ class ProgressionEngine
             return true;
         }
 
-        $previousLesson = Lesson::where('course_id', $course->id)
-            ->where('module_id', $lesson->module_id)
-            ->where('order', '<', $lesson->order)
-            ->whereIn('status', ['published', 'draft'])
-            ->orderBy('order', 'desc')
-            ->first();
+        $previousQuery = Lesson::query()
+            ->where('status', 'published')
+            ->where('id', '!=', $lesson->id)
+            ->where('order', '<', (int) ($lesson->order ?? 0))
+            ->orderByDesc('order')
+            ->orderByDesc('id');
+
+        if ($lesson->module_id) {
+            $previousQuery->where('module_id', $lesson->module_id);
+        } else {
+            $previousQuery->whereNull('module_id')->where('course_id', $course->id);
+        }
+
+        $previousLesson = $previousQuery->first();
 
         if ($previousLesson) {
-            return DB::table('lesson_progress')
+            $row = DB::table('lesson_progress')
                 ->where('user_id', $user->id)
                 ->where('lesson_id', $previousLesson->id)
-                ->where('completed', true)
-                ->exists();
+                ->first();
+
+            return (bool) ($row?->completed ?? false)
+                || (int) ($row?->progress_percentage ?? 0) >= 100;
         }
 
         return true;
@@ -151,13 +161,14 @@ class ProgressionEngine
             ->first();
 
         if ($previousModule) {
-            $lessons = $previousModule->lessons()->whereIn('status', ['published', 'draft'])->get();
+            $lessons = $previousModule->lessons()->where('status', 'published')->get();
             foreach ($lessons as $lesson) {
-                $isCompleted = DB::table('lesson_progress')
+                $row = DB::table('lesson_progress')
                     ->where('user_id', $user->id)
                     ->where('lesson_id', $lesson->id)
-                    ->where('completed', true)
-                    ->exists();
+                    ->first();
+                $isCompleted = (bool) ($row?->completed ?? false)
+                    || (int) ($row?->progress_percentage ?? 0) >= 100;
                 if (!$isCompleted) {
                     return false;
                 }

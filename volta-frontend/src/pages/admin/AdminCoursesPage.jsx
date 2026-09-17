@@ -88,7 +88,7 @@ function SortableAdminCourseCard({
 			<CourseShowcaseCard
 				imageUrl={imageUrl}
 				title={course.title || 'Curs fără titlu'}
-				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} elevi`}
+				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} utilizatori`}
 				themeHsl={accentHsl}
 				onOpen={onOpen}
 				ctaLabel="Deschide"
@@ -127,7 +127,7 @@ function StaticAdminCourseCard({
 			<CourseShowcaseCard
 				imageUrl={imageUrl}
 				title={course.title || 'Curs fără titlu'}
-				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} elevi`}
+				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} utilizatori`}
 				themeHsl={accentHsl}
 				onOpen={onOpen}
 				ctaLabel="Deschide"

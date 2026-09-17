@@ -10,10 +10,10 @@ import './AdminStatisticsHubPage.css';
 
 const MENU_ITEMS = [
 	{ id: 'ai-export', label: '⚡ Export cu Volt' },
-	{ id: 'student-progress', label: 'Progresul elevilor' },
+	{ id: 'student-progress', label: 'Progresul utilizatorilor' },
 	{ id: 'course-progress', label: 'Progres cursuri' },
 	{ id: 'test-progress', label: 'Progres teste' },
-	{ id: 'students', label: 'Elevi' },
+	{ id: 'students', label: 'Utilizatori' },
 	{ id: 'courses', label: 'Cursuri' },
 	{ id: 'tests', label: 'Teste' },
 	{ id: 'top-students', label: 'Top 10 studenți' },

@@ -329,6 +329,13 @@
 	background: rgba(239, 68, 68, 0.12);
 }
 
+@media (max-width: 768px) {
+	html:has(.student-mobile-tabs) .va-notif-drawer-panel {
+		top: var(--app-header-height, 56px);
+		bottom: var(--student-tab-height, 0px);
+	}
+}
+
 @media (max-width: 480px) {
 	.va-notif-drawer-panel {
 		--va-notif-drawer-width: 100vw;

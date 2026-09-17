@@ -171,10 +171,6 @@ const GuidesPage = () => {
 			<header className="library-page-header">
 				<div className="library-page-header-copy">
 					<h1 className="library-page-title">Ghiduri</h1>
-					<p className="library-page-lead">
-						Linkuri utile și resurse externe recomandate. Toți utilizatorii autentificați pot deschide ghidurile.
-						Administratorii și instructorii pot adăuga linkuri noi.
-					</p>
 				</div>
 				{canManage && (
 					<div className="library-page-header-actions">

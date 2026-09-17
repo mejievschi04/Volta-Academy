@@ -22,16 +22,24 @@ import CourseCongratulationsModal from '../components/student/CourseCongratulati
 import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
+import { useLessonReadCompletion } from '../hooks/useLessonReadCompletion';
+import { LESSON_READ_MILESTONES } from '../utils/lessonReadCompletion';
+import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonsPage.css';
 
-const LESSON_MILESTONES = [25, 50, 75, 100];
-
 const renderTestStatusIcon = (passed) => (
 	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
+);
+
+const renderLessonIndexIcon = (index, completed) => (
+	<div className={`lessons-page-sidebar-lesson-icon${completed ? ' has-check' : ''}`}>
+		<span>{index + 1}</span>
+		{completed ? <Check className="lessons-page-sidebar-lesson-check" size={11} weight="bold" aria-hidden /> : null}
+	</div>
 );
 
 const LessonsPage = () => {
@@ -60,7 +68,6 @@ const LessonsPage = () => {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
-	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
 
 	// Get lessonId from URL or auto-select first lesson
 	const lessonIdFromUrl = searchParams.get('lesson');
@@ -73,8 +80,8 @@ const LessonsPage = () => {
 	}, [courseId]);
 
 	useEffect(() => {
-		setReachedMilestones(new Set());
 		sentMilestonesRef.current = new Set();
+		setIsCompleted(false);
 	}, [selectedLessonId]);
 
 	// Auto-open first lesson when course loads (no lesson in URL)
@@ -144,6 +151,12 @@ const LessonsPage = () => {
 		userId: user?.id,
 		isCompleted,
 		enabled: lessonReadyForTracking && !['admin', 'analyst'].includes(user?.actualRole || user?.role || ''),
+	});
+
+	const { reachedMilestones } = useLessonReadCompletion({
+		contentRef,
+		lessonId: selectedLessonId,
+		enabled: lessonReadyForTracking && !isCompleted && !isCompleting,
 	});
 
 	const fetchCourseData = async () => {
@@ -219,7 +232,21 @@ const LessonsPage = () => {
 			const result = await courseProgressService.completeLesson(selectedLessonId);
 			setIsCompleted(true);
 			if (result?.progress) {
-				setProgress(result.progress);
+				setProgress((prev) => {
+					const next = result.progress;
+					const nextHasLessons = Boolean(next?.modules?.length || next?.root_lessons?.length);
+					const prevHasLessons = Boolean(prev?.modules?.length || prev?.root_lessons?.length);
+					if (!nextHasLessons && prevHasLessons) {
+						return {
+							...prev,
+							...next,
+							modules: prev.modules,
+							root_lessons: prev.root_lessons,
+							course_level_tests: next.course_level_tests || prev.course_level_tests,
+						};
+					}
+					return next;
+				});
 			} else {
 				await refreshCourseProgress();
 			}
@@ -249,10 +276,17 @@ const LessonsPage = () => {
 		return true;
 	};
 
-	const handleLessonClick = (lessonId, lesson = null) => {
+	const handleLessonClick = async (lessonId, lesson = null) => {
 		if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
-			showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
-			return;
+			const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
+			const isImmediateNext = nextId != null && Number(nextId) === Number(lessonId);
+			if (isImmediateNext && selectedLessonId && !isCompleted) {
+				const ok = await completeCurrentLesson();
+				if (!ok) return;
+			} else {
+				showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
+				return;
+			}
 		}
 		setSelectedLessonId(lessonId);
 		setSidebarOpen(false);
@@ -283,29 +317,55 @@ const LessonsPage = () => {
 		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
 
 	useEffect(() => {
-		const pendingMilestones = LESSON_MILESTONES.filter(
+		const pendingMilestones = LESSON_READ_MILESTONES.filter(
 			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
 		);
 
 		if (!pendingMilestones.length) return;
 
-		pendingMilestones.forEach((milestone) => sentMilestonesRef.current.add(milestone));
+		pendingMilestones.forEach((milestone) => {
+			if (milestone < 100) sentMilestonesRef.current.add(milestone);
+		});
 
 		let cancelled = false;
 
 		const syncMilestones = async () => {
 			for (const milestone of pendingMilestones) {
+				if (milestone >= 100) {
+					for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
+						try {
+							const response = await courseProgressService.updateLessonProgress(selectedLessonId, {
+								milestone,
+								milestone_reached: milestone,
+								progress_percentage: milestone,
+							});
+							if (cancelled) return;
+							if (response?.completed || response?.auto_completed) {
+								sentMilestonesRef.current.add(100);
+								setIsCompleted(true);
+								if (user?.id) {
+									await refreshCourseProgress();
+								}
+								return;
+							}
+						} catch {
+							if (cancelled) return;
+						}
+						await new Promise((resolve) => setTimeout(resolve, 1500));
+					}
+					continue;
+				}
+
 				try {
 					const response = await courseProgressService.updateLessonProgress(selectedLessonId, {
 						milestone,
 						milestone_reached: milestone,
 						progress_percentage: milestone,
-						completed: milestone >= 100,
 					});
 
 					if (cancelled) return;
 
-					if (response?.completed || response?.auto_completed || milestone >= 100) {
+					if (response?.completed || response?.auto_completed) {
 						setIsCompleted(true);
 						if (user?.id && !cancelled) {
 							await refreshCourseProgress();
@@ -324,82 +384,6 @@ const LessonsPage = () => {
 			cancelled = true;
 		};
 	}, [selectedLessonId, reachedMilestones, courseId, user?.id, refreshCourseProgress]);
-
-	// Scroll milestones — only for the lesson we're actually viewing
-	useEffect(() => {
-		if (!currentLesson || isCompleted || isCompleting) return;
-		// Must match: avoid completing the wrong lesson when switching (selectedLessonId updates before currentLesson)
-		if (currentLesson.id !== selectedLessonId) return;
-
-	
-		const checkCompletion = () => {
-			if (isCompleted || isCompleting) return;
-			if (currentLesson?.id !== selectedLessonId) return;
-
-			const markers = Array.from(contentRef.current?.querySelectorAll('[data-lesson-milestone]') || []);
-			if (!markers.length) return;
-
-			const footerOffset = window.innerWidth <= 768 ? 72 : 0;
-			const viewportBottom = window.innerHeight - footerOffset;
-			const seen = [];
-
-			markers.forEach((marker) => {
-				const milestone = Number(marker.dataset.lessonMilestone);
-				if (!Number.isFinite(milestone)) return;
-				const rect = marker.getBoundingClientRect();
-				if (rect.top <= viewportBottom) {
-					seen.push(milestone);
-				}
-			});
-
-			if (seen.length) {
-				setReachedMilestones((prev) => {
-					const next = new Set(prev);
-					seen.forEach((value) => next.add(value));
-					return next.size === prev.size ? prev : next;
-				});
-			}
-		};
-
-		let ticking = false;
-		const throttledScroll = () => {
-			if (!ticking) {
-				window.requestAnimationFrame(() => {
-					checkCompletion();
-					ticking = false;
-				});
-				ticking = true;
-			}
-		};
-
-		const scrollRoot =
-			contentRef.current?.closest('.va-shell-main') ||
-			contentRef.current?.closest('.va-main');
-
-		const onScroll = () => throttledScroll();
-		if (scrollRoot) {
-			scrollRoot.addEventListener('scroll', onScroll, { passive: true });
-		}
-		window.addEventListener('scroll', onScroll, { passive: true });
-		window.addEventListener('resize', onScroll, { passive: true });
-
-		const checkInitial = setTimeout(() => {
-			checkCompletion();
-		}, 500);
-
-		if (contentRef.current) {
-			checkCompletion();
-		}
-
-		return () => {
-			if (scrollRoot) {
-				scrollRoot.removeEventListener('scroll', onScroll);
-			}
-			window.removeEventListener('scroll', onScroll);
-			window.removeEventListener('resize', onScroll);
-			clearTimeout(checkInitial);
-		};
-	}, [currentLesson, selectedLessonId, isCompleted, isCompleting, reachedMilestones]);
 
 	const handleNextLesson = async () => {
 		if (!isCompleted) {
@@ -575,13 +559,7 @@ const LessonsPage = () => {
 													className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
 													onClick={() => handleLessonClick(lesson.id, lesson)}
 												>
-													<div className="lessons-page-sidebar-lesson-icon">
-														{isCompleted ? (
-															<Check size={16} weight="bold" aria-hidden />
-														) : (
-															<span>{lessonIndex + 1}</span>
-														)}
-													</div>
+													{renderLessonIndexIcon(lessonIndex, isCompleted)}
 													<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
 												</button>
 												{lessonTests.map((ct) => {
@@ -652,13 +630,7 @@ const LessonsPage = () => {
 																className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
 																onClick={() => handleLessonClick(lesson.id, lesson)}
 															>
-																<div className="lessons-page-sidebar-lesson-icon">
-																	{isCompleted ? (
-																		<Check size={16} weight="bold" aria-hidden />
-																	) : (
-																		<span>{lessonIndex + 1}</span>
-																	)}
-																</div>
+																{renderLessonIndexIcon(lessonIndex, isCompleted)}
 																<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
 															</button>
 															{lessonTests.map((ct) => {
@@ -770,28 +742,11 @@ const LessonsPage = () => {
 							{currentLesson.description && (
 								<p className="lessons-page-lesson-viewer-description">{currentLesson.description}</p>
 							)}
-							<div className="lessons-page-lesson-viewer-meta">
-								{isCompleted && (
-									<div className="lessons-page-lesson-completed-badge">
-										<Check size={18} weight="bold" aria-hidden />
-										<span>Completată</span>
-									</div>
-								)}
-							</div>
 						</div>
 
 						{/* Lesson Content */}
 						<div className="lessons-page-lesson-body" ref={contentRef}>
-						{LESSON_MILESTONES.map((milestone) => (
-							<div
-								key={`lesson-milestone-${milestone}`}
-								className="lesson-progress-marker"
-								data-lesson-milestone={milestone}
-								style={{ top: `${milestone}%` }}
-								aria-hidden="true"
-							/>
-						))}
-
+						<LessonReadTrackers>
 							{(() => {
 								const blocks = currentLesson.content_blocks ?? currentLesson.contentBlocks ?? [];
 								const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
@@ -822,6 +777,7 @@ const LessonsPage = () => {
 									</div>
 								);
 							})()}
+						</LessonReadTrackers>
 						</div>
 
 						<div

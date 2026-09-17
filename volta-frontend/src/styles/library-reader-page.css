@@ -169,16 +169,25 @@
 @media (max-width: 768px) {
 	.library-reader-page {
 		overflow-x: clip;
-		min-height: 100dvh;
+		min-height: 0;
+		padding-bottom: 0;
+	}
+
+	html:has(.student-mobile-tabs) .library-reader-page {
+		top: var(--app-header-height, 56px);
+		bottom: var(--student-tab-height, 0px);
+		height: auto;
 	}
 
 	.library-reader-stage {
 		padding: var(--space-2);
-		padding-bottom: env(safe-area-inset-bottom, 0);
+		padding-bottom: var(--space-4);
+		min-height: 0;
+		height: 100%;
 	}
 
 	.library-reader-floating-actions {
-		top: calc(56px + var(--space-2));
+		top: var(--space-2);
 		right: var(--space-3);
 		left: var(--space-3);
 		justify-content: space-between;
@@ -190,6 +199,13 @@
 	.library-reader-floating-actions a {
 		min-height: 44px;
 		min-width: 44px;
+	}
+
+	html:has(.student-mobile-tabs) .library-reader-frame,
+	html:has(.student-mobile-tabs) .library-reader-loading--embedded,
+	html:has(.student-mobile-tabs) .library-reader-empty-state--embedded {
+		min-height: 0;
+		height: 100%;
 	}
 
 	.library-reader-frame,

@@ -1757,12 +1757,16 @@
 @media (max-width: 768px) {
 	.courses-page-modern.courses-page-student {
 		overflow-x: clip;
-		min-height: 100dvh;
-		padding-bottom: env(safe-area-inset-bottom, 0);
+		min-height: 0;
+		height: auto;
+		padding-bottom: 0;
 	}
 
 	.courses-page-student-main {
 		min-width: 0;
+		display: block;
+		height: auto;
+		overflow: visible;
 	}
 
 	.courses-page-student .courses-page-hero {
@@ -1831,7 +1835,10 @@
 	}
 
 	.courses-page-student .courses-page-content {
-		padding: var(--space-4) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom, 0));
+		padding: var(--space-4);
+		flex: none;
+		overflow: visible;
+		height: auto;
 	}
 
 	.courses-page-student .courses-page-maps-grid,
@@ -1844,7 +1851,7 @@
 	}
 
 	.courses-page-student .course-map-showcase-tile {
-		--course-map-tile-hit-height: 380px;
+		--course-map-tile-hit-height: auto;
 		height: auto;
 		min-height: 0;
 		max-height: none;
@@ -1894,7 +1901,7 @@
 	}
 
 	.courses-page-student .course-map-showcase-tile {
-		--course-map-tile-hit-height: 360px;
+		--course-map-tile-hit-height: auto;
 	}
 
 	.courses-page-student-tab {

@@ -56,7 +56,7 @@ api.interceptors.request.use(
       delete config.headers['Content-Type'];
     }
     // Don't log /auth/me requests (they're called frequently and 401 is normal when not authenticated)
-    if (config.url !== '/auth/me') {
+    if (config.url !== '/auth/me' && import.meta.env.VITE_ENABLE_API_LOGGING === 'true') {
       logger.api.log('API Request:', config.method?.toUpperCase(), config.url);
     }
     return config;
@@ -71,7 +71,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     // Don't log /auth/me responses (they're called frequently)
-    if (response.config?.url !== '/auth/me') {
+    if (response.config?.url !== '/auth/me' && import.meta.env.VITE_ENABLE_API_LOGGING === 'true') {
       logger.api.log('API Response:', response.status, response.config.url);
     }
     return response;
@@ -102,13 +102,12 @@ api.interceptors.response.use(
     const isNetwork = error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
 
     if (!isAuthMe401) {
-      logger.api.error('API Response Error:', error);
-      if (error.code === 'ECONNABORTED') {
-        logger.api.error('Request timeout - serverul nu răspunde');
-      } else if (error.code === 'ERR_NETWORK') {
-        logger.api.error('Network error - verifică dacă backend-ul rulează');
-      } else if (error.response) {
-        logger.api.error('Server error:', error.response.status, error.response.data);
+      const detail = error.response?.data?.message
+        || (error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : error.message);
+      if (status >= 500 || isNetwork) {
+        logger.api.error('API', status || error.code, url, detail);
+      } else if (status && status !== 401) {
+        logger.warn('API', status, url, detail);
       }
     }
 

@@ -858,7 +858,15 @@ class ExamResultController extends Controller
             
             // Combine every saved attempt. The UI displays attempt numbers, so hiding older attempts here is misleading.
             $allResults = $examResults->concat($testResults)
-                ->filter()
+                ->filter(function ($row) {
+                    if (($row['status'] ?? null) === 'in_progress') {
+                        return false;
+                    }
+                    if (($row['status'] ?? null) === 'pending_review' || ($row['needs_manual_review'] ?? false)) {
+                        return false;
+                    }
+                    return true;
+                })
                 ->sort(function ($a, $b) {
                     $dateA = isset($a['completed_at']) ? strtotime((string) $a['completed_at']) : 0;
                     $dateB = isset($b['completed_at']) ? strtotime((string) $b['completed_at']) : 0;

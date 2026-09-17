@@ -150,7 +150,7 @@ class EventAdminController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'type' => 'required|string|in:live_online,physical,webinar,workshop',
             'status' => 'sometimes|string|in:draft,published,upcoming,live,completed,cancelled',
@@ -167,6 +167,9 @@ class EventAdminController extends Controller
             'course_id' => 'nullable|exists:courses,id|required_if:access_type,course_included',
             'replay_url' => 'nullable|url|max:500',
             'thumbnail' => 'nullable|string|max:500',
+            'audience_type' => 'nullable|string|in:all,teams',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'integer',
         ]);
 
         // Parse datetime
@@ -198,7 +201,8 @@ class EventAdminController extends Controller
             $validated['instructor_id'] = auth()->id();
         }
 
-        $event = Event::create($validated);
+        $event = Event::create($this->extractEventAttributes($validated));
+        $this->syncEventAudience($event, $validated);
         $event->refresh();
         $event->load(['instructor', 'course']);
 
@@ -221,7 +225,7 @@ class EventAdminController extends Controller
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
+            'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'type' => 'sometimes|required|string|in:live_online,physical,webinar,workshop',
             'status' => 'sometimes|string|in:draft,published,upcoming,live,completed,cancelled',
@@ -238,6 +242,9 @@ class EventAdminController extends Controller
             'course_id' => 'nullable|exists:courses,id|required_if:access_type,course_included',
             'replay_url' => 'nullable|url|max:500',
             'thumbnail' => 'nullable|string|max:500',
+            'audience_type' => 'nullable|string|in:all,teams',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'integer',
         ]);
 
         // Parse datetime
@@ -261,7 +268,8 @@ class EventAdminController extends Controller
             unset($validated['instructor_id']);
         }
 
-        $event->update($validated);
+        $event->update($this->extractEventAttributes($validated));
+        $this->syncEventAudience($event, $validated);
         $event->refresh();
         $event->load(['instructor', 'course']);
 
@@ -276,6 +284,35 @@ class EventAdminController extends Controller
             'message' => 'Eveniment actualizat cu succes',
             'event' => $this->addEventMetrics($event),
         ]);
+    }
+
+    private function extractEventAttributes(array $validated): array
+    {
+        unset($validated['team_ids']);
+        if (! Schema::hasColumn('events', 'audience_type')) {
+            unset($validated['audience_type']);
+        } else {
+            $validated['audience_type'] = ($validated['audience_type'] ?? 'all') === 'teams' ? 'teams' : 'all';
+        }
+        if (array_key_exists('description', $validated) && $validated['description'] === null) {
+            $validated['description'] = '';
+        }
+
+        return $validated;
+    }
+
+    private function syncEventAudience(Event $event, array $validated): void
+    {
+        if (! Schema::hasTable('event_team') || ! method_exists($event, 'teams')) {
+            return;
+        }
+        $audience = $validated['audience_type'] ?? $event->audience_type ?? 'all';
+        $teamIds = $audience === 'teams' ? array_values(array_unique(array_map('intval', $validated['team_ids'] ?? []))) : [];
+        $event->teams()->sync($teamIds);
+        if (Schema::hasColumn('events', 'audience_type')) {
+            $event->audience_type = $teamIds === [] ? 'all' : 'teams';
+            $event->save();
+        }
     }
 
     public function destroy($id)
@@ -604,6 +641,11 @@ class EventAdminController extends Controller
             if ($event->isDirty(['registrations_count', 'attendance_count', 'replay_views_count'])) {
                 $event->save();
             }
+        }
+
+        if (Schema::hasTable('event_team') && method_exists($event, 'teams')) {
+            $event->loadMissing('teams:id,name');
+            $event->setAttribute('team_ids', $event->teams->pluck('id')->values()->all());
         }
 
         return $event;

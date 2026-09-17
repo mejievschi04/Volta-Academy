@@ -23,7 +23,7 @@ class EmailNotificationTest extends TestCase
         Setting::set('email_notifications', '1', 'boolean', 'Notificări email active');
     }
 
-    public function test_course_enrolled_sends_email_when_enabled(): void
+    public function test_course_enrolled_does_not_notify_without_deadline(): void
     {
         if (! Schema::hasTable('notifications')) {
             $this->markTestSkipped('notifications table missing');
@@ -34,9 +34,31 @@ class EmailNotificationTest extends TestCase
 
         app(NotificationService::class)->notifyCourseEnrolled($student, $course);
 
+        Mail::assertNothingOutgoing();
+        $this->assertDatabaseMissing('notifications', [
+            'user_id' => $student->id,
+            'type' => 'course_deadline',
+        ]);
+    }
+
+    public function test_course_deadline_reminder_sends_email_when_enabled(): void
+    {
+        if (! Schema::hasTable('notifications')) {
+            $this->markTestSkipped('notifications table missing');
+        }
+
+        $student = User::factory()->create(['role' => 'student', 'email' => 'student@test.local']);
+        $course = Course::factory()->published()->create(['title' => 'Laravel Basics']);
+        $settings = is_array($course->settings) ? $course->settings : [];
+        $settings['deadline_at'] = now()->addDays(7)->toDateTimeString();
+        $course->settings = $settings;
+        $course->save();
+
+        app(NotificationService::class)->notifyCourseEnrolled($student, $course);
+
         Mail::assertQueued(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($student) {
             return $mail->hasTo($student->email)
-                && str_contains($mail->heading, 'Înscriere');
+                && str_contains($mail->heading, 'Termenul');
         });
     }
 

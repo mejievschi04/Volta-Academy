@@ -127,17 +127,17 @@
 
 .course-map-folder-tile__title {
 	width: 100%;
-	height: 2.48em;
-	min-height: 2.48em;
-	max-height: 2.48em;
+	height: 2.7em;
+	min-height: 2.7em;
+	max-height: 2.7em;
 	margin: 0;
 	flex-shrink: 0;
 	display: -webkit-box;
 	overflow: hidden;
 	color: var(--text-primary);
-	font-size: 1.05rem;
+	font-size: 1.32rem;
 	font-weight: 850;
-	line-height: 1.18;
+	line-height: 1.2;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
 	overflow-wrap: anywhere;
@@ -161,24 +161,7 @@
 }
 
 .course-map-folder-tile__count {
-	position: absolute;
-	right: 12px;
-	bottom: 22px;
-	z-index: 5;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 28px;
-	padding: 0 10px;
-	border: 1px solid color-mix(in srgb, var(--color-primary, #e6d800) 34%, var(--border-primary, #d1d5db));
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--bg-primary, #ffffff) 84%, transparent);
-	color: var(--text-primary);
-	font-size: 0.76rem;
-	font-weight: 800;
-	box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
+	display: none;
 }
 
 .course-map-folder-tile__progress {
@@ -248,12 +231,61 @@
 	}
 
 	.courses-page-student .course-map-folder-tile__hit {
-		--course-map-tile-hit-height: 380px;
+		--course-map-tile-hit-height: auto;
 		width: 100%;
+		height: auto;
+		min-height: 0;
+		max-height: none;
+		gap: 4px;
+		padding: 4px 4px 12px;
+	}
+
+	.courses-page-student .course-map-folder-tile__stage {
+		height: 230px;
 	}
 
 	.courses-page-student .course-map-folder-tile__visual {
-		width: min(100%, 300px);
+		width: min(100%, 280px);
+		height: 214px;
+	}
+
+	.courses-page-student .course-map-folder-tile__meta {
+		min-height: 0;
+		max-height: none;
+		gap: 8px;
+		align-items: center;
+		text-align: center;
+	}
+
+	.courses-page-student .course-map-folder-tile__title {
+		height: auto;
+		min-height: 0;
+		max-height: none;
+		font-size: 1.55rem;
+		line-height: 1.15;
+		-webkit-line-clamp: 2;
+	}
+
+	.courses-page-student .course-map-folder-tile__subtitle {
+		height: auto;
+		min-height: 0;
+		max-height: 1.4em;
+		font-size: 1rem;
+		line-height: 1.3;
+		-webkit-line-clamp: 1;
+		color: var(--text-secondary);
+	}
+
+	.courses-page-student .course-map-folder-tile__progress {
+		width: min(160px, 72%);
+		height: 6px;
+		min-height: 6px;
+		margin-top: 2px;
+	}
+
+	.courses-page-student .course-map-folder-tile__progress--empty,
+	.courses-page-student .course-map-folder-tile__footer {
+		display: none;
 	}
 
 	.course-map-folder-tile__hit,
@@ -303,11 +335,15 @@
 	}
 
 	.courses-page-student .course-map-folder-tile__hit {
-		--course-map-tile-hit-height: 360px;
+		--course-map-tile-hit-height: auto;
 	}
 
 	.course-map-folder-tile__stage {
 		height: 248px;
+	}
+
+	.courses-page-student .course-map-folder-tile__stage {
+		height: 210px;
 	}
 
 	.course-map-folder-tile__visual {

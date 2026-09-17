@@ -23,6 +23,7 @@ class Event extends Model
         'max_capacity',
         'instructor_id',
         'access_type', // free, paid, course_included
+        'audience_type',
         'price',
         'currency',
         'course_id',
@@ -59,6 +60,11 @@ class Event extends Model
     public function course()
     {
         return $this->belongsTo(Course::class, 'course_id');
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'event_team')->withTimestamps();
     }
 
     /**

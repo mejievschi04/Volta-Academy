@@ -12,6 +12,7 @@ use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
 use App\Support\LearningVisibility;
 use App\Support\StudentActivityLogger;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -706,10 +707,30 @@ class CourseProgressController extends Controller
         }
 
         $lastMilestoneReached = $incomingMilestone !== null
-            ? max((float) ($existingProgress->last_milestone_reached ?? 0), $incomingMilestone)
-            : (float) ($existingProgress->last_milestone_reached ?? 0);
+            ? max((float) ($existingProgress?->last_milestone_reached ?? 0), $incomingMilestone)
+            : (float) ($existingProgress?->last_milestone_reached ?? 0);
 
-        $shouldAutoComplete = $progressPercentage >= 100 || $lastMilestoneReached >= 100;
+        $lesson->loadMissing('contentBlocks');
+        $now = now();
+        $startedAt = ($existingProgress && ! empty($existingProgress->started_at))
+            ? Carbon::parse($existingProgress->started_at)
+            : $now;
+        $elapsedWall = max(0, $now->getTimestamp() - $startedAt->getTimestamp());
+        $minDwell = $this->progressService->minimumAutoCompleteDwellSeconds($lesson);
+        $dwellMet = $elapsedWall >= $minDwell;
+
+        $wantsComplete = $progressPercentage >= 100 || $lastMilestoneReached >= 100;
+        if ($isAlreadyCompleted) {
+            $progressPercentage = 100;
+            $lastMilestoneReached = max($lastMilestoneReached, 100);
+            $wantsComplete = false;
+            $dwellMet = true;
+        } elseif ($wantsComplete && ! $dwellMet) {
+            $progressPercentage = min($progressPercentage, 99.0);
+            $lastMilestoneReached = min($lastMilestoneReached, 99.0);
+        }
+
+        $shouldAutoComplete = ! $isAlreadyCompleted && ($progressPercentage >= 100 || $lastMilestoneReached >= 100) && $dwellMet;
         $didAutoCompleteNow = false;
 
         $module = $lesson->module;
@@ -728,11 +749,9 @@ class CourseProgressController extends Controller
             if ($course) {
                 $this->progressService->completeLesson($user, $lesson);
                 $didAutoCompleteNow = true;
-                $existingProgress = \DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('lesson_id', $lessonId)
-                    ->first();
                 $isAlreadyCompleted = true;
+                $progressPercentage = 100;
+                $lastMilestoneReached = 100;
             }
         }
 
@@ -748,14 +767,13 @@ class CourseProgressController extends Controller
         }
 
         // Update or create lesson progress (created_at obligatoriu la insert pe unele DB)
-        $now = now();
         $payload = [
             'progress_percentage' => $progressPercentage,
             'time_spent_seconds' => $timeSpent,
-            'completed' => $shouldAutoComplete ? true : ($isAlreadyCompleted ? true : false),
-            'completed_at' => ($shouldAutoComplete && !$isAlreadyCompleted)
-                ? $now
-                : ($existingProgress ? ($existingProgress->completed_at ?? null) : null),
+            'completed' => $didAutoCompleteNow || $isAlreadyCompleted || $shouldAutoComplete,
+            'completed_at' => ($didAutoCompleteNow || $isAlreadyCompleted)
+                ? (($existingProgress?->completed_at) ?: $now)
+                : ($existingProgress?->completed_at),
             'started_at' => ($existingProgress && !empty($existingProgress->started_at))
                 ? $existingProgress->started_at
                 : $now,
@@ -779,8 +797,10 @@ class CourseProgressController extends Controller
             'message' => 'Progres actualizat',
             'progress_percentage' => $progressPercentage,
             'last_milestone_reached' => $lastMilestoneReached,
-            'completed' => $shouldAutoComplete ? true : ($isAlreadyCompleted ? true : false),
+            'completed' => $didAutoCompleteNow || $isAlreadyCompleted || $shouldAutoComplete,
             'auto_completed' => $didAutoCompleteNow,
+            'awaiting_dwell' => $wantsComplete && ! $didAutoCompleteNow && ! $isAlreadyCompleted && ! $dwellMet,
+            'min_dwell_seconds' => $minDwell,
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseMap;
+use App\Services\CourseProgressService;
 use App\Support\CourseMapBuckets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,13 +47,15 @@ class CourseMapController extends Controller
         $mapIds = $mapsCollection->pluck('id')->all();
         $hasCoverCol = Schema::hasColumn('course_maps', 'cover_image_path');
         $previewByMapId = $hasCoverCol ? $this->firstPublishedCourseCoverByMapIds($mapIds) : [];
+        $progressByMapId = $this->mapProgressPercentages($request->user(), $mapIds);
 
-        $maps = $mapsCollection->map(function ($map) use ($hasCoverCol, $previewByMapId) {
+        $maps = $mapsCollection->map(function ($map) use ($hasCoverCol, $previewByMapId, $progressByMapId) {
             $row = [
                 'id' => $map->id,
                 'name' => $map->name,
                 'description' => $map->description,
                 'courses_count' => $map->courses_count ?? 0,
+                'progress_percentage' => $progressByMapId[(int) $map->id] ?? 0,
             ];
             if (Schema::hasColumn('course_maps', 'accent_color')) {
                 $row['accent_color'] = $map->accent_color;
@@ -100,16 +103,23 @@ class CourseMapController extends Controller
         }
 
         $user = $request->user();
-        $courseIds = $map->courses->pluck('id')->toArray();
-        $progress = $this->progressByCourseIds($user, $courseIds);
-
+        $progress = $this->liveProgressByCourses($user, $map->courses);
         $courses = $this->mapPublishedCoursesPayload($map->courses, $progress);
+        $assignedPercents = [];
+        foreach ($progress as $row) {
+            if (!empty($row['assigned'])) {
+                $assignedPercents[] = (int) ($row['progress_percentage'] ?? 0);
+            }
+        }
 
         $payload = [
             'id' => $map->id,
             'name' => $map->name,
             'description' => $map->description,
             'courses' => $courses,
+            'progress_percentage' => $assignedPercents === []
+                ? 0
+                : (int) round(array_sum($assignedPercents) / count($assignedPercents)),
         ];
         if (Schema::hasColumn('course_maps', 'accent_color')) {
             $payload['accent_color'] = $map->accent_color;
@@ -149,26 +159,91 @@ class CourseMapController extends Controller
     }
 
     /**
-     * @param  array<int>  $courseIds
-     * @return array<int, array{progress_percentage: int, completed_at: mixed}>
+     * @param  array<int>  $mapIds
+     * @return array<int, int>
      */
-    private function progressByCourseIds($user, array $courseIds): array
+    private function mapProgressPercentages($user, array $mapIds): array
+    {
+        $out = [];
+        foreach ($mapIds as $mapId) {
+            $out[(int) $mapId] = 0;
+        }
+        if (!$user || $mapIds === []) {
+            return $out;
+        }
+
+        $links = DB::table('course_map_course')
+            ->join('courses', 'courses.id', '=', 'course_map_course.course_id')
+            ->whereIn('course_map_course.course_map_id', $mapIds)
+            ->where('courses.status', 'published')
+            ->get([
+                'course_map_course.course_map_id as map_id',
+                'course_map_course.course_id as course_id',
+            ]);
+
+        $courseIds = $links->pluck('course_id')->unique()->map(fn ($id) => (int) $id)->all();
+        if ($courseIds === []) {
+            return $out;
+        }
+
+        $progress = $this->liveProgressByCourses(
+            $user,
+            Course::query()->whereIn('id', $courseIds)->get()
+        );
+
+        $sums = [];
+        $counts = [];
+        foreach ($links as $link) {
+            $mapId = (int) $link->map_id;
+            $courseId = (int) $link->course_id;
+            $row = $progress[$courseId] ?? null;
+            if (!$row || empty($row['assigned'])) {
+                continue;
+            }
+            $sums[$mapId] = ($sums[$mapId] ?? 0) + (int) $row['progress_percentage'];
+            $counts[$mapId] = ($counts[$mapId] ?? 0) + 1;
+        }
+
+        foreach ($counts as $mapId => $count) {
+            $out[$mapId] = $count > 0 ? (int) round($sums[$mapId] / $count) : 0;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Course>|iterable<Course>  $courses
+     * @return array<int, array{progress_percentage: int, completed_at: mixed, assigned: bool}>
+     */
+    private function liveProgressByCourses($user, $courses): array
     {
         $progress = [];
-        if (!$user || $courseIds === []) {
+        if (!$user) {
             return $progress;
         }
 
-        $rows = DB::table('course_user')
+        $courseModels = collect($courses)->filter()->keyBy(fn (Course $course) => (int) $course->id);
+        $courseIds = $courseModels->keys()->all();
+        if ($courseIds === []) {
+            return $progress;
+        }
+
+        $assignedRows = DB::table('course_user')
             ->where('user_id', $user->id)
             ->whereIn('course_id', $courseIds)
-            ->select('course_id', 'progress_percentage', 'completed_at')
-            ->get();
+            ->get(['course_id', 'completed_at'])
+            ->keyBy('course_id');
 
-        foreach ($rows as $row) {
-            $progress[$row->course_id] = [
-                'progress_percentage' => (int) $row->progress_percentage,
-                'completed_at' => $row->completed_at,
+        $progressService = app(CourseProgressService::class);
+        foreach ($courseModels as $courseId => $course) {
+            $assigned = $assignedRows->has($courseId);
+            $percent = $assigned
+                ? (int) round($progressService->calculateCourseProgress($user, $course))
+                : 0;
+            $progress[$courseId] = [
+                'progress_percentage' => $percent,
+                'completed_at' => $assignedRows->get($courseId)?->completed_at,
+                'assigned' => $assigned,
             ];
         }
 

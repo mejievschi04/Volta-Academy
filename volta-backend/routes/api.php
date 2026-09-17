@@ -103,6 +103,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-read
     Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
     Route::get('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'getParticipants']);
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
+    Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
 });
 
 Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-write'])->group(function () {
@@ -111,7 +112,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-writ
     Route::delete('/messages/conversations/{id}', [\App\Http\Controllers\Api\MessageController::class, 'destroyConversation']);
     Route::post('/messages/conversations/{id}/leave', [\App\Http\Controllers\Api\MessageController::class, 'leaveGroup']);
     Route::post('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
-    Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
     Route::post('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'addParticipants']);
     Route::patch('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'updateParticipantGroupRole']);
     Route::delete('/messages/conversations/{id}/participants/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'removeParticipant']);
@@ -401,6 +401,7 @@ Route::middleware([
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
+    Route::post('/users/{id}/courses/{courseId}/complete', [UserAdminController::class, 'markCourseCompleted']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     
     // Team Members Management

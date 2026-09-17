@@ -239,7 +239,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 							<li key={row.id} className="admin-tests-pending-row">
 								<div className="admin-tests-pending-main">
 									<strong className="admin-tests-pending-test">{row.test?.title || 'Test'}</strong>
-									<span className="admin-tests-pending-user">{row.user?.name || row.user?.email || 'Elev'}</span>
+									<span className="admin-tests-pending-user">{row.user?.name || row.user?.email || 'Utilizator'}</span>
 									<span className="admin-tests-pending-meta">
 										Încercarea {row.attempt_number ?? '—'} · {formatCompletedAt(row.completed_at)}
 									</span>
@@ -266,7 +266,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 					>
 						<h3 id="admin-tests-review-title">De corectat</h3>
 						<p className="admin-tests-review-sub">
-							{reviewTarget.user?.name || reviewTarget.user?.email || 'Elev'} · {reviewTarget.test?.title || 'Test'}
+							{reviewTarget.user?.name || reviewTarget.user?.email || 'Utilizator'} · {reviewTarget.test?.title || 'Test'}
 						</p>
 						<div className="admin-tests-review-ai-actions">
 							<button type="button" className="admin-tests-review-ai-btn" onClick={handleSuggestWithVolt} disabled={voltFeedbackLoading || reviewSubmitting}>

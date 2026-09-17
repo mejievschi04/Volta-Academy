@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
-use App\Models\CourseTest;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 
 class TeamAdminController extends Controller
 {
@@ -77,6 +76,7 @@ class TeamAdminController extends Controller
     public function destroy($id)
     {
         $team = Team::findOrFail($id);
+        app(UserAssignedCoursesService::class)->dissolveTeam($team);
         $team->delete();
 
         return response()->json([
@@ -89,11 +89,14 @@ class TeamAdminController extends Controller
         $team = Team::findOrFail($id);
 
         $validated = $request->validate([
-            'user_ids' => 'required|array',
+            'user_ids' => 'present|array',
             'user_ids.*' => 'exists:users,id',
         ]);
 
-        $team->users()->sync($validated['user_ids']);
+        app(UserAssignedCoursesService::class)->syncTeamUsers(
+            $team,
+            array_map('intval', $validated['user_ids'])
+        );
 
         return response()->json([
             'message' => 'Utilizatori atașați cu succes',
@@ -106,11 +109,14 @@ class TeamAdminController extends Controller
         $team = Team::findOrFail($id);
 
         $validated = $request->validate([
-            'course_ids' => 'required|array',
+            'course_ids' => 'present|array',
             'course_ids.*' => 'exists:courses,id',
         ]);
 
-        $team->courses()->sync($validated['course_ids']);
+        app(UserAssignedCoursesService::class)->syncTeamCourses(
+            $team,
+            array_map('intval', $validated['course_ids'])
+        );
 
         return response()->json([
             'message' => 'Cursuri atașate cu succes',
@@ -164,49 +170,16 @@ class TeamAdminController extends Controller
         $courseIds = $validated['course_ids'];
         $isMandatory = $validated['is_mandatory'] ?? true;
 
-        if ($isMandatory) {
-            $coursesWithoutRequiredTests = [];
-            foreach ($courseIds as $courseId) {
-                $course = Course::find($courseId);
-                if ($course) {
-                    $hasRequiredTest = CourseTest::where('course_id', $courseId)
-                        ->where('required', true)
-                        ->exists();
-                    if (! $hasRequiredTest) {
-                        $coursesWithoutRequiredTests[] = [
-                            'id' => $courseId,
-                            'title' => $course->title,
-                        ];
-                    }
-                }
-            }
-            if (! empty($coursesWithoutRequiredTests)) {
-                $courseTitles = implode(', ', array_column($coursesWithoutRequiredTests, 'title'));
-                $courseCount = count($coursesWithoutRequiredTests);
-
-                return response()->json([
-                    'error' => 'Cursurile obligatorii trebuie să aibă cel puțin un test obligatoriu',
-                    'message' => $courseCount === 1
-                        ? "Cursul \"{$courseTitles}\" nu are teste obligatorii."
-                        : "Următoarele cursuri nu au teste obligatorii: {$courseTitles}.",
-                    'courses' => $coursesWithoutRequiredTests,
-                ], 422);
-            }
-        }
-
-        $attach = [];
+        $assignment = app(UserAssignedCoursesService::class);
         foreach ($courseIds as $courseId) {
-            $attach[$courseId] = [
+            $course = Course::findOrFail($courseId);
+            $assignment->assignCourseDirectly($user, $course, [
                 'is_mandatory' => $isMandatory,
                 'assigned_at' => now(),
                 'enrolled' => true,
                 'enrolled_at' => now(),
-            ];
+            ]);
         }
-        $user->assignedCourses()->syncWithoutDetaching($attach);
-
-        Cache::forget("dashboard_user_{$user->id}_stats");
-        Cache::forget("profile_user_{$user->id}");
 
         return response()->json([
             'message' => 'Cursuri atribuite membrului cu succes',

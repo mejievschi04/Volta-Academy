@@ -1,5 +1,5 @@
 import { emptyEventForm, DEFAULT_DURATION_MINUTES } from './AdminEventFormModalShared.js';
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
@@ -88,6 +88,10 @@ function initialEventForm(editingEvent, prefill) {
 				duration_minutes: calculateDurationMinutes(editingEvent.start_date, editingEvent.end_date),
 				location: formType === 'physical' ? (editingEvent.location || '') : '',
 				live_link: formType === 'live_online' ? (editingEvent.live_link || '') : '',
+				audience_type: editingEvent.audience_type === 'teams' ? 'teams' : 'all',
+				team_ids: Array.isArray(editingEvent.team_ids)
+					? editingEvent.team_ids
+					: (editingEvent.teams || []).map((t) => t.id),
 			};
 		}
 		if (prefill?.event_date) {
@@ -110,8 +114,22 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 	const [formData, setFormData] = useState(() => initialEventForm(editingEvent, prefill));
 	const [errors, setErrors] = useState({});
 	const [touched, setTouched] = useState({});
+	const [teams, setTeams] = useState([]);
 	const bodyRef = useRef(null);
 	useScrollResetOnOpen(open, bodyRef);
+
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			try {
+				const rows = await adminService.getTeams();
+				if (!cancelled) setTeams(Array.isArray(rows) ? rows : (rows?.data || []));
+			} catch {
+				if (!cancelled) setTeams([]);
+			}
+		})();
+		return () => { cancelled = true; };
+	}, []);
 
 	const resetForm = useCallback(() => {
 		setFormData(emptyEventForm());
@@ -125,9 +143,6 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 		const newErrors = {};
 		if (!formData.title || formData.title.trim().length < 3) {
 			newErrors.title = 'Titlul trebuie să aibă minim 3 caractere';
-		}
-		if (!formData.description || formData.description.trim().length < 10) {
-			newErrors.description = 'Descrierea trebuie să aibă minim 10 caractere';
 		}
 		if (!formData.event_date) {
 			newErrors.event_date = 'Alege data evenimentului';
@@ -144,6 +159,9 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 			if (!formData.location || formData.location.trim().length < 2) {
 				newErrors.location = 'Introdu locația pentru evenimentul fizic';
 			}
+		}
+		if (formData.audience_type === 'teams' && (!formData.team_ids || formData.team_ids.length === 0)) {
+			newErrors.audience_type = 'Alege cel puțin o echipă';
 		}
 		if (formData.type === 'live_online' && trimOrNull(formData.live_link)) {
 			const u = formData.live_link.trim();
@@ -165,7 +183,6 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 		if (!validate()) {
 			setTouched({
 				title: true,
-				description: true,
 				event_date: true,
 				start_time: true,
 				duration_minutes: true,
@@ -199,7 +216,7 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 
 			const dataToSend = {
 				title: formData.title.trim(),
-				description: formData.description.trim(),
+				description: (formData.description || '').trim(),
 				short_description: editingEvent?.short_description?.trim() || null,
 				type: formData.type,
 				status: editingEvent ? (editingEvent.status ?? 'published') : 'published',
@@ -211,6 +228,8 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 				max_capacity: editingEvent?.max_capacity ?? null,
 				instructor_id: editingEvent?.instructor_id ?? null,
 				access_type: 'free',
+				audience_type: formData.audience_type === 'teams' ? 'teams' : 'all',
+				team_ids: formData.audience_type === 'teams' ? (formData.team_ids || []) : [],
 				course_id: null,
 				replay_url: editingEvent?.replay_url?.trim() || null,
 				thumbnail: editingEvent?.thumbnail?.trim() || null,
@@ -289,7 +308,7 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 							</div>
 							<div className="admin-form-group">
 								<label className="admin-form-label" htmlFor="va-evt-desc">
-									Descriere
+									Descriere <span className="admin-form-label-hint">(opțional)</span>
 								</label>
 								<textarea
 									id="va-evt-desc"
@@ -297,19 +316,62 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 									value={formData.description}
 									onChange={(e) => {
 										setFormData({ ...formData, description: e.target.value });
-										if (touched.description) validate();
-									}}
-									onBlur={() => {
-										setTouched({ ...touched, description: true });
-										validate();
 									}}
 									placeholder="Agendă, ce vor învăța participanții…"
-									required
 									rows={4}
 								/>
-								{errors.description && touched.description && (
-									<div className="admin-event-error">{errors.description}</div>
-								)}
+							</div>
+							<div className="admin-form-group">
+								<fieldset className="admin-event-format-fieldset">
+									<legend className="admin-event-format-legend">Disponibil pentru</legend>
+									<div className="admin-event-format-options">
+										<label className="admin-event-format-option">
+											<input
+												type="radio"
+												name="va-evt-audience"
+												checked={(formData.audience_type || 'all') === 'all'}
+												onChange={() => setFormData((prev) => ({ ...prev, audience_type: 'all', team_ids: [] }))}
+											/>
+											<span>Toți utilizatorii</span>
+										</label>
+										<label className="admin-event-format-option">
+											<input
+												type="radio"
+												name="va-evt-audience"
+												checked={formData.audience_type === 'teams'}
+												onChange={() => setFormData((prev) => ({ ...prev, audience_type: 'teams' }))}
+											/>
+											<span>Echipe selectate</span>
+										</label>
+									</div>
+								</fieldset>
+								{formData.audience_type === 'teams' ? (
+									<ul className="course-distribution-checklist" style={{ marginTop: 12 }}>
+										{teams.map((team) => (
+											<li key={team.id}>
+												<label className="course-distribution-check">
+													<input
+														type="checkbox"
+														checked={(formData.team_ids || []).includes(team.id)}
+														onChange={(e) => {
+															const current = formData.team_ids || [];
+															setFormData((prev) => ({
+																...prev,
+																team_ids: e.target.checked
+																	? [...current, team.id]
+																	: current.filter((id) => id !== team.id),
+															}));
+														}}
+													/>
+													<span>{team.name}</span>
+												</label>
+											</li>
+										))}
+									</ul>
+								) : null}
+								{errors.audience_type ? (
+									<div className="admin-event-error">{errors.audience_type}</div>
+								) : null}
 							</div>
 						</section>
 

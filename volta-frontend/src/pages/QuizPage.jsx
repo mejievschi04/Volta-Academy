@@ -5,6 +5,7 @@ import { quizService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
+import RichTextHtml from '../components/RichTextHtml';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 import { isChoiceAnswered } from '../utils/examChoiceQuestions';
 
@@ -23,7 +24,6 @@ const QuizPage = () => {
 	const [error, setError] = useState(null);
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 	const [, setIsMobile] = useState(window.innerWidth < 1024);
-	const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
 	const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 	const [timeRemaining, setTimeRemaining] = useState(null);
 	const [startTime, setStartTime] = useState(null);
@@ -221,18 +221,6 @@ const QuizPage = () => {
 		}));
 	}, []);
 
-	const toggleFlag = useCallback((questionId) => {
-		setFlaggedQuestions(prev => {
-			const newSet = new Set(prev);
-			if (newSet.has(questionId)) {
-				newSet.delete(questionId);
-			} else {
-				newSet.add(questionId);
-			}
-			return newSet;
-		});
-	}, []);
-
 	const scrollToQuestion = useCallback((index) => {
 		if (!quiz || !quiz.questions || index < 0 || index >= quiz.questions.length) return;
 		setCurrentQuestionIndex(index);
@@ -312,12 +300,14 @@ const QuizPage = () => {
 			{quiz && quiz.questions && quiz.questions.length > 0 && !saved && (
 				<aside className="va-course-sidebar">
 					<div className="va-course-sidebar-header">
+						{submitted || saved ? (
 						<Link 
 							to={`/courses/${courseId}`}
 							className="va-course-sidebar-back"
 						>
 							← Înapoi
 						</Link>
+						) : null}
 						<h2 className="va-course-sidebar-title">{quiz.title || 'Test Final'}</h2>
 					</div>
 					<div className="va-course-sidebar-content">
@@ -329,7 +319,6 @@ const QuizPage = () => {
 							<div className="va-course-sidebar-modules">
 								{quiz.questions.map((q, index) => {
 									const status = getQuestionStatus(q.id, index);
-									const isFlagged = flaggedQuestions.has(q.id);
 									
 									return (
 										<button
@@ -408,19 +397,9 @@ const QuizPage = () => {
 													marginBottom: '0.25rem',
 													lineHeight: 1.4,
 												}}>
-													Întrebarea {index + 1}
+													{status === 'completed' ? 'Răspunsă' : status === 'incorrect' ? 'De revăzut' : 'Fără răspuns'}
 												</div>
 											</div>
-											{isFlagged && (
-												<div style={{
-													width: '8px',
-													height: '8px',
-													borderRadius: '50%',
-													background: '#ff6b6b',
-													border: '1px solid rgba(0,0,0,0.3)',
-													flexShrink: 0
-												}} />
-											)}
 										</button>
 									);
 								})}
@@ -586,7 +565,7 @@ const QuizPage = () => {
 					}}>
 						<div className="va-card-body va-stack" style={{ padding: '2.5rem' }}>
 							{quiz.questions && quiz.questions.length > 0 ? (
-								quiz.questions.map((q, idx) => {
+								quiz.questions.map((q) => {
 									const hasOptions = Array.isArray(q.options) && q.options.length > 0;
 									const hasMatching = q.type === 'matching' && q.matching;
 									const hasOrdering = q.type === 'ordering' && q.ordering;
@@ -594,8 +573,6 @@ const QuizPage = () => {
 									const isCorrect = isQuestionCorrect(q, visibleAnswers[q.id]);
 									const showResult = (submitted || saved) && result;
 									const showGrading = showResult && !showOnlySubmittedAnswers;
-									const isFlagged = flaggedQuestions.has(q.id);
-									const points = q.points || 1;
 									
 									return (
 										<div 
@@ -644,79 +621,38 @@ const QuizPage = () => {
 											)}
 											
 											<div className="va-question-header" style={{ position: 'relative', zIndex: 1 }}>
-												<div className={`va-question-number-badge ${showResult ? (isCorrect ? 'correct' : 'incorrect') : 'default'}`} style={{
+												{showResult ? (
+												<div className={`va-question-number-badge ${isCorrect ? 'correct' : 'incorrect'}`} style={{
 													width: '48px',
 													height: '48px',
 													borderRadius: '14px',
-													background: showResult
-														? (isCorrect
+													background: isCorrect
 															? 'linear-gradient(135deg, #4ade80, #22c55e)'
-															: 'linear-gradient(135deg, #ff6b6b, #ff5252)')
-														: 'linear-gradient(135deg, rgba(255,238,0,0.25), rgba(255,238,0,0.15))',
+															: 'linear-gradient(135deg, #ff6b6b, #ff5252)',
 													display: 'flex',
 													alignItems: 'center',
 													justifyContent: 'center',
 													fontSize: '1.25rem',
 													fontWeight: 700,
-													color: showResult ? '#fff' : '#ffee00',
+													color: '#fff',
 													flexShrink: 0,
-													boxShadow: showResult
-														? (isCorrect
+													boxShadow: isCorrect
 															? '0 4px 16px rgba(74, 222, 128, 0.3)'
-															: '0 4px 16px rgba(255,107,107,0.3)')
-														: '0 4px 12px rgba(255,238,0,0.2)',
-													border: showResult ? 'none' : '1px solid rgba(255,238,0,0.3)',
+															: '0 4px 16px rgba(255,107,107,0.3)',
 												}}>
-													{showResult ? (isCorrect ? '✓' : '✗') : idx + 1}
+													{isCorrect ? '✓' : '✗'}
 												</div>
+												) : null}
 												<div style={{ flex: 1 }}>
-													<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-														<div style={{ flex: 1 }}>
-															<div className="va-question-text">
-																{q.text}
-															</div>
-															{!submitted && !saved && (
-																<div className="va-question-progress">
-																	Întrebarea {idx + 1} din {quiz.questions.length}
-																</div>
-															)}
-														</div>
-														<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
-															{points > 1 && (
-																<div style={{
-																	padding: '0.5rem 1rem',
-																	background: 'rgba(255,238,0,0.1)',
-																	border: '1px solid rgba(255,238,0,0.2)',
-																	borderRadius: '12px',
-																	color: 'var(--va-primary)',
-																	fontSize: '0.85rem',
-																	fontWeight: 700
-																}}>
-																	{points} {points === 1 ? 'punct' : 'puncte'}
-																</div>
-															)}
-															{!submitted && !saved && (
-																<button
-																	onClick={() => toggleFlag(q.id)}
-																	style={{
-																		padding: '0.5rem',
-																		background: isFlagged ? 'rgba(255,107,107,0.15)' : 'rgba(255,255,255,0.05)',
-																		border: `1px solid ${isFlagged ? 'rgba(255,107,107,0.3)' : 'rgba(255,238,0,0.2)'}`,
-																		borderRadius: '8px',
-																		cursor: 'pointer',
-																		color: isFlagged ? '#ff6b6b' : 'var(--va-text)',
-																		transition: 'all 0.2s ease',
-																		display: 'flex',
-																		alignItems: 'center',
-																		justifyContent: 'center'
-																	}}
-																	title={isFlagged ? 'Elimină marcaj' : 'Marchează pentru revizie'}
-																>
-																	<span style={{ fontSize: '1.2rem' }}>🚩</span>
-																</button>
-															)}
-														</div>
+													<div className="va-question-text">
+														{q.text}
 													</div>
+													{(q.comment || q.explanation) && !submitted ? (
+														<RichTextHtml
+															html={q.comment || q.explanation}
+															className="student-exam-question-comment"
+														/>
+													) : null}
 												</div>
 											</div>
 											{isStructured ? (
@@ -1216,7 +1152,6 @@ const QuizPage = () => {
 										setResult(null);
 										setSaved(false);
 										setCurrentQuestionIndex(0);
-										setFlaggedQuestions(new Set());
 										if (quiz.duration_minutes) {
 											setTimeRemaining(quiz.duration_minutes * 60);
 											setStartTime(Date.now());
@@ -1239,7 +1174,6 @@ const QuizPage = () => {
                     confirmOpen={confirmSubmitOpen}
                     answeredCount={answeredQuestionsCount}
                     unansweredCount={unansweredQuestionIndexes.length}
-                    flaggedCount={flaggedQuestions.size}
                     onRequestSubmit={requestSubmit}
                     onConfirmSubmit={() => {
                         setConfirmSubmitOpen(false);

@@ -226,7 +226,7 @@ export default function AdminTestsPage() {
           <h1>Teste</h1>
           <p className="admin-content-list-header__lead">
             {pageView === 'statistics'
-              ? 'Statistici detaliate per test: rezumat, elevi și analiză pe întrebări.'
+              ? 'Statistici detaliate per test: rezumat, utilizatori și analiză pe întrebări.'
               : 'Setări și întrebări în același builder ca la cursuri.'}
           </p>
           {pageView === 'list' ? (
@@ -467,7 +467,7 @@ export default function AdminTestsPage() {
             <p className="admin-tests-delete-lead">
               <strong>{deleteConfirmTest.title || 'Test'}</strong> va fi eliminat. Legăturile din cursuri pot înceta să funcționeze.
             </p>
-            <p className="admin-tests-delete-hint">Pentru a ascunde testul de elevi, retrage-l din publicare.</p>
+            <p className="admin-tests-delete-hint">Pentru a ascunde testul de utilizatori, retrage-l din publicare.</p>
             <div className="admin-tests-delete-actions">
               <button type="button" disabled={busyId} onClick={() => setDeleteConfirmTest(null)}>
                 Anulează

@@ -488,7 +488,7 @@
 @media (max-width: 768px) {
 	.student-achievements-page {
 		overflow-x: clip;
-		padding: var(--space-4) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom, 0));
+		padding: var(--space-4);
 	}
 
 	.student-achievements-header h1 {

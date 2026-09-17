@@ -506,6 +506,14 @@
 	color: var(--text-secondary);
 }
 
+.course-distribution-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	justify-content: flex-end;
+}
+
+.course-distribution-btn-complete,
 .course-distribution-btn-remove {
 	padding: var(--space-1) var(--space-3);
 	font-size: var(--font-size-xs);
@@ -514,6 +522,16 @@
 	background: var(--bg-primary);
 	color: var(--text-primary);
 	cursor: pointer;
+}
+
+.course-distribution-btn-complete:hover:not(:disabled) {
+	border-color: var(--color-success, #22c55e);
+	color: var(--color-success, #16a34a);
+}
+
+.course-distribution-btn-complete:disabled {
+	opacity: 0.6;
+	cursor: default;
 }
 
 .course-distribution-btn-remove:hover:not(:disabled) {

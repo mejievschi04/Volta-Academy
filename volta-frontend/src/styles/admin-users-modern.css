@@ -621,6 +621,10 @@
 	}
 }
 
+.admin-users-table-cell-email-stacked {
+	display: none;
+}
+
 @media (max-width: 768px) {
 	.admin-users-filters {
 		flex-direction: column;
@@ -637,11 +641,31 @@
 	}
 
 	.admin-users-table-wrapper {
-		overflow-x: auto;
+		overflow-x: visible;
 	}
 
 	.admin-users-table {
-		min-width: 800px;
+		min-width: 0;
+		width: 100%;
+	}
+
+	.admin-users-table--directory th:nth-child(2),
+	.admin-users-table--directory td:nth-child(2),
+	.admin-users-table--directory th:nth-child(7),
+	.admin-users-table--directory td:nth-child(7) {
+		display: none;
+	}
+
+	.admin-users-table-cell-email-stacked {
+		display: block;
+		font-size: var(--font-size-xs);
+		color: var(--text-secondary);
+		margin-bottom: var(--space-1);
+		word-break: break-all;
+	}
+
+	.admin-users-invite-button {
+		padding: var(--space-2);
 	}
 
 	.admin-users-modal {
@@ -1066,8 +1090,8 @@
     outline-offset: 2px;
 }
 @media (max-width: 768px) {
-    .admin-users-page .admin-users-table { min-width: 640px; }
-    .admin-users-page .admin-users-table th:last-child { width: 120px; }
+    .admin-users-page .admin-users-table { min-width: 0; width: 100%; }
+    .admin-users-page .admin-users-table th:last-child { width: 88px; }
     .admin-users-page .admin-invitations-table th:last-child { width: 172px; }
     .admin-users-page .admin-users-table th:last-child,
     .admin-users-page .admin-users-table td:last-child {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RegistrationInvitationService;
+use App\Services\UserAssignedCoursesService;
 use App\Support\AuthActivityLogger;
 use App\Support\StudentSessionLogger;
 use Illuminate\Http\Request;
@@ -89,9 +90,11 @@ class RegistrationInvitationController extends Controller
                     'status' => 'active',
                     'must_change_password' => false,
                 ]);
-                if ($invitation->team_id) {
-                    $user->teams()->syncWithoutDetaching([$invitation->team_id]);
-                }
+            }
+
+            if ($invitation->team_id) {
+                $user->teams()->syncWithoutDetaching([$invitation->team_id]);
+                app(UserAssignedCoursesService::class)->enrollUserInLinkedTeamCourses($user->fresh());
             }
 
             $user->forceFill(['last_login_at' => now()])->save();

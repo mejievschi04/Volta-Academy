@@ -12,6 +12,7 @@ use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Models\CourseVersion;
 use App\Models\CourseVersionSnapshot;
+use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -777,7 +778,7 @@ class CourseBuilderService
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             if (Schema::hasTable('course_team') && $teamIds !== []) {
-                $course->teams()->sync($teamIds);
+                app(UserAssignedCoursesService::class)->syncCourseTeams($course, $teamIds);
             }
             $this->publishDraftLinkedAssessmentsForCourse((int) $course->id);
             $this->createCourseVersionSnapshot($course->id, $actor, 'published');

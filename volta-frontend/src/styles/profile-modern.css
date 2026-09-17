@@ -678,6 +678,13 @@
 	transform: translateY(-2px);
 }
 
+.va-course-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	margin-top: var(--space-2);
+}
+
 .va-course-card-header {
 	display: flex;
 	align-items: flex-start;
@@ -940,7 +947,7 @@
 @media (max-width: 768px) {
 	.va-profile-container {
 		overflow-x: clip;
-		padding: var(--space-3) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+		padding: var(--space-3) var(--space-4) var(--space-6);
 		box-sizing: border-box;
 	}
 
@@ -993,390 +1000,6 @@
 		min-height: 48px;
 		width: 100%;
 		justify-content: center;
-	}
-
-	.student-settings-page {
-		width: 100%;
-		padding: var(--space-3) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom, 0));
-	}
-
-	.student-settings-header {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.student-settings-save-btn,
-	.student-settings-form-grid input,
-	.student-settings-form-grid select,
-	.student-settings-form-grid textarea,
-	.student-settings-theme-control .va-theme-segment-btn {
-		min-height: 44px;
-		font-size: 16px;
-	}
-
-	.student-settings-save-btn {
-		width: 100%;
-		min-height: 48px;
-	}
-}
-
-/* Student settings */
-.student-settings-page {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-5);
-	width: min(1040px, 100%);
-	margin: 0 auto;
-	padding: var(--space-4) var(--space-5) var(--space-8);
-	box-sizing: border-box;
-}
-
-.student-settings-header,
-.student-settings-account-card,
-.student-settings-section {
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-primary);
-	border-radius: 16px;
-	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.student-settings-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-4);
-	padding: var(--space-5) var(--space-6);
-	overflow: hidden;
-	position: relative;
-}
-
-.student-settings-header::before {
-	content: '';
-	position: absolute;
-	inset: 0 auto 0 0;
-	width: 4px;
-	border-radius: 16px 0 0 16px;
-	background: var(--accent-primary);
-}
-
-.student-settings-title {
-	margin: 0;
-	font-size: clamp(1.35rem, 2.5vw, 1.65rem);
-	line-height: 1.15;
-	letter-spacing: -0.02em;
-}
-
-.student-settings-grid {
-	display: grid;
-	grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-	gap: var(--space-4);
-	align-items: stretch;
-}
-
-/* Coloană stânga: cont sus, aspect jos — aliniat la baza cu formularul */
-.student-settings-rail {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-4);
-	min-height: 100%;
-	height: 100%;
-}
-
-.student-settings-appearance-card {
-	margin-top: auto;
-	flex-shrink: 0;
-}
-
-.student-settings-account-card {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-4);
-	padding: var(--space-5);
-	flex-shrink: 0;
-}
-
-.student-settings-account-top {
-	display: flex;
-	align-items: center;
-	gap: var(--space-4);
-	min-width: 0;
-}
-
-.student-settings-avatar {
-	display: inline-grid;
-	place-items: center;
-	flex-shrink: 0;
-	width: 52px;
-	height: 52px;
-	border-radius: 14px;
-	color: var(--text-inverse);
-	background: linear-gradient(135deg, var(--accent-primary), var(--color-primary-hover));
-	font-size: 1rem;
-	font-weight: var(--font-weight-bold);
-	box-shadow: 0 8px 20px color-mix(in srgb, var(--accent-primary) 28%, transparent);
-}
-
-.student-settings-account-copy {
-	min-width: 0;
-}
-
-.student-settings-account-copy h2 {
-	margin: 0;
-	color: var(--text-primary);
-	font-size: 1rem;
-	font-weight: var(--font-weight-bold);
-	line-height: 1.25;
-	overflow-wrap: anywhere;
-}
-
-.student-settings-account-copy p {
-	margin: var(--space-1) 0 0;
-	color: var(--text-secondary);
-	font-size: 0.8125rem;
-	line-height: 1.35;
-	overflow-wrap: anywhere;
-}
-
-.student-settings-account-meta {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-	padding-top: var(--space-3);
-	border-top: 1px solid var(--border-primary);
-}
-
-.student-settings-account-meta span {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-height: 28px;
-	padding: 0 var(--space-2);
-	border-radius: 8px;
-	color: var(--text-secondary);
-	font-size: 0.8125rem;
-	line-height: 1;
-	background: var(--bg-secondary);
-}
-
-.student-settings-page svg {
-	display: block;
-	flex-shrink: 0;
-}
-
-.student-settings-section-main {
-	min-height: 100%;
-	height: 100%;
-	box-sizing: border-box;
-}
-
-.student-settings-section {
-	padding: var(--space-5);
-}
-
-.student-settings-section-header {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	margin-bottom: var(--space-4);
-}
-
-.student-settings-section-header > div {
-	display: flex;
-	align-items: center;
-	min-height: 36px;
-}
-
-.student-settings-section-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 36px;
-	height: 36px;
-	border-radius: 10px;
-	color: var(--accent-primary);
-	background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-	border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--border-primary));
-	flex: 0 0 auto;
-}
-
-.student-settings-section-title {
-	font-size: 1rem;
-	font-weight: var(--font-weight-bold);
-	color: var(--text-primary);
-	margin: 0;
-	line-height: 1.25;
-	letter-spacing: -0.01em;
-}
-
-.student-settings-section + .student-settings-section {
-	margin-top: 0;
-}
-
-.student-settings-form {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-4);
-}
-
-.student-settings-form-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: var(--space-4);
-}
-
-.student-settings-field {
-	display: grid;
-	gap: 0.25rem;
-}
-
-.student-settings-field .va-input-label {
-	color: var(--text-primary);
-	font-size: 0.76rem;
-	font-weight: var(--font-weight-semibold);
-}
-
-.student-settings-field .va-input,
-.student-settings-field .student-settings-textarea {
-	width: 100%;
-	box-sizing: border-box;
-	border-radius: var(--radius-md);
-	background: var(--bg-primary);
-	border: 1px solid var(--border-primary);
-	font-size: 0.84rem;
-	min-height: 34px;
-	padding: 0.45rem 0.65rem;
-	transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
-}
-
-.student-settings-field .va-input:focus,
-.student-settings-field .student-settings-textarea:focus {
-	border-color: var(--accent-primary);
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 16%, transparent);
-	background: var(--bg-elevated);
-}
-
-.student-settings-field .va-input:read-only {
-	color: var(--text-secondary);
-	background: var(--bg-secondary);
-	cursor: default;
-}
-
-.student-settings-textarea {
-	resize: vertical;
-	min-height: 4.6rem;
-	line-height: 1.35;
-}
-
-.student-settings-label-note {
-	color: var(--text-tertiary);
-	font-weight: var(--font-weight-normal);
-}
-
-.student-settings-actions {
-	display: flex;
-	justify-content: flex-end;
-	padding-top: 0;
-}
-
-.student-settings-actions .lms-btn-primary {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	min-height: 32px;
-	line-height: 1;
-	border-radius: var(--radius-md);
-	padding-inline: var(--space-3);
-	font-size: 0.82rem;
-}
-
-.student-settings-theme {
-	margin-top: 0;
-}
-
-.student-settings-theme .student-settings-theme-control {
-	width: 100%;
-	padding: 0;
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-}
-
-.student-settings-theme-control .va-theme-preference-info {
-	min-width: 0;
-}
-
-.student-settings-theme-control {
-	gap: 0.55rem;
-}
-
-.student-settings-theme-control .va-theme-preference-info {
-	display: none;
-}
-
-.student-settings-theme-control .va-theme-segment {
-	border-radius: var(--radius-md);
-	width: 100%;
-}
-
-.student-settings-theme-control .va-theme-segment-btn {
-	flex: 1;
-	border-radius: calc(var(--radius-md) - 2px);
-	padding: 0.35rem 0.45rem;
-	font-size: 0.78rem;
-}
-
-@media (max-width: 900px) {
-	.student-settings-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.student-settings-rail {
-		height: auto;
-		min-height: 0;
-	}
-
-	.student-settings-appearance-card {
-		margin-top: 0;
-	}
-
-	.student-settings-section-main {
-		min-height: 0;
-		height: auto;
-	}
-}
-
-@media (max-width: 640px) {
-	.student-settings-page {
-		padding: var(--space-3) var(--space-4) var(--space-6);
-		gap: var(--space-4);
-	}
-
-	.student-settings-header {
-		padding: var(--space-4);
-	}
-
-	.student-settings-account-card,
-	.student-settings-section {
-		padding: var(--space-4);
-	}
-
-	.student-settings-form-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.student-settings-theme-control {
-		align-items: stretch;
-	}
-
-	.student-settings-theme-control .va-theme-segment {
-		width: 100%;
-	}
-
-	.student-settings-theme-control .va-theme-segment-btn {
-		flex: 1;
-		padding-inline: 0.5rem;
 	}
 }
 
@@ -1509,6 +1132,76 @@
 	gap: var(--space-4);
 	margin-top: var(--space-6);
 	flex-wrap: wrap;
+}
+
+@media (min-width: 769px) {
+	.va-profile-container {
+		max-width: 1080px;
+		width: 100%;
+		padding: var(--space-6) var(--space-8) var(--space-8);
+		box-sizing: border-box;
+		overflow-x: hidden;
+	}
+
+	.va-profile-container .va-profile-header {
+		margin-bottom: var(--space-6);
+		overflow: hidden;
+	}
+
+	.va-profile-container .va-profile-cover {
+		height: 96px;
+		margin-bottom: 0;
+	}
+
+	.va-profile-container .va-profile-info {
+		margin-top: 0;
+		align-items: center;
+		padding: var(--space-5) var(--space-8) var(--space-6);
+		min-height: 0;
+		gap: var(--space-6);
+	}
+
+	.va-profile-container .va-profile-details {
+		padding-bottom: 0;
+		justify-content: center;
+		gap: var(--space-2);
+	}
+
+	.va-profile-container .va-profile-name {
+		line-height: 1.2;
+	}
+
+	.va-profile-container .va-profile-stats.va-profile-stats-kpi {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: var(--space-4);
+		width: 100%;
+	}
+
+	.va-profile-container .va-stat-card-kpi {
+		min-width: 0;
+		min-height: 96px;
+		padding: var(--space-5) var(--space-4);
+		box-sizing: border-box;
+	}
+
+	.va-profile-container .va-stat-label {
+		white-space: normal;
+	}
+
+	.va-profile-container .va-course-card-title {
+		font-size: var(--font-size-base);
+	}
+
+	.va-profile-container .va-course-card-description {
+		font-size: var(--font-size-sm);
+	}
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+	.va-profile-container .va-profile-stats.va-profile-stats-kpi {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 .va-student-activity-page-info {

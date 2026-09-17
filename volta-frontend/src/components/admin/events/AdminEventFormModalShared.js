@@ -8,5 +8,6 @@ export const emptyEventForm = () => ({
 	start_time: '09:00',
 	duration_minutes: DEFAULT_DURATION_MINUTES,
 	location: '',
-	live_link: '',
+	audience_type: 'all',
+	team_ids: [],
 });

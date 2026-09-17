@@ -211,7 +211,7 @@ export default function TestResultsPanel({
 					<table className="admin-test-results-table">
 						<thead>
 							<tr>
-								<th>Elev</th>
+								<th>Utilizator</th>
 								<th>Email</th>
 								<th>Încercare</th>
 								<th>Punctaj</th>
@@ -266,7 +266,7 @@ export default function TestResultsPanel({
 				<div className="admin-test-results-modal">
 					<h3 id="admin-test-score-modal-title">Modifică punctajul</h3>
 					<p className="admin-test-results-modal-sub">
-						{editTarget?.user?.name || editTarget?.user?.email || 'Elev'} · încercarea #{editTarget?.attempt_number ?? '—'}
+						{editTarget?.user?.name || editTarget?.user?.email || 'Utilizator'} · încercarea #{editTarget?.attempt_number ?? '—'}
 					</p>
 					<label className="admin-test-results-field">
 						Punctaj obținut (0–{maxForEdit})
@@ -298,7 +298,7 @@ export default function TestResultsPanel({
 				<div className="admin-test-results-modal admin-test-breakdown-modal">
 					<h3 id="admin-test-breakdown-modal-title">Detalii încercare</h3>
 					<p className="admin-test-results-modal-sub">
-						{breakdownTarget?.user?.name || breakdownTarget?.user?.email || 'Elev'} · încercarea #{breakdownTarget?.attempt_number ?? '—'}
+						{breakdownTarget?.user?.name || breakdownTarget?.user?.email || 'Utilizator'} · încercarea #{breakdownTarget?.attempt_number ?? '—'}
 						{breakdownTarget?.percentage != null ? ` · ${breakdownTarget.percentage}%` : ''}
 					</p>
 					{breakdownLoading ? (

@@ -18,12 +18,15 @@ class RegistrationInvitationMail extends Mailable
         public string $registerUrl,
         public ?string $recipientName = null,
         public int $expiresInDays = 7,
+        public bool $isReminder = false,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Invitație Volta Academy — activează-ți contul',
+            subject: $this->isReminder
+                ? 'Reminder: invitația Volta Academy expiră curând'
+                : 'Invitație Volta Academy — activează-ți contul',
         );
     }
 

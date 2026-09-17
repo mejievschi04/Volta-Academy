@@ -310,10 +310,10 @@ export default function AdminExamsPage() {
     setStudentsDraftSelected(Array.isArray(examAccess.selectedStudents) ? [...examAccess.selectedStudents] : []);
     try {
       const rows = await adminService.getUsers({ role: 'student', per_page: 500 });
-      setStudentsList(Array.isArray(rows) ? rows.map((user) => ({ id: Number(user?.id), name: user?.name || 'Elev', email: user?.email || '' })).filter((user) => Number.isFinite(user.id)) : []);
+      setStudentsList(Array.isArray(rows) ? rows.map((user) => ({ id: Number(user?.id), name: user?.name || 'Utilizator', email: user?.email || '' })).filter((user) => Number.isFinite(user.id)) : []);
     } catch (e) {
       console.error('Failed to load students:', e);
-      setStudentsList([]); setStudentsError('Nu s-au putut încărca elevii.');
+      setStudentsList([]); setStudentsError('Nu s-au putut încărca utilizatorii.');
     } finally { setStudentsLoading(false); }
   };
   const handleToggleStudentDraft = (studentId) => setStudentsDraftSelected((prev) => prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]);
@@ -728,7 +728,7 @@ export default function AdminExamsPage() {
             <h3 className="admin-exams-builder-card-title">Acces la examen</h3>
             {examAccess.mode === 'selected_students' ? (
               <button type="button" className="admin-exams-builder-primary-outline" onClick={handleOpenStudentsModal}>
-                Alege elevii
+                Alege utilizatorii
               </button>
             ) : null}
           </div>
@@ -736,8 +736,8 @@ export default function AdminExamsPage() {
             <label>
               Mod acces
               <select value={examAccess.mode} onChange={(e) => setExamAccess((prev) => ({ ...prev, mode: e.target.value }))}>
-                <option value="all_students">Toți elevii</option>
-                <option value="selected_students">Doar elevii selectați</option>
+                <option value="all_students">Toți utilizatorii</option>
+                <option value="selected_students">Doar utilizatorii selectați</option>
               </select>
             </label>
           </div>
@@ -750,7 +750,7 @@ export default function AdminExamsPage() {
                   </span>
                 ))
               ) : (
-                <span className="admin-exams-modern-empty-note">Nicio selecție încă — apasă „Alege elevii”.</span>
+                <span className="admin-exams-modern-empty-note">Nicio selecție încă — apasă „Alege utilizatorii”.</span>
               )}
               {examAccess.selectedStudents.length > selectedStudentsPreview.length ? (
                 <span className="admin-exams-modern-student-chip is-muted">
@@ -784,7 +784,7 @@ export default function AdminExamsPage() {
             <>
               <div className="admin-exams-statistics-tabs">
                 <button type="button" className={statisticsTab === 'students' ? 'is-active' : ''} onClick={() => setStatisticsTab('students')}>
-                  Elevi
+                  Utilizatori
                 </button>
                 <button type="button" className={statisticsTab === 'questions' ? 'is-active' : ''} onClick={() => setStatisticsTab('questions')}>
                   Întrebări
@@ -935,7 +935,7 @@ export default function AdminExamsPage() {
                 </div>
                 <div className="admin-exams-builder-summary-card">
                   <span>Acces</span>
-                  <strong>{examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} elevi` : 'Toți'}</strong>
+                  <strong>{examAccess.mode === 'selected_students' ? `${examAccess.selectedStudents.length} utilizatori` : 'Toți'}</strong>
                 </div>
                 <div className="admin-exams-builder-summary-card">
                   <span>Review</span>
@@ -1059,7 +1059,7 @@ export default function AdminExamsPage() {
             <div className="admin-exams-students-modal-head">
               <div>
                 <span className="admin-exams-content-subtitle">Alegi cui ii deschizi examenul.</span>
-                <h3>Selectează elevi</h3>
+                <h3>Selectează utilizatori</h3>
               </div>
               <span className="admin-exams-content-summary-chip">{studentsDraftCount} selectati</span>
             </div>
@@ -1067,7 +1067,7 @@ export default function AdminExamsPage() {
             {studentsError ? <p className="admin-exams-create-modal-error">{studentsError}</p> : null}
             <div className="admin-exams-students-list">
               {studentsLoading ? (
-                <p>Se încarcă elevii...</p>
+                <p>Se încarcă utilizatorii...</p>
               ) : (
                 studentsList.filter((student) => {
                   const query = studentsSearch.trim().toLowerCase();

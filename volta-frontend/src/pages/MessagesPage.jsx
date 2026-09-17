@@ -70,6 +70,43 @@ const MessagesPage = () => {
 	}, []);
 
 	useEffect(() => {
+		if (!isMobile || !selectedConversation) {
+			document.documentElement.style.removeProperty('--messages-visible-height');
+			document.documentElement.style.removeProperty('--messages-keyboard-inset');
+			document.documentElement.style.removeProperty('--messages-viewport-top');
+			return undefined;
+		}
+
+		const viewport = window.visualViewport;
+		let lastInset = 0;
+		const update = () => {
+			const visible = Math.round(viewport?.height ?? window.innerHeight);
+			const top = Math.round(viewport?.offsetTop ?? 0);
+			const inset = Math.max(0, Math.round(window.innerHeight - visible - top));
+			document.documentElement.style.setProperty('--messages-visible-height', `${visible}px`);
+			document.documentElement.style.setProperty('--messages-viewport-top', `${top}px`);
+			document.documentElement.style.setProperty('--messages-keyboard-inset', `${inset}px`);
+			if (inset > lastInset + 48) {
+				requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ block: 'end' }));
+			}
+			lastInset = inset;
+		};
+
+		update();
+		viewport?.addEventListener('resize', update);
+		viewport?.addEventListener('scroll', update);
+		window.addEventListener('resize', update);
+		return () => {
+			viewport?.removeEventListener('resize', update);
+			viewport?.removeEventListener('scroll', update);
+			window.removeEventListener('resize', update);
+			document.documentElement.style.removeProperty('--messages-visible-height');
+			document.documentElement.style.removeProperty('--messages-viewport-top');
+			document.documentElement.style.removeProperty('--messages-keyboard-inset');
+		};
+	}, [isMobile, selectedConversation]);
+
+	useEffect(() => {
 		fetchConversations();
 
 		// Reîncarcă conversațiile când pagina devine activă
@@ -90,10 +127,14 @@ const MessagesPage = () => {
 	}, []);
 
 	useEffect(() => {
-		if (selectedConversation) {
+		if (selectedConversation?.id) {
 			fetchMessages(selectedConversation.id);
+		} else {
+			setMessages([]);
+			lastMessageIdRef.current = null;
 		}
-	}, [selectedConversation]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per conversation id
+	}, [selectedConversation?.id]);
 
 	useEffect(() => {
 		if (shouldAutoScrollRef.current) {
@@ -250,7 +291,7 @@ const MessagesPage = () => {
 			if (Array.isArray(data)) {
 				setConversations(data);
 				setAllConversations(data); // Store all conversations for search
-				if (!selectedConversation && data.length > 0) {
+				if (!selectedConversation && data.length > 0 && window.innerWidth > 768) {
 					setSelectedConversation(data[0]);
 				}
 			} else {
@@ -270,35 +311,38 @@ const MessagesPage = () => {
 
 	const fetchMessages = async (conversationId, silent = false) => {
 		if (!conversationId) return;
-		
+
 		try {
 			const data = await messagesService.getMessages(conversationId);
-			
+
 			if (Array.isArray(data)) {
 				setMessages(data);
-				// Setăm ultimul mesaj ID pentru polling
-				if (data.length > 0) {
-					lastMessageIdRef.current = data[data.length - 1].id;
-				} else {
-					lastMessageIdRef.current = null;
-				}
+				lastMessageIdRef.current = data.length > 0 ? data[data.length - 1].id : null;
 			} else {
 				setMessages([]);
 				lastMessageIdRef.current = null;
 			}
-			
-			// Mark conversation as read
-			if (conversationId) {
+
+			try {
 				await messagesService.markAsRead(conversationId);
 				applyConversationReadLocally(conversationId);
+			} catch (readErr) {
+				if (readErr?.response?.status !== 429) {
+					logger.error('Error marking conversation read:', readErr);
+				}
 			}
 		} catch (err) {
 			logger.error('Error fetching messages:', err);
-			if (!silent) {
+			if (err?.response?.status === 429) {
+				messagesPollBackoffUntilRef.current = Date.now() + 120000;
+			}
+			if (!silent && err?.response?.status !== 429) {
 				showToast('Eroare la încărcarea mesajelor', 'error');
 			}
-			setMessages([]);
-			lastMessageIdRef.current = null;
+			if (err?.response?.status !== 429) {
+				setMessages([]);
+				lastMessageIdRef.current = null;
+			}
 		}
 	};
 
@@ -404,7 +448,7 @@ const MessagesPage = () => {
 		}
 		return conversation?.participant?.role === 'admin' ? 'Administrator'
 			: conversation?.participant?.role === 'instructor' ? 'Instructor'
-			: 'Student';
+			: 'Utilizator';
 	};
 
 	const getConversationMessages = (conversation) => {
@@ -479,6 +523,13 @@ const MessagesPage = () => {
 
 	const applyConversationReadLocally = (conversationId) => {
 		const id = String(conversationId);
+		const alreadyClear = (conversation) =>
+			!conversation
+			|| String(conversation.id) !== id
+			|| (
+				Number(conversation.unreadCount ?? conversation.unread_count ?? 0) === 0
+				&& Number(conversation.unread_messages_count ?? conversation.unreadMessagesCount ?? 0) === 0
+			);
 		const clearUnread = (conversation) => conversation && String(conversation.id) === id
 			? {
 				...conversation,
@@ -489,9 +540,9 @@ const MessagesPage = () => {
 			}
 			: conversation;
 
-		setConversations((prev) => prev.map(clearUnread));
-		setAllConversations((prev) => prev.map(clearUnread));
-		setSelectedConversation((prev) => (prev ? clearUnread(prev) : prev));
+		setConversations((prev) => prev.map((row) => (alreadyClear(row) ? row : clearUnread(row))));
+		setAllConversations((prev) => prev.map((row) => (alreadyClear(row) ? row : clearUnread(row))));
+		setSelectedConversation((prev) => (alreadyClear(prev) ? prev : clearUnread(prev)));
 		window.dispatchEvent(new CustomEvent('volta:conversation-read', { detail: { conversationId: id } }));
 	};
 
@@ -827,7 +878,7 @@ const MessagesPage = () => {
 	}
 
 	return (
-		<div className="messages-page">
+		<div className={`messages-page${isMobile && selectedConversation ? ' messages-page--thread' : ''}`}>
 			<div className="messages-container">
 				{/* Conversations Sidebar - Hidden on mobile when conversation is selected */}
 				<div className={`messages-sidebar ${isMobile && selectedConversation ? 'mobile-hidden' : ''}`}>
@@ -866,24 +917,34 @@ const MessagesPage = () => {
 								</div>
 							</div>
 						) : (
-							filteredConversations.map((conversation) => (
+							filteredConversations.map((conversation) => {
+							const isActive = selectedConversation?.id === conversation.id;
+							const unreadCount = getConversationUnreadCount(conversation);
+							const openConversation = () => {
+								applyConversationReadLocally(conversation.id);
+								setSelectedConversation({
+									...conversation,
+									unreadCount: 0,
+								});
+							};
+							return (
 							<div
 								key={conversation.id}
-								className={`messages-conversation-item ${
-									selectedConversation?.id === conversation.id ? 'active' : ''
-								} ${getConversationUnreadCount(conversation) > 0 ? 'unread' : ''}`}
-								onClick={() => {
-									applyConversationReadLocally(conversation.id);
-									setSelectedConversation({
-										...conversation,
-										unreadCount: 0,
-									});
-									// On mobile, this will hide the sidebar and show the conversation
+								className={`messages-conversation-item${isActive ? ' active' : ''}${unreadCount > 0 ? ' unread' : ''}`}
+								role="button"
+								tabIndex={0}
+								aria-current={isActive ? 'true' : undefined}
+								onClick={openConversation}
+								onKeyDown={(event) => {
+									if (event.key === 'Enter' || event.key === ' ') {
+										event.preventDefault();
+										openConversation();
+									}
 								}}
 							>
-								<div className="messages-conversation-avatar">
+								<div className="messages-conversation-avatar" aria-hidden="true">
 									{!conversation.is_group && conversation.participant?.avatar ? (
-										<img src={toImageUrl(conversation.participant.avatar) || conversation.participant.avatar} alt={getConversationTitle(conversation)} loading="lazy" decoding="async" />
+										<img src={toImageUrl(conversation.participant.avatar) || conversation.participant.avatar} alt="" loading="lazy" decoding="async" />
 									) : (
 										<span>{getConversationAvatarText(conversation)}</span>
 									)}
@@ -894,9 +955,9 @@ const MessagesPage = () => {
 											{getConversationTitle(conversation)}
 										</span>
 										<span className="messages-conversation-time">
-											{conversation.lastMessage?.created_at 
+											{conversation.lastMessage?.created_at
 												? formatTime(conversation.lastMessage.created_at)
-												: conversation.updated_at 
+												: conversation.updated_at
 													? formatTime(conversation.updated_at)
 													: 'Recentă'}
 										</span>
@@ -905,18 +966,17 @@ const MessagesPage = () => {
 										<span className="messages-conversation-text">
 											{conversation.lastMessage?.content || 'Fără mesaje'}
 										</span>
-										{getConversationUnreadCount(conversation) > 0 && (
-											<span className="messages-unread-meta">
-												<span className="messages-unread-dot" aria-hidden="true" />
-												<span className="messages-unread-badge">
-													{getConversationUnreadCount(conversation) > 99 ? '99+' : getConversationUnreadCount(conversation)}
-												</span>
+										{unreadCount > 0 ? (
+											<span className="messages-unread-badge">
+												{unreadCount > 99 ? '99+' : unreadCount}
 											</span>
-										)}
+										) : null}
 									</div>
 								</div>
 							</div>
-						)))}
+							);
+						})
+						)}
 					</div>
 				</div>
 
@@ -1139,7 +1199,7 @@ const MessagesPage = () => {
 												{user.role && (
 													<div className="messages-user-role">
 														{user.role === 'admin' ? 'Administrator' :
-														 user.role === 'instructor' ? 'Instructor' : 'Student'}
+														 user.role === 'instructor' ? 'Instructor' : 'Utilizator'}
 													</div>
 												)}
 											</div>

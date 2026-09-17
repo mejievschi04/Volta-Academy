@@ -89,6 +89,7 @@ class RegistrationInvitationService
             'email_status' => $emailEnabled ? 'pending' : 'skipped',
             'email_sent_at' => null,
             'email_last_error' => null,
+            'reminder_sent_at' => null,
         ]);
 
         $invitation = $invitation->fresh();
@@ -116,6 +117,44 @@ class RegistrationInvitationService
         $plainToken = Crypt::decryptString($invitation->encrypted_token);
 
         return RegistrationInvitationUrl::build($plainToken);
+    }
+
+    public function queueExpiryReminders(): int
+    {
+        if (! $this->emailNotificationsEnabled()) {
+            return 0;
+        }
+
+        $query = RegistrationInvitation::query()
+            ->whereNull('accepted_at')
+            ->whereNotNull('encrypted_token')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<=', now()->addHours(48));
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('registration_invitations', 'reminder_sent_at')) {
+            $query->whereNull('reminder_sent_at');
+        }
+
+        $sent = 0;
+        $query->with('inviter:id,name')->each(function (RegistrationInvitation $invitation) use (&$sent) {
+            try {
+                $plainToken = Crypt::decryptString($invitation->encrypted_token);
+            } catch (\Throwable) {
+                return;
+            }
+
+            $secondsLeft = max(1, $invitation->expires_at->getTimestamp() - now()->getTimestamp());
+            SendRegistrationInvitationEmailJob::dispatch(
+                $invitation->id,
+                $plainToken,
+                $invitation->inviter?->name ?: 'Administrator',
+                max(1, (int) ceil($secondsLeft / 86400)),
+                true,
+            )->afterCommit();
+            $sent++;
+        });
+
+        return $sent;
     }
 
     public function findPendingByPlainToken(string $plainToken): ?RegistrationInvitation

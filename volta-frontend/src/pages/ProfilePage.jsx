@@ -73,32 +73,48 @@ const ProfilePage = () => {
 	const [showRemoveAvatarConfirm, setShowRemoveAvatarConfirm] = useState(false);
 	const [avatarEditorState, setAvatarEditorState] = useState(null);
 	const [courseFilter, setCourseFilter] = useState('all');
+	const [completingCourseId, setCompletingCourseId] = useState(null);
 	const isViewingOtherUser = userId && currentUser?.role === 'admin';
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				let profile;
-				
-				if (isViewingOtherUser) {
-					const userData = await adminService.getUser(userId);
-					profile = buildProfileFromCourseData(userData, userData);
-				} else {
-					const profileResponse = await profileService.getProfile();
-					profile = buildProfileFromCourseData(profileResponse.user, profileResponse);
-				}
-				
-				setProfileData(profile);
-			} catch (err) {
-				console.error('Error fetching profile:', err);
-				setError('Nu s-a putut încărca profilul');
-			} finally {
-				setLoading(false);
+	const fetchData = async () => {
+		try {
+			setLoading(true);
+			let profile;
+
+			if (isViewingOtherUser) {
+				const userData = await adminService.getUser(userId);
+				profile = buildProfileFromCourseData(userData, userData);
+			} else {
+				const profileResponse = await profileService.getProfile();
+				profile = buildProfileFromCourseData(profileResponse.user, profileResponse);
 			}
-		};
+
+			setProfileData(profile);
+		} catch (err) {
+			console.error('Error fetching profile:', err);
+			setError('Nu s-a putut încărca profilul');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
 		fetchData();
 	}, [userId, isViewingOtherUser]);
+
+	const handleMarkCourseCompleted = async (courseId) => {
+		if (!userId || !courseId) return;
+		setCompletingCourseId(courseId);
+		try {
+			await adminService.markCourseCompleted(userId, courseId);
+			showToast('Curs marcat ca finalizat', 'success');
+			await fetchData();
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Nu s-a putut marca cursul ca finalizat', 'error');
+		} finally {
+			setCompletingCourseId(null);
+		}
+	};
 
 	useEffect(() => {
 		setCourseFilter('all');
@@ -234,14 +250,26 @@ const ProfilePage = () => {
 					<div className="va-course-card-meta">
 						<span>
 							{isViewingOtherUser
-								? 'Elevul nu a deschis încă acest curs.'
+								? 'Utilizatorul nu a deschis încă acest curs.'
 								: 'Nu ai deschis încă acest curs.'}
 						</span>
 					</div>
 				) : null}
-				<Link to={courseLink} className={buttonClass}>
-					{actionLabel}
-				</Link>
+				<div className="va-course-card-actions">
+					<Link to={courseLink} className={buttonClass}>
+						{actionLabel}
+					</Link>
+					{isViewingOtherUser && status !== 'completed' ? (
+						<button
+							type="button"
+							className="lms-btn-primary lms-btn-sm"
+							disabled={completingCourseId === course.id}
+							onClick={() => handleMarkCourseCompleted(course.id)}
+						>
+							{completingCourseId === course.id ? 'Se marchează…' : 'Marchează finalizat'}
+						</button>
+					) : null}
+				</div>
 			</div>
 		);
 	};
@@ -323,8 +351,8 @@ const ProfilePage = () => {
 										? 'Instructor'
 										: profileData.user.role === 'analyst'
 											? 'Analist'
-											: 'Student')
-								: 'Student'}
+											: 'Utilizator')
+								: 'Utilizator'}
 						</p>
 						{isViewingOtherUser && (
 							<div className="va-profile-badges">
@@ -337,10 +365,10 @@ const ProfilePage = () => {
 				</div>
 			</div>
 
-			{!isViewingOtherUser && (
+			{!isViewingOtherUser && (currentUser?.role === 'admin' || currentUser?.actualRole === 'admin') && (
 				<div className="va-profile-activity-cta">
 					<Link to="/profile/activity" className="lms-btn-secondary">
-						Vezi activitatea mea
+						Vezi activitatea
 					</Link>
 				</div>
 			)}

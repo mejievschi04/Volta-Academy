@@ -28,6 +28,8 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
         public int $invitationId,
         public string $plainToken,
         public string $inviterName,
+        public int $expiresInDays = 7,
+        public bool $isReminder = false,
     ) {}
 
     public function handle(): void
@@ -55,13 +57,20 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
                 recipientEmail: $invitation->email,
                 registerUrl: $registerUrl,
                 recipientName: $invitation->name,
+                expiresInDays: max(1, $this->expiresInDays),
+                isReminder: $this->isReminder,
             ));
 
-            $this->updateCurrentInvitation([
-                'email_status' => 'sent',
-                'email_sent_at' => now(),
+            $attributes = [
                 'email_last_error' => null,
-            ]);
+            ];
+            if ($this->isReminder) {
+                $attributes['reminder_sent_at'] = now();
+            } else {
+                $attributes['email_status'] = 'sent';
+                $attributes['email_sent_at'] = now();
+            }
+            $this->updateCurrentInvitation($attributes);
         } catch (\Throwable $e) {
             Log::warning('SendRegistrationInvitationEmailJob failed', [
                 'invitation_id' => $invitation->id,
@@ -80,6 +89,10 @@ class SendRegistrationInvitationEmailJob implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
+        if ($this->isReminder) {
+            return;
+        }
+
         $this->updateCurrentInvitation([
             'email_status' => 'failed',
             'email_last_error' => $exception?->getMessage() ?? 'Trimiterea emailului a eșuat.',

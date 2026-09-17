@@ -253,6 +253,18 @@ html {
 	min-height: -webkit-fill-available;
 	background-color: var(--bg-primary);
 	overscroll-behavior: none;
+	--app-header-height: 64px;
+	--student-tab-height: 0px;
+}
+
+@media (max-width: 768px) {
+	html {
+		--app-header-height: 56px;
+	}
+
+	html:has(.student-mobile-tabs) {
+		--student-tab-height: calc(68px + env(safe-area-inset-bottom, 0px));
+	}
 }
 
 #root {

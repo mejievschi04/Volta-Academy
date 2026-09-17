@@ -711,12 +711,12 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 @media (max-width: 768px) {
 	.lesson-page-modern {
 		overflow-x: clip;
-		min-height: 100dvh;
-		padding-bottom: env(safe-area-inset-bottom, 0);
+		min-height: 0;
+		padding-bottom: 0;
 	}
 
 	.va-shell-topnav .lesson-page-header {
-		top: 56px;
+		top: var(--app-header-height, 56px);
 	}
 
 	.lesson-page-header {
@@ -765,19 +765,23 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 		position: fixed;
 		left: 0;
 		right: 0;
-		bottom: 0;
-		z-index: 60;
+		bottom: var(--student-tab-height, 0px);
+		z-index: 80;
 		flex-direction: column;
 		gap: var(--space-3);
 		margin: 0;
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-		background: #ffffff;
-		border-top: 1px solid rgba(0, 0, 0, 0.1);
-		box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+		padding: var(--space-3) var(--space-4);
+		background: var(--bg-elevated);
+		border-top: 1px solid var(--border-primary);
+		box-shadow: none;
+		width: 100%;
+		max-width: none;
+		transform: none;
+		border-radius: 0;
 	}
 
 	.lesson-page-main {
-		padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+		padding-bottom: 72px;
 	}
 
 	.lesson-page-btn {
@@ -801,7 +805,16 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	position: absolute;
 	left: 0;
 	right: 0;
-	height: 1px;
+	height: 8px;
 	opacity: 0;
 	pointer-events: none;
+}
+
+.lesson-read-sentinel {
+	width: 100%;
+	height: 12px;
+	min-height: 12px;
+	margin-top: 4px;
+	pointer-events: none;
+	opacity: 0;
 }

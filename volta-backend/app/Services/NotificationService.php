@@ -72,7 +72,7 @@ class NotificationService
     }
 
     /**
-     * Notify a student they enrolled in a course.
+     * Notify a student when an assigned test/course deadline is approaching.
      */
     public function notifyCourseEnrolled(User $student, Course $course): void
     {
@@ -80,25 +80,44 @@ class NotificationService
             return;
         }
 
-        if ($this->hasRecentNotification($student->id, 'course_enrolled', ['course_id' => $course->id])) {
+        $deadline = $this->resolveCourseDeadline($student, $course);
+        if (! $deadline) {
             return;
         }
 
-        $title = 'Înscriere confirmată';
-        $description = 'Te-ai înscris la cursul "' . $course->title . '".';
+        if ($this->hasRecentNotification($student->id, 'course_deadline', ['course_id' => $course->id])) {
+            return;
+        }
+
+        $title = 'Termenul expiră';
+        $description = 'Cursul "' . $course->title . '" trebuie finalizat până la ' . $deadline . '.';
         $actionUrl = '/courses/' . $course->id;
 
         Notification::create([
             'user_id' => $student->id,
-            'type' => 'course_enrolled',
+            'type' => 'course_deadline',
             'title' => $title,
             'description' => $description,
             'data' => ['course_id' => $course->id],
             'action_url' => $actionUrl,
-            'severity' => 'success',
+            'severity' => 'warning',
         ]);
 
-        $this->emailNotificationService->sendToUser($student, $title, $description, $actionUrl, 'Continuă cursul');
+        $this->emailNotificationService->sendToUser($student, $title, $description, $actionUrl, 'Deschide cursul');
+    }
+
+    private function resolveCourseDeadline(User $student, Course $course): ?string
+    {
+        $settings = is_array($course->settings ?? null) ? $course->settings : [];
+        $raw = $settings['deadline_at'] ?? $course->due_date ?? null;
+        if (! $raw) {
+            return null;
+        }
+        try {
+            return \Carbon\Carbon::parse($raw)->timezone(config('app.timezone'))->format('d.m.Y H:i');
+        } catch (\Throwable) {
+            return is_string($raw) ? $raw : null;
+        }
     }
 
     /**

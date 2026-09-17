@@ -156,9 +156,9 @@ const AdminActivityLogsPage = () => {
 	const scopeOptions = useMemo(() => {
 		if (availableFilters.action_scopes?.length) return availableFilters.action_scopes;
 		return [
-			{ id: 'elev_progres', label: 'Progres elevi (cursuri și teste)' },
+			{ id: 'elev_progres', label: 'Progres utilizatori (cursuri și teste)' },
 			{ id: 'all', label: 'Toată activitatea' },
-			{ id: 'learner', label: 'Activitate elevi' },
+			{ id: 'learner', label: 'Activitate utilizatori' },
 		];
 	}, [availableFilters.action_scopes]);
 
@@ -177,7 +177,7 @@ const AdminActivityLogsPage = () => {
 		<div className="admin-container admin-activity-logs-page">
 			<div className="admin-page-header">
 				<div>
-					<h1 className="admin-page-title">Activitate elevi</h1>
+					<h1 className="admin-page-title">Activitate utilizatori</h1>
 					<p className="admin-page-subtitle">
 						Implicit vezi tot jurnalul (poți restrânge din „Ce vrei să vezi” și „Tip eveniment”). Acțiunile tale ca administrator nu apar, decât dacă bifezi opțiunea de mai jos.
 					</p>
@@ -345,7 +345,7 @@ const AdminActivityLogsPage = () => {
 						<div className="admin-activity-logs-empty-icon">📋</div>
 						<div className="admin-activity-logs-empty-title">Nicio înregistrare</div>
 						<div className="admin-activity-logs-empty-text">
-							Schimbă filtrele sau așteaptă ca elevii să finalizeze cursuri sau teste.
+							Schimbă filtrele sau așteaptă ca utilizatorii să finalizeze cursuri sau teste.
 						</div>
 						<button
 							type="button"

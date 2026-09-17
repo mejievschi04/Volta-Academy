@@ -19,12 +19,19 @@ class EventController extends Controller
     {
         $query = Event::with(['instructor:id,name,email,avatar', 'course:id,title'])
             ->where(function ($q) {
-                $q->whereIn('status', ['published', 'upcoming', 'live', 'completed'])
+                $q->whereIn('status', ['published', 'upcoming', 'live'])
                     ->orWhere(function ($dateScoped) {
-                        $dateScoped->whereNotIn('status', ['draft', 'cancelled'])
+                        $dateScoped->whereNotIn('status', ['draft', 'cancelled', 'completed'])
                             ->whereNotNull('end_date');
                     });
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             });
+
+        if (Schema::hasTable('event_team')) {
+            $query->with('teams:id,name');
+        }
 
         // Type filter
         if ($request->has('type') && $request->type !== 'all') {
@@ -38,7 +45,7 @@ class EventController extends Controller
             }
         }
 
-        // Date filter: upcoming, past, all
+        // Date filter: upcoming, live. Past events stay hidden on the student list.
         if ($request->has('date_filter')) {
             $now = now();
             switch ($request->date_filter) {
@@ -47,7 +54,7 @@ class EventController extends Controller
                     break;
                 case 'past':
                 case 'completed':
-                    $query->where('end_date', '<', $now);
+                    $query->whereRaw('1 = 0');
                     break;
                 case 'live':
                     $query->where('start_date', '<=', $now)
@@ -64,6 +71,17 @@ class EventController extends Controller
 
         $perPage = $request->get('per_page', 20);
         $events = $query->paginate($perPage);
+
+        $user = Auth::user();
+        $userTeamIds = $user && method_exists($user, 'teams')
+            ? $user->teams()->pluck('teams.id')->all()
+            : [];
+
+        $events->setCollection(
+            $events->getCollection()
+                ->filter(fn ($event) => $this->eventVisibleToUser($event, $user, $userTeamIds))
+                ->values()
+        );
 
         // Add user-specific data if authenticated
         if (Auth::check()) {
@@ -101,6 +119,11 @@ class EventController extends Controller
                   ->orWhere('status', 'completed');
             })
             ->findOrFail($id);
+
+        $endRaw = $event->getRawOriginal('end_date') ?? $event->end_date;
+        if ($endRaw && Carbon::parse($endRaw)->lt(now())) {
+            abort(404);
+        }
 
         // Return raw datetime values
         $event->start_date = $event->getRawOriginal('start_date') ?? $event->start_date;
@@ -316,8 +339,14 @@ class EventController extends Controller
      */
     public function cancelRegistration(Request $request, $id)
     {
-        $event = Event::findOrFail($id);
         $user = Auth::user();
+        if (! $user || ! method_exists($user, 'isAdmin') || ! $user->isAdmin()) {
+            return response()->json([
+                'message' => 'Doar administratorul poate anula înscrierea.',
+            ], 403);
+        }
+
+        $event = Event::findOrFail($id);
 
         if (Schema::hasTable('event_user')) {
             DB::table('event_user')
@@ -356,6 +385,9 @@ class EventController extends Controller
         $query = Event::with(['instructor', 'course'])
             ->whereHas('users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             });
 
         switch ($filter) {
@@ -375,7 +407,7 @@ class EventController extends Controller
                 $query->where('start_date', '>', now());
                 break;
             case 'past':
-                $query->where('end_date', '<', now());
+                $query->whereRaw('1 = 0');
                 break;
         }
 
@@ -454,5 +486,26 @@ class EventController extends Controller
         $event->makeHidden(['live_link', 'replay_url']);
 
         return $event;
+    }
+
+    private function eventVisibleToUser($event, $user, array $userTeamIds): bool
+    {
+        $audience = Schema::hasColumn('events', 'audience_type')
+            ? ($event->audience_type ?? 'all')
+            : 'all';
+        if ($audience !== 'teams') {
+            return true;
+        }
+        if (! $user) {
+            return false;
+        }
+        if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return true;
+        }
+        $eventTeamIds = $event->relationLoaded('teams')
+            ? $event->teams->pluck('id')->all()
+            : [];
+
+        return count(array_intersect($eventTeamIds, $userTeamIds)) > 0;
     }
 }

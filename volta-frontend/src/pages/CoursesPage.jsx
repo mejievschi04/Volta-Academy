@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
-import { courseMapsService, adminService, examService, coursesService, profileService, dashboardService } from '../services/api';
+import { courseMapsService, adminService, coursesService, profileService, dashboardService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
 import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
@@ -19,19 +19,13 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'in_progress', label: 'Nefinalizate', statKey: 'in_progress' },
-	{ id: 'not_accessed', label: 'Neîncepute', statKey: 'not_accessed' },
-	{ id: 'maps', label: 'Parcursuri și cursuri' },
+	{ id: 'maps', label: 'Indicate' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	{ id: 'exams', label: 'Examene' },
 ];
 
 const STUDENT_FILTER_TITLES = {
-	maps: 'Mape de curs',
-	in_progress: 'Cursuri nefinalizate',
-	not_accessed: 'Cursuri neaccesate',
+	maps: 'Mape indicate',
 	completed: 'Cursuri finalizate',
-	exams: 'Examene independente',
 };
 
 const CoursesPage = () => {
@@ -42,12 +36,10 @@ const CoursesPage = () => {
 
 	const [courseMaps, setCourseMaps] = useState([]);
 	const [standaloneCourses, setStandaloneCourses] = useState([]);
-	const [standaloneExams, setStandaloneExams] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [studentFilter, setStudentFilter] = useState('in_progress');
-	const studentFilterReadyRef = useRef(false);
+	const [studentFilter, setStudentFilter] = useState('maps');
 	const [assignedCourseStats, setAssignedCourseStats] = useState(null);
 	const [assignedCourses, setAssignedCourses] = useState({
 		all: [],
@@ -109,13 +101,6 @@ const CoursesPage = () => {
 					}
 				}
 
-				try {
-					const examRows = await examService.listStandaloneExams();
-					setStandaloneExams(Array.isArray(examRows) ? examRows : []);
-				} catch (examErr) {
-					console.error('Error fetching standalone exams:', examErr);
-					setStandaloneExams([]);
-				}
 			} catch (err) {
 				console.error('Error fetching courses:', err);
 				setError('Nu s-au putut incarca mapele.');
@@ -127,15 +112,6 @@ const CoursesPage = () => {
 
 		fetchCourses();
 	}, [authLoading, isAdmin]);
-
-	useEffect(() => {
-		if (isAdmin || loading || studentFilterReadyRef.current) return;
-		studentFilterReadyRef.current = true;
-		const hasInProgress = (assignedCourses.in_progress || []).length > 0 || Boolean(nextLesson);
-		if (!hasInProgress) {
-			setStudentFilter('maps');
-		}
-	}, [isAdmin, loading, assignedCourses.in_progress, nextLesson]);
 
 	const filteredCourseMaps = useMemo(() => {
 		let rows = Array.isArray(courseMaps) ? [...courseMaps] : [];
@@ -165,21 +141,9 @@ const CoursesPage = () => {
 		return rows;
 	}, [standaloneCourses, searchQuery]);
 
-	const filteredStandaloneExams = useMemo(() => {
-		let rows = Array.isArray(standaloneExams) ? [...standaloneExams] : [];
-		if (searchQuery.trim()) {
-			const needle = searchQuery.trim().toLowerCase();
-			rows = rows.filter((ex) =>
-				String(ex?.title || '').toLowerCase().includes(needle) ||
-				String(ex?.description || '').toLowerCase().includes(needle)
-			);
-		}
-		return rows;
-	}, [standaloneExams, searchQuery]);
-
 	const filteredAssignedCourses = useMemo(() => {
-		if (studentFilter === 'maps' || studentFilter === 'exams') return [];
-		let rows = Array.isArray(assignedCourses[studentFilter]) ? [...assignedCourses[studentFilter]] : [];
+		if (studentFilter !== 'completed') return [];
+		let rows = Array.isArray(assignedCourses.completed) ? [...assignedCourses.completed] : [];
 		if (searchQuery.trim()) {
 			const needle = searchQuery.trim().toLowerCase();
 			rows = rows.filter((course) =>
@@ -196,9 +160,6 @@ const CoursesPage = () => {
 			const mapCount = (Array.isArray(courseMaps) ? courseMaps.filter(isStudentVisibleMap) : []).length;
 			const standaloneCount = Array.isArray(standaloneCourses) ? standaloneCourses.length : 0;
 			return mapCount + standaloneCount;
-		}
-		if (filter.id === 'exams') {
-			return Array.isArray(standaloneExams) ? standaloneExams.length : 0;
 		}
 		if (!filter.statKey || !assignedCourseStats) return null;
 		return assignedCourseStats[filter.statKey] ?? 0;
@@ -281,7 +242,6 @@ const CoursesPage = () => {
 					<div className={`courses-page-hero-content${!isAdmin ? ' courses-page-hero-content--student' : ''}`}>
 						<div className="courses-page-hero-text">
 							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : 'Cursuri'}</h1>
-							{!isAdmin && <p className="courses-catalog-description">Continuă de unde ai rămas sau alege următorul curs.</p>}
 							{!isAdmin ? (
 								<div className="courses-page-student-filters" role="group" aria-label="Filtrare cursuri">
 									{STUDENT_COURSE_FILTERS.map((filter) => {
@@ -309,10 +269,10 @@ const CoursesPage = () => {
 							<input
 								type="text"
 								className="courses-page-search-input"
-								aria-label={studentFilter === 'exams' ? 'Caută examene' : 'Caută cursuri'}
+								aria-label={studentFilter === 'completed' ? 'Caută cursuri finalizate' : 'Caută mape'}
 								placeholder={
-									!isAdmin && studentFilter === 'exams'
-										? 'Caută un examen...'
+									!isAdmin && studentFilter === 'completed'
+										? 'Caută un curs finalizat...'
 										: 'Caută după titlu sau descriere...'
 								}
 								value={searchQuery}
@@ -373,7 +333,7 @@ const CoursesPage = () => {
 							) : null}
 						</>
 					) : null}
-					{!isAdmin && studentFilter !== 'maps' && studentFilter !== 'exams' ? (
+					{!isAdmin && studentFilter === 'completed' ? (
 						<section className="courses-page-filtered-section" aria-label={STUDENT_FILTER_TITLES[studentFilter]}>
 							<div className="courses-page-filtered-header">
 								<h2 className="courses-page-filtered-title">{STUDENT_FILTER_TITLES[studentFilter]}</h2>
@@ -392,7 +352,7 @@ const CoursesPage = () => {
 										<p className="courses-page-empty-text">
 											{searchQuery
 												? 'Incearca un alt termen de cautare.'
-												: 'Cursurile atribuite de administrator vor aparea aici.'}
+												: 'Cursurile pe care le finalizezi vor apărea aici.'}
 										</p>
 										{searchQuery ? (
 											<button
@@ -438,12 +398,7 @@ const CoursesPage = () => {
 
 							{filteredCourseMaps.map((map, index) => {
 								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
-								const courseCount = map.courses_count ?? 0;
-								const descriptionLine = map.description?.trim() ? String(map.description).trim() : null;
-								const subtitleParts = [];
-								if (descriptionLine) subtitleParts.push(descriptionLine);
-								subtitleParts.push(`${courseCount} ${courseCount === 1 ? 'curs' : 'cursuri'}`);
-								const subtitle = subtitleParts.join(' - ');
+								const subtitle = map.description?.trim() ? String(map.description).trim() : null;
 
 								return (
 									<article key={map.id} className="course-map-showcase-tile">
@@ -451,10 +406,10 @@ const CoursesPage = () => {
 											className="courses-page-map-tile-showcase"
 											title={map.name || 'Mapa'}
 											subtitle={subtitle}
-											count={courseCount}
+											count={map.courses_count ?? 0}
 											color={accentColor}
 											imageUrl={mapFolderCardImageUrl(map)}
-											progress={map.progress_percentage ?? map.progress ?? null}
+											progress={map.progress_percentage ?? map.progress ?? 0}
 											onOpen={() => navigate(`/courses/map/${map.id}`)}
 											ctaLabel="Deschide mapa"
 										/>
@@ -498,42 +453,6 @@ const CoursesPage = () => {
 						</div>
 					) : null}
 
-					{!isAdmin && studentFilter === 'exams' ? (
-						<section className="courses-page-exams-section" aria-label="Examene independente">
-							<div className="courses-page-exams-grid courses-page-maps-grid">
-								{filteredStandaloneExams.map((ex, index) => {
-									const accentColor = COURSE_MAP_ACCENT_COLORS[(index + 3) % COURSE_MAP_ACCENT_COLORS.length];
-									const subtitleParts = [];
-									if (ex.description?.trim()) subtitleParts.push(String(ex.description).trim());
-									if (ex.passing_score != null) subtitleParts.push(`Prag ${ex.passing_score}%`);
-									const subtitle = subtitleParts.join(' - ') || 'Examen independent';
-									return (
-										<article key={ex.id} className="course-map-showcase-tile">
-											<CourseShowcaseCard
-												className="courses-page-map-tile-showcase"
-												imageUrl={COURSE_SHOWCASE_FALLBACK_IMAGE}
-												title={ex.title || 'Examen'}
-												subtitle={subtitle}
-												themeHsl={hexToHslSpace(accentColor)}
-												onOpen={() => navigate(`/exams/${ex.id}`)}
-												ctaLabel="Deschide examenul"
-											/>
-										</article>
-									);
-								})}
-							</div>
-							{filteredStandaloneExams.length === 0 ? (
-								<div className="courses-page-empty">
-									<h3 className="courses-page-empty-title">
-										{searchQuery ? 'Nu am gasit examene' : 'Nu exista examene disponibile'}
-									</h3>
-									<p className="courses-page-empty-text">
-										{searchQuery ? 'Incearca un alt termen de cautare.' : 'Examenele independente vor apărea aici.'}
-									</p>
-								</div>
-							) : null}
-						</section>
-					) : null}
 				</div>
 			</div>
 		</div>

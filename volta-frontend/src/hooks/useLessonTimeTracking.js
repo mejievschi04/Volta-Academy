@@ -26,6 +26,12 @@ export function useLessonTimeTracking(lessonId, { userId, isCompleted, enabled =
 
 		lessonTickLastRef.current = Date.now();
 
+		courseProgressService.updateLessonProgress(lid, {
+			progress_percentage: 0,
+		}).catch((err) => {
+			logger.debug('lesson start ping', err?.message || err);
+		});
+
 		const flushSeconds = async () => {
 			const now = Date.now();
 			const last = lessonTickLastRef.current ?? now;

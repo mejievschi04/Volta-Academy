@@ -1,11 +1,4 @@
 /* Shared catalog and assessment refinements for both viewport sizes. */
-.courses-page-student .courses-catalog-description {
-	margin: -4px 0 20px;
-	max-width: 60ch;
-	color: var(--text-secondary);
-	font-size: 15px;
-	line-height: 1.6;
-}
 .courses-page-student .courses-page-search-input { min-height: 48px; padding-right: 48px; }
 .courses-page-student .courses-page-search-clear { width: 44px; height: 44px; }
 .courses-page-student-filter:focus-visible,
