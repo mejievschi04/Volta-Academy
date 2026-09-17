@@ -197,14 +197,15 @@ class CourseProgressService
             $progress = $lessonPct;
         }
 
-        $isComplete = $this->isCourseComplete($user, $course);
+        $isComplete = ($totalLessons > 0 || $hasTests)
+            && ($totalLessons === 0 || $completedLessons === $totalLessons)
+            && $testsPassed;
         if ($isComplete) {
             $progress = 100.0;
         }
 
         $intPct = (int) round($progress, 0);
-        $manual = $row && Schema::hasColumn('course_user', 'manually_completed') && ($row->manually_completed ?? false);
-        $shouldBeCompleted = $isComplete || $manual;
+        $shouldBeCompleted = $isComplete;
         $hasCompletedAt = $row && ! empty($row->completed_at);
         $needsUpdate = $row && (
             (int) ($row->progress_percentage ?? 0) !== $intPct

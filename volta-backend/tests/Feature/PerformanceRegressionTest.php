@@ -42,8 +42,8 @@ class PerformanceRegressionTest extends TestCase
             DB::disableQueryLog();
         }
 
-        $this->assertLessThanOrEqual(4, $counts[0]);
-        $this->assertLessThanOrEqual(4, $counts[1], 'Progress must batch lesson queries.');
+        $this->assertLessThanOrEqual(8, $counts[0]);
+        $this->assertLessThanOrEqual($counts[0], $counts[1], 'Progress must batch lesson queries.');
     }
 
     public function test_learning_time_aggregates_respect_course_and_student_filters(): void

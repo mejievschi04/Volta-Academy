@@ -22,14 +22,23 @@ function addMilestone(prev, value) {
  */
 export function useLessonReadCompletion({ contentRef, lessonId, enabled = true }) {
 	const [reachedMilestones, setReachedMilestones] = useState(() => new Set());
+	const [trackedLessonId, setTrackedLessonId] = useState(lessonId);
 	const endReachedRef = useRef(false);
 	const mediaDoneRef = useRef(true);
 	const dwellMsRef = useRef(0);
 	const lastTickRef = useRef(null);
 	const completeTimerRef = useRef(null);
 
-	useEffect(() => {
+	if (trackedLessonId !== lessonId) {
+		setTrackedLessonId(lessonId);
 		setReachedMilestones(new Set());
+	}
+
+	useEffect(() => {
+		if (!enabled || lessonId == null) return undefined;
+		const root = contentRef.current;
+		if (!root) return undefined;
+
 		endReachedRef.current = false;
 		mediaDoneRef.current = true;
 		dwellMsRef.current = 0;
@@ -38,12 +47,6 @@ export function useLessonReadCompletion({ contentRef, lessonId, enabled = true }
 			clearTimeout(completeTimerRef.current);
 			completeTimerRef.current = null;
 		}
-	}, [lessonId]);
-
-	useEffect(() => {
-		if (!enabled || lessonId == null) return undefined;
-		const root = contentRef.current;
-		if (!root) return undefined;
 
 		const tryComplete = () => {
 			if (!endReachedRef.current || !mediaDoneRef.current) return;
