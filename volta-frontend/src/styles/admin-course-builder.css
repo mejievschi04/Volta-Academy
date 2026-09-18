@@ -2645,6 +2645,37 @@ body.admin-course-builder-test-drag-active .admin-course-builder-outline-test-ro
 	justify-content: center;
 }
 
+.admin-course-builder-lesson-save-bar {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	width: min(100%, 900px);
+	margin: 0 auto 14px;
+}
+
+.admin-course-builder-page .admin-course-builder-lesson-save-bar .admin-btn {
+	all: revert;
+	min-height: 38px;
+	padding: 8px 16px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--color-primary);
+	color: #111;
+	font-size: 0.88rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.admin-course-builder-page .admin-course-builder-lesson-save-bar .admin-btn:disabled {
+	opacity: 0.65;
+	cursor: wait;
+}
+
+.admin-course-builder-page .admin-course-builder-lesson-save-bar .admin-auto-save-indicator {
+	color: inherit;
+}
+
 .admin-course-builder-direct-editor-wrap {
 	background: #ffffff;
 	border: none;
@@ -4930,6 +4961,32 @@ html[data-theme='dark'] .admin-course-builder-test-order-btn.is-delete:hover:not
 	align-items: stretch;
 	gap: 2px;
 	min-width: 0;
+	border-radius: 8px;
+	transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-course-builder-page .admin-course-builder-sidebar-lesson-row.is-selected {
+	background: color-mix(in srgb, var(--color-primary) 26%, var(--bg-elevated));
+	box-shadow: inset 3px 0 0 0 var(--color-primary);
+}
+
+.admin-course-builder-page .admin-course-builder-sidebar-lesson-row.is-selected .admin-course-builder-sidebar-lesson,
+.admin-course-builder-page .admin-course-builder-sidebar-lesson-row.is-selected .admin-course-builder-sidebar-lesson:hover,
+.admin-course-builder-page .admin-course-builder-sidebar-lesson-row.is-selected .admin-course-builder-sidebar-lesson.is-selected {
+	background: transparent;
+	color: var(--text-primary);
+	font-weight: 750;
+}
+
+.admin-course-builder-page .admin-course-builder-sidebar-lesson-row.is-selected .admin-course-builder-sidebar-lesson-num {
+	color: var(--text-primary);
+}
+
+.admin-course-builder-page .admin-course-builder-sidebar-lesson:hover .admin-course-builder-sidebar-lesson-title {
+	white-space: normal;
+	overflow: visible;
+	text-overflow: unset;
+	word-break: break-word;
 }
 
 

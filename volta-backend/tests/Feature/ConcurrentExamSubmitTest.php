@@ -23,12 +23,59 @@ class ConcurrentExamSubmitTest extends TestCase
         $this->assertSame(1, TestResult::query()->where('test_id', $test->id)->where('user_id', $student->id)->count());
     }
 
-    public function test_mysql_parallel_submit_is_not_run_on_sqlite(): void
+    public function test_progress_saves_answers_and_locks_previous_question(): void
     {
-        if (config('database.default') !== 'mysql') {
-            $this->markTestSkipped('Concurența reală pe două conexiuni trebuie rulată pe MySQL/staging.');
-        }
+        $student = User::factory()->create(['role' => 'student']);
+        $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
+        $first = Question::factory()->create(['test_id' => $test->id, 'order' => 0]);
+        $second = Question::factory()->create(['test_id' => $test->id, 'order' => 1]);
 
-        $this->assertTrue(true);
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+            ->assertOk()
+            ->assertJsonPath('active_attempt.status', 'in_progress');
+
+        $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/progress", [
+            'answers' => [(string) $first->id => 0],
+        ])->assertOk();
+
+        $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/progress", [
+            'answers' => [
+                (string) $first->id => 0,
+                (string) $second->id => 1,
+            ],
+        ])->assertOk();
+
+        $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/progress", [
+            'answers' => [(string) $first->id => 1],
+        ])->assertOk();
+
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+            ->assertOk()
+            ->assertJsonPath('active_attempt.answers.'.$first->id, 0)
+            ->assertJsonPath('active_attempt.answers.'.$second->id, 1);
+    }
+
+    public function test_second_submit_returns_the_same_completed_attempt(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
+        $question = Question::factory()->create(['test_id' => $test->id]);
+        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+            ->assertOk()
+            ->json('active_attempt.id');
+
+        $payload = [
+            'answers' => [$question->id => 0],
+            'attempt_id' => $attemptId,
+        ];
+        $first = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", $payload)
+            ->assertOk()
+            ->json('result.id');
+        $second = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", $payload)
+            ->assertOk()
+            ->json('result.id');
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, TestResult::query()->where('test_id', $test->id)->where('user_id', $student->id)->count());
     }
 }

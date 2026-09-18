@@ -165,6 +165,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     // Exam endpoints (lista fără curs înainte de {examId})
     Route::get('/exams', [\App\Http\Controllers\Api\ExamController::class, 'learnerStandaloneExams']);
     Route::get('/exams/{examId}', [\App\Http\Controllers\Api\ExamController::class, 'show']);
+    Route::post('/exams/{examId}/progress', [\App\Http\Controllers\Api\ExamController::class, 'saveProgress']);
     Route::post('/exams/{examId}/submit', [\App\Http\Controllers\Api\ExamController::class, 'submit']);
     
     // Exam Results
@@ -403,6 +404,7 @@ Route::middleware([
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
     Route::post('/users/{id}/courses/{courseId}/complete', [UserAdminController::class, 'markCourseCompleted']);
+    Route::post('/users/{id}/tests/{testId}/extra-attempt', [UserAdminController::class, 'grantTestExtraAttempt']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     
     // Team Members Management

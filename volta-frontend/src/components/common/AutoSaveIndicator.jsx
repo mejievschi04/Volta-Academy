@@ -3,6 +3,8 @@ import React from 'react';
 const AutoSaveIndicator = ({ status, onRetry, liveHint = false }) => {
 	const getStatusConfig = () => {
 		switch (status) {
+			case 'pending':
+				return { text: 'Nesalvat', icon: '•', color: '#ca8a04' };
 			case 'saving':
 				return { text: 'Se salvează...', icon: '⏳', color: '#9FE22F' };
 			case 'saved':

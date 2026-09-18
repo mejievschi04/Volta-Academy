@@ -209,7 +209,7 @@ const CourseCreationWizard = ({ onClose, onSuccess }) => {
 							type: 'graded',
 							status: quizTestStatus,
 							time_limit_minutes: assessment.time_limit_minutes ?? null,
-							max_attempts: assessment.max_attempts ?? 3,
+							max_attempts: assessment.max_attempts ?? 1,
 							randomize_questions: !!assessment.randomize,
 							randomize_answers: false,
 							show_results_immediately: true,

@@ -25,6 +25,7 @@ import { VOLT_BUILDER_REFRESH_EVENT } from '../../utils/voltCoursePlan';
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 const TEST_DRAG_MIME = 'application/x-volta-course-test';
+const LESSON_CONTENT_AUTOSAVE_MS = 10000;
 
 function getDropTargetLessons(modulesList, rootLessonsList, toModuleId) {
 	if (toModuleId == null) {
@@ -143,6 +144,7 @@ const AdminCourseBuilderPage = () => {
 	const lessonContentSaveChainRef = useRef(Promise.resolve());
 	const pendingContentRef = useRef(null);
 	const flushAllInlineQuestionSavesRef = useRef(() => Promise.resolve());
+	const handleManualLessonSaveRef = useRef(() => Promise.resolve());
 	const publishFocusConsumedRef = useRef(false);
 	const course = structure?.course || null;
 	const isCoursePublished = course?.status === 'published';
@@ -269,14 +271,14 @@ const AdminCourseBuilderPage = () => {
 			contentSaveTimeoutRef.current = null;
 		}
 		const pending = pendingContentRef.current;
-		if (!pending?.lessonId) return;
+		if (!pending?.lessonId) return true;
 		const { lessonId, content } = pending;
 		if (
 			!String(content || '').trim() &&
 			String(lastPersistedLessonContentRef.current || '').trim()
 		) {
 			pendingContentRef.current = null;
-			return;
+			return true;
 		}
 		try {
 			await persistLessonContent(lessonId, content);
@@ -287,12 +289,16 @@ const AdminCourseBuilderPage = () => {
 				pendingContentRef.current = null;
 			}
 			setLessonSaveStatus('saved');
+			return true;
 		} catch (e) {
 			console.error('Lesson content save failed:', e?.response?.data?.message || e?.message || e);
 			setLessonSaveStatus('error');
 			showToast(e?.response?.data?.message || 'Eroare la salvarea conținutului lecției.', 'error');
+			return false;
 		}
 	}, [persistLessonContent, showToast]);
+	const flushPendingLessonContentSaveRef = useRef(flushPendingLessonContentSave);
+	flushPendingLessonContentSaveRef.current = flushPendingLessonContentSave;
 
 	const fetchAttachedTests = useCallback(async () => {
 		try {
@@ -339,9 +345,10 @@ const AdminCourseBuilderPage = () => {
 	}, [flushAllInlineQuestionSaves]);
 
 	const loadInlineTestById = useCallback(async (testId) => {
+		await flushPendingLessonContentSave();
 		await loadTestIntoEditor(testId, 'questions');
 		setShowTestCreator(true);
-	}, [loadTestIntoEditor]);
+	}, [flushPendingLessonContentSave, loadTestIntoEditor]);
 
 	const clearLessonDrag = useCallback(() => {
 		lessonDragPayloadRef.current = null;
@@ -890,27 +897,29 @@ const AdminCourseBuilderPage = () => {
 			lessonId: selectedLesson.id,
 			content: nextContent || '',
 		};
-		setLessonSaveStatus('saving');
+		setLessonSaveStatus('pending');
 		if (contentSaveTimeoutRef.current) clearTimeout(contentSaveTimeoutRef.current);
-		contentSaveTimeoutRef.current = setTimeout(async () => {
-			const pending = pendingContentRef.current;
-			if (!pending?.lessonId) return;
-			const { lessonId, content } = pending;
-			try {
-				await persistLessonContent(lessonId, content);
-				if (
-					pendingContentRef.current?.lessonId === lessonId &&
-					pendingContentRef.current?.content === content
-				) {
-					pendingContentRef.current = null;
-				}
-				setLessonSaveStatus('saved');
-			} catch (e) {
-				console.error('Lesson content autosave failed:', e?.response?.data?.message || e?.message || e);
-				setLessonSaveStatus('error');
-				showToast(e?.response?.data?.message || 'Autosave eșuat pentru conținutul lecției.', 'error');
-			}
-		}, 700);
+		contentSaveTimeoutRef.current = setTimeout(() => {
+			flushPendingLessonContentSaveRef.current();
+		}, LESSON_CONTENT_AUTOSAVE_MS);
+	};
+
+	const handleManualLessonSave = async () => {
+		if (!canMutateInAdminArea || !selectedLesson?.id) return;
+		setLessonSaveStatus('saving');
+		const nextTitle = lessonTitleRef.current?.textContent?.trim();
+		if (nextTitle && nextTitle !== selectedLesson.title) {
+			await handleUpdateLessonTitle(selectedLesson.id, nextTitle);
+		}
+		const ok = await flushPendingLessonContentSave();
+		if (ok) showToast('Lecție salvată.', 'success');
+	};
+	handleManualLessonSaveRef.current = handleManualLessonSave;
+
+	const handleLeaveBuilder = async () => {
+		await flushPendingLessonContentSave();
+		await flushAllInlineQuestionSavesRef.current();
+		navigate('/admin/content?tab=courses&view=maps');
 	};
 
 	useEffect(() => {
@@ -951,6 +960,7 @@ const AdminCourseBuilderPage = () => {
 		const fallbackTitle = `Lecție ${nextLessonOrder}`;
 
 		try {
+			await flushPendingLessonContentSave();
 			const result = await adminService.builderCreateLesson(courseId, {
 				module_id: targetModuleId,
 				title: fallbackTitle,
@@ -1026,6 +1036,7 @@ const AdminCourseBuilderPage = () => {
 				status: 'draft',
 				type: 'final',
 				passing_score: INLINE_TEST_DEFAULT.passing_score,
+				max_attempts: INLINE_TEST_DEFAULT.max_attempts,
 				randomize_questions: INLINE_TEST_DEFAULT.randomize_questions,
 				randomize_answers: INLINE_TEST_DEFAULT.randomize_answers,
 				show_results_immediately: INLINE_TEST_DEFAULT.show_results_immediately,
@@ -1078,10 +1089,30 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
-	useEffect(() => () => {
-		flushPendingLessonContentSave();
-		flushAllInlineQuestionSavesRef.current();
-	}, [flushPendingLessonContentSave]);
+	useEffect(() => {
+		const persistNow = () => {
+			flushPendingLessonContentSaveRef.current();
+			flushAllInlineQuestionSavesRef.current();
+		};
+		const onVisibility = () => {
+			if (document.visibilityState === 'hidden') persistNow();
+		};
+		const onKeyDown = (e) => {
+			if ((e.metaKey || e.ctrlKey) && String(e.key || '').toLowerCase() === 's') {
+				e.preventDefault();
+				handleManualLessonSaveRef.current();
+			}
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+		window.addEventListener('pagehide', persistNow);
+		window.addEventListener('keydown', onKeyDown);
+		return () => {
+			document.removeEventListener('visibilitychange', onVisibility);
+			window.removeEventListener('pagehide', persistNow);
+			window.removeEventListener('keydown', onKeyDown);
+			persistNow();
+		};
+	}, []);
 
 	const handleValidateForPublish = useCallback(async () => {
 		if (!course?.id) return;
@@ -1393,12 +1424,15 @@ const AdminCourseBuilderPage = () => {
 							? 'is-lesson-drop-after'
 							: '';
 
+				const lessonTitle = lessonItem.title || `Lecție ${currentStep}`;
+				const isLessonEditing = !showTestCreator && selectedLessonId === lessonItem.id;
+
 				return (
 					<React.Fragment key={flowItem.key}>
 						{dropSlot}
 						<li className="admin-course-builder-outline-item admin-course-builder-outline-item--lesson">
 							<div
-								className={`admin-course-builder-sidebar-lesson-row admin-course-builder-outline-row ${rowDropClass}`}
+								className={`admin-course-builder-sidebar-lesson-row admin-course-builder-outline-row ${isLessonEditing ? 'is-selected' : ''} ${rowDropClass}`}
 								onDragOver={(e) => {
 									if (testDragPayloadRef.current) {
 										handleTestDragOverFlowRow(e, moduleId, flowIndex);
@@ -1432,7 +1466,9 @@ const AdminCourseBuilderPage = () => {
 								)}
 								<button
 									type="button"
-									className={`admin-course-builder-sidebar-lesson ${selectedLessonId === lessonItem.id ? 'is-selected' : ''}`}
+									className={`admin-course-builder-sidebar-lesson ${isLessonEditing ? 'is-selected' : ''}`}
+									title={lessonTitle}
+									aria-current={isLessonEditing ? 'true' : undefined}
 									onClick={async () => {
 										await flushPendingLessonContentSave();
 										await flushAllInlineQuestionSavesRef.current();
@@ -1443,9 +1479,7 @@ const AdminCourseBuilderPage = () => {
 									}}
 								>
 									<span className="admin-course-builder-sidebar-lesson-num">{currentStep}</span>
-									<span className="admin-course-builder-sidebar-lesson-title">
-										{lessonItem.title || `Lecție ${currentStep}`}
-									</span>
+									<span className="admin-course-builder-sidebar-lesson-title">{lessonTitle}</span>
 								</button>
 								<OutlineItemMenu
 									statusPublished={lessonItem.status === 'published'}
@@ -1574,7 +1608,7 @@ const AdminCourseBuilderPage = () => {
 								<button
 									type="button"
 									className="admin-course-builder-back"
-									onClick={() => navigate('/admin/content?tab=courses&view=maps')}
+									onClick={handleLeaveBuilder}
 								>
 									<ArrowLeft size={14} weight="bold" color="currentColor" aria-hidden /> Cursuri
 								</button>
@@ -1995,6 +2029,22 @@ const AdminCourseBuilderPage = () => {
 							/>
 						) : selectedLesson ? (
 							<>
+								{canMutateInAdminArea ? (
+									<div className="admin-course-builder-lesson-save-bar">
+										<AutoSaveIndicator
+											status={lessonSaveStatus}
+											onRetry={flushPendingLessonContentSave}
+										/>
+										<button
+											type="button"
+											className="admin-btn admin-btn-primary"
+											onClick={handleManualLessonSave}
+											disabled={lessonSaveStatus === 'saving'}
+										>
+											{lessonSaveStatus === 'saving' ? 'Se salvează...' : 'Salvează'}
+										</button>
+									</div>
+								) : null}
 								<div className="admin-course-builder-lesson-heading-row">
 									<div
 										ref={lessonTitleRef}

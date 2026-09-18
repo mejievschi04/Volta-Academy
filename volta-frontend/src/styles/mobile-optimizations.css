@@ -2140,13 +2140,16 @@
 		padding: var(--space-3) var(--space-4) !important;
 	}
 
-	.events-page .va-card-title {
+	.events-page .va-card-title,
+	.events-page .events-card-title {
 		font-size: var(--font-size-base) !important;
-		line-height: 1.35 !important;
-		-webkit-line-clamp: 2 !important;
-		display: -webkit-box !important;
-		-webkit-box-orient: vertical !important;
-		overflow: hidden !important;
+		line-height: 1.4 !important;
+		display: block !important;
+		overflow: visible !important;
+		-webkit-line-clamp: unset !important;
+		line-clamp: unset !important;
+		text-overflow: unset !important;
+		white-space: normal !important;
 	}
 
 	/* Title + badge - wrap pe mobile */
@@ -2162,14 +2165,16 @@
 		padding: 0.2rem 0.5rem !important;
 	}
 
-	/* Descriere - line-clamp pe mobile */
-	.events-page .va-card-body p {
+	.events-page .va-card-body p,
+	.events-page .events-card-text {
 		font-size: var(--font-size-sm) !important;
-		margin-bottom: var(--space-2) !important;
-		-webkit-line-clamp: 2 !important;
-		display: -webkit-box !important;
-		-webkit-box-orient: vertical !important;
-		overflow: hidden !important;
+		margin: 0 !important;
+		display: block !important;
+		overflow: visible !important;
+		-webkit-line-clamp: unset !important;
+		line-clamp: unset !important;
+		text-overflow: unset !important;
+		white-space: pre-wrap !important;
 	}
 
 	/* Butoane card eveniment - full width, stack vertical */

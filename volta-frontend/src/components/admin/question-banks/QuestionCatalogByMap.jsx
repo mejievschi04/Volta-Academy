@@ -14,28 +14,39 @@ function matchesQuery(haystack, query) {
 	return String(haystack || '').toLowerCase().includes(query);
 }
 
-const CatalogGroupCard = ({ title, description, stats, onOpen, icon }) => (
-	<button type="button" className="qb-folder-card" onClick={onOpen}>
-		<div className="qb-folder-icon" aria-hidden>
-			{icon}
-		</div>
-		<div className="qb-folder-body">
-			<strong className="qb-folder-title">{title}</strong>
-			{description ? <p className="qb-folder-description">{description}</p> : null}
-		</div>
-		<div className="qb-folder-stats">
-			{stats.map((stat) => (
-				<span key={stat}>{stat}</span>
-			))}
-		</div>
-		<span className="qb-folder-open" aria-hidden>
-			<ArrowRight size={18} />
-		</span>
-	</button>
-);
+export function CatalogGroupCard({ title, description, stats, onOpen, icon, action }) {
+	return (
+		<article className="qb-catalog-tile">
+			<button type="button" className="qb-catalog-tile-main" onClick={onOpen}>
+				<span className="qb-catalog-tile-icon" aria-hidden>
+					{icon}
+				</span>
+				<span className="qb-catalog-tile-copy">
+					<strong>{title}</strong>
+					{description ? <small>{description}</small> : null}
+				</span>
+				<span className="qb-catalog-tile-stats">
+					{stats.map((stat) => (
+						<span key={stat}>{stat}</span>
+					))}
+				</span>
+				<span className="qb-catalog-tile-go" aria-hidden>
+					<ArrowRight size={18} />
+				</span>
+			</button>
+			{action ? <div className="qb-catalog-tile-foot">{action}</div> : null}
+		</article>
+	);
+}
 
-export default function QuestionCatalogByMap() {
-	const { error } = useToast();
+export default function QuestionCatalogByMap({
+	selectable = false,
+	selectedIds = [],
+	onToggleSelect,
+	onAddMany,
+}) {
+	const { error, success } = useToast();
+	const selectedSet = useMemo(() => new Set((selectedIds || []).map((id) => Number(id))), [selectedIds]);
 	const [level, setLevel] = useState('maps');
 	const [search, setSearch] = useState('');
 	const [loading, setLoading] = useState(false);
@@ -45,6 +56,7 @@ export default function QuestionCatalogByMap() {
 	const [selectedMap, setSelectedMap] = useState(null);
 	const [selectedTest, setSelectedTest] = useState(null);
 	const [drawerQuestion, setDrawerQuestion] = useState(null);
+	const [addingId, setAddingId] = useState(null);
 
 	const query = search.trim().toLowerCase();
 
@@ -114,6 +126,30 @@ export default function QuestionCatalogByMap() {
 		[questions, query]
 	);
 
+	const addAllFromTest = async (test) => {
+		setAddingId(test.id);
+		try {
+			const rows = await adminService.getQuestions(test.id);
+			const list = Array.isArray(rows) ? rows : [];
+			if (!list.length) {
+				error('Acest test nu are întrebări.');
+				return;
+			}
+			if (onAddMany) {
+				onAddMany(list, test.title || 'Catalog');
+			} else {
+				list.forEach((question) => {
+					if (!selectedSet.has(Number(question.id))) onToggleSelect?.(question, test.title || 'Catalog');
+				});
+			}
+			success(`Întrebările din „${test.title}” au fost adăugate.`);
+		} catch {
+			error('Nu am putut adăuga întrebările testului.');
+		} finally {
+			setAddingId(null);
+		}
+	};
+
 	const searchPlaceholder =
 		level === 'maps' ? 'Caută mapă' : level === 'tests' ? 'Caută test' : 'Caută întrebare';
 
@@ -139,7 +175,7 @@ export default function QuestionCatalogByMap() {
 				{level !== 'maps' ? (
 					<button
 						type="button"
-						className="qb-catalog-back btn-sm"
+						className="lms-btn-secondary"
 						onClick={() => {
 							if (level === 'questions') {
 								setLevel('tests');
@@ -202,7 +238,7 @@ export default function QuestionCatalogByMap() {
 				</div>
 			) : level === 'maps' ? (
 				filteredMaps.length ? (
-					<section className="qb-folder-list" aria-label="Mape">
+					<section className="qb-catalog-grid" aria-label="Mape">
 						{filteredMaps.map((map) => (
 							<CatalogGroupCard
 								key={map.id}
@@ -227,7 +263,7 @@ export default function QuestionCatalogByMap() {
 				)
 			) : level === 'tests' ? (
 				filteredTests.length ? (
-					<section className="qb-folder-list" aria-label="Teste din mapă">
+					<section className="qb-catalog-grid" aria-label="Teste din mapă">
 						{filteredTests.map((test) => (
 							<CatalogGroupCard
 								key={test.id}
@@ -236,6 +272,16 @@ export default function QuestionCatalogByMap() {
 								icon={<ClipboardList size={22} />}
 								stats={[`${test.questions_count || 0} întrebări`]}
 								onOpen={() => openTest(test)}
+								action={selectable && Number(test.questions_count || 0) > 0 ? (
+									<button
+										type="button"
+										className="lms-btn-primary lms-btn-sm"
+										disabled={addingId === test.id}
+										onClick={() => addAllFromTest(test)}
+									>
+										{addingId === test.id ? 'Se adaugă...' : 'Adaugă toate'}
+									</button>
+								) : null}
 							/>
 						))}
 					</section>
@@ -247,14 +293,44 @@ export default function QuestionCatalogByMap() {
 					</div>
 				)
 			) : filteredQuestions.length ? (
-				<div className="qb-questions-list qb-questions-list--readonly" role="list" aria-label="Întrebări test">
+				<div className={`qb-questions-list ${selectable ? '' : 'qb-questions-list--readonly'}`} role="list" aria-label="Întrebări test">
+					{selectable ? (
+						<div className="qb-catalog-select-bar">
+							<button
+								type="button"
+								className="lms-btn-secondary"
+								onClick={() => {
+									const allSelected = filteredQuestions.every((question) => selectedSet.has(Number(question.id)));
+									if (allSelected) {
+										filteredQuestions.forEach((question) => onToggleSelect?.(question, selectedTest?.title || 'Catalog'));
+										return;
+									}
+									if (onAddMany) {
+										onAddMany(filteredQuestions, selectedTest?.title || 'Catalog');
+										return;
+									}
+									filteredQuestions.forEach((question) => {
+										if (!selectedSet.has(Number(question.id))) onToggleSelect?.(question, selectedTest?.title || 'Catalog');
+									});
+								}}
+							>
+								{filteredQuestions.every((question) => selectedSet.has(Number(question.id)))
+									? 'Deselectează vizibilele'
+									: 'Selectează toate vizibilele'}
+							</button>
+							<span>
+								{filteredQuestions.filter((question) => selectedSet.has(Number(question.id))).length} / {filteredQuestions.length} aici
+							</span>
+						</div>
+					) : null}
 					{filteredQuestions.map((question) => (
 						<QuestionRow
 							key={question.id}
 							question={question}
-							selected={false}
+							selected={selectedSet.has(Number(question.id))}
 							readOnly
-							onToggleSelect={() => {}}
+							selectable={selectable}
+							onToggleSelect={() => onToggleSelect?.(question, selectedTest?.title || 'Catalog')}
 							onToggleStar={() => {}}
 							onOpenDrawer={setDrawerQuestion}
 						/>

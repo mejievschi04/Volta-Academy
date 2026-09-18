@@ -6,7 +6,10 @@ use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\Team;
+use App\Models\TestResult;
 use App\Models\User;
+use App\Models\UserTestAttemptGrant;
+use App\Services\TestAttemptService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +42,10 @@ class UserAssignedCoursesService
             $user->load([
                 'assignedCourses.modules:id,course_id,title,order',
                 'assignedCourses.teacher:id,name',
+                'assignedCourses.tests:id,title,max_attempts,passing_score,status',
             ]);
+        } elseif ($user->assignedCourses->isNotEmpty() && ! $user->assignedCourses->first()->relationLoaded('tests')) {
+            $user->assignedCourses->load(['tests:id,title,max_attempts,passing_score,status']);
         }
 
         $courses = $user->assignedCourses;
@@ -87,6 +93,28 @@ class UserAssignedCoursesService
 
         $passedExamResults = $latestExamResults->filter(fn ($result) => isset($result->passed) && $result->passed === true);
 
+        $testIds = $courses->flatMap(fn ($course) => $course->relationLoaded('tests') ? $course->tests->pluck('id') : collect())->unique()->values();
+        $latestTestResults = collect();
+        $extraAttemptsByTest = collect();
+        if ($testIds->isNotEmpty()) {
+            $latestTestResults = TestResult::query()
+                ->where('user_id', $user->id)
+                ->whereIn('test_id', $testIds)
+                ->where('status', '!=', 'in_progress')
+                ->orderByDesc('attempt_number')
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy(fn ($row) => (int) $row->test_id . ':' . (int) ($row->course_id ?? 0));
+            if (Schema::hasTable('user_test_attempt_grants')) {
+                $extraAttemptsByTest = UserTestAttemptGrant::query()
+                    ->where('user_id', $user->id)
+                    ->whereIn('test_id', $testIds)
+                    ->get()
+                    ->keyBy('test_id');
+            }
+        }
+        $attemptService = app(TestAttemptService::class);
+
         $totalModules = $courses->sum(fn ($course) => $course->modules ? $course->modules->count() : 0);
         $completedModules = $courses->sum(function ($course) use ($courseProgress) {
             $progress = $courseProgress->get($course->id);
@@ -116,6 +144,35 @@ class UserAssignedCoursesService
             $moduleCount = $course->modules ? $course->modules->count() : 0;
             $assignedAt = $course->pivot->assigned_at ?? null;
 
+            $courseTests = [];
+            foreach ($course->tests ?? [] as $test) {
+                $courseKey = (int) $test->id . ':' . (int) $course->id;
+                $genericKey = (int) $test->id . ':0';
+                $resultsForTest = $latestTestResults->get($courseKey) ?? $latestTestResults->get($genericKey) ?? collect();
+                $latestTestResult = $resultsForTest->first();
+                $attemptsUsed = $resultsForTest->count();
+                $passed = (bool) ($latestTestResult?->passed);
+                $percentage = $latestTestResult?->percentage !== null ? (float) $latestTestResult->percentage : null;
+                $extraAttempts = (int) ($extraAttemptsByTest->get($test->id)?->extra_attempts ?? 0);
+                $remaining = $attemptService->remainingAttemptsFor($test, (int) $user->id, $attemptsUsed);
+                if ($passed) {
+                    $quizPassed = true;
+                }
+                $courseTests[] = [
+                    'id' => (int) $test->id,
+                    'title' => $test->title ?? 'Test',
+                    'max_attempts' => $test->max_attempts,
+                    'extra_attempts' => $extraAttempts,
+                    'attempts_used' => $attemptsUsed,
+                    'remaining_attempts' => $remaining,
+                    'passed' => $passed,
+                    'percentage' => $percentage,
+                    'status' => ! $latestTestResult
+                        ? 'not_started'
+                        : ($passed ? 'passed' : ((string) ($latestTestResult->status ?? '') === 'pending_review' || $latestTestResult->needs_manual_review ? 'pending' : 'failed')),
+                ];
+            }
+
             $coursePayload = [
                 'id' => $course->id,
                 'title' => $course->title ?? '',
@@ -129,6 +186,7 @@ class UserAssignedCoursesService
                     : round(($courseProgressPercentage / 100) * $moduleCount),
                 'totalModules' => $moduleCount,
                 'quizPassed' => $quizPassed,
+                'tests' => $courseTests,
                 'assigned_at' => $assignedAt,
                 'teacher_name' => $course->teacher?->name,
             ];

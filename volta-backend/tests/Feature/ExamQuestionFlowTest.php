@@ -7,6 +7,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamQuestion;
 use App\Models\Question;
 use App\Models\QuestionBank;
+use App\Models\Test;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -51,11 +52,126 @@ class ExamQuestionFlowTest extends TestCase
         $response->assertCreated();
         $examId = (int) $response->json('exam.id');
         $exam = Exam::findOrFail($examId);
-        $this->assertSame(4, $exam->questions()->count());
+        $this->assertSame(6, $exam->questions()->count());
 
         $sourceIds = $exam->questions->map(fn ($q) => $q->payload['source_question_id'] ?? null)->filter()->values();
-        $starredInExam = Question::whereIn('id', $sourceIds)->where('is_starred', true)->count();
-        $this->assertSame(2, $starredInExam);
+        $starredSourceIds = Question::whereIn('id', $sourceIds)->where('is_starred', true)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $this->assertCount(2, $starredSourceIds);
+
+        $exam->update(['status' => 'published']);
+        $student = User::factory()->create(['role' => 'student', 'email' => 'pool.student@example.com']);
+        $ids = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}")->assertOk()->json('questions'))
+            ->pluck('id')
+            ->all();
+        $this->assertCount(4, $ids);
+        $attemptSources = $exam->questions()->whereIn('id', $ids)->get()
+            ->map(fn ($q) => (int) ($q->payload['source_question_id'] ?? 0))
+            ->filter()
+            ->values();
+        $this->assertEqualsCanonicalizing(
+            $starredSourceIds,
+            $attemptSources->filter(fn ($id) => in_array($id, $starredSourceIds, true))->sort()->values()->all()
+        );
+    }
+
+    public function test_exam_can_pick_specific_questions_from_tests_not_just_folders(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $bank = QuestionBank::create([
+            'title' => 'Bancă ignorată',
+            'status' => 'draft',
+            'created_by' => $admin->id,
+        ]);
+        Question::factory()->forQuestionBank($bank->id)->create(['content' => 'Din folder']);
+
+        $test = Test::factory()->create([
+            'title' => 'Test sursă',
+            'created_by' => $admin->id,
+            'question_source' => 'direct',
+        ]);
+        $picked = Question::factory()->create([
+            'test_id' => $test->id,
+            'content' => 'Întrebare aleasă din test',
+            'answers' => [
+                ['text' => 'Da', 'is_correct' => true, 'order' => 0],
+                ['text' => 'Nu', 'is_correct' => false, 'order' => 1],
+            ],
+        ]);
+        Question::factory()->create([
+            'test_id' => $test->id,
+            'content' => 'Întrebare nealeasă',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/exams', [
+            'title' => 'Examen din întrebări alese',
+            'status' => 'draft',
+            'settings' => [
+                'selection_mode' => 'questions',
+                'question_ids' => [$picked->id],
+                'folder_ids' => [$bank->id],
+                'question_count' => 10,
+            ],
+        ]);
+
+        $response->assertCreated();
+        $examId = (int) $response->json('exam.id');
+        $exam = Exam::findOrFail($examId);
+        $this->assertSame('questions', $exam->settings['selection_mode'] ?? null);
+        $this->assertSame(1, $exam->questions()->count());
+        $this->assertSame($picked->id, $exam->questions->first()->payload['source_question_id'] ?? null);
+        $this->assertSame('Întrebare aleasă din test', $exam->questions->first()->question_text);
+    }
+
+    public function test_selected_questions_form_a_pool_with_starred_priority(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $test = Test::factory()->create([
+            'title' => 'Test pool',
+            'created_by' => $admin->id,
+            'question_source' => 'direct',
+        ]);
+        $ids = [];
+        foreach (range(1, 5) as $i) {
+            $question = Question::factory()->create([
+                'test_id' => $test->id,
+                'content' => "Picked {$i}",
+                'is_starred' => $i <= 2,
+                'answers' => [
+                    ['text' => 'Da', 'is_correct' => true, 'order' => 0],
+                    ['text' => 'Nu', 'is_correct' => false, 'order' => 1],
+                ],
+            ]);
+            $ids[] = $question->id;
+        }
+
+        $response = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/exams', [
+            'title' => 'Examen pool ales',
+            'status' => 'published',
+            'settings' => [
+                'selection_mode' => 'questions',
+                'question_ids' => $ids,
+                'question_count' => 3,
+                'include_starred' => true,
+                'access_mode' => 'all_students',
+            ],
+        ]);
+
+        $response->assertCreated();
+        $examId = (int) $response->json('exam.id');
+        $exam = Exam::findOrFail($examId);
+        $this->assertSame(5, $exam->questions()->count());
+        $this->assertSame(3, (int) ($exam->settings['question_count'] ?? 0));
+
+        $student = User::factory()->create(['role' => 'student']);
+        $attemptIds = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}")->assertOk()->json('questions'))
+            ->pluck('id')
+            ->all();
+        $this->assertCount(3, $attemptIds);
+        $sources = $exam->questions()->whereIn('id', $attemptIds)->get()
+            ->map(fn ($q) => (int) ($q->payload['source_question_id'] ?? 0))
+            ->all();
+        $this->assertContains($ids[0], $sources);
+        $this->assertContains($ids[1], $sources);
     }
 
     public function test_shuffle_questions_changes_order_per_attempt_but_keeps_scoring(): void

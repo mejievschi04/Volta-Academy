@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\ExamResult;
 use App\Models\TestResult;
 use App\Models\ActivityLog;
+use App\Services\ExamBankQuestionSyncService;
 use App\Services\CourseProgressService;
 use App\Services\TestAttemptAnswerOrderService;
 use App\Services\TestAttemptService;
@@ -29,17 +30,20 @@ class ExamController extends Controller
     protected TestQuestionSelectionService $questionSelectionService;
     protected TestAttemptAnswerOrderService $answerOrderService;
     protected TestAttemptService $attemptService;
+    protected ExamBankQuestionSyncService $examBankQuestionSyncService;
 
     public function __construct(
         CourseProgressService $progressService,
         TestQuestionSelectionService $questionSelectionService,
         TestAttemptAnswerOrderService $answerOrderService,
-        TestAttemptService $attemptService
+        TestAttemptService $attemptService,
+        ExamBankQuestionSyncService $examBankQuestionSyncService
     ) {
         $this->progressService = $progressService;
         $this->questionSelectionService = $questionSelectionService;
         $this->answerOrderService = $answerOrderService;
         $this->attemptService = $attemptService;
+        $this->examBankQuestionSyncService = $examBankQuestionSyncService;
     }
 
     /**
@@ -850,12 +854,13 @@ class ExamController extends Controller
 
         $currentAttempt = $completedAttempts->count();
         $latestResult = $completedAttempts->first();
-        $remainingAttempts = $test->max_attempts
-            ? max(0, $test->max_attempts - $currentAttempt - ($openAttempt ? 1 : 0))
-            : null;
-        $canRetake = $test->max_attempts
-            ? ($remainingAttempts > 0)
-            : true;
+        $remainingAttempts = $this->attemptService->remainingAttemptsFor(
+            $test,
+            (int) $user->id,
+            $currentAttempt,
+            (bool) $openAttempt
+        );
+        $canRetake = $remainingAttempts === null || $remainingAttempts > 0;
 
         $req = $request ?? request();
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
@@ -898,7 +903,7 @@ class ExamController extends Controller
             } else {
                 $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
                 $canStart = ! $user->isLearningActivityExempt()
-                    && ! ($test->max_attempts && ($currentAttempt + 1) > $test->max_attempts);
+                    && ! $this->attemptService->wouldExceedAttemptLimit($test, (int) $user->id, $currentAttempt + 1);
                 if ($canStart) {
                     $activeAttempt = $this->attemptService->ensureOpenAttempt(
                         $test,
@@ -927,6 +932,14 @@ class ExamController extends Controller
         $hasPassed = $latestResult
             && (float) ($latestResult->percentage ?? 0) >= (float) ($latestResult->passing_score_applied ?? $resolvedPassingScore);
 
+        $remainingAttempts = $this->attemptService->remainingAttemptsFor(
+            $test,
+            (int) $user->id,
+            $currentAttempt,
+            (bool) $activeAttempt
+        );
+        $canRetake = $remainingAttempts === null || $remainingAttempts > 0;
+
         return response()->json([
             'id' => $test->id,
             'title' => $test->title,
@@ -942,15 +955,13 @@ class ExamController extends Controller
             'passing_score' => $resolvedPassingScore,
             'time_limit_minutes' => $test->time_limit_minutes,
             'max_attempts' => $test->max_attempts,
+            'extra_attempts' => $this->attemptService->extraAttemptsFor((int) $user->id, (int) $test->id),
+            'allowed_attempts' => $this->attemptService->allowedAttemptCount($test, (int) $user->id),
             'is_required' => (bool) $courseTest,
             'questions' => $transformedQuestions,
             'current_attempt' => $currentAttempt,
-            'remaining_attempts' => $test->max_attempts
-                ? max(0, $test->max_attempts - $currentAttempt - ($activeAttempt ? 1 : 0))
-                : null,
-            'can_retake' => $test->max_attempts
-                ? (max(0, $test->max_attempts - $currentAttempt - ($activeAttempt ? 1 : 0)) > 0)
-                : true,
+            'remaining_attempts' => $remainingAttempts,
+            'can_retake' => $canRetake,
             'has_passed' => $hasPassed,
             'active_attempt' => $activeAttempt ? [
                 'id' => $activeAttempt->id,
@@ -959,6 +970,7 @@ class ExamController extends Controller
                 'started_at' => optional($activeAttempt->started_at)?->toISOString(),
                 'expires_at' => optional($activeAttempt->expires_at)?->toISOString(),
                 'status' => $activeAttempt->status,
+                'answers' => is_array($activeAttempt->answers) ? $activeAttempt->answers : [],
             ] : null,
             'latest_result' => $viewingCompleted ? [
                 'id' => $latestResult->id,
@@ -1113,19 +1125,11 @@ class ExamController extends Controller
 
     protected function orderLegacyExamQuestionsForAttempt(Exam $exam, $user, int $attemptNumber): Collection
     {
-        $questions = $exam->questions instanceof Collection
-            ? $exam->questions
-            : collect($exam->questions ?? []);
-        $settings = is_array($exam->settings) ? $exam->settings : [];
-        if (! (bool) ($settings['shuffle_questions'] ?? false) || $questions->count() < 2) {
-            return $questions->values();
-        }
-
-        $seedBase = 'exam-q:' . $exam->id . ':u' . (int) $user->id . ':a' . max(1, $attemptNumber);
-
-        return $questions
-            ->sortBy(fn ($q) => hash('sha1', $seedBase . ':q' . $q->id))
-            ->values();
+        return $this->examBankQuestionSyncService->selectForAttempt(
+            $exam,
+            (int) $user->id,
+            $attemptNumber
+        );
     }
 
     protected function transformLegacyExamQuestionsWire(Exam $exam, $user, int $attemptNumber): Collection
@@ -1311,6 +1315,85 @@ class ExamController extends Controller
 
         return response()->json(['message' => 'Examen negăsit'], 404);
     }
+
+    /**
+     * Persist the student's current answers on the in-progress attempt.
+     */
+    public function saveProgress(Request $request, $examId)
+    {
+        $user = Auth::user();
+        $queryCourse = $request->query('course_id');
+        $bodyCourse = $request->input('course_id');
+        $queryId = ($queryCourse !== null && $queryCourse !== '') ? (int) $queryCourse : null;
+        $bodyId = ($bodyCourse !== null && $bodyCourse !== '') ? (int) $bodyCourse : null;
+        if ($queryId && $bodyId && $queryId !== $bodyId) {
+            return response()->json([
+                'message' => 'course_id din query și din body nu coincid.',
+            ], 422);
+        }
+        $courseId = $queryId ?? $bodyId;
+        $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
+
+        if (! $resolved['test']) {
+            return response()->json([
+                'message' => 'Salvarea progresului nu este disponibilă pentru acest test.',
+            ], 400);
+        }
+
+        $test = $resolved['test'];
+        if ($blocked = $this->gateUnpublishedTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+        if ($blocked = $this->gateLearnerCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+        if ($blocked = $this->gateLockedCourseTest($test, $user, $courseId)) {
+            return $blocked;
+        }
+
+        $incoming = $request->input('answers', []);
+        if (! is_array($incoming)) {
+            $incoming = [];
+        }
+
+        if ($user->isLearningActivityExempt()) {
+            return response()->json(['answers' => $incoming]);
+        }
+
+        $attemptId = $request->input('attempt_id');
+        $openAttempt = null;
+        if ($attemptId) {
+            $openAttempt = TestResult::query()
+                ->where('id', (int) $attemptId)
+                ->where('user_id', $user->id)
+                ->where('test_id', $test->id)
+                ->where('status', 'in_progress')
+                ->first();
+        }
+        if (! $openAttempt) {
+            $openAttempt = $this->attemptService->currentOpenAttempt((int) $user->id, (int) $test->id, $courseId);
+        }
+        if (! $openAttempt) {
+            return response()->json([
+                'message' => 'Deschide testul înainte de a salva răspunsurile.',
+            ], 403);
+        }
+        if ($this->attemptService->attemptHasExpired($openAttempt)) {
+            $this->attemptService->closeExpiredAttempt($openAttempt);
+
+            return response()->json([
+                'message' => 'Limita de timp a testului a expirat.',
+                'time_expired' => true,
+            ], 403);
+        }
+
+        $answers = $this->attemptService->persistProgressAnswers($openAttempt, $incoming);
+
+        return response()->json([
+            'answers' => $answers,
+            'attempt_id' => $openAttempt->id,
+        ]);
+    }
     
     /**
      * Submit Test (new system)
@@ -1378,9 +1461,10 @@ class ExamController extends Controller
                 ? max(1, (int) $openAttempt->attempt_number)
                 : $completedCount + 1;
 
-            if ($trackLearning && $test->max_attempts && $nextAttempt > $test->max_attempts && ! $openAttempt) {
+            if ($trackLearning && ! $openAttempt && $this->attemptService->wouldExceedAttemptLimit($test, (int) $user->id, $nextAttempt)) {
+                $allowed = $this->attemptService->allowedAttemptCount($test, (int) $user->id);
                 return response()->json([
-                    'message' => "Ai atins limita de {$test->max_attempts} încercări pentru acest test.",
+                    'message' => "Ai atins limita de {$allowed} încercări pentru acest test.",
                     'max_attempts_reached' => true,
                 ], 403);
             }
@@ -1408,10 +1492,13 @@ class ExamController extends Controller
                 ], 400);
             }
 
-            $answers = $request->input('answers', []);
-            if (! is_array($answers)) {
-                $answers = [];
+            $incomingAnswers = $request->input('answers', []);
+            if (! is_array($incomingAnswers)) {
+                $incomingAnswers = [];
             }
+            $answers = $openAttempt
+                ? $this->attemptService->mergeSubmitAnswers($openAttempt, $incomingAnswers)
+                : $incomingAnswers;
             $startedAt = $openAttempt?->started_at;
             $startedAtRaw = $request->input('started_at');
             if (! $startedAt && is_string($startedAtRaw) && trim($startedAtRaw) !== '') {
@@ -1647,9 +1734,13 @@ class ExamController extends Controller
                     'passed' => $passed,
                     'passing_score' => $passingScore,
                     'attempt_number' => $nextAttempt,
-                    'remaining_attempts' => $test->max_attempts 
-                        ? max(0, $test->max_attempts - $nextAttempt)
-                        : null,
+                    'remaining_attempts' => $this->attemptService->remainingAttemptsFor(
+                        $test,
+                        (int) $user->id,
+                        $nextAttempt
+                    ),
+                    'extra_attempts' => $this->attemptService->extraAttemptsFor((int) $user->id, (int) $test->id),
+                    'allowed_attempts' => $this->attemptService->allowedAttemptCount($test, (int) $user->id),
                     'needs_manual_review' => $needsManualReview,
                     'status' => $testResult?->status ?? ($needsManualReview ? 'pending_review' : 'completed'),
                     'completed_at' => $testResult?->completed_at,
@@ -1728,7 +1819,12 @@ class ExamController extends Controller
         $manualReviewMode = (string) ($settings['manual_review_mode'] ?? 'after_complete');
 
         $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
-        $hasManualQuestions = $exam->questions->contains(function ($q) use ($autoGradableTypes) {
+        $attemptQuestions = $this->examBankQuestionSyncService->selectForAttempt(
+            $exam,
+            (int) $user->id,
+            $nextAttempt
+        );
+        $hasManualQuestions = $attemptQuestions->contains(function ($q) use ($autoGradableTypes) {
             return ! in_array((string) ($q->question_type ?? 'multiple_choice'), $autoGradableTypes, true);
         });
 
@@ -1739,7 +1835,7 @@ class ExamController extends Controller
         $needsManualReview = false;
         $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
-        foreach ($exam->questions as $question) {
+        foreach ($attemptQuestions as $question) {
             $totalPoints += $question->points ?? 1;
 
             $questionType = $question->question_type ?? 'multiple_choice';
@@ -1801,7 +1897,7 @@ class ExamController extends Controller
                 'score' => $score,
                 'total_points' => $totalPoints,
                 'correct_answers_count' => $correctAnswersCount,
-                'total_questions' => $exam->questions->count(),
+                'total_questions' => $attemptQuestions->count(),
                 'percentage' => $percentage,
                 'passed' => $passed,
                 'answers' => $answers,

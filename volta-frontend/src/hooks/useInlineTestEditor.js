@@ -120,7 +120,7 @@ export function useInlineTestEditor({
         status: 'draft',
         passing_score: inlineTest.passing_score ?? TEST_EDITOR_DEFAULT.passing_score,
         time_limit_minutes: inlineTest.time_limit_minutes ?? null,
-        max_attempts: inlineTest.max_attempts ?? null,
+        max_attempts: inlineTest.max_attempts ?? TEST_EDITOR_DEFAULT.max_attempts,
         randomize_questions: Boolean(inlineTest.randomize_questions),
         randomize_answers: Boolean(inlineTest.randomize_answers),
         show_results_immediately: Boolean(inlineTest.show_results_immediately),

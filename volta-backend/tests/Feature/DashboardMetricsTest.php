@@ -169,6 +169,94 @@ class DashboardMetricsTest extends TestCase
         $this->assertTrue($activities->contains(fn ($description) => str_contains($description, 'Lecție dashboard')));
     }
 
+    public function test_active_users_do_not_count_soft_deleted_students(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Admin Counts',
+            'email' => 'admin.counts@example.com',
+            'role' => 'admin',
+        ]);
+        $student = User::factory()->create([
+            'name' => 'Student Alive',
+            'email' => 'student.alive@example.com',
+            'role' => 'student',
+            'last_login_at' => now(),
+        ]);
+        $deleted = User::factory()->create([
+            'name' => 'Student Deleted',
+            'email' => 'student.deleted@example.com',
+            'role' => 'student',
+            'last_login_at' => now(),
+        ]);
+        $deleted->delete();
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=all');
+
+        $response->assertOk();
+        $total = (int) $response->json('kpis.total_users.value');
+        $active = (int) str_replace(',', '', (string) $response->json('kpis.active_users.value'));
+
+        $this->assertSame(1, $total);
+        $this->assertSame(1, $active);
+        $this->assertLessThanOrEqual($total, $active);
+        $this->assertTrue($student->exists);
+        $this->assertSoftDeleted($deleted);
+    }
+
+    public function test_enrolled_student_without_app_entry_is_not_active(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Admin Entry',
+            'email' => 'admin.entry@example.com',
+            'role' => 'admin',
+        ]);
+        $visitor = User::factory()->create([
+            'name' => 'Student Visitor',
+            'email' => 'student.visitor@example.com',
+            'role' => 'student',
+            'last_login_at' => now()->subHour(),
+        ]);
+        $enrolledOnly = User::factory()->create([
+            'name' => 'Student Enrolled',
+            'email' => 'student.enrolled@example.com',
+            'role' => 'student',
+            'last_login_at' => now()->subDays(40),
+        ]);
+
+        $course = Course::withoutEvents(function () use ($admin) {
+            return Course::create([
+                'title' => 'Curs fără vizită',
+                'description' => 'Înscriere fără deschidere app',
+                'level' => 'beginner',
+                'status' => 'published',
+                'teacher_id' => $admin->id,
+                'reward_points' => 10,
+            ]);
+        });
+
+        DB::table('course_user')->insert([
+            'course_id' => $course->id,
+            'user_id' => $enrolledOnly->id,
+            'is_mandatory' => true,
+            'enrolled' => true,
+            'enrolled_at' => now(),
+            'assigned_at' => now(),
+            'progress_percentage' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=7d');
+
+        $response->assertOk();
+        $total = (int) $response->json('kpis.total_users.value');
+        $active = (int) str_replace(',', '', (string) $response->json('kpis.active_users.value'));
+
+        $this->assertSame(2, $total);
+        $this->assertSame(1, $active);
+        $this->assertNotNull($visitor->last_login_at);
+    }
+
     public function test_admin_dashboard_omits_revenue_kpis_without_payments_module(): void
     {
         $admin = User::factory()->create([

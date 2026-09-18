@@ -1,5 +1,4 @@
 import React from 'react';
-import { X } from 'lucide-react';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const normalizeAnswers = (answers) => {
@@ -70,8 +69,8 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
       <aside className="qb-drawer" onClick={(e) => e.stopPropagation()}>
         <header className="qb-drawer-header">
           <h3>Detalii întrebare</h3>
-          <button type="button" className="qb-drawer-close" onClick={onClose} aria-label="Închide">
-            <X size={18} aria-hidden />
+          <button type="button" className="qb-drawer-close btn-sm" onClick={onClose} aria-label="Închide">
+            <span className="qb-drawer-close-mark" aria-hidden="true">×</span>
           </button>
         </header>
         <p>{stripHtml(question?.content)}</p>

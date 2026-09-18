@@ -30,7 +30,7 @@ class TestService
             'type' => 'final',
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
-            'max_attempts' => $data['max_attempts'] ?? null,
+            'max_attempts' => $data['max_attempts'] ?? 1,
             'randomize_questions' => $data['randomize_questions'] ?? false,
             'randomize_answers' => $data['randomize_answers'] ?? false,
             'show_results_immediately' => $data['show_results_immediately'] ?? true,

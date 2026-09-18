@@ -1,0 +1,69 @@
+.passing-score-by-questions {
+	display: grid;
+	gap: 0.35rem;
+	min-width: 0;
+}
+
+.passing-score-by-questions-label {
+	font-size: 0.86rem;
+	font-weight: 600;
+	color: var(--builder-text, var(--text-secondary));
+}
+
+.passing-score-by-questions-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.passing-score-by-questions-row input[type='number'] {
+	width: 4.5rem;
+	min-width: 4.5rem;
+	max-width: 4.5rem;
+	flex: 0 0 4.5rem;
+	border: 1px solid var(--builder-border, var(--border-primary));
+	border-radius: 10px;
+	padding: 10px 8px;
+	background: var(--bg-elevated, var(--bg-primary));
+	color: var(--builder-text, var(--text-primary));
+	font-size: 0.94rem;
+	text-align: center;
+}
+
+.admin-course-builder-test-field .passing-score-by-questions-row input[type='number'],
+.admin-exams-builder-form-root .passing-score-by-questions-row input[type='number'],
+.admin-form-group .passing-score-by-questions-row input[type='number'] {
+	width: 4.5rem;
+	min-width: 4.5rem;
+	max-width: 4.5rem;
+}
+
+.passing-score-by-questions-row input[type='number']:focus {
+	outline: none;
+	border-color: var(--builder-accent, var(--color-primary));
+	box-shadow: 0 0 0 3px var(--builder-accent-ring, rgba(255, 238, 0, 0.2));
+}
+
+.passing-score-by-questions-din,
+.passing-score-by-questions-hint {
+	color: var(--text-secondary);
+	font-size: 0.86rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.passing-score-by-questions-percent {
+	margin-left: auto;
+	min-width: 3.4rem;
+	padding: 8px 12px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--color-primary, #ffee00) 18%, var(--bg-elevated, var(--bg-primary)));
+	border: 1px solid color-mix(in srgb, var(--color-primary, #ffee00) 28%, var(--border-primary));
+	color: var(--text-primary);
+	font-size: 1rem;
+	font-weight: 800;
+	text-align: center;
+	letter-spacing: -0.02em;
+}

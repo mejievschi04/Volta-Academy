@@ -742,6 +742,45 @@
 	margin-bottom: var(--space-2);
 }
 
+.va-course-card-tests {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 0 var(--space-2) 0;
+}
+
+.va-course-card-test-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 10px;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	background: var(--bg-primary);
+}
+
+.va-course-card-test-copy {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.va-course-card-test-copy strong {
+	font-size: var(--font-size-xs);
+	color: var(--text-primary);
+}
+
+.va-course-card-test-copy span {
+	font-size: 0.72rem;
+	color: var(--text-secondary);
+}
+
+.va-course-card-test-row .lms-btn-sm {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
 /* ============================================
    6. COMPLETED COURSES
    ============================================ */

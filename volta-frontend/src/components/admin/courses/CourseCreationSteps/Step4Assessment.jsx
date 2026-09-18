@@ -231,7 +231,7 @@ function QuizSettings({ assessment, onUpdate }) {
 					<input
 						type="number"
 						min={1}
-						value={assessment.max_attempts ?? 3}
+						value={assessment.max_attempts ?? 1}
 						onChange={(e) => onUpdate({ max_attempts: parseInt(e.target.value, 10) || 1 })}
 						className="step4-input"
 					/>
@@ -368,7 +368,7 @@ const Step4Assessment = ({ data, onUpdate }) => {
 			type,
 			passing_threshold: 70,
 			time_limit_minutes: null,
-			max_attempts: 3,
+			max_attempts: 1,
 			allow_retry: true,
 			randomize: false,
 			questions: type === 'quiz' ? [] : undefined,

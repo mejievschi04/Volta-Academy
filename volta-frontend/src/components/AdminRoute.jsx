@@ -21,6 +21,9 @@ const INSTRUCTOR_BLOCKED_PREFIXES = [
 ];
 
 function isInstructorBlockedPath(pathname) {
+	if (/^\/admin\/users\/\d+\/profile\/?$/.test(pathname)) {
+		return false;
+	}
 	return INSTRUCTOR_BLOCKED_PREFIXES.some(
 		(p) => pathname === p || pathname.startsWith(`${p}/`)
 	);

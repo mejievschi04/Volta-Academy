@@ -23,6 +23,45 @@
     font-variant-numeric: tabular-nums;
 }
 .test-attempt-footer-navigation span { white-space: nowrap; }
+.test-attempt-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: #ffee00 !important;
+    color: #111 !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.test-attempt-nav-btn svg {
+    color: #111 !important;
+    flex-shrink: 0;
+}
+.test-attempt-nav-btn:hover:not(:disabled) {
+    background: #e6d800 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+.test-attempt-nav-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+.test-attempt-nav-btn:focus-visible {
+    outline: 3px solid #111;
+    outline-offset: 2px;
+}
+.test-attempt-nav-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    box-shadow: none;
+}
 .test-attempt-footer-q-count {
     min-width: 4.5ch;
     text-align: center;
@@ -39,6 +78,30 @@
 }
 .test-attempt-footer button,
 .test-attempt-footer a { min-height: 44px; }
+.test-attempt-footer .test-attempt-back-btn,
+.test-attempt-footer a.test-attempt-back-btn,
+.test-attempt-footer a.lms-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #ffee00;
+    color: #111;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    cursor: pointer;
+}
+.test-attempt-footer .test-attempt-back-btn:hover,
+.test-attempt-footer a.lms-btn-primary:hover {
+    background: #e6d800;
+    color: #111;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
 .test-attempt-footer button:disabled { opacity: .5; cursor: not-allowed; }
 .test-attempt-footer--confirm,
 .test-attempt-footer--submit {
@@ -74,10 +137,11 @@
         width: 100%;
         justify-content: space-between;
     }
-    .test-attempt-footer-navigation .lms-btn-secondary {
-        width: 52px;
-        padding-inline: 0;
-        border-radius: 999px;
+    .test-attempt-nav-btn {
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        min-height: 56px;
     }
     .test-attempt-footer-q-count {
         font-size: 16px;

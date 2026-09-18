@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\Test;
 use App\Services\UserAssignedCoursesService;
+use App\Services\TestAttemptService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,13 +18,6 @@ use Illuminate\Support\Facades\Log;
 
 class UserAdminController extends Controller
 {
-    public function __construct()
-    {
-        if (auth()->check() && auth()->user()->isInstructor()) {
-            abort(403, 'Doar administratorii pot gestiona utilizatorii.');
-        }
-    }
-
     /** Câmpuri echipe folosite în admin (swatch, ordine); belongsToMany cere `teams.id`. */
     private const TEAMS_ADMIN_EAGER = 'teams:id,name,accent_color,sort_order';
 
@@ -428,6 +423,39 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Curs marcat ca finalizat',
+        ]);
+    }
+
+    public function grantTestExtraAttempt(Request $request, $id, $testId)
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isAdmin() && ! $actor->isInstructor())) {
+            return response()->json(['message' => 'Acces interzis.'], 403);
+        }
+
+        $user = User::findOrFail($id);
+        $test = Test::findOrFail($testId);
+        $courseId = $request->filled('course_id') ? (int) $request->input('course_id') : null;
+
+        $grant = app(TestAttemptService::class)->grantExtraAttempt(
+            (int) $user->id,
+            (int) $test->id,
+            (int) $actor->id,
+            $courseId
+        );
+
+        $completedCount = app(TestAttemptService::class)
+            ->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)
+            ->count();
+
+        return response()->json([
+            'message' => 'A fost adăugată 1 încercare.',
+            'extra_attempts' => (int) $grant->extra_attempts,
+            'remaining_attempts' => app(TestAttemptService::class)->remainingAttemptsFor(
+                $test,
+                (int) $user->id,
+                $completedCount
+            ),
         ]);
     }
 

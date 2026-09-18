@@ -284,7 +284,7 @@ const AdminDashboardPage = () => {
 				<article className="hero-stat">
 					<p className="hero-stat-label">Utilizatori activi</p>
 					<p className="hero-stat-value">{formatNumber(activeUsersNum)}</p>
-					<p className="hero-stat-meta">Activitate în {periodLabel.toLowerCase()}</p>
+					<p className="hero-stat-meta">Au deschis aplicația în {periodLabel.toLowerCase()}</p>
 				</article>
 				<article className="hero-stat hero-stat-green">
 					<p className="hero-stat-label">Cursuri publicate</p>

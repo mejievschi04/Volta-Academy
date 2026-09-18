@@ -247,6 +247,14 @@ export const examService = {
     const response = await api.post(`/exams/${examId}/submit`, payload);
     return response.data;
   },
+
+  saveProgress: async (examId, answers, courseId = null, attemptId = null) => {
+    const payload = { answers };
+    if (courseId) payload.course_id = courseId;
+    if (attemptId) payload.attempt_id = attemptId;
+    const response = await api.post(`/exams/${examId}/progress`, payload);
+    return response.data;
+  },
 };
 
 export const testService = {
@@ -1241,6 +1249,13 @@ export const adminService = {
 
   markCourseCompleted: async (userId, courseId) => {
     const response = await api.post(`/admin/users/${userId}/courses/${courseId}/complete`);
+    return response.data;
+  },
+
+  grantTestExtraAttempt: async (userId, testId, courseId) => {
+    const response = await api.post(`/admin/users/${userId}/tests/${testId}/extra-attempt`, {
+      course_id: courseId || null,
+    });
     return response.data;
   },
   

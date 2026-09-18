@@ -3,7 +3,7 @@ import { eventsService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
-import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const parseEventDate = (dateString) => {
 	if (!dateString) return null;
@@ -23,6 +23,8 @@ const EventsPage = () => {
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [cancelTarget, setCancelTarget] = useState(null);
+	const [cancelLoading, setCancelLoading] = useState(false);
 
 	const fetchEvents = async () => {
 		try {
@@ -73,6 +75,27 @@ const EventsPage = () => {
 		}
 	};
 
+	const handleCancelRegistrationClick = (event, e) => {
+		e.stopPropagation();
+		setCancelTarget(event);
+	};
+
+	const handleConfirmCancelRegistration = async () => {
+		if (!cancelTarget) return;
+		setCancelLoading(true);
+		try {
+			await eventsService.cancelRegistration(cancelTarget.id);
+			setCancelTarget(null);
+			await fetchEvents();
+			showSuccess('Înscriere anulată');
+		} catch (err) {
+			logger.error('Error canceling registration:', err);
+			showError(err.response?.data?.message || 'Eroare la anulare');
+		} finally {
+			setCancelLoading(false);
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="va-main fade-in">
@@ -100,56 +123,51 @@ const EventsPage = () => {
 				<div className="events-grid">
 					{events.map((event) => {
 						const isFull = event.max_capacity && event.registrations_count >= event.max_capacity;
+						const details = String(event.description || event.short_description || '').trim();
 						return (
-							<div key={event.id} className="va-card-enhanced stagger-item">
+							<article key={event.id} className="va-card-enhanced stagger-item events-card">
 								{event.thumbnail && (
 									<div
 										className="events-card-thumbnail"
 										style={{
-											width: '100%',
-											height: '148px',
 											backgroundImage: `url(${event.thumbnail})`,
-											backgroundSize: 'cover',
-											backgroundPosition: 'center',
-											borderRadius: '8px 8px 0 0',
 										}}
 									/>
 								)}
-								<div className="va-card-body">
-									<h3 className="va-card-title">📅 {event.title}</h3>
-									{event.short_description && (
-										<p style={{ color: 'var(--va-muted)', marginBottom: '0.75rem', lineHeight: '1.6', fontSize: '0.9rem' }}>
-											{event.short_description}
-										</p>
-									)}
-									{event.description ? (
-										<EventDescriptionExpandable text={event.description} className="events-card-desc" />
+								<div className="va-card-body events-card-body">
+									<h3 className="va-card-title events-card-title">{event.title}</h3>
+									{details ? (
+										<p className="events-card-text">{details}</p>
 									) : null}
-									<div style={{ fontSize: '0.875rem', color: 'var(--va-muted)', lineHeight: '1.8', marginBottom: '1rem' }}>
-										{event.instructor && (
-											<div style={{ marginBottom: '0.5rem' }}>
-												👤 <strong style={{ color: 'var(--va-text)' }}>{event.instructor.name}</strong>
+									<div className="events-card-meta">
+										{event.instructor?.name ? (
+											<div className="events-card-meta-row">
+												<span className="events-card-meta-icon" aria-hidden>👤</span>
+												<span>{event.instructor.name}</span>
 											</div>
-										)}
-										{(event.location || event.live_link) && (
-											<div style={{ marginBottom: '0.5rem' }}>
-												📍 <strong style={{ color: 'var(--va-text)' }}>{event.location || 'Online'}</strong>
+										) : null}
+										{(event.location || event.live_link) ? (
+											<div className="events-card-meta-row">
+												<span className="events-card-meta-icon" aria-hidden>📍</span>
+												<span>{event.location || 'Online'}</span>
 											</div>
-										)}
-										<div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
-											🕐 <strong style={{ color: 'var(--va-text)' }}>{formatDate(event.start_date)}</strong>
-											{event.end_date && (
-												<span style={{ marginLeft: '0.5rem' }}>- {formatTime(event.end_date)}</span>
-											)}
+										) : null}
+										<div className="events-card-meta-row">
+											<span className="events-card-meta-icon" aria-hidden>🕐</span>
+											<span>
+												{formatDate(event.start_date)}
+												{event.end_date ? ` – ${formatTime(event.end_date)}` : ''}
+											</span>
 										</div>
-										{event.max_capacity && (
-											<div style={{ marginBottom: '0.5rem' }}>
-												👥 <strong style={{ color: 'var(--va-text)' }}>
+										{event.max_capacity ? (
+											<div className="events-card-meta-row">
+												<span className="events-card-meta-icon" aria-hidden>👥</span>
+												<span>
 													{event.registrations_count || 0} / {event.max_capacity} înscriși
-													{isFull && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>• PLIN</span>}
-												</strong>
+													{isFull ? <span className="events-card-full"> • PLIN</span> : null}
+												</span>
 											</div>
-										)}
+										) : null}
 									</div>
 									<div className="events-card-actions">
 										{!event.user_registered && !isFull && event.status !== 'cancelled' && (
@@ -161,13 +179,24 @@ const EventsPage = () => {
 											</button>
 										)}
 										{event.user_registered && (
-											<button className="lms-btn-secondary" disabled>
-												✓ Înscris
-											</button>
+											<>
+												<button className="lms-btn-secondary" disabled>
+													✓ Înscris
+												</button>
+												{event.status !== 'cancelled' && event.status !== 'completed' ? (
+													<button
+														type="button"
+														className="lms-btn-secondary events-card-cancel-btn"
+														onClick={(e) => handleCancelRegistrationClick(event, e)}
+													>
+														Anulează înscrierea
+													</button>
+												) : null}
+											</>
 										)}
 									</div>
 								</div>
-							</div>
+							</article>
 						);
 					})}
 				</div>
@@ -182,6 +211,18 @@ const EventsPage = () => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmModal
+				open={Boolean(cancelTarget)}
+				onClose={() => !cancelLoading && setCancelTarget(null)}
+				onConfirm={handleConfirmCancelRegistration}
+				title="Anulare înscriere"
+				message={cancelTarget ? `Sigur dorești să anulezi înscrierea la „${cancelTarget.title}”?` : ''}
+				confirmLabel="Anulează înscrierea"
+				cancelLabel="Rămân"
+				variant="danger"
+				loading={cancelLoading}
+			/>
 		</div>
 	);
 };

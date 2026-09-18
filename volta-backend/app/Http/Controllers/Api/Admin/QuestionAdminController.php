@@ -100,6 +100,19 @@ class QuestionAdminController extends Controller
             });
         }
 
+        $perPageHint = null;
+        if ($request->filled('ids')) {
+            $ids = $request->input('ids');
+            if (is_string($ids)) {
+                $ids = explode(',', $ids);
+            }
+            $ids = array_values(array_unique(array_filter(array_map('intval', is_array($ids) ? $ids : []))));
+            if ($ids !== []) {
+                $query->whereIn('id', $ids);
+                $perPageHint = count($ids);
+            }
+        }
+
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
             $query->where('content', 'like', '%' . $search . '%');
@@ -134,7 +147,7 @@ class QuestionAdminController extends Controller
             });
         }
 
-        $perPage = max(1, min((int) $request->input('per_page', 20), 100));
+        $perPage = max(1, min((int) $request->input('per_page', $perPageHint ?? 20), 200));
         $questions = $query->paginate($perPage);
 
         $bankIds = collect($questions->items())

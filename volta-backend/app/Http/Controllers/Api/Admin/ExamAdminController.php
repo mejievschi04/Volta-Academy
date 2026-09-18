@@ -219,7 +219,7 @@ class ExamAdminController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'draft',
             'max_score' => $validated['max_score'],
-            'max_attempts' => $validated['max_attempts'] ?? null,
+            'max_attempts' => $validated['max_attempts'] ?? 1,
         ];
         if ($courseId) {
             $examData['course_id'] = $courseId;
@@ -1142,8 +1142,33 @@ class ExamAdminController extends Controller
     {
         $settings = is_array($settings) ? $settings : [];
         unset($settings['tags']);
-        $settings['selection_mode'] = 'folders';
+
+        $mode = ($settings['selection_mode'] ?? 'folders') === 'questions' ? 'questions' : 'folders';
+        $settings['selection_mode'] = $mode;
+        $settings['folder_ids'] = $this->normalizeSettingIds($settings['folder_ids'] ?? []);
+        $settings['question_ids'] = $this->normalizeSettingIds($settings['question_ids'] ?? []);
+
+        if ($mode === 'questions') {
+            $poolSize = count($settings['question_ids']);
+            $requested = max(0, (int) ($settings['question_count'] ?? $poolSize));
+            $settings['question_count'] = $poolSize > 0
+                ? max(1, min($requested > 0 ? $requested : $poolSize, $poolSize))
+                : 0;
+            $settings['include_starred'] = ! array_key_exists('include_starred', $settings) || (bool) $settings['include_starred'];
+        } else {
+            $settings['question_count'] = max(0, (int) ($settings['question_count'] ?? 0));
+            $settings['include_starred'] = ! array_key_exists('include_starred', $settings) || (bool) $settings['include_starred'];
+        }
 
         return $settings;
+    }
+
+    private function normalizeSettingIds($raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $raw))));
     }
 }

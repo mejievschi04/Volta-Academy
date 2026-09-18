@@ -232,6 +232,42 @@ class DashboardAdminController extends Controller
         return Schema::hasTable('payments');
     }
 
+    /**
+     * Elevi neșteși care au deschis aplicația în interval (login sau session_started).
+     * Înscrierea la curs sau o editare de profil nu contează ca vizită.
+     */
+    private function activeStudentIds(Carbon $start, Carbon $end)
+    {
+        $studentIds = User::where('role', 'student')->pluck('id');
+        if ($studentIds->isEmpty()) {
+            return collect();
+        }
+
+        $ids = User::where('role', 'student')
+            ->whereBetween('last_login_at', [$start, $end])
+            ->pluck('id');
+
+        if (Schema::hasTable('activity_logs')) {
+            $ids = $ids->merge(
+                ActivityLog::query()
+                    ->where('action', StudentSessionLogger::ACTION)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->whereIn('user_id', $studentIds)
+                    ->distinct()
+                    ->pluck('user_id')
+            );
+        }
+
+        return $ids->map(fn ($id) => (int) $id)->filter()->unique()->values();
+    }
+
+    private function countActiveStudents(Carbon $start, Carbon $end, ?int $totalStudents = null): int
+    {
+        $active = $this->activeStudentIds($start, $end)->count();
+
+        return $totalStudents === null ? $active : min($active, $totalStudents);
+    }
+
     private function calculateKPIs($dateRange)
     {
         $start = $dateRange['start'];
@@ -239,16 +275,7 @@ class DashboardAdminController extends Controller
 
         // Total Users (only students - total count, not period-based)
         $totalUsers = User::where('role', 'student')->count();
-        
-        // Log for debugging (remove in production)
-        \Log::info('Dashboard Users Count', [
-            'all_users' => User::count(),
-            'admin_users' => User::where('role', 'admin')->count(),
-            'student_users' => User::where('role', 'student')->count(),
-            'instructor_users' => User::where('role', 'instructor')->count(),
-            'total_users' => $totalUsers
-        ]);
-        
+
         // Previous period for trend calculation
         $prevStart = $start->copy()->subDays($start->diffInDays($end));
         $prevEnd = $start;
@@ -282,61 +309,8 @@ class DashboardAdminController extends Controller
             ? round((($newCoursesCurrentPeriod - $newCoursesPreviousPeriod) / $newCoursesPreviousPeriod) * 100, 1)
             : ($newCoursesCurrentPeriod > 0 ? 100 : 0);
 
-        // Active Users (users who had activity in period - enrolled, completed, or updated courses)
-        // Get users with course activity in period
-        $usersWithCourseActivity = collect([]);
-        if (Schema::hasTable('course_user')) {
-            $query = DB::table('course_user')
-                ->join('users', 'users.id', '=', 'course_user.user_id')
-                ->where('users.role', 'student')
-                ->where(function ($q) use ($start, $end) {
-                    $q->whereBetween('course_user.updated_at', [$start, $end]);
-                    if (Schema::hasColumn('course_user', 'enrolled_at')) {
-                        $q->orWhereBetween('course_user.enrolled_at', [$start, $end]);
-                    }
-                    if (Schema::hasColumn('course_user', 'completed_at')) {
-                        $q->orWhereBetween('course_user.completed_at', [$start, $end]);
-                    }
-                });
-
-            $usersWithCourseActivity = $query->distinct()->pluck('course_user.user_id');
-        }
-
-        $usersUpdated = DB::table('users')
-            ->where('role', 'student')
-            ->whereBetween('users.updated_at', [$start, $end])
-            ->pluck('id');
-        
-        $activeUsers = $usersWithCourseActivity->merge($usersUpdated)->unique()->count();
-
-        // Previous period for trend
-        $prevStart = $start->copy()->subDays($start->diffInDays($end));
-        $prevEnd = $start;
-        
-        $prevUsersWithCourseActivity = collect([]);
-        if (Schema::hasTable('course_user')) {
-            $query = DB::table('course_user')
-                ->join('users', 'users.id', '=', 'course_user.user_id')
-                ->where('users.role', 'student')
-                ->where(function ($q) use ($prevStart, $prevEnd) {
-                    $q->whereBetween('course_user.updated_at', [$prevStart, $prevEnd]);
-                    if (Schema::hasColumn('course_user', 'enrolled_at')) {
-                        $q->orWhereBetween('course_user.enrolled_at', [$prevStart, $prevEnd]);
-                    }
-                    if (Schema::hasColumn('course_user', 'completed_at')) {
-                        $q->orWhereBetween('course_user.completed_at', [$prevStart, $prevEnd]);
-                    }
-                });
-
-            $prevUsersWithCourseActivity = $query->distinct()->pluck('course_user.user_id');
-        }
-
-        $prevUsersUpdated = DB::table('users')
-            ->where('role', 'student')
-            ->whereBetween('users.updated_at', [$prevStart, $prevEnd])
-            ->pluck('id');
-        
-        $previousActiveUsers = $prevUsersWithCourseActivity->merge($prevUsersUpdated)->unique()->count();
+        $activeUsers = $this->countActiveStudents($start, $end, $totalUsers);
+        $previousActiveUsers = $this->countActiveStudents($prevStart, $prevEnd, $totalUsers);
 
         $activeUsersTrend = $previousActiveUsers > 0 
             ? round((($activeUsers - $previousActiveUsers) / $previousActiveUsers) * 100, 1)
@@ -603,30 +577,7 @@ class DashboardAdminController extends Controller
                 ->where('created_at', '<=', $dateEnd)
                 ->count();
 
-            $usersWithCourseActivity = collect([]);
-            if (Schema::hasTable('course_user')) {
-                $activityQuery = DB::table('course_user')
-                    ->join('users', 'users.id', '=', 'course_user.user_id')
-                    ->where('users.role', 'student')
-                    ->where(function ($q) use ($date, $dateEnd) {
-                        $q->whereBetween('course_user.updated_at', [$date, $dateEnd]);
-                        if (Schema::hasColumn('course_user', 'enrolled_at')) {
-                            $q->orWhereBetween('course_user.enrolled_at', [$date, $dateEnd]);
-                        }
-                        if (Schema::hasColumn('course_user', 'completed_at')) {
-                            $q->orWhereBetween('course_user.completed_at', [$date, $dateEnd]);
-                        }
-                    });
-
-                $usersWithCourseActivity = $activityQuery->distinct()->pluck('course_user.user_id');
-            }
-
-            $usersUpdated = DB::table('users')
-                ->where('role', 'student')
-                ->whereBetween('users.updated_at', [$date, $dateEnd])
-                ->pluck('id');
-
-            $activeUsers = $usersWithCourseActivity->merge($usersUpdated)->unique()->count();
+            $activeUsers = $this->countActiveStudents($date, $dateEnd, $totalUsers);
 
             $learningSeconds = $focusLogs
                 ->filter(fn ($log) => $log->created_at >= $date && $log->created_at < $dateEnd)

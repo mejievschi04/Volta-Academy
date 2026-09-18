@@ -6,10 +6,12 @@ use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
+use App\Models\UserTestAttemptGrant;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class TestAttemptService
@@ -119,6 +121,61 @@ class TestAttemptService
         return $userId . ':' . $testId . ':' . (int) ($courseId ?? 0) . ':open';
     }
 
+    public function extraAttemptsFor(int $userId, int $testId): int
+    {
+        if (! Schema::hasTable('user_test_attempt_grants')) {
+            return 0;
+        }
+
+        return (int) UserTestAttemptGrant::query()
+            ->where('user_id', $userId)
+            ->where('test_id', $testId)
+            ->value('extra_attempts');
+    }
+
+    public function allowedAttemptCount(Test $test, int $userId): ?int
+    {
+        if (! $test->max_attempts) {
+            return null;
+        }
+
+        return (int) $test->max_attempts + $this->extraAttemptsFor($userId, (int) $test->id);
+    }
+
+    public function remainingAttemptsFor(Test $test, int $userId, int $completedCount, bool $hasOpenAttempt = false): ?int
+    {
+        $allowed = $this->allowedAttemptCount($test, $userId);
+        if ($allowed === null) {
+            return null;
+        }
+
+        return max(0, $allowed - $completedCount - ($hasOpenAttempt ? 1 : 0));
+    }
+
+    public function wouldExceedAttemptLimit(Test $test, int $userId, int $nextAttempt): bool
+    {
+        $allowed = $this->allowedAttemptCount($test, $userId);
+        return $allowed !== null && $nextAttempt > $allowed;
+    }
+
+    public function grantExtraAttempt(int $userId, int $testId, int $grantedBy, ?int $courseId = null): UserTestAttemptGrant
+    {
+        return DB::transaction(function () use ($userId, $testId, $grantedBy, $courseId) {
+            $grant = UserTestAttemptGrant::query()->firstOrCreate(
+                ['user_id' => $userId, 'test_id' => $testId],
+                ['extra_attempts' => 0, 'granted_by' => $grantedBy, 'course_id' => $courseId]
+            );
+            $grant->extra_attempts = (int) $grant->extra_attempts + 1;
+            $grant->granted_by = $grantedBy;
+            if ($courseId) {
+                $grant->course_id = $courseId;
+            }
+            $grant->save();
+
+            return $grant->fresh();
+        });
+    }
+
     public function attemptHasExpired(TestResult $attempt): bool
     {
         if (! $attempt->expires_at) {
@@ -155,5 +212,137 @@ class TestAttemptService
         }
 
         return $existing;
+    }
+
+    public function answerValue(array $answers, int $questionId): mixed
+    {
+        if (array_key_exists($questionId, $answers)) {
+            return $answers[$questionId];
+        }
+        $key = (string) $questionId;
+        if (array_key_exists($key, $answers)) {
+            return $answers[$key];
+        }
+
+        return null;
+    }
+
+    public function hasAnswer(mixed $value): bool
+    {
+        if ($value === null || $value === '') {
+            return false;
+        }
+        if (is_array($value) && count($value) === 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Merge newly answered questions onto an in-progress attempt.
+     * Already answered questions stay locked once a later question has an answer.
+     * The latest answered question can still be updated until the student moves on.
+     */
+    public function mergeProgressAnswers(TestResult $attempt, array $incoming): array
+    {
+        $existing = is_array($attempt->answers) ? $attempt->answers : [];
+        $questionIds = collect($attempt->question_snapshot ?? [])
+            ->map(fn ($row) => (int) ($row['id'] ?? 0))
+            ->filter(fn ($id) => $id > 0)
+            ->values()
+            ->all();
+
+        if ($questionIds === []) {
+            return $this->normalizeAnswerMap(array_replace($existing, $incoming));
+        }
+
+        $firstUnanswered = null;
+        $lastAnswered = null;
+        foreach ($questionIds as $index => $questionId) {
+            if ($this->hasAnswer($this->answerValue($existing, $questionId))) {
+                $lastAnswered = $index;
+            } elseif ($firstUnanswered === null) {
+                $firstUnanswered = $index;
+            }
+        }
+        if ($firstUnanswered === null) {
+            $firstUnanswered = count($questionIds);
+        }
+
+        $writable = [];
+        if ($firstUnanswered < count($questionIds)) {
+            $writable[$questionIds[$firstUnanswered]] = true;
+        }
+        if ($lastAnswered !== null && ($lastAnswered + 1) === $firstUnanswered) {
+            $writable[$questionIds[$lastAnswered]] = true;
+        }
+
+        foreach ($incoming as $rawId => $value) {
+            $questionId = (int) $rawId;
+            if ($questionId <= 0 || ! isset($writable[$questionId])) {
+                continue;
+            }
+            unset($existing[$questionId], $existing[(string) $questionId]);
+            $existing[(string) $questionId] = $value;
+        }
+
+        return $this->normalizeAnswerMap($existing);
+    }
+
+    /**
+     * On final submit, keep already saved answers locked and fill the rest from the payload.
+     */
+    public function mergeSubmitAnswers(TestResult $attempt, array $incoming): array
+    {
+        $existing = $this->normalizeAnswerMap(is_array($attempt->answers) ? $attempt->answers : []);
+        $incoming = $this->normalizeAnswerMap($incoming);
+        $questionIds = collect($attempt->question_snapshot ?? [])
+            ->map(fn ($row) => (int) ($row['id'] ?? 0))
+            ->filter(fn ($id) => $id > 0)
+            ->values()
+            ->all();
+
+        if ($questionIds === []) {
+            return array_replace($incoming, $existing);
+        }
+
+        $merged = [];
+        foreach ($questionIds as $questionId) {
+            $stored = $this->answerValue($existing, $questionId);
+            if ($this->hasAnswer($stored)) {
+                $merged[(string) $questionId] = $stored;
+                continue;
+            }
+            $next = $this->answerValue($incoming, $questionId);
+            if ($this->hasAnswer($next)) {
+                $merged[(string) $questionId] = $next;
+            }
+        }
+
+        return $merged;
+    }
+
+    public function persistProgressAnswers(TestResult $attempt, array $incoming): array
+    {
+        $merged = $this->mergeProgressAnswers($attempt, $incoming);
+        $attempt->answers = $merged;
+        $attempt->save();
+
+        return $merged;
+    }
+
+    private function normalizeAnswerMap(array $answers): array
+    {
+        $normalized = [];
+        foreach ($answers as $key => $value) {
+            $questionId = (int) $key;
+            if ($questionId <= 0) {
+                continue;
+            }
+            $normalized[(string) $questionId] = $value;
+        }
+
+        return $normalized;
     }
 }

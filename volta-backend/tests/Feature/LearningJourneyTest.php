@@ -177,6 +177,15 @@ class LearningJourneyTest extends TestCase
 
         $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/register")->assertOk();
         $this->actingAs($student, 'sanctum')->getJson('/api/events/my')->assertOk();
+        $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/cancel-registration")
+            ->assertOk()
+            ->assertJsonPath('event.user_registered', false);
+        $this->assertDatabaseHas('event_user', [
+            'event_id' => $event->id,
+            'user_id' => $student->id,
+            'registered' => false,
+        ]);
+        $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/register")->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/mark-attendance")->assertOk();
     }
 }

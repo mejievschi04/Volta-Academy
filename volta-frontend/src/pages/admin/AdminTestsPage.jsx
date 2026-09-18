@@ -126,6 +126,7 @@ export default function AdminTestsPage() {
         status: 'draft',
         type: 'final',
         passing_score: TEST_EDITOR_DEFAULT.passing_score,
+        max_attempts: TEST_EDITOR_DEFAULT.max_attempts,
         randomize_questions: TEST_EDITOR_DEFAULT.randomize_questions,
         randomize_answers: TEST_EDITOR_DEFAULT.randomize_answers,
         show_results_immediately: TEST_EDITOR_DEFAULT.show_results_immediately,

@@ -544,7 +544,7 @@ const LessonPage = () => {
 								) : (
 									<>
 										<Check size={18} weight="bold" aria-hidden />
-										<span>Finalizează</span>
+										<span>Urmează testul</span>
 									</>
 								)
 							) : (

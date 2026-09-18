@@ -10,6 +10,7 @@ import {
 import RichTextEditor from '../../RichTextEditor';
 import RichTextHtml from '../../RichTextHtml';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
+import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
 
 export default function InlineTestEditorShell({
   editor,
@@ -429,19 +430,16 @@ export default function InlineTestEditorShell({
                 <input
                   type="number"
                   min="1"
-                  value={inlineTest.max_attempts ?? ''}
-                  onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.value ? Number(e.target.value) : null })}
+                  value={inlineTest.max_attempts ?? 1}
+                  onChange={(e) => saveInlineTestPatch({ max_attempts: Math.max(1, Number(e.target.value) || 1) })}
                   disabled={!canMutateInAdminArea}
                 />
               </div>
               <div className="admin-course-builder-test-field">
-                <label>Prag promovare (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={inlineTest.passing_score ?? 70}
-                  onChange={(e) => saveInlineTestPatch({ passing_score: e.target.value === '' ? null : Number(e.target.value) })}
+                <PassingScoreByQuestions
+                  questionCount={inlineQuestions.length}
+                  passingScore={inlineTest.passing_score ?? 70}
+                  onPassingScoreChange={(next) => saveInlineTestPatch({ passing_score: next })}
                   disabled={!canMutateInAdminArea}
                 />
               </div>

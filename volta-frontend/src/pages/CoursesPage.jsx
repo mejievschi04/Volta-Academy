@@ -19,13 +19,13 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Indicate' },
-	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
+	{ id: 'maps', label: 'Cursuri indicate' },
+	{ id: 'completed', label: 'Cursuri finalizate', statKey: 'completed' },
 ];
 
 const STUDENT_FILTER_TITLES = {
-	maps: 'Mape indicate',
-	completed: 'Cursuri finalizate',
+	maps: 'Mape',
+	completed: 'Cursuri',
 };
 
 const CoursesPage = () => {
@@ -241,9 +241,9 @@ const CoursesPage = () => {
 				<div className="courses-page-hero">
 					<div className={`courses-page-hero-content${!isAdmin ? ' courses-page-hero-content--student' : ''}`}>
 						<div className="courses-page-hero-text">
-							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : 'Cursuri'}</h1>
+							<h1 className="courses-page-hero-title">{isAdmin ? 'Mape cursuri' : STUDENT_FILTER_TITLES[studentFilter]}</h1>
 							{!isAdmin ? (
-								<div className="courses-page-student-filters" role="group" aria-label="Filtrare cursuri">
+								<div className="courses-page-student-filters" role="group" aria-label="Filtrare mape și cursuri">
 									{STUDENT_COURSE_FILTERS.map((filter) => {
 										const count = getStudentFilterCount(filter);
 										return (
@@ -369,7 +369,14 @@ const CoursesPage = () => {
 					) : null}
 
 					{(isAdmin || studentFilter === 'maps') ? (
-						<div className="courses-page-maps-grid">
+						<section className="courses-page-filtered-section" aria-label={isAdmin ? 'Mape cursuri' : 'Mape'}>
+							{!isAdmin ? (
+								<div className="courses-page-filtered-header">
+									<h2 className="courses-page-filtered-title">Mape</h2>
+									<span className="courses-page-filtered-count">{filteredCourseMaps.length + filteredStandaloneCourses.length}</span>
+								</div>
+							) : null}
+							<div className="courses-page-maps-grid">
 							{!isAdmin
 								? filteredStandaloneCourses.map((course, index) => {
 										const accentColor = COURSE_MAP_ACCENT_COLORS[(index + 1) % COURSE_MAP_ACCENT_COLORS.length];
@@ -452,6 +459,7 @@ const CoursesPage = () => {
 								</div>
 							) : null}
 						</div>
+						</section>
 					) : null}
 
 				</div>

@@ -5024,7 +5024,7 @@
 
 .admin-exams-content-picker-modal .admin-exams-content-modal-head {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 160px;
+	grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
 	align-items: start;
 	gap: 18px;
 	padding-bottom: 16px;
@@ -5472,4 +5472,147 @@
 	.admin-exams-builder-refined .admin-exams-builder-tabs {
 		grid-template-columns: 1fr;
 	}
+}
+
+.admin-exams-content-mode-switch {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+	min-width: 220px;
+	padding: 5px;
+	border: 1px solid var(--border-primary);
+	border-radius: 10px;
+	background: var(--bg-primary);
+}
+
+.admin-exams-content-mode-switch button {
+	min-height: 38px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: 0.84rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.admin-exams-content-mode-switch button.is-active {
+	background: var(--color-primary);
+	color: #111;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.admin-exams-content-picker-modal.is-questions-mode {
+	grid-template-rows: auto auto minmax(240px, 1fr) auto;
+}
+
+.admin-exams-question-picker {
+	min-height: 0;
+	display: grid;
+	grid-template-rows: auto auto minmax(180px, 1fr);
+	gap: 10px;
+	overflow: hidden;
+}
+
+.admin-exams-question-picker-tabs {
+	display: inline-flex;
+	gap: 6px;
+	padding: 4px;
+	border: 1px solid var(--border-primary);
+	border-radius: 10px;
+	background: var(--bg-primary);
+	width: fit-content;
+}
+
+.admin-exams-question-picker-tabs button {
+	min-height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: 0.8rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.admin-exams-question-picker-tabs button.is-active {
+	background: var(--color-primary);
+	color: #111;
+	box-shadow: none;
+}
+
+.admin-exams-question-picker-hint {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.84rem;
+}
+
+.admin-exams-selected-questions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	max-height: 88px;
+	overflow: auto;
+}
+
+.admin-exams-selected-question-chip {
+	display: grid;
+	gap: 2px;
+	max-width: 240px;
+	padding: 6px 10px;
+	border: 1px solid color-mix(in srgb, var(--color-primary) 36%, var(--border-primary));
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-primary));
+	color: var(--text-primary);
+	text-align: left;
+	cursor: pointer;
+}
+
+.admin-exams-selected-question-chip span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.75rem;
+	font-weight: 800;
+}
+
+.admin-exams-selected-question-chip small {
+	color: var(--text-secondary);
+	font-size: 0.66rem;
+}
+
+.admin-exams-question-picker-body {
+	min-height: 0;
+	overflow: auto;
+	padding-right: 4px;
+}
+
+.admin-exams-question-picker-body .qb-folder-list,
+.admin-exams-question-picker-body .qb-questions-list {
+	display: grid;
+	gap: 8px;
+}
+
+.admin-exams-folder-question-browser {
+	display: grid;
+	gap: 10px;
+}
+
+.admin-exams-content-picker-modal .qb-catalog-topbar,
+.admin-exams-content-picker-modal .qb-catalog-nav {
+	margin-bottom: 8px;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-board.is-question-picker {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-board.is-question-picker .admin-exams-builder-rail {
+	display: none;
+}
+
+.admin-exams-questions-workspace {
+	width: 100%;
+	min-width: 0;
 }

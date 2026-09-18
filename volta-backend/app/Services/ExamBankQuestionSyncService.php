@@ -22,13 +22,15 @@ class ExamBankQuestionSyncService
         if (! is_array($settings)) {
             return false;
         }
-        $count = (int) ($settings['question_count'] ?? 0);
+        if ($this->selectionMode($settings) === 'questions') {
+            return array_key_exists('question_ids', $settings);
+        }
 
-        return $count > 0;
+        return $this->normalizeIds($settings['folder_ids'] ?? []) !== [];
     }
 
     /**
-     * Înlocuiește întrebările examenului cu un snapshot din bănci.
+     * Înlocuiește întrebările examenului cu un snapshot din bănci sau din selecție explicită.
      * Returnează numărul de întrebări create sau 0 dacă nu s-a făcut nimic.
      */
     public function syncFromSettings(Exam $exam, ?array $settings, ?User $actor): int
@@ -37,25 +39,16 @@ class ExamBankQuestionSyncService
             return 0;
         }
 
-        $folderIds = $this->normalizeIds($settings['folder_ids'] ?? []);
-        $count = max(0, (int) ($settings['question_count'] ?? 0));
-        $includeStarred = ! array_key_exists('include_starred', $settings) || (bool) $settings['include_starred'];
+        $selected = $this->selectionMode($settings) === 'questions'
+            ? $this->poolFromQuestionIds($this->normalizeIds($settings['question_ids'] ?? []), $actor)
+            : $this->poolFromFolders($settings, $exam, $actor);
 
-        $pool = $this->basePool($folderIds, $actor);
-        if ($pool->isEmpty()) {
+        if ($selected->isEmpty()) {
             return DB::transaction(function () use ($exam) {
                 ExamQuestion::where('exam_id', $exam->id)->delete();
 
                 return 0;
             });
-        }
-
-        $seedBase = 'exam-sync:' . $exam->id;
-        $matched = $this->orderDeterministic($pool, $seedBase);
-
-        $selected = $this->applyCountAndStarred($matched, $count, $includeStarred, $seedBase);
-        if ($selected->isEmpty()) {
-            return 0;
         }
 
         return DB::transaction(function () use ($exam, $selected) {
@@ -72,9 +65,117 @@ class ExamBankQuestionSyncService
         });
     }
 
+    protected function selectionMode(?array $settings): string
+    {
+        return (($settings['selection_mode'] ?? 'folders') === 'questions') ? 'questions' : 'folders';
+    }
+
     protected function normalizeIds(array $raw): array
     {
         return array_values(array_unique(array_filter(array_map('intval', $raw))));
+    }
+
+    protected function poolFromFolders(array $settings, Exam $exam, ?User $actor): Collection
+    {
+        $folderIds = $this->normalizeIds($settings['folder_ids'] ?? []);
+
+        return $this->basePool($folderIds, $actor);
+    }
+
+    /**
+     * Pool-ul e tot setul salvat; la încercare se trag N întrebări (stelele întâi, restul random per elev).
+     */
+    public function selectForAttempt(Exam $exam, int $userId, int $attemptNumber): Collection
+    {
+        $pool = $exam->questions instanceof Collection
+            ? $exam->questions
+            : collect($exam->questions ?? []);
+        if ($pool->isEmpty()) {
+            return collect();
+        }
+
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+        $count = max(0, (int) ($settings['question_count'] ?? 0));
+        $includeStarred = ! array_key_exists('include_starred', $settings) || (bool) $settings['include_starred'];
+        $attempt = max(1, $attemptNumber);
+        $selected = $pool->values();
+
+        if ($count > 0 && $count < $pool->count()) {
+            $pickSeed = 'exam-pick:' . $exam->id . ':u' . $userId . ':a' . $attempt;
+            $starredIds = $this->liveStarredSourceIds($pool);
+            $isStarred = function ($question) use ($starredIds) {
+                $sourceId = (int) (($question->payload['source_question_id'] ?? 0));
+                if ($sourceId > 0 && isset($starredIds[$sourceId])) {
+                    return true;
+                }
+
+                return (bool) ($question->payload['is_starred'] ?? false);
+            };
+
+            if ($includeStarred) {
+                $starred = $pool->filter($isStarred)->sortBy('id')->values();
+                $nonStarred = $this->orderDeterministic($pool->reject($isStarred)->values(), $pickSeed);
+                $selected = $starred->take($count)->values();
+                $remaining = $count - $selected->count();
+                if ($remaining > 0) {
+                    $selected = $selected->concat($nonStarred->take($remaining))->values();
+                }
+            } else {
+                $selected = $this->orderDeterministic($pool, $pickSeed)->take($count)->values();
+            }
+        }
+
+        if ((bool) ($settings['shuffle_questions'] ?? false) && $selected->count() > 1) {
+            return $this->orderDeterministic(
+                $selected,
+                'exam-q:' . $exam->id . ':u' . $userId . ':a' . $attempt
+            );
+        }
+
+        return $selected->sortBy(fn ($question) => (int) $question->order)->values();
+    }
+
+    protected function liveStarredSourceIds(Collection $pool): array
+    {
+        $sourceIds = $pool
+            ->map(fn ($question) => (int) ($question->payload['source_question_id'] ?? 0))
+            ->filter()
+            ->unique()
+            ->values();
+        if ($sourceIds->isEmpty()) {
+            return [];
+        }
+
+        return Question::query()
+            ->whereIn('id', $sourceIds)
+            ->where('is_starred', true)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->flip()
+            ->all();
+    }
+
+    protected function poolFromQuestionIds(array $questionIds, ?User $actor): Collection
+    {
+        if ($questionIds === []) {
+            return collect();
+        }
+
+        $query = Question::query()->whereIn('id', $questionIds);
+        if ($actor && $actor->isInstructor()) {
+            $uid = (int) $actor->id;
+            $query->where(function ($q) use ($uid) {
+                $q->whereHas('questionBank', fn ($bank) => $bank->where('created_by', $uid))
+                    ->orWhereHas('test', fn ($test) => $test->where('created_by', $uid));
+            });
+        }
+
+        $byId = $query->get()->keyBy('id');
+
+        return collect($questionIds)
+            ->map(fn ($id) => $byId->get($id))
+            ->filter()
+            ->values();
     }
 
     protected function basePool(array $folderIds, ?User $actor): Collection
@@ -106,28 +207,6 @@ class ExamBankQuestionSyncService
             ->values();
     }
 
-    protected function applyCountAndStarred(Collection $matched, int $count, bool $includeStarred, string $seedBase): Collection
-    {
-        $ordered = $this->orderDeterministic($matched, $seedBase);
-        if ($count <= 0) {
-            return $ordered;
-        }
-
-        if (! $includeStarred) {
-            return $ordered->take($count)->values();
-        }
-
-        $starred = $ordered->filter(fn ($q) => (bool) $q->is_starred)->values();
-        $nonStarred = $ordered->reject(fn ($q) => (bool) $q->is_starred)->values();
-        $selected = $starred->take($count)->values();
-        $remaining = $count - $selected->count();
-        if ($remaining > 0) {
-            $selected = $selected->concat($nonStarred->take($remaining))->values();
-        }
-
-        return $selected->values();
-    }
-
     protected function mapQuestionType(?string $type): string
     {
         $t = strtolower((string) $type);
@@ -142,7 +221,12 @@ class ExamBankQuestionSyncService
     protected function createExamQuestionFromBank(Exam $exam, Question $q, int $order): ExamQuestion
     {
         $questionType = $this->mapQuestionType($q->type);
-        $payload = ['source_question_id' => $q->id, 'source_bank_id' => $q->question_bank_id];
+        $payload = [
+            'source_question_id' => $q->id,
+            'source_bank_id' => $q->question_bank_id,
+            'source_test_id' => $q->test_id,
+            'is_starred' => (bool) $q->is_starred,
+        ];
         if ($questionType === 'matching') {
             $payload['pairs'] = $this->extractMatchingPairs($q);
         } elseif ($questionType === 'ordering') {

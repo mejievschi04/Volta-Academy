@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreVertical, Star, Trash2 } from 'lucide-react';
+import { ChevronRight, Star, Trash2 } from 'lucide-react';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const QUESTION_TYPE_LABELS = {
@@ -20,17 +20,19 @@ const QuestionRow = ({
   onOpenDrawer,
   onDelete,
   readOnly = false,
+  selectable = false,
 }) => {
-  const questionText = stripHtml(question?.content || '');
+  const questionText = stripHtml(question?.content || question?.text || question?.question || '');
   const questionTypeLabel = QUESTION_TYPE_LABELS[question?.type] || question?.type || 'N/A';
+  const showCheckbox = selectable || !readOnly;
 
   return (
-    <div className={`qb-question-row ${question?.is_starred ? 'is-starred' : ''} ${isActive ? 'is-active' : ''}`}>
-      {!readOnly && (
+    <div className={`qb-question-row ${question?.is_starred ? 'is-starred' : ''} ${isActive ? 'is-active' : ''} ${selected ? 'is-selected' : ''}`}>
+      {showCheckbox ? (
         <label className="qb-question-check">
           <input type="checkbox" checked={selected} onChange={() => onToggleSelect(question.id)} />
         </label>
-      )}
+      ) : null}
       {!readOnly ? (
         <button
           type="button"
@@ -46,7 +48,7 @@ const QuestionRow = ({
         </span>
       )}
       <button type="button" className="qb-question-main" onClick={() => onOpenDrawer(question)}>
-        <span className="qb-question-text">{questionText}</span>
+        <span className="qb-question-text">{questionText || 'Întrebare fără text'}</span>
       </button>
       <div className="qb-question-right">
         <span className="qb-question-type">{questionTypeLabel}</span>
@@ -66,11 +68,11 @@ const QuestionRow = ({
         ) : null}
         <button
           type="button"
-          className="qb-actions-btn"
+          className="lms-btn-secondary lms-btn-sm qb-open-question-btn"
           onClick={() => onOpenDrawer(question)}
-          aria-label="Deschide detalii"
         >
-          <MoreVertical size={18} aria-hidden />
+          Deschide
+          <ChevronRight size={16} aria-hidden />
         </button>
       </div>
     </div>

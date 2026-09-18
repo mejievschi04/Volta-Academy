@@ -1,5 +1,6 @@
 import { rowMatchesResultFilters } from './TestResultsPanelShared.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
@@ -226,7 +227,11 @@ export default function TestResultsPanel({
 								const rowMax = maxScoreForRow(row, kind);
 								return (
 									<tr key={row.id}>
-										<td>{row.user?.name || '—'}</td>
+										<td>
+											{row.user?.id ? (
+												<Link to={`/admin/users/${row.user.id}/profile`}>{row.user.name || '—'}</Link>
+											) : (row.user?.name || '—')}
+										</td>
 										<td>{row.user?.email || '—'}</td>
 										<td>#{row.attempt_number ?? '—'}</td>
 										<td>

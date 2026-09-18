@@ -812,7 +812,7 @@ const LessonsPage = () => {
 											) : (
 												<>
 													<Check size={16} weight="bold" aria-hidden />
-													<span>Finalizează</span>
+													<span>Urmează testul</span>
 												</>
 											)}
 										</button>
@@ -841,7 +841,7 @@ const LessonsPage = () => {
 									) : (
 										<>
 											<Check size={16} weight="bold" aria-hidden />
-											<span>Finalizează</span>
+											<span>Urmează testul</span>
 										</>
 									)}
 								</button>

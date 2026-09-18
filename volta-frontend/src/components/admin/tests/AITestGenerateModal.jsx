@@ -20,6 +20,7 @@ import { openaiService } from '../../../services/openaiService';
 import { AI_QUESTION_TYPE_OPTIONS, DEFAULT_AI_QUESTION_TYPES, getAiQuestionTypeLabel } from '../question-banks/QuestionBankBuilderSteps/AIGenerateQuestionsModalShared.js';
 import '../../../pages/admin/AdminQuestionBanksPage.css';
 import './AITestGenerateModal.css';
+import PassingScoreByQuestions from './PassingScoreByQuestions';
 
 const STEPS = {
   SOURCE: 'source',
@@ -89,7 +90,7 @@ const DEFAULT_OPTIONS = {
   type: 'practice',
   passing_score: 70,
   time_limit_minutes: '',
-  max_attempts: '',
+  max_attempts: '1',
   status: 'draft',
   attach: false,
   required: true,
@@ -580,7 +581,7 @@ const AITestGenerateModal = ({
         status: options.status,
         passing_score: Number(options.passing_score) || 70,
         time_limit_minutes: options.time_limit_minutes ? Number(options.time_limit_minutes) : null,
-        max_attempts: options.max_attempts ? Number(options.max_attempts) : null,
+        max_attempts: options.max_attempts ? Number(options.max_attempts) : 1,
         questions,
         attach: options.attach,
         required: options.required,
@@ -1100,19 +1101,12 @@ const AITestGenerateModal = ({
                 </header>
 
                 <div className="ai-test-form-grid">
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Prag promovare (%)</label>
-                    <input
-                      type="number"
-                      className="admin-form-input"
-                      min="0"
-                      max="100"
-                      value={options.passing_score}
+                  <div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
+                    <PassingScoreByQuestions
+                      questionCount={options.numberOfQuestions}
+                      passingScore={options.passing_score}
+                      onPassingScoreChange={(next) => setOptions((prev) => ({ ...prev, passing_score: next }))}
                       disabled={busy}
-                      onChange={(e) => setOptions((prev) => ({
-                        ...prev,
-                        passing_score: parseInt(e.target.value, 10) || 0,
-                      }))}
                     />
                   </div>
                   <div className="admin-form-group">
@@ -1133,7 +1127,6 @@ const AITestGenerateModal = ({
                       type="number"
                       className="admin-form-input"
                       min="1"
-                      placeholder="Opțional"
                       value={options.max_attempts}
                       disabled={busy}
                       onChange={(e) => setOptions((prev) => ({ ...prev, max_attempts: e.target.value }))}

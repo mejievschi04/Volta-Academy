@@ -335,35 +335,54 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel registration
+     * Cancel the authenticated user's own registration
      */
     public function cancelRegistration(Request $request, $id)
     {
         $user = Auth::user();
-        if (! $user || ! method_exists($user, 'isAdmin') || ! $user->isAdmin()) {
-            return response()->json([
-                'message' => 'Doar administratorul poate anula înscrierea.',
-            ], 403);
+
+        if (! Schema::hasTable('event_user')) {
+            return response()->json(['message' => 'Înscrierea nu este disponibilă'], 400);
         }
 
-        $event = Event::findOrFail($id);
+        try {
+            $event = DB::transaction(function () use ($id, $user) {
+                $event = Event::lockForUpdate()->findOrFail($id);
 
-        if (Schema::hasTable('event_user')) {
-            DB::table('event_user')
-                ->where('event_id', $event->id)
-                ->where('user_id', $user->id)
-                ->update([
-                    'registered' => false,
-                    'updated_at' => now(),
-                ]);
+                if (in_array($event->status, ['cancelled', 'completed'], true)) {
+                    abort(400, 'Nu poți anula înscrierea la acest eveniment');
+                }
+
+                $existing = DB::table('event_user')
+                    ->where('event_id', $event->id)
+                    ->where('user_id', $user->id)
+                    ->where('registered', true)
+                    ->first();
+
+                if (! $existing) {
+                    abort(400, 'Nu ești înscris la acest eveniment');
+                }
+
+                DB::table('event_user')
+                    ->where('event_id', $event->id)
+                    ->where('user_id', $user->id)
+                    ->update([
+                        'registered' => false,
+                        'registered_at' => null,
+                        'updated_at' => now(),
+                    ]);
+
+                $event->updateKPIs();
+
+                return $event->fresh();
+            });
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getStatusCode());
         }
-
-        // Update event KPI
-        $event->updateKPIs();
 
         return response()->json([
             'message' => 'Înscriere anulată',
-            'event' => $this->addUserEventData($event->fresh()),
+            'event' => $this->addUserEventData($event),
         ]);
     }
 

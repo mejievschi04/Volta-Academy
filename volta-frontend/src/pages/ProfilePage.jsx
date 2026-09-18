@@ -74,7 +74,9 @@ const ProfilePage = () => {
 	const [avatarEditorState, setAvatarEditorState] = useState(null);
 	const [courseFilter, setCourseFilter] = useState('all');
 	const [completingCourseId, setCompletingCourseId] = useState(null);
-	const isViewingOtherUser = userId && currentUser?.role === 'admin';
+	const [grantingAttemptKey, setGrantingAttemptKey] = useState(null);
+	const viewerRole = currentUser?.actualRole ?? currentUser?.role;
+	const isViewingOtherUser = Boolean(userId) && ['admin', 'instructor'].includes(viewerRole);
 
 	const fetchData = async () => {
 		try {
@@ -113,6 +115,21 @@ const ProfilePage = () => {
 			showToast(err?.response?.data?.message || 'Nu s-a putut marca cursul ca finalizat', 'error');
 		} finally {
 			setCompletingCourseId(null);
+		}
+	};
+
+	const handleGrantExtraAttempt = async (courseId, testId) => {
+		if (!userId || !testId) return;
+		const key = `${courseId}-${testId}`;
+		setGrantingAttemptKey(key);
+		try {
+			await adminService.grantTestExtraAttempt(userId, testId, courseId);
+			showToast('A fost adăugată 1 încercare', 'success');
+			await fetchData();
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Nu s-a putut adăuga încercarea', 'error');
+		} finally {
+			setGrantingAttemptKey(null);
 		}
 	};
 
@@ -244,6 +261,39 @@ const ProfilePage = () => {
 				{status === 'completed' ? (
 					<div className="va-course-card-meta">
 						<span>Test: {course.quizPassed ? 'Promovat ✓' : 'Nepromovat'}</span>
+					</div>
+				) : null}
+				{isViewingOtherUser && Array.isArray(course.tests) && course.tests.length > 0 ? (
+					<div className="va-course-card-tests">
+						{course.tests.map((test) => {
+							const grantKey = `${course.id}-${test.id}`;
+							const failed = test.status === 'failed' || (!test.passed && test.attempts_used > 0 && test.status !== 'pending');
+							const resultLabel = test.status === 'passed'
+								? `${test.percentage ?? 0}% Promovat`
+								: test.status === 'pending'
+									? 'În corectare'
+									: test.attempts_used > 0
+										? `${test.percentage ?? 0}% Nepromovat`
+										: 'Neînceput';
+							return (
+								<div className="va-course-card-test-row" key={test.id}>
+									<div className="va-course-card-test-copy">
+										<strong>{test.title}</strong>
+										<span>{resultLabel}</span>
+									</div>
+									{failed ? (
+										<button
+											type="button"
+											className="lms-btn-secondary lms-btn-sm"
+											disabled={grantingAttemptKey === grantKey}
+											onClick={() => handleGrantExtraAttempt(course.id, test.id)}
+										>
+											{grantingAttemptKey === grantKey ? 'Se adaugă…' : 'Adaugă 1 încercare'}
+										</button>
+									) : null}
+								</div>
+							);
+						})}
 					</div>
 				) : null}
 				{status === 'not_accessed' ? (

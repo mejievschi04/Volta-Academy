@@ -29,7 +29,7 @@ class TestBuilderService
             'type' => $data['type'] ?? 'final',
             'status' => 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
-            'max_attempts' => $data['max_attempts'] ?? null,
+            'max_attempts' => $data['max_attempts'] ?? 1,
             'passing_score' => isset($data['passing_score']) ? (int) $data['passing_score'] : 70,
             'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
