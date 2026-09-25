@@ -52,14 +52,31 @@ class ExamBankQuestionSyncService
         }
 
         return DB::transaction(function () use ($exam, $selected) {
-            ExamQuestion::where('exam_id', $exam->id)->delete();
+            $existing = ExamQuestion::where('exam_id', $exam->id)->get();
+            $bySource = $existing
+                ->filter(fn (ExamQuestion $question) => (int) ($question->payload['source_question_id'] ?? 0) > 0)
+                ->keyBy(fn (ExamQuestion $question) => (int) $question->payload['source_question_id']);
 
+            $keptIds = [];
             $order = 0;
             foreach ($selected as $q) {
-                $examQ = $this->createExamQuestionFromBank($exam, $q, $order);
-                $this->createAnswersFromBank($examQ, $q);
+                $current = $bySource->get((int) $q->id);
+                if ($current) {
+                    $this->updateExamQuestionFromBank($current, $q, $order);
+                    $keptIds[] = (int) $current->id;
+                } else {
+                    $created = $this->createExamQuestionFromBank($exam, $q, $order);
+                    $this->createAnswersFromBank($created, $q);
+                    $keptIds[] = (int) $created->id;
+                }
                 $order++;
             }
+
+            $remove = ExamQuestion::where('exam_id', $exam->id);
+            if ($keptIds !== []) {
+                $remove->whereNotIn('id', $keptIds);
+            }
+            $remove->delete();
 
             return $order;
         });
@@ -105,8 +122,8 @@ class ExamBankQuestionSyncService
             $starredIds = $this->liveStarredSourceIds($pool);
             $isStarred = function ($question) use ($starredIds) {
                 $sourceId = (int) (($question->payload['source_question_id'] ?? 0));
-                if ($sourceId > 0 && isset($starredIds[$sourceId])) {
-                    return true;
+                if ($sourceId > 0) {
+                    return isset($starredIds[$sourceId]);
                 }
 
                 return (bool) ($question->payload['is_starred'] ?? false);
@@ -226,6 +243,7 @@ class ExamBankQuestionSyncService
             'source_bank_id' => $q->question_bank_id,
             'source_test_id' => $q->test_id,
             'is_starred' => (bool) $q->is_starred,
+            'explanation' => $q->explanation,
         ];
         if ($questionType === 'matching') {
             $payload['pairs'] = $this->extractMatchingPairs($q);
@@ -241,6 +259,34 @@ class ExamBankQuestionSyncService
             'order' => $order,
             'payload' => $payload,
         ]);
+    }
+
+    protected function updateExamQuestionFromBank(ExamQuestion $examQ, Question $q, int $order): void
+    {
+        $questionType = $this->mapQuestionType($q->type);
+        $payload = [
+            'source_question_id' => $q->id,
+            'source_bank_id' => $q->question_bank_id,
+            'source_test_id' => $q->test_id,
+            'is_starred' => (bool) $q->is_starred,
+            'explanation' => $q->explanation,
+        ];
+        if ($questionType === 'matching') {
+            $payload['pairs'] = $this->extractMatchingPairs($q);
+        } elseif ($questionType === 'ordering') {
+            $payload['items'] = $this->extractOrderingItems($q);
+        }
+
+        $examQ->update([
+            'question_text' => $q->content ?? '',
+            'question_type' => $questionType,
+            'points' => (int) ($q->points ?? 1),
+            'order' => $order,
+            'payload' => $payload,
+        ]);
+
+        ExamAnswer::where('exam_question_id', $examQ->id)->delete();
+        $this->createAnswersFromBank($examQ, $q);
     }
 
     protected function createAnswersFromBank(ExamQuestion $examQ, Question $q): void

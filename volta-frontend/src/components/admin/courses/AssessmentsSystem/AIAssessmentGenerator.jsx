@@ -214,7 +214,7 @@ const AIAssessmentGenerator = ({ courseData, lessonData, moduleData, assessmentT
 								</div>
 								{question.explanation && (
 									<div className="question-explanation">
-										<strong>Explicație:</strong> {question.explanation}
+										<strong>Sursă:</strong> {question.explanation}
 									</div>
 								)}
 								<div className="question-actions">

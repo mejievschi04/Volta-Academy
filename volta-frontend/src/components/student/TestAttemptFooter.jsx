@@ -14,6 +14,7 @@ export default function TestAttemptFooter({
     canGoNext = true,
     submitted = false,
     backTo,
+    backLabel = 'Înapoi la curs',
     children,
 }) {
     const footerRef = useRef(null);
@@ -57,7 +58,7 @@ export default function TestAttemptFooter({
                 </button>}
                 {children}
                 {showLeaveAfterSubmit && (
-                    <Link to={backTo} className="lms-btn-primary test-attempt-back-btn">Înapoi la curs</Link>
+                    <Link to={backTo} className="lms-btn-primary test-attempt-back-btn">{backLabel}</Link>
                 )}
             </div>
         </footer>

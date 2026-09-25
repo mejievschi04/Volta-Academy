@@ -21,6 +21,7 @@ const QuestionRow = ({
   onDelete,
   readOnly = false,
   selectable = false,
+  showStar = true,
 }) => {
   const questionText = stripHtml(question?.content || question?.text || question?.question || '');
   const questionTypeLabel = QUESTION_TYPE_LABELS[question?.type] || question?.type || 'N/A';
@@ -33,20 +34,22 @@ const QuestionRow = ({
           <input type="checkbox" checked={selected} onChange={() => onToggleSelect(question.id)} />
         </label>
       ) : null}
-      {!readOnly ? (
-        <button
-          type="button"
-          className={`qb-star-btn ${question?.is_starred ? 'is-starred' : ''}`}
-          onClick={() => onToggleStar(question.id)}
-          title={question?.is_starred ? 'Scoate steaua' : 'Marchează cu stea'}
-        >
-          <Star size={18} fill={question?.is_starred ? 'currentColor' : 'none'} aria-hidden />
-        </button>
-      ) : (
-        <span className={`qb-star-btn ${question?.is_starred ? 'is-starred' : ''}`} aria-hidden>
-          <Star size={18} fill={question?.is_starred ? 'currentColor' : 'none'} />
-        </span>
-      )}
+      {showStar ? (
+        !readOnly ? (
+          <button
+            type="button"
+            className={`qb-star-btn ${question?.is_starred ? 'is-starred' : ''}`}
+            onClick={() => onToggleStar(question.id)}
+            title={question?.is_starred ? 'Scoate steaua' : 'Marchează cu stea'}
+          >
+            <Star size={18} fill={question?.is_starred ? 'currentColor' : 'none'} aria-hidden />
+          </button>
+        ) : (
+          <span className={`qb-star-btn ${question?.is_starred ? 'is-starred' : ''}`} aria-hidden>
+            <Star size={18} fill={question?.is_starred ? 'currentColor' : 'none'} />
+          </span>
+        )
+      ) : null}
       <button type="button" className="qb-question-main" onClick={() => onOpenDrawer(question)}>
         <span className="qb-question-text">{questionText || 'Întrebare fără text'}</span>
       </button>

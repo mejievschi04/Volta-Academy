@@ -243,12 +243,6 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 				</div>
 			)}
 
-			{!submittedOnly && question.explanation && (
-				<div className="exam-result-explanation">
-					<strong>Explicatie:</strong>{' '}
-					<RichTextHtml html={question.explanation} className="exam-result-explanation-body" />
-				</div>
-			)}
 		</article>
 	);
 }

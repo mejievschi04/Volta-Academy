@@ -588,8 +588,8 @@ const ExamPage = () => {
 							Înapoi la curs
 						</Link>
 					) : (
-						<Link to="/courses" className="student-exam-btn student-exam-btn-secondary">
-							Înapoi la mape
+						<Link to="/monthly-tests" className="student-exam-btn student-exam-btn-secondary">
+							Înapoi la teste lunare
 						</Link>
 					)}
 				</div>
@@ -626,7 +626,9 @@ const ExamPage = () => {
 
 		const feedbackBody = (
 			<>
-				<div className="student-exam-feedback-item-question">{q.text}</div>
+				<div className="student-exam-feedback-item-question">
+					<RichTextHtml html={q.text} />
+				</div>
 				{hasMatching && q.matching && (
 					<div className="student-exam-feedback-item-answers">
 						{q.matching.leftItems?.map((left, pairIndex) => {
@@ -666,12 +668,6 @@ const ExamPage = () => {
 								{correctIndices.map((i) => q.options?.[i]).filter(Boolean).join('; ')}
 							</div>
 						)}
-					</div>
-				)}
-				{canShowCorrectAnswers && q.explanation && (
-					<div className="student-exam-feedback-item-explanation">
-						<strong>Explicație:</strong>{' '}
-						<RichTextHtml html={q.explanation} className="student-exam-feedback-item-explanation-body" />
 					</div>
 				)}
 			</>
@@ -733,8 +729,8 @@ const ExamPage = () => {
 						← Înapoi la curs
 					</Link>
 				) : (
-					<Link to="/courses" className="student-exam-back-link student-exam-back-link--accent">
-						← Înapoi la mape
+					<Link to="/monthly-tests" className="student-exam-back-link student-exam-back-link--accent">
+						← Înapoi la teste lunare
 					</Link>
 				)
 			) : null}
@@ -921,7 +917,8 @@ const ExamPage = () => {
 
             <TestAttemptFooter currentIndex={currentQuestionIndex} total={exam.questions.length}
                 onNavigate={scrollToQuestion} onSubmit={handleSubmit} submitting={submitting}
-                submitted={submitted} backTo={courseId ? `/courses/${courseId}` : null}
+                submitted={submitted} backTo={courseId ? `/courses/${courseId}` : '/monthly-tests'}
+                backLabel={courseId ? 'Înapoi la curs' : 'Înapoi la teste lunare'}
                 canSubmit={timeRemaining === 0 || exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}
                 canGoBack={canGoBack}
                 canGoNext={canGoNext}>

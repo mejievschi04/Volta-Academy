@@ -83,6 +83,49 @@
 	justify-content: center;
 }
 
+.student-more-menu-wrap {
+	position: relative;
+}
+
+.student-more-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 80;
+	min-width: 230px;
+	padding: 8px;
+	display: grid;
+	gap: 4px;
+	border: 1px solid var(--border-primary);
+	border-radius: 12px;
+	background: var(--bg-elevated);
+	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+.student-more-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 42px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	color: var(--text-primary);
+	text-decoration: none;
+	font-size: 0.92rem;
+	font-weight: 700;
+}
+
+.student-more-menu-item:hover,
+.student-more-menu-item.active {
+	background: color-mix(in srgb, #ffee00 32%, var(--bg-primary));
+	color: #0f172a;
+}
+
+html[data-theme='dark'] .student-more-menu-item:hover,
+html[data-theme='dark'] .student-more-menu-item.active {
+	color: #0f172a;
+}
+
 .va-shell-topnav .modern-topnav-item,
 .va-shell-topnav .va-topnav-btn {
 	display: flex;
@@ -99,6 +142,7 @@
 	border: none;
 	background: transparent;
 	cursor: pointer;
+	font-family: inherit;
 }
 
 .va-shell-topnav .modern-topnav-item::after,
@@ -551,7 +595,8 @@
 .va-shell-topnav .exam-results-page,
 .va-shell-topnav .unified-course-page,
 .va-shell-topnav .student-achievements-page,
-.va-shell-topnav .events-page {
+.va-shell-topnav .events-page,
+.va-shell-topnav .monthly-tests-page {
 	padding: var(--space-2) var(--space-8) var(--space-8);
 	height: 100%;
 	overflow-y: auto; /* Allow scroll within container */
@@ -701,6 +746,7 @@
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .courses-page-content,
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .course-map-page,
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .events-page,
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .monthly-tests-page,
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .lessons-page {
 		height: auto !important;
 		max-height: none !important;

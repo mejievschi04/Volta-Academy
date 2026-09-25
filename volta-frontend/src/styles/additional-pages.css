@@ -747,6 +747,21 @@
 	filter: brightness(0.96);
 }
 
+.student-exam-question-comment,
+.student-exam-feedback-item-explanation-body {
+	font-weight: 400;
+	color: var(--text-secondary);
+}
+
+.student-exam-question-comment *,
+.student-exam-feedback-item-explanation-body * {
+	font-weight: 400 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
+}
+
 .student-exam-question-comment {
 	margin: 8px 0 0;
 	padding: 10px 12px;
@@ -924,9 +939,23 @@
 	min-width: 0;
 }
 
+.student-exam-question-text,
+.va-question-text {
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.student-exam-question-text *,
+.va-question-text * {
+	font-weight: 700 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
+}
+
 .student-exam-question-text {
 	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-medium);
 	color: var(--text-primary);
 	line-height: 1.5;
 	margin-bottom: var(--space-2);
@@ -1018,10 +1047,37 @@
 	background: rgba(231, 76, 60, 0.12);
 }
 
-.student-exam-answer-option input[type="radio"],
-.student-exam-answer-option input[type="checkbox"] {
+.student-exam-answer-option input[type="radio"] {
 	accent-color: var(--color-brand-primary);
 	flex-shrink: 0;
+}
+
+.student-exam-answer-option input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	flex-shrink: 0;
+	border: 2px solid var(--text-primary);
+	border-radius: 0;
+	background: var(--bg-primary);
+	display: inline-grid;
+	place-content: center;
+}
+
+.student-exam-answer-option input[type="checkbox"]:checked {
+	background: #0f172a;
+	border-color: #0f172a;
+}
+
+.student-exam-answer-option input[type="checkbox"]:checked::after {
+	content: "";
+	width: 10px;
+	height: 5px;
+	border-left: 2px solid #ffee00;
+	border-bottom: 2px solid #ffee00;
+	transform: rotate(-45deg) translateY(-1px);
 }
 
 .student-exam-answer-option-text {

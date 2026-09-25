@@ -271,4 +271,45 @@ class ExamQuestionFlowTest extends TestCase
         $response->assertOk();
         $this->assertSame(['Una', 'Doua', 'Trei'], array_column($response->json('questions'), 'text'));
     }
+
+    public function test_team_access_includes_current_members_and_skips_exclusions(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $member = User::factory()->create(['role' => 'student']);
+        $excluded = User::factory()->create(['role' => 'student']);
+        $outsider = User::factory()->create(['role' => 'student']);
+        $team = \App\Models\Team::create([
+            'name' => 'Echipa acces',
+            'owner_id' => $admin->id,
+        ]);
+        $team->users()->attach([$member->id, $excluded->id]);
+
+        $exam = Exam::create([
+            'title' => 'Examen pe echipă',
+            'status' => 'published',
+            'course_id' => null,
+            'passing_score' => 50,
+            'max_attempts' => 1,
+            'settings' => [
+                'access_mode' => 'teams',
+                'team_ids' => [$team->id],
+                'excluded_student_ids' => [$excluded->id],
+            ],
+        ]);
+
+        $memberIds = collect($this->actingAs($member, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
+        $this->assertContains($exam->id, $memberIds);
+
+        $excludedIds = collect($this->actingAs($excluded, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
+        $this->assertNotContains($exam->id, $excludedIds);
+        $this->actingAs($excluded, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertForbidden();
+
+        $outsiderIds = collect($this->actingAs($outsider, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
+        $this->assertNotContains($exam->id, $outsiderIds);
+
+        $newcomer = User::factory()->create(['role' => 'student']);
+        $team->users()->attach($newcomer->id);
+        $newcomerIds = collect($this->actingAs($newcomer, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
+        $this->assertContains($exam->id, $newcomerIds);
+    }
 }

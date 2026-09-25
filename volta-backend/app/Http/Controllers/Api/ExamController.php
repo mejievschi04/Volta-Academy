@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\ExamResult;
 use App\Models\TestResult;
 use App\Models\ActivityLog;
+use App\Services\ExamAttemptSessionService;
 use App\Services\ExamBankQuestionSyncService;
 use App\Services\CourseProgressService;
 use App\Services\TestAttemptAnswerOrderService;
@@ -31,19 +32,22 @@ class ExamController extends Controller
     protected TestAttemptAnswerOrderService $answerOrderService;
     protected TestAttemptService $attemptService;
     protected ExamBankQuestionSyncService $examBankQuestionSyncService;
+    protected ExamAttemptSessionService $examAttemptSessionService;
 
     public function __construct(
         CourseProgressService $progressService,
         TestQuestionSelectionService $questionSelectionService,
         TestAttemptAnswerOrderService $answerOrderService,
         TestAttemptService $attemptService,
-        ExamBankQuestionSyncService $examBankQuestionSyncService
+        ExamBankQuestionSyncService $examBankQuestionSyncService,
+        ExamAttemptSessionService $examAttemptSessionService
     ) {
         $this->progressService = $progressService;
         $this->questionSelectionService = $questionSelectionService;
         $this->answerOrderService = $answerOrderService;
         $this->attemptService = $attemptService;
         $this->examBankQuestionSyncService = $examBankQuestionSyncService;
+        $this->examAttemptSessionService = $examAttemptSessionService;
     }
 
     /**
@@ -258,7 +262,11 @@ class ExamController extends Controller
                     }
                 }
 
-                if (! $anchor && $exam->created_at) {
+                if (! $anchor && empty($exam->course_id)) {
+                    $anchor = $this->examAttemptSessionService->firstStartedAt((int) $exam->id, (int) $user->id);
+                }
+
+                if (! $anchor && $exam->course_id && $exam->created_at) {
                     $anchor = Carbon::parse($exam->created_at);
                 }
 
@@ -1132,9 +1140,11 @@ class ExamController extends Controller
         );
     }
 
-    protected function transformLegacyExamQuestionsWire(Exam $exam, $user, int $attemptNumber): Collection
+    protected function transformLegacyExamQuestionsWire(Exam $exam, $user, int $attemptNumber, ?Collection $questions = null): Collection
     {
-        return $this->orderLegacyExamQuestionsForAttempt($exam, $user, $attemptNumber)->map(function ($question) use ($user, $attemptNumber) {
+        $source = $questions ?? $this->orderLegacyExamQuestionsForAttempt($exam, $user, $attemptNumber);
+
+        return $source->map(function ($question) use ($user, $attemptNumber) {
             $answers = $question->answers;
             $answersCollection = $answers instanceof \Illuminate\Support\Collection
                 ? $answers
@@ -1157,6 +1167,8 @@ class ExamController extends Controller
             $correctAnswerIndex = $correctIndices[0] ?? null;
             $matching = null;
             $ordering = null;
+            $payload = is_array($question->payload) ? $question->payload : [];
+            $explanation = $payload['explanation'] ?? ($question->explanation ?? null);
 
             if ($questionType === 'matching') {
                 $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumber);
@@ -1174,8 +1186,8 @@ class ExamController extends Controller
                 'answerIndex' => $correctAnswerIndex,
                 'answerIndices' => $questionType === 'multiple_choice' ? $correctIndices : null,
                 'points' => $question->points ?? 1,
-                'comment' => $question->explanation ?? null,
-                'explanation' => $question->explanation ?? null,
+                'comment' => $explanation,
+                'explanation' => $explanation,
                 'matching' => $matching,
                 'ordering' => $ordering,
             ];
@@ -1190,7 +1202,15 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
             return $blocked;
         }
-        if ($blocked = $this->gateExamAvailability($exam, $user)) {
+        $resumeAttempt = ExamResult::where('exam_id', $exam->id)->where('user_id', $user->id)->count() + 1;
+        $canResume = (bool) $this->examAttemptSessionService->find($exam, $user, $resumeAttempt);
+        if (! $user->isAdmin() && ! $user->isInstructor() && ! $exam->isVisibleToLearner($user)) {
+            return response()->json([
+                'message' => 'Nu ai acces la acest examen.',
+                'allowed' => false,
+            ], 403);
+        }
+        if (! $canResume && ($blocked = $this->gateExamAvailability($exam, $user))) {
             return $blocked;
         }
 
@@ -1236,11 +1256,18 @@ class ExamController extends Controller
 
         $req = request();
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
-        $attemptNumberForSeed = ($latestResult && ! $forNewAttempt)
+        $viewingCompleted = $latestResult && ! $forNewAttempt;
+        $attemptNumberForSeed = $viewingCompleted
             ? max(1, (int) $latestResult->attempt_number)
             : max(1, $currentAttempt + 1);
+        $session = $viewingCompleted
+            ? $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed)
+            : $this->examAttemptSessionService->ensure($exam, $user, $attemptNumberForSeed);
+        $attemptQuestions = $session
+            ? $this->examAttemptSessionService->questions($session)
+            : null;
 
-        $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed);
+        $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed, $attemptQuestions);
         $showSolutions = $latestResult && ! $forNewAttempt && $this->shouldRevealExamSolutions($exam);
         $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
         $questions = ($showSolutions && ! $submittedOnly)
@@ -1268,6 +1295,12 @@ class ExamController extends Controller
             'max_attempts' => $exam->max_attempts,
             'is_required' => $exam->is_required ?? false,
             'questions' => $questions,
+            'active_attempt' => (! $viewingCompleted && $session) ? [
+                'attempt_number' => (int) $session->attempt_number,
+                'started_at' => optional($session->started_at)?->toISOString(),
+                'expires_at' => optional($session->expires_at)?->toISOString(),
+                'answers' => is_array($session->answers) ? $session->answers : [],
+            ] : null,
             'current_attempt' => $currentAttempt,
             'remaining_attempts' => $remainingAttempts,
             'can_retake' => $canRetake,
@@ -1280,6 +1313,8 @@ class ExamController extends Controller
                 'completed_at' => $latestResult->completed_at,
                 'attempt_number' => $latestResult->attempt_number,
                 'answers' => is_array($latestResult->answers ?? null) ? $latestResult->answers : [],
+                'needs_manual_review' => (bool) ($latestResult->needs_manual_review ?? false),
+                'status' => ($latestResult->needs_manual_review ?? false) ? 'pending_review' : 'completed',
             ] : null,
         ]);
     }
@@ -1335,6 +1370,23 @@ class ExamController extends Controller
         $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
 
         if (! $resolved['test']) {
+            if ($resolved['exam']) {
+                if (! $resolved['exam']->isVisibleToLearner($user)) {
+                    return response()->json(['message' => 'Nu ai acces la acest examen.'], 403);
+                }
+                $incoming = $request->input('answers', []);
+                $answers = is_array($incoming) ? $incoming : [];
+                $attemptNumber = ExamResult::where('exam_id', $resolved['exam']->id)->where('user_id', $user->id)->count() + 1;
+                $session = $this->examAttemptSessionService->find($resolved['exam'], $user, $attemptNumber);
+                if ($session) {
+                    $this->examAttemptSessionService->rememberAnswers($session, $answers);
+                }
+
+                return response()->json([
+                    'answers' => $answers,
+                ]);
+            }
+
             return response()->json([
                 'message' => 'Salvarea progresului nu este disponibilă pentru acest test.',
             ], 400);
@@ -1772,9 +1824,6 @@ class ExamController extends Controller
         if ($blocked = $this->gateUnpublishedExam($exam, $user)) {
             return $blocked;
         }
-        if ($blocked = $this->gateExamAvailability($exam, $user)) {
-            return $blocked;
-        }
 
         $trackLearning = ! $user->isLearningActivityExempt();
 
@@ -1818,12 +1867,20 @@ class ExamController extends Controller
             : true;
         $manualReviewMode = (string) ($settings['manual_review_mode'] ?? 'after_complete');
 
+        $openSession = $this->examAttemptSessionService->find($exam, $user, $nextAttempt);
+        if (! $user->isAdmin() && ! $user->isInstructor() && ! $exam->isVisibleToLearner($user)) {
+            return response()->json([
+                'message' => 'Nu ai acces la acest examen.',
+                'allowed' => false,
+            ], 403);
+        }
+        if (! $openSession && ($blocked = $this->gateExamAvailability($exam, $user))) {
+            return $blocked;
+        }
+
         $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
-        $attemptQuestions = $this->examBankQuestionSyncService->selectForAttempt(
-            $exam,
-            (int) $user->id,
-            $nextAttempt
-        );
+        $session = $openSession ?: $this->examAttemptSessionService->ensure($exam, $user, $nextAttempt);
+        $attemptQuestions = $this->examAttemptSessionService->questions($session);
         $hasManualQuestions = $attemptQuestions->contains(function ($q) use ($autoGradableTypes) {
             return ! in_array((string) ($q->question_type ?? 'multiple_choice'), $autoGradableTypes, true);
         });

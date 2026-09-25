@@ -843,12 +843,12 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					</div>
 
 					<div className="admin-form-group">
-						<label className="admin-form-label">Explicație (feedback)</label>
+						<label className="admin-form-label">Sursă</label>
 						<textarea
 							className="admin-form-textarea"
 							value={questionForm.explanation}
 							onChange={(e) => setQuestionForm({ ...questionForm, explanation: e.target.value })}
-							placeholder="Explicație pentru răspunsul corect..."
+							placeholder="De unde este materialul din curs..."
 							rows={2}
 						/>
 						<p className="admin-form-hint">Afișat elevului după răspuns; îmbunătățește învățarea.</p>

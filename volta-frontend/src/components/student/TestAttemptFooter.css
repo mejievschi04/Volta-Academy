@@ -33,7 +33,7 @@
     min-height: 52px;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: 0;
     background: #ffee00 !important;
     color: #111 !important;
     border-color: transparent !important;
@@ -41,9 +41,25 @@
     cursor: pointer;
     transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.test-attempt-nav-btn svg {
+.test-attempt-nav-btn svg,
+.test-attempt-nav-btn svg path {
     color: #111 !important;
+    fill: #111 !important;
     flex-shrink: 0;
+}
+[data-theme="light"] .test-attempt-nav-btn,
+html[data-theme="dark"] .test-attempt-nav-btn {
+    background: #ffee00 !important;
+    background-color: #ffee00 !important;
+    color: #111 !important;
+    border-color: transparent !important;
+}
+[data-theme="light"] .test-attempt-nav-btn svg,
+[data-theme="light"] .test-attempt-nav-btn svg path,
+html[data-theme="dark"] .test-attempt-nav-btn svg,
+html[data-theme="dark"] .test-attempt-nav-btn svg path {
+    color: #111 !important;
+    fill: #111 !important;
 }
 .test-attempt-nav-btn:hover:not(:disabled) {
     background: #e6d800 !important;

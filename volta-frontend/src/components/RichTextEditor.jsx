@@ -1498,7 +1498,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 	];
 
 	return (
-		<div className={`rte-container ${toolbarVariant === 'basic' ? 'rte-container-basic' : ''} ${emphasis === 'strong' ? 'rte-emphasis-strong' : ''}`} style={style}>
+		<div className={`rte-container ${toolbarVariant === 'basic' || toolbarVariant === 'none' ? 'rte-container-basic' : ''} ${emphasis === 'strong' ? 'rte-emphasis-strong' : ''} ${emphasis === 'plain' ? 'rte-emphasis-plain' : ''}`} style={style}>
 			{toolbarVariant === 'basic' && (
 				<div className="rte-toolbar rte-toolbar-basic">
 					<ToolbarButton onClick={() => execCommand('bold')} icon={<strong>B</strong>} title="Aldin (text gros)" />
@@ -1632,7 +1632,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					onMouseDown={handleEditorMouseDown}
 					onDoubleClick={handleEditorDoubleClick}
 					onPaste={handlePaste}
-					onContextMenu={toolbarVariant === 'basic' ? undefined : (e) => {
+					onContextMenu={toolbarVariant === 'full' ? (e) => {
 						e.preventDefault();
 						saveSelection();
 						const imageTarget = findEditableImage(e.target, editorRef.current);
@@ -1642,7 +1642,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 							y: e.clientY,
 							imageTarget: imageTarget || null,
 						});
-					}}
+					} : undefined}
 					onMouseUp={handleEditorSelectionChange}
 					onKeyDown={handleEditorKeyDown}
 					onKeyUp={handleEditorSelectionChange}

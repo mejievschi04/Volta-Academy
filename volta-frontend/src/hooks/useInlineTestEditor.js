@@ -536,6 +536,12 @@ export function useInlineTestEditor({
     ));
   }, []);
 
+  const expandQuestion = useCallback((questionId) => {
+    const id = Number(questionId);
+    if (!Number.isFinite(id)) return;
+    setExpandedQuestionIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
+
   const toggleAllQuestionsExpanded = useCallback(() => {
     setExpandedQuestionIds((prev) => {
       const allIds = inlineQuestions.map((q) => q.id);
@@ -559,6 +565,7 @@ export function useInlineTestEditor({
     expandedQuestionIds,
     isQuestionExpanded,
     toggleQuestionExpanded,
+    expandQuestion,
     toggleAllQuestionsExpanded,
     allQuestionsExpanded,
     openQuestionTypePickerId,

@@ -44,6 +44,7 @@ export default function QuestionCatalogByMap({
 	selectedIds = [],
 	onToggleSelect,
 	onAddMany,
+	showStar = true,
 }) {
 	const { error, success } = useToast();
 	const selectedSet = useMemo(() => new Set((selectedIds || []).map((id) => Number(id))), [selectedIds]);
@@ -126,6 +127,10 @@ export default function QuestionCatalogByMap({
 		[questions, query]
 	);
 
+	const attachTest = (question, test) => (
+		question?.test_id || !test?.id ? question : { ...question, test_id: test.id }
+	);
+
 	const addAllFromTest = async (test) => {
 		setAddingId(test.id);
 		try {
@@ -136,10 +141,10 @@ export default function QuestionCatalogByMap({
 				return;
 			}
 			if (onAddMany) {
-				onAddMany(list, test.title || 'Catalog');
+				onAddMany(list.map((question) => attachTest(question, test)), test.title || 'Catalog');
 			} else {
 				list.forEach((question) => {
-					if (!selectedSet.has(Number(question.id))) onToggleSelect?.(question, test.title || 'Catalog');
+					if (!selectedSet.has(Number(question.id))) onToggleSelect?.(attachTest(question, test), test.title || 'Catalog');
 				});
 			}
 			success(`Întrebările din „${test.title}” au fost adăugate.`);
@@ -302,15 +307,15 @@ export default function QuestionCatalogByMap({
 								onClick={() => {
 									const allSelected = filteredQuestions.every((question) => selectedSet.has(Number(question.id)));
 									if (allSelected) {
-										filteredQuestions.forEach((question) => onToggleSelect?.(question, selectedTest?.title || 'Catalog'));
+										filteredQuestions.forEach((question) => onToggleSelect?.(attachTest(question, selectedTest), selectedTest?.title || 'Catalog'));
 										return;
 									}
 									if (onAddMany) {
-										onAddMany(filteredQuestions, selectedTest?.title || 'Catalog');
+										onAddMany(filteredQuestions.map((question) => attachTest(question, selectedTest)), selectedTest?.title || 'Catalog');
 										return;
 									}
 									filteredQuestions.forEach((question) => {
-										if (!selectedSet.has(Number(question.id))) onToggleSelect?.(question, selectedTest?.title || 'Catalog');
+										if (!selectedSet.has(Number(question.id))) onToggleSelect?.(attachTest(question, selectedTest), selectedTest?.title || 'Catalog');
 									});
 								}}
 							>
@@ -330,7 +335,8 @@ export default function QuestionCatalogByMap({
 							selected={selectedSet.has(Number(question.id))}
 							readOnly
 							selectable={selectable}
-							onToggleSelect={() => onToggleSelect?.(question, selectedTest?.title || 'Catalog')}
+							showStar={showStar}
+							onToggleSelect={() => onToggleSelect?.(attachTest(question, selectedTest), selectedTest?.title || 'Catalog')}
 							onToggleStar={() => {}}
 							onOpenDrawer={setDrawerQuestion}
 						/>

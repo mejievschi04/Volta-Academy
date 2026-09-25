@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -41,6 +41,21 @@ export default function AdminTestBuilderPage() {
     window.addEventListener(VOLT_TEST_REFRESH_EVENT, onVoltRefresh);
     return () => window.removeEventListener(VOLT_TEST_REFRESH_EVENT, onVoltRefresh);
   }, [editor.loadTest, section, testId]);
+
+  const focusQuestionId = Number(searchParams.get('question'));
+  const focusedQuestionRef = useRef(null);
+
+  useEffect(() => {
+    if (editor.loadingTest) return;
+    if (!Number.isFinite(focusQuestionId) || focusQuestionId <= 0) return;
+    if (!editor.inlineQuestions.some((question) => Number(question.id) === focusQuestionId)) return;
+    if (focusedQuestionRef.current === focusQuestionId) return;
+    focusedQuestionRef.current = focusQuestionId;
+    editor.expandQuestion(focusQuestionId);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`test-question-${focusQuestionId}`)?.scrollIntoView({ block: 'start' });
+    });
+  }, [editor.expandQuestion, editor.inlineQuestions, editor.loadingTest, focusQuestionId]);
 
   const handleSectionChange = (nextSection) => {
     const tab = nextSection === 'settings' ? 'settings' : 'questions';

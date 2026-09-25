@@ -23,6 +23,7 @@ const routePrefetchers = [
 	{ prefix: '/courses/map', fn: () => import('../pages/CourseMapPage') },
 	{ prefix: '/admin/maps', fn: () => import('../pages/CourseMapPage') },
 	{ prefix: '/messages', fn: () => import('../pages/MessagesPage') },
+	{ prefix: '/monthly-tests', fn: () => import('../pages/MonthlyTestsPage') },
 	{ prefix: '/events', fn: () => import('../pages/EventsPage') },
 	{ prefix: '/library', fn: () => import('../pages/LibraryPage') },
 	{ prefix: '/guides', fn: () => import('../pages/GuidesPage') },

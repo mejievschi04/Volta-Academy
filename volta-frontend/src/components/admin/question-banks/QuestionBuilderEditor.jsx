@@ -185,8 +185,8 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                     <RichTextEditor
                       value={question?.content || ''}
                       onChange={(html) => update({ content: html })}
-                      placeholder="Scrie și formatează întrebarea..."
-                      toolbarVariant="basic"
+                      placeholder="Scrie întrebarea..."
+                      toolbarVariant="none"
                       emphasis="strong"
                       showSideTools={false}
                       style={{ minHeight: '120px' }}
@@ -195,15 +195,16 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                 </div>
                 <div className="admin-course-builder-test-question-field">
                   <span className="admin-course-builder-test-question-field-label">
-                    Descriere sau indiciu
+                    Sursă
                     <span className="admin-course-builder-test-question-field-hint">opțional</span>
                   </span>
                   <div className="admin-course-builder-test-question-rte admin-course-builder-test-question-rte-desc">
                     <RichTextEditor
                       value={question?.explanation || ''}
                       onChange={(html) => update({ explanation: html })}
-                      placeholder="Context, indiciu sau explicație..."
-                      toolbarVariant="basic"
+                      placeholder="De unde este materialul din curs..."
+                      toolbarVariant="none"
+                      emphasis="plain"
                       showSideTools={false}
                       style={{ minHeight: '88px' }}
                     />

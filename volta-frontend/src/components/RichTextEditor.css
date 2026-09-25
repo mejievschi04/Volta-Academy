@@ -162,10 +162,32 @@
 	font-size: 1.15rem;
 	font-weight: 700;
 	line-height: 1.5;
+	color: var(--text-primary);
+}
+
+.rte-emphasis-strong .rte-editor * {
+	font-weight: 700 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
 }
 
 .rte-emphasis-strong .rte-editor:empty::before {
 	font-weight: 700;
+}
+
+.rte-emphasis-plain .rte-editor {
+	font-weight: 400;
+	color: var(--text-primary);
+}
+
+.rte-emphasis-plain .rte-editor * {
+	font-weight: 400 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
 }
 
 /* Editor area */

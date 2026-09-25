@@ -4381,6 +4381,7 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 .admin-course-builder-test-question-collapsed-text {
 	margin: 0;
 	font-size: 0.88rem;
+	font-weight: 700;
 	line-height: 1.4;
 	color: var(--text-primary);
 	white-space: nowrap;
@@ -4449,15 +4450,31 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 }
 
 .admin-course-builder-test-question-readonly {
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.admin-course-builder-test-question-readonly * {
+	font-weight: 700 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
+}
+
+.admin-course-builder-test-question-readonly {
 	padding: 12px 14px;
 	border: 1px solid var(--border-primary);
 	border-radius: 10px;
 	background: var(--bg-elevated);
 	line-height: 1.5;
+	color: var(--text-primary);
 }
 
-.admin-course-builder-test-question-readonly-desc {
-	color: var(--text-secondary);
+.admin-course-builder-test-question-readonly-desc,
+.admin-course-builder-test-question-readonly-desc * {
+	font-weight: 400 !important;
+	color: var(--text-secondary) !important;
 }
 
 .admin-course-builder-test-question-top-actions {

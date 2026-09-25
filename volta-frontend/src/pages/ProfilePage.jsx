@@ -404,6 +404,9 @@ const ProfilePage = () => {
 											: 'Utilizator')
 								: 'Utilizator'}
 						</p>
+						{!isViewingOtherUser && (
+							<Link to="/settings" className="va-profile-settings-link">Setări</Link>
+						)}
 						{isViewingOtherUser && (
 							<div className="va-profile-badges">
 								<span className="va-profile-badge va-profile-badge-email">

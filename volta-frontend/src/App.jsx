@@ -31,7 +31,9 @@ import {
 	ChartLineUp,
 	ChatsCircle,
 	CheckCircle,
+	ClipboardText,
 	Compass,
+	DotsThree,
 	GearSix,
 	House,
 	ListBullets,
@@ -84,6 +86,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const StudentActivityPage = lazy(() => import('./pages/StudentActivityPage'));
 const StudentSettingsPage = lazy(() => import('./pages/StudentSettingsPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
+const MonthlyTestsPage = lazy(() => import('./pages/MonthlyTestsPage'));
 const ExamResultsPage = lazy(() => import('./pages/ExamResultsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
@@ -279,6 +282,7 @@ function AuthenticatedLayout({ children, authContext }) {
 		const saved = localStorage.getItem('sidebarExpanded');
 		return saved !== null ? saved === 'true' : false;
 	});
+	const [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
 	const [messagesUnreadCount, setMessagesUnreadCount] = React.useState(0);
 	const [pendingReviewCount, setPendingReviewCount] = React.useState(0);
 	const unreadPollingInFlightRef = React.useRef(false);
@@ -598,68 +602,81 @@ function AuthenticatedLayout({ children, authContext }) {
 		<span className="messages-menu-badge">{messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}</span>
 	) : null;
 
-	/* Ordine aliniată cu LMS Pro (Volta Pro): Cursuri → Evenimente → … → Profil la final */
 	const navItems = [
-		{ 
-			path: '/courses', 
+		{
+			path: '/courses',
 			label: 'Cursuri',
-			title: 'Mape (parcursuri) și examene independente pe aceeași pagină. Testele din curs se deschid din curs.',
+			title: 'Mape și cursuri. Testele din curs se deschid din curs.',
 			icon: (
 				<BookOpenText size={20} weight="duotone" aria-hidden />
 			)
 		},
-		{ 
-			path: '/exam-results', 
-			label: 'Rezultate Teste', 
+		{
+			path: '/monthly-tests',
+			label: 'Teste lunare',
+			title: 'Examenele pe care le poți susține',
 			icon: (
-				<CheckCircle size={20} weight="duotone" aria-hidden />
+				<ClipboardText size={20} weight="duotone" aria-hidden />
 			)
 		},
-		{ 
-			path: '/events', 
-			label: 'Evenimente', 
+		{
+			path: '/events',
+			label: 'Evenimente',
 			icon: (
 				<CalendarDots size={20} weight="duotone" aria-hidden />
 			)
 		},
 		{
+			path: '/messages',
+			label: 'Mesagerie',
+			icon: (
+				<ChatsCircle size={20} weight="duotone" aria-hidden />
+			)
+		},
+		{
+			path: '/profile',
+			label: 'Profil',
+			icon: (
+				<UserCircle size={20} weight="duotone" aria-hidden />
+			)
+		},
+	];
+
+	const moreNavItems = [
+		{
+			path: '/exam-results',
+			label: 'Rezultate teste',
+			icon: <CheckCircle size={20} weight="duotone" aria-hidden />,
+		},
+		{
 			path: '/library',
 			label: 'Bibliotecă',
 			title: 'Materiale partajate: cărți, PDF-uri și documente',
-			icon: (
-				<Books size={20} weight="duotone" aria-hidden />
-			),
+			icon: <Books size={20} weight="duotone" aria-hidden />,
 		},
 		{
 			path: '/guides',
 			label: 'Ghiduri',
 			title: 'Linkuri utile și resurse externe recomandate',
-			icon: (
-				<Compass size={20} weight="duotone" aria-hidden />
-			),
-		},
-		{ 
-			path: '/messages', 
-			label: 'Mesagerie', 
-			icon: (
-				<ChatsCircle size={20} weight="duotone" aria-hidden />
-			)
-		},
-		{ 
-			path: '/profile', 
-			label: 'Profil', 
-			icon: (
-				<UserCircle size={20} weight="duotone" aria-hidden />
-			)
+			icon: <Compass size={20} weight="duotone" aria-hidden />,
 		},
 		{
 			path: '/settings',
 			label: 'Setări',
-			icon: (
-				<GearSix size={20} weight="duotone" aria-hidden />
-			)
+			icon: <GearSix size={20} weight="duotone" aria-hidden />,
 		},
 	];
+
+	const moreMenuActive = moreNavItems.some((item) => (
+		location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+	));
+	const mobileMoreNavItems = [
+		navItems.find((item) => item.path === '/profile'),
+		...moreNavItems,
+	].filter(Boolean);
+	const mobileMoreMenuActive = mobileMoreNavItems.some((item) => (
+		location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+	));
 
 	const mobileTopnavTitle = React.useMemo(() => {
 		const pathname = location.pathname;
@@ -671,6 +688,11 @@ function AuthenticatedLayout({ children, authContext }) {
 		});
 		if (navMatch) return navMatch.label;
 		if (pathname.startsWith('/lessons') || /\/lesson(s)?(\/|$)/.test(pathname)) return 'Lecții';
+		if (pathname.startsWith('/monthly-tests')) return 'Teste lunare';
+		if (pathname.startsWith('/exam-results')) return 'Rezultate teste';
+		if (pathname.startsWith('/library')) return 'Bibliotecă';
+		if (pathname.startsWith('/guides')) return 'Ghiduri';
+		if (pathname.startsWith('/settings')) return 'Setări';
 		if (pathname.startsWith('/exams/')) return 'Test';
 		if (pathname.startsWith('/achievements')) return 'Realizări';
 		return 'Volta Academy';
@@ -786,6 +808,64 @@ function AuthenticatedLayout({ children, authContext }) {
 			? adminNavItemsAll.filter((item) => !instructorHiddenAdminNavPaths.has(item.path))
 			: adminNavItemsAll;
 	const adminContentSubmenuChildren = adminNavItems.find((i) => i.children)?.children ?? [];
+
+	React.useEffect(() => {
+		setMoreMenuOpen(false);
+	}, [location.pathname]);
+
+	React.useEffect(() => {
+		if (!moreMenuOpen) return undefined;
+		const onPointerDown = (event) => {
+			if (!event.target.closest('.student-more-menu-wrap')) setMoreMenuOpen(false);
+		};
+		const onKeyDown = (event) => {
+			if (event.key === 'Escape') setMoreMenuOpen(false);
+		};
+		document.addEventListener('pointerdown', onPointerDown);
+		document.addEventListener('keydown', onKeyDown);
+		return () => {
+			document.removeEventListener('pointerdown', onPointerDown);
+			document.removeEventListener('keydown', onKeyDown);
+		};
+	}, [moreMenuOpen]);
+
+	const renderMoreMenu = (placement) => (
+		<div className={`student-more-menu-wrap student-more-menu-wrap--${placement}`}>
+			<button
+				type="button"
+				className={[
+					placement === 'desktop' ? 'modern-topnav-item va-topnav-btn' : 'student-mobile-tab',
+					moreMenuOpen || (placement === 'mobile' ? mobileMoreMenuActive : moreMenuActive) ? 'active is-active' : '',
+				].join(' ').trim()}
+				aria-expanded={moreMenuOpen}
+				aria-haspopup="menu"
+				onClick={() => setMoreMenuOpen((open) => !open)}
+			>
+				<span className={placement === 'desktop' ? 'modern-topnav-item-icon va-topnav-icon' : 'student-mobile-tab-icon'}>
+					<DotsThree size={placement === 'desktop' ? 20 : 23} weight="bold" aria-hidden />
+				</span>
+				<span className={placement === 'desktop' ? 'modern-topnav-item-label va-topnav-label' : undefined}>Mai multe</span>
+			</button>
+			{moreMenuOpen ? (
+				<div className="student-more-menu" role="menu">
+					{(placement === 'mobile' ? mobileMoreNavItems : moreNavItems).map((item) => (
+						<NavLink
+							key={item.path}
+							to={item.path}
+							role="menuitem"
+							title={item.title || item.label}
+							className={({ isActive }) => `student-more-menu-item${isActive ? ' active' : ''}`}
+							onMouseEnter={() => prefetchRoute(item.path)}
+							onClick={() => setMoreMenuOpen(false)}
+						>
+							{item.icon}
+							<span>{item.label}</span>
+						</NavLink>
+					))}
+				</div>
+			) : null}
+		</div>
+	);
 
 	if (isLibraryReaderPage) {
 		return (
@@ -1270,6 +1350,7 @@ function AuthenticatedLayout({ children, authContext }) {
 									<span className="modern-topnav-item-label va-topnav-label">{item.label}</span>{item.path === '/messages' ? renderMessagesNavBadge() : null}
 								</NavLink>
 							))}
+							{renderMoreMenu('desktop')}
 						</nav>
 
 						<div className="modern-topnav-right">
@@ -1320,20 +1401,21 @@ function AuthenticatedLayout({ children, authContext }) {
 
 					{isMobile && (
 						<nav className="student-mobile-tabs" aria-label="Navigare principală">
-							{[
-								{ path: '/courses', label: 'Cursuri', Icon: BookOpenText },
-								{ path: '/events', label: 'Evenimente', Icon: CalendarDots },
-								{ path: '/messages', label: 'Mesaje', Icon: ChatsCircle },
-							].map(({ path, label, Icon }) => (
-								<NavLink key={path} to={path} className={({ isActive }) => `student-mobile-tab${isActive ? ' active' : ''}`}>
-									<span className="student-mobile-tab-icon"><Icon size={23} weight="duotone" aria-hidden />{path === '/messages' && renderMessagesNavBadge()}</span>
-									<span>{label}</span>
+							{navItems.filter((item) => item.path !== '/profile').map((item) => (
+								<NavLink
+									key={item.path}
+									to={item.path}
+									className={({ isActive }) => `student-mobile-tab${isActive ? ' active' : ''}`}
+									end={item.path === '/courses'}
+								>
+									<span className="student-mobile-tab-icon">
+										{item.icon}
+										{item.path === '/messages' ? renderMessagesNavBadge() : null}
+									</span>
+									<span>{item.label}</span>
 								</NavLink>
 							))}
-							<button type="button" className="student-mobile-tab" onClick={() => setIsSidebarExpanded(true)} aria-expanded={isSidebarExpanded} aria-controls="student-mobile-menu">
-								<span className="student-mobile-tab-icon"><ListBullets size={23} weight="bold" aria-hidden /></span>
-								<span>Meniu</span>
-							</button>
+							{renderMoreMenu('mobile')}
 						</nav>
 					)}
 
@@ -1513,6 +1595,16 @@ function App() {
 											<UserRoute>
 												<Suspense fallback={<PageLoader />}>
 													<QuizPage />
+												</Suspense>
+											</UserRoute>
+										}
+									/>
+									<Route
+										path="/monthly-tests"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<MonthlyTestsPage />
 												</Suspense>
 											</UserRoute>
 										}

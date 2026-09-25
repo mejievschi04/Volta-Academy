@@ -560,9 +560,30 @@
 .exam-result-question-text {
 	margin-bottom: var(--space-3);
 	color: var(--text-primary);
-	font-weight: 600;
+	font-weight: 700;
 	font-size: 0.9375rem;
 	line-height: 1.5;
+}
+
+.exam-result-question-text * {
+	font-weight: 700 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
+}
+
+.exam-result-explanation-body {
+	font-weight: 400;
+	color: var(--text-secondary);
+}
+
+.exam-result-explanation-body * {
+	font-weight: 400 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
 }
 
 .exam-result-question-text p,

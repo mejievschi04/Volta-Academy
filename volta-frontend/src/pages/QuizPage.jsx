@@ -779,11 +779,6 @@ const QuizPage = () => {
 																	{isCorrect ? 'Răspuns corect' : 'Răspuns incorect'}
 																</span>
 															</div>
-															{q.explanation && (
-																<div className={`va-feedback-explanation ${isCorrect ? 'correct' : 'incorrect'}`}>
-																	<strong>Explicație:</strong> {q.explanation}
-																</div>
-															)}
 															{q.lesson_id && (
 																<div style={{ marginTop: '0.75rem' }}>
 																	<Link
@@ -1038,38 +1033,6 @@ const QuizPage = () => {
 															</div>
 															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
 																{q.options?.[userAnswer]}
-															</div>
-														</div>
-													)}
-													{!showOnlySubmittedAnswers && !isStructured && q.explanation && (
-														<div style={{
-															padding: '0.75rem 1rem',
-															background: 'rgba(255,255,255,0.05)',
-															border: '1px solid rgba(255,238,0,0.15)',
-															borderRadius: '12px',
-															marginTop: '0.5rem'
-														}}>
-															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-																💡 Explicație
-															</div>
-															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-																{q.explanation}
-															</div>
-														</div>
-													)}
-													{!showOnlySubmittedAnswers && isStructured && q.explanation && (
-														<div style={{
-															padding: '0.75rem 1rem',
-															background: 'rgba(255,255,255,0.05)',
-															border: '1px solid rgba(255,238,0,0.15)',
-															borderRadius: '12px',
-															marginTop: '0.5rem'
-														}}>
-															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-																💡 Explicație
-															</div>
-															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-																{q.explanation}
 															</div>
 														</div>
 													)}

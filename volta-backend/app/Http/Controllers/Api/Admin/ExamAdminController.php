@@ -1148,6 +1148,20 @@ class ExamAdminController extends Controller
         $settings['folder_ids'] = $this->normalizeSettingIds($settings['folder_ids'] ?? []);
         $settings['question_ids'] = $this->normalizeSettingIds($settings['question_ids'] ?? []);
 
+        $accessMode = (string) ($settings['access_mode'] ?? '');
+        if ($accessMode !== '' && ! in_array($accessMode, ['all_students', 'selected_students', 'teams'], true)) {
+            $settings['access_mode'] = 'all_students';
+        }
+        if (array_key_exists('team_ids', $settings)) {
+            $settings['team_ids'] = $this->normalizeSettingIds($settings['team_ids']);
+        }
+        if (array_key_exists('excluded_student_ids', $settings)) {
+            $settings['excluded_student_ids'] = $this->normalizeSettingIds($settings['excluded_student_ids']);
+        }
+        if (array_key_exists('selected_students', $settings)) {
+            $settings['selected_students'] = $this->normalizeSettingIds($settings['selected_students']);
+        }
+
         if ($mode === 'questions') {
             $poolSize = count($settings['question_ids']);
             $requested = max(0, (int) ($settings['question_count'] ?? $poolSize));

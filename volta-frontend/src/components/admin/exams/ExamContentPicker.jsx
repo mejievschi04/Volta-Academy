@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, FolderOpen, ListChecks, Search, X } from 'lucide-react';
+import { ArrowLeft, FolderOpen, ListChecks, Search, Star, X } from 'lucide-react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import QuestionCatalogByMap, { CatalogGroupCard } from '../question-banks/QuestionCatalogByMap';
@@ -28,6 +28,7 @@ export default function ExamContentPicker({
   onToggleQuestion,
   onAddQuestions,
   onClearQuestions,
+  onPatchSelectedQuestion,
   canMutate = true,
   contentBanks,
   contentBanksLoading,
@@ -53,6 +54,7 @@ export default function ExamContentPicker({
   const [folderError, setFolderError] = useState('');
   const [drawerQuestion, setDrawerQuestion] = useState(null);
   const [addingFolderId, setAddingFolderId] = useState(null);
+  const [starringId, setStarringId] = useState(null);
 
   const selectedIds = useMemo(
     () => (Array.isArray(examSettings.selectedQuestionIds) ? examSettings.selectedQuestionIds.map(Number) : []),
@@ -148,6 +150,34 @@ export default function ExamContentPicker({
     addQuestions(visibleFolderQuestions, activeFolder?.title || 'Folder');
   };
 
+  const toggleStar = async (item) => {
+    if (!canMutate || starringId) return;
+    setStarringId(item.id);
+    try {
+      const updated = await adminService.toggleQuestionStar(item.id);
+      const starred = Boolean(updated?.question?.is_starred);
+      onPatchSelectedQuestion?.(item.id, { is_starred: starred });
+    } catch {
+      error('Nu am putut schimba steaua.');
+    } finally {
+      setStarringId(null);
+    }
+  };
+
+  const openSelectedInTest = (item) => {
+    const testId = Number(item?.testId || 0);
+    if (testId > 0) {
+      window.open(`/admin/tests/${testId}/builder?section=questions&question=${item.id}`, '_blank', 'noopener');
+      return;
+    }
+    const bankId = Number(item?.bankId || 0);
+    if (bankId > 0) {
+      window.open(`/admin/question-banks/${bankId}`, '_blank', 'noopener');
+      return;
+    }
+    error('Întrebarea nu e legată de un test.');
+  };
+
   const toggleFolder = (bank) => {
     setExamSettings((prev) => {
       const exists = prev.selectedFolderIds.includes(bank.id);
@@ -165,7 +195,7 @@ export default function ExamContentPicker({
           <p className="exam-picker-kicker">Conținut examen</p>
           <h3>Ce întrebări intră în examen?</h3>
           <p className="exam-picker-lead">
-            Alegi pool-ul. Fiecare elev primește numărul setat; întrebările cu stea apar la toți, restul se trag random.
+            Alegi pool-ul. Steaua o pui pe întrebările deja selectate: cele cu stea apar la toți, restul se trag random. Deschide o întrebare ca să o editezi în test.
           </p>
         </div>
         <div className="exam-picker-head-count" aria-live="polite">
@@ -225,6 +255,7 @@ export default function ExamContentPicker({
                 {questionBrowse === 'catalog' ? (
                   <QuestionCatalogByMap
                     selectable={canMutate}
+                    showStar={false}
                     selectedIds={selectedIds}
                     onToggleSelect={(question, origin) => onToggleQuestion(question, origin || question?.test?.title || 'Catalog')}
                     onAddMany={canMutate ? onAddQuestions : undefined}
@@ -331,6 +362,7 @@ export default function ExamContentPicker({
                             selected={selectedSet.has(Number(question.id))}
                             readOnly
                             selectable={canMutate}
+                            showStar={false}
                             onToggleSelect={() => onToggleQuestion(question, activeFolder?.title || 'Folder')}
                             onToggleStar={() => {}}
                             onOpenDrawer={setDrawerQuestion}
@@ -482,12 +514,28 @@ export default function ExamContentPicker({
               {selectedQuestionItems.length ? (
                 <ul className="exam-picker-tray-list">
                   {selectedQuestionItems.map((item, index) => (
-                    <li key={item.id}>
+                    <li key={item.id} className="is-question">
                       <span className="exam-picker-tray-index">{index + 1}</span>
-                      <span className="exam-picker-tray-copy">
+                      {canMutate ? (
+                        <button
+                          type="button"
+                          className={`qb-star-btn ${item.is_starred ? 'is-starred' : ''}`}
+                          onClick={() => toggleStar(item)}
+                          disabled={starringId === item.id}
+                          title={item.is_starred ? 'Scoate steaua' : 'Marchează cu stea. Apare la toți elevii.'}
+                          aria-label={item.is_starred ? 'Scoate steaua' : 'Marchează cu stea'}
+                        >
+                          <Star size={18} fill={item.is_starred ? 'currentColor' : 'none'} aria-hidden />
+                        </button>
+                      ) : (
+                        <span className={`qb-star-btn ${item.is_starred ? 'is-starred' : ''}`} aria-hidden>
+                          <Star size={18} fill={item.is_starred ? 'currentColor' : 'none'} />
+                        </span>
+                      )}
+                      <button type="button" className="exam-picker-tray-open" onClick={() => openSelectedInTest(item)}>
                         <strong>{stripHtml(item.content) || `Întrebarea ${item.id}`}</strong>
-                        <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'}</small>
-                      </span>
+                        <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'} · Deschide în test</small>
+                      </button>
                       {canMutate ? (
                         <button type="button" className="lms-btn-secondary" onClick={() => onToggleQuestion(item, item.origin)}>
                           <X size={14} aria-hidden />

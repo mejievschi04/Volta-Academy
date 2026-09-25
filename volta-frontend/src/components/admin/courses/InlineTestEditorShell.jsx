@@ -167,6 +167,7 @@ export default function InlineTestEditorShell({
                     return (
                       <li
                         key={question.id}
+                        id={`test-question-${question.id}`}
                         className={`admin-course-builder-test-question-item ${questionExpanded ? 'is-expanded' : 'is-collapsed'}`}
                       >
                         <div className="admin-course-builder-test-question-topline">
@@ -217,9 +218,9 @@ export default function InlineTestEditorShell({
                                       value={question.content || ''}
                                       onChange={(html) => patchQuestionField(question.id, 'content', html)}
                                       onBlur={() => handleInlineQuestionBlur(question.id, {})}
-                                      placeholder="Scrie și formatează întrebarea..."
+                                      placeholder="Scrie întrebarea..."
                                       courseId={courseId}
-                                      toolbarVariant="basic"
+                                      toolbarVariant="none"
                                       emphasis="strong"
                                       showSideTools={false}
                                       style={{ minHeight: '120px' }}
@@ -235,7 +236,7 @@ export default function InlineTestEditorShell({
                               </div>
                               <div className="admin-course-builder-test-question-field">
                                 <span className="admin-course-builder-test-question-field-label">
-                                  Descriere sau indiciu
+                                  Sursă
                                   <span className="admin-course-builder-test-question-field-hint">opțional</span>
                                 </span>
                                 {canMutateInAdminArea ? (
@@ -244,9 +245,10 @@ export default function InlineTestEditorShell({
                                       value={question.explanation || ''}
                                       onChange={(html) => patchQuestionField(question.id, 'explanation', html)}
                                       onBlur={() => handleInlineQuestionBlur(question.id, {})}
-                                      placeholder="Context, indiciu sau explicație..."
+                                      placeholder="De unde este materialul din curs..."
                                       courseId={courseId}
-                                      toolbarVariant="basic"
+                                      toolbarVariant="none"
+                                      emphasis="plain"
                                       showSideTools={false}
                                       style={{ minHeight: '88px' }}
                                     />

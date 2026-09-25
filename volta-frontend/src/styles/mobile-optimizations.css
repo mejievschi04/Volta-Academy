@@ -6573,6 +6573,7 @@
 
 	.va-shell-topnav:has(.student-mobile-tabs) .courses-page-student .courses-page-hero-title,
 	.va-shell-topnav:has(.student-mobile-tabs) .events-page-title,
+	.va-shell-topnav:has(.student-mobile-tabs) .monthly-tests-title,
 	.va-shell-topnav:has(.student-mobile-tabs) .library-page-title,
 	.va-shell-topnav:has(.student-mobile-tabs) .student-settings-title,
 	.va-shell-topnav:has(.student-mobile-tabs) .messages-title,
@@ -6641,7 +6642,7 @@
 		inset: auto 0 0;
 		z-index: 990;
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		grid-template-columns: repeat(5, minmax(0, 1fr));
 		height: var(--student-tab-height);
 		box-sizing: border-box;
 		padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
@@ -6662,7 +6663,7 @@
 		background: transparent;
 		color: var(--text-secondary);
 		font: inherit;
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 600;
 		line-height: 1.3;
 		text-decoration: none;
@@ -6701,6 +6702,23 @@
 	}
 
 	.student-mobile-tab.active { background: var(--color-primary); color: var(--btn-primary-text); }
+
+	.student-mobile-tabs .student-more-menu-wrap {
+		display: flex;
+		min-width: 0;
+	}
+
+	.student-mobile-tabs .student-more-menu-wrap .student-mobile-tab {
+		flex: 1;
+		width: 100%;
+	}
+
+	.student-mobile-tabs .student-more-menu {
+		top: auto;
+		bottom: calc(100% + 8px);
+		right: 0;
+		left: auto;
+	}
 	.student-mobile-tab:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
 	.student-mobile-tab-icon { position: relative; display: flex; }
 	.student-mobile-tab-icon .messages-menu-badge { position: absolute; top: -5px; left: 16px; margin: 0; min-width: 16px; font-size: 10px; }

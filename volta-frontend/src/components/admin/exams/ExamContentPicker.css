@@ -393,6 +393,36 @@
 	background: var(--bg-primary);
 }
 
+.exam-picker-tray-list li.is-question {
+	grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.exam-picker-tray-open {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.exam-picker-tray-open strong,
+.exam-picker-tray-open small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.exam-picker-tray-open small {
+	color: var(--text-secondary);
+}
+
 .exam-picker-tray-list .lms-btn-secondary {
 	display: inline-flex;
 	align-items: center;
