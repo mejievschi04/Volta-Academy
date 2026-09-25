@@ -180,7 +180,7 @@ export default function QuestionCatalogByMap({
 				{level !== 'maps' ? (
 					<button
 						type="button"
-						className="lms-btn-secondary"
+						className="admin-back-btn"
 						onClick={() => {
 							if (level === 'questions') {
 								setLevel('tests');

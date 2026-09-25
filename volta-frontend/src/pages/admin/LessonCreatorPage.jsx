@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 
@@ -311,7 +312,7 @@ const LessonCreatorPage = () => {
 						</p>
 					</div>
 					<button 
-						className="admin-btn admin-btn-secondary" 
+						className="admin-back-btn" 
 						onClick={() => {
 							if (formData.course_id) {
 								navigate(`/admin/courses/${formData.course_id}`);
@@ -320,7 +321,8 @@ const LessonCreatorPage = () => {
 							}
 						}}
 					>
-						← Înapoi
+						<ArrowLeft size={18} aria-hidden />
+						Înapoi
 					</button>
 				</div>
 

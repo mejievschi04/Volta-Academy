@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService, coursesService } from '../../services/api';
 
@@ -183,10 +184,11 @@ const AdminCourseDetailPage = () => {
 				<div className="admin-course-detail-header-start">
 					<button
 						type="button"
-						className="admin-course-detail-back-btn"
+						className="admin-course-detail-back-btn admin-back-btn"
 						onClick={() => navigate('/admin/courses')}
 					>
-						← Înapoi
+						<ArrowLeft size={18} aria-hidden />
+						Înapoi
 					</button>
 					<h1 className="admin-course-detail-title">{course.title}</h1>
 				</div>

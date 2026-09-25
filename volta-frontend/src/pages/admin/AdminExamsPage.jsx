@@ -1,5 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BarChart3, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, BarChart3, ChevronRight, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -120,7 +120,7 @@ export default function AdminExamsPage() {
   const [accessTeams, setAccessTeams] = useState([]);
   const [accessTeamsLoading, setAccessTeamsLoading] = useState(false);
   const [accessTeamsError, setAccessTeamsError] = useState('');
-  const [expandedTeamIds, setExpandedTeamIds] = useState([]);
+  const [openTeamId, setOpenTeamId] = useState(null);
   const [manualReviewState, setManualReviewState] = useState({ reviewMode: 'after_complete' });
   const [statisticsQuestionRows, setStatisticsQuestionRows] = useState([]);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
@@ -343,7 +343,6 @@ export default function AdminExamsPage() {
         excludedStudentIds: prev.excludedStudentIds.filter((id) => stillCovered.has(id)),
       };
     });
-    setExpandedTeamIds((prev) => (prev.includes(teamId) ? prev : [...prev, teamId]));
   };
 
   const handleToggleExamMember = (memberId) => {
@@ -934,7 +933,6 @@ export default function AdminExamsPage() {
                 const members = learnerMembersOf(team);
                 const selected = examAccess.teamIds.includes(team.id);
                 const included = members.filter((member) => !examAccess.excludedStudentIds.includes(member.id)).length;
-                const expanded = expandedTeamIds.includes(team.id);
                 return (
                   <div key={team.id} className={`admin-exams-team-access-item${selected ? ' is-selected' : ''}`}>
                     <div className="admin-exams-team-access-head">
@@ -944,40 +942,97 @@ export default function AdminExamsPage() {
                           checked={selected}
                           onChange={() => handleToggleExamTeam(team.id)}
                         />
-                        <span>{team.name || `Echipa ${team.id}`}</span>
+                        <span className="admin-exams-team-access-avatar" aria-hidden>
+                          {(team.name || 'E').trim().charAt(0).toUpperCase()}
+                        </span>
+                        <span className="admin-exams-team-access-copy">
+                          <strong>{team.name || `Echipa ${team.id}`}</strong>
+                          <small>
+                            {selected
+                              ? `${included} din ${members.length} ${members.length === 1 ? 'elev' : 'elevi'}`
+                              : `${members.length} ${members.length === 1 ? 'elev' : 'elevi'}`}
+                          </small>
+                        </span>
                       </label>
                       <button
                         type="button"
                         className="admin-exams-team-access-expand"
-                        onClick={() => setExpandedTeamIds((prev) => (prev.includes(team.id) ? prev.filter((id) => id !== team.id) : [...prev, team.id]))}
-                        aria-expanded={expanded}
+                        onClick={() => setOpenTeamId(team.id)}
+                        aria-haspopup="dialog"
+                        aria-label="Arată elevii"
+                        title="Arată elevii"
                       >
-                        {selected ? `${included}/${members.length}` : `${members.length}`}
+                        <ChevronRight size={16} aria-hidden />
                       </button>
                     </div>
-                    {expanded ? (
-                      <div className="admin-exams-team-access-members">
-                        {members.length === 0 ? (
-                          <p>Niciun elev în echipă.</p>
-                        ) : members.map((member) => (
-                          <label key={member.id}>
-                            <input
-                              type="checkbox"
-                              checked={selected && !examAccess.excludedStudentIds.includes(member.id)}
-                              disabled={!selected}
-                              onChange={() => handleToggleExamMember(member.id)}
-                            />
-                            <span>{member.name}</span>
-                            <small>{member.email}</small>
-                          </label>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                 );
               })}
             </div>
           )}
+          {(() => {
+            const team = accessTeams.find((entry) => entry.id === openTeamId);
+            if (!team) return null;
+            const members = learnerMembersOf(team);
+            const selected = examAccess.teamIds.includes(team.id);
+            const included = members.filter((member) => !examAccess.excludedStudentIds.includes(member.id)).length;
+            return (
+              <Modal
+                isOpen
+                onClose={() => setOpenTeamId(null)}
+                closeOnBackdropClick
+                closeOnEscape
+                ariaLabelledby="exam-team-members-title"
+                contentClassName="admin-exams-team-modal"
+              >
+                <div className="admin-exams-team-modal-body">
+                  <header className="admin-exams-team-modal-head">
+                    <span className="admin-exams-team-access-avatar" aria-hidden>
+                      {(team.name || 'E').trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div className="admin-exams-team-access-copy">
+                      <strong id="exam-team-members-title">{team.name || `Echipa ${team.id}`}</strong>
+                      <small>
+                        {selected
+                          ? `${included} din ${members.length} elevi primesc examenul`
+                          : `${members.length} ${members.length === 1 ? 'elev' : 'elevi'} · echipa nu e bifată`}
+                      </small>
+                    </div>
+                  </header>
+                  {!selected ? (
+                    <button
+                      type="button"
+                      className="admin-exams-team-modal-enable"
+                      onClick={() => handleToggleExamTeam(team.id)}
+                    >
+                      Bifează echipa
+                    </button>
+                  ) : null}
+                  <div className="admin-exams-team-access-members">
+                    {members.length === 0 ? (
+                      <p>Niciun elev în echipă.</p>
+                    ) : members.map((member) => (
+                      <label key={member.id}>
+                        <input
+                          type="checkbox"
+                          checked={selected && !examAccess.excludedStudentIds.includes(member.id)}
+                          disabled={!selected}
+                          onChange={() => handleToggleExamMember(member.id)}
+                        />
+                        <span>{member.name}</span>
+                        <small>{member.email}</small>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="admin-exams-team-modal-actions">
+                    <button type="button" className="admin-exams-team-modal-done" onClick={() => setOpenTeamId(null)}>
+                      Gata
+                    </button>
+                  </div>
+                </div>
+              </Modal>
+            );
+          })()}
         </section>
       </div>
     </div>
@@ -1054,7 +1109,7 @@ export default function AdminExamsPage() {
           <div className="admin-exams-builder-top-left">
             <button
               type="button"
-              className="admin-exams-builder-back-btn"
+              className="admin-exams-builder-back-btn admin-back-btn"
               onClick={() => setViewMode('list')}
             >
               <ArrowLeft size={18} aria-hidden />
@@ -1067,7 +1122,7 @@ export default function AdminExamsPage() {
           </div>
 
           <div className="admin-exams-builder-actions">
-            <div className="admin-exams-builder-publish">
+            <div className={`admin-exams-builder-publish${published ? ' is-published' : ''}`}>
               <span>{published ? 'Publicat' : 'Ciornă'}</span>
               <button
                 type="button"

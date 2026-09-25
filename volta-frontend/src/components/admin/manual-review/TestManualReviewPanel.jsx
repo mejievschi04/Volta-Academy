@@ -208,24 +208,26 @@ export default function TestManualReviewPanel({ embedded = false }) {
 					<h1>{embedded ? 'Teste' : 'Așteaptă verificare'}</h1>
 					<p>Încercări cu răspunsuri deschise care necesită notare manuală.</p>
 				</div>
-				<button
-					type="button"
-					className="admin-tests-pending-refresh"
-					onClick={() => loadPendingReviews()}
-					disabled={pendingLoading || clearing}
-				>
-					{pendingLoading ? 'Se încarcă…' : 'Reîmprospătează'}
-				</button>
-				{canMutateInAdminArea ? (
+				<div className="admin-manual-review-toolbar">
 					<button
 						type="button"
-						className="admin-tests-pending-refresh"
-						onClick={handleClearPending}
+						className="admin-tests-pending-refresh admin-manual-review-refresh-btn"
+						onClick={() => loadPendingReviews()}
 						disabled={pendingLoading || clearing}
 					>
-						{clearing ? 'Se golește…' : 'Golire'}
+						{pendingLoading ? 'Se încarcă…' : 'Reîmprospătează'}
 					</button>
-				) : null}
+					{canMutateInAdminArea ? (
+						<button
+							type="button"
+							className="admin-manual-review-clear-danger"
+							onClick={handleClearPending}
+							disabled={pendingLoading || clearing}
+						>
+							{clearing ? 'Se golește…' : 'Golire'}
+						</button>
+					) : null}
+				</div>
 			</header>
 
 			<section className="admin-tests-pending-section" aria-label="Coadă verificări">
@@ -245,7 +247,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 									</span>
 								</div>
 								{canMutateInAdminArea ? (
-									<button type="button" className="admin-tests-pending-verify" onClick={() => openReviewModal(row)}>
+									<button type="button" className="admin-tests-pending-verify admin-manual-review-verify-btn" onClick={() => openReviewModal(row)}>
 										Verifică
 									</button>
 								) : null}

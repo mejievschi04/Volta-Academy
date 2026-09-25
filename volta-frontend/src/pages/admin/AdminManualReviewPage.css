@@ -1,38 +1,238 @@
+.admin-manual-review-page {
+	display: grid;
+	gap: 18px;
+}
+
+.admin-manual-review-page .admin-tests-header {
+	margin: 0;
+}
+
 .admin-manual-review-kind-tabs {
-	display: flex;
-	gap: 0.5rem;
-	flex-wrap: wrap;
-	margin-bottom: 1.25rem;
-	padding: 0.25rem;
-	border-radius: 12px;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin: 0;
+	padding: 6px;
+	border: 1px solid var(--border-primary);
+	border-radius: 14px;
+	background: var(--bg-elevated);
 }
 
-.admin-manual-review-kind-tabs button {
-	flex: 1;
-	min-width: 120px;
-	padding: 0.65rem 1rem;
-	border-radius: 10px;
-	border: 1px solid transparent;
-	background: transparent;
-	color: inherit;
-	font-weight: 600;
+html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn {
+	height: 44px;
+	min-height: 44px;
+	padding: 0 16px;
+	border: 1px solid #0f172a !important;
+	border-radius: 10px !important;
+	background: #0f172a !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+	font-size: 14px;
+	font-weight: 800;
 	cursor: pointer;
-	opacity: 0.75;
-	transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.admin-manual-review-kind-tabs button:hover {
-	opacity: 1;
+html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn:hover:not(.is-active) {
+	border-color: #ffee00 !important;
+	background: #111827 !important;
 }
 
-.admin-manual-review-kind-tabs button.is-active {
-	opacity: 1;
-	background: rgba(255, 255, 255, 0.08);
-	border-color: rgba(255, 255, 255, 0.12);
+html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn.is-active {
+	border-color: #e6d800 !important;
+	background: #ffee00 !important;
+	color: #0f172a !important;
 }
 
-.admin-manual-review-panel-wrap .admin-tests-pending-embedded .admin-tests-pending-page-header h1 {
+.admin-manual-review-panel-wrap {
+	display: grid;
+	gap: 14px;
+}
+
+.admin-manual-review-panel-wrap .admin-exams-manual-review-head,
+.admin-manual-review-panel-wrap .admin-tests-pending-page-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 20px;
+	margin: 0 0 14px;
+	padding: 0;
+}
+
+.admin-manual-review-panel-wrap .admin-exams-manual-review-head h2,
+.admin-manual-review-panel-wrap .admin-tests-pending-page-header h1 {
+	margin: 0 0 4px;
+	color: var(--text-primary);
 	font-size: 1.25rem;
+	font-weight: 800;
+}
+
+.admin-manual-review-panel-wrap .admin-exams-manual-review-head p,
+.admin-manual-review-panel-wrap .admin-tests-pending-page-header p {
+	margin: 0;
+	max-width: 56ch;
+	color: var(--text-secondary);
+	font-size: 0.9rem;
+	line-height: 1.45;
+}
+
+.admin-manual-review-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+
+html body .admin-manual-review-refresh-btn.admin-manual-review-refresh-btn,
+html body .admin-manual-review-clear-danger.admin-manual-review-clear-danger,
+html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 40px;
+	min-height: 40px;
+	padding: 0 16px;
+	border-radius: 12px !important;
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+html body .admin-manual-review-refresh-btn.admin-manual-review-refresh-btn {
+	border: 1px solid #0f172a !important;
+	background: #0f172a !important;
+	color: #ffffff !important;
+	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18) !important;
+}
+
+html body .admin-manual-review-refresh-btn.admin-manual-review-refresh-btn:hover:not(:disabled) {
+	border-color: #ffee00 !important;
+	background: #111827 !important;
+	transform: translateY(-1px);
+}
+
+html body .admin-manual-review-clear-danger.admin-manual-review-clear-danger {
+	border: 1.5px solid #0f172a !important;
+	background: #dc2626 !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+}
+
+html body .admin-manual-review-clear-danger.admin-manual-review-clear-danger:hover:not(:disabled) {
+	background: #b91c1c !important;
+	transform: translateY(-1px);
+}
+
+html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn {
+	flex: none;
+	border: 1px solid rgba(0, 0, 0, 0.14) !important;
+	background: #ffee00 !important;
+	color: #0f172a !important;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn:hover:not(:disabled) {
+	background: #e6d800 !important;
+}
+
+.admin-manual-review-refresh-btn:disabled,
+.admin-manual-review-clear-danger:disabled,
+.admin-manual-review-verify-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-section {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-section::before {
+	content: none;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-empty {
+	display: grid;
+	place-items: center;
+	min-height: 140px;
+	padding: 24px;
+	border: 1px dashed #9ca3af;
+	border-radius: 14px;
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	font-size: 0.95rem;
+	font-weight: 600;
+	text-align: center;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 14px 16px;
+	border: 1px solid var(--border-primary);
+	border-radius: 12px;
+	background: var(--bg-elevated);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-row:hover {
+	border-color: color-mix(in srgb, var(--color-primary) 28%, var(--border-primary));
+	box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-main {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+
+.admin-manual-review-panel-wrap .admin-tests-pending-test {
+	overflow: hidden;
+	color: var(--text-primary);
+	font-size: 0.98rem;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+html body .admin-manual-review-panel-wrap .admin-tests-pending-user {
+	color: var(--text-secondary) !important;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+html body .admin-manual-review-panel-wrap .admin-tests-pending-meta {
+	color: var(--text-tertiary) !important;
+	font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+	.admin-manual-review-toolbar {
+		width: 100%;
+		margin-left: 0;
+	}
+
+	.admin-manual-review-panel-wrap .admin-tests-pending-row {
+		flex-direction: column;
+		align-items: stretch;
+	}
 }

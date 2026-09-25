@@ -4599,9 +4599,14 @@ html[data-theme='dark'] .admin-course-builder-test-question-badge-btn:hover,
 	display: grid;
 	gap: 10px;
 	padding: 10px 12px;
-	border: 1px dashed rgba(var(--color-info-rgb, 59, 130, 246), 0.3);
+	border: 1px dashed #9ca3af;
 	border-radius: 10px;
-	background: rgba(var(--color-info-rgb, 59, 130, 246), 0.08);
+	background: #f8fafc;
+}
+
+[data-theme='dark'] .admin-course-builder-test-question-answers {
+	border-color: #6b7280;
+	background: #111827;
 }
 
 .admin-course-builder-test-question-answers > p {
@@ -4845,6 +4850,11 @@ html[data-theme='dark'] .admin-course-builder-test-order-btn.is-delete:hover:not
 .admin-course-builder-test-type-label {
 	font-size: 0.73rem;
 	line-height: 1.25;
+}
+
+.qb-type-preview,
+.qb-type-hint {
+	display: none;
 }
 
 .admin-course-builder-test-empty {

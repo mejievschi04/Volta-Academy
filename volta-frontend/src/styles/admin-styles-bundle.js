@@ -14,3 +14,4 @@ import './admin-lesson-creator.css';
 import './admin-course-builder.css';
 import './admin-course-detail-modern.css';
 import './learning-analytics.css';
+import './admin-design-system.css';

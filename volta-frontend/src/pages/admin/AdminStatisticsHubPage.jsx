@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
-import AIStatisticsExportPanel from '../../components/admin/statistics/AIStatisticsExportPanel';
 import {
 	buildStructuredExcelRows,
 	downloadStructuredExcel,
@@ -9,7 +8,6 @@ import {
 import './AdminStatisticsHubPage.css';
 
 const MENU_ITEMS = [
-	{ id: 'ai-export', label: '⚡ Export cu Volt' },
 	{ id: 'student-progress', label: 'Progresul utilizatorilor' },
 	{ id: 'course-progress', label: 'Progres cursuri' },
 	{ id: 'test-progress', label: 'Progres teste' },
@@ -197,7 +195,7 @@ const AdminStatisticsHubPage = () => {
 				<div className="admin-statistics-top-actions">
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportStudentProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -392,7 +390,7 @@ const AdminStatisticsHubPage = () => {
 				<div className="admin-statistics-top-actions">
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportCourseProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -573,7 +571,7 @@ const AdminStatisticsHubPage = () => {
 				<div className="admin-statistics-top-actions">
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportTestProgressCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -768,7 +766,7 @@ const AdminStatisticsHubPage = () => {
 				<div className="admin-statistics-top-actions">
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportTopStudentsCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -936,7 +934,7 @@ const AdminStatisticsHubPage = () => {
 					<span className="admin-statistics-meta-pill">Total elevi: {studentsRows.length}</span>
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportStudentsOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -1090,7 +1088,7 @@ const AdminStatisticsHubPage = () => {
 					<span className="admin-statistics-meta-pill">Cursuri: {coursesRows.length}</span>
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportCoursesOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -1313,7 +1311,7 @@ const AdminStatisticsHubPage = () => {
 					<span className="admin-statistics-meta-pill">Teste: {testsRows.length}</span>
 					<button
 						type="button"
-						className="lms-btn-secondary lms-btn-sm"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
 						onClick={exportTestsOverviewCsv}
 						disabled={loading || Boolean(error)}
 					>
@@ -1333,14 +1331,14 @@ const AdminStatisticsHubPage = () => {
 			<div className="admin-statistics-tests-tabs">
 				<button
 					type="button"
-					className={testsViewMode === 'tests' ? 'is-active' : ''}
+					className={`admin-statistics-tests-tab${testsViewMode === 'tests' ? ' is-active' : ''}`}
 					onClick={() => setTestsViewMode('tests')}
 				>
 					Vizualizare teste
 				</button>
 				<button
 					type="button"
-					className={testsViewMode === 'students' ? 'is-active' : ''}
+					className={`admin-statistics-tests-tab${testsViewMode === 'students' ? ' is-active' : ''}`}
 					onClick={() => setTestsViewMode('students')}
 				>
 					Vizualizare elevi
@@ -1421,7 +1419,7 @@ const AdminStatisticsHubPage = () => {
 							<button
 								key={item.id}
 								type="button"
-								className={active === item.id ? 'is-active' : ''}
+								className={`admin-statistics-hub-nav-btn${active === item.id ? ' is-active' : ''}`}
 								onClick={() => setActive(item.id)}
 							>
 								{item.label}
@@ -1431,9 +1429,7 @@ const AdminStatisticsHubPage = () => {
 				</aside>
 
 				<section className="admin-statistics-hub-main">
-				{active === 'ai-export' ? (
-					<AIStatisticsExportPanel dateFrom={dateFrom} dateTo={dateTo} />
-				) : active === 'student-progress' ? (
+				{active === 'student-progress' ? (
 					renderStudentProgress()
 				) : active === 'course-progress' ? (
 					renderCourseProgress()

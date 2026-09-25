@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import TopCourses from '../../components/admin/TopCourses';
@@ -32,10 +33,11 @@ const AdminTopCoursesPage = () => {
 				<div>
 					<button 
 						onClick={() => navigate('/admin')}
-						className="btn btn-ghost"
+						className="admin-back-btn"
 						style={{ marginBottom: '1rem' }}
 					>
-						← Înapoi la Dashboard
+						<ArrowLeft size={18} aria-hidden />
+						Înapoi la Dashboard
 					</button>
 					<h1 className="admin-page-title">Top Cursuri</h1>
 					<p className="admin-page-subtitle">Cursurile cu cele mai bune performanțe</p>

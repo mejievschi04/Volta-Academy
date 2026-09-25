@@ -5682,66 +5682,224 @@
 }
 
 .admin-exams-team-access {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	align-items: start;
+	gap: 12px;
 	margin-top: 12px;
 }
 
 .admin-exams-team-access-item {
 	border: 1px solid #e5e7eb;
-	background: #fff;
+	border-radius: 14px;
+	background: #ffffff;
+	box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+	overflow: hidden;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.admin-exams-team-access-item:hover {
+	border-color: #e6d800;
+	transform: translateY(-2px);
+	box-shadow: 0 12px 24px rgba(15, 23, 42, 0.09);
 }
 
 .admin-exams-team-access-item.is-selected {
 	border-color: #0f172a;
+	box-shadow: inset 4px 0 0 #ffee00, 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .admin-exams-team-access-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
-	padding: 10px 12px;
+	gap: 10px;
+	padding: 14px 12px 14px 14px;
 }
 
 .admin-exams-team-access-head label {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	font-weight: 600;
+	gap: 12px;
+	min-width: 0;
+	flex: 1 1 auto;
 	color: #0f172a;
 	cursor: pointer;
 }
 
 .admin-exams-team-access-head input {
+	flex: none;
 	width: 18px;
 	height: 18px;
 	margin: 0;
+	border-radius: 0;
 	accent-color: #0f172a;
 }
 
-.admin-exams-team-access-expand {
-	border: 1px solid #0f172a;
-	background: #fff;
+.admin-exams-team-access-avatar {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 12px;
+	background: #0f172a;
+	color: #ffee00 !important;
+	font-size: 16px;
+	font-weight: 900;
+}
+
+.admin-exams-team-access-item.is-selected .admin-exams-team-access-avatar {
+	background: #ffee00;
+	color: #0f172a !important;
+}
+
+.admin-exams-team-access-copy {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.admin-exams-team-access-copy strong {
+	overflow: hidden;
 	color: #0f172a;
-	min-width: 64px;
-	padding: 6px 10px;
-	font-size: 13px;
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 1.25;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-exams-team-access-copy small {
+	color: #6b7280 !important;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.admin-exams-builder-redesign .admin-exams-team-access-expand,
+.admin-exams-team-access-expand {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px !important;
+	min-width: 32px !important;
+	height: 32px !important;
+	min-height: 32px !important;
+	padding: 0 !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 10px !important;
+	background: #f8fafc !important;
+	color: #0f172a !important;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-exams-team-access-expand:hover {
+	background: #ffee00 !important;
+	border-color: #e6d800 !important;
+}
+
+.va-modal-content.admin-exams-team-modal {
+	width: min(480px, calc(100vw - 32px)) !important;
+	max-width: min(480px, calc(100vw - 32px)) !important;
+	max-height: calc(100vh - 48px) !important;
+	overflow: hidden !important;
+	border-radius: 18px;
+}
+
+.admin-exams-team-modal-body {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr) auto;
+	gap: 14px;
+	max-height: calc(100vh - 48px);
+	padding: 20px;
+	box-sizing: border-box;
+}
+
+.admin-exams-team-modal-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.admin-exams-team-modal-head .admin-exams-team-access-copy strong {
+	font-size: 18px;
+}
+
+.admin-exams-team-modal-head .admin-exams-team-access-avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 14px;
+	font-size: 20px;
+}
+
+.admin-exams-team-modal-enable,
+.admin-exams-team-modal-done {
+	height: 38px;
+	padding: 0 16px;
+	border-radius: 10px;
+	font-size: 14px;
+	font-weight: 800;
 	cursor: pointer;
 }
 
-.admin-exams-team-access-item.is-selected .admin-exams-team-access-expand {
+.admin-exams-team-modal-enable {
+	justify-self: start;
+	border: 1px solid #e6d800;
 	background: #ffee00;
-	border-color: #ffee00;
 	color: #0f172a;
+}
+
+.admin-exams-team-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+html body span.admin-exams-team-access-avatar.admin-exams-team-access-avatar {
+	background: #0f172a !important;
+	color: #ffee00 !important;
+}
+
+html body .admin-exams-team-access-item.is-selected span.admin-exams-team-access-avatar.admin-exams-team-access-avatar {
+	background: #ffee00 !important;
+	color: #0f172a !important;
+}
+
+html body button.admin-exams-team-modal-done.admin-exams-team-modal-done {
+	border: 1px solid #0f172a !important;
+	background: #0f172a !important;
+	color: #ffffff !important;
+}
+
+html body button.admin-exams-team-modal-done.admin-exams-team-modal-done:hover {
+	border-color: #ffee00 !important;
+	background: #111827 !important;
+}
+
+html body button.admin-exams-team-modal-enable.admin-exams-team-modal-enable {
+	border: 1px solid #e6d800 !important;
+	background: #ffee00 !important;
+	color: #0f172a !important;
+}
+
+.admin-exams-team-modal-done {
+	border: 1px solid #0f172a;
+	background: #0f172a;
+	color: #ffffff;
 }
 
 .admin-exams-team-access-members {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	padding: 0 12px 12px 40px;
+	gap: 10px;
+	min-height: 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: #f8fafc;
+	overflow: auto;
 }
 
 .admin-exams-team-access-members label {
@@ -5771,4 +5929,122 @@
 	margin: 0;
 	color: #6b7280;
 	font-size: 13px;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-actions {
+	gap: 10px;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-back-btn,
+.admin-exams-builder-redesign .admin-exams-builder-ghost-btn,
+.admin-exams-builder-redesign .admin-exams-builder-save-btn,
+.admin-exams-builder-redesign .admin-exams-builder-publish {
+	box-sizing: border-box;
+	height: 40px !important;
+	min-height: 40px !important;
+	padding: 0 16px !important;
+	border-radius: 12px !important;
+	font-size: 14px !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+	gap: 8px;
+	transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-back-btn,
+.admin-exams-builder-redesign .admin-exams-builder-ghost-btn {
+	border: 1px solid #0f172a !important;
+	background: #0f172a !important;
+	color: #ffffff !important;
+	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-back-btn svg,
+.admin-exams-builder-redesign .admin-exams-builder-ghost-btn svg {
+	color: #ffee00 !important;
+	stroke: #ffee00 !important;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-back-btn:hover,
+.admin-exams-builder-redesign .admin-exams-builder-ghost-btn:hover:not(:disabled) {
+	background: #111827 !important;
+	border-color: #ffee00 !important;
+	transform: translateY(-1px);
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-save-btn {
+	border: 1px solid #e6d800 !important;
+	background: #ffee00 !important;
+	color: #0f172a !important;
+	box-shadow: 0 8px 18px rgba(230, 216, 0, 0.35);
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-save-btn svg {
+	color: #0f172a !important;
+	stroke: #0f172a !important;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-save-btn:hover:not(:disabled) {
+	background: #fff066 !important;
+	transform: translateY(-1px);
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-ghost-btn:disabled,
+.admin-exams-builder-redesign .admin-exams-builder-save-btn:disabled {
+	opacity: 0.5;
+	transform: none;
+	box-shadow: none;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 6px 0 14px !important;
+	border: 1px solid #e5e7eb !important;
+	background: #f8fafc !important;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	color: #6b7280 !important;
+	font-weight: 800;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish > span::before {
+	content: '';
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #9ca3af;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish.is-published {
+	border-color: #0f172a !important;
+	background: #0f172a !important;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish.is-published > span {
+	color: #ffffff !important;
+}
+
+.admin-exams-builder-redesign .admin-exams-builder-publish.is-published > span::before {
+	background: #ffee00;
+	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.25);
+}
+
+[data-theme='dark'] .admin-exams-builder-redesign .admin-exams-builder-publish:not(.is-published) {
+	border-color: #374151 !important;
+	background: #111827 !important;
+}
+
+[data-theme='dark'] .admin-exams-builder-redesign .admin-exams-builder-publish:not(.is-published) > span {
+	color: #9ca3af !important;
+}
+
+[data-theme='dark'] .admin-exams-builder-redesign .admin-exams-builder-back-btn,
+[data-theme='dark'] .admin-exams-builder-redesign .admin-exams-builder-ghost-btn {
+	border-color: #374151 !important;
+	background: #111827 !important;
 }

@@ -348,7 +348,7 @@ const QuestionBankBuilder = () => {
 				<div className="admin-course-builder-header-left">
 					<button
 						type="button"
-						className="admin-course-builder-back"
+						className="admin-course-builder-back admin-back-btn"
 						onClick={() => navigate('/admin/question-banks')}
 						aria-label="Înapoi la băncile de întrebări"
 						title="Înapoi la lista de bănci"

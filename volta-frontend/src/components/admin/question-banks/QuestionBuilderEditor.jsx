@@ -4,11 +4,11 @@ import { selectAllTextInputHandlers } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
 
 const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B' },
-  { id: 'single_choice', label: 'Raspuns unic', short: '1' },
-  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F' },
-  { id: 'matching', label: 'Potrivire', short: '<->' },
-  { id: 'ordering', label: 'Ordonare', short: '1-4' },
+  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B', hint: 'Mai multe corecte', bits: ['is-on', 'is-on', ''] },
+  { id: 'single_choice', label: 'Raspuns unic', short: '1', hint: 'O singură corectă', bits: ['is-on', '', ''] },
+  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F', hint: 'Două variante', bits: ['is-on', ''] },
+  { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Leagă perechile', bits: ['is-on', 'is-on'] },
+  { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Pune în ordine', bits: ['is-on', 'is-on', ''] },
 ];
 
 const normalizeType = (type) => {
@@ -332,8 +332,14 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
               className={`admin-course-builder-test-type-card ${currentType === typeOpt.id ? 'is-active' : ''}`}
               onClick={() => setType(typeOpt.id)}
             >
+              <span className={`qb-type-preview is-${typeOpt.id}`} aria-hidden="true">
+                {typeOpt.bits.map((state, index) => (
+                  <i key={`${typeOpt.id}-${index}`} className={state} />
+                ))}
+              </span>
               <span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
               <span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
+              <span className="qb-type-hint">{typeOpt.hint}</span>
             </button>
           ))}
         </div>

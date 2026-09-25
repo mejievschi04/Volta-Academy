@@ -399,7 +399,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
     <div className="qb-page qb-page-v2 qb-folder-detail-page">
       <div className="qb-shell qb-shell-detail">
         <header className="qb-detail-hero">
-          <Link to="/admin/question-banks" className="qb-back-btn qb-detail-back">
+          <Link to="/admin/question-banks" className="qb-back-btn qb-detail-back admin-back-btn">
             <ArrowLeft size={18} aria-hidden />
             Înapoi
           </Link>

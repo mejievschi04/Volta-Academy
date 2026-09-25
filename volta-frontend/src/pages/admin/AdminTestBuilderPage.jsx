@@ -75,7 +75,7 @@ export default function AdminTestBuilderPage() {
     return (
       <div className="admin-container admin-test-builder-page">
         <p>ID test invalid.</p>
-        <button type="button" className="admin-btn admin-btn-secondary" onClick={handleBack}>
+        <button type="button" className="admin-back-btn" onClick={handleBack}>
           Înapoi
         </button>
       </div>
@@ -100,7 +100,7 @@ export default function AdminTestBuilderPage() {
       }`}
     >
       <div className="admin-test-builder-topbar">
-        <button type="button" className="admin-test-builder-back" onClick={handleBack}>
+        <button type="button" className="admin-test-builder-back admin-back-btn" onClick={handleBack}>
           <ArrowLeft size={18} weight="bold" aria-hidden />
           Înapoi la Teste
         </button>

@@ -438,6 +438,7 @@ const QuizPage = () => {
 				{/* Quiz Header */}
 				<div style={{ marginBottom: '2rem' }}>
 					<div className="va-course-hero-content">
+						{(saved || submitted) ? (
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
 							<h1 className="va-page-title">
 								{quiz.title || 'Test final'}
@@ -473,6 +474,7 @@ const QuizPage = () => {
 								</div>
 							)}
 						</div>
+						) : null}
 
 						{/* Pre-Quiz Overview */}
 						{!submitted && !saved && quiz.questions && (

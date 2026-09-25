@@ -162,19 +162,21 @@ export default function AdminExamManualReviewPanel() {
 					<h2>Examene</h2>
 					<p>Lucrări în așteptare cu întrebări deschise — notezi manual și salvezi feedback-ul.</p>
 				</div>
-				<button type="button" className="admin-exams-section-refresh-btn" onClick={() => loadPending()} disabled={loading}>
-					{loading ? 'Se încarcă…' : 'Reîmprospătează'}
-				</button>
-				{canMutateInAdminArea ? (
-					<button
-						type="button"
-						className="admin-exams-section-refresh-btn"
-						onClick={handleClearPending}
-						disabled={loading || clearing}
-					>
-						{clearing ? 'Se golește…' : 'Golire'}
+				<div className="admin-manual-review-toolbar">
+					<button type="button" className="admin-manual-review-refresh-btn" onClick={() => loadPending()} disabled={loading}>
+						{loading ? 'Se încarcă…' : 'Reîmprospătează'}
 					</button>
-				) : null}
+					{canMutateInAdminArea ? (
+						<button
+							type="button"
+							className="admin-manual-review-clear-danger"
+							onClick={handleClearPending}
+							disabled={loading || clearing}
+						>
+							{clearing ? 'Se golește…' : 'Golire'}
+						</button>
+					) : null}
+				</div>
 			</div>
 
 			<section className="admin-tests-pending-section" aria-label="Coadă examene">
@@ -194,7 +196,7 @@ export default function AdminExamManualReviewPanel() {
 									</span>
 								</div>
 								{canMutateInAdminArea ? (
-									<button type="button" className="admin-tests-pending-verify" onClick={() => openManualReviewModal(row)}>
+									<button type="button" className="admin-tests-pending-verify admin-manual-review-verify-btn" onClick={() => openManualReviewModal(row)}>
 										Verifică
 									</button>
 								) : null}

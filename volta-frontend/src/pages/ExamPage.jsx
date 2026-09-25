@@ -738,7 +738,7 @@ const ExamPage = () => {
 			{!(isMobile && submitted && result) && (
 			<div className="student-exam-header student-exam-header-compact">
 				<div className="student-exam-header-row">
-					<h1 className="student-exam-title">{exam.title}</h1>
+					{submitted ? <h1 className="student-exam-title">{exam.title}</h1> : null}
 					{timeRemaining !== null && !submitted && (
 						<div className={`student-exam-timer ${timeRemaining < 300 ? 'student-exam-timer-warning' : ''}`}>
 							<span className="student-exam-timer-value">{formatTime(timeRemaining)}</span>

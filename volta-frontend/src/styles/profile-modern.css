@@ -1253,6 +1253,176 @@
 	}
 }
 
+.va-profile-section-admin-courses .va-courses-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 12px;
+	align-items: stretch;
+}
+
+html body .va-profile-section-admin-courses .va-course-card.va-course-card-admin {
+	--course-card-accent: #9ca3af;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 100%;
+	padding: 16px !important;
+	border: 1px solid var(--border-primary) !important;
+	border-radius: 12px !important;
+	background: var(--bg-elevated) !important;
+	box-shadow: none !important;
+	transform: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html body .va-profile-section-admin-courses .va-course-card.va-course-card-admin::before {
+	content: none;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-admin:has(.is-in_progress) {
+	--course-card-accent: #e6d800;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-admin:has(.is-completed) {
+	--course-card-accent: #0f172a;
+}
+
+html body .va-profile-section-admin-courses .va-course-card.va-course-card-admin:hover {
+	border-color: color-mix(in srgb, var(--color-primary) 28%, var(--border-primary)) !important;
+	box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+	transform: none;
+}
+
+.va-profile-section-admin-courses .va-course-card-header {
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-title {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	color: var(--text-primary) !important;
+	font-size: 0.95rem;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-description {
+	margin: 0;
+	-webkit-line-clamp: 2;
+	color: var(--text-secondary) !important;
+	font-size: 0.78rem;
+	line-height: 1.4;
+}
+
+html body .va-profile-section-admin-courses .va-course-status-badge {
+	flex-shrink: 0;
+	padding: 3px 8px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--course-card-accent) 12%, transparent) !important;
+	color: var(--course-card-accent) !important;
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+html body .va-profile-section-admin-courses .va-course-status-badge.is-in_progress {
+	background: rgba(255, 238, 0, 0.22) !important;
+	color: #0f172a !important;
+}
+
+.va-profile-section-admin-courses .va-course-card-progress-bar {
+	height: 4px;
+	margin: 4px 0 0;
+	background: var(--bg-secondary);
+}
+
+.va-profile-section-admin-courses .va-course-card-progress-fill {
+	background: #ffee00;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	margin: 0;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-meta span {
+	color: var(--text-tertiary) !important;
+	font-size: 0.75rem;
+	line-height: 1.4;
+}
+
+.va-profile-section-admin-courses .va-course-card-tests {
+	margin: 4px 0 0;
+}
+
+.va-profile-section-admin-courses .va-course-card-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 10px;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-actions > a,
+html body .va-profile-section-admin-courses .va-course-card-actions > button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 40px;
+	padding: 10px 14px;
+	border: 1px solid rgba(0, 0, 0, 0.14) !important;
+	border-radius: 8px !important;
+	background-color: rgb(255, 238, 0) !important;
+	color: #000000 !important;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+	font-size: 0.84rem;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 0.01em;
+	text-decoration: none !important;
+	cursor: pointer;
+	transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-actions > a:hover,
+html body .va-profile-section-admin-courses .va-course-card-actions > button:hover:not(:disabled) {
+	background-color: rgb(230, 216, 0) !important;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14) !important;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-actions > a:active,
+html body .va-profile-section-admin-courses .va-course-card-actions > button:active:not(:disabled) {
+	transform: translateY(1px);
+}
+
+html body .va-profile-section-admin-courses .va-course-card-actions > a + button {
+	min-height: 36px;
+	border-color: var(--border-secondary) !important;
+	background-color: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+	font-size: 0.78rem;
+	font-weight: 600;
+}
+
+html body .va-profile-section-admin-courses .va-course-card-actions > a + button:hover:not(:disabled) {
+	background-color: var(--bg-tertiary) !important;
+}
+
+@media (max-width: 640px) {
+	.va-profile-section-admin-courses .va-courses-list {
+		grid-template-columns: 1fr;
+	}
+}
+
 .va-student-activity-page-info {
 	font-size: 0.875rem;
 	color: var(--text-secondary);

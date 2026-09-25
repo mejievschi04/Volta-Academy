@@ -1,6 +1,7 @@
 import '../styles/profile-modern.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { profileService, adminService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
@@ -330,10 +331,11 @@ const ProfilePage = () => {
 			{isViewingOtherUser && (
 				<div className="va-profile-back-button">
 					<button
+						type="button"
 						onClick={() => navigate('/admin/users')}
-						className="lms-btn-secondary"
+						className="admin-back-btn"
 					>
-						<span>←</span>
+						<ArrowLeft size={18} aria-hidden />
 						<span>Înapoi la Utilizatori</span>
 					</button>
 				</div>

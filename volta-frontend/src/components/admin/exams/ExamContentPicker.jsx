@@ -59,6 +59,7 @@ export default function ExamContentPicker({
   const [starringId, setStarringId] = useState(null);
   const [editorQuestion, setEditorQuestion] = useState(null);
   const [editorSaving, setEditorSaving] = useState(false);
+  const [poolSearch, setPoolSearch] = useState('');
 
   const selectedIds = useMemo(
     () => (Array.isArray(examSettings.selectedQuestionIds) ? examSettings.selectedQuestionIds.map(Number) : []),
@@ -75,6 +76,17 @@ export default function ExamContentPicker({
     [folderQuestions, folderQuery],
   );
   const folderPool = selectedFolders.reduce((sum, bank) => sum + Number(bank.questions_count || 0), 0);
+  const poolQuery = poolSearch.trim().toLowerCase();
+  const visiblePoolItems = useMemo(() => {
+    const rows = selectedQuestionItems.map((item, index) => ({ item, index }));
+    if (!poolQuery) return rows;
+    return rows.filter(({ item }) => {
+      const text = stripHtml(item.content || '').toLowerCase();
+      const type = (QUESTION_TYPE_LABELS[item.type] || item.type || '').toLowerCase();
+      const origin = String(item.origin || '').toLowerCase();
+      return text.includes(poolQuery) || type.includes(poolQuery) || origin.includes(poolQuery);
+    });
+  }, [selectedQuestionItems, poolQuery]);
   const examCount = Math.min(
     Math.max(1, Number(examSettings.questionCount || 1)),
     Math.max(1, selectionMode === 'questions' ? selectedIds.length || 1 : Number(examSettings.questionCount || 1)),
@@ -246,7 +258,7 @@ export default function ExamContentPicker({
           <p className="exam-picker-kicker">Conținut examen</p>
           <h3>Ce întrebări intră în examen?</h3>
           <p className="exam-picker-lead">
-            Alegi pool-ul. Steaua o pui pe întrebările deja selectate: cele cu stea apar la toți, restul se trag random. Click pe o întrebare o deschide aici, ca să o editezi.
+            Alegi întrebările din care se formează testul. Steaua o pui pe întrebările deja selectate: cele cu stea apar la toți, restul se trag random. Click pe o întrebare o deschide aici, ca să o editezi.
           </p>
         </div>
         <div className="exam-picker-head-count" aria-live="polite">
@@ -315,7 +327,7 @@ export default function ExamContentPicker({
                   <div className="exam-picker-folder-browser">
                     {folderLevel === 'questions' ? (
                       <div className="qb-catalog-nav">
-                        <button type="button" className="lms-btn-secondary" onClick={closeFolder}>
+                        <button type="button" className="admin-back-btn" onClick={closeFolder}>
                           <ArrowLeft size={16} aria-hidden />
                           Înapoi la foldere
                         </button>
@@ -523,9 +535,9 @@ export default function ExamContentPicker({
             <>
               <div className="exam-picker-tray-top">
                 <div className="exam-picker-tray-head">
-                  <h4>Pool · {selectedQuestionItems.length}</h4>
+                  <h4>Întrebări selectate · {selectedQuestionItems.length}</h4>
                   {selectedQuestionItems.length > 0 && canMutate ? (
-                    <button type="button" className="lms-btn-secondary" onClick={onClearQuestions}>
+                    <button type="button" className="exam-picker-clear-danger" onClick={onClearQuestions}>
                       Golește
                     </button>
                   ) : null}
@@ -558,13 +570,26 @@ export default function ExamContentPicker({
                 </div>
                 {selectedIds.length > 0 && Number(examSettings.questionCount || 0) > selectedIds.length ? (
                   <p className="exam-picker-warning">
-                    Ai cerut {examSettings.questionCount} întrebări, dar pool-ul are doar {selectedIds.length}.
+                    Ai cerut {examSettings.questionCount} întrebări, dar ai selectat doar {selectedIds.length}.
                   </p>
+                ) : null}
+                {selectedQuestionItems.length > 0 ? (
+                  <div className="qb-search-field exam-picker-pool-search">
+                    <Search size={18} aria-hidden />
+                    <input
+                      className="admin-form-input qb-search-input"
+                      type="search"
+                      placeholder="Caută în întrebările selectate"
+                      value={poolSearch}
+                      onChange={(e) => setPoolSearch(e.target.value)}
+                    />
+                  </div>
                 ) : null}
               </div>
               {selectedQuestionItems.length ? (
+                visiblePoolItems.length ? (
                 <ul className="exam-picker-tray-list">
-                  {selectedQuestionItems.map((item, index) => (
+                  {visiblePoolItems.map(({ item, index }) => (
                     <li key={item.id} className="is-question">
                       <span className="exam-picker-tray-index">{index + 1}</span>
                       {canMutate ? (
@@ -596,6 +621,9 @@ export default function ExamContentPicker({
                     </li>
                   ))}
                 </ul>
+                ) : (
+                  <p className="exam-picker-tray-empty">Nicio întrebare nu se potrivește cu „{poolSearch.trim()}”.</p>
+                )
               ) : (
                 <p className="exam-picker-tray-empty">
                   Nicio întrebare încă. Intră într-un test și bifează, sau apasă „Adaugă toate”.
@@ -609,7 +637,7 @@ export default function ExamContentPicker({
                 {selectedFolders.length > 0 && canMutate ? (
                   <button
                     type="button"
-                    className="lms-btn-secondary"
+                    className="exam-picker-clear-danger"
                     onClick={() => setExamSettings((prev) => ({ ...prev, selectedFolderIds: [], contentBankId: null }))}
                   >
                     Golește
@@ -668,6 +696,7 @@ export default function ExamContentPicker({
         closeOnBackdropClick
         closeOnEscape
         ariaLabelledby="exam-question-editor-title"
+        contentClassName="exam-question-editor-modal"
       >
         <div className="qb-modal qb-modal-question-editor">
           <h3 id="exam-question-editor-title">Editează întrebarea</h3>

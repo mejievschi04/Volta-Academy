@@ -1607,7 +1607,7 @@ const AdminCourseBuilderPage = () => {
 							<div className="admin-course-builder-sidebar-course-head">
 								<button
 									type="button"
-									className="admin-course-builder-back"
+									className="admin-course-builder-back admin-back-btn"
 									onClick={handleLeaveBuilder}
 								>
 									<ArrowLeft size={14} weight="bold" color="currentColor" aria-hidden /> Cursuri

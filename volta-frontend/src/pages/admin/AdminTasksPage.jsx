@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 /**
@@ -14,10 +15,11 @@ const AdminTasksPage = () => {
 					<button
 						type="button"
 						onClick={() => navigate('/admin')}
-						className="lms-btn-secondary"
+						className="admin-back-btn"
 						style={{ marginBottom: 'var(--space-4)' }}
 					>
-						← Înapoi la Dashboard
+						<ArrowLeft size={18} aria-hidden />
+						Înapoi la Dashboard
 					</button>
 					<h1 className="admin-page-title">Taskuri</h1>
 					<p className="admin-page-subtitle">Verificări și urmăriri rapide</p>

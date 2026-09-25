@@ -30,10 +30,20 @@ export default function AdminManualReviewPage() {
 			</header>
 
 			<nav className="admin-manual-review-kind-tabs" aria-label="Tip conținut">
-				<button type="button" className={kind === 'exams' ? 'is-active' : ''} onClick={() => setKind('exams')}>
+				<button
+					type="button"
+					className={`admin-manual-review-kind-btn${kind === 'exams' ? ' is-active' : ''}`}
+					aria-pressed={kind === 'exams'}
+					onClick={() => setKind('exams')}
+				>
 					Examene
 				</button>
-				<button type="button" className={kind === 'tests' ? 'is-active' : ''} onClick={() => setKind('tests')}>
+				<button
+					type="button"
+					className={`admin-manual-review-kind-btn${kind === 'tests' ? ' is-active' : ''}`}
+					aria-pressed={kind === 'tests'}
+					onClick={() => setKind('tests')}
+				>
 					Teste
 				</button>
 			</nav>

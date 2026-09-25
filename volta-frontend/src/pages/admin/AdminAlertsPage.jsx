@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import AlertsSection from '../../components/admin/AlertsSection';
@@ -48,10 +49,11 @@ const AdminAlertsPage = () => {
 				<div>
 					<button 
 						onClick={() => navigate('/admin')}
-						className="lms-btn-secondary"
+						className="admin-back-btn"
 						style={{ marginBottom: 'var(--space-4)' }}
 					>
-						← Înapoi la Dashboard
+						<ArrowLeft size={18} aria-hidden />
+						Înapoi la Dashboard
 					</button>
 					<h1 className="admin-page-title">Alerte</h1>
 					<p className="admin-page-subtitle">Acțiuni care necesită atenție</p>

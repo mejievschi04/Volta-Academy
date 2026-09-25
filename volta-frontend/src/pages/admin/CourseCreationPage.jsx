@@ -88,7 +88,7 @@ const CourseCreationPage = () => {
 				<header className="course-creation-simple-header">
 					<button
 						type="button"
-						className="course-creation-simple-back"
+						className="course-creation-simple-back admin-back-btn"
 						onClick={() => navigate('/admin/courses')}
 						aria-label="Înapoi la cursuri"
 					>
