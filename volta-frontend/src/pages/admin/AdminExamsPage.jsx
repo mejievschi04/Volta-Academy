@@ -565,11 +565,9 @@ export default function AdminExamsPage() {
       }))
       .filter((question) => Number.isFinite(question.id));
     if (!incoming.length) return 0;
-    let added = 0;
     setExamSettings((prev) => {
       const have = new Set((prev.selectedQuestionIds || []).map(Number));
       const extraIds = incoming.filter((question) => !have.has(question.id)).map((question) => question.id);
-      added = extraIds.length;
       if (!extraIds.length) return prev;
       const selectedQuestionIds = [...(prev.selectedQuestionIds || []), ...extraIds];
       return {

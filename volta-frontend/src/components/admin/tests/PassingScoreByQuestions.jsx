@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import './PassingScoreByQuestions.css';
 
-export function passingPercentFromCounts(required, total) {
+function passingPercentFromCounts(required, total) {
   const t = Math.max(1, Number(total) || 1);
   const r = Math.min(t, Math.max(0, Number(required) || 0));
   return Math.round((r / t) * 100);
 }
 
-export function requiredCountFromPercent(percent, total) {
+function requiredCountFromPercent(percent, total) {
   const t = Math.max(1, Number(total) || 1);
   const pct = Math.min(100, Math.max(0, Number(percent) || 0));
   return Math.min(t, Math.max(0, Math.round((pct / 100) * t)));
