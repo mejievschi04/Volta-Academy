@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import './PassingScoreByQuestions.css';
 
 function passingPercentFromCounts(required, total) {
@@ -21,12 +21,13 @@ export default function PassingScoreByQuestions({
 }) {
   const derivedTotal = Math.max(1, Number(questionCount) || 10);
   const [total, setTotal] = useState(derivedTotal);
+  const [syncedQuestionCount, setSyncedQuestionCount] = useState(questionCount);
+  if (syncedQuestionCount !== questionCount) {
+    setSyncedQuestionCount(questionCount);
+    setTotal(derivedTotal);
+  }
   const required = requiredCountFromPercent(passingScore, total);
   const percent = passingPercentFromCounts(required, total);
-
-  useEffect(() => {
-    setTotal(Math.max(1, Number(questionCount) || 10));
-  }, [questionCount]);
 
   const commit = (nextRequired, nextTotal) => {
     const t = Math.max(1, Number(nextTotal) || 1);
