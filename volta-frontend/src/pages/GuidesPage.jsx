@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { guidesService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { LinkSimple, Plus } from '@phosphor-icons/react';
+import { ImageSquare, LinkSimple, Plus } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import '../styles/guides-page.css';
 
@@ -52,6 +52,25 @@ const GuidesPage = () => {
 	const [editingItem, setEditingItem] = useState(null);
 	const [form, setForm] = useState(emptyForm);
 	const [removeCover, setRemoveCover] = useState(false);
+	const coverInputRef = useRef(null);
+
+	const selectedCoverUrl = useMemo(() => (form.cover ? URL.createObjectURL(form.cover) : null), [form.cover]);
+	useEffect(() => () => {
+		if (selectedCoverUrl) URL.revokeObjectURL(selectedCoverUrl);
+	}, [selectedCoverUrl]);
+	const existingCoverUrl = editingItem?.cover_image_url && !removeCover
+		? (toImageUrl(editingItem.cover_image_url) || editingItem.cover_image_url)
+		: null;
+	const coverPreview = selectedCoverUrl || existingCoverUrl;
+
+	const clearCover = () => {
+		if (coverInputRef.current) coverInputRef.current.value = '';
+		if (form.cover) {
+			setForm((f) => ({ ...f, cover: null }));
+		} else {
+			setRemoveCover(true);
+		}
+	};
 
 	const actualRole = user?.actualRole ?? user?.role ?? 'student';
 	const canManage = actualRole === 'admin' || actualRole === 'instructor';
@@ -383,26 +402,48 @@ const GuidesPage = () => {
 							/>
 						</div>
 						<div className="library-form-row">
-							<label htmlFor="guide-cover">Copertă (opțional)</label>
+							<span className="library-form-label" id="guide-cover-label">Copertă (opțional)</span>
 							<input
+								ref={coverInputRef}
 								id="guide-cover"
 								type="file"
+								className="library-file-input-hidden"
 								accept="image/jpeg,image/png,image/webp"
+								aria-labelledby="guide-cover-label"
 								onChange={(e) => {
 									setForm((f) => ({ ...f, cover: e.target.files?.[0] || null }));
 									setRemoveCover(false);
 								}}
 							/>
-							{editingItem?.cover_image_url && !form.cover && !removeCover ? (
-								<label className="guides-remove-cover">
-									<input
-										type="checkbox"
-										checked={removeCover}
-										onChange={(e) => setRemoveCover(e.target.checked)}
-									/>
-									Elimină coperta existentă
-								</label>
-							) : null}
+							<div className={`guides-cover-picker${coverPreview ? ' has-image' : ''}`}>
+								<div className="guides-cover-picker-thumb" aria-hidden>
+									{coverPreview ? <img src={coverPreview} alt="" /> : <ImageSquare size={28} weight="duotone" />}
+								</div>
+								<div className="guides-cover-picker-copy">
+									<strong>
+										{form.cover ? form.cover.name : coverPreview ? 'Copertă curentă' : 'Nicio copertă aleasă'}
+									</strong>
+									<span>JPG, PNG sau WEBP</span>
+								</div>
+								<div className="guides-cover-picker-actions">
+									<button
+										type="button"
+										className="library-btn library-btn--secondary"
+										onClick={() => coverInputRef.current?.click()}
+									>
+										{coverPreview ? 'Schimbă' : 'Alege imagine'}
+									</button>
+									{coverPreview ? (
+										<button
+											type="button"
+											className="library-btn library-btn--danger"
+											onClick={clearCover}
+										>
+											Elimină
+										</button>
+									) : null}
+								</div>
+							</div>
 						</div>
 						<div className="library-upload-modal-actions">
 							<button type="button" className="library-btn library-btn--secondary" onClick={closeModal} disabled={saving}>
