@@ -399,6 +399,7 @@ Route::middleware([
     Route::put('/users/{id}', [UserAdminController::class, 'update']);
     Route::delete('/users/{id}', [UserAdminController::class, 'destroy']);
     Route::post('/users/{id}/restore', [UserAdminController::class, 'restore']);
+    Route::delete('/users/{id}/force', [UserAdminController::class, 'forceDestroy']);
     Route::post('/users/{id}/send-invitation', [UserAdminController::class, 'sendInvitation'])->middleware('throttle:6,1');
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);

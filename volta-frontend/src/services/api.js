@@ -1279,6 +1279,11 @@ export const adminService = {
     return response.data;
   },
 
+  forceDeleteUser: async (id) => {
+    const response = await api.delete(`/admin/users/${id}/force`);
+    return response.data;
+  },
+
   sendExistingUserInvitation: async (id) => {
     const response = await api.post(`/admin/users/${id}/send-invitation`);
     return response.data;

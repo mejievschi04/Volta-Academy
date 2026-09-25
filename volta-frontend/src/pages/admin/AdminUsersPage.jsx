@@ -206,12 +206,21 @@ const AdminUsersPage = () => {
 		setConfirmAction({ type: 'trash', userId: id });
 	};
 
+	const handleForceDeleteClick = (id) => {
+		setConfirmAction({ type: 'force', userId: id });
+	};
+
 	const handleConfirmDelete = async () => {
 		if (!confirmAction?.userId) return;
+		const isForce = confirmAction.type === 'force';
 		setConfirmLoading(true);
 		try {
-			await adminService.deleteUser(confirmAction.userId);
-			showSuccess('Utilizator mutat în coș');
+			if (isForce) {
+				await adminService.forceDeleteUser(confirmAction.userId);
+			} else {
+				await adminService.deleteUser(confirmAction.userId);
+			}
+			showSuccess(isForce ? 'Utilizator șters definitiv' : 'Utilizator mutat în coș');
 			setConfirmAction(null);
 			fetchUsers();
 		} catch (err) {
@@ -555,16 +564,28 @@ const AdminUsersPage = () => {
 												{!canMutateInAdminArea ? (
 													<span className="admin-users-table-cell-muted">—</span>
 												) : usersView === 'trash' ? (
-													<button title="Restabilește utilizatorul" aria-label={`Restabilește utilizatorul: ${user.name}`}
-														type="button"
-														className="lms-btn-primary lms-btn-sm admin-users-action-compact"
-														onClick={(e) => {
-															e.stopPropagation();
-															handleRestore(user.id);
-														}}
-													>
-														<ArrowCounterClockwise size={18} weight="bold" aria-hidden="true" />
-													</button>
+													<>
+														<button title="Restabilește utilizatorul" aria-label={`Restabilește utilizatorul: ${user.name}`}
+															type="button"
+															className="lms-btn-primary lms-btn-sm admin-users-action-compact"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleRestore(user.id);
+															}}
+														>
+															<ArrowCounterClockwise size={18} weight="bold" aria-hidden="true" />
+														</button>
+														<button title="Șterge definitiv" aria-label={`Șterge definitiv utilizatorul: ${user.name}`}
+															type="button"
+															className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleForceDeleteClick(user.id);
+															}}
+														>
+															<Trash size={18} weight="bold" aria-hidden="true" />
+														</button>
+													</>
 												) : (user.status || 'active') === 'pending' ? (
 													<>
 														<button title="Aprobă utilizatorul" aria-label={`Aprobă utilizatorul: ${user.name}`}
@@ -812,11 +833,17 @@ const AdminUsersPage = () => {
 				open={!!confirmAction}
 				onClose={() => setConfirmAction(null)}
 				onConfirm={confirmAction?.type === 'reject' ? handleConfirmReject : handleConfirmDelete}
-				title={confirmAction?.type === 'reject' ? 'Respinge cerere' : 'Mutare în coș'}
+				title={confirmAction?.type === 'reject'
+					? 'Respinge cerere'
+					: confirmAction?.type === 'force' ? 'Ștergere definitivă' : 'Mutare în coș'}
 				message={confirmAction?.type === 'reject'
 					? 'Sigur dorești să respingi această cerere? Utilizatorul va fi șters.'
-					: 'Utilizatorul va fi mutat în coș și poate fi restabilit ulterior cu tot progresul. Continuă?'}
-				confirmLabel={confirmAction?.type === 'reject' ? 'Respinge' : 'Mută în coș'}
+					: confirmAction?.type === 'force'
+						? 'Utilizatorul și tot progresul lui (rezultate, lecții, mesaje) vor fi șterse definitiv. Cursurile, testele și echipele create de el trec pe contul tău. Acțiunea nu poate fi anulată.'
+						: 'Utilizatorul va fi mutat în coș și poate fi restabilit ulterior cu tot progresul. Continuă?'}
+				confirmLabel={confirmAction?.type === 'reject'
+					? 'Respinge'
+					: confirmAction?.type === 'force' ? 'Șterge definitiv' : 'Mută în coș'}
 				cancelLabel="Anulare"
 				variant="danger"
 				loading={confirmLoading}

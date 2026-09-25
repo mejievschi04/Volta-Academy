@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class UserAdminController extends Controller
 {
@@ -319,6 +320,48 @@ class UserAdminController extends Controller
         return response()->json([
             'message' => 'Utilizator restabilit cu succes',
             'user' => $user->load($this->eagerLoadTeamsCoursesAssigned()),
+        ]);
+    }
+
+    /**
+     * Ștergere definitivă din coș. Progresul utilizatorului se șterge prin cascadă;
+     * conținutul creat de el (cursuri, teste, bănci, echipe) este transferat adminului curent,
+     * altfel cheile străine cu cascade l-ar șterge.
+     */
+    public function forceDestroy($id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+        $adminId = Auth::id();
+        if ($user->id === $adminId) {
+            return response()->json(['message' => 'Nu te poți șterge pe tine însuți.'], 422);
+        }
+
+        $ownedContent = [
+            'courses' => 'teacher_id',
+            'tests' => 'created_by',
+            'question_banks' => 'created_by',
+            'teams' => 'owner_id',
+        ];
+
+        $email = $user->email;
+
+        DB::transaction(function () use ($user, $adminId, $ownedContent) {
+            foreach ($ownedContent as $table => $column) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, $column)) {
+                    DB::table($table)->where($column, $user->id)->update([$column => $adminId]);
+                }
+            }
+            $user->forceDelete();
+        });
+
+        Log::info('Admin permanently deleted user', [
+            'admin_id' => $adminId,
+            'deleted_user_id' => (int) $id,
+            'deleted_email' => $email,
+        ]);
+
+        return response()->json([
+            'message' => 'Utilizator șters definitiv',
         ]);
     }
 
