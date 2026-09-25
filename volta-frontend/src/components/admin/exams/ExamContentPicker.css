@@ -90,9 +90,9 @@
 
 .exam-picker-split {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	gap: 12px;
-	align-items: start;
+	align-items: stretch;
 	min-height: min(68vh, 720px);
 }
 
@@ -415,8 +415,10 @@
 .exam-picker-tray-open strong,
 .exam-picker-tray-open small {
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	white-space: normal;
 }
 
 .exam-picker-tray-open small {

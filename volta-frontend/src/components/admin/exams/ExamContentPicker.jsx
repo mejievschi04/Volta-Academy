@@ -4,7 +4,9 @@ import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import QuestionCatalogByMap, { CatalogGroupCard } from '../question-banks/QuestionCatalogByMap';
 import QuestionRow from '../question-banks/QuestionRow';
+import QuestionBuilderEditor from '../question-banks/QuestionBuilderEditor';
 import Drawer from '../question-banks/Drawer';
+import Modal from '../../common/Modal';
 import '../../../pages/admin/AdminQuestionBanksPage.css';
 import './ExamContentPicker.css';
 
@@ -55,6 +57,8 @@ export default function ExamContentPicker({
   const [drawerQuestion, setDrawerQuestion] = useState(null);
   const [addingFolderId, setAddingFolderId] = useState(null);
   const [starringId, setStarringId] = useState(null);
+  const [editorQuestion, setEditorQuestion] = useState(null);
+  const [editorSaving, setEditorSaving] = useState(false);
 
   const selectedIds = useMemo(
     () => (Array.isArray(examSettings.selectedQuestionIds) ? examSettings.selectedQuestionIds.map(Number) : []),
@@ -164,18 +168,65 @@ export default function ExamContentPicker({
     }
   };
 
-  const openSelectedInTest = (item) => {
-    const testId = Number(item?.testId || 0);
-    if (testId > 0) {
-      window.open(`/admin/tests/${testId}/builder?section=questions&question=${item.id}`, '_blank', 'noopener');
+  const openSelectedQuestion = async (item) => {
+    setEditorSaving(false);
+    setEditorQuestion({
+      id: item.id,
+      type: item.type || 'single_choice',
+      content: item.content || '',
+      explanation: '',
+      points: 1,
+      answers: [],
+    });
+    try {
+      const payload = await adminService.listQuestions({ ids: String(item.id), per_page: 1 });
+      const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+      const question = rows.find((row) => Number(row.id) === Number(item.id)) || rows[0];
+      if (!question) {
+        error('Nu am găsit întrebarea.');
+        setEditorQuestion(null);
+        return;
+      }
+      const answers = Array.isArray(question.answers) ? question.answers : [];
+      setEditorQuestion({
+        id: question.id,
+        type: question.type || 'single_choice',
+        content: question.content || '',
+        explanation: question.explanation || '',
+        points: Number(question.points) > 0 ? Number(question.points) : 1,
+        answers,
+      });
+    } catch {
+      error('Nu am putut deschide întrebarea.');
+      setEditorQuestion(null);
+    }
+  };
+
+  const saveEditorQuestion = async () => {
+    if (!editorQuestion?.content?.trim()) {
+      error('Întrebarea este obligatorie.');
       return;
     }
-    const bankId = Number(item?.bankId || 0);
-    if (bankId > 0) {
-      window.open(`/admin/question-banks/${bankId}`, '_blank', 'noopener');
-      return;
+    setEditorSaving(true);
+    try {
+      await adminService.updateQuestion(editorQuestion.id, {
+        type: editorQuestion.type,
+        content: editorQuestion.content,
+        explanation: editorQuestion.explanation || null,
+        answers: editorQuestion.answers || [],
+        points: Number(editorQuestion.points) > 0 ? Number(editorQuestion.points) : 1,
+      });
+      onPatchSelectedQuestion?.(editorQuestion.id, {
+        content: editorQuestion.content,
+        type: editorQuestion.type,
+      });
+      success('Întrebarea a fost salvată. Salvează selecția ca să intre în examen.');
+      setEditorQuestion(null);
+    } catch (saveError) {
+      error(saveError?.response?.data?.message || 'Nu am putut salva întrebarea.');
+    } finally {
+      setEditorSaving(false);
     }
-    error('Întrebarea nu e legată de un test.');
   };
 
   const toggleFolder = (bank) => {
@@ -195,7 +246,7 @@ export default function ExamContentPicker({
           <p className="exam-picker-kicker">Conținut examen</p>
           <h3>Ce întrebări intră în examen?</h3>
           <p className="exam-picker-lead">
-            Alegi pool-ul. Steaua o pui pe întrebările deja selectate: cele cu stea apar la toți, restul se trag random. Deschide o întrebare ca să o editezi în test.
+            Alegi pool-ul. Steaua o pui pe întrebările deja selectate: cele cu stea apar la toți, restul se trag random. Click pe o întrebare o deschide aici, ca să o editezi.
           </p>
         </div>
         <div className="exam-picker-head-count" aria-live="polite">
@@ -532,9 +583,9 @@ export default function ExamContentPicker({
                           <Star size={18} fill={item.is_starred ? 'currentColor' : 'none'} />
                         </span>
                       )}
-                      <button type="button" className="exam-picker-tray-open" onClick={() => openSelectedInTest(item)}>
+                      <button type="button" className="exam-picker-tray-open" onClick={() => openSelectedQuestion(item)}>
                         <strong>{stripHtml(item.content) || `Întrebarea ${item.id}`}</strong>
-                        <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'} · Deschide în test</small>
+                        <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'} · Editează</small>
                       </button>
                       {canMutate ? (
                         <button type="button" className="lms-btn-secondary" onClick={() => onToggleQuestion(item, item.origin)}>
@@ -611,6 +662,28 @@ export default function ExamContentPicker({
       </div>
 
       <Drawer open={Boolean(drawerQuestion)} question={drawerQuestion} onClose={() => setDrawerQuestion(null)} />
+      <Modal
+        isOpen={Boolean(editorQuestion)}
+        onClose={() => !editorSaving && setEditorQuestion(null)}
+        closeOnBackdropClick
+        closeOnEscape
+        ariaLabelledby="exam-question-editor-title"
+      >
+        <div className="qb-modal qb-modal-question-editor">
+          <h3 id="exam-question-editor-title">Editează întrebarea</h3>
+          {editorQuestion ? (
+            <QuestionBuilderEditor question={editorQuestion} onChange={setEditorQuestion} />
+          ) : null}
+          <div className="qb-modal-actions">
+            <button type="button" className="lms-btn-secondary" onClick={() => setEditorQuestion(null)} disabled={editorSaving}>
+              Anulează
+            </button>
+            <button type="button" className="lms-btn-primary" onClick={saveEditorQuestion} disabled={editorSaving || !editorQuestion?.content}>
+              {editorSaving ? 'Se salvează...' : 'Salvează'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
