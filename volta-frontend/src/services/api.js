@@ -1314,7 +1314,7 @@ export const adminService = {
     return response.data;
   },
 
-  resendExistingUserInvitation: async (id) => {
+  resendUserInvitation: async (id) => {
     const response = await api.post(`/admin/users/invitations/${id}/resend`);
     return response.data;
   },
