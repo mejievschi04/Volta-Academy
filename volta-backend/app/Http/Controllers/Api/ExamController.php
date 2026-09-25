@@ -1640,7 +1640,7 @@ class ExamController extends Controller
                 $answers
             );
             
-            $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
+            $percentage = $totalPoints > 0 ? (int) round(($score / $totalPoints) * 100) : 0;
 
             $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
             if ($courseId) {
@@ -1941,7 +1941,7 @@ class ExamController extends Controller
 
         $needsManualReview = $manualReviewEnabled && $hasManualQuestions;
 
-        $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
+        $percentage = $totalPoints > 0 ? (int) round(($score / $totalPoints) * 100) : 0;
         $passingScore = $exam->passing_score ?? 70;
         $passed = !$needsManualReview && $percentage >= $passingScore;
 
