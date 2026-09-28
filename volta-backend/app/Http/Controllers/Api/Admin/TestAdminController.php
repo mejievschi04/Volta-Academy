@@ -549,7 +549,7 @@ class TestAdminController extends Controller
             'type' => $validated['type'] ?? 'practice',
             'status' => $validated['status'] ?? 'draft',
             'time_limit_minutes' => $validated['time_limit_minutes'] ?? null,
-            'max_attempts' => $validated['max_attempts'] ?? 1,
+            'max_attempts' => array_key_exists('max_attempts', $validated) ? $validated['max_attempts'] : null,
             'passing_score' => $validated['passing_score'] ?? 70,
             'randomize_questions' => $validated['randomize_questions'] ?? false,
             'randomize_answers' => $validated['randomize_answers'] ?? false,

@@ -124,8 +124,8 @@ const ProfilePage = () => {
 		const key = `${courseId}-${testId}`;
 		setGrantingAttemptKey(key);
 		try {
-			await adminService.grantTestExtraAttempt(userId, testId, courseId);
-			showToast('A fost adăugată 1 încercare', 'success');
+			const granted = await adminService.grantTestExtraAttempt(userId, testId, courseId);
+			showToast(granted?.message || 'A fost adăugată 1 încercare', 'success');
 			await fetchData();
 		} catch (err) {
 			showToast(err?.response?.data?.message || 'Nu s-a putut adăuga încercarea', 'error');
@@ -282,7 +282,7 @@ const ProfilePage = () => {
 										<strong>{test.title}</strong>
 										<span>{resultLabel}</span>
 									</div>
-									{failed ? (
+									{failed && test.max_attempts != null ? (
 										<button
 											type="button"
 											className="lms-btn-secondary lms-btn-sm"

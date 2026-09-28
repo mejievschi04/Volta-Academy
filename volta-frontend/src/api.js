@@ -13,7 +13,9 @@ export function setApiErrorNotifier(fn) {
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // dacă folosești cookie-uri / sesiuni
-  withXSRFToken: true, // trimite X-XSRF-TOKEN din cookie (Laravel Sanctum SPA + CSRF)
+  // Headerul X-XSRF-TOKEN e pus explicit mai jos. withXSRFToken citește primul cookie
+  // și poate retrimite un token vechi după refresh.
+  withXSRFToken: false,
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || "10000"), // 10 secunde timeout default
   headers: {
     'Content-Type': 'application/json',
@@ -21,39 +23,104 @@ const api = axios.create({
   },
 });
 
-function hasXsrfCookie() {
-  if (typeof document === "undefined") return false;
-  return document.cookie.split(";").some((part) => part.trim().startsWith("XSRF-TOKEN="));
-}
-
-/** Înainte de POST stateful (login, logout, …): setează cookie-ul XSRF dacă lipsește. */
-export async function ensureApiCsrfCookie() {
-  if (hasXsrfCookie()) return;
-  await api.get("/csrf-cookie");
-}
-
-function clearXsrfHeaderFromConfig(config) {
-  if (!config?.headers) return;
-  const h = config.headers;
-  if (typeof h.delete === "function") {
-    h.delete("X-XSRF-TOKEN");
-    h.delete("x-xsrf-token");
-  } else {
-    delete h["X-XSRF-TOKEN"];
-    delete h["x-xsrf-token"];
-    if (h.common) {
-      delete h.common["X-XSRF-TOKEN"];
-      delete h.common["x-xsrf-token"];
-    }
+/** Ultimul XSRF-TOKEN din document (dacă există duplicate, cel mai recent e de obicei ultimul). */
+export function readXsrfToken() {
+  if (typeof document === "undefined") return null;
+  const matches = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.startsWith("XSRF-TOKEN="));
+  if (!matches.length) return null;
+  const raw = matches[matches.length - 1].slice("XSRF-TOKEN=".length);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
   }
+}
+
+let csrfRefresh = null;
+/** Tokenul plain din sesiune (răspunsul /csrf-cookie). Nu depinde de citirea cookie-ului criptat. */
+let csrfToken = null;
+
+function rememberCsrfToken(token) {
+  if (typeof token === "string" && token !== "") {
+    csrfToken = token;
+  }
+}
+
+function syncCsrfFromResponse(response) {
+  if (!response) return;
+  const headers = response.headers;
+  const fromHeader = typeof headers?.get === "function"
+    ? headers.get("x-csrf-token")
+    : headers?.["x-csrf-token"];
+  rememberCsrfToken(fromHeader);
+  const url = response.config?.url || "";
+  if (String(url).includes("csrf-cookie")) {
+    rememberCsrfToken(response.data?.token);
+  }
+}
+
+/** Un singur GET /csrf-cookie în zbor, ca requesturile paralele să nu desincronizeze sesiunea. */
+export function refreshApiCsrfCookie() {
+  if (!csrfRefresh) {
+    csrfRefresh = api.get("/csrf-cookie").then((response) => {
+      rememberCsrfToken(response?.data?.token);
+      return response;
+    }).finally(() => {
+      csrfRefresh = null;
+    });
+  }
+  return csrfRefresh;
+}
+
+/** Înainte de POST stateful (login, logout, …): ia tokenul plain dacă încă nu e în memorie. */
+export async function ensureApiCsrfCookie() {
+  if (csrfToken) return;
+  await refreshApiCsrfCookie();
+}
+
+function applyXsrfHeader(config) {
+  const plain = csrfToken;
+  const cookieToken = readXsrfToken();
+  if (!config || (!plain && !cookieToken)) return;
+  config.headers = config.headers || {};
+  const set = (name, value) => {
+    if (!value) return;
+    if (typeof config.headers.set === "function") {
+      config.headers.set(name, value);
+    } else {
+      config.headers[name] = value;
+    }
+  };
+  // X-CSRF-TOKEN e tokenul plain din sesiune. X-XSRF-TOKEN rămâne valoarea din cookie (criptată).
+  set("X-CSRF-TOKEN", plain);
+  set("X-XSRF-TOKEN", cookieToken);
+}
+
+function isUnsafeMethod(method) {
+  const normalized = (method || "get").toLowerCase();
+  return normalized !== "get" && normalized !== "head" && normalized !== "options";
 }
 
 // Interceptor pentru request-uri
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // If data is FormData, remove Content-Type header to let browser set it with boundary
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
+    }
+    const url = config.url || "";
+    if (isUnsafeMethod(config.method) && !String(url).includes("csrf-cookie")) {
+      if (!csrfToken) {
+        try {
+          await refreshApiCsrfCookie();
+        } catch {
+          /* retry-ul de la 419 reîncearcă refresh-ul */
+        }
+      }
+      applyXsrfHeader(config);
     }
     // Don't log /auth/me requests (they're called frequently and 401 is normal when not authenticated)
     if (config.url !== '/auth/me' && import.meta.env.VITE_ENABLE_API_LOGGING === 'true') {
@@ -70,6 +137,7 @@ api.interceptors.request.use(
 // Interceptor pentru răspunsuri
 api.interceptors.response.use(
   (response) => {
+    syncCsrfFromResponse(response);
     // Don't log /auth/me responses (they're called frequently)
     if (response.config?.url !== '/auth/me' && import.meta.env.VITE_ENABLE_API_LOGGING === 'true') {
       logger.api.log('API Response:', response.status, response.config.url);
@@ -83,13 +151,16 @@ api.interceptors.response.use(
       error.response?.status === 419 &&
       config &&
       !config._csrfRetry &&
-      url !== '/csrf-cookie'
+      !String(url).includes('csrf-cookie')
     ) {
       config._csrfRetry = true;
       try {
-        await api.get('/csrf-cookie');
-        // Fără asta, retry poate păstra X-XSRF-TOKEN vechi; cookie-ul e deja actualizat
-        clearXsrfHeaderFromConfig(config);
+        syncCsrfFromResponse(error.response);
+        rememberCsrfToken(error.response?.data?.csrf_token);
+        if (!csrfToken) {
+          await refreshApiCsrfCookie();
+        }
+        applyXsrfHeader(config);
         return api.request(config);
       } catch (retryErr) {
         return Promise.reject(retryErr);

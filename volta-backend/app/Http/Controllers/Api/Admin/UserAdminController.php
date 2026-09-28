@@ -40,17 +40,10 @@ class UserAdminController extends Controller
         $trashedOnly = $request->boolean('trashed');
 
         // Build query: normal users sau doar cei din coș (șterși soft)
-        $query = $trashedOnly
-            ? User::onlyTrashed()->with($this->eagerLoadTeamsCoursesAssigned())
-            : User::with($this->eagerLoadTeamsCoursesAssigned());
+        $query = $trashedOnly ? User::onlyTrashed() : User::query();
 
-        // Search filter
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+        if ($request->filled('search')) {
+            $query->whereDirectorySearch($request->string('search')->toString());
         }
         
         // Role filter (staff roles)
@@ -69,15 +62,25 @@ class UserAdminController extends Controller
         if ($request->has('team_members_only') && $request->team_members_only) {
             $query->whereIn('role', ['admin', 'instructor', 'analyst']);
         }
-        
+
+        if ($request->boolean('brief')) {
+            return response()->json(
+                $query->orderBy('name')->get(['id', 'name', 'email', 'role'])
+            );
+        }
+
+        $query->with($this->eagerLoadTeamsCoursesAssigned());
+
         // Sort
         $sortBy = $request->get('sort_by', 'updated_at');
         $sortDirection = $request->get('sort_direction', 'desc');
         $query->orderBy($sortBy, $sortDirection);
         
-        // Get all courses once (outside the loop to avoid N+1)
-        $allCourses = \App\Models\Course::with('modules')->get();
-        $totalCourses = $allCourses->count();
+        $moduleCounts = \App\Models\Module::query()
+            ->selectRaw('course_id, COUNT(*) as aggregate')
+            ->groupBy('course_id')
+            ->pluck('aggregate', 'course_id')
+            ->mapWithKeys(fn ($count, $courseId) => [(int) $courseId => (int) $count]);
         
         // Get paginated users with relationships
         $usersPaginated = $request->boolean('all') ? null : $query->paginate($perPage);
@@ -94,7 +97,7 @@ class UserAdminController extends Controller
             });
         
         // Calculate course statistics for each user (skip admins)
-        $usersWithStats = collect($users)->map(function ($user) use ($allCourses, $totalCourses, $allProgress) {
+        $usersWithStats = collect($users)->map(function ($user) use ($moduleCounts, $allProgress) {
             // Skip statistics for admin users
             if (in_array($user->role, ['admin', 'analyst'], true)) {
                 $user->total_courses = null;
@@ -112,8 +115,7 @@ class UserAdminController extends Controller
             $completedModules = 0;
             
             foreach ($userProgress as $progress) {
-                $course = $allCourses->firstWhere('id', $progress->course_id);
-                $moduleCount = $course && $course->modules ? $course->modules->count() : 0;
+                $moduleCount = (int) ($moduleCounts[(int) $progress->course_id] ?? 0);
                 $totalModules += $moduleCount;
                 if ($progress->completed_at) {
                     $completedCourses++;
@@ -478,6 +480,11 @@ class UserAdminController extends Controller
 
         $user = User::findOrFail($id);
         $test = Test::findOrFail($testId);
+        if (! $test->max_attempts) {
+            return response()->json([
+                'message' => 'Testul are deja încercări nelimitate.',
+            ], 422);
+        }
         $courseId = $request->filled('course_id') ? (int) $request->input('course_id') : null;
 
         $grant = app(TestAttemptService::class)->grantExtraAttempt(
@@ -487,14 +494,15 @@ class UserAdminController extends Controller
             $courseId
         );
 
-        $completedCount = app(TestAttemptService::class)
-            ->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)
-            ->count();
+        $attemptService = app(TestAttemptService::class);
+        $completedCount = $attemptService->finishedAttemptCount((int) $user->id, (int) $test->id);
+        $allowed = $attemptService->allowedAttemptCount($test, (int) $user->id);
 
         return response()->json([
-            'message' => 'A fost adăugată 1 încercare.',
+            'message' => "A fost adăugată 1 încercare. Limita este acum {$allowed}.",
             'extra_attempts' => (int) $grant->extra_attempts,
-            'remaining_attempts' => app(TestAttemptService::class)->remainingAttemptsFor(
+            'allowed_attempts' => $allowed,
+            'remaining_attempts' => $attemptService->remainingAttemptsFor(
                 $test,
                 (int) $user->id,
                 $completedCount
@@ -527,13 +535,8 @@ class UserAdminController extends Controller
         $query = User::with($this->eagerLoadTeamsCoursesAssigned())
             ->whereIn('role', ['admin', 'instructor', 'analyst']);
         
-        // Search filter
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+        if ($request->filled('search')) {
+            $query->whereDirectorySearch($request->string('search')->toString());
         }
         
         // Role filter

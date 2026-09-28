@@ -296,8 +296,9 @@ class ExamController extends Controller
             ], 403);
         }
 
+        $settings = is_array($exam->settings) ? $exam->settings : [];
         $deadline = $this->resolveExamDeadline($exam, $user);
-        if ($deadline['is_overdue']) {
+        if ($deadline['is_overdue'] && empty($settings['deadline_flexible'])) {
             return response()->json([
                 'message' => 'Termenul pentru acest examen a expirat.',
                 'deadline_passed' => true,
@@ -852,12 +853,13 @@ class ExamController extends Controller
             return $blocked;
         }
 
+        $this->attemptService->closeExpiredOpenAttempts((int) $user->id, (int) $test->id);
+
         $openAttempt = $this->attemptService
             ->currentOpenAttempt((int) $user->id, (int) $test->id, $courseId);
 
         $completedAttempts = $this->attemptService
-            ->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)
-            ->orderBy('attempt_number', 'desc')
+            ->finishedAttempts((int) $user->id, (int) $test->id)
             ->get();
 
         $currentAttempt = $completedAttempts->count();
@@ -871,7 +873,7 @@ class ExamController extends Controller
         $canRetake = $remainingAttempts === null || $remainingAttempts > 0;
 
         $req = $request ?? request();
-        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
+        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt') && $canRetake;
 
         $basePassingScore = (int) ($test->passing_score ?? 70);
         $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
@@ -921,19 +923,39 @@ class ExamController extends Controller
                         $attemptNumberForSeed,
                         $resolvedPassingScore
                     );
+                    if ($activeAttempt) {
+                        $snapshot = $this->attemptService->hydrateQuestions($activeAttempt->question_snapshot);
+                        if ($snapshot->isNotEmpty()) {
+                            $questions = $snapshot;
+                        }
+                    } else {
+                        $completedAttempts = $this->attemptService
+                            ->finishedAttempts((int) $user->id, (int) $test->id)
+                            ->get();
+                        $currentAttempt = $completedAttempts->count();
+                        $latestResult = $completedAttempts->first();
+                        $viewingCompleted = (bool) $latestResult;
+                        if ($viewingCompleted) {
+                            $attemptNumberForSeed = max(1, (int) $latestResult->attempt_number);
+                            $questions = $this->attemptService->hydrateQuestions($latestResult->question_snapshot);
+                            if ($questions->isEmpty()) {
+                                $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
+                            }
+                        }
+                    }
                 }
             }
         }
 
+        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
         $showSolutions = $viewingCompleted && $this->shouldRevealExamSolutions($test);
-        $fullWire = $showSolutions
+        $storedAnswers = is_array($latestResult?->answers) ? $latestResult->answers : [];
+        $fullWire = ($showSolutions || ($viewingCompleted && $submittedOnly))
             ? $questions->map(fn ($question) => $this->buildReviewQuestionWire(
-                $test, $question, $user, $attemptNumberForSeed,
-                is_array($latestResult->answers) ? $latestResult->answers : []
+                $test, $question, $user, $attemptNumberForSeed, $storedAnswers
             ))
             : $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
-        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
-        $transformedQuestions = ($showSolutions && ! $submittedOnly)
+        $transformedQuestions = $showSolutions
             ? $fullWire
             : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
 
@@ -1009,7 +1031,7 @@ class ExamController extends Controller
     /** Elimină chei folosite la corectare din payload-ul trimis elevului în timpul testului. */
     protected function stripWireQuestionSolutionKeys(array $q): array
     {
-        unset($q['correct_answer_indices'], $q['correct_answer_index'], $q['is_correct'], $q['explanation']);
+        unset($q['correct_answer_indices'], $q['correct_answer_index'], $q['explanation']);
         $q['answerIndex'] = null;
         $q['answerIndices'] = null;
         if (isset($q['matching']) && is_array($q['matching'])) {
@@ -1255,7 +1277,7 @@ class ExamController extends Controller
         $hasPassed = $latestResult && $latestResult->passed;
 
         $req = request();
-        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt');
+        $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt') && $canRetake;
         $viewingCompleted = $latestResult && ! $forNewAttempt;
         $attemptNumberForSeed = $viewingCompleted
             ? max(1, (int) $latestResult->attempt_number)
@@ -1287,6 +1309,8 @@ class ExamController extends Controller
             'navigation_mode' => (string) ($settings['navigation_mode'] ?? 'sequential'),
             'deadline_type' => $deadline['type'],
             'deadline_at' => $deadline['deadline_at'],
+            'deadline_flexible' => (bool) ($settings['deadline_flexible'] ?? false),
+            'deadline_overdue' => (bool) ($deadline['is_overdue'] ?? false),
             'course_id' => $exam->course_id,
             'module_id' => $exam->module_id,
             'lesson_id' => $exam->lesson_id,
@@ -1476,11 +1500,6 @@ class ExamController extends Controller
                         ->where('test_id', $test->id)
                         ->lockForUpdate()
                         ->first();
-                    if ($openAttempt && $openAttempt->course_id && $courseId && (int) $openAttempt->course_id !== (int) $courseId) {
-                        return response()->json([
-                            'message' => 'Încercarea nu aparține acestui curs.',
-                        ], 403);
-                    }
                     if ($openAttempt && $openAttempt->course_id) {
                         $courseId = (int) $openAttempt->course_id;
                     }
@@ -1507,13 +1526,13 @@ class ExamController extends Controller
             }
 
             $completedCount = $trackLearning
-                ? $this->attemptService->completedAttemptsQuery((int) $user->id, (int) $test->id, $courseId)->count()
+                ? $this->attemptService->finishedAttemptCount((int) $user->id, (int) $test->id)
                 : 0;
             $nextAttempt = $openAttempt
                 ? max(1, (int) $openAttempt->attempt_number)
                 : $completedCount + 1;
 
-            if ($trackLearning && ! $openAttempt && $this->attemptService->wouldExceedAttemptLimit($test, (int) $user->id, $nextAttempt)) {
+            if ($trackLearning && $this->attemptService->wouldExceedAttemptLimit($test, (int) $user->id, $completedCount + 1)) {
                 $allowed = $this->attemptService->allowedAttemptCount($test, (int) $user->id);
                 return response()->json([
                     'message' => "Ai atins limita de {$allowed} încercări pentru acest test.",
@@ -1562,6 +1581,14 @@ class ExamController extends Controller
             }
 
             if ($openAttempt && $this->attemptService->attemptHasExpired($openAttempt)) {
+                $this->attemptService->closeExpiredAttempt($openAttempt);
+
+                return response()->json([
+                    'message' => 'Limita de timp a testului a expirat.',
+                    'time_expired' => true,
+                ], 403);
+            }
+            if ($openAttempt && $openAttempt->status === 'expired') {
                 return response()->json([
                     'message' => 'Limita de timp a testului a expirat.',
                     'time_expired' => true,

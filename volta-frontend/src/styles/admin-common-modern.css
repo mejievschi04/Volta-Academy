@@ -1419,6 +1419,20 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 /* ============================================
    15. ADMIN TEAM MODAL LIST
    ============================================ */
+.admin-team-member-search {
+	display: block;
+	width: 100%;
+	max-width: none;
+	margin-bottom: var(--space-3);
+	box-sizing: border-box;
+}
+
+.admin-team-member-search-empty {
+	margin: 0;
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+}
+
 .admin-team-modal-list {
 	max-height: 400px;
 	overflow-y: auto;

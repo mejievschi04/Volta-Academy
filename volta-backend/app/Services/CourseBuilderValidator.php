@@ -56,12 +56,12 @@ class CourseBuilderValidator
             }
 
             foreach ($lessons as $lesson) {
-                $this->validateLesson($lesson, $addError);
+                $this->validateLesson($lesson, $addError, $addWarning);
             }
         }
 
         foreach ($rootLessons as $lesson) {
-            $this->validateLesson($lesson, $addError);
+            $this->validateLesson($lesson, $addError, $addWarning);
         }
 
         $course->loadMissing(['courseTests.test.questions', 'courseTests.test.questionBank.questions']);
@@ -134,7 +134,7 @@ class CourseBuilderValidator
 
             if ($textLength === 0) {
                 $emptyLessons++;
-                $addIssue('critical', 'lesson_content', 'Lecție fără conținut', "Lecția „{$lesson->title}” nu are conținut utilizabil.", $path);
+                $addIssue('warning', 'lesson_content', 'Lecție fără text', "Lecția „{$lesson->title}” nu are text. Poate rămâne așa.", $path);
                 continue;
             }
 
@@ -209,7 +209,7 @@ class CourseBuilderValidator
         ];
     }
 
-    protected function validateLesson($lesson, callable $addError): void
+    protected function validateLesson($lesson, callable $addError, callable $addWarning): void
     {
         if (!trim((string) $lesson->title)) {
             $addError('lesson.title.required', "lessons.{$lesson->id}.title", 'Titlul lectiei este obligatoriu.');
@@ -217,10 +217,10 @@ class CourseBuilderValidator
 
         $hasUsableContent = $this->lessonHasUsableContent($lesson);
         if (! $hasUsableContent) {
-            $addError(
-                'lesson.content.required',
+            $addWarning(
+                'lesson.content.missing',
                 "lessons.{$lesson->id}.content",
-                'Lectia trebuie sa contina continut utilizabil (text, video, fisier sau bloc vizibil cu sursa).'
+                'Lectia nu are text. Poate fi salvata si publicata si fara continut textual.'
             );
         }
     }

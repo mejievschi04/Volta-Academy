@@ -193,44 +193,63 @@ class QuizController extends Controller
     /**
      * Wire format for course quiz (frontend). $withSolutions: include answerIndex / correctMap / correctOrder.
      */
-    protected function examQuestionsToQuizWire(Exam $exam, bool $withSolutions): array
+    protected function examQuestionsToQuizWire(Exam $exam, bool $withSolutions, ?array $submittedAnswers = null): array
     {
         $settings = is_array($exam->settings) ? $exam->settings : [];
         $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
         $includeSolutions = $withSolutions && ! $submittedOnly;
 
-        return $exam->questions->map(function ($question) {
+        return $exam->questions->map(function ($question) use ($submittedAnswers) {
             $answers = $question->answers;
             $correctAnswerIndex = null;
             $matching = null;
             $ordering = null;
+            $questionType = $question->question_type ?? 'multiple_choice';
 
-            if ($question->question_type === 'multiple_choice' || $question->question_type === 'single_choice' || $question->question_type === 'true_false') {
+            if ($questionType === 'multiple_choice' || $questionType === 'single_choice' || $questionType === 'true_false') {
                 foreach ($answers as $idx => $answer) {
                     if ($answer->is_correct) {
                         $correctAnswerIndex = $idx;
                         break;
                     }
                 }
-            } elseif ($question->question_type === 'matching') {
+            } elseif ($questionType === 'matching') {
                 $matching = $this->buildMatchingQuestionData($question);
-            } elseif ($question->question_type === 'ordering') {
+            } elseif ($questionType === 'ordering') {
                 $ordering = $this->buildOrderingQuestionData($question);
+            }
+
+            $isCorrect = null;
+            if (is_array($submittedAnswers)) {
+                $userAnswer = $this->answerValueForQuestion($submittedAnswers, (int) $question->id);
+                if ($questionType === 'matching') {
+                    $isCorrect = $this->isSequenceAnswerCorrect($userAnswer, $matching['correctMap'] ?? []);
+                } elseif ($questionType === 'ordering') {
+                    $isCorrect = $this->isSequenceAnswerCorrect($userAnswer, $ordering['correctOrder'] ?? []);
+                } elseif (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+                    $isCorrect = $correctAnswerIndex !== null
+                        && is_numeric($userAnswer)
+                        && (float) $userAnswer === (float) $correctAnswerIndex;
+                }
             }
 
             return [
                 'id' => $question->id,
                 'text' => $question->question_text,
-                'type' => $question->question_type ?? 'multiple_choice',
-                'options' => in_array($question->question_type ?? '', ['multiple_choice', 'single_choice', 'true_false'], true)
+                'type' => $questionType,
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
                 'points' => $question->points ?? 1,
                 'matching' => $matching,
                 'ordering' => $ordering,
+                'is_correct' => $isCorrect,
             ];
         })->values()->map(function (array $row) use ($includeSolutions) {
+            if ($row['is_correct'] === null) {
+                unset($row['is_correct']);
+            }
             if ($includeSolutions) {
                 return $row;
             }
@@ -489,7 +508,7 @@ class QuizController extends Controller
             'passed' => $passed,
             'percentage' => $percentage,
             'show_only_submitted_answers' => (bool) ($settings['show_only_submitted_answers'] ?? false),
-            'review_questions' => $this->examQuestionsToQuizWire($exam, $revealSolutions),
+            'review_questions' => $this->examQuestionsToQuizWire($exam, $revealSolutions, $answers),
         ]);
     }
 

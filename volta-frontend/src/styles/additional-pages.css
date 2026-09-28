@@ -1439,8 +1439,15 @@
 }
 
 .student-exam-feedback-item-user {
-	color: var(--color-error);
 	margin-top: var(--space-1);
+}
+
+.student-exam-feedback-item.correct .student-exam-feedback-item-user {
+	color: var(--color-success);
+}
+
+.student-exam-feedback-item.incorrect .student-exam-feedback-item-user {
+	color: var(--color-error);
 }
 
 .student-exam-feedback-item-explanation {

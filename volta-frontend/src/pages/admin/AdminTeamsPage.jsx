@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
 	DndContext,
 	closestCenter,
@@ -29,6 +29,7 @@ import {
 	teamAccentByTeamId,
 } from '../../utils/teamAccent';
 import { normalizeColorInputToHex } from '../../utils/color';
+import { matchesDirectorySearch } from '../../utils/directorySearch';
 import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
 import { Books, PencilSimple, Plus, Trash, UsersThree } from '@phosphor-icons/react';
 import { DragGripIcon } from '../../components/common/DragGripIcon';
@@ -126,8 +127,8 @@ const AdminTeamsPage = () => {
 
 	const fetchUsers = async () => {
 		try {
-			const data = await adminService.getUsers();
-			setUsers(data);
+			const data = await adminService.getUsers({ brief: 1 });
+			setUsers(Array.isArray(data) ? data : []);
 		} catch (err) {
 			console.error('Error fetching users:', err);
 		}
@@ -553,6 +554,11 @@ const AdminTeamsPage = () => {
 
 const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) => {
 	const [selectedUserIds, setSelectedUserIds] = useState(team.users?.map(u => u.id) || []);
+	const [memberQuery, setMemberQuery] = useState('');
+	const visibleUsers = useMemo(
+		() => (Array.isArray(users) ? users : []).filter((user) => matchesDirectorySearch(user, memberQuery)),
+		[users, memberQuery],
+	);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -602,9 +608,21 @@ const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) =
 							</div>
 						)}
 						<div className="admin-form-group">
-							<label className="admin-form-label">Selectează Membri</label>
+							<label className="admin-form-label" htmlFor="admin-team-member-search">Selectează Membri</label>
+							<input
+								id="admin-team-member-search"
+								type="search"
+								className="admin-users-search-input admin-team-member-search"
+								placeholder="Caută după nume, prenume sau email..."
+								value={memberQuery}
+								onChange={(e) => setMemberQuery(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') e.preventDefault();
+								}}
+								aria-label="Caută membri după nume, prenume sau email"
+							/>
 							<div className="admin-team-modal-list">
-								{users.map((user) => (
+								{visibleUsers.length > 0 ? visibleUsers.map((user) => (
 									<label 
 										key={user.id}
 										className={`admin-team-modal-list-item ${selectedUserIds.includes(user.id) ? 'selected' : ''}`}
@@ -629,7 +647,13 @@ const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) =
 											</div>
 										</div>
 									</label>
-								))}
+								)) : (
+									<p className="admin-team-member-search-empty">
+										{memberQuery.trim()
+											? 'Niciun utilizator nu corespunde numelui, prenumelui sau emailului căutat.'
+											: 'Nu există utilizatori de adăugat.'}
+									</p>
+								)}
 							</div>
 						</div>
 						<div className="admin-team-modal-footer">

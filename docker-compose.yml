@@ -48,9 +48,9 @@ services:
       DB_USERNAME: ${DB_USERNAME:-volta_user}
       DB_PASSWORD: ${DB_PASSWORD:-volta_password}
       DB_SSLMODE: ${DB_SSLMODE:-prefer}
-      # Forțat file: dacă folosești ${SESSION_DRIVER} din .env cu `database` fără tabela `sessions` → 500 la toate rutele API.
-      # Pentru sesiuni în DB pe mai multe instanțe, schimbă explicit aici în `database` și rulează migrate.
-      SESSION_DRIVER: file
+      # Sesiunile stau în PostgreSQL. Cu driverul `file`, PHP-FPM rescrie același fișier
+      # în paralel (progres + complete) și tokenul CSRF se pierde → 419.
+      SESSION_DRIVER: database
       CACHE_STORE: file
       QUEUE_CONNECTION: database
       DB_QUEUE_RETRY_AFTER: 240

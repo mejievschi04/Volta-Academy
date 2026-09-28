@@ -43,9 +43,10 @@ const DEFAULT_SETTINGS = {
   manualReview: false,
   showFeedbackInstant: false,
   showCorrectAnswers: false,
-  showOnlySubmittedAnswers: false,
+  showOnlySubmittedAnswers: true,
   timeLimitMinutes: '',
-  attempts: 1,
+  attempts: '',
+  deadlineFlexible: false,
   passingScore: 0,
   navigationMode: 'sequential',
   deadlineType: 'none',
@@ -286,12 +287,14 @@ export default function AdminExamsPage() {
     setExamSettings({
       ...DEFAULT_SETTINGS,
       title: item?.title || '', description: item?.description || '', instructions: item?.settings?.instructions || '',
-      attempts: Number(item?.max_attempts ?? 1) || 1, passingScore: Number(item?.passing_score ?? 0) || 0,
+      attempts: item?.max_attempts == null ? '' : Number(item.max_attempts), passingScore: Number(item?.passing_score ?? 0) || 0,
       timeLimitMinutes: item?.time_limit_minutes ? Number(item.time_limit_minutes) : '',
       shuffleQuestions: Boolean(item?.settings?.shuffle_questions), manualReview: Boolean(item?.settings?.manual_review),
       showFeedbackInstant: Boolean(item?.settings?.show_feedback_instant), showCorrectAnswers: Boolean(item?.settings?.show_correct_answers),
       showOnlySubmittedAnswers: Boolean(item?.settings?.show_only_submitted_answers),
-      navigationMode: item?.settings?.navigation_mode || 'sequential', deadlineType: item?.settings?.deadline_type || 'none',
+      navigationMode: item?.settings?.navigation_mode || 'sequential',
+      deadlineFlexible: Boolean(item?.settings?.deadline_flexible),
+      deadlineType: item?.settings?.deadline_type || 'none',
       deadlineAt: localDateTime(item?.settings?.deadline_at), deadlineDays: Number(item?.settings?.deadline_days ?? 7) || 7,
       contentBankId: item?.settings?.question_bank_id || null,
       selectedFolderIds: Array.isArray(item?.settings?.folder_ids) ? item.settings.folder_ids : [],
@@ -392,7 +395,9 @@ export default function AdminExamsPage() {
         title,
         description: examSettings.description || null,
         max_score: 100,
-        max_attempts: Number(examSettings.attempts || 1),
+        max_attempts: examSettings.attempts === '' || examSettings.attempts == null
+          ? null
+          : Math.max(1, Number(examSettings.attempts) || 1),
         time_limit_minutes: (() => {
           const raw = examSettings.timeLimitMinutes;
           if (raw === '' || raw == null) return null;
@@ -407,6 +412,7 @@ export default function AdminExamsPage() {
           show_feedback_instant: Boolean(examSettings.showFeedbackInstant), show_correct_answers: Boolean(examSettings.showCorrectAnswers),
           show_only_submitted_answers: Boolean(examSettings.showOnlySubmittedAnswers),
           manual_review_mode: manualReviewState.reviewMode, navigation_mode: examSettings.navigationMode,
+          deadline_flexible: Boolean(examSettings.deadlineFlexible),
           deadline_type: examSettings.deadlineType,
           deadline_at: examSettings.deadlineType === 'fixed' && examSettings.deadlineAt ? new Date(examSettings.deadlineAt).toISOString() : null,
           deadline_days: examSettings.deadlineType === 'relative' ? Math.max(1, Number(examSettings.deadlineDays || 1)) : null,
@@ -610,7 +616,7 @@ export default function AdminExamsPage() {
     const parts = [
       `${configuredQuestionCount} întrebări în examen`,
       `${Number(item.passing_score ?? 0)}% prag`,
-      item.max_attempts != null ? `${item.max_attempts} încercări` : null,
+      item.max_attempts != null ? `${item.max_attempts} încercări` : 'Nelimitat',
     ].filter(Boolean);
     return parts.join(' · ');
   };
@@ -756,10 +762,31 @@ export default function AdminExamsPage() {
                 onPassingScoreChange={(next) => setExamSettings((prev) => ({ ...prev, passingScore: next }))}
               />
             </div>
-            <label>
-              Număr maxim de încercări
-              <input type="number" min={1} max={20} value={examSettings.attempts} onChange={(e) => setExamSettings((prev) => ({ ...prev, attempts: Number(e.target.value || 1) }))} />
+            <label className="admin-exams-builder-field-span2">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={examSettings.attempts === '' || examSettings.attempts == null}
+                  onChange={(e) => setExamSettings((prev) => ({ ...prev, attempts: e.target.checked ? '' : 1 }))}
+                />
+                {' '}Încercări nelimitate
+              </span>
             </label>
+            {examSettings.attempts !== '' && examSettings.attempts != null && (
+              <label>
+                Număr maxim de încercări
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={examSettings.attempts}
+                  onChange={(e) => setExamSettings((prev) => ({
+                    ...prev,
+                    attempts: Math.max(1, Math.min(20, Number(e.target.value) || 1)),
+                  }))}
+                />
+              </label>
+            )}
           </div>
         </section>
 
@@ -811,6 +838,16 @@ export default function AdminExamsPage() {
                 <input type="number" min={1} max={365} value={examSettings.deadlineDays} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineDays: Math.max(1, Number(e.target.value || 1)) }))} />
               </label>
             ) : null}
+            <label className="admin-exams-builder-field-span2">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(examSettings.deadlineFlexible)}
+                  onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineFlexible: e.target.checked }))}
+                />
+                {' '}Deadline flexibil — permite trecerea și după expirarea termenului
+              </span>
+            </label>
           </div>
         </section>
 
@@ -1359,7 +1396,7 @@ export default function AdminExamsPage() {
                 <div className="admin-exams-preview-meta">
                   <span>Prag: {previewData.passing_score ?? 70}%</span>
                   <span>Timp: {previewData.time_limit_minutes ? `${previewData.time_limit_minutes} min` : 'nelimitat'}</span>
-                  <span>Incercari: {previewData.max_attempts ?? '-'}</span>
+                  <span>Incercari: {previewData.max_attempts ?? 'Nelimitat'}</span>
                 </div>
                 <div className="admin-exams-preview-questions">
                   {(Array.isArray(previewData.questions) ? previewData.questions : []).map((question, index) => (

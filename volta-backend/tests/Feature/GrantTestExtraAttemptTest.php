@@ -93,4 +93,17 @@ class GrantTestExtraAttemptTest extends TestCase
             ->assertOk()
             ->assertJsonPath('extra_attempts', 1);
     }
+
+    public function test_unlimited_test_rejects_an_extra_attempt_grant(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = User::factory()->create(['role' => 'student']);
+        $test = Test::factory()->published()->create(['max_attempts' => null]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/admin/users/{$student->id}/tests/{$test->id}/extra-attempt")
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Testul are deja încercări nelimitate.');
+        $this->assertDatabaseCount('user_test_attempt_grants', 0);
+    }
 }

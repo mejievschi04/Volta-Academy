@@ -104,7 +104,7 @@ class UserAssignedCoursesService
                 ->orderByDesc('attempt_number')
                 ->orderByDesc('id')
                 ->get()
-                ->groupBy(fn ($row) => (int) $row->test_id . ':' . (int) ($row->course_id ?? 0));
+                ->groupBy(fn ($row) => (int) $row->test_id);
             if (Schema::hasTable('user_test_attempt_grants')) {
                 $extraAttemptsByTest = UserTestAttemptGrant::query()
                     ->where('user_id', $user->id)
@@ -146,9 +146,7 @@ class UserAssignedCoursesService
 
             $courseTests = [];
             foreach ($course->tests ?? [] as $test) {
-                $courseKey = (int) $test->id . ':' . (int) $course->id;
-                $genericKey = (int) $test->id . ':0';
-                $resultsForTest = $latestTestResults->get($courseKey) ?? $latestTestResults->get($genericKey) ?? collect();
+                $resultsForTest = $latestTestResults->get((int) $test->id) ?? collect();
                 $latestTestResult = $resultsForTest->first();
                 $attemptsUsed = $resultsForTest->count();
                 $passed = (bool) ($latestTestResult?->passed);

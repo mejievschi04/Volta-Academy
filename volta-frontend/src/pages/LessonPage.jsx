@@ -135,8 +135,10 @@ const LessonPage = () => {
 								setIsCompleted(true);
 								return;
 							}
-						} catch {
+						} catch (err) {
 							if (cancelled) return;
+							const status = err?.response?.status;
+							if (status === 419 || status === 401 || status === 403) return;
 						}
 						await new Promise((resolve) => setTimeout(resolve, 1500));
 					}
@@ -155,8 +157,10 @@ const LessonPage = () => {
 					if (response?.completed || response?.auto_completed) {
 						setIsCompleted(true);
 					}
-				} catch  {
+				} catch (err) {
 					if (cancelled) return;
+					const status = err?.response?.status;
+					if (status === 419 || status === 401 || status === 403) return;
 					sentMilestonesRef.current.delete(milestone);
 				}
 			}

@@ -6,13 +6,13 @@ export const TEST_EDITOR_DEFAULT = {
   status: 'draft',
   question_source: 'direct',
   time_limit_minutes: null,
-  max_attempts: 1,
+  max_attempts: null,
   passing_score: 70,
   randomize_questions: true,
   randomize_answers: true,
   show_results_immediately: true,
-  show_correct_answers: true,
-  show_only_submitted_answers: false,
+  show_correct_answers: false,
+  show_only_submitted_answers: true,
   allow_review: true,
   requires_manual_verification: false,
 };
@@ -190,7 +190,7 @@ export const TEST_RESULTS_DISPLAY_OPTIONS = [
   {
     id: 'submitted',
     label: 'Doar răspunsurile oferite',
-    hint: 'La final se afișează doar ce a răspuns cursantul, fără corect/greșit.',
+    hint: 'La final se văd doar răspunsurile cursantului, colorate verde dacă sunt corecte și roșu dacă sunt greșite.',
   },
   {
     id: 'none',

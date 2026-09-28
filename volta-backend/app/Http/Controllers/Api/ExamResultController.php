@@ -31,6 +31,50 @@ class ExamResultController extends Controller
         $this->attemptService = $attemptService;
     }
 
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    protected function latestResultRows($rows): array
+    {
+        $byTest = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $key = ! empty($row['test_id'])
+                ? 'test:'.$row['test_id']
+                : (! empty($row['exam_id']) ? 'exam:'.$row['exam_id'] : (($row['type'] ?? 'exam').':'.$row['id']));
+            $current = $byTest[$key] ?? null;
+            if ($current === null) {
+                $byTest[$key] = $row;
+                continue;
+            }
+            $currentTime = isset($current['completed_at']) ? strtotime((string) $current['completed_at']) : 0;
+            $nextTime = isset($row['completed_at']) ? strtotime((string) $row['completed_at']) : 0;
+            $currentAttempt = (int) ($current['attempt_number'] ?? 0);
+            $nextAttempt = (int) ($row['attempt_number'] ?? 0);
+            if ($nextTime > $currentTime || ($nextTime === $currentTime && $nextAttempt > $currentAttempt)) {
+                $byTest[$key] = $row;
+            }
+        }
+
+        return array_values($byTest);
+    }
+
+    protected function resultCard(array $row): array
+    {
+        $type = (string) ($row['type'] ?? 'test');
+        $detailRequest = Request::create('/api/exam-results/'.$row['id'].'?type='.urlencode($type), 'GET');
+        $response = $this->show($detailRequest, $row['id']);
+        $payload = $response->getData(true);
+        if ($response->getStatusCode() !== 200 || ! is_array($payload) || isset($payload['error'])) {
+            return $row;
+        }
+
+        return $payload;
+    }
+
     protected function coursePayloadFromTestResult(TestResult $result): ?array
     {
         $course = $result->course ?? null;
@@ -70,35 +114,7 @@ class ExamResultController extends Controller
 
     protected function sanitizeQuestionWireForSubmittedOnly(array $wire): array
     {
-        unset(
-            $wire['is_correct'],
-            $wire['correct_answer_index'],
-            $wire['correct_answer_indices'],
-            $wire['answerIndex'],
-            $wire['answerIndices'],
-            $wire['explanation']
-        );
-
-        if (isset($wire['answers']) && is_array($wire['answers'])) {
-            $wire['answers'] = array_map(function ($answer) {
-                if (! is_array($answer)) {
-                    return $answer;
-                }
-                unset($answer['is_correct']);
-
-                return $answer;
-            }, $wire['answers']);
-        }
-
-        if (isset($wire['matching']) && is_array($wire['matching'])) {
-            unset($wire['matching']['correctMap']);
-        }
-
-        if (isset($wire['ordering']) && is_array($wire['ordering'])) {
-            unset($wire['ordering']['correctOrder']);
-        }
-
-        return $wire;
+        return $this->hideUnrevealedSolutionKeys($wire);
     }
 
     protected function hideUnrevealedSolutionKeys(array $wire): array
@@ -770,12 +786,6 @@ class ExamResultController extends Controller
                 try {
                     $examResults = ExamResult::with([
                         'exam.course:id,title',
-                        'exam.questions' => function($query) {
-                            $query->orderBy('order');
-                        },
-                        'exam.questions.answers' => function($query) {
-                            $query->orderBy('order');
-                        }
                     ])
                     ->where('user_id', $user->id)
                     ->get()
@@ -856,13 +866,14 @@ class ExamResultController extends Controller
                 ];
             });
             
+            $includePending = $request->query('view') === 'cards';
             // Combine every saved attempt. The UI displays attempt numbers, so hiding older attempts here is misleading.
             $allResults = $examResults->concat($testResults)
-                ->filter(function ($row) {
+                ->filter(function ($row) use ($includePending) {
                     if (($row['status'] ?? null) === 'in_progress') {
                         return false;
                     }
-                    if (($row['status'] ?? null) === 'pending_review' || ($row['needs_manual_review'] ?? false)) {
+                    if (! $includePending && (($row['status'] ?? null) === 'pending_review' || ($row['needs_manual_review'] ?? false))) {
                         return false;
                     }
                     return true;
@@ -876,6 +887,15 @@ class ExamResultController extends Controller
                     return $dateB <=> $dateA;
                 })
                 ->values();
+
+            if ($request->query('view') === 'cards') {
+                $cards = [];
+                foreach ($this->latestResultRows($allResults) as $row) {
+                    $cards[] = $this->resultCard($row);
+                }
+
+                return response()->json($cards);
+            }
             
             return response()->json($allResults);
         } catch (\Exception $e) {

@@ -12,6 +12,7 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import { teamAccent } from '../../utils/teamAccent';
+import { matchesDirectorySearch } from '../../utils/directorySearch';
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -51,7 +52,6 @@ const AdminUsersPage = () => {
 			setError(null);
 			const params = { all: true };
 			if (statusFilter !== 'all') params.status = statusFilter;
-			if (searchQuery.trim()) params.search = searchQuery.trim();
 			if (usersView === 'trash') params.trashed = 1;
 			const data = await adminService.getUsers(params);
 			if (version === requestVersion.current) setUsers(Array.isArray(data) ? data : []);
@@ -64,7 +64,7 @@ const AdminUsersPage = () => {
                 setHasLoadedUsers(true);
             }
 		}
-	}, [statusFilter, usersView, searchQuery]);
+	}, [statusFilter, usersView]);
 
 	const fetchTeams = useCallback(async () => {
 		try {
@@ -78,9 +78,8 @@ const AdminUsersPage = () => {
     useEffect(() => { fetchTeams(); }, [fetchTeams]);
     useEffect(() => {
         if (usersView === 'invitations') return;
-        const timer = setTimeout(fetchUsers, searchQuery.trim() ? 250 : 0);
-        return () => { clearTimeout(timer); requestVersion.current++; };
-    }, [fetchUsers, usersView, searchQuery]);
+        fetchUsers();
+    }, [fetchUsers, usersView]);
 
 	const filteredUsers = useMemo(() => {
 		let filtered = [...users];
@@ -93,6 +92,11 @@ const AdminUsersPage = () => {
 		// Filter by status (pending = cereri în așteptare)
 		if (statusFilter !== 'all') {
 			filtered = filtered.filter(user => (user.status || 'active') === statusFilter);
+		}
+
+		const query = searchQuery.trim();
+		if (query) {
+			filtered = filtered.filter((user) => matchesDirectorySearch(user, query));
 		}
 
 		// Sort
@@ -114,12 +118,12 @@ const AdminUsersPage = () => {
 					bValue = b.role;
 					break;
 				case 'name':
-					aValue = a.name.toLowerCase();
-					bValue = b.name.toLowerCase();
+					aValue = (a.name || '').toLowerCase();
+					bValue = (b.name || '').toLowerCase();
 					break;
 				case 'email':
-					aValue = a.email.toLowerCase();
-					bValue = b.email.toLowerCase();
+					aValue = (a.email || '').toLowerCase();
+					bValue = (b.email || '').toLowerCase();
 					break;
 				default:
 					return 0;
@@ -133,7 +137,7 @@ const AdminUsersPage = () => {
 		});
 
 		return filtered;
-	}, [users, sortBy, sortOrder, roleFilter, statusFilter]);
+	}, [users, sortBy, sortOrder, roleFilter, statusFilter, searchQuery]);
 
 	const handleSort = (field) => {
 		if (sortBy === field) {
@@ -391,7 +395,7 @@ const AdminUsersPage = () => {
 					<input
 						type="text"
 						className="admin-users-search-input"
-						placeholder="Caută după nume sau email..."
+						placeholder="Caută după nume, prenume sau email..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						aria-label="Caută utilizatori"
@@ -645,9 +649,11 @@ const AdminUsersPage = () => {
 										<div className="lms-empty-icon">
 											<UsersThree size={26} weight="duotone" aria-hidden />
 										</div>
-										<h3 className="lms-empty-title">Nu există utilizatori</h3>
+										<h3 className="lms-empty-title">{searchQuery.trim() ? 'Niciun rezultat' : 'Nu există utilizatori'}</h3>
 										<p className="lms-empty-description">
-											Nu există utilizatori care să corespundă filtrelor selectate.
+											{searchQuery.trim()
+												? 'Niciun utilizator nu corespunde numelui, prenumelui sau emailului căutat.'
+												: 'Nu există utilizatori care să corespundă filtrelor selectate.'}
 										</p>
 									</div>
 								</td>

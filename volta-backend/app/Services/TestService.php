@@ -30,12 +30,14 @@ class TestService
             'type' => 'final',
             'status' => $data['status'] ?? 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
-            'max_attempts' => $data['max_attempts'] ?? 1,
+            'max_attempts' => array_key_exists('max_attempts', $data)
+                ? ($data['max_attempts'] === null || $data['max_attempts'] === '' ? null : (int) $data['max_attempts'])
+                : null,
             'randomize_questions' => $data['randomize_questions'] ?? false,
             'randomize_answers' => $data['randomize_answers'] ?? false,
             'show_results_immediately' => $data['show_results_immediately'] ?? true,
-            'show_correct_answers' => $data['show_correct_answers'] ?? false,
-            'show_only_submitted_answers' => $data['show_only_submitted_answers'] ?? false,
+            'show_correct_answers' => $this->resolveShowCorrectAnswers($data),
+            'show_only_submitted_answers' => $this->resolveShowOnlySubmittedAnswers($data),
             'allow_review' => $data['allow_review'] ?? true,
             'question_source' => $data['question_source'] ?? 'direct',
             'question_set_id' => $data['question_set_id'] ?? null,
@@ -249,5 +251,23 @@ class TestService
         $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
 
         return in_array($type, $allowed, true) ? $type : 'multiple_choice';
+    }
+
+    private function resolveShowOnlySubmittedAnswers(array $data): bool
+    {
+        if (array_key_exists('show_only_submitted_answers', $data)) {
+            return (bool) $data['show_only_submitted_answers'];
+        }
+
+        return ! (bool) ($data['show_correct_answers'] ?? false);
+    }
+
+    private function resolveShowCorrectAnswers(array $data): bool
+    {
+        if ($this->resolveShowOnlySubmittedAnswers($data)) {
+            return false;
+        }
+
+        return (bool) ($data['show_correct_answers'] ?? false);
     }
 }

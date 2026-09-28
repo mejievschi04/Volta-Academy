@@ -219,7 +219,9 @@ class ExamAdminController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'draft',
             'max_score' => $validated['max_score'],
-            'max_attempts' => $validated['max_attempts'] ?? 1,
+            'max_attempts' => array_key_exists('max_attempts', $validated)
+                ? ($validated['max_attempts'] === null ? null : (int) $validated['max_attempts'])
+                : null,
         ];
         if ($courseId) {
             $examData['course_id'] = $courseId;
@@ -408,7 +410,9 @@ class ExamAdminController extends Controller
             'description' => array_key_exists('description', $validated) ? $validated['description'] : $exam->description,
             'status' => $validated['status'] ?? $exam->status,
             'max_score' => $validated['max_score'] ?? $exam->max_score,
-            'max_attempts' => $validated['max_attempts'] ?? $exam->max_attempts,
+            'max_attempts' => array_key_exists('max_attempts', $validated)
+                ? ($validated['max_attempts'] === null ? null : (int) $validated['max_attempts'])
+                : $exam->max_attempts,
         ];
         if ($newCourseId) {
             $updateData['course_id'] = $newCourseId;
@@ -1160,6 +1164,9 @@ class ExamAdminController extends Controller
         }
         if (array_key_exists('selected_students', $settings)) {
             $settings['selected_students'] = $this->normalizeSettingIds($settings['selected_students']);
+        }
+        if (array_key_exists('deadline_flexible', $settings)) {
+            $settings['deadline_flexible'] = (bool) $settings['deadline_flexible'];
         }
 
         if ($mode === 'questions') {

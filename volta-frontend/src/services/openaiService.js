@@ -1,50 +1,26 @@
-import api, { ensureApiCsrfCookie } from '../api.js';
+import api, { ensureApiCsrfCookie, readXsrfToken, refreshApiCsrfCookie } from '../api.js';
 import { assertVoltEnabled } from '../utils/voltAvailability.js';
 
-function getCookie(name) {
-	const cookieString = typeof document !== 'undefined' ? document.cookie : '';
-	if (!cookieString) return null;
-	const cookies = cookieString.split(';');
-	for (const cookie of cookies) {
-		const [rawName, ...rest] = cookie.trim().split('=');
-		if (rawName === name) {
-			return rest.join('=');
-		}
-	}
-	return null;
-}
-
-function getXsrfToken() {
-	const raw = getCookie('XSRF-TOKEN');
-	if (!raw) return null;
-	try {
-		return decodeURIComponent(raw);
-	} catch {
-		return raw;
-	}
-}
-
 async function fetchWithCsrfRetry(url, options) {
-	await ensureApiCsrfCookie();
-	let xsrfToken = getXsrfToken();
-	let response = await fetch(url, {
-		...options,
-		headers: {
-			...(options?.headers || {}),
-			...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-		},
-	});
-
-	if (response.status === 419) {
-		await ensureApiCsrfCookie();
-		xsrfToken = getXsrfToken();
-		response = await fetch(url, {
+	const send = () => {
+		const xsrfToken = readXsrfToken();
+		return fetch(url, {
 			...options,
+			credentials: 'include',
 			headers: {
 				...(options?.headers || {}),
 				...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
 			},
 		});
+	};
+
+	await ensureApiCsrfCookie();
+	let response = await send();
+
+	if (response.status === 419) {
+		// ensureApiCsrfCookie nu reface cookie-ul dacă există deja unul vechi
+		await refreshApiCsrfCookie();
+		response = await send();
 	}
 
 	return response;

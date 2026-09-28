@@ -429,13 +429,24 @@ export default function InlineTestEditorShell({
               </div>
               <div className="admin-course-builder-test-field">
                 <label>Încercări maxime</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={inlineTest.max_attempts ?? 1}
-                  onChange={(e) => saveInlineTestPatch({ max_attempts: Math.max(1, Number(e.target.value) || 1) })}
-                  disabled={!canMutateInAdminArea}
-                />
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={inlineTest.max_attempts == null}
+                    onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.checked ? null : 1 })}
+                    disabled={!canMutateInAdminArea}
+                  />
+                  {' '}Nelimitate
+                </label>
+                {inlineTest.max_attempts != null && (
+                  <input
+                    type="number"
+                    min="1"
+                    value={inlineTest.max_attempts}
+                    onChange={(e) => saveInlineTestPatch({ max_attempts: Math.max(1, Number(e.target.value) || 1) })}
+                    disabled={!canMutateInAdminArea}
+                  />
+                )}
               </div>
               <div className="admin-course-builder-test-field">
                 <PassingScoreByQuestions

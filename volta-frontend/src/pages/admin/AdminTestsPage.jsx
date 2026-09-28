@@ -31,7 +31,7 @@ function buildTestMetaLine(item) {
   const parts = [
     `${questions} întrebări`,
     `${Number(item.passing_score ?? 70)}% prag`,
-    item.max_attempts != null ? `${item.max_attempts} încercări` : null,
+    item.max_attempts != null ? `${item.max_attempts} încercări` : 'Nelimitat',
     item.time_limit_minutes ? `${item.time_limit_minutes} min` : 'Timp nelimitat',
   ].filter(Boolean);
   return parts.join(' · ');

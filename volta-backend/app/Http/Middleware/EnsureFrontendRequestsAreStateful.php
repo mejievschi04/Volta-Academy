@@ -12,6 +12,63 @@ use Laravel\Sanctum\Sanctum;
  */
 class EnsureFrontendRequestsAreStateful extends SanctumEnsureFrontendRequestsAreStateful
 {
+    /** Valorile din config, înainte de ajustarea per request (config() rămâne modificat pe worker). */
+    private static ?bool $configuredSecure = null;
+
+    private static ?string $configuredSameSite = null;
+
+    public function handle($request, $next)
+    {
+        if (self::$configuredSecure === null) {
+            self::$configuredSecure = (bool) config('session.secure');
+            $sameSite = config('session.same_site');
+            self::$configuredSameSite = is_string($sameSite) ? $sameSite : null;
+        }
+
+        $secure = self::$configuredSecure;
+        $sameSite = self::$configuredSameSite;
+
+        // Cookie Secure pe HTTP e ignorat de browser: sesiunea nu se salvează și fiecare POST dă 419.
+        // În spatele HTTPS, trustProxies face isSecure() true din X-Forwarded-Proto.
+        if (! $request->isSecure()) {
+            $secure = false;
+            if ($sameSite === 'none') {
+                $sameSite = 'lax';
+            }
+        } elseif ($sameSite === 'none') {
+            $secure = true;
+        }
+
+        config([
+            'session.secure' => $secure,
+            'session.same_site' => $sameSite,
+        ]);
+
+        return parent::handle($request, $next);
+    }
+
+    /**
+     * Sanctum forțează SameSite=lax și ignoră SESSION_SAME_SITE din .env.
+     */
+    protected function configureSecureCookieSessions()
+    {
+        $sameSite = config('session.same_site');
+
+        parent::configureSecureCookieSessions();
+
+        if (is_string($sameSite) && $sameSite !== '') {
+            config(['session.same_site' => $sameSite]);
+        }
+    }
+
+    protected function frontendMiddleware()
+    {
+        $middleware = parent::frontendMiddleware();
+        $middleware[] = ShareCsrfToken::class;
+
+        return $middleware;
+    }
+
     public static function fromFrontend($request): bool
     {
         if (parent::fromFrontend($request)) {

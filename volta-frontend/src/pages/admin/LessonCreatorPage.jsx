@@ -236,11 +236,6 @@ const LessonCreatorPage = () => {
 		if (!formData.title || formData.title.trim().length < 3) {
 			newErrors.title = 'Titlul trebuie să aibă minim 3 caractere';
 		}
-		// Strip HTML tags for validation
-		const textContent = formData.content ? formData.content.replace(/<[^>]*>/g, '').trim() : '';
-		if (!formData.content || textContent.length < 20) {
-			newErrors.content = 'Conținutul trebuie să aibă minim 20 caractere';
-		}
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
@@ -248,11 +243,9 @@ const LessonCreatorPage = () => {
 	// Calculate form completion percentage
 	const completionPercentage = () => {
 		let completed = 0;
-		const total = 3;
+		const total = 2;
 		if (formData.course_id) completed++;
 		if (formData.title && formData.title.trim().length >= 3) completed++;
-		const textContent = formData.content ? formData.content.replace(/<[^>]*>/g, '').trim() : '';
-		if (textContent.length >= 20) completed++;
 		return Math.round((completed / total) * 100);
 	};
 
@@ -423,7 +416,7 @@ const LessonCreatorPage = () => {
 							<div className="admin-form-group-header">
 								<label className="admin-label admin-label-with-icon">
 									<span>📄</span>
-									<span>Conținut Lecție <span className="admin-form-required">*</span></span>
+									<span>Conținut Lecție</span>
 									{formData.content && formData.content.replace(/<[^>]*>/g, '').trim().length >= 20 && (
 										<span className="admin-form-check">✓</span>
 									)}
@@ -478,13 +471,10 @@ const LessonCreatorPage = () => {
 							)}
 							{formData.content && (() => {
 								const textContent = formData.content.replace(/<[^>]*>/g, '').trim();
+								if (!textContent) return null;
 								return (
-									<p className={`admin-form-help-text ${textContent.length >= 20 ? 'success' : ''}`}>
-										{textContent.length >= 20 ? (
-											<>✓ {textContent.length} caractere</>
-										) : (
-											<>💡 Minim 20 caractere necesare ({textContent.length}/20)</>
-										)}
+									<p className="admin-form-help-text success">
+										✓ {textContent.length} caractere
 									</p>
 								);
 							})()}

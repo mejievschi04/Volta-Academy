@@ -348,8 +348,10 @@ const LessonsPage = () => {
 								}
 								return;
 							}
-						} catch {
+						} catch (err) {
 							if (cancelled) return;
+							const status = err?.response?.status;
+							if (status === 419 || status === 401 || status === 403) return;
 						}
 						await new Promise((resolve) => setTimeout(resolve, 1500));
 					}
@@ -371,8 +373,10 @@ const LessonsPage = () => {
 							await refreshCourseProgress();
 						}
 					}
-				} catch  {
+				} catch (err) {
 					if (cancelled) return;
+					const status = err?.response?.status;
+					if (status === 419 || status === 401 || status === 403) return;
 					sentMilestonesRef.current.delete(milestone);
 				}
 			}

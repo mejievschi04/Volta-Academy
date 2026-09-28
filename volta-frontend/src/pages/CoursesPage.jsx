@@ -20,12 +20,14 @@ const COURSE_MAP_ACCENT_COLORS = [
 
 const STUDENT_COURSE_FILTERS = [
 	{ id: 'maps', label: 'Cursuri indicate' },
+	{ id: 'unfinished', label: 'Cursuri neterminate' },
 	{ id: 'completed', label: 'Cursuri finalizate', statKey: 'completed' },
 ];
 
 const STUDENT_FILTER_TITLES = {
 	maps: 'Mape',
-	completed: 'Cursuri',
+	unfinished: 'Cursuri neterminate',
+	completed: 'Cursuri finalizate',
 };
 
 const CoursesPage = () => {
@@ -142,8 +144,17 @@ const CoursesPage = () => {
 	}, [standaloneCourses, searchQuery]);
 
 	const filteredAssignedCourses = useMemo(() => {
-		if (studentFilter !== 'completed') return [];
-		let rows = Array.isArray(assignedCourses.completed) ? [...assignedCourses.completed] : [];
+		if (studentFilter !== 'completed' && studentFilter !== 'unfinished') return [];
+		const source = studentFilter === 'completed'
+			? assignedCourses.completed
+			: [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])];
+		const seen = new Set();
+		let rows = [];
+		(Array.isArray(source) ? source : []).forEach((course) => {
+			if (!course?.id || seen.has(course.id)) return;
+			seen.add(course.id);
+			rows.push(course);
+		});
 		if (searchQuery.trim()) {
 			const needle = searchQuery.trim().toLowerCase();
 			rows = rows.filter((course) =>
@@ -160,6 +171,11 @@ const CoursesPage = () => {
 			const mapCount = (Array.isArray(courseMaps) ? courseMaps.filter(isStudentVisibleMap) : []).length;
 			const standaloneCount = Array.isArray(standaloneCourses) ? standaloneCourses.length : 0;
 			return mapCount + standaloneCount;
+		}
+		if (filter.id === 'unfinished') {
+			const inProgress = assignedCourseStats?.in_progress ?? (assignedCourses.in_progress || []).length;
+			const notAccessed = assignedCourseStats?.not_accessed ?? (assignedCourses.not_accessed || []).length;
+			return Number(inProgress) + Number(notAccessed);
 		}
 		if (!filter.statKey || !assignedCourseStats) return null;
 		return assignedCourseStats[filter.statKey] ?? 0;
@@ -269,11 +285,19 @@ const CoursesPage = () => {
 							<input
 								type="text"
 								className="courses-page-search-input"
-								aria-label={studentFilter === 'completed' ? 'Caută cursuri finalizate' : 'Caută mape'}
+								aria-label={
+									studentFilter === 'completed'
+										? 'Caută cursuri finalizate'
+										: studentFilter === 'unfinished'
+											? 'Caută cursuri neterminate'
+											: 'Caută mape'
+								}
 								placeholder={
 									!isAdmin && studentFilter === 'completed'
 										? 'Caută un curs finalizat...'
-										: 'Caută după titlu sau descriere...'
+										: !isAdmin && studentFilter === 'unfinished'
+											? 'Caută un curs neterminat...'
+											: 'Caută după titlu sau descriere...'
 								}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
@@ -333,7 +357,7 @@ const CoursesPage = () => {
 							) : null}
 						</>
 					) : null}
-					{!isAdmin && studentFilter === 'completed' ? (
+					{!isAdmin && (studentFilter === 'completed' || studentFilter === 'unfinished') ? (
 						<section className="courses-page-filtered-section" aria-label={STUDENT_FILTER_TITLES[studentFilter]}>
 							<div className="courses-page-filtered-header">
 								<h2 className="courses-page-filtered-title">{STUDENT_FILTER_TITLES[studentFilter]}</h2>
@@ -352,7 +376,9 @@ const CoursesPage = () => {
 										<p className="courses-page-empty-text">
 											{searchQuery
 												? 'Incearca un alt termen de cautare.'
-												: 'Cursurile pe care le finalizezi vor apărea aici.'}
+												: studentFilter === 'unfinished'
+													? 'Cursurile începute sau încă neaccesate vor apărea aici.'
+													: 'Cursurile pe care le finalizezi vor apărea aici.'}
 										</p>
 										{searchQuery ? (
 											<button

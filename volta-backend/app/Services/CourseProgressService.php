@@ -77,9 +77,6 @@ class CourseProgressService
     {
         $query = DB::table('test_results')
             ->where('user_id', $user->id)
-            ->where(function ($q) use ($courseId) {
-                $q->where('course_id', $courseId)->orWhereNull('course_id');
-            })
             ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 
@@ -671,9 +668,6 @@ class CourseProgressService
         $query = DB::table('test_results')
             ->where('user_id', $user->id)
             ->where('test_id', $testId)
-            ->where(function ($q) use ($courseId) {
-                $q->where('course_id', $courseId)->orWhereNull('course_id');
-            })
             ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 

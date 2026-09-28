@@ -90,7 +90,7 @@ const DEFAULT_OPTIONS = {
   type: 'practice',
   passing_score: 70,
   time_limit_minutes: '',
-  max_attempts: '1',
+  max_attempts: '',
   status: 'draft',
   attach: false,
   required: true,
@@ -581,7 +581,7 @@ const AITestGenerateModal = ({
         status: options.status,
         passing_score: Number(options.passing_score) || 70,
         time_limit_minutes: options.time_limit_minutes ? Number(options.time_limit_minutes) : null,
-        max_attempts: options.max_attempts ? Number(options.max_attempts) : 1,
+        max_attempts: options.max_attempts === '' || options.max_attempts == null ? null : Number(options.max_attempts) || 1,
         questions,
         attach: options.attach,
         required: options.required,
@@ -1123,14 +1123,25 @@ const AITestGenerateModal = ({
                   </div>
                   <div className="admin-form-group">
                     <label className="admin-form-label">Încercări maxime</label>
-                    <input
-                      type="number"
-                      className="admin-form-input"
-                      min="1"
-                      value={options.max_attempts}
-                      disabled={busy}
-                      onChange={(e) => setOptions((prev) => ({ ...prev, max_attempts: e.target.value }))}
-                    />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={options.max_attempts === '' || options.max_attempts == null}
+                        disabled={busy}
+                        onChange={(e) => setOptions((prev) => ({ ...prev, max_attempts: e.target.checked ? '' : '1' }))}
+                      />
+                      {' '}Nelimitate
+                    </label>
+                    {options.max_attempts !== '' && options.max_attempts != null && (
+                      <input
+                        type="number"
+                        className="admin-form-input"
+                        min="1"
+                        value={options.max_attempts}
+                        disabled={busy}
+                        onChange={(e) => setOptions((prev) => ({ ...prev, max_attempts: e.target.value || '1' }))}
+                      />
+                    )}
                   </div>
                 </div>
 

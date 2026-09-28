@@ -1,4 +1,4 @@
-import api, { ensureApiCsrfCookie } from '../api.js';
+import api, { ensureApiCsrfCookie, refreshApiCsrfCookie } from '../api.js';
 import { logger } from '../utils/logger';
 import { assertVoltEnabled } from '../utils/voltAvailability.js';
 
@@ -367,8 +367,8 @@ export const quizService = {
 };
 
 export const examResultsService = {
-  getAll: async () => {
-    const response = await api.get('/exam-results');
+  getAll: async (params = {}) => {
+    const response = await api.get('/exam-results', { params });
     return response.data;
   },
   
@@ -537,18 +537,21 @@ export const authService = {
   register: async (name, email, password) => {
     await ensureApiCsrfCookie();
     const response = await api.post('/auth/register', { name, email, password });
+    try { await refreshApiCsrfCookie(); } catch { /* înregistrarea a reușit */ }
     return response.data;
   },
   
   login: async (email, password) => {
     await ensureApiCsrfCookie();
     const response = await api.post('/auth/login', { email, password });
+    try { await refreshApiCsrfCookie(); } catch { /* sesiunea e deja deschisă */ }
     return response.data;
   },
   
   logout: async () => {
     await ensureApiCsrfCookie();
     const response = await api.post('/auth/logout');
+    try { await refreshApiCsrfCookie(); } catch { /* sesiunea e închisă */ }
     return response.data;
   },
   
@@ -584,6 +587,7 @@ export const authService = {
   acceptInvitation: async (token, payload) => {
     await ensureApiCsrfCookie();
     const response = await api.post(`/auth/invitations/${encodeURIComponent(token)}/accept`, payload);
+    try { await refreshApiCsrfCookie(); } catch { /* contul e creat */ }
     return response.data;
   },
 };

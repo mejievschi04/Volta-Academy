@@ -70,8 +70,11 @@ Route::middleware('throttle:120,1')->group(function () {
 // CSRF cookie pentru SPA: Sanctum (EnsureFrontendRequestsAreStateful) aplică deja EncryptCookies,
 // StartSession și VerifyCsrfToken pentru Origin/Referer din config('sanctum.stateful').
 // Nu folosi middleware('web') aici — se suprapune peste stack-ul API și poate produce 500 (sesiune dublă).
-Route::get('/csrf-cookie', function () {
-    return response()->json(['message' => 'CSRF cookie set']);
+Route::get('/csrf-cookie', function (Request $request) {
+    return response()->json([
+        'message' => 'CSRF cookie set',
+        'token' => $request->hasSession() ? $request->session()->token() : null,
+    ]);
 });
 
 // Debug-only: check cookies/session (disabled in production)

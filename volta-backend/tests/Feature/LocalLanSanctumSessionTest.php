@@ -26,5 +26,8 @@ class LocalLanSanctumSessionTest extends TestCase
         ])->getJson('/api/csrf-cookie');
 
         $response->assertOk();
+        $this->assertNotSame('', (string) $response->json('token'));
+        $this->assertNotSame('', (string) $response->headers->get('X-CSRF-TOKEN'));
+        $this->assertSame($response->json('token'), $response->headers->get('X-CSRF-TOKEN'));
     }
 }

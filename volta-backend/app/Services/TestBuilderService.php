@@ -29,13 +29,15 @@ class TestBuilderService
             'type' => $data['type'] ?? 'final',
             'status' => 'draft',
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
-            'max_attempts' => $data['max_attempts'] ?? 1,
+            'max_attempts' => array_key_exists('max_attempts', $data)
+                ? ($data['max_attempts'] === null || $data['max_attempts'] === '' ? null : (int) $data['max_attempts'])
+                : null,
             'passing_score' => isset($data['passing_score']) ? (int) $data['passing_score'] : 70,
             'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
             'show_results_immediately' => (bool)($data['show_results_immediately'] ?? true),
-            'show_correct_answers' => (bool)($data['show_correct_answers'] ?? false),
-            'show_only_submitted_answers' => (bool)($data['show_only_submitted_answers'] ?? false),
+            'show_correct_answers' => $this->resolveShowCorrectAnswers($data),
+            'show_only_submitted_answers' => $this->resolveShowOnlySubmittedAnswers($data),
             'allow_review' => (bool)($data['allow_review'] ?? true),
             'requires_manual_verification' => (bool)($data['requires_manual_verification'] ?? false),
             'question_source' => $data['question_source'] ?? 'direct',
@@ -474,5 +476,23 @@ class TestBuilderService
         }
 
         return $normalized;
+    }
+
+    private function resolveShowOnlySubmittedAnswers(array $data): bool
+    {
+        if (array_key_exists('show_only_submitted_answers', $data)) {
+            return (bool) $data['show_only_submitted_answers'];
+        }
+
+        return ! (bool) ($data['show_correct_answers'] ?? false);
+    }
+
+    private function resolveShowCorrectAnswers(array $data): bool
+    {
+        if ($this->resolveShowOnlySubmittedAnswers($data)) {
+            return false;
+        }
+
+        return (bool) ($data['show_correct_answers'] ?? false);
     }
 }

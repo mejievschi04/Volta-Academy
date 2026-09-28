@@ -273,13 +273,6 @@ const AdminCourseBuilderPage = () => {
 		const pending = pendingContentRef.current;
 		if (!pending?.lessonId) return true;
 		const { lessonId, content } = pending;
-		if (
-			!String(content || '').trim() &&
-			String(lastPersistedLessonContentRef.current || '').trim()
-		) {
-			pendingContentRef.current = null;
-			return true;
-		}
 		try {
 			await persistLessonContent(lessonId, content);
 			if (
@@ -881,17 +874,6 @@ const AdminCourseBuilderPage = () => {
 
 	const handleLessonContentChange = (nextContent) => {
 		if (!selectedLesson?.id) return;
-		const blocks = selectedLesson?.content_blocks ?? selectedLesson?.contentBlocks ?? [];
-		const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
-		if (!String(nextContent || '').trim() && hasBlocks) {
-			return;
-		}
-		if (
-			!String(nextContent || '').trim() &&
-			String(lastPersistedLessonContentRef.current || '').trim()
-		) {
-			return;
-		}
 		setLessonContent(nextContent);
 		pendingContentRef.current = {
 			lessonId: selectedLesson.id,

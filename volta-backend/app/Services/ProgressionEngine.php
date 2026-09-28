@@ -206,7 +206,6 @@ class ProgressionEngine
             ->where('user_id', $user->id)
             ->where('test_id', $testId)
             ->where('passed', true)
-            ->when($courseId, fn ($q) => $q->where('course_id', $courseId))
             ->exists();
     }
 }

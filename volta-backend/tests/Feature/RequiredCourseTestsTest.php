@@ -123,4 +123,32 @@ class RequiredCourseTestsTest extends TestCase
         );
         $this->assertFalse($link->required);
     }
+
+    public function test_a_pass_from_another_course_completes_this_course(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $course = Course::factory()->published()->create();
+        $otherCourse = Course::factory()->published()->create();
+        $lesson = Lesson::withoutEvents(fn () => Lesson::create([
+            'course_id' => $course->id, 'module_id' => null, 'title' => 'Lesson',
+            'content' => 'Content', 'type' => 'text', 'status' => 'published', 'order' => 1,
+        ]));
+        DB::table('lesson_progress')->insert([
+            'user_id' => $student->id, 'lesson_id' => $lesson->id,
+            'completed' => true, 'progress_percentage' => 100,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $test = Test::factory()->published()->create();
+        CourseTest::create([
+            'course_id' => $course->id, 'test_id' => $test->id,
+            'scope' => 'course', 'required' => true, 'passing_score' => 70, 'order' => 0,
+        ]);
+        TestResult::create([
+            'test_id' => $test->id, 'course_id' => $otherCourse->id, 'user_id' => $student->id,
+            'score' => 80, 'max_score' => 100, 'percentage' => 80, 'passed' => true,
+            'attempt_number' => 1, 'answers' => [], 'completed_at' => now(), 'status' => 'completed',
+        ]);
+
+        $this->assertTrue(app(CourseProgressService::class)->isCourseComplete($student, $course));
+    }
 }

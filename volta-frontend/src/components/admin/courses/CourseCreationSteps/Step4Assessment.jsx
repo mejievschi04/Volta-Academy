@@ -228,13 +228,23 @@ function QuizSettings({ assessment, onUpdate }) {
 				</div>
 				<div className="step4-form-group">
 					<label>Încercări permise</label>
-					<input
-						type="number"
-						min={1}
-						value={assessment.max_attempts ?? 1}
-						onChange={(e) => onUpdate({ max_attempts: parseInt(e.target.value, 10) || 1 })}
-						className="step4-input"
-					/>
+					<label>
+						<input
+							type="checkbox"
+							checked={assessment.max_attempts == null}
+							onChange={(e) => onUpdate({ max_attempts: e.target.checked ? null : 1 })}
+						/>
+						{' '}Nelimitate
+					</label>
+					{assessment.max_attempts != null && (
+						<input
+							type="number"
+							min={1}
+							value={assessment.max_attempts}
+							onChange={(e) => onUpdate({ max_attempts: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+							className="step4-input"
+						/>
+					)}
 				</div>
 			</div>
 			<div className="step4-form-group step4-checkbox-row">
@@ -368,7 +378,7 @@ const Step4Assessment = ({ data, onUpdate }) => {
 			type,
 			passing_threshold: 70,
 			time_limit_minutes: null,
-			max_attempts: 1,
+			max_attempts: null,
 			allow_retry: true,
 			randomize: false,
 			questions: type === 'quiz' ? [] : undefined,

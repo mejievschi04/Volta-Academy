@@ -546,14 +546,16 @@ const ExamPage = () => {
 	// Get question status
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
+			const question = exam.questions.find(q => q.id === questionId);
+			if (typeof question?.is_correct === 'boolean') {
+				return question.is_correct ? 'completed' : 'incorrect';
+			}
 			if (showOnlySubmittedAnswers) {
-				const question = exam.questions.find((q) => q.id === questionId);
 				const isAnswered = question
 					? isChoiceAnswered(question, visibleAnswers[questionId])
 					: visibleAnswers[questionId] !== undefined;
 				return isAnswered ? 'answered' : 'not-started';
 			}
-			const question = exam.questions.find(q => q.id === questionId);
 			if (!Array.isArray(question?.options) || question.options.length === 0) {
 				return (question?.type === 'matching' || question?.type === 'ordering') ? (isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect') : 'pending';
 			}
@@ -610,17 +612,15 @@ const ExamPage = () => {
 		const hasMatching = q.type === 'matching' && q.matching;
 		const hasOrdering = q.type === 'ordering' && q.ordering;
 		const isStructured = Boolean(hasMatching || hasOrdering);
-		const isCorrect = showOnlySubmittedAnswers ? null : isQuestionCorrect(q, userAnswer);
+		const isCorrect = typeof q.is_correct === 'boolean'
+			? q.is_correct
+			: (showOnlySubmittedAnswers ? null : isQuestionCorrect(q, userAnswer));
 		const matchingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
 		const orderingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
-		const statusLabel = showOnlySubmittedAnswers
-			? 'Răspuns trimis'
-			: isStructured
-				? (isCorrect ? '✓ Corect' : '✗ Incorect')
-				: (hasOptions ? (isCorrect ? '✓ Corect' : '✗ Incorect') : 'Tip fără opțiuni');
-		const feedbackToneClass = showOnlySubmittedAnswers
-			? 'submitted'
-			: (isCorrect ? 'correct' : 'incorrect');
+		const statusLabel = isCorrect === null
+			? (hasOptions || isStructured ? 'Răspuns trimis' : 'Tip fără opțiuni')
+			: (isCorrect ? '✓ Corect' : '✗ Incorect');
+		const feedbackToneClass = isCorrect === null ? 'submitted' : (isCorrect ? 'correct' : 'incorrect');
 		const questionPreview =
 			typeof q.text === 'string' && q.text.length > 80 ? `${q.text.slice(0, 80)}…` : q.text;
 
@@ -678,7 +678,7 @@ const ExamPage = () => {
 				<details
 					key={q.id}
 					className={`student-exam-feedback-item student-exam-feedback-item--collapsible ${feedbackToneClass}`}
-					open={showOnlySubmittedAnswers ? false : !isCorrect}
+					open={isCorrect === false}
 				>
 					<summary className="student-exam-feedback-item-summary">
 						<span className="student-exam-feedback-item-number">{idx + 1}</span>
