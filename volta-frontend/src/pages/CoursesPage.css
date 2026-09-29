@@ -182,57 +182,93 @@
 }
 
 .courses-page-student-filters {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-2);
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	width: 100%;
 	margin-top: var(--space-3);
+	box-sizing: border-box;
+	padding: 0;
+	background: transparent;
+	border: 0;
 }
 
-.courses-page-student-filter {
-	display: inline-flex;
+.va-shell .courses-page-student button.courses-page-student-filter {
+	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: var(--space-2);
-	border: 1px solid var(--border-primary);
-	background: var(--bg-elevated);
-	color: var(--text-secondary);
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
-	padding: 0.5rem 0.875rem;
-	border-radius: var(--radius-full);
+	justify-content: center;
+	gap: 3px;
+	min-width: 0;
+	min-height: 64px;
+	padding: 10px 8px;
+	border: 1px solid #cbd5e1;
+	border-radius: 12px;
+	background: #ffffff;
+	background-color: #ffffff;
+	color: #111111;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1.15;
+	text-align: center;
 	cursor: pointer;
-	transition: all var(--transition-base);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-.courses-page-student-filter:hover {
-	border-color: color-mix(in srgb, var(--color-brand-primary) 40%, var(--border-primary));
-	color: var(--text-primary);
-	background: color-mix(in srgb, var(--color-brand-primary) 8%, var(--bg-elevated));
+.va-shell .courses-page-student button.courses-page-student-filter:hover {
+	border-color: #111111;
+	background: #ffffff;
+	background-color: #ffffff;
+	color: #111111;
 }
 
-.courses-page-student-filter.is-active {
-	border-color: var(--color-brand-primary);
-	background: color-mix(in srgb, var(--color-brand-primary) 18%, var(--bg-elevated));
-	color: var(--text-primary);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
+.va-shell .courses-page-student button.courses-page-student-filter.is-active,
+.va-shell .courses-page-student button.courses-page-student-filter.is-active:hover {
+	background: #ffee00 !important;
+	background-color: #ffee00 !important;
+	color: #000000 !important;
+	border-color: #111111 !important;
+	box-shadow: none !important;
+}
+
+.courses-page-student-filter-label {
+	display: block;
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: center;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.15;
 }
 
 .courses-page-student-filter-count {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 1.5rem;
-	height: 1.5rem;
-	padding: 0 0.4rem;
-	border-radius: var(--radius-full);
-	background: color-mix(in srgb, var(--color-brand-primary) 16%, var(--bg-secondary));
-	color: var(--text-primary);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-bold);
+	display: block;
+	min-width: 0;
+	height: auto;
+	padding: 0;
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	font-size: 16px;
+	font-weight: 700;
 	line-height: 1;
 }
 
-.courses-page-student-filter.is-active .courses-page-student-filter-count {
-	background: color-mix(in srgb, var(--color-brand-primary) 28%, var(--bg-elevated));
+.va-shell .courses-page-student button.courses-page-student-filter.is-active .courses-page-student-filter-count,
+.va-shell .courses-page-student button.courses-page-student-filter.is-active .courses-page-student-filter-label {
+	color: #000000 !important;
+	background: transparent !important;
+	background-color: transparent !important;
+}
+
+html[data-theme='dark'] .courses-page-student-filter.is-active,
+html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-label,
+html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-count {
+	color: #000000;
 }
 
 .courses-page-filtered-section {
@@ -1789,25 +1825,15 @@
 		width: 100%;
 	}
 
-	.courses-page-student-filters {
-		width: 100%;
-		overflow-x: auto;
-		flex-wrap: nowrap;
-		padding-bottom: 2px;
-		-webkit-overflow-scrolling: touch;
-		scrollbar-width: none;
-	}
-
-	.courses-page-student-filters::-webkit-scrollbar {
-		display: none;
-	}
-
 	.courses-page-student-filter {
-		flex: 0 0 auto;
-		min-height: 40px;
-		padding: 0.55rem 0.75rem;
-		font-size: var(--font-size-sm);
+		min-height: 52px;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	.courses-page-student-filter-label {
+		font-size: 10px;
+		white-space: normal;
+		text-wrap: balance;
 	}
 
 	.courses-page-student .courses-page-hero-search {

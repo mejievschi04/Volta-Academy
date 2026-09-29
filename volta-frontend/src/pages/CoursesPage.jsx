@@ -262,18 +262,25 @@ const CoursesPage = () => {
 								<div className="courses-page-student-filters" role="group" aria-label="Filtrare mape și cursuri">
 									{STUDENT_COURSE_FILTERS.map((filter) => {
 										const count = getStudentFilterCount(filter);
+										const active = studentFilter === filter.id;
 										return (
 											<button
 												key={filter.id}
 												type="button"
-												aria-pressed={studentFilter === filter.id}
-												className={`courses-page-student-filter${studentFilter === filter.id ? ' is-active' : ''}`}
+												aria-pressed={active}
+												className={`courses-page-student-filter${active ? ' is-active' : ''}`}
 												onClick={() => setStudentFilter(filter.id)}
+												ref={(node) => {
+													if (!node) return;
+													node.style.setProperty('background-color', active ? '#ffee00' : '#ffffff', 'important');
+													node.style.setProperty('color', '#000000', 'important');
+													node.style.setProperty('border', active ? '2px solid #111111' : '1px solid #cbd5e1', 'important');
+												}}
 											>
-												<span className="courses-page-student-filter-label">{filter.label}</span>
 												{count != null ? (
-													<span className="courses-page-student-filter-count">{count}</span>
+													<span className="courses-page-student-filter-count" style={active ? { color: '#000000', background: 'transparent' } : undefined}>{count}</span>
 												) : null}
+												<span className="courses-page-student-filter-label" style={active ? { color: '#000000', background: 'transparent' } : undefined}>{filter.label}</span>
 											</button>
 										);
 									})}

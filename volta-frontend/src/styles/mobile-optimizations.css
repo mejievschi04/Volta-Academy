@@ -6507,19 +6507,25 @@
 	}
 
 	.va-shell .courses-page-student .courses-page-student-filters {
-		display: flex !important;
-		flex-wrap: wrap !important;
-		gap: 8px !important;
-		overflow: visible !important;
+		display: grid !important;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 4px !important;
+		width: 100%;
 		max-width: 100%;
-		padding: 0 !important;
+		padding: 6px !important;
 	}
 
-	.va-shell .courses-page-student .courses-page-student-filter {
-		min-height: 44px;
-		padding: 8px 12px !important;
-		font-size: 14px !important;
-		flex: 0 1 auto;
+	.va-shell .courses-page-student button.courses-page-student-filter {
+		min-width: 0;
+		min-height: 64px;
+		padding: 10px 6px !important;
+		font-size: 11px !important;
+	}
+
+	.va-shell .courses-page-student .courses-page-student-filter-label {
+		font-size: 10px !important;
+		white-space: normal;
+		text-wrap: balance;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty {
@@ -6655,9 +6661,12 @@
 		align-items: center;
 		justify-content: center;
 		gap: 3px;
+		width: 100%;
 		min-width: 0;
+		max-width: 100%;
 		min-height: 48px;
 		padding: 4px 2px;
+		overflow: hidden;
 		border: 0;
 		border-radius: 12px;
 		background: transparent;
@@ -6665,10 +6674,22 @@
 		font: inherit;
 		font-size: 11px;
 		font-weight: 600;
-		line-height: 1.3;
+		line-height: 1.15;
 		text-decoration: none;
 		cursor: pointer;
 		touch-action: manipulation;
+	}
+	.student-mobile-tab-label {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		text-align: center;
+		font-size: 10px;
+		line-height: 1.15;
 	}
 	html:has(.student-mobile-tabs):has(.messages-page--thread),
 	html:has(.student-mobile-tabs):has(.student-exam-page),
@@ -6701,7 +6722,18 @@
 		padding-bottom: 12px !important;
 	}
 
-	.student-mobile-tab.active { background: var(--color-primary); color: var(--btn-primary-text); }
+	.student-mobile-tab.active,
+	.student-mobile-tab.active .student-mobile-tab-label,
+	.student-mobile-tab.active .student-mobile-tab-icon,
+	.student-mobile-tab.active svg {
+		background: #ffee00;
+		color: #000000;
+	}
+	.student-mobile-tab.active .student-mobile-tab-label,
+	.student-mobile-tab.active .student-mobile-tab-icon,
+	.student-mobile-tab.active svg {
+		background: transparent;
+	}
 
 	.student-mobile-tabs .student-more-menu-wrap {
 		display: flex;
@@ -6714,10 +6746,15 @@
 	}
 
 	.student-mobile-tabs .student-more-menu {
+		position: fixed;
 		top: auto;
-		bottom: calc(100% + 8px);
-		right: 0;
-		left: auto;
+		right: max(8px, env(safe-area-inset-right));
+		bottom: calc(var(--student-tab-height) + 8px);
+		left: max(8px, env(safe-area-inset-left));
+		width: auto;
+		min-width: 0;
+		max-height: min(60dvh, 420px);
+		overflow-y: auto;
 	}
 	.student-mobile-tab:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
 	.student-mobile-tab-icon { position: relative; display: flex; }
@@ -6838,7 +6875,10 @@
 @media (max-width: 768px) {
 	html[data-theme='dark'] .va-shell .student-mobile-tab.active,
 	html[data-theme='dark'] .va-shell .student-mobile-tab.active > span,
-	html[data-theme='dark'] .va-shell .student-mobile-tab.active svg {
+	html[data-theme='dark'] .va-shell .student-mobile-tab.active svg,
+	html[data-theme='dark'] .courses-page-student-filter.is-active,
+	html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-label,
+	html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-count {
 		color: #000000 !important;
 	}
 }

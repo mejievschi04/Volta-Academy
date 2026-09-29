@@ -23,8 +23,12 @@
 .student-exam-page .exam-question-overview .student-exam-nav-item { min-width: 44px; min-height: 44px; }
 .student-exam-page .student-exam-question-flag { min-height: 44px; }
 @media (max-width: 768px) {
-	.va-shell .courses-page-student .courses-page-student-filters { gap: 8px !important; }
-	.va-shell .courses-page-student .courses-page-student-filter { flex-grow: 1; text-align: center; justify-content: center; }
+	.va-shell .courses-page-student .courses-page-student-filters { gap: 4px !important; }
+	.va-shell .courses-page-student .courses-page-student-filter {
+		min-width: 0;
+		text-align: center;
+		justify-content: center;
+	}
 	.courses-page-student .courses-page-search-input { font-size: 16px !important; }
 	.student-exam-page .exam-question-overview { position: static; width: 100%; margin-bottom: 16px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-elevated); }
 	.student-exam-page .exam-question-overview summary { min-height: 44px; box-sizing: border-box; }

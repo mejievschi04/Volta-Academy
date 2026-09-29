@@ -614,6 +614,7 @@ function AuthenticatedLayout({ children, authContext }) {
 		{
 			path: '/monthly-tests',
 			label: 'Teste lunare',
+			mobileLabel: 'Teste',
 			title: 'Examenele pe care le poți susține',
 			icon: (
 				<ClipboardText size={20} weight="duotone" aria-hidden />
@@ -844,7 +845,7 @@ function AuthenticatedLayout({ children, authContext }) {
 				<span className={placement === 'desktop' ? 'modern-topnav-item-icon va-topnav-icon' : 'student-mobile-tab-icon'}>
 					<DotsThree size={placement === 'desktop' ? 20 : 23} weight="bold" aria-hidden />
 				</span>
-				<span className={placement === 'desktop' ? 'modern-topnav-item-label va-topnav-label' : undefined}>Mai multe</span>
+				<span className={placement === 'desktop' ? 'modern-topnav-item-label va-topnav-label' : 'student-mobile-tab-label'}>Mai multe</span>
 			</button>
 			{moreMenuOpen ? (
 				<div className="student-more-menu" role="menu">
@@ -1412,7 +1413,7 @@ function AuthenticatedLayout({ children, authContext }) {
 										{item.icon}
 										{item.path === '/messages' ? renderMessagesNavBadge() : null}
 									</span>
-									<span>{item.label}</span>
+									<span className="student-mobile-tab-label">{item.mobileLabel || item.label}</span>
 								</NavLink>
 							))}
 							{renderMoreMenu('mobile')}

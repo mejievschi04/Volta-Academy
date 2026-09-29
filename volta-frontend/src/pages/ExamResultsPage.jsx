@@ -2,9 +2,11 @@ import '../styles/exam-results-modern.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+	CheckCircle,
 	Eye,
 	MagnifyingGlass,
 	WarningCircle,
+	XCircle,
 } from '@phosphor-icons/react';
 import { examResultsService } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
