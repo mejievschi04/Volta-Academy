@@ -1,13 +1,32 @@
 import { useEffect, useState } from 'react';
 import { findLessonScrollRoot, lessonTabObstructionPx } from '../utils/lessonReadCompletion';
 
+function fixedLessonBarOverlap() {
+	const bar = document.querySelector('.lessons-page-lesson-actions, .lesson-page-actions');
+	if (!bar) return 0;
+	const style = window.getComputedStyle(bar);
+	if (style.position !== 'fixed' && style.position !== 'sticky') return 0;
+	const hidden = Math.round(window.innerHeight - bar.getBoundingClientRect().top);
+	return hidden > 0 ? hidden : 0;
+}
+
 function visibleBottom(scrollRoot) {
 	const edge = scrollRoot ? scrollRoot.getBoundingClientRect().bottom : window.innerHeight;
-	const chrome = window.innerWidth <= 768 ? lessonTabObstructionPx() + 72 : 0;
+	const bar = fixedLessonBarOverlap();
+	const chrome = bar > 0 ? bar : (window.innerWidth <= 768 ? lessonTabObstructionPx() + 72 : 0);
 	return edge - chrome;
 }
 
+function scrolledToEnd(scrollRoot) {
+	if (scrollRoot) {
+		return scrollRoot.scrollHeight - scrollRoot.scrollTop - scrollRoot.clientHeight <= 32;
+	}
+	const doc = document.scrollingElement || document.documentElement;
+	return doc.scrollHeight - window.scrollY - window.innerHeight <= 32;
+}
+
 function endIsVisible(root, scrollRoot) {
+	if (scrolledToEnd(scrollRoot)) return true;
 	const sentinel = root.querySelector('[data-lesson-read-end]');
 	const limit = visibleBottom(scrollRoot);
 	if (!sentinel) {
@@ -37,6 +56,9 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 		update();
 		const target = scrollRoot || window;
 		target.addEventListener('scroll', update, { passive: true });
+		if (target !== window) {
+			window.addEventListener('scroll', update, { passive: true });
+		}
 		window.addEventListener('resize', update);
 
 		const resizeObserver =
@@ -47,6 +69,9 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 
 		return () => {
 			target.removeEventListener('scroll', update);
+			if (target !== window) {
+				window.removeEventListener('scroll', update);
+			}
 			window.removeEventListener('resize', update);
 			resizeObserver?.disconnect();
 			window.clearTimeout(lateCheck);

@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\Test;
 use App\Models\ActivityLog;
 use App\Services\CourseProgressService;
+use App\Services\PublishedCourseView;
 use App\Support\LearningVisibility;
 use App\Support\StudentActivityLogger;
 use Carbon\Carbon;
@@ -484,8 +485,7 @@ class CourseProgressController extends Controller
             ], 403);
         }
 
-        $isUnlocked = $this->progressService->isLearnerLessonUnlocked($user, $lesson, $course);
-        if (!$isUnlocked) {
+        if (! $this->learnerMayRecordLessonProgress($user, $lesson, $course)) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
             ], 403);
@@ -734,9 +734,7 @@ class CourseProgressController extends Controller
         $shouldAutoComplete = ! $isAlreadyCompleted && ($progressPercentage >= 100 || $lastMilestoneReached >= 100) && $dwellMet;
         $didAutoCompleteNow = false;
 
-        if (! LearningVisibility::isStaff($user)
-            && ! $this->progressService->isLearnerLessonUnlocked($user, $lesson, $course)
-        ) {
+        if (! $this->learnerMayRecordLessonProgress($user, $lesson, $course)) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
                 'locked' => true,
@@ -802,6 +800,26 @@ class CourseProgressController extends Controller
             'awaiting_dwell' => $wantsComplete && ! $didAutoCompleteNow && ! $isAlreadyCompleted && ! $dwellMet,
             'min_dwell_seconds' => $minDwell,
         ]);
+    }
+
+    /**
+     * Aceeași regulă ca la deschiderea lecției: dacă textul se încarcă, progresul se poate salva.
+     */
+    private function learnerMayRecordLessonProgress($user, Lesson $lesson, Course $course): bool
+    {
+        if (! $user || LearningVisibility::isStaff($user) || (bool) ($lesson->is_preview ?? false)) {
+            return true;
+        }
+
+        $view = app(PublishedCourseView::class);
+        if ($view->shouldServeSnapshot($course, request())) {
+            $overlay = $view->overlayLesson($lesson, $view->latestPublishedSnapshot((int) $course->id));
+            if ($overlay) {
+                $lesson = $overlay;
+            }
+        }
+
+        return $this->progressService->isLessonUnlocked($user, $lesson, $lesson->module, $course);
     }
 
     private function learnerMayQueryCourseProgress($user, ?Course $course, ?Lesson $lesson = null): bool
