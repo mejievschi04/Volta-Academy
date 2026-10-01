@@ -22,9 +22,9 @@ import CourseCongratulationsModal from '../components/student/CourseCongratulati
 import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
-import { useLessonReadCompletion } from '../hooks/useLessonReadCompletion';
-import { LESSON_READ_MILESTONES } from '../utils/lessonReadCompletion';
+import { useLessonReachedEnd } from '../hooks/useLessonReachedEnd';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
+import LessonPullRefresh from '../components/student/LessonPullRefresh';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
@@ -50,7 +50,6 @@ const LessonsPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
-	const sentMilestonesRef = useRef(new Set());
 
 	const [course, setCourse] = useState(null);
 	const modules = useMemo(
@@ -81,7 +80,6 @@ const LessonsPage = () => {
 	}, [courseId]);
 
 	useEffect(() => {
-		sentMilestonesRef.current = new Set();
 		setIsCompleted(false);
 	}, [selectedLessonId]);
 
@@ -154,11 +152,12 @@ const LessonsPage = () => {
 		enabled: lessonReadyForTracking && !['admin', 'analyst'].includes(user?.actualRole || user?.role || ''),
 	});
 
-	const { reachedMilestones } = useLessonReadCompletion({
+	const reachedEnd = useLessonReachedEnd({
 		contentRef,
 		lessonId: selectedLessonId,
-		enabled: lessonReadyForTracking && !isCompleted && !isCompleting,
+		enabled: lessonReadyForTracking,
 	});
+	const canAdvanceLesson = isCompleted || reachedEnd;
 
 	const fetchCourseData = async () => {
 		try {
@@ -202,6 +201,29 @@ const LessonsPage = () => {
 			showToast(locked ? (err.response.data.message || 'Lecția este blocată.') : 'Eroare la încărcarea lecției', 'error');
 		} finally {
 			setCurrentLessonLoading(false);
+		}
+	};
+
+	const refreshOpenLesson = async () => {
+		try {
+			const courseData = await coursesService.getById(courseId);
+			setCourse(courseData);
+			let progressData = progress;
+			if (user?.id) {
+				try {
+					progressData = await courseProgressService.getCourseProgress(courseId);
+					setProgress(progressData);
+				} catch {
+					// Progresul vechi rămâne pe ecran dacă reîncărcarea lui eșuează.
+				}
+			}
+			if (selectedLessonId) {
+				const lessonData = normalizeLessonFromApi(await lessonsService.getById(selectedLessonId));
+				setCurrentLesson(lessonData);
+				setIsCompleted(user?.id ? isLessonMarkedComplete(progressData, selectedLessonId) : false);
+			}
+		} catch {
+			showToast('Nu s-a putut actualiza lecția', 'error');
 		}
 	};
 
@@ -317,79 +339,6 @@ const LessonsPage = () => {
 	const getCourseLevelTestProgress = (testId) =>
 		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
 
-	useEffect(() => {
-		const pendingMilestones = LESSON_READ_MILESTONES.filter(
-			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
-		);
-
-		if (!pendingMilestones.length) return;
-
-		pendingMilestones.forEach((milestone) => {
-			if (milestone < 100) sentMilestonesRef.current.add(milestone);
-		});
-
-		let cancelled = false;
-
-		const syncMilestones = async () => {
-			for (const milestone of pendingMilestones) {
-				if (milestone >= 100) {
-					for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
-						try {
-							const response = await courseProgressService.updateLessonProgress(selectedLessonId, {
-								milestone,
-								milestone_reached: milestone,
-								progress_percentage: milestone,
-							});
-							if (cancelled) return;
-							if (response?.completed || response?.auto_completed) {
-								sentMilestonesRef.current.add(100);
-								setIsCompleted(true);
-								if (user?.id) {
-									await refreshCourseProgress();
-								}
-								return;
-							}
-						} catch (err) {
-							if (cancelled) return;
-							const status = err?.response?.status;
-							if (status === 419 || status === 401 || status === 403) return;
-						}
-						await new Promise((resolve) => setTimeout(resolve, 1500));
-					}
-					continue;
-				}
-
-				try {
-					const response = await courseProgressService.updateLessonProgress(selectedLessonId, {
-						milestone,
-						milestone_reached: milestone,
-						progress_percentage: milestone,
-					});
-
-					if (cancelled) return;
-
-					if (response?.completed || response?.auto_completed) {
-						setIsCompleted(true);
-						if (user?.id && !cancelled) {
-							await refreshCourseProgress();
-						}
-					}
-				} catch (err) {
-					if (cancelled) return;
-					const status = err?.response?.status;
-					if (status === 419 || status === 401 || status === 403) return;
-					sentMilestonesRef.current.delete(milestone);
-				}
-			}
-		};
-
-		syncMilestones();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [selectedLessonId, reachedMilestones, courseId, user?.id, refreshCourseProgress]);
-
 	const handleNextLesson = async () => {
 		if (!isCompleted) {
 			const ok = await completeCurrentLesson();
@@ -499,6 +448,7 @@ const LessonsPage = () => {
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
+			<LessonPullRefresh onRefresh={refreshOpenLesson} />
 			<CourseCongratulationsModal
 				open={showCourseCongrats}
 				courseTitle={course?.title}
@@ -809,7 +759,8 @@ const LessonsPage = () => {
 										<button
 											className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta lessons-page-lesson-cta--finalize"
 											type="button"
-											disabled={finalizingCourse || isCompleting}
+											disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
+											title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
 											onClick={handleFinalizeCourse}
 										>
 											{finalizingCourse ? (
@@ -825,10 +776,10 @@ const LessonsPage = () => {
 										<button
 											type="button"
 											className="lessons-page-nav-btn lessons-page-nav-btn--next"
-											disabled={!hasNextLesson || isCompleting || finalizingCourse}
+											disabled={!hasNextLesson || isCompleting || finalizingCourse || !canAdvanceLesson}
 											onClick={handleNextLesson}
 											aria-label="Lecția următoare"
-											title="Lecția următoare"
+											title={canAdvanceLesson ? 'Lecția următoare' : 'Derulează până la finalul lecției'}
 										>
 											<span>Următoarea</span><ArrowRight size={22} weight="bold" aria-hidden />
 										</button>
@@ -838,7 +789,8 @@ const LessonsPage = () => {
 								<button
 									className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta"
 									type="button"
-									disabled={finalizingCourse || isCompleting}
+									disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
+									title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
 									onClick={handleFinalizeCourse}
 								>
 									{finalizingCourse ? (

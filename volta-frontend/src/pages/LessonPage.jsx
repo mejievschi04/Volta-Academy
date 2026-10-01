@@ -19,12 +19,12 @@ import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocks
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
 import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
-import { useLessonReadCompletion } from '../hooks/useLessonReadCompletion';
-import { LESSON_READ_MILESTONES } from '../utils/lessonReadCompletion';
+import { useLessonReachedEnd } from '../hooks/useLessonReachedEnd';
 import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
+import LessonPullRefresh from '../components/student/LessonPullRefresh';
 import './LessonPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
 
@@ -49,7 +49,6 @@ const LessonPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
-	const sentMilestonesRef = useRef(new Set());
 	
 	const [lesson, setLesson] = useState(null);
 	const [course, setCourse] = useState(null);
@@ -69,11 +68,12 @@ const LessonPage = () => {
 		enabled: Boolean(user?.id && lessonId && !['admin', 'analyst'].includes(user?.actualRole || user?.role || '')),
 	});
 
-	const { reachedMilestones } = useLessonReadCompletion({
+	const reachedEnd = useLessonReachedEnd({
 		contentRef,
 		lessonId,
-		enabled: Boolean(lesson && user?.id && !isCompleted && !isCompleting && !loading),
+		enabled: Boolean(lesson && !loading),
 	});
+	const canAdvanceLesson = isCompleted || reachedEnd;
 
 	const completeCurrentLesson = useCallback(async () => {
 		if (!lessonId || isCompleted || !user?.id) return true;
@@ -103,80 +103,12 @@ const LessonPage = () => {
 	}, [lessonId, loading]);
 
 	useEffect(() => {
-		sentMilestonesRef.current = new Set();
 		setIsCompleted(false);
 	}, [lessonId]);
 
-	useEffect(() => {
-		const pendingMilestones = LESSON_READ_MILESTONES.filter(
-			(milestone) => reachedMilestones.has(milestone) && !sentMilestonesRef.current.has(milestone)
-		);
-
-		if (!pendingMilestones.length) return;
-
-		pendingMilestones.forEach((milestone) => {
-			if (milestone < 100) sentMilestonesRef.current.add(milestone);
-		});
-
-		let cancelled = false;
-
-		const syncMilestones = async () => {
-			for (const milestone of pendingMilestones) {
-				if (milestone >= 100) {
-					for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
-						try {
-							const response = await courseProgressService.updateLessonProgress(lessonId, {
-								milestone,
-								milestone_reached: milestone,
-								progress_percentage: milestone,
-							});
-							if (cancelled) return;
-							if (response?.completed || response?.auto_completed) {
-								sentMilestonesRef.current.add(100);
-								setIsCompleted(true);
-								return;
-							}
-						} catch (err) {
-							if (cancelled) return;
-							const status = err?.response?.status;
-							if (status === 419 || status === 401 || status === 403) return;
-						}
-						await new Promise((resolve) => setTimeout(resolve, 1500));
-					}
-					continue;
-				}
-
-				try {
-					const response = await courseProgressService.updateLessonProgress(lessonId, {
-						milestone,
-						milestone_reached: milestone,
-						progress_percentage: milestone,
-					});
-
-					if (cancelled) return;
-
-					if (response?.completed || response?.auto_completed) {
-						setIsCompleted(true);
-					}
-				} catch (err) {
-					if (cancelled) return;
-					const status = err?.response?.status;
-					if (status === 419 || status === 401 || status === 403) return;
-					sentMilestonesRef.current.delete(milestone);
-				}
-			}
-		};
-
-		syncMilestones();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [lessonId, reachedMilestones]);
-
-	const fetchLessonData = async () => {
+	const fetchLessonData = async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
+			if (!silent) setLoading(true);
 			setError(null);
 			
 			// Fetch lesson
@@ -204,6 +136,10 @@ const LessonPage = () => {
 			}
 		} catch (err) {
 			console.error('Error fetching lesson:', err);
+			if (silent) {
+				showToast('Nu s-a putut actualiza lecția', 'error');
+				return;
+			}
 			const locked = err?.response?.status === 403 && err?.response?.data?.locked;
 			const message = locked
 				? (err.response.data.message || 'Lecția este blocată. Completează lecțiile anterioare.')
@@ -211,7 +147,7 @@ const LessonPage = () => {
 			setError(message);
 			showToast(message, 'error');
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	};
 
@@ -414,6 +350,7 @@ const LessonPage = () => {
 
 	return (
 		<div className="lesson-page-modern">
+			<LessonPullRefresh onRefresh={() => fetchLessonData({ silent: true })} />
 			<CourseCongratulationsModal
 				open={showCourseCongrats}
 				courseTitle={course?.title}
@@ -540,7 +477,8 @@ const LessonPage = () => {
 						<button
 							type="button"
 							className="lesson-page-btn lesson-page-btn-primary"
-							disabled={finalizingCourse}
+							disabled={finalizingCourse || !canAdvanceLesson}
+							title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
 							onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNext}
 						>
 							{isLastLessonInCourse ? (

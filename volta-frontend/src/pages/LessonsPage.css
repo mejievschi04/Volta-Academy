@@ -1621,12 +1621,19 @@ html[data-theme='dark'] .lessons-page-btn-primary.lessons-page-lesson-cta svg {
 	transition: width 0.6s, height 0.6s;
 }
 
-.lessons-page-btn-primary:hover::before {
+.lessons-page-btn-primary:hover:not(:disabled)::before {
 	width: 300px;
 	height: 300px;
 }
 
-.lessons-page-btn-primary:hover {
+.lessons-page-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	box-shadow: none;
+	transform: none;
+}
+
+.lessons-page-btn-primary:hover:not(:disabled) {
 	background: var(--color-brand-hover);
 	transform: translateY(-2px);
 	box-shadow: 0 6px 20px rgba(255, 238, 0, 0.35);

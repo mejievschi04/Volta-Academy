@@ -66,10 +66,6 @@ export const LessonCallout = Node.create({
 		return [
 			{
 				tag: 'blockquote[data-callout-box="true"]',
-				contentElement: 'div.rte-callout-content',
-			},
-			{
-				tag: 'blockquote[data-callout-box="true"]',
 			},
 		];
 	},

@@ -666,6 +666,13 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	overflow: hidden;
 }
 
+.lesson-page-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	box-shadow: none;
+	transform: none;
+}
+
 .lesson-page-btn-primary {
 	background: var(--color-brand-primary);
 	color: var(--text-inverse);
@@ -685,12 +692,12 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	transition: width 0.6s, height 0.6s;
 }
 
-.lesson-page-btn-primary:hover::before {
+.lesson-page-btn-primary:hover:not(:disabled)::before {
 	width: 300px;
 	height: 300px;
 }
 
-.lesson-page-btn-primary:hover {
+.lesson-page-btn-primary:hover:not(:disabled) {
 	background: var(--color-brand-hover);
 	transform: translateY(-2px);
 	box-shadow: 0 6px 20px rgba(255, 238, 0, 0.35);

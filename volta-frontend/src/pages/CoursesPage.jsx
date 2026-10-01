@@ -30,6 +30,12 @@ const STUDENT_FILTER_TITLES = {
 	completed: 'Cursuri finalizate',
 };
 
+function courseIsCompleted(course) {
+	if (!course) return false;
+	if (course.status === 'completed') return true;
+	return Boolean(course.completed_at);
+}
+
 const CoursesPage = () => {
 	const navigate = useNavigate();
 	const { user, loading: authLoading } = useAuth();
@@ -42,7 +48,6 @@ const CoursesPage = () => {
 	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [studentFilter, setStudentFilter] = useState('maps');
-	const [assignedCourseStats, setAssignedCourseStats] = useState(null);
 	const [assignedCourses, setAssignedCourses] = useState({
 		all: [],
 		in_progress: [],
@@ -85,7 +90,6 @@ const CoursesPage = () => {
 					setCourseMaps(rows.filter(isStudentVisibleMap));
 
 					if (profileData) {
-						setAssignedCourseStats(profileData.courseStats || profileData.course_stats || null);
 						setAssignedCourses({
 							all: profileData.coursesAssigned || profileData.courses_assigned || [],
 							in_progress: profileData.coursesInProgress || profileData.courses_in_progress || [],
@@ -131,7 +135,9 @@ const CoursesPage = () => {
 	}, [courseMaps, isStudent, searchQuery]);
 
 	const filteredStandaloneCourses = useMemo(() => {
-		let rows = Array.isArray(standaloneCourses) ? [...standaloneCourses] : [];
+		let rows = (Array.isArray(standaloneCourses) ? standaloneCourses : []).filter(
+			(course) => !courseIsCompleted(course)
+		);
 		if (searchQuery.trim()) {
 			const needle = searchQuery.trim().toLowerCase();
 			rows = rows.filter((course) =>
@@ -143,11 +149,27 @@ const CoursesPage = () => {
 		return rows;
 	}, [standaloneCourses, searchQuery]);
 
+	const completedCourseRows = useMemo(() => {
+		const rows = [];
+		const seen = new Set();
+		const push = (course) => {
+			const id = Number(course?.id);
+			if (!Number.isFinite(id) || seen.has(id) || !courseIsCompleted(course)) return;
+			seen.add(id);
+			rows.push({ ...course, status: 'completed' });
+		};
+		(assignedCourses.completed || []).forEach(push);
+		(Array.isArray(standaloneCourses) ? standaloneCourses : []).forEach(push);
+		return rows;
+	}, [assignedCourses.completed, standaloneCourses]);
+
 	const filteredAssignedCourses = useMemo(() => {
 		if (studentFilter !== 'completed' && studentFilter !== 'unfinished') return [];
 		const source = studentFilter === 'completed'
-			? assignedCourses.completed
-			: [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])];
+			? completedCourseRows
+			: [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])].filter(
+				(course) => !courseIsCompleted(course)
+			);
 		const seen = new Set();
 		let rows = [];
 		(Array.isArray(source) ? source : []).forEach((course) => {
@@ -164,21 +186,27 @@ const CoursesPage = () => {
 			);
 		}
 		return rows;
-	}, [assignedCourses, studentFilter, searchQuery]);
+	}, [assignedCourses, completedCourseRows, studentFilter, searchQuery]);
 
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
 			const mapCount = (Array.isArray(courseMaps) ? courseMaps.filter(isStudentVisibleMap) : []).length;
-			const standaloneCount = Array.isArray(standaloneCourses) ? standaloneCourses.length : 0;
+			const standaloneCount = (Array.isArray(standaloneCourses) ? standaloneCourses : []).filter(
+				(course) => !courseIsCompleted(course)
+			).length;
 			return mapCount + standaloneCount;
 		}
 		if (filter.id === 'unfinished') {
-			const inProgress = assignedCourseStats?.in_progress ?? (assignedCourses.in_progress || []).length;
-			const notAccessed = assignedCourseStats?.not_accessed ?? (assignedCourses.not_accessed || []).length;
-			return Number(inProgress) + Number(notAccessed);
+			const seen = new Set();
+			return [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])].filter((course) => {
+				const id = Number(course?.id);
+				if (!Number.isFinite(id) || seen.has(id) || courseIsCompleted(course)) return false;
+				seen.add(id);
+				return true;
+			}).length;
 		}
-		if (!filter.statKey || !assignedCourseStats) return null;
-		return assignedCourseStats[filter.statKey] ?? 0;
+		if (filter.id === 'completed') return completedCourseRows.length;
+		return null;
 	};
 
 	const renderAssignedCourseCard = (course, index) => {

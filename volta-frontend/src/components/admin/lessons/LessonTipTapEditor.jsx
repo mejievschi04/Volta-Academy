@@ -93,6 +93,7 @@ const LessonTipTapEditor = ({
 		extensions: [
 			StarterKit.configure({
 				heading: { levels: [2, 3] },
+				blockquote: false,
 				dropcursor: { color: '#111111', width: 2 },
 			}),
 			Underline,
