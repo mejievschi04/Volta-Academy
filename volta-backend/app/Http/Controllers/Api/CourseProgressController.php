@@ -485,7 +485,7 @@ class CourseProgressController extends Controller
             ], 403);
         }
 
-        if (! $this->learnerMayRecordLessonProgress($user, $lesson, $course)) {
+        if (! $this->learnerMayFinishOpenLesson($user, $lesson, $course)) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
             ], 403);
@@ -800,6 +800,24 @@ class CourseProgressController extends Controller
             'awaiting_dwell' => $wantsComplete && ! $didAutoCompleteNow && ! $isAlreadyCompleted && ! $dwellMet,
             'min_dwell_seconds' => $minDwell,
         ]);
+    }
+
+    /**
+     * Marcarea explicită (butonul Următoarea) salvează lecția publicată la care ești înscris.
+     */
+    private function learnerMayFinishOpenLesson($user, Lesson $lesson, Course $course): bool
+    {
+        if (! $user || LearningVisibility::isStaff($user) || (bool) ($lesson->is_preview ?? false)) {
+            return true;
+        }
+        if (! LearningVisibility::isEnrolledInCourse($user, (int) $course->id)) {
+            return false;
+        }
+        if (($lesson->status ?? 'draft') === 'published') {
+            return true;
+        }
+
+        return $this->progressService->lessonIsOnPublishedSnapshot($user, $course, (int) $lesson->id);
     }
 
     /**

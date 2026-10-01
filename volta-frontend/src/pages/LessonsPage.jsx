@@ -254,23 +254,42 @@ const LessonsPage = () => {
 			setIsCompleting(true);
 			const result = await courseProgressService.completeLesson(selectedLessonId);
 			setIsCompleted(true);
+			const stampComplete = (source) => {
+				if (!source) return source;
+				const id = Number(selectedLessonId);
+				const patchRow = (row) => (
+					Number(row?.id) === id || Number(row?.lesson_id) === id
+						? { ...row, completed: true, progress_percentage: 100 }
+						: row
+				);
+				return {
+					...source,
+					lessons: (source.lessons || []).map(patchRow),
+					root_lessons: (source.root_lessons || []).map(patchRow),
+					modules: (source.modules || []).map((mod) => ({
+						...mod,
+						lessons: (mod.lessons || []).map(patchRow),
+					})),
+				};
+			};
 			if (result?.progress) {
 				setProgress((prev) => {
-					const next = result.progress;
+					const next = stampComplete(result.progress);
 					const nextHasLessons = Boolean(next?.modules?.length || next?.root_lessons?.length);
 					const prevHasLessons = Boolean(prev?.modules?.length || prev?.root_lessons?.length);
 					if (!nextHasLessons && prevHasLessons) {
-						return {
+						return stampComplete({
 							...prev,
 							...next,
 							modules: prev.modules,
 							root_lessons: prev.root_lessons,
 							course_level_tests: next.course_level_tests || prev.course_level_tests,
-						};
+						});
 					}
 					return next;
 				});
 			} else {
+				setProgress((prev) => stampComplete(prev));
 				await refreshCourseProgress();
 			}
 			return true;
@@ -300,16 +319,17 @@ const LessonsPage = () => {
 	};
 
 	const handleLessonClick = async (lessonId, lesson = null) => {
-		if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
-			const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
-			const isImmediateNext = nextId != null && Number(nextId) === Number(lessonId);
-			if (isImmediateNext && selectedLessonId && !isCompleted) {
-				const ok = await completeCurrentLesson();
-				if (!ok) return;
-			} else {
-				showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
-				return;
-			}
+		const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
+		const isImmediateNext = nextId != null && Number(nextId) === Number(lessonId);
+		const leavingIncomplete = selectedLessonId
+			&& Number(selectedLessonId) !== Number(lessonId)
+			&& !isLessonCompleted(selectedLessonId);
+		if (isImmediateNext && leavingIncomplete) {
+			const ok = await completeCurrentLesson();
+			if (!ok) return;
+		} else if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
+			showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
+			return;
 		}
 		setSelectedLessonId(lessonId);
 		setSidebarOpen(false);
