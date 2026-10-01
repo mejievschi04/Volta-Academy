@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import RichTextEditor from '../../../RichTextEditor';
+import LessonTipTapEditor from '../../lessons/LessonTipTapEditor';
 import { openaiService } from '../../../../services/openaiService';
 
 import { useToast } from '../../../../contexts/ToastContextShared.js';
@@ -174,7 +174,7 @@ const TextLessonEditor = ({ lesson, onUpdate }) => {
 				<label className="admin-form-label">
 					Conținut Text <span className="admin-form-required">*</span>
 				</label>
-				<RichTextEditor
+				<LessonTipTapEditor
 					value={lesson.content || ''}
 					onChange={handleContentChange}
 					placeholder="Scrie conținutul lecției aici..."

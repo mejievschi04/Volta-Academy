@@ -7,7 +7,7 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
 import Modal from '../../components/common/Modal';
 import { DragGripIcon } from '../../components/common/DragGripIcon';
-import RichTextEditor from '../../components/RichTextEditor';
+import LessonTipTapEditor from '../../components/admin/lessons/LessonTipTapEditor';
 import '../../styles/admin-course-builder.css';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
@@ -45,6 +45,40 @@ function computeLessonInsertIndex(modulesList, rootLessonsList, toModuleId, movi
 	const idx = filtered.findIndex((l) => Number(l.id) === Number(targetLessonId));
 	if (idx === -1) return filtered.length;
 	return position === 'before' ? idx : idx + 1;
+}
+
+function sameOutlineModule(left, right) {
+	if (left == null && right == null) return true;
+	if (left == null || right == null) return false;
+	return Number(left) === Number(right);
+}
+
+function readMovingLessonId(event, fallbackId) {
+	const raw = event.dataTransfer?.getData(LESSON_DRAG_MIME);
+	try {
+		return raw ? JSON.parse(raw).lessonId : fallbackId;
+	} catch {
+		return fallbackId;
+	}
+}
+
+/** Unde se inserează lecția când o lași pe un test sau pe spațiul dintre lecții. */
+function resolveLessonInsertFromFlow(flowItems, flowIndex, edge) {
+	const lessonEntries = [];
+	flowItems.forEach((item, index) => {
+		if (item.type === 'lesson') lessonEntries.push({ index, lesson: item.lesson });
+	});
+	const previous = [...lessonEntries].reverse().find((entry) => entry.index < flowIndex);
+	const next = lessonEntries.find((entry) => entry.index > flowIndex);
+	if (edge === 'before') {
+		if (previous) return { lesson: previous.lesson, position: 'after' };
+		if (next) return { lesson: next.lesson, position: 'before' };
+	} else if (next) {
+		return { lesson: next.lesson, position: 'before' };
+	} else if (previous) {
+		return { lesson: previous.lesson, position: 'after' };
+	}
+	return null;
 }
 
 const AdminCourseBuilderPage = () => {
@@ -346,6 +380,7 @@ const AdminCourseBuilderPage = () => {
 	const clearLessonDrag = useCallback(() => {
 		lessonDragPayloadRef.current = null;
 		setLessonDropHint(null);
+		document.body.classList.remove('admin-course-builder-lesson-drag-active');
 	}, []);
 
 	const handleLessonMove = useCallback(
@@ -649,6 +684,7 @@ const AdminCourseBuilderPage = () => {
 			}
 			const payload = { lessonId: lessonItem.id, moduleId: sourceModuleId };
 			lessonDragPayloadRef.current = payload;
+			document.body.classList.add('admin-course-builder-lesson-drag-active');
 			try {
 				e.dataTransfer.setData(LESSON_DRAG_MIME, JSON.stringify(payload));
 			} catch {
@@ -663,13 +699,25 @@ const AdminCourseBuilderPage = () => {
 		clearLessonDrag();
 	}, [clearLessonDrag]);
 
-	const handleLessonDragOverRow = useCallback((e, moduleItem, lessonItem) => {
+	const handleLessonDragOverFlowItem = useCallback((e, moduleItem, flowItems, flowIndex) => {
 		if (!lessonDragPayloadRef.current) return;
 		e.preventDefault();
 		e.dataTransfer.dropEffect = 'move';
 		const rect = e.currentTarget.getBoundingClientRect();
-		const position = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
-		setLessonDropHint({ moduleId: moduleItem?.id ?? null, lessonId: lessonItem.id, position });
+		const edge = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
+		const flowItem = flowItems[flowIndex];
+		const resolved = flowItem?.type === 'lesson'
+			? { lesson: flowItem.lesson, position: edge }
+			: resolveLessonInsertFromFlow(flowItems, flowIndex, edge);
+		if (!resolved?.lesson) {
+			setLessonDropHint({ moduleId: moduleItem?.id ?? null, zone: 'end' });
+			return;
+		}
+		setLessonDropHint({
+			moduleId: moduleItem?.id ?? null,
+			lessonId: resolved.lesson.id,
+			position: resolved.position,
+		});
 	}, []);
 
 	const handleLessonDragOverModuleEnd = useCallback((e, moduleItem) => {
@@ -679,33 +727,64 @@ const AdminCourseBuilderPage = () => {
 		setLessonDropHint({ moduleId: moduleItem?.id ?? null, zone: 'end' });
 	}, []);
 
-	const handleLessonDropOnLesson = useCallback(
-		async (e, targetModuleItem, targetLessonItem) => {
+	const handleLessonDropOnFlowItem = useCallback(
+		async (e, targetModuleItem, flowItems, flowIndex) => {
 			e.preventDefault();
 			e.stopPropagation();
-			let movingId = null;
-			const raw = e.dataTransfer.getData(LESSON_DRAG_MIME);
-			try {
-				movingId = raw ? JSON.parse(raw).lessonId : lessonDragPayloadRef.current?.lessonId;
-			} catch {
-				movingId = lessonDragPayloadRef.current?.lessonId;
-			}
-			if (movingId == null) return;
-			if (Number(movingId) === Number(targetLessonItem.id)) {
+			const movingId = readMovingLessonId(e, lessonDragPayloadRef.current?.lessonId);
+			if (movingId == null) {
 				clearLessonDrag();
 				return;
 			}
 			const rect = e.currentTarget.getBoundingClientRect();
-			const position = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
+			const edge = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
+			const flowItem = flowItems[flowIndex];
+			const resolved = flowItem?.type === 'lesson'
+				? { lesson: flowItem.lesson, position: edge }
+				: resolveLessonInsertFromFlow(flowItems, flowIndex, edge);
+			if (!resolved?.lesson || Number(movingId) === Number(resolved.lesson.id)) {
+				if (!resolved?.lesson) {
+					const toIndex = computeLessonInsertIndex(
+						modules,
+						rootLessons,
+						targetModuleItem?.id ?? null,
+						movingId,
+						null,
+						'end'
+					);
+					await handleLessonMove(movingId, targetModuleItem?.id ?? null, toIndex);
+				}
+				clearLessonDrag();
+				return;
+			}
 			const toIndex = computeLessonInsertIndex(
 				modules,
 				rootLessons,
 				targetModuleItem?.id ?? null,
 				movingId,
-				targetLessonItem.id,
-				position
+				resolved.lesson.id,
+				resolved.position
 			);
 			await handleLessonMove(movingId, targetModuleItem?.id ?? null, toIndex);
+			clearLessonDrag();
+		},
+		[modules, rootLessons, handleLessonMove, clearLessonDrag]
+	);
+
+	const handleLessonDropAtModuleStart = useCallback(
+		async (e, targetModuleItem) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const movingId = readMovingLessonId(e, lessonDragPayloadRef.current?.lessonId);
+			if (movingId == null || !targetModuleItem) {
+				clearLessonDrag();
+				return;
+			}
+			const firstOther = (targetModuleItem.lessons || []).find((lesson) => Number(lesson.id) !== Number(movingId));
+			const toIndex = firstOther
+				? computeLessonInsertIndex(modules, rootLessons, targetModuleItem.id, movingId, firstOther.id, 'before')
+				: 0;
+			await handleLessonMove(movingId, targetModuleItem.id, toIndex);
 			clearLessonDrag();
 		},
 		[modules, rootLessons, handleLessonMove, clearLessonDrag]
@@ -1393,18 +1472,13 @@ const AdminCourseBuilderPage = () => {
 				const lessonItem = flowItem.lesson;
 				step += 1;
 				const currentStep = step;
-				const rowDropClass =
-					moduleItem &&
-					lessonDropHint?.moduleId === moduleItem.id &&
-					lessonDropHint?.lessonId === lessonItem.id &&
-					lessonDropHint?.position === 'before'
-						? 'is-lesson-drop-before'
-						: moduleItem &&
-							lessonDropHint?.moduleId === moduleItem.id &&
-							lessonDropHint?.lessonId === lessonItem.id &&
-							lessonDropHint?.position === 'after'
-							? 'is-lesson-drop-after'
-							: '';
+				const hintOnThisLesson = sameOutlineModule(lessonDropHint?.moduleId, moduleItem?.id ?? null)
+					&& Number(lessonDropHint?.lessonId) === Number(lessonItem.id);
+				const rowDropClass = hintOnThisLesson && lessonDropHint?.position === 'before'
+					? 'is-lesson-drop-before'
+					: hintOnThisLesson && lessonDropHint?.position === 'after'
+						? 'is-lesson-drop-after'
+						: '';
 
 				const lessonTitle = lessonItem.title || `Lecție ${currentStep}`;
 				const isLessonEditing = !showTestCreator && selectedLessonId === lessonItem.id;
@@ -1420,21 +1494,21 @@ const AdminCourseBuilderPage = () => {
 										handleTestDragOverFlowRow(e, moduleId, flowIndex);
 										return;
 									}
-									if (moduleItem) handleLessonDragOverRow(e, moduleItem, lessonItem);
+									handleLessonDragOverFlowItem(e, moduleItem, flowItems, flowIndex);
 								}}
 								onDrop={(e) => {
 									if (testDragPayloadRef.current) {
 										handleTestDropOnFlowRow(e, moduleItem, flowItems, flowIndex, rootLessonsList);
 										return;
 									}
-									if (moduleItem) handleLessonDropOnLesson(e, moduleItem, lessonItem);
+									handleLessonDropOnFlowItem(e, moduleItem, flowItems, flowIndex);
 								}}
 							>
-								{canMutateInAdminArea && moduleItem ? (
+								{canMutateInAdminArea ? (
 									<span
 										className="admin-course-builder-sidebar-lesson-drag-handle"
 										draggable
-										onDragStart={(e) => handleLessonDragStart(e, lessonItem, moduleItem.id)}
+										onDragStart={(e) => handleLessonDragStart(e, lessonItem, moduleItem?.id ?? null)}
 										onDragEnd={handleLessonDragEnd}
 										title="Mută lecția"
 										aria-label="Mută lecția"
@@ -1490,8 +1564,20 @@ const AdminCourseBuilderPage = () => {
 					<li className="admin-course-builder-outline-item admin-course-builder-outline-item--test">
 						<div
 							className={`admin-course-builder-sidebar-test admin-course-builder-outline-test-row ${isSelected ? 'is-selected' : ''}`}
-							onDragOver={(e) => handleTestDragOverFlowRow(e, moduleId, flowIndex)}
-							onDrop={(e) => handleTestDropOnFlowRow(e, moduleItem, flowItems, flowIndex, rootLessonsList)}
+							onDragOver={(e) => {
+								if (lessonDragPayloadRef.current) {
+									handleLessonDragOverFlowItem(e, moduleItem, flowItems, flowIndex);
+									return;
+								}
+								handleTestDragOverFlowRow(e, moduleId, flowIndex);
+							}}
+							onDrop={(e) => {
+								if (lessonDragPayloadRef.current) {
+									handleLessonDropOnFlowItem(e, moduleItem, flowItems, flowIndex);
+									return;
+								}
+								handleTestDropOnFlowRow(e, moduleItem, flowItems, flowIndex, rootLessonsList);
+							}}
 						>
 							{canMutateInAdminArea ? (
 								<span
@@ -1726,6 +1812,21 @@ const AdminCourseBuilderPage = () => {
 														{renderTestDropSlot(null, rootFlow, rootFlow.length, null, rootLessons)}
 													</>
 												)}
+												{canMutateInAdminArea ? (
+													<li
+														className={`admin-course-builder-outline-lesson-drop-end is-root ${
+															lessonDropHint?.zone === 'end' && sameOutlineModule(lessonDropHint?.moduleId, null)
+																? 'is-active'
+																: ''
+														}`}
+														onDragOver={(e) => handleLessonDragOverModuleEnd(e, null)}
+														onDrop={(e) => handleLessonDropAtModuleEnd(e, null)}
+													>
+														{modules.length > 0
+															? 'Eliberă aici — mută lecția în afara modulelor'
+															: 'Eliberă aici — mută lecția la final'}
+													</li>
+												) : null}
 												{modules.map((moduleItem, moduleIndex) => {
 													const moduleFlow = buildModuleFlowItems(
 														moduleItem,
@@ -1745,9 +1846,32 @@ const AdminCourseBuilderPage = () => {
 															<div
 																className="admin-course-builder-outline-module-head"
 																onDragOver={(e) => {
+																	if (lessonDragPayloadRef.current) {
+																		e.preventDefault();
+																		e.dataTransfer.dropEffect = 'move';
+																		const movingId = lessonDragPayloadRef.current.lessonId;
+																		const firstOther = (moduleItem.lessons || []).find(
+																			(lesson) => Number(lesson.id) !== Number(movingId)
+																		);
+																		if (firstOther) {
+																			setLessonDropHint({
+																				moduleId: moduleItem.id,
+																				lessonId: firstOther.id,
+																				position: 'before',
+																			});
+																		} else {
+																			setLessonDropHint({ moduleId: moduleItem.id, zone: 'end' });
+																		}
+																		return;
+																	}
 																	if (!testDragPayloadRef.current) return;
 																	e.preventDefault();
 																	e.dataTransfer.dropEffect = 'move';
+																}}
+																onDrop={(e) => {
+																	if (lessonDragPayloadRef.current) {
+																		handleLessonDropAtModuleStart(e, moduleItem);
+																	}
 																}}
 															>
 																<span className="admin-course-builder-outline-module-label">
@@ -1813,7 +1937,7 @@ const AdminCourseBuilderPage = () => {
 																{canMutateInAdminArea ? (
 																	<li
 																		className={`admin-course-builder-outline-lesson-drop-end ${
-																			lessonDropHint?.moduleId === moduleItem.id && lessonDropHint?.zone === 'end'
+																			lessonDropHint?.zone === 'end' && sameOutlineModule(lessonDropHint?.moduleId, moduleItem.id)
 																				? 'is-active'
 																				: ''
 																		}`}
@@ -1910,35 +2034,6 @@ const AdminCourseBuilderPage = () => {
 				)}
 
 				<div className="admin-course-builder-workspace admin-course-builder-workspace-clean">
-					<div className={`admin-course-builder-live-banner is-${hasUnpublishedEdits ? 'editing' : isCoursePublished ? 'live' : 'draft'}`}>
-						<div className="admin-course-builder-live-banner-copy">
-							<strong>{coursePublishStatusLabel}</strong>
-							<p>{coursePublishStatusHint}</p>
-						</div>
-						<div className="admin-course-builder-live-banner-actions">
-							<button type="button" className="admin-btn admin-btn-secondary" onClick={handlePreviewAsStudent}>
-								Previzualizează ca elev
-							</button>
-							<button
-								type="button"
-								className="admin-btn admin-btn-secondary"
-								onClick={handleRunQualityAudit}
-								disabled={qualityAuditLoading}
-							>
-								{qualityAuditLoading ? 'Se auditează…' : 'Audit QA'}
-							</button>
-							{!isCoursePublished || hasUnpublishedEdits ? (
-								<button
-									type="button"
-									className="admin-btn admin-btn-primary"
-									onClick={() => handleCourseStatusAction('publish')}
-									disabled={courseActionLoading}
-								>
-									{courseActionLoading ? 'Se procesează…' : hasUnpublishedEdits ? 'Publică modificările' : 'Publică'}
-								</button>
-							) : null}
-						</div>
-					</div>
 					<div className="admin-course-builder-workspace-content">
 						{qualityAuditReport && (
 							<section className="admin-course-builder-qa-panel">
@@ -2011,49 +2106,8 @@ const AdminCourseBuilderPage = () => {
 							/>
 						) : selectedLesson ? (
 							<>
-								{canMutateInAdminArea ? (
-									<div className="admin-course-builder-lesson-save-bar">
-										<AutoSaveIndicator
-											status={lessonSaveStatus}
-											onRetry={flushPendingLessonContentSave}
-										/>
-										<button
-											type="button"
-											className="admin-btn admin-btn-primary"
-											onClick={handleManualLessonSave}
-											disabled={lessonSaveStatus === 'saving'}
-										>
-											{lessonSaveStatus === 'saving' ? 'Se salvează...' : 'Salvează'}
-										</button>
-									</div>
-								) : null}
-								<div className="admin-course-builder-lesson-heading-row">
-									<div
-										ref={lessonTitleRef}
-										className="admin-course-builder-lesson-title-inline"
-										contentEditable
-										suppressContentEditableWarning
-										dir="ltr"
-										onBlur={(e) => {
-											const nextTitle = e.currentTarget.textContent?.trim();
-											if (nextTitle && nextTitle !== selectedLesson.title) {
-												handleUpdateLessonTitle(selectedLesson.id, nextTitle);
-											}
-										}}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter') {
-												e.preventDefault();
-												e.currentTarget.blur();
-											}
-										}}
-										role="textbox"
-										aria-label="Titlu lecție"
-									>
-										{selectedLesson.title || 'Titlu lecție'}
-									</div>
-								</div>
 								<div className="admin-course-builder-direct-editor-wrap admin-course-builder-direct-editor-wrap-full">
-									<RichTextEditor
+									<LessonTipTapEditor
 										key={`${selectedLesson.id}:${lessonEditorRefreshKey}`}
 										courseId={courseId}
 										value={lessonContent}
@@ -2061,9 +2115,51 @@ const AdminCourseBuilderPage = () => {
 										onBlur={() => {
 											flushPendingLessonContentSave();
 										}}
-										placeholder="Scrie direct lecția aici, ca într-un document Word..."
+										placeholder="Scrie lecția aici..."
 										style={{ minHeight: '100%', height: '100%' }}
-										toolbarVariant="side-only"
+										header={(
+											<div className="admin-course-builder-lesson-heading-row">
+												<div
+													ref={lessonTitleRef}
+													className="admin-course-builder-lesson-title-inline"
+													contentEditable
+													suppressContentEditableWarning
+													dir="ltr"
+													onBlur={(e) => {
+														const nextTitle = e.currentTarget.textContent?.trim();
+														if (nextTitle && nextTitle !== selectedLesson.title) {
+															handleUpdateLessonTitle(selectedLesson.id, nextTitle);
+														}
+													}}
+													onKeyDown={(e) => {
+														if (e.key === 'Enter') {
+															e.preventDefault();
+															e.currentTarget.blur();
+														}
+													}}
+													role="textbox"
+													aria-label="Titlu lecție"
+												>
+													{selectedLesson.title || 'Titlu lecție'}
+												</div>
+											</div>
+										)}
+										toolbarEnd={canMutateInAdminArea ? (
+											<>
+												<AutoSaveIndicator
+													status={lessonSaveStatus}
+													onRetry={flushPendingLessonContentSave}
+												/>
+												<button
+													type="button"
+													className="admin-btn admin-btn-primary"
+													onClick={handleManualLessonSave}
+													disabled={lessonSaveStatus === 'saving'}
+												>
+													{lessonSaveStatus === 'saving' ? 'Se salvează...' : 'Salvează'}
+												</button>
+											</>
+										) : null}
 									/>
 								</div>
 							</>

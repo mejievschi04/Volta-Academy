@@ -206,7 +206,7 @@ class QuizController extends Controller
             $ordering = null;
             $questionType = $question->question_type ?? 'multiple_choice';
 
-            if ($questionType === 'multiple_choice' || $questionType === 'single_choice' || $questionType === 'true_false') {
+            if ($questionType === 'multiple_choice' || $questionType === 'single_choice' || $questionType === 'true_false' || $questionType === 'yes_no') {
                 foreach ($answers as $idx => $answer) {
                     if ($answer->is_correct) {
                         $correctAnswerIndex = $idx;
@@ -226,7 +226,7 @@ class QuizController extends Controller
                     $isCorrect = $this->isSequenceAnswerCorrect($userAnswer, $matching['correctMap'] ?? []);
                 } elseif ($questionType === 'ordering') {
                     $isCorrect = $this->isSequenceAnswerCorrect($userAnswer, $ordering['correctOrder'] ?? []);
-                } elseif (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+                } elseif (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                     $isCorrect = $correctAnswerIndex !== null
                         && is_numeric($userAnswer)
                         && (float) $userAnswer === (float) $correctAnswerIndex;
@@ -237,7 +237,7 @@ class QuizController extends Controller
                 'id' => $question->id,
                 'text' => $question->question_text,
                 'type' => $questionType,
-                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
@@ -422,7 +422,7 @@ class QuizController extends Controller
                 continue;
             }
 
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                 $questionAnswers = $question->answers->values(); // Reset keys to 0,1,2,3...
                 
                 // Find correct answer index

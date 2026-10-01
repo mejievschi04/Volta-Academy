@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import RichTextEditor from '../../../RichTextEditor';
+import LessonTipTapEditor from '../../lessons/LessonTipTapEditor';
 
 const TextBlockEditor = ({ value, onChange }) => {
 	const [fullscreenOpen, setFullscreenOpen] = useState(false);
@@ -42,7 +42,7 @@ const TextBlockEditor = ({ value, onChange }) => {
 						</button>
 					</div>
 					<div className="text-block-editor-fullscreen-body">
-						<RichTextEditor
+						<LessonTipTapEditor
 							value={value || ''}
 							onChange={onChange}
 							placeholder="Scrie conținutul lecției..."

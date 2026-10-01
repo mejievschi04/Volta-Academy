@@ -213,8 +213,8 @@ class UserAdminController extends Controller
             'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
         ]);
 
-        // Set default password "volta2025" if not provided
-        $password = $validated['password'] ?? 'volta2025';
+        // Set default password "volta2026" if not provided
+        $password = $validated['password'] ?? 'volta2026';
         $validated['password'] = Hash::make($password);
         $validated['must_change_password'] = true; // User must change password on first login
         $validated['level'] = 1; // Default value, not used in UI
@@ -240,7 +240,7 @@ class UserAdminController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Utilizator creat cu succes. Parola implicită: volta2025',
+            'message' => 'Utilizator creat cu succes. Parola implicită: volta2026',
             'user' => $user->load($this->eagerLoadTeamsCourses()),
         ], 201);
     }

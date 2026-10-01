@@ -546,6 +546,30 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	margin: var(--space-4) 0;
 }
 
+.lesson-page-content-text img[data-alignment='left'],
+.lesson-page-content-text img[data-alignment='inline'] {
+	display: block;
+	margin-left: 0;
+	margin-right: auto;
+}
+
+.lesson-page-content-text img[data-alignment='center'] {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.lesson-page-content-text img[data-alignment='right'] {
+	display: block;
+	margin-left: auto;
+	margin-right: 0;
+}
+
+.lesson-page-content-text img[data-alignment='full'] {
+	display: block;
+	width: 100%;
+}
+
 .lesson-page-content-text a {
 	color: var(--color-brand-primary);
 	text-decoration: none;

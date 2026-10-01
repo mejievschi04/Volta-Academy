@@ -30,6 +30,7 @@ const QUESTION_TYPES = [
 	{ id: 'single_choice', label: 'Răspuns unic', icon: '○', autoGrade: true },
 	{ id: 'multiple_choice', label: 'Răspuns multiplu', icon: '☑', autoGrade: true },
 	{ id: 'true_false', label: 'Adevărat / Fals', icon: '✓✗', autoGrade: true },
+	{ id: 'yes_no', label: 'Da / Nu', icon: 'Da', autoGrade: true },
 	{ id: 'matching', label: 'Potrivire perechi', icon: '↔', autoGrade: true },
 	{ id: 'ordering', label: 'Ordonare', icon: '🔢', autoGrade: true },
 ];
@@ -82,10 +83,10 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 					</div>
 				</div>
 
-				{question.question_type === 'true_false' && (
+				{(question.question_type === 'true_false' || question.question_type === 'yes_no') && (
 					<div className="step4-answers-group">
 						<label>Variante (bifează răspunsul corect)</label>
-						{['Adevărat', 'Fals'].map((text, i) => {
+						{(question.question_type === 'yes_no' ? ['Da', 'Nu'] : ['Adevărat', 'Fals']).map((text, i, labels) => {
 							const isCorrect = (question.answers || [])[i]?.is_correct ?? (i === 0);
 							return (
 								<label key={i} className="step4-answer-option">
@@ -94,12 +95,12 @@ function SortableQuestionCard({ question, index, onUpdate, onDelete, typeInfo })
 										name={`tf-${question.id}`}
 										checked={isCorrect}
 										onChange={() => {
-											const answers = [
-												{ id: (question.answers || [])[0]?.id ?? Date.now(), answer_text: 'Adevărat', is_correct: true, order: 0 },
-												{ id: (question.answers || [])[1]?.id ?? Date.now() + 1, answer_text: 'Fals', is_correct: false, order: 1 },
-											];
-											answers[i].is_correct = true;
-											answers[1 - i].is_correct = false;
+											const answers = labels.map((label, index) => ({
+												id: (question.answers || [])[index]?.id ?? Date.now() + index,
+												answer_text: label,
+												is_correct: index === i,
+												order: index,
+											}));
 											onUpdate({ answers });
 										}}
 									/>
@@ -344,10 +345,10 @@ function QuizPreview({ assessment }) {
 				{questions.map((q, i) => (
 					<div key={q.id} className="step4-preview-q">
 						<div className="step4-preview-q-text">{i + 1}. {q.question_text || 'Întrebare'}</div>
-						{q.question_type === 'true_false' && (
+						{(q.question_type === 'true_false' || q.question_type === 'yes_no') && (
 							<div className="step4-preview-options">
-								<label><input type="radio" name={`preview-${q.id}`} disabled /> Adevărat</label>
-								<label><input type="radio" name={`preview-${q.id}`} disabled /> Fals</label>
+								<label><input type="radio" name={`preview-${q.id}`} disabled /> {q.question_type === 'yes_no' ? 'Da' : 'Adevărat'}</label>
+								<label><input type="radio" name={`preview-${q.id}`} disabled /> {q.question_type === 'yes_no' ? 'Nu' : 'Fals'}</label>
 							</div>
 						)}
 						{['single_choice', 'multiple_choice'].includes(q.question_type) && (
@@ -439,9 +440,9 @@ const Step4Assessment = ({ data, onUpdate }) => {
 			question_type: questionType,
 			points: 1,
 			order: questions.length,
-			answers: questionType === 'true_false' ? [
-				{ id: Date.now(), answer_text: 'Adevărat', is_correct: true, order: 0 },
-				{ id: Date.now() + 1, answer_text: 'Fals', is_correct: false, order: 1 },
+			answers: questionType === 'true_false' || questionType === 'yes_no' ? [
+				{ id: Date.now(), answer_text: questionType === 'yes_no' ? 'Da' : 'Adevărat', is_correct: true, order: 0 },
+				{ id: Date.now() + 1, answer_text: questionType === 'yes_no' ? 'Nu' : 'Fals', is_correct: false, order: 1 },
 			] : [],
 			payload: questionType === 'matching' ? { pairs: [] } : questionType === 'ordering' ? { items: [] } : undefined,
 		};

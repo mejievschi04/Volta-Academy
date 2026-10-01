@@ -21,9 +21,23 @@ export const INLINE_QUESTION_TYPES = [
   { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B' },
   { id: 'single_choice', label: 'Raspuns unic', short: '1' },
   { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F' },
+  { id: 'yes_no', label: 'Da / Nu', short: 'Da' },
   { id: 'matching', label: 'Potrivire', short: '<->' },
   { id: 'ordering', label: 'Ordonare', short: '1-4' },
 ];
+
+export const isBinaryQuestionType = (type) => type === 'true_false' || type === 'yes_no';
+
+export const yesNoAnswers = (answers) => {
+  const list = Array.isArray(answers) ? answers : [];
+  const correct = list.find((answer) => answer?.is_correct);
+  const correctText = String(correct?.text ?? correct?.answer_text ?? '').trim().toLowerCase();
+  const noIsCorrect = ['nu', 'no', 'fals', 'false'].includes(correctText);
+  return [
+    { text: 'Da', is_correct: !noIsCorrect },
+    { text: 'Nu', is_correct: noIsCorrect },
+  ];
+};
 
 export const normalizeInlineQuestionType = (type) => {
   return INLINE_QUESTION_TYPES.some((t) => t.id === type) ? type : 'multiple_choice';
@@ -36,6 +50,9 @@ export const getDefaultAnswersByType = (rawType) => {
   }
   if (type === 'true_false') {
     return [{ text: 'Adevarat', is_correct: true }, { text: 'Fals', is_correct: false }];
+  }
+  if (type === 'yes_no') {
+    return yesNoAnswers([]);
   }
   if (type === 'matching') {
     return [
@@ -109,16 +126,20 @@ export const normalizeBuilderQuestion = (q) => {
     ...q,
     id,
     type,
-    answers: type === 'single_choice' || type === 'true_false' ? keepOnlyOneCorrectAnswer(answers) : answers,
+    answers: type === 'yes_no'
+      ? yesNoAnswers(answers)
+      : (type === 'single_choice' || type === 'true_false' ? keepOnlyOneCorrectAnswer(answers) : answers),
   };
 };
 
 export const serializeAnswersForQuestionApi = (rawType, answers) => {
   const type = normalizeInlineQuestionType(rawType);
   const sourceAnswers = Array.isArray(answers) ? answers : [];
-  const normalizedAnswers = type === 'single_choice' || type === 'true_false'
-    ? keepOnlyOneCorrectAnswer(sourceAnswers.map((answer, index) => normalizeBuilderAnswer(answer, type, index)))
-    : sourceAnswers;
+  const normalizedAnswers = type === 'yes_no'
+    ? yesNoAnswers(sourceAnswers)
+    : (type === 'single_choice' || type === 'true_false'
+      ? keepOnlyOneCorrectAnswer(sourceAnswers.map((answer, index) => normalizeBuilderAnswer(answer, type, index)))
+      : sourceAnswers);
 
   return normalizedAnswers.map((a, idx) => {
     const raw = a && typeof a === 'object' ? a : {};
@@ -152,32 +173,6 @@ export const serializeAnswersForQuestionApi = (rawType, answers) => {
       order: typeof raw.order === 'number' ? raw.order : idx,
     };
   });
-};
-
-/** Selectează tot textul la focus/click — util pentru câmpuri de răspuns la întrebări. */
-export const selectAllTextInputHandlers = {
-  onFocus: (event) => {
-    const input = event.currentTarget;
-    requestAnimationFrame(() => {
-      input.select();
-    });
-  },
-  onClick: (event) => {
-    const input = event.currentTarget;
-    requestAnimationFrame(() => {
-      input.select();
-    });
-  },
-  onMouseUp: (event) => {
-    const input = event.currentTarget;
-    if (
-      input.value.length > 0 &&
-      input.selectionStart === 0 &&
-      input.selectionEnd === input.value.length
-    ) {
-      event.preventDefault();
-    }
-  },
 };
 
 /** Mod afișare răspunsuri după test — mutual exclusive */

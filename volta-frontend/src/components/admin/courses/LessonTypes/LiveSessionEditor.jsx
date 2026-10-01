@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import RichTextEditor from '../../../RichTextEditor';
+import LessonTipTapEditor from '../../lessons/LessonTipTapEditor';
 import { openaiService } from '../../../../services/openaiService';
 
 import { useToast } from '../../../../contexts/ToastContextShared.js';
@@ -163,7 +163,7 @@ const LiveSessionEditor = ({ lesson, onUpdate }) => {
 			{/* Manual Agenda Editor */}
 			<div className="admin-form-group">
 				<label className="admin-form-label">Agendă Manuală (opțional)</label>
-				<RichTextEditor
+				<LessonTipTapEditor
 					value={lesson.content || ''}
 					onChange={(content) => onUpdate({ content })}
 					placeholder="Sau scrie manual agenda aici..."

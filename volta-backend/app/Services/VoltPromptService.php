@@ -422,7 +422,7 @@ PROMPT;
      */
     public static function normalizeQuestionTypeList(array $questionTypes): array
     {
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
         $typeList = array_values(array_intersect(
             array_values(array_filter(array_map('strval', $questionTypes))),
             $allowed
@@ -479,6 +479,9 @@ PROMPT;
         if (in_array('true_false', $typeList, true)) {
             $rules[] = '- true_false: enunt clar si verificabil din material, 2 variante (Adevarat/Fals)';
         }
+        if (in_array('yes_no', $typeList, true)) {
+            $rules[] = '- yes_no: enunt la care se raspunde doar cu Da sau Nu, exact 2 variante cu textul "Da" si "Nu", exact 1 corecta';
+        }
         if (in_array('matching', $typeList, true)) {
             $rules[] = '- matching: potriveste 3-4 perechi termen-definitie din material; fiecare pereche are left (termen) si right (definitie/raspuns corect); perechile trebuie sa fie distincte';
         }
@@ -506,7 +509,7 @@ PROMPT;
         $prompt .= '  "cognitive_level": "recall|understanding|application|analysis"' . "\n";
         $prompt .= "}\n\n";
         $prompt .= "Exemple answers dupa tip:\n";
-        if (array_intersect($typeList, ['multiple_choice', 'single_choice', 'true_false'])) {
+        if (array_intersect($typeList, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'])) {
             $prompt .= "- choice/true_false: [{\"text\":\"...\",\"is_correct\":true},{\"text\":\"...\",\"is_correct\":false}]\n";
         }
         if (in_array('matching', $typeList, true)) {

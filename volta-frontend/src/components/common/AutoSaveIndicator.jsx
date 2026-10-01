@@ -26,7 +26,7 @@ const AutoSaveIndicator = ({ status, onRetry, liveHint = false }) => {
 
 	return (
 		<div
-			className="admin-auto-save-indicator"
+			className={`admin-auto-save-indicator is-${status || 'idle'}`}
 			style={{ color: config.color }}
 			role={status === 'error' ? 'alert' : 'status'}
 		>

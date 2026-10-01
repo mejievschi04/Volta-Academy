@@ -107,7 +107,7 @@ class QuestionBankAdminController extends Controller
             'description' => 'nullable|string',
             'status' => 'nullable|in:draft,published',
             'questions' => 'nullable|array',
-            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
+            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
             'questions.*.content' => 'required|string',
             'questions.*.answers' => 'required|array',
             'questions.*.points' => 'nullable|integer|min:1',
@@ -184,7 +184,7 @@ class QuestionBankAdminController extends Controller
 
         $validated = $request->validate([
             'questions' => 'required|array',
-            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
+            'questions.*.type' => 'required|string|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
             'questions.*.content' => 'required|string',
             'questions.*.answers' => 'required|array',
             'questions.*.points' => 'nullable|integer|min:1',
@@ -220,7 +220,7 @@ class QuestionBankAdminController extends Controller
         $bank = QuestionBank::findOrFail($id);
 
         $validated = $request->validate([
-            'type' => 'required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
+            'type' => 'required|string|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
             'content' => 'required|string',
             'answers' => 'required|array',
             'points' => 'nullable|integer|min:1',
@@ -251,7 +251,7 @@ class QuestionBankAdminController extends Controller
             ->findOrFail($questionId);
 
         $validated = $request->validate([
-            'type' => 'sometimes|required|string|in:multiple_choice,single_choice,true_false,matching,ordering',
+            'type' => 'sometimes|required|string|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
             'content' => 'sometimes|required|string',
             'answers' => 'sometimes|required|array',
             'points' => 'nullable|integer|min:1',

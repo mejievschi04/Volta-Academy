@@ -218,7 +218,7 @@ class ExamResultController extends Controller
      */
     protected function resolveCorrectAnswerIndices(array $answers, string $type): array
     {
-        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             return [];
         }
 
@@ -229,7 +229,7 @@ class ExamResultController extends Controller
             }
         }
 
-        if ($type === 'single_choice' || $type === 'true_false') {
+        if ($type === 'single_choice' || $type === 'true_false' || $type === 'yes_no') {
             return $indices !== [] ? [$indices[0]] : [];
         }
 
@@ -542,7 +542,7 @@ class ExamResultController extends Controller
         }
 
         $type = $question->type ?? 'multiple_choice';
-        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             return ['answers' => $answers, 'correct_index' => null, 'correct_indices' => []];
         }
 
@@ -635,7 +635,7 @@ class ExamResultController extends Controller
         }
 
         $isUserAnswerCorrect = null;
-        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             $isUserAnswerCorrect = $this->answerOrderService->gradeChoiceInOriginalSpace(
                 $questionType,
                 $originalSelected,
@@ -722,7 +722,7 @@ class ExamResultController extends Controller
                 ];
             }
 
-            if ($questionType === 'single_choice' || $questionType === 'true_false') {
+            if ($questionType === 'single_choice' || $questionType === 'true_false' || $questionType === 'yes_no') {
                 $correctIndices = $correctIndices !== [] ? [$correctIndices[0]] : [];
             } else {
                 $correctIndices = array_values(array_unique($correctIndices));
@@ -731,7 +731,7 @@ class ExamResultController extends Controller
         }
 
         $isUserAnswerCorrect = null;
-        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             $legacyRows = $question->answers->values()->all();
             $isUserAnswerCorrect = $this->gradeChoiceQuestion(
                 $questionType,

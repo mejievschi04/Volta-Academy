@@ -30,7 +30,7 @@ class CreateTestUser extends Command
             ['email' => 'admin@volta.academy'],
             [
                 'name' => 'Administrator',
-                'password' => \Illuminate\Support\Facades\Hash::make('volta 2025'),
+                'password' => \Illuminate\Support\Facades\Hash::make('volta 2026'),
                 'role' => 'admin',
                 'level' => 1,
                 'points' => 0,
@@ -39,12 +39,12 @@ class CreateTestUser extends Command
         
         // Update password if admin already exists
         if ($admin->wasRecentlyCreated === false) {
-            $admin->update(['password' => \Illuminate\Support\Facades\Hash::make('volta 2025')]);
+            $admin->update(['password' => \Illuminate\Support\Facades\Hash::make('volta 2026')]);
         }
         
         $this->info('Admin user created/updated:');
         $this->info('Email: admin@volta.academy');
-        $this->info('Password: volta 2025');
+        $this->info('Password: volta 2026');
         $this->info('Role: admin');
     }
 }

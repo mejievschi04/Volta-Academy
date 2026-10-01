@@ -6,7 +6,7 @@ import { adminService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContextShared.js';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
-import RichTextEditor from '../../components/RichTextEditor';
+import LessonTipTapEditor from '../../components/admin/lessons/LessonTipTapEditor';
 
 // Template blocks for lessons
 const lessonBlocks = [
@@ -453,7 +453,7 @@ const LessonCreatorPage = () => {
 							)}
 
 							<div className={`admin-form-editor-wrapper ${errors.content ? 'has-error' : ''} ${formData.content && formData.content.replace(/<[^>]*>/g, '').trim().length >= 20 ? 'has-value' : ''}`}>
-								<RichTextEditor
+								<LessonTipTapEditor
 									value={formData.content}
 									onChange={(value) => {
 										setFormData({ ...formData, content: value });

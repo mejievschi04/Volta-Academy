@@ -437,7 +437,23 @@ class QuestionAdminController extends Controller
             ];
         }
 
-        if (in_array($type, ['single_choice', 'true_false'], true)) {
+        if ($type === 'yes_no') {
+            $noIsCorrect = false;
+            foreach ($normalized as $answer) {
+                $text = mb_strtolower(trim((string) ($answer['text'] ?? '')));
+                if (! empty($answer['is_correct']) && in_array($text, ['nu', 'no', 'fals', 'false'], true)) {
+                    $noIsCorrect = true;
+                    break;
+                }
+            }
+
+            return [
+                ['text' => 'Da', 'is_correct' => ! $noIsCorrect, 'order' => 0],
+                ['text' => 'Nu', 'is_correct' => $noIsCorrect, 'order' => 1],
+            ];
+        }
+
+        if (in_array($type, ['single_choice', 'true_false', 'yes_no'], true)) {
             $correctIndex = null;
             foreach ($normalized as $idx => $answer) {
                 if (! empty($answer['is_correct'])) {

@@ -112,11 +112,11 @@ const ChangePasswordModal = () => {
 								value={formData.currentPassword}
 								onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
 								required
-								placeholder="volta2025"
+								placeholder="volta2026"
 								autoFocus
 							/>
 							<p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-1)' }}>
-								Parola implicită este: <strong>volta2025</strong>
+								Parola implicită este: <strong>volta2026</strong>
 							</p>
 						</div>
 

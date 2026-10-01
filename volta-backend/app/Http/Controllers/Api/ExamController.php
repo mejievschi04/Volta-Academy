@@ -423,7 +423,7 @@ class ExamController extends Controller
      */
     protected function resolveCorrectAnswerIndices(array $answers, string $type): array
     {
-        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             return [];
         }
 
@@ -434,7 +434,7 @@ class ExamController extends Controller
             }
         }
 
-        if ($type === 'single_choice' || $type === 'true_false') {
+        if ($type === 'single_choice' || $type === 'true_false' || $type === 'yes_no') {
             return $indices !== [] ? [$indices[0]] : [];
         }
 
@@ -701,7 +701,7 @@ class ExamController extends Controller
         $type = $question->type ?? '';
         $correctIndices = $this->resolveCorrectAnswerIndices($answers, $type);
 
-        if (($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false')
+        if (($type === 'multiple_choice' || $type === 'single_choice' || $type === 'true_false' || $type === 'yes_no')
             && $test->randomize_answers
             && count($answers) > 1
         ) {
@@ -1056,7 +1056,7 @@ class ExamController extends Controller
         $userAnswer = $storedAnswers[$questionId] ?? $storedAnswers[(string) $questionId] ?? null;
         $questionType = (string) ($wire['type'] ?? 'multiple_choice');
 
-        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             $order = $this->answerOrderService->resolveChoiceOrderForAttempt(
                 $test,
                 $question,
@@ -1129,7 +1129,7 @@ class ExamController extends Controller
             'text' => $question->content,
             'type' => $questionType,
             'metadata' => is_array($question->metadata ?? null) ? $question->metadata : null,
-            'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+            'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
                 ? array_map(function ($ans) {
                     if (! is_array($ans)) {
                         return $ans;
@@ -1174,13 +1174,13 @@ class ExamController extends Controller
             $questionType = $question->question_type ?? 'multiple_choice';
             $answerRows = $answersCollection->values()->all();
             $correctIndices = [];
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                 foreach ($answerRows as $idx => $answer) {
                     if ($answer->is_correct ?? false) {
                         $correctIndices[] = (int) $idx;
                     }
                 }
-                if ($questionType === 'single_choice' || $questionType === 'true_false') {
+                if ($questionType === 'single_choice' || $questionType === 'true_false' || $questionType === 'yes_no') {
                     $correctIndices = $correctIndices !== [] ? [$correctIndices[0]] : [];
                 } else {
                     $correctIndices = array_values(array_unique($correctIndices));
@@ -1202,7 +1202,7 @@ class ExamController extends Controller
                 'id' => $question->id,
                 'text' => $question->question_text,
                 'type' => $questionType,
-                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
                     ? $answersCollection->pluck('answer_text')->values()->all()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
@@ -1602,7 +1602,7 @@ class ExamController extends Controller
         $score = 0;
         $totalPoints = 0;
         $correctAnswersCount = 0;
-        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
         $hasManualQuestions = $questions->contains(function ($question) use ($autoGradableTypes) {
             return !in_array((string) ($question->type ?? 'multiple_choice'), $autoGradableTypes, true);
         });
@@ -1635,7 +1635,7 @@ class ExamController extends Controller
                 continue;
             }
 
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                 $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
                 $order = $this->answerOrderService->resolveChoiceOrderForAttempt(
                     $test,
@@ -1905,7 +1905,7 @@ class ExamController extends Controller
             return $blocked;
         }
 
-        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
         $session = $openSession ?: $this->examAttemptSessionService->ensure($exam, $user, $nextAttempt);
         $attemptQuestions = $this->examAttemptSessionService->questions($session);
         $hasManualQuestions = $attemptQuestions->contains(function ($q) use ($autoGradableTypes) {
@@ -1917,7 +1917,7 @@ class ExamController extends Controller
         $totalPoints = 0;
         $correctAnswersCount = 0;
         $needsManualReview = false;
-        $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
 
         foreach ($attemptQuestions as $question) {
             $totalPoints += $question->points ?? 1;
@@ -1944,7 +1944,7 @@ class ExamController extends Controller
                 continue;
             }
 
-            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                 $questionAnswers = $question->answers->values()->all();
                 $correctIndices = [];
                 foreach ($questionAnswers as $idx => $answer) {
@@ -1952,7 +1952,7 @@ class ExamController extends Controller
                         $correctIndices[] = (int) $idx;
                     }
                 }
-                if ($questionType === 'single_choice' || $questionType === 'true_false') {
+                if ($questionType === 'single_choice' || $questionType === 'true_false' || $questionType === 'yes_no') {
                     $correctIndices = $correctIndices !== [] ? [$correctIndices[0]] : [];
                 } else {
                     $correctIndices = array_values(array_unique($correctIndices));

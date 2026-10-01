@@ -66,7 +66,7 @@ class TestAttemptAnswerOrderService
      */
     public function correctIndicesForAnswers(array $answers, string $type): array
     {
-        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             return [];
         }
 
@@ -77,7 +77,7 @@ class TestAttemptAnswerOrderService
             }
         }
 
-        if ($type === 'single_choice' || $type === 'true_false') {
+        if ($type === 'single_choice' || $type === 'true_false' || $type === 'yes_no') {
             return $indices !== [] ? [$indices[0]] : [];
         }
 
@@ -113,7 +113,7 @@ class TestAttemptAnswerOrderService
 
         $displayAnswers = $originalAnswers;
 
-        if (in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)
+        if (in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
             && $test->randomize_answers
             && count($originalAnswers) > 1
         ) {
@@ -295,7 +295,7 @@ class TestAttemptAnswerOrderService
             }
 
             $type = (string) ($question->type ?? 'multiple_choice');
-            if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+            if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
                 $normalized[$questionId] = $userAnswer;
                 continue;
             }

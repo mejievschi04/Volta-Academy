@@ -5,6 +5,7 @@ const getQuestionTypeLabel = (type) => {
 		multiple_choice: 'Raspuns multiplu',
 		single_choice: 'Raspuns unic',
 		true_false: 'Adevarat/Fals',
+		yes_no: 'Da / Nu',
 		matching: 'Potrivire',
 		ordering: 'Ordonare',
 	};

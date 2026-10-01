@@ -833,6 +833,24 @@ body.admin-course-builder-test-drag-active .admin-course-builder-outline-test-ro
 	color: #1d4ed8;
 }
 
+.admin-course-builder-outline-lesson-drop-end.is-root {
+	height: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	border-width: 0;
+	color: transparent;
+}
+
+body.admin-course-builder-lesson-drag-active .admin-course-builder-outline-lesson-drop-end.is-root {
+	height: auto;
+	margin: 4px 0 2px;
+	padding: 8px 10px;
+	overflow: visible;
+	border-width: 1px;
+	color: var(--text-tertiary);
+}
+
 
 .admin-course-builder-sidebar-footer {
 	flex-shrink: 0;

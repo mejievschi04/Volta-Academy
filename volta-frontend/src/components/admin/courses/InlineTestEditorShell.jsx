@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   INLINE_QUESTION_TYPES,
+  isBinaryQuestionType,
   normalizeInlineQuestionType,
-  selectAllTextInputHandlers,
   TEST_RESULTS_DISPLAY_OPTIONS,
   getTestResultsDisplayMode,
   patchTestResultsDisplayMode,
@@ -261,7 +261,7 @@ export default function InlineTestEditorShell({
                                 )}
                               </div>
                             </div>
-                            {(qType === 'multiple_choice' || qType === 'single_choice' || qType === 'true_false') && (
+                            {(qType === 'multiple_choice' || qType === 'single_choice' || isBinaryQuestionType(qType)) && (
                               <div className="admin-course-builder-test-question-answers">
                                 <p>Răspunsuri:</p>
                                 {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
@@ -278,17 +278,16 @@ export default function InlineTestEditorShell({
                                       value={answer.text ?? answer.answer_text ?? ''}
                                       onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
                                       placeholder="Introdu răspuns"
-                                      disabled={!canMutateInAdminArea}
-                                      {...selectAllTextInputHandlers}
+                                      disabled={!canMutateInAdminArea || isBinaryQuestionType(qType)}
                                     />
-                                    {qType !== 'true_false' && canMutateInAdminArea ? (
+                                    {!isBinaryQuestionType(qType) && canMutateInAdminArea ? (
                                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
                                         ×
                                       </button>
                                     ) : null}
                                   </div>
                                 ))}
-                                {qType !== 'true_false' && canMutateInAdminArea ? (
+                                {!isBinaryQuestionType(qType) && canMutateInAdminArea ? (
                                   <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineAddAnswer(question.id)}>
                                     + Adaugă răspuns
                                   </button>
@@ -306,7 +305,6 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
                                       placeholder="Element stânga"
                                       disabled={!canMutateInAdminArea}
-                                      {...selectAllTextInputHandlers}
                                     />
                                     <input
                                       type="text"
@@ -314,7 +312,6 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
                                       placeholder="Element dreapta"
                                       disabled={!canMutateInAdminArea}
-                                      {...selectAllTextInputHandlers}
                                     />
                                     {canMutateInAdminArea ? (
                                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
@@ -342,7 +339,6 @@ export default function InlineTestEditorShell({
                                       onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
                                       placeholder="Element"
                                       disabled={!canMutateInAdminArea}
-                                      {...selectAllTextInputHandlers}
                                     />
                                     {canMutateInAdminArea ? (
                                       <div className="admin-course-builder-test-order-actions">

@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@volta.academy'],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make('volta 2025'),
+                'password' => Hash::make('volta 2026'),
                 'role' => 'admin',
                 'avatar' => null,
                 'bio' => 'Administrator al platformei Volta Academy',
@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         
         // Update password if admin already exists
             if ($admin->wasRecentlyCreated === false) {
-                $admin->update(['password' => Hash::make('volta 2025')]);
+                $admin->update(['password' => Hash::make('volta 2026')]);
             }
 
             // --- Categories (Compartimente) ---

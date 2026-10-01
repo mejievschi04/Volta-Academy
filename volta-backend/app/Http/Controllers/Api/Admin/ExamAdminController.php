@@ -120,7 +120,7 @@ class ExamAdminController extends Controller
                 'id' => $question->id,
                 'text' => $question->question_text,
                 'type' => $questionType,
-                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true)
+                'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
                 'answerIndex' => $correctAnswerIndex,
@@ -163,7 +163,7 @@ class ExamAdminController extends Controller
             'settings' => 'nullable|array',
             'questions' => 'nullable|array',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,matching,ordering',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
@@ -378,7 +378,7 @@ class ExamAdminController extends Controller
             'questions' => 'nullable|array',
             'questions.*.id' => 'nullable|exists:exam_questions,id',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,matching,ordering',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
@@ -745,7 +745,7 @@ class ExamAdminController extends Controller
             ->map(function ($question) use ($results, $attemptsCount) {
                 $questionIdKey = (string) $question->id;
                 $questionType = (string) ($question->question_type ?? 'multiple_choice');
-                $isChoiceType = in_array($questionType, ['multiple_choice', 'single_choice', 'true_false'], true);
+                $isChoiceType = in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true);
 
                 $answers = $question->answers->sortBy('order')->values();
                 $correctIndex = null;

@@ -373,7 +373,7 @@ class TestAdminController extends Controller
             'qualityMode' => 'nullable|in:fast,balanced,high_stakes',
             'cognitiveLevels' => 'nullable|array',
             'cognitiveLevels.*' => 'in:recall,understanding,application,analysis',
-            'questionType' => 'nullable|in:multiple_choice,single_choice,true_false,matching,ordering',
+            'questionType' => 'nullable|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
             'instructions' => 'nullable|string|max:1200',
             'blockedQuestions' => 'nullable|array',
             'blockedQuestions.*' => 'string',
@@ -770,7 +770,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 6,
                 'difficulty' => 'easy',
                 'qualityMode' => 'balanced',
-                'questionTypes' => ['single_choice', 'true_false'],
+                'questionTypes' => ['single_choice', 'true_false', 'yes_no'],
                 'cognitiveLevels' => ['recall', 'understanding'],
                 'rationale' => 'Sursa este scurtă, deci Volt recomandă un test compact axat pe verificare directă și înțelegere.',
             ];
@@ -779,7 +779,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 10,
                 'difficulty' => 'medium',
                 'qualityMode' => 'balanced',
-                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'matching'],
+                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching'],
                 'cognitiveLevels' => ['understanding', 'application'],
                 'rationale' => 'Sursa are suficient conținut pentru un mix echilibrat de înțelegere și aplicare.',
             ];
@@ -788,7 +788,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 15,
                 'difficulty' => 'medium',
                 'qualityMode' => 'high_stakes',
-                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'],
+                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'],
                 'cognitiveLevels' => ['understanding', 'application', 'analysis'],
                 'rationale' => 'Sursa este amplă, deci Volt recomandă varietate de tipuri și mai multe întrebări aplicative/analitice.',
             ];
@@ -905,7 +905,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 6,
                 'difficulty' => 'easy',
                 'qualityMode' => 'balanced',
-                'questionTypes' => ['single_choice', 'true_false'],
+                'questionTypes' => ['single_choice', 'true_false', 'yes_no'],
                 'cognitiveLevels' => ['recall', 'understanding'],
                 'rationale' => 'Sursa este scurtă, deci Volt recomandă un test compact axat pe verificare directă și înțelegere.',
             ];
@@ -914,7 +914,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 10,
                 'difficulty' => 'medium',
                 'qualityMode' => 'balanced',
-                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'matching'],
+                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching'],
                 'cognitiveLevels' => ['understanding', 'application'],
                 'rationale' => 'Sursa are suficient conținut pentru un mix echilibrat de înțelegere și aplicare.',
             ];
@@ -923,7 +923,7 @@ class TestAdminController extends Controller
                 'numberOfQuestions' => 15,
                 'difficulty' => 'medium',
                 'qualityMode' => 'high_stakes',
-                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'],
+                'questionTypes' => ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'],
                 'cognitiveLevels' => ['understanding', 'application', 'analysis'],
                 'rationale' => 'Sursa este amplă, deci Volt recomandă varietate de tipuri și mai multe întrebări aplicative/analitice.',
             ];
@@ -1361,7 +1361,7 @@ class TestAdminController extends Controller
             ];
         }
 
-        if (in_array($type, ['single_choice', 'true_false'], true)) {
+        if (in_array($type, ['single_choice', 'true_false', 'yes_no'], true)) {
             $correctIndex = null;
             foreach ($normalized as $idx => $answer) {
                 if (! empty($answer['is_correct'])) {

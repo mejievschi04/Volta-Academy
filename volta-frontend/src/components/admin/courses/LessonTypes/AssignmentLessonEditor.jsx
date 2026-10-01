@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import RichTextEditor from '../../../RichTextEditor';
+import LessonTipTapEditor from '../../lessons/LessonTipTapEditor';
 import { openaiService } from '../../../../services/openaiService';
 
 import { useToast } from '../../../../contexts/ToastContextShared.js';
@@ -181,7 +181,7 @@ const AssignmentLessonEditor = ({ lesson, onUpdate }) => {
 			{/* Manual Content Editor (fallback) */}
 			<div className="admin-form-group">
 				<label className="admin-form-label">Conținut Manual (opțional)</label>
-				<RichTextEditor
+				<LessonTipTapEditor
 					value={lesson.content || ''}
 					onChange={(content) => onUpdate({ content })}
 					placeholder="Sau scrie manual exercițiile aici..."

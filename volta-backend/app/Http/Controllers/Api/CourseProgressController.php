@@ -451,7 +451,8 @@ class CourseProgressController extends Controller
         if (! LearningVisibility::courseVisibleToLearner($user, $course)) {
             abort(404, 'Lecție negăsită.');
         }
-        if (! LearningVisibility::isStaff($user) && ($lesson->status ?? 'draft') !== 'published') {
+        $onPublishedSnapshot = $this->progressService->lessonIsOnPublishedSnapshot($user, $course, (int) $lesson->id);
+        if (! LearningVisibility::isStaff($user) && ($lesson->status ?? 'draft') !== 'published' && ! $onPublishedSnapshot) {
             abort(404, 'Lecție negăsită.');
         }
 
@@ -483,7 +484,7 @@ class CourseProgressController extends Controller
             ], 403);
         }
 
-        $isUnlocked = $this->progressService->isLessonUnlocked($user, $lesson, $module, $course);
+        $isUnlocked = $this->progressService->isLearnerLessonUnlocked($user, $lesson, $course);
         if (!$isUnlocked) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
@@ -733,9 +734,8 @@ class CourseProgressController extends Controller
         $shouldAutoComplete = ! $isAlreadyCompleted && ($progressPercentage >= 100 || $lastMilestoneReached >= 100) && $dwellMet;
         $didAutoCompleteNow = false;
 
-        $module = $lesson->module;
         if (! LearningVisibility::isStaff($user)
-            && ! $this->progressService->isLessonUnlocked($user, $lesson, $module, $course)
+            && ! $this->progressService->isLearnerLessonUnlocked($user, $lesson, $course)
         ) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',

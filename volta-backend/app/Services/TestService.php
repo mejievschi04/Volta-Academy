@@ -248,7 +248,7 @@ class TestService
     protected function normalizeQuestionType(?string $type): string
     {
         $type = strtolower(trim((string) $type));
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
 
         return in_array($type, $allowed, true) ? $type : 'multiple_choice';
     }

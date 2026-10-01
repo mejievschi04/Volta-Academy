@@ -111,6 +111,26 @@ html[data-theme="dark"] .test-attempt-nav-btn svg path {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
     cursor: pointer;
 }
+.test-attempt-footer .test-attempt-home-btn,
+.test-attempt-footer a.test-attempt-home-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border: 1px solid #111111;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #111111;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+.test-attempt-footer .test-attempt-home-btn:hover,
+.test-attempt-footer a.test-attempt-home-btn:hover {
+    background: #f4f4f5;
+    color: #111111;
+}
 .test-attempt-footer .test-attempt-back-btn:hover,
 .test-attempt-footer a.lms-btn-primary:hover {
     background: #e6d800;

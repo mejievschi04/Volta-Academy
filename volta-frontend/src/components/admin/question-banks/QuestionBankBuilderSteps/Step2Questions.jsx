@@ -13,6 +13,7 @@ const QUESTION_TYPE_OPTIONS = [
 	{ value: 'multiple_choice', label: 'Răspuns multiplu' },
 	{ value: 'single_choice', label: 'Răspuns unic' },
 	{ value: 'true_false', label: 'Adevărat/Fals' },
+	{ value: 'yes_no', label: 'Da / Nu' },
 	{ value: 'matching', label: 'Potrivire' },
 	{ value: 'ordering', label: 'Ordonare' },
 ];
@@ -22,6 +23,13 @@ const getQuestionTypeDefaults = (type) => {
 		return [
 			{ text: 'Adevărat', is_correct: true },
 			{ text: 'Fals', is_correct: false },
+		];
+	}
+
+	if (type === 'yes_no') {
+		return [
+			{ text: 'Da', is_correct: true },
+			{ text: 'Nu', is_correct: false },
 		];
 	}
 
@@ -67,12 +75,16 @@ const normalizeQuestionAnswers = (type, answers) => {
 		}));
 	}
 
-	if (type === 'true_false') {
-		const firstCorrectIndex = list.slice(0, 2).findIndex((answer) => !!answer?.is_correct);
-		const correctIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
-		return list.slice(0, 2).map((answer, index) => ({
-			text: answer?.text ?? (index === 0 ? 'Adevărat' : 'Fals'),
-			is_correct: index === correctIndex,
+	if (type === 'true_false' || type === 'yes_no') {
+		const labels = type === 'yes_no' ? ['Da', 'Nu'] : ['Adevărat', 'Fals'];
+		const correct = list.find((answer) => answer?.is_correct);
+		const correctText = String(correct?.text || '').trim().toLowerCase();
+		const secondIsCorrect = type === 'yes_no'
+			? ['nu', 'no', 'fals', 'false'].includes(correctText)
+			: (list.slice(0, 2).findIndex((answer) => !!answer?.is_correct) === 1);
+		return labels.map((text, index) => ({
+			text,
+			is_correct: secondIsCorrect ? index === 1 : index === 0,
 		}));
 	}
 
@@ -271,7 +283,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		}
 
 		if (
-			(questionForm.type === 'multiple_choice' || questionForm.type === 'single_choice' || questionForm.type === 'true_false') &&
+			(questionForm.type === 'multiple_choice' || questionForm.type === 'single_choice' || questionForm.type === 'true_false' || questionForm.type === 'yes_no') &&
 			!questionForm.answers.some((a) => a.is_correct)
 		) {
 			setQuestionFormErrors((prev) => ({ ...prev, correct: 'Selectează cel puțin un răspuns corect' }));
@@ -629,6 +641,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<option value="multiple_choice">Răspuns multiplu</option>
 							<option value="single_choice">Răspuns unic</option>
 							<option value="true_false">Adevărat/Fals</option>
+							<option value="yes_no">Da / Nu</option>
 							<option value="matching">Potrivire</option>
 							<option value="ordering">Ordonare</option>
 						</select>
@@ -775,9 +788,9 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 												value={answer.text || ''}
 												onChange={(e) => updateAnswer(index, 'text', e.target.value)}
 												placeholder={`Răspuns ${index + 1}`}
-												disabled={questionForm.type === 'true_false'}
+												disabled={questionForm.type === 'true_false' || questionForm.type === 'yes_no'}
 											/>
-											{questionForm.type !== 'true_false' && (
+											{questionForm.type !== 'true_false' && questionForm.type !== 'yes_no' && (
 												<button
 													type="button"
 													className="lms-btn-secondary lms-btn-sm va-btn-danger"
@@ -791,7 +804,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 								</div>
 							)}
 
-							{questionForm.type !== 'true_false' && (
+							{questionForm.type !== 'true_false' && questionForm.type !== 'yes_no' && (
 								<button
 									type="button"
 									className="lms-btn-secondary lms-btn-sm"

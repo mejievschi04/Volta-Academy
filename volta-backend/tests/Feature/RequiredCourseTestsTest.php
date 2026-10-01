@@ -151,4 +151,76 @@ class RequiredCourseTestsTest extends TestCase
 
         $this->assertTrue(app(CourseProgressService::class)->isCourseComplete($student, $course));
     }
+
+    public function test_admin_edits_after_publish_do_not_uncomplete_the_version_learners_received(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = Course::factory()->published()->create([
+            'workflow_status' => 'published',
+            'sequential_unlock' => false,
+        ]);
+        $lesson = Lesson::withoutEvents(fn () => Lesson::create([
+            'course_id' => $course->id,
+            'module_id' => null,
+            'title' => 'Lecția publicată',
+            'content' => '<p>Conținut</p>',
+            'type' => 'text',
+            'status' => 'published',
+            'order' => 1,
+        ]));
+        DB::table('course_user')->insert([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'enrolled' => true,
+            'enrolled_at' => now(),
+            'progress_percentage' => 100,
+            'completed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('lesson_progress')->insert([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'completed' => true,
+            'progress_percentage' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(CourseBuilderService::class)->createCourseVersionSnapshot($course->id, null, 'published');
+        $course->forceFill(['workflow_status' => 'editing'])->save();
+
+        Lesson::withoutEvents(fn () => Lesson::create([
+            'course_id' => $course->id,
+            'module_id' => null,
+            'title' => 'Lecție adăugată după',
+            'content' => '<p>Nou</p>',
+            'type' => 'text',
+            'status' => 'published',
+            'order' => 2,
+        ]));
+        $lesson->update(['status' => 'draft', 'title' => 'Titlu schimbat în editor']);
+
+        $course = $course->fresh();
+        $service = app(CourseProgressService::class);
+        $this->assertTrue($service->isCourseComplete($student, $course));
+        $this->assertSame(100.0, $service->calculateCourseProgress($student, $course));
+        $this->assertNotNull(
+            DB::table('course_user')->where('user_id', $student->id)->where('course_id', $course->id)->value('completed_at')
+        );
+
+        $status = $service->getUserAccessStatus($student, $course);
+        $shown = collect($status['root_lessons'])->firstWhere('id', $lesson->id);
+        $this->assertNotNull($shown);
+        $this->assertTrue($shown['completed']);
+        $this->assertCount(1, $status['root_lessons']);
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/lessons/{$lesson->id}/complete")
+            ->assertOk();
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/courses/{$course->id}/finish")
+            ->assertOk();
+    }
 }

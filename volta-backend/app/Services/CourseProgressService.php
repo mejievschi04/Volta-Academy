@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\User;
 use App\Models\CourseTest;
 use App\Models\ActivityLog;
+use App\Support\LearningVisibility;
 use App\Support\StudentActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -27,6 +28,9 @@ class CourseProgressService
 
     /** @var array<string, array> */
     private array $accessStatusMemo = [];
+
+    /** @var array<string, array|null> */
+    private array $learnerOutlineMemo = [];
 
     public function __construct(ProgressionEngine $progressionEngine)
     {
@@ -162,23 +166,14 @@ class CourseProgressService
             return $this->courseProgressMemo[$memoKey] = 100.0;
         }
 
-        $lessonIds = Lesson::query()
-            ->where('status', 'published')
-            ->where(function ($query) use ($course) {
-                $query->where(function ($root) use ($course) {
-                    $root->where('course_id', $course->id)->whereNull('module_id');
-                })->orWhereHas('module', function ($module) use ($course) {
-                    $module->where('course_id', $course->id)->where('status', 'published');
-                });
-            })
-            ->pluck('id');
+        $lessonIds = $this->requiredLessonIds($user, $course);
         $totalLessons = $lessonIds->count();
         $progressMap = $this->lessonProgressMap($user);
         $completedLessons = $totalLessons === 0 ? 0 : $lessonIds->filter(
             fn ($id) => $this->progressRowIsComplete($progressMap[(int) $id] ?? null)
         )->count();
 
-        $publishedTests = $this->publishedAttachedTests($course);
+        $publishedTests = $this->requiredPublishedTests($user, $course);
         $hasTests = $publishedTests->isNotEmpty();
         $testsPassed = ! $hasTests || $this->allCourseTestsMeetCompletionThreshold($user, $course, $publishedTests);
 
@@ -500,18 +495,9 @@ class CourseProgressService
             }
         }
 
-        $lessonIds = Lesson::query()
-            ->where('status', 'published')
-            ->where(function ($query) use ($course) {
-                $query->where(function ($root) use ($course) {
-                    $root->where('course_id', $course->id)->whereNull('module_id');
-                })->orWhereHas('module', function ($module) use ($course) {
-                    $module->where('course_id', $course->id)->where('status', 'published');
-                });
-            })
-            ->pluck('id');
+        $lessonIds = $this->requiredLessonIds($user, $course);
 
-        $publishedTests = $this->publishedAttachedTests($course);
+        $publishedTests = $this->requiredPublishedTests($user, $course);
         if ($lessonIds->isEmpty() && $publishedTests->isEmpty()) {
             return false;
         }
@@ -639,6 +625,297 @@ class CourseProgressService
         $this->forgetUserProgressCache($user, $course->id);
     }
 
+    /**
+     * Cursanții văd snapshot-ul publicat cât timp adminul editează cursul.
+     * Finalizarea folosește aceeași listă, nu lecțiile adăugate doar în ciornă.
+     *
+     * @return array{lessons: array<int, array>, modules: array<int, array>, test_ids: array<int, int>}|null
+     */
+    private function learnerPublishedOutline(User $user, Course $course): ?array
+    {
+        $key = $user->id . ':' . $course->id;
+        if (array_key_exists($key, $this->learnerOutlineMemo)) {
+            return $this->learnerOutlineMemo[$key];
+        }
+
+        if ($user->isLearningActivityExempt() || LearningVisibility::isStaff($user)) {
+            return $this->learnerOutlineMemo[$key] = null;
+        }
+        if (($course->status ?? '') !== 'published' || ($course->workflow_status ?? 'published') !== 'editing') {
+            return $this->learnerOutlineMemo[$key] = null;
+        }
+
+        $snapshot = app(PublishedCourseView::class)->latestPublishedSnapshot((int) $course->id);
+        if (! is_array($snapshot)) {
+            return $this->learnerOutlineMemo[$key] = null;
+        }
+
+        $lessons = collect($snapshot['lessons'] ?? [])
+            ->filter(fn ($row) => is_array($row) && (int) ($row['id'] ?? 0) > 0)
+            ->filter(fn ($row) => ($row['status'] ?? 'published') === 'published')
+            ->values();
+        $existingIds = Lesson::query()
+            ->whereIn('id', $lessons->map(fn ($row) => (int) $row['id'])->all())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $existing = array_fill_keys($existingIds, true);
+        $lessons = $lessons
+            ->filter(fn ($row) => isset($existing[(int) $row['id']]))
+            ->values();
+
+        $modules = collect($snapshot['modules'] ?? [])
+            ->filter(fn ($row) => is_array($row) && (int) ($row['id'] ?? 0) > 0)
+            ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']])
+            ->values();
+
+        $testIds = collect($snapshot['course_tests'] ?? [])
+            ->filter(fn ($row) => is_array($row))
+            ->map(fn ($row) => (int) ($row['test_id'] ?? 0))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $knownModules = array_fill_keys($modules->map(fn ($row) => (int) $row['id'])->all(), true);
+        foreach ($lessons as $lesson) {
+            $moduleId = (int) ($lesson['module_id'] ?? 0);
+            if ($moduleId > 0 && ! isset($knownModules[$moduleId])) {
+                $modules->push([
+                    'id' => $moduleId,
+                    'title' => '',
+                    'order' => 9999,
+                    'status' => 'published',
+                ]);
+                $knownModules[$moduleId] = true;
+            }
+        }
+
+        return $this->learnerOutlineMemo[$key] = [
+            'lessons' => $lessons->all(),
+            'modules' => $modules->all(),
+            'test_ids' => $testIds,
+        ];
+    }
+
+    private function requiredLessonIds(User $user, Course $course)
+    {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline !== null) {
+            return collect($outline['lessons'])->map(fn ($row) => (int) $row['id'])->values();
+        }
+
+        return Lesson::query()
+            ->where('status', 'published')
+            ->where(function ($query) use ($course) {
+                $query->where(function ($root) use ($course) {
+                    $root->where('course_id', $course->id)->whereNull('module_id');
+                })->orWhereHas('module', function ($module) use ($course) {
+                    $module->where('course_id', $course->id)->where('status', 'published');
+                });
+            })
+            ->pluck('id');
+    }
+
+    private function requiredPublishedTests(User $user, Course $course)
+    {
+        $tests = $this->publishedAttachedTests($course);
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline === null) {
+            return $tests;
+        }
+
+        $allowed = array_fill_keys($outline['test_ids'], true);
+
+        return $tests
+            ->filter(fn ($row) => isset($allowed[(int) $row->test_id]))
+            ->values();
+    }
+
+    public function lessonIsOnPublishedSnapshot(User $user, Course $course, int $lessonId): bool
+    {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline === null) {
+            return false;
+        }
+
+        foreach ($outline['lessons'] as $row) {
+            if ((int) ($row['id'] ?? 0) === $lessonId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isLearnerLessonUnlocked(User $user, Lesson $lesson, Course $course): bool
+    {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline === null) {
+            return $this->isLessonUnlocked($user, $lesson, $lesson->module, $course);
+        }
+
+        $row = collect($outline['lessons'])->first(fn ($item) => (int) ($item['id'] ?? 0) === (int) $lesson->id);
+        if (! is_array($row)) {
+            return $this->isLessonUnlocked($user, $lesson, $lesson->module, $course);
+        }
+
+        return $this->snapshotLessonUnlocked($user, $row, $outline, $course);
+    }
+
+    private function snapshotLessonUnlocked(User $user, array $lessonRow, array $outline, Course $course): bool
+    {
+        if (! empty($lessonRow['is_preview']) || ! $course->sequential_unlock) {
+            return true;
+        }
+
+        $moduleId = $lessonRow['module_id'] ?? null;
+        $siblings = collect($outline['lessons'])
+            ->filter(function ($row) use ($moduleId) {
+                $rowModule = $row['module_id'] ?? null;
+                if ($moduleId) {
+                    return (int) $rowModule === (int) $moduleId;
+                }
+
+                return empty($rowModule);
+            })
+            ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']])
+            ->values();
+
+        $previous = null;
+        foreach ($siblings as $row) {
+            if ((int) $row['id'] === (int) $lessonRow['id']) {
+                break;
+            }
+            $previous = $row;
+        }
+
+        if ($previous) {
+            return $this->isLessonMarkedComplete($user, (int) $previous['id']);
+        }
+
+        return $this->snapshotPreviousModuleComplete($user, $lessonRow, $outline, $course);
+    }
+
+    private function snapshotPreviousModuleComplete(User $user, array $lessonRow, array $outline, Course $course): bool
+    {
+        $moduleId = (int) ($lessonRow['module_id'] ?? 0);
+        if ($moduleId === 0) {
+            return true;
+        }
+
+        $previous = null;
+        foreach (collect($outline['modules'])->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']]) as $module) {
+            if ((int) $module['id'] === $moduleId) {
+                break;
+            }
+            $previous = $module;
+        }
+        if (! $previous) {
+            return true;
+        }
+
+        $previousLessons = collect($outline['lessons'])
+            ->filter(fn ($row) => (int) ($row['module_id'] ?? 0) === (int) $previous['id']);
+        foreach ($previousLessons as $row) {
+            if (! $this->isLessonMarkedComplete($user, (int) $row['id'])) {
+                return false;
+            }
+        }
+
+        $allowedTests = array_fill_keys($outline['test_ids'], true);
+        $moduleTests = CourseTest::where('course_id', $course->id)
+            ->where('scope', 'module')
+            ->where('scope_id', $previous['id'])
+            ->with('test:id,status')
+            ->get();
+        foreach ($moduleTests as $courseTest) {
+            if (! isset($allowedTests[(int) $courseTest->test_id])) {
+                continue;
+            }
+            $test = $courseTest->test;
+            if (! $test || $test->status !== 'published') {
+                continue;
+            }
+            if (! $this->hasPassedCourseTestThreshold($user, (int) $test->id, (int) $course->id)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array{lessons: array<int, array>, modules: array<int, array>, test_ids: array<int, int>}  $outline
+     * @return array<int, array>
+     */
+    private function orderedOutlineLessons(array $outline): array
+    {
+        $lessons = collect($outline['lessons']);
+        $ordered = [];
+        foreach ($lessons->filter(fn ($row) => empty($row['module_id']))->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']]) as $row) {
+            $ordered[] = $row;
+        }
+        foreach (collect($outline['modules'])->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']]) as $module) {
+            $moduleId = (int) $module['id'];
+            $inModule = $lessons
+                ->filter(fn ($row) => (int) ($row['module_id'] ?? 0) === $moduleId)
+                ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']]);
+            foreach ($inModule as $row) {
+                $ordered[] = $row;
+            }
+        }
+
+        return $ordered;
+    }
+
+    private function outlineModuleLessons(int $moduleId, array $outline)
+    {
+        $ids = collect($outline['lessons'])
+            ->filter(fn ($row) => (int) ($row['module_id'] ?? 0) === $moduleId)
+            ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']])
+            ->map(fn ($row) => (int) $row['id'])
+            ->values();
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        $byId = Lesson::query()->whereIn('id', $ids->all())->get()->keyBy(fn ($lesson) => (int) $lesson->id);
+
+        return $ids->map(fn ($id) => $byId->get($id))->filter()->values();
+    }
+
+    private function outlineModuleProgress(User $user, int $moduleId, array $outline): float
+    {
+        $ids = collect($outline['lessons'])
+            ->filter(fn ($row) => (int) ($row['module_id'] ?? 0) === $moduleId)
+            ->map(fn ($row) => (int) $row['id'])
+            ->values();
+        if ($ids->isEmpty()) {
+            return 0;
+        }
+
+        $progressMap = $this->lessonProgressMap($user);
+        $completed = $ids->filter(
+            fn ($id) => $this->progressRowIsComplete($progressMap[(int) $id] ?? null)
+        )->count();
+
+        return round(($completed / $ids->count()) * 100, 2);
+    }
+
+    private function snapshotModuleUnlocked(User $user, int $moduleId, array $outline, Course $course): bool
+    {
+        $first = collect($outline['lessons'])
+            ->filter(fn ($row) => (int) ($row['module_id'] ?? 0) === $moduleId)
+            ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']])
+            ->first();
+        if (is_array($first)) {
+            return $this->snapshotLessonUnlocked($user, $first, $outline, $course);
+        }
+
+        return $this->snapshotPreviousModuleComplete($user, ['id' => 0, 'module_id' => $moduleId], $outline, $course);
+    }
+
     private function publishedAttachedTests(Course $course)
     {
         return CourseTest::where('course_id', $course->id)
@@ -713,6 +990,20 @@ class CourseProgressService
      */
     public function getNextIncompleteLesson(User $user, Course $course): ?Lesson
     {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline !== null) {
+            foreach ($this->orderedOutlineLessons($outline) as $row) {
+                if (! $this->snapshotLessonUnlocked($user, $row, $outline, $course)) {
+                    continue;
+                }
+                if (! $this->isLessonMarkedComplete($user, (int) $row['id'])) {
+                    return Lesson::find((int) $row['id']);
+                }
+            }
+
+            return null;
+        }
+
         $rootLessons = $this->getCourseRootLessons($course);
         foreach ($rootLessons as $lesson) {
             if (!$this->isLessonUnlocked($user, $lesson, null, $course)) {
@@ -766,6 +1057,11 @@ class CourseProgressService
      */
     public function getNextIncompleteTest(User $user, Course $course): ?Test
     {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline !== null) {
+            return $this->nextIncompleteOutlineTest($user, $course, $outline);
+        }
+
         $passedIds = $this->passedTestIdSet($user, (int) $course->id);
         $rootLessons = $this->getCourseRootLessons($course);
         foreach ($rootLessons as $lesson) {
@@ -885,6 +1181,84 @@ class CourseProgressService
     }
 
     /**
+     * @param  array{lessons: array<int, array>, modules: array<int, array>, test_ids: array<int, int>}  $outline
+     */
+    private function nextIncompleteOutlineTest(User $user, Course $course, array $outline): ?Test
+    {
+        $passedIds = $this->passedTestIdSet($user, (int) $course->id);
+        $allowedTests = array_fill_keys($outline['test_ids'], true);
+        $pending = function (CourseTest $courseTest) use ($user, $course, $passedIds, $allowedTests): ?Test {
+            if (! isset($allowedTests[(int) $courseTest->test_id])) {
+                return null;
+            }
+            $test = $courseTest->test;
+            if (! $test || $test->status !== 'published') {
+                return null;
+            }
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
+            if ($hasPassed) {
+                return null;
+            }
+
+            return $test;
+        };
+
+        $currentModuleId = null;
+        foreach ($this->orderedOutlineLessons($outline) as $row) {
+            $moduleId = (int) ($row['module_id'] ?? 0);
+            if ($currentModuleId !== null && $moduleId !== $currentModuleId) {
+                $moduleTest = $this->firstPendingScopedTest($course, 'module', $currentModuleId, $pending);
+                if ($moduleTest) {
+                    return $moduleTest;
+                }
+            }
+            $currentModuleId = $moduleId > 0 ? $moduleId : $currentModuleId;
+
+            if (! $this->snapshotLessonUnlocked($user, $row, $outline, $course)) {
+                continue;
+            }
+            if (! $this->isLessonMarkedComplete($user, (int) $row['id'])) {
+                continue;
+            }
+            $lessonTest = $this->firstPendingScopedTest($course, 'lesson', (int) $row['id'], $pending);
+            if ($lessonTest) {
+                return $lessonTest;
+            }
+        }
+
+        if ($currentModuleId) {
+            $moduleTest = $this->firstPendingScopedTest($course, 'module', $currentModuleId, $pending);
+            if ($moduleTest) {
+                return $moduleTest;
+            }
+        }
+
+        return $this->firstPendingScopedTest($course, 'course', null, $pending);
+    }
+
+    private function firstPendingScopedTest(Course $course, string $scope, ?int $scopeId, callable $pending): ?Test
+    {
+        $query = CourseTest::where('course_id', $course->id)
+            ->where('scope', $scope)
+            ->orderBy('order')
+            ->with('test');
+        if ($scope === 'course') {
+            $query->whereNull('scope_id');
+        } else {
+            $query->where('scope_id', $scopeId);
+        }
+
+        foreach ($query->get() as $courseTest) {
+            $test = $pending($courseTest);
+            if ($test) {
+                return $test;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Check if user can progress (all required tests passed)
      */
     public function canUserProgress(User $user, Course $course): bool
@@ -893,14 +1267,13 @@ class CourseProgressService
             return true;
         }
 
-        // Aliniat cu isCourseComplete: orice test publicat legat de curs trebuie promovat
-        foreach (CourseTest::where('course_id', $course->id)->with('test')->get() as $courseTest) {
+        foreach ($this->requiredPublishedTests($user, $course) as $courseTest) {
             $test = $courseTest->test;
             if (!$test || $test->status !== 'published') {
                 continue;
             }
 
-            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id, $passedIds);
+            $hasPassed = $this->hasPassedTestResult($user, (int) $test->id, (int) $courseTest->course_id);
 
             if (!$hasPassed) {
                 return false;
@@ -957,6 +1330,14 @@ class CourseProgressService
             ->orderBy('order')
             ->get();
 
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline !== null) {
+            $allowedTests = array_fill_keys($outline['test_ids'], true);
+            $allCourseTests = $allCourseTests
+                ->filter(fn ($row) => isset($allowedTests[(int) $row->test_id]))
+                ->values();
+        }
+
         $ctByKey = $allCourseTests->groupBy(function ($row) {
             $sid = $row->scope_id;
 
@@ -982,9 +1363,38 @@ class CourseProgressService
             ];
         };
 
+        if ($outline !== null) {
+            $modules = collect($outline['modules'])->map(function ($row) use ($course) {
+                $module = new Module();
+                $module->forceFill([
+                    'course_id' => $course->id,
+                    'title' => $row['title'] ?? '',
+                    'order' => $row['order'] ?? 0,
+                    'status' => $row['status'] ?? 'published',
+                ]);
+                $module->id = (int) $row['id'];
+                $module->exists = true;
+
+                return $module;
+            })->values();
+            $rootIds = collect($outline['lessons'])
+                ->filter(fn ($row) => empty($row['module_id']))
+                ->sortBy(fn ($row) => [(int) ($row['order'] ?? 0), (int) $row['id']])
+                ->map(fn ($row) => (int) $row['id'])
+                ->values();
+            $rootById = $rootIds->isEmpty()
+                ? collect()
+                : Lesson::query()->whereIn('id', $rootIds->all())->get()->keyBy(fn ($lesson) => (int) $lesson->id);
+            $rootLessons = $rootIds->map(fn ($id) => $rootById->get($id))->filter()->values();
+        }
+
         foreach ($modules as $module) {
-            $moduleProgress = $this->calculateModuleProgress($user, $module);
-            $isUnlocked = $this->isModuleUnlocked($user, $module, $course);
+            $moduleProgress = $outline !== null
+                ? $this->outlineModuleProgress($user, (int) $module->id, $outline)
+                : $this->calculateModuleProgress($user, $module);
+            $isUnlocked = $outline !== null
+                ? $this->snapshotModuleUnlocked($user, (int) $module->id, $outline, $course)
+                : $this->isModuleUnlocked($user, $module, $course);
 
             $moduleData = [
                 'id' => $module->id,
@@ -1000,11 +1410,15 @@ class CourseProgressService
                 ->values()
                 ->all();
 
-            $lessons = $module->relationLoaded('lessons')
-                ? $module->lessons->where('status', 'published')->sortBy('order')->values()
-                : $module->lessons()->where('status', 'published')->orderBy('order')->get();
+            $lessons = $outline !== null
+                ? $this->outlineModuleLessons((int) $module->id, $outline)
+                : ($module->relationLoaded('lessons')
+                    ? $module->lessons->where('status', 'published')->sortBy('order')->values()
+                    : $module->lessons()->where('status', 'published')->orderBy('order')->get());
             foreach ($lessons as $lesson) {
-                $isLessonUnlocked = $this->isLessonUnlocked($user, $lesson, $module, $course);
+                $isLessonUnlocked = $outline !== null
+                    ? $this->isLearnerLessonUnlocked($user, $lesson, $course)
+                    : $this->isLessonUnlocked($user, $lesson, $module, $course);
                 
                 $lessonProgress = $progressMap[(int) $lesson->id] ?? null;
                 $progressPercentage = $lessonProgress->progress_percentage ?? 0;
@@ -1029,13 +1443,15 @@ class CourseProgressService
             $accessStatus['modules'][] = $moduleData;
         }
 
-        $accessStatus['root_lessons'] = $rootLessons->map(function ($lesson) use ($user, $course, $ctByKey, $progressForCourseTest, $progressMap) {
+        $accessStatus['root_lessons'] = $rootLessons->map(function ($lesson) use ($user, $course, $ctByKey, $progressForCourseTest, $progressMap, $outline) {
             $lessonProgress = $progressMap[(int) $lesson->id] ?? null;
             $progressPercentage = $lessonProgress->progress_percentage ?? 0;
 
             return [
                 'id' => $lesson->id,
-                'unlocked' => $this->isLessonUnlocked($user, $lesson, null, $course),
+                'unlocked' => $outline !== null
+                    ? $this->isLearnerLessonUnlocked($user, $lesson, $course)
+                    : $this->isLessonUnlocked($user, $lesson, null, $course),
                 'completed' => ($lessonProgress->completed ?? false) || ($progressPercentage >= 100),
                 'progress_percentage' => $progressPercentage,
                 'is_preview' => $lesson->is_preview,

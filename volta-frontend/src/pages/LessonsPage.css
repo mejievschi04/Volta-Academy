@@ -588,6 +588,30 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 	margin: var(--space-4) 0;
 }
 
+.lessons-page-lesson-content-text img[data-alignment='left'],
+.lessons-page-lesson-content-text img[data-alignment='inline'] {
+	display: block;
+	margin-left: 0;
+	margin-right: auto;
+}
+
+.lessons-page-lesson-content-text img[data-alignment='center'] {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.lessons-page-lesson-content-text img[data-alignment='right'] {
+	display: block;
+	margin-left: auto;
+	margin-right: 0;
+}
+
+.lessons-page-lesson-content-text img[data-alignment='full'] {
+	display: block;
+	width: 100%;
+}
+
 .lessons-page-lesson-content-text a {
 	color: var(--color-brand-primary);
 	text-decoration: none;

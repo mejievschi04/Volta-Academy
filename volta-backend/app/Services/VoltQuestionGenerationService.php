@@ -943,7 +943,7 @@ private function getAiQuestionRejectionReasons(array $question): array
     }
 
     $type = (string) ($question['type'] ?? 'multiple_choice');
-    if (!in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'], true)) {
+    if (!in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'], true)) {
         $reasons[] = 'unsupported_type';
     }
 
@@ -1002,8 +1002,8 @@ private function getAiQuestionRejectionReasons(array $question): array
     if (in_array($type, ['multiple_choice', 'single_choice'], true) && count($answers) < 4) {
         $reasons[] = 'not_enough_answers_for_choice_question';
     }
-    if ($type === 'true_false' && count($answers) < 2) {
-        $reasons[] = 'not_enough_answers_for_true_false';
+    if (in_array($type, ['true_false', 'yes_no'], true) && count($answers) < 2) {
+        $reasons[] = $type === 'yes_no' ? 'not_enough_answers_for_yes_no' : 'not_enough_answers_for_true_false';
     }
 
     $correctCount = 0;
@@ -1534,7 +1534,7 @@ private function formatQuestionsForDatabase(array $questions): array
     foreach ($questions as $index => $question) {
         $answers = [];
         $qType = (string) ($question['type'] ?? 'multiple_choice');
-        if (!in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'], true)) {
+        if (!in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'], true)) {
             $qType = 'multiple_choice';
         }
         
@@ -1585,7 +1585,7 @@ private function formatQuestionsForDatabase(array $questions): array
         }
 
         // Ensure at least one correct answer for choice questions
-        if (!empty($answers) && in_array($qType, ['multiple_choice', 'single_choice', 'true_false'], true)) {
+        if (!empty($answers) && in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
             $hasCorrect = false;
             foreach ($answers as $answer) {
                 if (($answer['is_correct'] ?? false) === true) {
@@ -1602,6 +1602,13 @@ private function formatQuestionsForDatabase(array $questions): array
             $answers = [
                 ['text' => 'Adevărat', 'is_correct' => true],
                 ['text' => 'Fals', 'is_correct' => false],
+            ];
+        }
+
+        if ($qType === 'yes_no' && count($answers) < 2) {
+            $answers = [
+                ['text' => 'Da', 'is_correct' => true],
+                ['text' => 'Nu', 'is_correct' => false],
             ];
         }
 

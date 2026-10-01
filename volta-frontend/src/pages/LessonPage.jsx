@@ -26,6 +26,7 @@ import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import './LessonPage.css';
+import '../components/admin/lessons/callout/LessonCallout.css';
 
 const STUDY_TOOL_OPTIONS = [
 	{ id: 'summary', label: 'Rezumat' },

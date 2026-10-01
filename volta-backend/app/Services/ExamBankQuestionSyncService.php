@@ -227,7 +227,7 @@ class ExamBankQuestionSyncService
     protected function mapQuestionType(?string $type): string
     {
         $t = strtolower((string) $type);
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
         if (in_array($t, $allowed, true)) {
             return $t;
         }

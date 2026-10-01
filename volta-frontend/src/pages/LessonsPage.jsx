@@ -30,6 +30,7 @@ import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonsPage.css';
+import '../components/admin/lessons/callout/LessonCallout.css';
 
 const renderTestStatusIcon = (passed) => (
 	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />

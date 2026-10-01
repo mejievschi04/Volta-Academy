@@ -1,5 +1,5 @@
 /** Tipuri cu o singură variantă selectabilă. */
-const SINGLE_SELECT_TYPES = new Set(['single_choice', 'true_false']);
+const SINGLE_SELECT_TYPES = new Set(['single_choice', 'true_false', 'yes_no']);
 
 export function getQuestionType(question) {
 	return question?.type || question?.question_type || 'multiple_choice';
@@ -12,6 +12,7 @@ export function isMultiSelectChoiceQuestion(question) {
 
 export function getChoiceTypeLabel(question) {
 	if (isMultiSelectChoiceQuestion(question)) return 'Răspuns multiplu';
+	if (getQuestionType(question) === 'yes_no') return 'Da / Nu';
 	if (SINGLE_SELECT_TYPES.has(getQuestionType(question))) return 'Răspuns unic';
 	return 'Alegere';
 }

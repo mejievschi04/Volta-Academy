@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import RichTextEditor from '../../RichTextEditor';
-import { selectAllTextInputHandlers } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
 
 const INLINE_QUESTION_TYPES = [
   { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B', hint: 'Mai multe corecte', bits: ['is-on', 'is-on', ''] },
   { id: 'single_choice', label: 'Raspuns unic', short: '1', hint: 'O singură corectă', bits: ['is-on', '', ''] },
   { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F', hint: 'Două variante', bits: ['is-on', ''] },
+  { id: 'yes_no', label: 'Da / Nu', short: 'Da', hint: 'Da sau Nu', bits: ['is-on', ''] },
   { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Leagă perechile', bits: ['is-on', 'is-on'] },
   { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Pune în ordine', bits: ['is-on', 'is-on', ''] },
 ];
@@ -20,6 +20,13 @@ const getDefaultAnswersByType = (type) => {
     return [
       { text: 'Adevarat', is_correct: true },
       { text: 'Fals', is_correct: false },
+    ];
+  }
+
+  if (type === 'yes_no') {
+    return [
+      { text: 'Da', is_correct: true },
+      { text: 'Nu', is_correct: false },
     ];
   }
 
@@ -77,6 +84,15 @@ const normalizeAnswers = (type, answers) => {
     order: typeof answer?.order === 'number' ? answer.order : index,
   }));
 
+  if (type === 'yes_no') {
+    const correct = normalized.find((answer) => answer.is_correct);
+    const noIsCorrect = ['nu', 'no', 'fals', 'false'].includes(String(correct?.text || '').trim().toLowerCase());
+    return [
+      { text: 'Da', is_correct: !noIsCorrect },
+      { text: 'Nu', is_correct: noIsCorrect },
+    ];
+  }
+
   if (type === 'single_choice' || type === 'true_false') {
     return keepOnlyOneCorrectAnswer(type === 'true_false' ? normalized.slice(0, 2) : normalized);
   }
@@ -110,7 +126,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   };
 
   const toggleCorrect = (idx) => {
-    if (currentType === 'true_false' || currentType === 'single_choice') {
+    if (currentType === 'true_false' || currentType === 'yes_no' || currentType === 'single_choice') {
       update({
         answers: answers.map((answer, i) => ({
           ...answer,
@@ -140,7 +156,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
   const removeAnswer = (idx) => {
     const next = answers.filter((_, i) => i !== idx);
-    update({ answers: currentType === 'single_choice' || currentType === 'true_false' ? keepOnlyOneCorrectAnswer(next) : next });
+    update({ answers: currentType === 'single_choice' || currentType === 'true_false' || currentType === 'yes_no' ? keepOnlyOneCorrectAnswer(next) : next });
   };
 
   const moveAnswer = (idx, direction) => {
@@ -155,7 +171,8 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
     });
   };
 
-  const isChoiceType = currentType === 'multiple_choice' || currentType === 'single_choice' || currentType === 'true_false';
+  const isBinaryType = currentType === 'true_false' || currentType === 'yes_no';
+  const isChoiceType = currentType === 'multiple_choice' || currentType === 'single_choice' || isBinaryType;
   const isMatchingType = currentType === 'matching';
   const isOrderingType = currentType === 'ordering';
   const radioGroupName = `answer-correct-${question?.id ?? questionNumber}`;
@@ -238,17 +255,16 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         value={answer.text || ''}
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
                         placeholder="Introdu raspuns"
-                        disabled={currentType === 'true_false'}
-                        {...selectAllTextInputHandlers}
+                        disabled={isBinaryType}
                       />
-                      {currentType !== 'true_false' && (
+                      {!isBinaryType && (
                         <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
                           x
                         </button>
                       )}
                     </div>
                   ))}
-                  {currentType !== 'true_false' && (
+                  {!isBinaryType && (
                     <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
                       + Adauga raspuns
                     </button>
@@ -266,14 +282,12 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         value={answer.left || ''}
                         onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
                         placeholder="Element stânga"
-                        {...selectAllTextInputHandlers}
                       />
                       <input
                         type="text"
                         value={answer.right || ''}
                         onChange={(e) => updateAnswer(idx, 'right', e.target.value)}
                         placeholder="Element dreapta"
-                        {...selectAllTextInputHandlers}
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
                         x
@@ -297,7 +311,6 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         value={answer.text || ''}
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
                         placeholder="Element"
-                        {...selectAllTextInputHandlers}
                       />
                       <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'up')} disabled={idx === 0}>
                         Sus

@@ -1110,6 +1110,13 @@ const QuizPage = () => {
 							>
 								Înapoi la curs
 							</Link>
+							<Link
+								to="/courses"
+								className="lms-btn-secondary"
+								style={{ padding: '0.875rem 1.5rem' }}
+							>
+								Pagina principală
+							</Link>
 							{quiz.max_attempts && (quiz.max_attempts - (quiz.attempts_count || 0) > 0) && !result.passed && (
 								<button
 									onClick={() => {

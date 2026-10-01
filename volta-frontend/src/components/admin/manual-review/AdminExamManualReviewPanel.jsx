@@ -8,7 +8,7 @@ import '../../../pages/admin/AdminExamsPage.css';
 import '../../../pages/admin/AdminTestsPendingReviewsPage.css';
 
 const MANUAL_TYPES = [];
-const AUTO_TYPES = ['multiple_choice', 'single_choice', 'true_false'];
+const AUTO_TYPES = ['multiple_choice', 'single_choice', 'true_false', 'yes_no'];
 
 const qType = (q) => String(q?.question_type || q?.type || 'multiple_choice');
 const qText = (q) => String(q?.question_text || q?.text || '').trim() || 'Intrebare';
@@ -41,6 +41,7 @@ const typeLabel = (type) =>
 		multiple_choice: 'Grila',
 		single_choice: 'Alegere unica',
 		true_false: 'Adevarat / fals',
+		yes_no: 'Da / Nu',
 		matching: 'Asocieri',
 		ordering: 'Ordonare',
 	}[type] || type);

@@ -38,6 +38,7 @@ const TYPE_LABELS = {
 	multiple_choice: 'Răspuns multiplu',
 	single_choice: 'Răspuns unic',
 	true_false: 'Adevărat / Fals',
+	yes_no: 'Da / Nu',
 	matching: 'Potrivire',
 	ordering: 'Ordonare',
 };

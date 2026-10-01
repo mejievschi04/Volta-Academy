@@ -167,7 +167,7 @@ const AdminUsersPage = () => {
 				delete dataToSend.team_id;
 				await adminService.updateUser(editingUser.id, dataToSend);
 			} else {
-				// Parola nu este obligatorie - va fi setată automat la "volta2025" în backend
+				// Parola nu este obligatorie - va fi setată automat la "volta2026" în backend
 				await adminService.createUser(dataToSend);
 			}
 
@@ -791,7 +791,7 @@ const AdminUsersPage = () => {
 										className="admin-form-input"
 										value={formData.password}
 										onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-										placeholder={!editingUser ? 'Lasă gol pentru parola implicită: volta2025' : 'Lasă gol pentru a păstra parola actuală'}
+										placeholder={!editingUser ? 'Lasă gol pentru parola implicită: volta2026' : 'Lasă gol pentru a păstra parola actuală'}
 										minLength={formData.password ? 6 : undefined}
 									/>
 								</div>
@@ -812,7 +812,7 @@ const AdminUsersPage = () => {
 								{!editingUser && (
 									<div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
 										<p className="admin-form-hint">
-											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2025</strong> și va trebui să o schimbe la prima autentificare.
+											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2026</strong> și va trebui să o schimbe la prima autentificare.
 										</p>
 									</div>
 								)}
