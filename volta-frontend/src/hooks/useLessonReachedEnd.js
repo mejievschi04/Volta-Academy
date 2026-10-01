@@ -25,14 +25,28 @@ function scrolledToEnd(scrollRoot) {
 	return doc.scrollHeight - window.scrollY - window.innerHeight <= 32;
 }
 
+function mediaHasSize(root) {
+	const nodes = root.querySelectorAll('img, video, iframe[data-lesson-embed], iframe[data-lesson-media]');
+	for (const node of nodes) {
+		if (node.tagName === 'IMG') {
+			if (!node.complete) return false;
+			continue;
+		}
+		if (node.tagName === 'VIDEO' && node.readyState < 1 && node.clientHeight < 8) return false;
+		if (node.tagName === 'IFRAME' && node.clientHeight < 8) return false;
+	}
+	return true;
+}
+
 function endIsVisible(root, scrollRoot) {
-	if (scrolledToEnd(scrollRoot)) return true;
+	if (!mediaHasSize(root)) return false;
 	const sentinel = root.querySelector('[data-lesson-read-end]');
 	const limit = visibleBottom(scrollRoot);
-	if (!sentinel) {
-		return root.getBoundingClientRect().bottom <= limit + 8;
+	if (sentinel) {
+		return sentinel.getBoundingClientRect().top <= limit + 12;
 	}
-	return sentinel.getBoundingClientRect().top <= limit + 12;
+	if (scrolledToEnd(scrollRoot)) return true;
+	return root.getBoundingClientRect().bottom <= limit + 8;
 }
 
 /**
@@ -56,6 +70,8 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 		update();
 		const target = scrollRoot || window;
 		target.addEventListener('scroll', update, { passive: true });
+		root.addEventListener('load', update, true);
+		root.addEventListener('loadedmetadata', update, true);
 		if (target !== window) {
 			window.addEventListener('scroll', update, { passive: true });
 		}
@@ -68,6 +84,8 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 		const lateCheck = window.setTimeout(update, 300);
 
 		return () => {
+			root.removeEventListener('load', update, true);
+			root.removeEventListener('loadedmetadata', update, true);
 			target.removeEventListener('scroll', update);
 			if (target !== window) {
 				window.removeEventListener('scroll', update);

@@ -783,23 +783,87 @@ class CourseProgressController extends Controller
             $payload['last_milestone_reached'] = $lastMilestoneReached;
         }
 
-        \DB::table('lesson_progress')->updateOrInsert(
-            [
-                'user_id' => $user->id,
-                'lesson_id' => $lessonId,
-            ],
+        $saved = $this->writeLessonProgressWithoutClearingCompletion(
+            (int) $user->id,
+            (int) $lessonId,
+            $existingProgress,
             $payload
         );
 
         return response()->json([
             'message' => 'Progres actualizat',
-            'progress_percentage' => $progressPercentage,
-            'last_milestone_reached' => $lastMilestoneReached,
-            'completed' => $didAutoCompleteNow || $isAlreadyCompleted || $shouldAutoComplete,
-            'auto_completed' => $didAutoCompleteNow,
-            'awaiting_dwell' => $wantsComplete && ! $didAutoCompleteNow && ! $isAlreadyCompleted && ! $dwellMet,
+            'progress_percentage' => $saved['progress_percentage'],
+            'last_milestone_reached' => $saved['completed'] ? max($lastMilestoneReached, 100) : $lastMilestoneReached,
+            'completed' => $saved['completed'],
+            'auto_completed' => $didAutoCompleteNow && $saved['completed'],
+            'awaiting_dwell' => $wantsComplete && ! $saved['completed'] && ! $dwellMet,
             'min_dwell_seconds' => $minDwell,
         ]);
+    }
+
+    /**
+     * Heartbeat-ul de timp poate citi rândul înainte de „Următoarea” și să-l rescrie după.
+     * Scrierea nu are voie să șteargă o finalizare deja comisă.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{completed: bool, progress_percentage: float}
+     */
+    private function writeLessonProgressWithoutClearingCompletion(int $userId, int $lessonId, ?object $seen, array $payload): array
+    {
+        $keys = [
+            'user_id' => $userId,
+            'lesson_id' => $lessonId,
+        ];
+
+        $preserveCompletion = function (?object $row) use (&$payload): void {
+            if (! $row || ! (bool) $row->completed) {
+                return;
+            }
+            $payload['completed'] = true;
+            $payload['progress_percentage'] = 100;
+            $payload['completed_at'] = $row->completed_at ?: ($payload['completed_at'] ?? now());
+            if (array_key_exists('last_milestone_reached', $payload)) {
+                $payload['last_milestone_reached'] = max(100, (float) $payload['last_milestone_reached']);
+            }
+        };
+
+        if (! $seen) {
+            try {
+                \DB::table('lesson_progress')->insert(array_merge($keys, $payload));
+
+                return [
+                    'completed' => (bool) $payload['completed'],
+                    'progress_percentage' => (float) $payload['progress_percentage'],
+                ];
+            } catch (\Illuminate\Database\QueryException $e) {
+                $sqlState = (string) ($e->errorInfo[0] ?? '');
+                if (! in_array($sqlState, ['23000', '23505'], true)) {
+                    throw $e;
+                }
+                $seen = \DB::table('lesson_progress')->where($keys)->first();
+                if (! $seen) {
+                    throw $e;
+                }
+            }
+        }
+
+        $preserveCompletion($seen);
+        $updated = \DB::table('lesson_progress')
+            ->where('id', $seen->id)
+            ->where('completed', $seen->completed)
+            ->where('progress_percentage', $seen->progress_percentage)
+            ->update($payload);
+
+        if ($updated === 0) {
+            $fresh = \DB::table('lesson_progress')->where($keys)->first();
+            $preserveCompletion($fresh);
+            \DB::table('lesson_progress')->where($keys)->update($payload);
+        }
+
+        return [
+            'completed' => (bool) $payload['completed'],
+            'progress_percentage' => (float) $payload['progress_percentage'],
+        ];
     }
 
     /**

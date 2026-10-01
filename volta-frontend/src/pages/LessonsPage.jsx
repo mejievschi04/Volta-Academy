@@ -26,7 +26,7 @@ import { useLessonReachedEnd } from '../hooks/useLessonReachedEnd';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import LessonPullRefresh from '../components/student/LessonPullRefresh';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
-import { isLessonMarkedComplete } from '../utils/lessonProgress';
+import { isLessonMarkedComplete, preserveCompletedLessons } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonsPage.css';
@@ -157,7 +157,7 @@ const LessonsPage = () => {
 		lessonId: selectedLessonId,
 		enabled: lessonReadyForTracking,
 	});
-	const canAdvanceLesson = isCompleted || reachedEnd;
+	const canAdvanceLesson = reachedEnd;
 
 	const fetchCourseData = async () => {
 		try {
@@ -171,7 +171,7 @@ const LessonsPage = () => {
 			if (user?.id) {
 				try {
 					const progressData = await courseProgressService.getCourseProgress(courseId);
-					setProgress(progressData);
+					setProgress((prev) => preserveCompletedLessons(prev, progressData));
 				} catch  {
 					console.log('No progress data available');
 				}
@@ -212,7 +212,10 @@ const LessonsPage = () => {
 			if (user?.id) {
 				try {
 					progressData = await courseProgressService.getCourseProgress(courseId);
-					setProgress(progressData);
+					setProgress((prev) => {
+						progressData = preserveCompletedLessons(prev, progressData);
+						return progressData;
+					});
 				} catch {
 					// Progresul vechi rămâne pe ecran dacă reîncărcarea lui eșuează.
 				}
@@ -241,15 +244,20 @@ const LessonsPage = () => {
 		if (!user?.id || !courseId) return null;
 		try {
 			const progressData = await courseProgressService.getCourseProgress(courseId);
-			setProgress(progressData);
-			return progressData;
+			let merged = progressData;
+			setProgress((prev) => {
+				merged = preserveCompletedLessons(prev, progressData);
+				return merged;
+			});
+			return merged;
 		} catch {
 			return null;
 		}
 	}, [courseId, user?.id]);
 
-	const completeCurrentLesson = useCallback(async () => {
-		if (!selectedLessonId || isCompleted || !user?.id) return true;
+	const completeCurrentLesson = useCallback(async ({ force = false } = {}) => {
+		if (!selectedLessonId || !user?.id) return true;
+		if (isCompleted && !force) return true;
 		try {
 			setIsCompleting(true);
 			const result = await courseProgressService.completeLesson(selectedLessonId);
@@ -360,14 +368,15 @@ const LessonsPage = () => {
 		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
 
 	const handleNextLesson = async () => {
-		if (!isCompleted) {
-			const ok = await completeCurrentLesson();
-			if (!ok) return;
-		}
+		if (!reachedEnd) return;
+		const ok = await completeCurrentLesson({ force: true });
+		if (!ok) return;
 
 		const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
 		if (nextId != null && !Number.isNaN(nextId)) {
-			handleLessonClick(nextId);
+			setSelectedLessonId(nextId);
+			setSidebarOpen(false);
+			scrollAppToTop({ behavior: 'instant' });
 			return;
 		}
 		navigate(`/courses/${courseId}`);
@@ -393,7 +402,11 @@ const LessonsPage = () => {
 				if (!ok) return;
 			}
 			const p = await courseProgressService.getCourseProgress(courseId);
-			setProgress(p);
+			let merged = p;
+			setProgress((prev) => {
+				merged = preserveCompletedLessons(prev, p);
+				return merged;
+			});
 			if (p?.next_exam?.id) {
 				navigate(`/courses/${courseId}/exams/${p.next_exam.id}`);
 				return;

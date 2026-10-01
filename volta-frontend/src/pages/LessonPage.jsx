@@ -73,10 +73,11 @@ const LessonPage = () => {
 		lessonId,
 		enabled: Boolean(lesson && !loading),
 	});
-	const canAdvanceLesson = isCompleted || reachedEnd;
+	const canAdvanceLesson = reachedEnd;
 
-	const completeCurrentLesson = useCallback(async () => {
-		if (!lessonId || isCompleted || !user?.id) return true;
+	const completeCurrentLesson = useCallback(async ({ force = false } = {}) => {
+		if (!lessonId || !user?.id) return true;
+		if (isCompleted && !force) return true;
 		try {
 			setIsCompleting(true);
 			await courseProgressService.completeLesson(lessonId);
@@ -157,10 +158,9 @@ const LessonPage = () => {
 	const isLastLessonInCourse = nextLessonTarget === null;
 
 	const handleNext = async () => {
-		if (!isCompleted) {
-			const ok = await completeCurrentLesson();
-			if (!ok) return;
-		}
+		if (!reachedEnd) return;
+		const ok = await completeCurrentLesson({ force: true });
+		if (!ok) return;
 		if (typeof nextLessonTarget === 'number') {
 			navigate(`/courses/${courseId}/lessons/${nextLessonTarget}`);
 			return;

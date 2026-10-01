@@ -198,9 +198,18 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 					return (
 						<BlockCard key={b.id || idx} title={label} showLabel={showLabels}>
 							{imgUrl ? (
-								<a href={imgUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
-									Deschide imagine
-								</a>
+								showLabels ? (
+									<a href={imgUrl} target="_blank" rel="noreferrer" className="lms-btn-secondary">
+										Deschide imagine
+									</a>
+								) : (
+									<img
+										src={imgUrl}
+										alt=""
+										data-lesson-media="image"
+										style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
+									/>
+								)
 							) : (
 								<div style={{ color: 'var(--text-tertiary)' }}>Fără imagine</div>
 							)}
@@ -222,7 +231,19 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 								>
 									{imgs.map((img, i) => {
 										const imgUrl = toImageUrl(img.url) || img.url;
-										return imgUrl ? (
+										if (!imgUrl) return null;
+										if (!showLabels) {
+											return (
+												<img
+													key={img.id || i}
+													src={imgUrl}
+													alt={img.alt || ''}
+													data-lesson-media="image"
+													style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
+												/>
+											);
+										}
+										return (
 											<a
 												key={img.id || i}
 												href={imgUrl}
@@ -233,7 +254,7 @@ const LessonBlocksPreview = ({ blocks, variant = 'admin' }) => {
 											>
 												{img.alt || `Imagine ${i + 1}`}
 											</a>
-										) : null;
+										);
 									})}
 								</div>
 							) : (

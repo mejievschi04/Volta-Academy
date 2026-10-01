@@ -130,4 +130,88 @@ class LessonCompletionTest extends TestCase
         $this->assertNotNull($match);
         $this->assertTrue($match['completed']);
     }
+
+    public function test_time_heartbeat_cannot_undo_explicit_completion(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = Course::factory()->published()->create();
+
+        $lesson = Lesson::withoutEvents(function () use ($course) {
+            return Lesson::create([
+                'course_id' => $course->id,
+                'module_id' => null,
+                'title' => 'Lecție',
+                'content' => '<p>Text destul de lung pentru dwell.</p>',
+                'type' => 'text',
+                'status' => 'published',
+                'order' => 1,
+            ]);
+        });
+
+        DB::table('course_user')->insert([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'enrolled' => true,
+            'enrolled_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('lesson_progress')->insert([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'completed' => false,
+            'progress_percentage' => 40,
+            'time_spent_seconds' => 5,
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/lessons/{$lesson->id}/complete")
+            ->assertOk()
+            ->assertJsonPath('progress.lessons.0.completed', true);
+
+        $this->actingAs($student, 'sanctum')
+            ->putJson("/api/lessons/{$lesson->id}/progress", [
+                'add_time_spent_seconds' => 3,
+            ])
+            ->assertOk()
+            ->assertJsonPath('completed', true)
+            ->assertJsonPath('progress_percentage', 100);
+
+        $row = DB::table('lesson_progress')
+            ->where('user_id', $student->id)
+            ->where('lesson_id', $lesson->id)
+            ->first();
+
+        $this->assertTrue((bool) $row->completed);
+        $this->assertEquals(100, (int) $row->progress_percentage);
+
+        $controller = app(\App\Http\Controllers\Api\CourseProgressController::class);
+        $write = new \ReflectionMethod($controller, 'writeLessonProgressWithoutClearingCompletion');
+        $stale = (object) [
+            'id' => $row->id,
+            'completed' => 0,
+            'progress_percentage' => 40,
+            'completed_at' => null,
+        ];
+        $write->invoke($controller, $student->id, $lesson->id, $stale, [
+            'progress_percentage' => 40,
+            'time_spent_seconds' => 9,
+            'completed' => false,
+            'completed_at' => null,
+            'started_at' => now(),
+            'updated_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        $row = DB::table('lesson_progress')
+            ->where('user_id', $student->id)
+            ->where('lesson_id', $lesson->id)
+            ->first();
+        $this->assertTrue((bool) $row->completed);
+        $this->assertEquals(100, (int) $row->progress_percentage);
+    }
 }
