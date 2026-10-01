@@ -1,35 +1,53 @@
 import { useEffect, useState } from 'react';
-import { findLessonScrollRoot, lessonTabObstructionPx } from '../utils/lessonReadCompletion';
 
-function fixedLessonBarOverlap() {
-	const bar = document.querySelector('.lessons-page-lesson-actions, .lesson-page-actions');
-	if (!bar) return 0;
-	const style = window.getComputedStyle(bar);
-	if (style.position !== 'fixed' && style.position !== 'sticky') return 0;
-	const hidden = Math.round(window.innerHeight - bar.getBoundingClientRect().top);
-	return hidden > 0 ? hidden : 0;
+function findLessonScrollRoot(startEl) {
+	let node = startEl?.parentElement;
+	let best = null;
+	let bestHeight = 0;
+	while (node && node !== document.body) {
+		const style = window.getComputedStyle(node);
+		const overflowY = style.overflowY;
+		const scrolls =
+			(overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
+			node.scrollHeight > node.clientHeight + 8;
+		if (scrolls && node.clientHeight > bestHeight) {
+			best = node;
+			bestHeight = node.clientHeight;
+		}
+		node = node.parentElement;
+	}
+	return best;
 }
 
-function visibleBottom(scrollRoot) {
-	const edge = scrollRoot ? scrollRoot.getBoundingClientRect().bottom : window.innerHeight;
-	const bar = fixedLessonBarOverlap();
-	const chrome = bar > 0 ? bar : (window.innerWidth <= 768 ? lessonTabObstructionPx() + 72 : 0);
-	return edge - chrome;
+function screenBottom() {
+	const viewport = window.visualViewport;
+	if (viewport) return viewport.offsetTop + viewport.height;
+	return window.innerHeight;
 }
 
-function scrolledToEnd(scrollRoot) {
+function scrollRemaining(scrollRoot) {
 	if (scrollRoot) {
-		return scrollRoot.scrollHeight - scrollRoot.scrollTop - scrollRoot.clientHeight <= 32;
+		return scrollRoot.scrollHeight - scrollRoot.scrollTop - scrollRoot.clientHeight;
 	}
 	const doc = document.scrollingElement || document.documentElement;
-	return doc.scrollHeight - window.scrollY - window.innerHeight <= 32;
+	const viewport = window.visualViewport;
+	const viewHeight = viewport?.height ?? window.innerHeight;
+	const offsetTop = viewport?.offsetTop ?? 0;
+	return doc.scrollHeight - window.scrollY - offsetTop - viewHeight;
+}
+
+function atScrollEnd(scrollRoot) {
+	const slack = 48;
+	if (scrollRoot) return scrollRemaining(scrollRoot) <= slack;
+	return scrollRemaining(null) <= slack;
 }
 
 function mediaHasSize(root) {
 	const nodes = root.querySelectorAll('img, video, iframe[data-lesson-embed], iframe[data-lesson-media]');
 	for (const node of nodes) {
 		if (node.tagName === 'IMG') {
-			if (!node.complete) return false;
+			const src = node.currentSrc || node.getAttribute('src') || '';
+			if (src && !node.complete) return false;
 			continue;
 		}
 		if (node.tagName === 'VIDEO' && node.readyState < 1 && node.clientHeight < 8) return false;
@@ -40,13 +58,13 @@ function mediaHasSize(root) {
 
 function endIsVisible(root, scrollRoot) {
 	if (!mediaHasSize(root)) return false;
+	if (atScrollEnd(scrollRoot)) return true;
+	const bottom = screenBottom();
 	const sentinel = root.querySelector('[data-lesson-read-end]');
-	const limit = visibleBottom(scrollRoot);
 	if (sentinel) {
-		return sentinel.getBoundingClientRect().top <= limit + 12;
+		return sentinel.getBoundingClientRect().top <= bottom + 8;
 	}
-	if (scrolledToEnd(scrollRoot)) return true;
-	return root.getBoundingClientRect().bottom <= limit + 8;
+	return root.getBoundingClientRect().bottom <= bottom + 8;
 }
 
 /**
@@ -62,20 +80,18 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 		const root = contentRef.current;
 		if (!root) return undefined;
 
-		const scrollRoot = findLessonScrollRoot(root);
 		const update = () => {
-			setReachedEnd(endIsVisible(root, scrollRoot));
+			setReachedEnd(endIsVisible(root, findLessonScrollRoot(root)));
 		};
 
 		update();
-		const target = scrollRoot || window;
-		target.addEventListener('scroll', update, { passive: true });
+		document.addEventListener('scroll', update, { passive: true, capture: true });
 		root.addEventListener('load', update, true);
+		root.addEventListener('error', update, true);
 		root.addEventListener('loadedmetadata', update, true);
-		if (target !== window) {
-			window.addEventListener('scroll', update, { passive: true });
-		}
 		window.addEventListener('resize', update);
+		window.visualViewport?.addEventListener('resize', update);
+		window.visualViewport?.addEventListener('scroll', update);
 
 		const resizeObserver =
 			typeof ResizeObserver === 'function' ? new ResizeObserver(update) : null;
@@ -84,13 +100,13 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 		const lateCheck = window.setTimeout(update, 300);
 
 		return () => {
+			document.removeEventListener('scroll', update, true);
 			root.removeEventListener('load', update, true);
+			root.removeEventListener('error', update, true);
 			root.removeEventListener('loadedmetadata', update, true);
-			target.removeEventListener('scroll', update);
-			if (target !== window) {
-				window.removeEventListener('scroll', update);
-			}
 			window.removeEventListener('resize', update);
+			window.visualViewport?.removeEventListener('resize', update);
+			window.visualViewport?.removeEventListener('scroll', update);
 			resizeObserver?.disconnect();
 			window.clearTimeout(lateCheck);
 		};
