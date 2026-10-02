@@ -55,6 +55,84 @@ class CourseMapProgressTest extends TestCase
         $this->assertSame(0, (int) $byTitle['În lucru']['progress_percentage']);
     }
 
+    public function test_student_does_not_see_map_courses_that_are_not_assigned(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $mine = Course::factory()->published()->create(['title' => 'Al meu']);
+        $other = Course::factory()->published()->create(['title' => 'Al altcuiva']);
+        $emptyMap = CourseMap::create([
+            'name' => 'Mapa altora',
+            'description' => null,
+            'visibility' => 'public',
+            'order' => 1,
+        ]);
+        $map = CourseMap::create([
+            'name' => 'Mapa mea',
+            'description' => null,
+            'visibility' => 'public',
+            'order' => 0,
+        ]);
+        $map->courses()->attach([
+            $mine->id => ['order' => 0],
+            $other->id => ['order' => 1],
+        ]);
+        $emptyMap->courses()->attach($other->id, ['order' => 0]);
+        $this->enroll($student, $mine);
+
+        $list = $this->actingAs($student, 'sanctum')
+            ->getJson('/api/course-maps')
+            ->assertOk()
+            ->json('data');
+
+        $names = collect($list)->pluck('name')->all();
+        $this->assertContains('Mapa mea', $names);
+        $this->assertNotContains('Mapa altora', $names);
+        $mineRow = collect($list)->firstWhere('name', 'Mapa mea');
+        $this->assertSame(1, (int) $mineRow['courses_count']);
+
+        $show = $this->actingAs($student, 'sanctum')
+            ->getJson("/api/course-maps/{$map->id}")
+            ->assertOk()
+            ->json('courses');
+        $titles = collect($show)->pluck('title')->all();
+        $this->assertSame(['Al meu'], $titles);
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson("/api/course-maps/{$emptyMap->id}")
+            ->assertNotFound();
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson("/api/courses/{$other->id}")
+            ->assertForbidden();
+    }
+
+    public function test_finished_course_is_not_listed_again_as_unfinished(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = Course::factory()->published()->create(['title' => 'De trecut']);
+        $map = CourseMap::create([
+            'name' => 'Mapa unica',
+            'description' => null,
+            'visibility' => 'public',
+            'order' => 0,
+        ]);
+        $map->courses()->attach($course->id, ['order' => 0]);
+        $this->enroll($student, $course);
+        $this->completePublishedRootLesson($student, $course);
+
+        $show = $this->actingAs($student, 'sanctum')
+            ->getJson("/api/course-maps/{$map->id}")
+            ->assertOk()
+            ->json('courses.0');
+        $this->assertSame(100, (int) $show['progress_percentage']);
+        $this->assertNotEmpty($show['completed_at']);
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson('/api/course-maps')
+            ->assertOk()
+            ->assertJsonMissing(['name' => 'Mapa unica']);
+    }
+
     private function enroll(User $student, Course $course): void
     {
         $row = [

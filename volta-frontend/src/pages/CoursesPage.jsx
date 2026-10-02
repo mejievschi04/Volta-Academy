@@ -33,7 +33,8 @@ const STUDENT_FILTER_TITLES = {
 function courseIsCompleted(course) {
 	if (!course) return false;
 	if (course.status === 'completed') return true;
-	return Boolean(course.completed_at);
+	if (course.completed_at) return true;
+	return Number(course.progress_percentage ?? course.progress ?? 0) >= 100;
 }
 
 const CoursesPage = () => {

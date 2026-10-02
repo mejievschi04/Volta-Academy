@@ -135,7 +135,10 @@ class UserAssignedCoursesService
             $courseProgressPercentage = $progress && isset($progress->progress_percentage)
                 ? (float) ($progress->progress_percentage ?? 0)
                 : 0;
-            $isCompleted = $progress && ! empty($progress->completed_at);
+            $isCompleted = $progress && (
+                ! empty($progress->completed_at)
+                || (float) ($progress->progress_percentage ?? 0) >= 100
+            );
             $hasStarted = $progress && (
                 $courseProgressPercentage > 0
                 || ! empty($progress->started_at)

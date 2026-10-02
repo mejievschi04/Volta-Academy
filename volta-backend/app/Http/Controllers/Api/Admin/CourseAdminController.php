@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Lesson;
 use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
@@ -268,6 +269,7 @@ class CourseAdminController extends Controller
 
             // Add metrics to course
             $course->enrollments_count = $enrollmentsCount;
+            $course->total_enrollments = $enrollmentsCount;
             $course->completion_rate = $completionRate;
             $course->revenue = $revenue;
             $course->rating = $rating;
@@ -280,6 +282,7 @@ class CourseAdminController extends Controller
             \Log::error("Error adding course metrics for course {$course->id}: " . $e->getMessage());
             // Return course with default metrics on error
             $course->enrollments_count = 0;
+            $course->total_enrollments = 0;
             $course->completion_rate = 0;
             $course->revenue = 0;
             $course->rating = null;
@@ -323,11 +326,17 @@ class CourseAdminController extends Controller
                 }
             ])->findOrFail($id);
 
-            // Add counts
+            // Add counts. Lecțiile pot sta direct pe curs, nu doar în module.
             $course->modules_count = $course->modules->count();
-            $course->lessons_count = $course->modules->sum(function($module) {
-                return $module->lessons->count();
-            });
+            $moduleIds = $course->modules->pluck('id');
+            $course->lessons_count = Lesson::query()
+                ->where(function ($query) use ($course, $moduleIds) {
+                    $query->where('course_id', $course->id);
+                    if ($moduleIds->isNotEmpty()) {
+                        $query->orWhereIn('module_id', $moduleIds);
+                    }
+                })
+                ->count();
             
             // Load all course-test links for this course
             $courseTests = \App\Models\CourseTest::where('course_id', $course->id)

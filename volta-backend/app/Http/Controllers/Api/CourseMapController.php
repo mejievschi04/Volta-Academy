@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\CourseMap;
 use App\Services\CourseProgressService;
 use App\Support\CourseMapBuckets;
+use App\Support\LearningVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -26,17 +27,19 @@ class CourseMapController extends Controller
         }
 
         $defaultMapIds = $this->defaultMapIds();
+        $assignedIds = LearningVisibility::assignedCourseIdsForLearner($request->user());
+        $completedIds = $assignedIds === null ? [] : $this->learnerCompletedCourseIds($request->user());
 
         $query = CourseMap::query()
             ->when(
                 Schema::hasColumn('course_maps', 'visibility'),
                 fn ($q) => $q->where(fn ($inner) => $inner->where('visibility', 'public')->orWhereNull('visibility'))
             )
-            ->whereHas('courses', function ($q) {
-                $q->where('status', 'published');
+            ->whereHas('courses', function ($q) use ($assignedIds, $completedIds) {
+                $this->publishedAssignedCourseScope($q, $assignedIds, $completedIds);
             })
-            ->withCount(['courses' => function ($q) {
-                $q->where('status', 'published');
+            ->withCount(['courses' => function ($q) use ($assignedIds, $completedIds) {
+                $this->publishedAssignedCourseScope($q, $assignedIds, $completedIds);
             }])
             ->orderBy('order')
             ->orderBy('name');
@@ -46,7 +49,7 @@ class CourseMapController extends Controller
         );
         $mapIds = $mapsCollection->pluck('id')->all();
         $hasCoverCol = Schema::hasColumn('course_maps', 'cover_image_path');
-        $previewByMapId = $hasCoverCol ? $this->firstPublishedCourseCoverByMapIds($mapIds) : [];
+        $previewByMapId = $hasCoverCol ? $this->firstPublishedCourseCoverByMapIds($mapIds, $assignedIds) : [];
         $progressByMapId = $this->mapProgressPercentages($request->user(), $mapIds);
 
         $maps = $mapsCollection->map(function ($map) use ($hasCoverCol, $previewByMapId, $progressByMapId) {
@@ -90,10 +93,13 @@ class CourseMapController extends Controller
             abort(404, 'Mapă negăsită.');
         }
 
+        $user = $request->user();
+        $assignedIds = LearningVisibility::assignedCourseIdsForLearner($user);
+
         $map = CourseMap::with([
-            'courses' => function ($q) {
-                $q->where('status', 'published')
-                    ->orderBy('course_map_course.order')
+            'courses' => function ($q) use ($assignedIds) {
+                $this->publishedAssignedCourseScope($q, $assignedIds);
+                $q->orderBy('course_map_course.order')
                     ->with(['teacher:id,name', 'modules:id,course_id,estimated_duration_minutes']);
             },
         ])->findOrFail($id);
@@ -105,7 +111,10 @@ class CourseMapController extends Controller
             abort(404, 'Mapă negăsită.');
         }
 
-        $user = $request->user();
+        if ($assignedIds !== null && $map->courses->isEmpty()) {
+            abort(404, 'Mapă negăsită.');
+        }
+
         $progress = $this->liveProgressByCourses($user, $map->courses);
         $courses = $this->mapPublishedCoursesPayload($map->courses, $progress);
         $assignedPercents = [];
@@ -246,9 +255,15 @@ class CourseMapController extends Controller
             $percent = $assigned
                 ? (int) round($progressService->calculateCourseProgress($user, $course))
                 : 0;
+            $completedAt = $assigned
+                ? DB::table('course_user')
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $courseId)
+                    ->value('completed_at')
+                : null;
             $progress[$courseId] = [
                 'progress_percentage' => $percent,
-                'completed_at' => $assignedRows->get($courseId)?->completed_at,
+                'completed_at' => $completedAt,
                 'assigned' => $assigned,
             ];
         }
@@ -281,12 +296,46 @@ class CourseMapController extends Controller
     }
 
     /**
+     * @return array<int>
+     */
+    private function learnerCompletedCourseIds($user): array
+    {
+        if (! $user || ! Schema::hasTable('course_user')) {
+            return [];
+        }
+
+        return DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->whereNotNull('completed_at')
+            ->pluck('course_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation  $query
+     * @param  array<int>|null  $assignedIds
+     * @param  array<int>  $completedIds
+     */
+    private function publishedAssignedCourseScope($query, ?array $assignedIds, array $completedIds = []): void
+    {
+        $query->where('courses.status', 'published');
+        if ($assignedIds !== null) {
+            $query->whereIn('courses.id', $assignedIds);
+        }
+        if ($completedIds !== []) {
+            $query->whereNotIn('courses.id', $completedIds);
+        }
+    }
+
+    /**
      * Prima copertă de curs publicat din mapă (ordine pivot), pentru cardul din listă când mapa n-are copertă proprie.
      *
      * @param  array<int>  $mapIds
+     * @param  array<int>|null  $assignedIds
      * @return array<int, string|null>
      */
-    private function firstPublishedCourseCoverByMapIds(array $mapIds): array
+    private function firstPublishedCourseCoverByMapIds(array $mapIds, ?array $assignedIds = null): array
     {
         if ($mapIds === []) {
             return [];
@@ -296,6 +345,7 @@ class CourseMapController extends Controller
             ->join('courses', 'courses.id', '=', 'course_map_course.course_id')
             ->whereIn('course_map_course.course_map_id', $mapIds)
             ->where('courses.status', 'published')
+            ->when($assignedIds !== null, fn ($q) => $q->whereIn('courses.id', $assignedIds))
             ->whereNotNull('courses.image')
             ->where('courses.image', '!=', '')
             ->orderBy('course_map_course.course_map_id')

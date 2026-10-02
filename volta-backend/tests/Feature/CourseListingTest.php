@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\User;
+use App\Services\UserAssignedCoursesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,5 +56,20 @@ class CourseListingTest extends TestCase
         $response->assertJsonCount(2);
         $response->assertJsonFragment(['title' => 'Public Course']);
         $response->assertJsonFragment(['title' => 'Draft Course']);
+    }
+
+    public function test_student_sees_only_assigned_published_courses(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $assigned = Course::factory()->published()->create(['title' => 'Atribuit']);
+        Course::factory()->published()->create(['title' => 'Neatribuit']);
+        app(UserAssignedCoursesService::class)->assignCourseDirectly($student, $assigned, []);
+
+        $response = $this->actingAs($student, 'sanctum')->getJson('/api/courses');
+
+        $response->assertOk();
+        $response->assertJsonCount(1);
+        $response->assertJsonFragment(['title' => 'Atribuit']);
+        $response->assertJsonMissing(['title' => 'Neatribuit']);
     }
 }

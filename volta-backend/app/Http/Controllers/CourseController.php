@@ -26,11 +26,16 @@ class CourseController extends Controller
                 }
             ]);
 
-            // For non-admin users (students), only show published courses
+            // For non-admin users (students), only show published courses.
+            // Cursanții văd doar cursurile atribuite lor.
             $user = $request->user();
-            $isAdmin = $user && in_array($user->role ?? '', ['admin', 'instructor']);
+            $isAdmin = LearningVisibility::isStaff($user);
             if (!$isAdmin && \Illuminate\Support\Facades\Schema::hasColumn('courses', 'status')) {
                 $query->where('status', 'published');
+            }
+            $assignedIds = LearningVisibility::assignedCourseIdsForLearner($user);
+            if ($assignedIds !== null) {
+                $query->whereIn('id', $assignedIds);
             }
 
             $courses = $query->get()
@@ -124,6 +129,17 @@ class CourseController extends Controller
                 }
             ])->findOrFail($id);
 
+            $user = $request->user();
+            if (
+                $user
+                && ($user->role ?? '') === 'student'
+                && ! LearningVisibility::isEnrolledInCourse($user, (int) $course->id)
+            ) {
+                return response()->json([
+                    'error' => 'Cursul nu îți este atribuit.',
+                ], 403);
+            }
+
             $publishedView = app(PublishedCourseView::class);
             $liveSnapshot = $publishedView->shouldServeSnapshot($course, $request)
                 ? $publishedView->latestPublishedSnapshot((int) $course->id)
@@ -135,7 +151,6 @@ class CourseController extends Controller
 
             CourseViews::recordView($course, $isStaff);
 
-            $user = $request->user();
             // Draft tests only when staff explicitly asks (builder/admin tools), not on learner course pages.
             $showDraftLinkedTests = $isStaff && $request->boolean('include_draft_tests');
 
@@ -334,7 +349,12 @@ class CourseController extends Controller
     {
         try {
             $user = $request->user();
-            $courses = CourseCatalog::standalonePublishedQuery()
+            $coursesQuery = CourseCatalog::standalonePublishedQuery();
+            $assignedIds = LearningVisibility::assignedCourseIdsForLearner($user);
+            if ($assignedIds !== null) {
+                $coursesQuery->whereIn('id', $assignedIds);
+            }
+            $courses = $coursesQuery
                 ->with([
                     'teacher:id,name',
                     'modules:id,course_id,estimated_duration_minutes',

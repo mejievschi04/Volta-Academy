@@ -283,7 +283,8 @@ const CourseMapPage = () => {
 	}
 
 	const { name, description, courses } = map;
-	const studentCourses = (courses || []).filter((course) => !course?.completed_at);
+	const courseIsFinished = (course) => Boolean(course?.completed_at) || Number(course?.progress_percentage) >= 100;
+	const studentCourses = (courses || []).filter((course) => !courseIsFinished(course));
 	const displayCourses = isAdmin ? orderedCourses : studentCourses;
 	const completedMovedAside = !isAdmin && (courses || []).length > 0 && studentCourses.length === 0;
 	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';

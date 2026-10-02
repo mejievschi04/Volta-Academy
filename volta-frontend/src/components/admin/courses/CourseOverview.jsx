@@ -92,7 +92,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 						<div className="admin-course-overview-kpi">
 							<div className="admin-course-overview-kpi-label">Înscrieri</div>
 							<div className="admin-course-overview-kpi-value">
-								{course.total_enrollments || 0}
+								{course.enrollments_count ?? course.total_enrollments ?? 0}
 							</div>
 						</div>
 						<div className="admin-course-overview-kpi">

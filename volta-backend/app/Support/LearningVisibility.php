@@ -77,6 +77,32 @@ class LearningVisibility
         return $query->exists();
     }
 
+    /**
+     * Cursantul vede doar cursurile atribuite lui. null = fără filtrare (oaspete, admin, instructor, analist).
+     *
+     * @return array<int>|null
+     */
+    public static function assignedCourseIdsForLearner(?User $user): ?array
+    {
+        if (! $user || ($user->role ?? '') !== 'student') {
+            return null;
+        }
+        if (! Schema::hasTable('course_user')) {
+            return [];
+        }
+
+        $query = DB::table('course_user')->where('user_id', $user->id);
+        if (Schema::hasColumn('course_user', 'enrolled')) {
+            $query->where('enrolled', true);
+        }
+
+        return $query->pluck('course_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public static function learnerMaySeeLessonBody(?User $user, object $lesson, ?object $course): bool
     {
         if (self::isStaff($user)) {

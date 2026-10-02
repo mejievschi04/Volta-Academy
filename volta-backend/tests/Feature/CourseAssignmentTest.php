@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\CourseTest;
+use App\Models\Lesson;
 use App\Models\Team;
+use App\Models\Test;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -256,6 +259,42 @@ class CourseAssignmentTest extends TestCase
             'course_id' => $course->id,
             'assignment_source' => 'team',
         ]);
+    }
+
+    public function test_course_overview_counts_live_enrollments_and_root_lessons(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = Course::factory()->published()->create();
+        $student = User::factory()->create(['role' => 'student']);
+        $course->assignedUsers()->attach($student->id, ['enrolled' => true, 'assignment_source' => 'direct']);
+
+        Lesson::withoutEvents(function () use ($course) {
+            Lesson::create([
+                'course_id' => $course->id,
+                'module_id' => null,
+                'title' => 'Lecție fără modul',
+                'content' => '<p>Text</p>',
+                'type' => 'text',
+                'status' => 'published',
+                'order' => 1,
+            ]);
+        });
+        $test = Test::factory()->published()->create();
+        CourseTest::create([
+            'course_id' => $course->id,
+            'test_id' => $test->id,
+            'scope' => 'course',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/admin/courses/{$course->id}")
+            ->assertOk();
+
+        $response->assertJsonPath('enrollments_count', 1);
+        $response->assertJsonPath('total_enrollments', 1);
+        $response->assertJsonPath('modules_count', 0);
+        $response->assertJsonPath('lessons_count', 1);
+        $response->assertJsonPath('exams_count', 1);
     }
 
     /**

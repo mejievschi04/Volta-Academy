@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\User;
+use App\Services\UserAssignedCoursesService;
 use App\Support\CourseCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -23,6 +24,12 @@ class StandaloneCourseCatalogTest extends TestCase
             'title' => 'Catalog Direct',
         ]);
         CourseCatalog::applyOutsideMapFlag($catalogCourse, true);
+        app(UserAssignedCoursesService::class)->assignCourseDirectly($student, $catalogCourse, []);
+
+        $unassigned = Course::factory()->published()->create([
+            'title' => 'Catalog neatribuit',
+        ]);
+        CourseCatalog::applyOutsideMapFlag($unassigned, true);
 
         Course::factory()->published()->create([
             'title' => 'Doar in mapa',
@@ -42,6 +49,7 @@ class StandaloneCourseCatalogTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['title' => 'Catalog Direct']);
+        $response->assertJsonMissing(['title' => 'Catalog neatribuit']);
         $response->assertJsonMissing(['title' => 'Doar in mapa']);
     }
 }
