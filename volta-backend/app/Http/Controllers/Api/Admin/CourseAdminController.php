@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\RecalculateCourseProgressJob;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\User;
@@ -12,7 +13,6 @@ use App\Models\CourseMap;
 use App\Support\CourseMapBuckets;
 use App\Models\CourseTest;
 use App\Models\ActivityLog;
-use App\Services\CourseProgressService;
 use App\Services\CourseBuilderService;
 use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
@@ -1017,9 +1017,8 @@ class CourseAdminController extends Controller
         // Use CourseBuilderService to reorder modules
         $this->courseBuilderService->reorderModules($course, $validated['module_ids']);
 
-        // Recalculate course progress after structure change
-        $progressService = app(CourseProgressService::class);
-        $progressService->recalculateCourseProgress($course);
+        // Progresul cursanților se recalculează în coadă, o singură dată pentru toată reordonarea
+        RecalculateCourseProgressJob::queueFor((int) $course->id);
 
         return response()->json([
             'message' => 'Module reordonate cu succes',

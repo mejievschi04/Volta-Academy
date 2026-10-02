@@ -40,6 +40,7 @@ class CourseProgressService
     private function forgetUserProgressCache(User $user, ?int $courseId = null): void
     {
         unset($this->lessonProgressByUser[$user->id]);
+        $this->progressionEngine->forgetUser((int) $user->id);
         if ($courseId !== null) {
             unset($this->courseProgressMemo[$user->id . ':' . $courseId], $this->accessStatusMemo[$user->id . ':' . $courseId]);
             return;
