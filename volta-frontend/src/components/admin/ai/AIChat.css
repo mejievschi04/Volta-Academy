@@ -524,6 +524,39 @@
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Previzualizarea planului: rând de butoane, buton secundar, avertismente */
+.ai-chat-plan-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2, 0.5rem);
+	margin-top: var(--space-3, 0.75rem);
+}
+
+.ai-chat-plan-actions .ai-chat-btn {
+	flex: 1 1 160px;
+	width: auto;
+}
+
+.ai-chat-btn-secondary {
+	background: transparent;
+	color: var(--text-primary);
+	border: 1px solid var(--border-secondary);
+}
+
+.ai-chat-btn-secondary:hover {
+	background: var(--bg-tertiary);
+}
+
+.ai-chat-plan-warning {
+	margin: var(--space-2, 0.5rem) 0 0;
+	padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+	border-left: 3px solid var(--color-warning);
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
 .ai-chat-attachments {
 	display: flex;
 	flex-wrap: wrap;

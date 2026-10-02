@@ -184,3 +184,54 @@
 [data-theme="light"] .student-achievements-section-title {
 	color: var(--text-primary);
 }
+
+/* Cronologia de etape (25% / 50% / 75% din curs) */
+.student-milestones-timeline {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.student-milestone-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	background-color: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+}
+
+.student-milestone-icon {
+	display: inline-grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	flex-shrink: 0;
+	border-radius: var(--radius-full);
+	background: var(--bg-secondary);
+	font-size: 1.25rem;
+}
+
+.student-milestone-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.student-milestone-title {
+	font-weight: 600;
+	color: var(--text-primary);
+	overflow-wrap: anywhere;
+}
+
+.student-milestone-description {
+	margin-top: var(--space-1);
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.student-milestone-date {
+	margin-top: var(--space-1);
+	font-size: var(--font-size-xs);
+	color: var(--text-tertiary);
+}

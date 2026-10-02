@@ -3,8 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 
 import { coursesService } from '../services/api';
-import { Books, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { Backspace, Books, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { useScrollResetOnOpen } from '../hooks/useScrollResetOnOpen';
+import './GlobalSearch.css';
+
+/** Primul rând selectabil (titlurile de categorie nu se pot selecta). */
+const firstSelectableIndex = (items) => Math.max(0, items.findIndex((item) => item.type !== 'category'));
+
+/** Următorul rând selectabil în direcția dată, sau poziția curentă dacă nu există. */
+const nextSelectableIndex = (items, from, step) => {
+	for (let i = from + step; i >= 0 && i < items.length; i += step) {
+		if (items[i].type !== 'category') return i;
+	}
+	return from;
+};
 
 /**
  * GlobalSearch - Command Palette Style Search
@@ -50,14 +62,20 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 				}
 			}
 
-			// Navigate results: Arrow keys
+			if (isOpen && e.key === 'Escape') {
+				e.preventDefault();
+				onClose();
+				return;
+			}
+
+			// Navigate results: Arrow keys (sar peste titlurile de categorie)
 			if (isOpen && results.length > 0) {
 				if (e.key === 'ArrowDown') {
 					e.preventDefault();
-					setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
+					setSelectedIndex((prev) => nextSelectableIndex(results, prev, 1));
 				} else if (e.key === 'ArrowUp') {
 					e.preventDefault();
-					setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+					setSelectedIndex((prev) => nextSelectableIndex(results, prev, -1));
 				} else if (e.key === 'Enter' && results[selectedIndex]) {
 					e.preventDefault();
 					handleSelectResult(results[selectedIndex]);
@@ -137,7 +155,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 			});
 
 			setResults(flattened);
-			setSelectedIndex(0);
+			setSelectedIndex(firstSelectableIndex(flattened));
 		} catch (err) {
 			console.error('Search error:', err);
 			setResults([]);
@@ -165,8 +183,14 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 	if (!isOpen) return null;
 
 	return (
-		<div className="global-search-overlay">
-			<div className="global-search-modal" onClick={(e) => e.stopPropagation()}>
+		<div className="global-search-overlay" onClick={onClose} role="presentation">
+			<div
+				className="global-search-modal"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Căutare"
+				onClick={(e) => e.stopPropagation()}
+			>
 				{/* Search Input */}
 				<div className="global-search-input-wrapper">
 					<MagnifyingGlass className="global-search-icon" size={20} weight="bold" aria-hidden />
@@ -174,12 +198,13 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 						ref={inputRef}
 						type="text"
 						className="global-search-input"
-						placeholder="Caută cursuri, teste, lecții..."
+						placeholder="Caută cursuri..."
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 					/>
 					{query && (
 						<button
+							type="button"
 							className="global-search-clear"
 							onClick={() => {
 								setQuery('');
@@ -187,27 +212,16 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 								inputRef.current?.focus();
 							}}
 							aria-label="Golește căutarea"
+							title="Golește"
 						>
-							<X size={16} weight="bold" aria-hidden />
+							<Backspace size={18} weight="bold" aria-hidden />
 						</button>
 					)}
 					<button
 						type="button"
 						className="global-search-close"
 						onClick={onClose}
-						aria-label="Inchide cautarea"
-						style={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							width: 36,
-							height: 36,
-							border: 'none',
-							borderRadius: 8,
-							background: 'transparent',
-							color: 'inherit',
-							cursor: 'pointer',
-						}}
+						aria-label="Închide căutarea"
 					>
 						<X size={16} weight="bold" aria-hidden />
 					</button>

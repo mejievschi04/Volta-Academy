@@ -1,0 +1,201 @@
+/*
+ * Căutare globală (⌘K / Ctrl+K): fereastră peste aplicație.
+ * Ajustările pentru telefon sunt în styles/mobile-optimizations.css (12i3).
+ */
+
+.global-search-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: var(--z-modal);
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 12vh var(--space-4) var(--space-4);
+	background: var(--bg-overlay);
+}
+
+.global-search-modal {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 640px;
+	max-height: 70vh;
+	overflow: hidden;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	box-shadow: var(--shadow-xl);
+	color: var(--text-primary);
+}
+
+.global-search-input-wrapper {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.global-search-icon {
+	flex-shrink: 0;
+	color: var(--text-tertiary);
+}
+
+.global-search-input {
+	flex: 1;
+	min-width: 0;
+	padding: var(--space-2) 0;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: var(--text-primary);
+	font: inherit;
+	font-size: var(--font-size-base);
+}
+
+.global-search-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.global-search-clear,
+.global-search-close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	border: none;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--text-secondary);
+	cursor: pointer;
+}
+
+.global-search-clear:hover,
+.global-search-close:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+.global-search-shortcut {
+	display: inline-flex;
+	gap: var(--space-1);
+}
+
+.global-search-modal kbd {
+	display: inline-grid;
+	place-items: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 var(--space-1);
+	border: 1px solid var(--border-secondary);
+	border-radius: 6px;
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+	font-family: inherit;
+	font-size: var(--font-size-xs);
+	line-height: 1;
+}
+
+.global-search-results {
+	overflow-y: auto;
+	padding: var(--space-2);
+}
+
+.global-search-loading {
+	padding: var(--space-2);
+}
+
+.global-search-category {
+	padding: var(--space-2) var(--space-3) var(--space-1);
+	font-size: var(--font-size-xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.global-search-result {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+}
+
+.global-search-result.selected {
+	background: rgba(var(--color-primary-rgb), 0.12);
+}
+
+.global-search-result-icon {
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	border-radius: var(--radius-md);
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+}
+
+.global-search-result-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.global-search-result-title {
+	overflow: hidden;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.global-search-result-description {
+	display: -webkit-box;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	font-size: var(--font-size-sm);
+	color: var(--text-tertiary);
+}
+
+.global-search-empty,
+.global-search-empty-state {
+	padding: var(--space-6) var(--space-4);
+	text-align: center;
+	color: var(--text-tertiary);
+}
+
+.global-search-empty p,
+.global-search-empty-state p {
+	margin: 0;
+}
+
+.global-search-hints {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--space-4);
+	margin-top: var(--space-4);
+}
+
+.global-search-hint {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+	.global-search-overlay {
+		padding-top: var(--space-4);
+	}
+
+	/* Pe telefon nu există tastatură fizică: fără scurtături afișate */
+	.global-search-shortcut,
+	.global-search-hints {
+		display: none;
+	}
+}
