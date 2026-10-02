@@ -67,21 +67,27 @@ function endIsVisible(root, scrollRoot) {
 	return root.getBoundingClientRect().bottom <= bottom + 8;
 }
 
+const NOT_REACHED = { lessonId: null, reached: false };
+
 /**
  * Devine adevărat când finalul lecției intră în zona vizibilă.
  */
 export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
-	const [reachedEnd, setReachedEnd] = useState(false);
+	// Starea ține minte lecția pentru care a fost calculată, ca la schimbarea lecției
+	// să nu se vadă valoarea veche (fără resetare sincronă în efect).
+	const [endState, setEndState] = useState(NOT_REACHED);
 
 	useEffect(() => {
-		setReachedEnd(false);
 		if (!enabled || lessonId == null) return undefined;
 
 		const root = contentRef.current;
 		if (!root) return undefined;
 
 		const update = () => {
-			setReachedEnd(endIsVisible(root, findLessonScrollRoot(root)));
+			const reached = endIsVisible(root, findLessonScrollRoot(root));
+			setEndState((prev) => (
+				prev.lessonId === lessonId && prev.reached === reached ? prev : { lessonId, reached }
+			));
 		};
 
 		update();
@@ -109,8 +115,9 @@ export function useLessonReachedEnd({ contentRef, lessonId, enabled = true }) {
 			window.visualViewport?.removeEventListener('scroll', update);
 			resizeObserver?.disconnect();
 			window.clearTimeout(lateCheck);
+			setEndState(NOT_REACHED);
 		};
 	}, [contentRef, enabled, lessonId]);
 
-	return reachedEnd;
+	return enabled && lessonId != null && endState.lessonId === lessonId && endState.reached;
 }

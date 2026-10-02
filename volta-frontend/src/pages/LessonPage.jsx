@@ -55,7 +55,6 @@ const LessonPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [isCompleted, setIsCompleted] = useState(false);
-	const [isCompleting, setIsCompleting] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
 	const [studyToolLoading, setStudyToolLoading] = useState('');
@@ -79,7 +78,6 @@ const LessonPage = () => {
 		if (!lessonId || !user?.id) return true;
 		if (isCompleted && !force) return true;
 		try {
-			setIsCompleting(true);
 			await courseProgressService.completeLesson(lessonId);
 			setIsCompleted(true);
 			return true;
@@ -87,8 +85,6 @@ const LessonPage = () => {
 			const msg = err?.response?.data?.message || err?.message || 'Nu s-a putut marca lecția ca finalizată.';
 			showToast(msg, 'error');
 			return false;
-		} finally {
-			setIsCompleting(false);
 		}
 	}, [lessonId, isCompleted, user?.id, showToast]);
 
