@@ -16,7 +16,6 @@ const PendingExamsWidget = ({ exams, tests }) => {
 
 	// Support both legacy exams and new tests
 	const items = tests || exams || [];
-	const isLegacy = !tests && exams;
 
 	if (items.length === 0) {
 		return (
@@ -31,22 +30,9 @@ const PendingExamsWidget = ({ exams, tests }) => {
 		);
 	}
 
+	// ExamPage deschide atât examenele vechi, cât și testele (în curs sau independente).
 	const handleItemClick = (item) => {
-		if (isLegacy) {
-			if (item.course_id) {
-				navigate(`/courses/${item.course_id}/exams/${item.id}`);
-			} else {
-				navigate(`/exams/${item.id}`);
-			}
-		} else {
-			// New: navigate to test page (via UnifiedCoursePage or test route)
-			if (item.course_id) {
-				navigate(`/courses/${item.course_id}?test=${item.id}`);
-			} else {
-				// Standalone test (if route exists)
-				navigate(`/tests/${item.id}`);
-			}
-		}
+		navigate(item.course_id ? `/courses/${item.course_id}/exams/${item.id}` : `/exams/${item.id}`);
 	};
 
 	return (

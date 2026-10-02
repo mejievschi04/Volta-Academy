@@ -1373,7 +1373,7 @@ class DashboardAdminController extends Controller
                 'severity' => 'info',
                 'title' => 'Instructor inactiv',
                 'description' => "Instructorul {$instructor->name} nu a actualizat cursuri în ultimele 3 luni",
-                'action_url' => "/admin/users/{$instructor->id}",
+                'action_url' => "/admin/users/{$instructor->id}/profile",
                 'created_at' => now()->toDateTimeString(),
             ];
         }

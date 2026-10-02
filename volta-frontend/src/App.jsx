@@ -80,6 +80,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const CourseMapPage = lazy(() => import('./pages/CourseMapPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const ExamPage = lazy(() => import('./pages/ExamPage'));
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -1509,7 +1510,7 @@ function App() {
 							element={
 								<UserRoute>
 									<Suspense fallback={<PageLoader />}>
-										<Navigate to="/dashboard" replace />
+										<Navigate to="/courses" replace />
 									</Suspense>
 								</UserRoute>
 							}
@@ -2062,6 +2063,17 @@ function App() {
 													<AdminTasksPage />
 												</Suspense>
 											</AdminRoute>
+										}
+									/>
+									{/* Orice altă adresă: pagină 404 în loc de conținut gol */}
+									<Route
+										path="*"
+										element={
+											<UserRoute>
+												<Suspense fallback={<PageLoader />}>
+													<NotFoundPage />
+												</Suspense>
+											</UserRoute>
 										}
 									/>
 								</Routes>

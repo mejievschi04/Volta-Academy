@@ -82,7 +82,7 @@ const CompletedCoursesPage = () => {
 							<p className="va-completed-course-card-description">{course.description}</p>
 							<div className="va-completed-course-card-actions">
 								<Link
-									to={`/courses/${course.id}/lessons`}
+									to={`/courses/${course.id}`}
 									className="lms-btn-secondary lms-btn-sm"
 								>
 									Revizualizează cursul
