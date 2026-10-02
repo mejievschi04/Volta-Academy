@@ -59,7 +59,7 @@ const QuestionRow = ({
         {!readOnly && onDelete ? (
           <button
             type="button"
-            className="qb-delete-btn va-btn-danger"
+            className="va-btn-delete qb-delete-btn va-btn-delete va-btn-danger"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(question.id);

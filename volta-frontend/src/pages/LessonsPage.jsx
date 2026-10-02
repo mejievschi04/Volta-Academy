@@ -529,7 +529,7 @@ const LessonsPage = () => {
 				<div className="lessons-page-sidebar-header">
 					<div className="lessons-page-sidebar-header-actions">
 						<button 
-							className="lessons-page-sidebar-back-btn"
+							className="va-btn-back lessons-page-sidebar-back-btn"
 							onClick={() => navigate(-1)}
 						>
 							<ArrowLeft size={20} weight="bold" aria-hidden />
@@ -809,7 +809,7 @@ const LessonsPage = () => {
 								<>
 									<button
 										type="button"
-										className="lessons-page-nav-btn lessons-page-nav-btn--prev"
+										className="lessons-page-nav-btn va-btn-back lessons-page-nav-btn--prev"
 										disabled={!hasPreviousLesson || isCompleting || finalizingCourse}
 										onClick={handlePreviousLesson}
 										aria-label="Lecția anterioară"

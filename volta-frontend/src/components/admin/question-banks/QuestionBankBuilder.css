@@ -110,14 +110,14 @@
 .admin-question-bank-builder-page .admin-form-select:focus {
 	outline: none;
 	border-color: var(--color-primary);
-	box-shadow: 0 0 0 2px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
 }
 
 /* Info box */
 .admin-question-bank-builder-page .admin-info-box {
 	padding: var(--space-4);
-	background: rgba(255, 238, 0, 0.06);
-	border: 1px solid rgba(255, 238, 0, 0.2);
+	background: rgba(var(--color-primary-rgb), 0.06);
+	border: 1px solid rgba(var(--color-primary-rgb), 0.2);
 	border-radius: var(--radius-lg);
 }
 
@@ -163,8 +163,8 @@
 
 .admin-question-bank-builder-page .admin-question-item.editing {
 	border-color: var(--color-primary);
-	box-shadow: 0 0 0 2px rgba(255, 238, 0, 0.2);
-	background: rgba(255, 238, 0, 0.04);
+	box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+	background: rgba(var(--color-primary-rgb), 0.04);
 }
 
 .admin-question-bank-builder-page .admin-question-item-content {
@@ -186,20 +186,6 @@
 .admin-question-bank-builder-page .admin-question-item-meta {
 	font-size: var(--font-size-xs);
 	color: var(--text-tertiary);
-}
-
-.admin-question-bank-builder-page .admin-question-item-answers {
-	margin-top: var(--space-2);
-	padding: var(--space-2);
-	background: var(--bg-secondary);
-	border-radius: var(--radius-md);
-	font-size: var(--font-size-xs);
-	color: var(--text-secondary);
-}
-
-.admin-question-bank-builder-page .admin-question-answer.correct {
-	color: var(--color-success);
-	font-weight: 600;
 }
 
 .admin-question-bank-builder-page .admin-question-item-actions {

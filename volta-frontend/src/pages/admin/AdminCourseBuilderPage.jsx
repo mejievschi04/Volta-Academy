@@ -1675,7 +1675,7 @@ const AdminCourseBuilderPage = () => {
 							<div className="admin-course-builder-sidebar-course-head">
 								<button
 									type="button"
-									className="admin-course-builder-back admin-back-btn"
+									className="admin-course-builder-back va-btn-back admin-back-btn"
 									onClick={handleLeaveBuilder}
 								>
 									<ArrowLeft size={14} weight="bold" color="currentColor" aria-hidden /> Cursuri
@@ -2005,7 +2005,7 @@ const AdminCourseBuilderPage = () => {
 										) : null}
 										<button
 											type="button"
-											className="admin-course-builder-actions-delete"
+											className="va-btn-delete admin-course-builder-actions-delete"
 											onClick={handleDeleteCourse}
 											disabled={courseActionLoading}
 										>
@@ -2152,7 +2152,7 @@ const AdminCourseBuilderPage = () => {
 												/>
 												<button
 													type="button"
-													className="admin-btn admin-btn-primary"
+													className="va-btn-save admin-btn admin-btn-primary"
 													onClick={handleManualLessonSave}
 													disabled={lessonSaveStatus === 'saving'}
 												>

@@ -992,26 +992,6 @@ class CourseProgressService
     }
 
     /**
-     * Legacy fallback: a course can also be finalized by passing its legacy exam.
-     */
-    public function hasPassedLegacyCourseExam(User $user, Course $course): bool
-    {
-        $exam = Exam::where('course_id', $course->id)
-            ->where('status', 'published')
-            ->first();
-
-        if (!$exam) {
-            return false;
-        }
-
-        return DB::table('exam_results')
-            ->where('user_id', $user->id)
-            ->where('exam_id', $exam->id)
-            ->where('passed', true)
-            ->exists();
-    }
-
-    /**
      * Unified completion gate for a course.
      */
     public function canFinalizeCourse(User $user, Course $course): bool

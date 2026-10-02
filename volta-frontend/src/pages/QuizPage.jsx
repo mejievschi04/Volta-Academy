@@ -295,7 +295,7 @@ const QuizPage = () => {
 						{submitted || saved ? (
 						<Link 
 							to={`/courses/${courseId}`}
-							className="va-course-sidebar-back"
+							className="va-btn-back va-course-sidebar-back"
 						>
 							← Înapoi
 						</Link>
@@ -324,25 +324,25 @@ const QuizPage = () => {
 												gap: '1rem',
 												padding: '1rem',
 												background: currentQuestionIndex === index
-													? 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))'
+													? 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.15), rgba(var(--color-primary-rgb), 0.1))'
 													: status === 'completed'
-													? 'linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(34, 197, 94, 0.05))'
+													? 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.1), rgba(var(--color-success-rgb), 0.05))'
 													: status === 'incorrect'
-													? 'linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,107,107,0.05))'
+													? 'linear-gradient(135deg, rgba(var(--color-error-rgb), 0.1), rgba(var(--color-error-rgb), 0.05))'
 													: 'rgba(255,255,255,0.03)',
 												backdropFilter: 'blur(10px)',
 												border: currentQuestionIndex === index
-													? '1px solid rgba(255,238,0,0.4)'
+													? '1px solid rgba(var(--color-primary-rgb), 0.4)'
 													: status === 'completed'
-													? '1px solid rgba(74, 222, 128, 0.3)'
+													? '1px solid rgba(var(--color-success-rgb), 0.3)'
 													: status === 'incorrect'
-													? '1px solid rgba(255,107,107,0.3)'
-													: '1px solid rgba(255,238,0,0.2)',
+													? '1px solid rgba(var(--color-error-rgb), 0.3)'
+													: '1px solid rgba(var(--color-primary-rgb), 0.2)',
 												borderRadius: '16px',
 												cursor: 'pointer',
 												transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 												boxShadow: currentQuestionIndex === index
-													? '0 4px 16px rgba(255,238,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+													? '0 4px 16px rgba(var(--color-primary-rgb), 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
 													: '0 2px 8px rgba(0,0,0,0.2)',
 												width: '100%',
 												textAlign: 'left',
@@ -359,18 +359,18 @@ const QuizPage = () => {
 												height: '40px',
 												borderRadius: '12px',
 												background: currentQuestionIndex === index
-													? 'linear-gradient(135deg, #ffee00, #ffcc00)'
+													? 'var(--color-brand-primary)'
 													: status === 'completed'
-													? 'linear-gradient(135deg, #4ade80, #22c55e)'
+													? 'var(--color-success)'
 													: status === 'incorrect'
-													? 'linear-gradient(135deg, #ff6b6b, #ff5252)'
-													: 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.1))',
+													? 'var(--color-error)'
+													: 'rgba(var(--color-primary-rgb), 0.16)',
 												display: 'flex',
 												alignItems: 'center',
 												justifyContent: 'center',
 												fontSize: '1rem',
 												fontWeight: 700,
-												color: (currentQuestionIndex === index || status === 'completed' || status === 'incorrect') ? '#000' : '#fff',
+												color: (currentQuestionIndex === index || status === 'completed' || status === 'incorrect') ? 'var(--btn-primary-text)' : 'var(--text-primary)',
 												flexShrink: 0,
 											}}>
 												{status === 'completed' ? '✓' : status === 'incorrect' ? '✗' : index + 1}
@@ -380,12 +380,12 @@ const QuizPage = () => {
 													fontSize: '0.95rem',
 													fontWeight: 600,
 													color: currentQuestionIndex === index
-														? '#ffee00'
+														? 'var(--color-brand-primary)'
 														: status === 'completed'
-														? '#4ade80'
+														? 'var(--color-success)'
 														: status === 'incorrect'
-														? '#ff6b6b'
-														: '#fff',
+														? 'var(--color-error)'
+														: 'var(--text-primary)',
 													marginBottom: '0.25rem',
 													lineHeight: 1.4,
 												}}>
@@ -453,23 +453,23 @@ const QuizPage = () => {
 									alignItems: 'center',
 									gap: '0.75rem',
 									padding: '0.75rem 1.5rem',
-									background: 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))',
-									border: '1px solid rgba(255,238,0,0.35)',
+									background: 'rgba(var(--color-primary-rgb), 0.15)',
+									border: '1px solid rgba(var(--color-primary-rgb), 0.35)',
 									borderRadius: '16px',
 									color: 'var(--va-primary)',
 									fontSize: '0.95rem',
 									fontWeight: 700,
-									boxShadow: '0 4px 16px rgba(255,238,0,0.15)'
+									boxShadow: '0 4px 16px rgba(var(--color-primary-rgb), 0.15)'
 								}}>
 									<div style={{
 										width: '28px',
 										height: '28px',
 										borderRadius: '8px',
-										background: 'linear-gradient(135deg, #ffee00, #ffd700)',
+										background: 'var(--color-brand-primary)',
 										display: 'flex',
 										alignItems: 'center',
 										justifyContent: 'center',
-										color: '#000',
+										color: 'var(--btn-primary-text)',
 										fontWeight: 700
 									}}>
 										✓
@@ -526,16 +526,16 @@ const QuizPage = () => {
 								marginTop: '1.5rem',
 								padding: '1rem 1.5rem',
 								background: timeRemaining < 300 
-									? 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.1))'
+									? 'linear-gradient(135deg, rgba(var(--color-error-rgb), 0.15), rgba(var(--color-error-rgb), 0.1))'
 									: 'rgba(255,255,255,0.05)',
-								border: `1px solid ${timeRemaining < 300 ? 'rgba(255,107,107,0.3)' : 'rgba(255,238,0,0.2)'}`,
+								border: `1px solid ${timeRemaining < 300 ? 'rgba(var(--color-error-rgb), 0.3)' : 'rgba(var(--color-primary-rgb), 0.2)'}`,
 								borderRadius: '16px'
 							}}>
 								<span style={{ fontSize: '1.2rem' }}>⏱</span>
 								<span style={{
 									fontSize: '1.5rem',
 									fontWeight: 700,
-									color: timeRemaining < 300 ? '#ff6b6b' : 'var(--va-primary)',
+									color: timeRemaining < 300 ? 'var(--color-error)' : 'var(--va-primary)',
 									fontFamily: 'monospace'
 								}}>
 									{formatTime(timeRemaining)}
@@ -552,9 +552,9 @@ const QuizPage = () => {
 				{!saved && (
 					<div className="va-card" style={{
 						background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-						border: '1px solid rgba(255,238,0,0.25)',
+						border: '1px solid rgba(var(--color-primary-rgb), 0.25)',
 						borderRadius: '24px',
-						boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset',
+						boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--color-primary-rgb), 0.1) inset',
 						overflow: 'hidden'
 					}}>
 						<div className="va-card-body va-stack" style={{ padding: '2.5rem' }}>
@@ -578,23 +578,23 @@ const QuizPage = () => {
 											style={{
 												background: showGrading
 													? (isCorrect
-														? 'linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05))'
-														: 'linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.05))')
+														? 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.08), rgba(var(--color-success-rgb), 0.05))'
+														: 'linear-gradient(135deg, rgba(var(--color-error-rgb), 0.08), rgba(var(--color-error-rgb), 0.05))')
 													: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
 												backdropFilter: 'blur(20px)',
 												border: showGrading
 													? (isCorrect
-														? '1px solid rgba(74, 222, 128, 0.3)'
-														: '1px solid rgba(255,107,107,0.3)')
-													: '1px solid rgba(255,238,0,0.25)',
+														? '1px solid rgba(var(--color-success-rgb), 0.3)'
+														: '1px solid rgba(var(--color-error-rgb), 0.3)')
+													: '1px solid rgba(var(--color-primary-rgb), 0.25)',
 												borderRadius: '20px',
 												padding: '2rem',
 												marginBottom: '1.5rem',
 												boxShadow: showGrading
 													? (isCorrect
-														? '0 8px 32px rgba(74, 222, 128, 0.2), 0 0 0 1px rgba(74, 222, 128, 0.1) inset'
-														: '0 8px 32px rgba(255,107,107,0.2), 0 0 0 1px rgba(255,107,107,0.1) inset')
-													: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset',
+														? '0 8px 32px rgba(var(--color-success-rgb), 0.2), 0 0 0 1px rgba(var(--color-success-rgb), 0.1) inset'
+														: '0 8px 32px rgba(var(--color-error-rgb), 0.2), 0 0 0 1px rgba(var(--color-error-rgb), 0.1) inset')
+													: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--color-primary-rgb), 0.1) inset',
 												position: 'relative',
 												overflow: 'hidden',
 												transition: 'all 0.3s ease',
@@ -609,8 +609,8 @@ const QuizPage = () => {
 													width: '200px',
 													height: '200px',
 													background: isCorrect
-														? 'radial-gradient(circle, rgba(74, 222, 128, 0.15), transparent)'
-														: 'radial-gradient(circle, rgba(255,107,107,0.15), transparent)',
+														? 'radial-gradient(circle, rgba(var(--color-success-rgb), 0.15), transparent)'
+														: 'radial-gradient(circle, rgba(var(--color-error-rgb), 0.15), transparent)',
 													borderRadius: '50%',
 													pointerEvents: 'none',
 												}} />
@@ -623,18 +623,18 @@ const QuizPage = () => {
 													height: '48px',
 													borderRadius: '14px',
 													background: isCorrect
-															? 'linear-gradient(135deg, #4ade80, #22c55e)'
-															: 'linear-gradient(135deg, #ff6b6b, #ff5252)',
+															? 'var(--color-success)'
+															: 'var(--color-error)',
 													display: 'flex',
 													alignItems: 'center',
 													justifyContent: 'center',
 													fontSize: '1.25rem',
 													fontWeight: 700,
-													color: '#fff',
+													color: 'var(--color-white)',
 													flexShrink: 0,
 													boxShadow: isCorrect
-															? '0 4px 16px rgba(74, 222, 128, 0.3)'
-															: '0 4px 16px rgba(255,107,107,0.3)',
+															? '0 4px 16px rgba(var(--color-success-rgb), 0.3)'
+															: '0 4px 16px rgba(var(--color-error-rgb), 0.3)',
 												}}>
 													{isCorrect ? '✓' : '✗'}
 												</div>
@@ -685,39 +685,39 @@ const QuizPage = () => {
 																		padding: '1.25rem 1.5rem',
 																		background: showGrading
 																			? (isCorrectOption
-																				? 'linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.1))'
+																				? 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-success-rgb), 0.1))'
 																				: isSelected
-																				? 'linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.1))'
+																				? 'linear-gradient(135deg, rgba(var(--color-error-rgb), 0.15), rgba(var(--color-error-rgb), 0.1))'
 																				: 'rgba(255,255,255,0.03)')
 																			: (isSelected
-																				? 'linear-gradient(135deg, rgba(255,238,0,0.15), rgba(255,238,0,0.1))'
+																				? 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.15), rgba(var(--color-primary-rgb), 0.1))'
 																				: 'rgba(255,255,255,0.03)'),
 																		backdropFilter: 'blur(10px)',
 																		border: showGrading
 																			? (isCorrectOption
-																				? '1px solid rgba(74, 222, 128, 0.35)'
+																				? '1px solid rgba(var(--color-success-rgb), 0.35)'
 																				: isSelected
-																				? '1px solid rgba(255,107,107,0.35)'
+																				? '1px solid rgba(var(--color-error-rgb), 0.35)'
 																				: '1px solid rgba(255,255,255,0.1)')
 																			: (isSelected
-																				? '1px solid rgba(255,238,0,0.35)'
-																				: '1px solid rgba(255,238,0,0.2)'),
+																				? '1px solid rgba(var(--color-primary-rgb), 0.35)'
+																				: '1px solid rgba(var(--color-primary-rgb), 0.2)'),
 																		borderRadius: '16px',
 																		cursor: (submitted || saved) ? 'default' : 'pointer',
 																		transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 																		boxShadow: showGrading
 																			? (isCorrectOption || isSelected
-																				? '0 4px 16px rgba(255,238,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
+																				? '0 4px 16px rgba(var(--color-primary-rgb), 0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
 																				: '0 2px 8px rgba(0,0,0,0.2)')
 																			: (isSelected
-																				? '0 4px 16px rgba(255,238,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
+																				? '0 4px 16px rgba(var(--color-primary-rgb), 0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
 																				: '0 2px 8px rgba(0,0,0,0.2)'),
 																	}}
 																	onMouseEnter={(e) => {
 																		if (!submitted && !saved) {
 																			if (!isSelected) {
-																				e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.1), rgba(255,238,0,0.05))';
-																				e.currentTarget.style.borderColor = 'rgba(255,238,0,0.3)';
+																				e.currentTarget.style.background = 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1), rgba(var(--color-primary-rgb), 0.05))';
+																				e.currentTarget.style.borderColor = 'rgba(var(--color-primary-rgb), 0.3)';
 																				e.currentTarget.style.transform = 'translateX(4px)';
 																			}
 																		}
@@ -726,7 +726,7 @@ const QuizPage = () => {
 																		if (!submitted && !saved) {
 																			if (!isSelected) {
 																				e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-																				e.currentTarget.style.borderColor = 'rgba(255,238,0,0.2)';
+																				e.currentTarget.style.borderColor = 'rgba(var(--color-primary-rgb), 0.2)';
 																				e.currentTarget.style.transform = 'translateX(0)';
 																			}
 																		}
@@ -747,7 +747,7 @@ const QuizPage = () => {
 																	<span style={{
 																		flex: 1,
 																		color: showResult 
-																			? (isCorrectOption ? 'var(--va-primary)' : isSelected ? '#ff6b6b' : 'var(--va-text)')
+																			? (isCorrectOption ? 'var(--va-primary)' : isSelected ? 'var(--color-error)' : 'var(--va-text)')
 																			: 'var(--va-text)',
 																		fontWeight: isSelected ? 500 : 400
 																	}}>
@@ -757,7 +757,7 @@ const QuizPage = () => {
 																		<span style={{ color: 'var(--va-primary)', fontSize: '1.2rem' }}>✓</span>
 																	)}
 																	{showGrading && isSelected && !isCorrectOption && (
-																		<span style={{ color: '#ff6b6b', fontSize: '1.2rem' }}>✗</span>
+																		<span style={{ color: 'var(--color-error)', fontSize: '1.2rem' }}>✗</span>
 																	)}
 															</label>
 														);
@@ -769,7 +769,7 @@ const QuizPage = () => {
 													<div style={{
 														padding: '1rem 1.25rem',
 														background: 'rgba(255,255,255,0.04)',
-														border: '1px solid rgba(255,238,0,0.15)',
+														border: '1px solid rgba(var(--color-primary-rgb), 0.15)',
 														borderRadius: '12px',
 														color: 'var(--va-text-muted)',
 													}}>
@@ -850,13 +850,13 @@ const QuizPage = () => {
 									<>
 										<div className="va-results-stat">
 											<div className="va-results-stat-label">Corecte</div>
-											<div className="va-results-stat-value" style={{ color: '#4ade80' }}>
+											<div className="va-results-stat-value" style={{ color: 'var(--color-success)' }}>
 												{performanceMetrics.correctAnswers}
 											</div>
 										</div>
 										<div className="va-results-stat">
 											<div className="va-results-stat-label">Incorecte</div>
-											<div className="va-results-stat-value" style={{ color: '#ff6b6b' }}>
+											<div className="va-results-stat-value" style={{ color: 'var(--color-error)' }}>
 												{performanceMetrics.incorrectAnswers}
 											</div>
 										</div>
@@ -868,7 +868,7 @@ const QuizPage = () => {
 									color: 'var(--va-muted)',
 									fontSize: '0.9rem',
 									paddingTop: '1rem',
-									borderTop: '1px solid rgba(255,238,0,0.2)'
+									borderTop: '1px solid rgba(var(--color-primary-rgb), 0.2)'
 								}}>
 									Completat la: {new Date(result.completed_at).toLocaleString('ro-RO')}
 								</div>
@@ -879,11 +879,11 @@ const QuizPage = () => {
 						{quiz.questions?.length > 0 && (
 							<div style={{
 								background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))',
-								border: '1px solid rgba(255,238,0,0.25)',
+								border: '1px solid rgba(var(--color-primary-rgb), 0.25)',
 								borderRadius: '20px',
 								padding: '2rem',
 								marginBottom: '2rem',
-								boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,238,0,0.1) inset'
+								boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--color-primary-rgb), 0.1) inset'
 							}}>
 								<h3 style={{
 									color: 'var(--va-text)',
@@ -912,9 +912,9 @@ const QuizPage = () => {
 												background: !paintGrade
 													? 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,20,0.98))'
 													: (isCorrect
-														? 'linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05))'
-														: 'linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.05))'),
-												border: `1px solid ${!paintGrade ? 'rgba(255,238,0,0.25)' : (isCorrect ? 'rgba(74, 222, 128, 0.3)' : 'rgba(255,107,107,0.3)')}`,
+														? 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.08), rgba(var(--color-success-rgb), 0.05))'
+														: 'linear-gradient(135deg, rgba(var(--color-error-rgb), 0.08), rgba(var(--color-error-rgb), 0.05))'),
+												border: `1px solid ${!paintGrade ? 'rgba(var(--color-primary-rgb), 0.25)' : (isCorrect ? 'rgba(var(--color-success-rgb), 0.3)' : 'rgba(var(--color-error-rgb), 0.3)')}`,
 												borderRadius: '16px',
 												padding: '1.5rem'
 											}}>
@@ -924,14 +924,14 @@ const QuizPage = () => {
 														height: '36px',
 														borderRadius: '10px',
 														background: !paintGrade
-															? 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.1))'
+															? 'rgba(var(--color-primary-rgb), 0.16)'
 															: (isCorrect
-																? 'linear-gradient(135deg, #4ade80, #22c55e)'
-																: 'linear-gradient(135deg, #ff6b6b, #ff5252)'),
+																? 'var(--color-success)'
+																: 'var(--color-error)'),
 														display: 'flex',
 														alignItems: 'center',
 														justifyContent: 'center',
-														color: '#fff',
+														color: 'var(--color-white)',
 														fontWeight: 700,
 														fontSize: '1rem'
 													}}>
@@ -955,7 +955,7 @@ const QuizPage = () => {
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,255,255,0.05)',
-															border: '1px solid rgba(255,238,0,0.15)',
+															border: '1px solid rgba(var(--color-primary-rgb), 0.15)',
 															borderRadius: '12px'
 														}}>
 															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -974,7 +974,7 @@ const QuizPage = () => {
 																				Răspunsul tău: {selectedItem?.text || '—'}
 																			</div>
 																			{!showOnlySubmittedAnswers && !isCorrect && (
-																				<div style={{ marginTop: '0.15rem', color: '#4ade80' }}>
+																				<div style={{ marginTop: '0.15rem', color: 'var(--color-success)' }}>
 																					Răspuns corect: {correctItem?.text || '—'}
 																				</div>
 																			)}
@@ -988,7 +988,7 @@ const QuizPage = () => {
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: 'rgba(255,255,255,0.05)',
-															border: '1px solid rgba(255,238,0,0.15)',
+															border: '1px solid rgba(var(--color-primary-rgb), 0.15)',
 															borderRadius: '12px'
 														}}>
 															<div style={{ color: 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
@@ -998,7 +998,7 @@ const QuizPage = () => {
 																Ordinea ta: {(Array.isArray(userAnswer) ? userAnswer : []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
 															</div>
 															{!showOnlySubmittedAnswers && !isCorrect && (
-																<div style={{ color: '#4ade80', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+																<div style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
 																	Ordinea corectă: {(q.ordering.correctOrder || []).map((id) => q.ordering.items?.find((item) => String(item.id) === String(id))?.text).filter(Boolean).join(' • ') || '—'}
 																</div>
 															)}
@@ -1008,14 +1008,14 @@ const QuizPage = () => {
 														<div style={{
 															padding: '0.75rem 1rem',
 															background: paintGrade
-																? (isCorrect ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255,107,107,0.1)')
+																? (isCorrect ? 'rgba(var(--color-success-rgb), 0.1)' : 'rgba(var(--color-error-rgb), 0.1)')
 																: 'rgba(255,255,255,0.05)',
 															border: paintGrade
-																? `1px solid ${isCorrect ? 'rgba(74, 222, 128, 0.2)' : 'rgba(255,107,107,0.2)'}`
-																: '1px solid rgba(255,238,0,0.15)',
+																? `1px solid ${isCorrect ? 'rgba(var(--color-success-rgb), 0.2)' : 'rgba(var(--color-error-rgb), 0.2)'}`
+																: '1px solid rgba(var(--color-primary-rgb), 0.15)',
 															borderRadius: '12px'
 														}}>
-															<div style={{ color: paintGrade ? (isCorrect ? '#4ade80' : '#ff6b6b') : 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+															<div style={{ color: paintGrade ? (isCorrect ? 'var(--color-success)' : 'var(--color-error)') : 'var(--va-primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
 																{paintGrade ? (isCorrect ? '✓ Răspunsul tău' : '✗ Răspunsul tău') : 'Răspunsul tău'}
 															</div>
 															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
@@ -1025,11 +1025,11 @@ const QuizPage = () => {
 													)}
 													{!isStructured && !showOnlySubmittedAnswers && (<div style={{
 														padding: '0.75rem 1rem',
-														background: 'rgba(74, 222, 128, 0.1)',
-														border: '1px solid rgba(74, 222, 128, 0.2)',
+														background: 'rgba(var(--color-success-rgb), 0.1)',
+														border: '1px solid rgba(var(--color-success-rgb), 0.2)',
 														borderRadius: '12px'
 													}}>
-														<div style={{ color: '#4ade80', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+														<div style={{ color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
 															✓ Răspuns corect
 														</div>
 														<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
@@ -1039,11 +1039,11 @@ const QuizPage = () => {
 													{!isStructured && !showOnlySubmittedAnswers && !isCorrect && userAnswer !== undefined && (
 														<div style={{
 															padding: '0.75rem 1rem',
-															background: 'rgba(255,107,107,0.1)',
-															border: '1px solid rgba(255,107,107,0.2)',
+															background: 'rgba(var(--color-error-rgb), 0.1)',
+															border: '1px solid rgba(var(--color-error-rgb), 0.2)',
 															borderRadius: '12px'
 														}}>
-															<div style={{ color: '#ff6b6b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+															<div style={{ color: 'var(--color-error)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
 																✗ Răspunsul tău
 															</div>
 															<div style={{ color: 'var(--va-text)', fontSize: '0.9rem' }}>
@@ -1062,15 +1062,15 @@ const QuizPage = () => {
 						{/* Recommendations */}
 						{performanceMetrics && (!showOnlySubmittedAnswers || quiz.questions?.some((q) => typeof q.is_correct === 'boolean')) && !result.passed && (
 							<div style={{
-								background: 'linear-gradient(135deg, rgba(255,193,7,0.12), rgba(255,193,7,0.08))',
-								border: '1px solid rgba(255,193,7,0.3)',
+								background: 'linear-gradient(135deg, rgba(var(--color-warning-rgb), 0.12), rgba(var(--color-warning-rgb), 0.08))',
+								border: '1px solid rgba(var(--color-warning-rgb), 0.3)',
 								borderRadius: '20px',
 								padding: '2rem',
 								marginBottom: '2rem',
-								boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,193,7,0.1) inset'
+								boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--color-warning-rgb), 0.1) inset'
 							}}>
 								<h3 style={{
-									color: '#ffc107',
+									color: 'var(--color-warning)',
 									fontSize: '1.3rem',
 									fontWeight: 700,
 									margin: 0,
@@ -1149,8 +1149,9 @@ const QuizPage = () => {
 				{/* Save Result Button */}
 				{!saved && submitted && result && (
 					<div style={{ marginTop: '2rem' }}>
-						<button 
-							className="lms-btn-primary" 
+						<button
+							type="button"
+							className="va-btn-save lms-btn-primary"
 							onClick={handleSave}
 							style={{
 								marginBottom: '1rem',

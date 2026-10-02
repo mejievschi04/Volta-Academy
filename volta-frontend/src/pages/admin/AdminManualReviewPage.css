@@ -22,10 +22,10 @@ html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn {
 	height: 44px;
 	min-height: 44px;
 	padding: 0 16px;
-	border: 1px solid #0f172a !important;
-	border-radius: 10px !important;
-	background: #0f172a !important;
-	color: #ffffff !important;
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
 	box-shadow: none !important;
 	font-size: 14px;
 	font-weight: 800;
@@ -34,14 +34,14 @@ html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn {
 }
 
 html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn:hover:not(.is-active) {
-	border-color: #ffee00 !important;
-	background: #111827 !important;
+	border-color: var(--border-accent) !important;
+	background: var(--bg-secondary) !important;
 }
 
 html body .admin-manual-review-kind-btn.admin-manual-review-kind-btn.is-active {
-	border-color: #e6d800 !important;
-	background: #ffee00 !important;
-	color: #0f172a !important;
+	border-color: var(--btn-primary-border) !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
 }
 
 .admin-manual-review-panel-wrap {
@@ -104,40 +104,40 @@ html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn {
 }
 
 html body .admin-manual-review-refresh-btn.admin-manual-review-refresh-btn {
-	border: 1px solid #0f172a !important;
-	background: #0f172a !important;
-	color: #ffffff !important;
-	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18) !important;
+	border: 1px solid var(--border-secondary) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
 }
 
 html body .admin-manual-review-refresh-btn.admin-manual-review-refresh-btn:hover:not(:disabled) {
-	border-color: #ffee00 !important;
-	background: #111827 !important;
-	transform: translateY(-1px);
+	border-color: var(--border-accent) !important;
+	background: var(--bg-secondary) !important;
+	transform: none;
 }
 
 html body .admin-manual-review-clear-danger.admin-manual-review-clear-danger {
-	border: 1.5px solid #0f172a !important;
-	background: #dc2626 !important;
+	border: 1.5px solid var(--border-secondary) !important;
+	background: var(--color-error) !important;
 	color: #ffffff !important;
 	box-shadow: none !important;
 }
 
 html body .admin-manual-review-clear-danger.admin-manual-review-clear-danger:hover:not(:disabled) {
-	background: #b91c1c !important;
+	background: var(--color-error) !important;
 	transform: translateY(-1px);
 }
 
 html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn {
 	flex: none;
-	border: 1px solid rgba(0, 0, 0, 0.14) !important;
-	background: #ffee00 !important;
-	color: #0f172a !important;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+	border: 1px solid var(--btn-primary-border) !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	box-shadow: none !important;
 }
 
 html body .admin-manual-review-verify-btn.admin-manual-review-verify-btn:hover:not(:disabled) {
-	background: #e6d800 !important;
+	background: var(--btn-primary-hover) !important;
 }
 
 .admin-manual-review-refresh-btn:disabled,

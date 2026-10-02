@@ -29,19 +29,6 @@ class TestAttemptService
             );
     }
 
-    public function completedAttemptsQuery(int $userId, int $testId, ?int $courseId)
-    {
-        return TestResult::query()
-            ->where('user_id', $userId)
-            ->where('test_id', $testId)
-            ->where('status', '!=', 'in_progress')
-            ->when($courseId, function ($query) use ($courseId) {
-                $query->where(function ($scope) use ($courseId) {
-                    $scope->where('course_id', $courseId)->orWhereNull('course_id');
-                });
-            });
-    }
-
     public function finishedAttempts(int $userId, int $testId)
     {
         return TestResult::query()

@@ -141,14 +141,6 @@ class LmsBackupService
         File::put($file, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
-    private function restoreDatabaseJson(string $file): void
-    {
-        $payload = json_decode((string) File::get($file), true);
-        $tables = is_array($payload['tables'] ?? null) ? $payload['tables'] : [];
-        $this->assertRestoreTables($tables);
-        DB::transaction(fn () => $this->replaceTables($tables));
-    }
-
     private function restoreDatabaseJsonFromSqliteFile(string $sqlitePath): void
     {
         $pdo = new \PDO('sqlite:' . $sqlitePath);

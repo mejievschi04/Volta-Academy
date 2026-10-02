@@ -360,7 +360,7 @@ const LessonPage = () => {
 			<div className="lesson-page-header">
 				<div className="lesson-page-header-content">
 					<button 
-						className="lesson-page-back-btn"
+						className="va-btn-back lesson-page-back-btn"
 						onClick={() => navigate(`/courses/${courseId}`)}
 					>
 						<ArrowLeft size={20} weight="bold" aria-hidden />

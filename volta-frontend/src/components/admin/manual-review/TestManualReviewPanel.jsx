@@ -220,7 +220,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 					{canMutateInAdminArea ? (
 						<button
 							type="button"
-							className="admin-manual-review-clear-danger"
+							className="va-btn-delete admin-manual-review-clear-danger"
 							onClick={handleClearPending}
 							disabled={pendingLoading || clearing}
 						>
@@ -352,7 +352,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 							<button type="button" onClick={closeReviewModal} disabled={reviewSubmitting}>
 								Anulează
 							</button>
-							<button type="button" className="is-primary" onClick={handleSubmitReview} disabled={reviewSubmitting}>
+							<button type="button" className="va-btn-save is-primary" onClick={handleSubmitReview} disabled={reviewSubmitting}>
 								{reviewSubmitting ? 'Se salvează…' : 'Salvează verificarea'}
 							</button>
 						</div>

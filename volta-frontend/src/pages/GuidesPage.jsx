@@ -306,7 +306,7 @@ const GuidesPage = () => {
 														</button>
 														<button
 															type="button"
-															className="library-btn library-btn--danger library-btn--icon"
+															className="library-btn va-btn-delete library-btn--danger library-btn--icon"
 															disabled={deletingId === item.id}
 															onClick={(e) => {
 																e.stopPropagation();
@@ -436,7 +436,7 @@ const GuidesPage = () => {
 									{coverPreview ? (
 										<button
 											type="button"
-											className="library-btn library-btn--danger"
+											className="library-btn va-btn-delete library-btn--danger"
 											onClick={clearCover}
 										>
 											Elimină
@@ -449,7 +449,7 @@ const GuidesPage = () => {
 							<button type="button" className="library-btn library-btn--secondary" onClick={closeModal} disabled={saving}>
 								Renunță
 							</button>
-							<button type="submit" className="library-btn library-btn--primary" disabled={saving}>
+							<button type="submit" className="va-btn-save library-btn library-btn--primary" disabled={saving}>
 								{saving ? 'Se salvează...' : editingItem ? 'Salvează' : 'Adaugă ghid'}
 							</button>
 						</div>

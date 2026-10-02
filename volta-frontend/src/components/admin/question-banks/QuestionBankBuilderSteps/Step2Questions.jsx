@@ -702,7 +702,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 											/>
 											<button
 												type="button"
-												className="lms-btn-secondary lms-btn-sm va-btn-danger"
+												className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger"
 												onClick={() => removeAnswer(index)}
 											>
 												🗑️
@@ -754,7 +754,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 												</button>
 												<button
 													type="button"
-													className="lms-btn-secondary lms-btn-sm va-btn-danger"
+													className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger"
 													onClick={() => removeAnswer(index)}
 												>
 													🗑️
@@ -793,7 +793,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 											{questionForm.type !== 'true_false' && questionForm.type !== 'yes_no' && (
 												<button
 													type="button"
-													className="lms-btn-secondary lms-btn-sm va-btn-danger"
+													className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger"
 													onClick={() => removeAnswer(index)}
 												>
 													🗑️

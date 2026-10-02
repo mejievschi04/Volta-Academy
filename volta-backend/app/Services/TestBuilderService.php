@@ -217,24 +217,6 @@ class TestBuilderService
     }
 
     /**
-     * Unpublish a test
-     */
-    public function unpublishTest(Test $test): Test
-    {
-        // Check if test is linked to courses
-        $usageCount = DB::table('course_test')
-            ->where('test_id', $test->id)
-            ->count();
-
-        if ($usageCount > 0) {
-            throw new \Exception('Cannot unpublish test that is linked to courses. Unlink it first.');
-        }
-
-        $test->update(['status' => 'draft']);
-        return $test->fresh();
-    }
-
-    /**
      * Delete a test (soft delete).
      * Elimină mai întâi legăturile din course_test; altfel testul rămâne referit de cursuri
      * iar soft delete nu declanșează CASCADE la nivel de FK.
@@ -289,36 +271,6 @@ class TestBuilderService
                 'metadata' => $questionData['metadata'] ?? null,
             ]);
         }
-    }
-
-    /**
-     * Create a new version of a test
-     */
-    public function createTestVersion(Test $test, User $creator): Test
-    {
-        $newTest = $test->replicate();
-        $newTest->title = $test->title . ' (v' . $test->version . ')';
-        $newTest->status = 'draft';
-        $newTest->version = $this->incrementVersion($test->version);
-        $newTest->created_by = $creator->id;
-        $newTest->save();
-
-        // Copy questions if direct
-        if ($test->question_source === 'direct') {
-            foreach ($test->questions as $question) {
-                $newQuestion = $question->replicate();
-                $newQuestion->test_id = $newTest->id;
-                $newQuestion->question_bank_id = null;
-                $newQuestion->type = $this->normalizeQuestionType($newQuestion->type ?? 'multiple_choice');
-                $newQuestion->save();
-            }
-        } else {
-            // Link to same question bank
-            $newTest->question_set_id = $test->question_set_id;
-            $newTest->save();
-        }
-
-        return $newTest;
     }
 
     /**

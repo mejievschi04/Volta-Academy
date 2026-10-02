@@ -447,7 +447,6 @@ const AdminUsersPage = () => {
 								Echipă
 							</th>
 							<th>Cursuri Finalizate</th>
-							<th>Module Finalizate</th>
 							<th>Procentaj</th>
 							<th className="admin-users-table-cell-center">Acțiuni</th>
 						</tr>
@@ -458,8 +457,6 @@ const AdminUsersPage = () => {
 								const isAdmin = user.role === 'admin';
 								const totalCourses = user.total_courses || 0;
 								const completedCourses = user.completed_courses || 0;
-								const totalModules = user.total_modules || 0;
-								const completedModules = user.completed_modules || 0;
 								const percentage = user.completion_percentage || 0;
 								const progressClass = percentage >= 80 ? 'high' : percentage >= 50 ? 'medium' : 'low';
 								const initials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'U';
@@ -532,15 +529,6 @@ const AdminUsersPage = () => {
 											{isAdmin ? (
 												<span className="admin-users-table-cell-muted">-</span>
 											) : (
-												<span className="admin-users-table-cell-value">
-													{completedModules}/{totalModules}
-												</span>
-											)}
-										</td>
-										<td>
-											{isAdmin ? (
-												<span className="admin-users-table-cell-muted">-</span>
-											) : (
 												<div className="admin-users-progress-container">
 													<div className="admin-users-progress-bar">
 														<div
@@ -581,7 +569,7 @@ const AdminUsersPage = () => {
 														</button>
 														<button title="Șterge definitiv" aria-label={`Șterge definitiv utilizatorul: ${user.name}`}
 															type="button"
-															className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
+															className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleForceDeleteClick(user.id);
@@ -604,7 +592,7 @@ const AdminUsersPage = () => {
 														</button>
 														<button title="Respinge cererea" aria-label={`Respinge cererea: ${user.name}`}
 															type="button"
-														className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
+														className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleRejectClick(user.id);
@@ -626,7 +614,7 @@ const AdminUsersPage = () => {
 
 														</button>
 														<button title="Mută utilizatorul în coș" aria-label={`Mută utilizatorul în coș: ${user.name}`}
-															className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
+															className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger admin-users-action-compact"
 															onClick={(e) => {
 																e.stopPropagation();
 																handleDeleteClick(user.id);
@@ -824,7 +812,7 @@ const AdminUsersPage = () => {
 									>
 										Anulează
 									</button>
-									<button type="submit" className="lms-btn-primary">
+									<button type="submit" className="va-btn-save lms-btn-primary">
 										Salvează
 									</button>
 								</div>

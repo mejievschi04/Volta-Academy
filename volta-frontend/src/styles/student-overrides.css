@@ -148,7 +148,7 @@
 
 [data-theme="light"] .student-course-progress-card:hover,
 [data-theme="light"] .student-widget:hover {
-	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 238, 0, 0.15);
+	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(var(--color-primary-rgb), 0.15);
 }
 
 /* Ensure student loading (lms-dashboard-loading) works on student pages */

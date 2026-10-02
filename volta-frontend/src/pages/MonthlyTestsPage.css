@@ -72,10 +72,10 @@
 	padding: 18px 18px 16px 22px;
 	text-align: left;
 	font: inherit;
-	border: 1px solid color-mix(in srgb, var(--border-primary) 85%, #0f172a 15%);
+	border: 1px solid color-mix(in srgb, var(--border-primary) 85%, var(--text-primary) 15%);
 	border-radius: 18px;
 	background:
-		linear-gradient(180deg, color-mix(in srgb, #ffee00 14%, var(--bg-elevated)) 0%, var(--bg-elevated) 46%);
+		linear-gradient(180deg, color-mix(in srgb, var(--color-brand-primary) 14%, var(--bg-elevated)) 0%, var(--bg-elevated) 46%);
 	color: inherit;
 	cursor: pointer;
 	overflow: hidden;
@@ -92,12 +92,12 @@
 	top: 0;
 	bottom: 0;
 	width: 4px;
-	background: #ffee00;
+	background: var(--color-brand-primary);
 }
 
 .monthly-tests-tile:hover {
-	transform: translateY(-3px);
-	border-color: #ffee00;
+	transform: none;
+	border-color: var(--border-accent);
 	box-shadow:
 		0 1px 2px rgba(15, 23, 42, 0.04),
 		0 18px 36px rgba(15, 23, 42, 0.1);
@@ -108,7 +108,7 @@
 }
 
 .monthly-tests-tile:focus-visible {
-	outline: 2px solid #ffee00;
+	outline: 2px solid var(--border-focus);
 	outline-offset: 3px;
 }
 
@@ -127,8 +127,8 @@
 	height: 44px;
 	flex-shrink: 0;
 	border-radius: 14px;
-	background: #ffee00;
-	color: #0f172a;
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 }
 
 .monthly-tests-tile-go {
@@ -139,8 +139,8 @@
 	height: 34px;
 	flex-shrink: 0;
 	border-radius: 12px;
-	background: #ffee00;
-	color: #0f172a;
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	transition: background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
@@ -181,7 +181,7 @@
 	gap: 6px;
 	padding: 6px 10px;
 	border-radius: 999px;
-	background: color-mix(in srgb, #0f172a 6%, var(--bg-secondary, #fff));
+	background: color-mix(in srgb, var(--bg-elevated) 6%, var(--bg-secondary, #fff));
 	color: #334155;
 	font-size: 12px;
 	font-weight: 700;

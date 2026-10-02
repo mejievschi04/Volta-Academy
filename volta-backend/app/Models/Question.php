@@ -63,28 +63,5 @@ class Question extends Model
         });
     }
 
-    /**
-     * Check if answer is correct
-     */
-    public function isAnswerCorrect($userAnswer): bool
-    {
-        $correctAnswers = $this->getCorrectAnswers();
-        
-        if (empty($correctAnswers)) {
-            return false;
-        }
-
-        // For multiple choice, check if user answer matches any correct answer
-        if (in_array($this->type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
-            foreach ($correctAnswers as $correct) {
-                if (is_array($correct) && ($correct['text'] ?? $correct) === $userAnswer) {
-                    return true;
-                }
-            }
-        }
-
-        // For other types, implement specific logic
-        return false;
-    }
 }
 

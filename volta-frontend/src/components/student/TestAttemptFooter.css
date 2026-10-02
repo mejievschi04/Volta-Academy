@@ -32,39 +32,39 @@
     min-width: 52px;
     min-height: 52px;
     padding: 0;
-    border: none;
-    border-radius: 0;
-    background: #ffee00 !important;
-    color: #111 !important;
-    border-color: transparent !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--btn-primary-border);
+    border-radius: var(--btn-desktop-radius);
+    background: var(--btn-primary-bg) !important;
+    color: var(--btn-primary-text) !important;
+    border-color: var(--btn-primary-border) !important;
+    box-shadow: none;
     cursor: pointer;
     transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .test-attempt-nav-btn svg,
 .test-attempt-nav-btn svg path {
-    color: #111 !important;
-    fill: #111 !important;
+    color: var(--btn-primary-text) !important;
+    fill: var(--btn-primary-text) !important;
     flex-shrink: 0;
 }
 [data-theme="light"] .test-attempt-nav-btn,
 html[data-theme="dark"] .test-attempt-nav-btn {
-    background: #ffee00 !important;
-    background-color: #ffee00 !important;
-    color: #111 !important;
-    border-color: transparent !important;
+    background: var(--btn-primary-bg) !important;
+    background-color: var(--btn-primary-bg) !important;
+    color: var(--btn-primary-text) !important;
+    border-color: var(--btn-primary-border) !important;
 }
 [data-theme="light"] .test-attempt-nav-btn svg,
 [data-theme="light"] .test-attempt-nav-btn svg path,
 html[data-theme="dark"] .test-attempt-nav-btn svg,
 html[data-theme="dark"] .test-attempt-nav-btn svg path {
-    color: #111 !important;
-    fill: #111 !important;
+    color: var(--btn-primary-text) !important;
+    fill: var(--btn-primary-text) !important;
 }
 .test-attempt-nav-btn:hover:not(:disabled) {
-    background: #e6d800 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    background: var(--btn-primary-hover) !important;
+    transform: none;
+    box-shadow: none;
 }
 .test-attempt-nav-btn:active:not(:disabled) {
     transform: translateY(0);
@@ -101,10 +101,10 @@ html[data-theme="dark"] .test-attempt-nav-btn svg path {
     align-items: center;
     justify-content: center;
     padding: 10px 18px;
-    border: none;
-    border-radius: 10px;
-    background: #ffee00;
-    color: #111;
+    border: 1px solid var(--btn-primary-border);
+    border-radius: var(--btn-desktop-radius);
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
     font-size: 15px;
     font-weight: 700;
     text-decoration: none;
@@ -117,10 +117,10 @@ html[data-theme="dark"] .test-attempt-nav-btn svg path {
     align-items: center;
     justify-content: center;
     padding: 10px 18px;
-    border: 1px solid #111111;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #111111;
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--btn-desktop-radius);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 700;
     text-decoration: none;
@@ -128,15 +128,15 @@ html[data-theme="dark"] .test-attempt-nav-btn svg path {
 }
 .test-attempt-footer .test-attempt-home-btn:hover,
 .test-attempt-footer a.test-attempt-home-btn:hover {
-    background: #f4f4f5;
-    color: #111111;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 .test-attempt-footer .test-attempt-back-btn:hover,
 .test-attempt-footer a.lms-btn-primary:hover {
-    background: #e6d800;
-    color: #111;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: var(--btn-primary-hover);
+    color: var(--btn-primary-text);
+    transform: none;
+    box-shadow: none;
 }
 .test-attempt-footer button:disabled { opacity: .5; cursor: not-allowed; }
 .test-attempt-footer--confirm,

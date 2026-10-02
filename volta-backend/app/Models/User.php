@@ -75,25 +75,10 @@ class User extends Authenticatable
                 ->withTimestamps();
 }
 
-    public function conversationsAsUser1()
-    {
-        return $this->hasMany(Conversation::class, 'user1_id');
-    }
-
-    public function conversationsAsUser2()
-    {
-        return $this->hasMany(Conversation::class, 'user2_id');
-    }
-
     public function conversations()
     {
         return Conversation::where('user1_id', $this->id)
             ->orWhere('user2_id', $this->id);
-    }
-
-    public function sentMessages()
-    {
-        return $this->hasMany(Message::class, 'sender_id');
     }
 
     public function isAdmin(): bool
@@ -119,9 +104,4 @@ class User extends Authenticatable
         return in_array($this->role ?? '', ['admin', 'analyst'], true);
     }
 
-    /** Admin, instructor sau analist (API + shell admin; drepturi diferite). */
-    public function canAccessAdmin(): bool
-    {
-        return $this->isAdmin() || $this->isInstructor() || $this->isAnalyst();
-    }
 }

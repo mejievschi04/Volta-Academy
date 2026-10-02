@@ -32,49 +32,76 @@ class CourseBuilderService
      */
     public function getBuilderStructure(int $courseId): array
     {
-        $course = Course::with([
-            'teacher:id,name,email',
-            'teams:id,name',
-            'assignedUsers' => function ($query) {
-                $query->select('users.id', 'users.name', 'users.email', 'users.role');
-                if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'enrolled')) {
-                    $query->wherePivot('enrolled', true);
-                }
-            },
-            'lessons' => function ($q) {
-                $q->whereNull('module_id')
-                    ->orderBy('order')
-                    ->with(['contentBlocks' => function ($cbq) {
-                        $cbq->orderBy('order');
-                    }]);
-            },
-            'modules' => function ($q) {
-                $q->orderBy('order')->with([
-                    'lessons' => function ($lq) {
-                        $lq->orderBy('order')->with(['contentBlocks' => function ($cbq) {
-                            $cbq->orderBy('order');
-                        }]);
-                    },
-                ]);
-            },
-        ])->findOrFail($courseId);
+        $course = Course::query()->findOrFail($courseId);
 
-        $modules = $course->modules->values();
-        $rootLessons = $course->lessons->whereNull('module_id')->values();
-        $lessons = $rootLessons->concat($modules->flatMap(fn ($m) => $m->lessons))->values();
-        $blocks = $lessons->flatMap(fn ($l) => $l->contentBlocks)->values();
+        // Coloanele folosite de builder. `content` pe module și payload-ul content_blocks
+        // nu intră în arbore: editorul citește lessons.content, iar blocurile se încarcă separat.
+        $moduleColumns = [
+            'id',
+            'course_id',
+            'title',
+            'description',
+            'order',
+            'status',
+            'is_locked',
+            'unlock_after_module_id',
+            'unlock_after_lesson_id',
+            'estimated_duration_minutes',
+            'completion_percentage',
+            'updated_at',
+        ];
+        $lessonColumns = [
+            'id',
+            'course_id',
+            'module_id',
+            'title',
+            'content',
+            'type',
+            'status',
+            'order',
+            'is_preview',
+            'is_locked',
+            'video_url',
+            'duration_minutes',
+            'unlock_after_lesson_id',
+            'updated_at',
+        ];
+
+        $rootLessons = Lesson::query()
+            ->where('course_id', $courseId)
+            ->whereNull('module_id')
+            ->orderBy('order')
+            ->get($lessonColumns);
+
+        $modules = Module::query()
+            ->where('course_id', $courseId)
+            ->orderBy('order')
+            ->get($moduleColumns);
+
+        $lessonsByModule = Lesson::query()
+            ->where('course_id', $courseId)
+            ->whereNotNull('module_id')
+            ->orderBy('order')
+            ->get($lessonColumns)
+            ->groupBy('module_id');
+
+        $modules->each(function (Module $module) use ($lessonsByModule) {
+            $module->setRelation('lessons', $lessonsByModule->get($module->id, collect())->values());
+        });
+
+        $lessons = $rootLessons->concat($modules->flatMap(fn ($module) => $module->lessons))->values();
 
         return [
             'course' => $course,
-            'modules' => $modules,
-            'root_lessons' => $rootLessons,
+            'modules' => $modules->values(),
+            'root_lessons' => $rootLessons->values(),
             'lessons' => $lessons,
-            'content_blocks' => $blocks,
+            'content_blocks' => [],
             'meta' => [
                 'module_ids' => $modules->pluck('id')->all(),
                 'root_lesson_ids' => $rootLessons->pluck('id')->all(),
                 'lesson_ids' => $lessons->pluck('id')->all(),
-                'content_block_ids' => $blocks->pluck('id')->all(),
+                'content_block_ids' => [],
             ],
         ];
     }
@@ -413,13 +440,20 @@ class CourseBuilderService
         $course = Course::findOrFail($courseId);
         $nextVersion = ((int)CourseVersion::where('course_id', $courseId)->max('version')) + 1;
 
-        $structure = $this->getBuilderStructure($courseId);
+        $modules = Module::query()->where('course_id', $courseId)->orderBy('order')->get();
+        $lessons = Lesson::query()->where('course_id', $courseId)->orderBy('order')->get();
+        $blocks = $lessons->isEmpty()
+            ? collect()
+            : ContentBlock::query()
+                ->whereIn('lesson_id', $lessons->pluck('id'))
+                ->orderBy('order')
+                ->get();
 
         $snapshot = [
             'course' => $course->fresh()->toArray(),
-            'modules' => collect($structure['modules'] ?? [])->map(fn ($m) => is_object($m) ? $m->toArray() : $m)->all(),
-            'lessons' => collect($structure['lessons'] ?? [])->map(fn ($l) => is_object($l) ? $l->toArray() : $l)->all(),
-            'content_blocks' => collect($structure['content_blocks'] ?? [])->map(fn ($b) => is_object($b) ? $b->toArray() : $b)->all(),
+            'modules' => $modules->map(fn ($module) => $module->toArray())->all(),
+            'lessons' => $lessons->map(fn ($lesson) => $lesson->toArray())->all(),
+            'content_blocks' => $blocks->map(fn ($block) => $block->toArray())->all(),
             'course_tests' => CourseTest::where('course_id', $courseId)->get()->toArray(),
             'captured_at' => now()->toISOString(),
         ];

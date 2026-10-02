@@ -31,6 +31,3 @@ export function normalizeColorInputToHex(value, fallback = '#6366f1') {
 	return normalizeHexInput(fallback) || '#6366f1';
 }
 
-export function isValidColorInput(value) {
-	return Boolean(normalizeHexInput(value) || normalizeRgbInput(value));
-}

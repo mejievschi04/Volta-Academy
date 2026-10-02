@@ -112,25 +112,6 @@
 	background: linear-gradient(90deg, var(--ts-danger), var(--ts-warning), var(--ts-success));
 }
 
-.test-stats__refresh {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	min-height: 42px;
-	padding: 0 14px;
-	border: 2px solid #111111;
-	border-radius: 10px;
-	background: #ffffff;
-	color: #111111;
-	font-weight: 800;
-	box-shadow: 2px 2px 0 #111111;
-	cursor: pointer;
-}
-
-.test-stats__refresh:hover:not(:disabled) {
-	background: #fff7a8;
-}
-
 .test-stats__refresh:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
@@ -144,32 +125,6 @@
 	border: 0;
 	border-radius: 0;
 	background: transparent;
-}
-
-.test-stats__nav-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	min-height: 42px;
-	padding: 0 14px;
-	border: 2px solid #111111;
-	border-radius: 10px;
-	background: #ffffff;
-	color: #111111;
-	font-weight: 800;
-	font-size: 0.86rem;
-	box-shadow: 2px 2px 0 #111111;
-	cursor: pointer;
-}
-
-.test-stats__nav-btn:hover {
-	background: #fff7a8;
-}
-
-.test-stats__nav-btn.is-active {
-	background: #ffee00;
-	color: #111111;
-	box-shadow: 3px 3px 0 #111111;
 }
 
 .test-stats__empty {
@@ -402,27 +357,12 @@
 	background: color-mix(in srgb, var(--ts-accent) 10%, var(--bg-primary));
 }
 
-.test-stats__badge.is-hard {
-	border-color: color-mix(in srgb, var(--ts-danger) 35%, var(--border-primary));
-	color: var(--ts-danger);
-}
-
-.test-stats__badge.is-easy {
-	border-color: color-mix(in srgb, var(--ts-success) 35%, var(--border-primary));
-	color: var(--ts-success);
-}
-
 .test-stats__item-metrics {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 14px 20px;
 	color: var(--text-secondary);
 	font-size: 0.84rem;
-}
-
-.test-stats__difficulty {
-	display: grid;
-	gap: 6px;
 }
 
 .test-stats__difficulty-top {
@@ -439,13 +379,6 @@
 	border-radius: 999px;
 	background: color-mix(in srgb, var(--border-primary) 80%, transparent);
 	overflow: hidden;
-}
-
-.test-stats__difficulty-fill {
-	height: 100%;
-	border-radius: inherit;
-	background: linear-gradient(90deg, var(--ts-danger), var(--ts-warning), var(--ts-success));
-	transition: width 0.35s ease;
 }
 
 .test-stats__options {

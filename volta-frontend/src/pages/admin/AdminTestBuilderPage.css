@@ -96,43 +96,6 @@
 	border-radius: 8px;
 }
 
-.admin-test-results-table-wrap {
-	overflow-x: auto;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-}
-
-.admin-test-results-table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: 0.9rem;
-}
-
-.admin-test-results-table th,
-.admin-test-results-table td {
-	padding: 10px 12px;
-	border-bottom: 1px solid var(--border-primary);
-	text-align: left;
-	vertical-align: middle;
-}
-
-.admin-test-results-table th {
-	background: var(--bg-primary);
-	color: var(--text-secondary);
-	font-size: 0.78rem;
-	text-transform: uppercase;
-	letter-spacing: 0.02em;
-}
-
-.admin-test-results-table tbody tr:last-child td {
-	border-bottom: 0;
-}
-
-.admin-test-results-max {
-	color: var(--text-tertiary);
-	font-weight: 500;
-}
-
 .admin-test-results-status {
 	display: inline-flex;
 	padding: 0.2rem 0.55rem;
@@ -755,96 +718,6 @@ html[data-theme='dark'] .admin-test-builder-page .admin-course-builder-test-orde
 	}
 }
 
-.admin-test-statistics-panel {
-	display: grid;
-	gap: 16px;
-	padding: 20px;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-	background: var(--bg-elevated);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-test-statistics-head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.admin-test-statistics-head h2 {
-	margin: 0;
-	font-size: 1.2rem;
-}
-
-.admin-test-statistics-head p {
-	margin: 6px 0 0;
-	color: var(--text-secondary);
-	font-size: 0.9rem;
-}
-
-.admin-test-statistics-tabs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-}
-
-.admin-test-statistics-tabs button {
-	min-height: 38px;
-	padding: 0 14px;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-	background: var(--bg-primary);
-	color: var(--text-secondary);
-	font-weight: 700;
-	cursor: pointer;
-}
-
-.admin-test-statistics-tabs button.is-active,
-.admin-test-statistics-tabs button:hover {
-	border-color: color-mix(in srgb, var(--color-primary) 45%, var(--border-primary));
-	background: color-mix(in srgb, var(--color-primary) 10%, var(--bg-primary));
-	color: var(--text-primary);
-}
-
-.admin-test-stats-kpi-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-	gap: 12px;
-}
-
-.admin-test-stats-kpi {
-	display: grid;
-	gap: 4px;
-	padding: 14px;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-	background: var(--bg-primary);
-}
-
-.admin-test-stats-kpi-label {
-	color: var(--text-secondary);
-	font-size: 0.82rem;
-	font-weight: 650;
-}
-
-.admin-test-stats-kpi-value {
-	font-size: 1.35rem;
-	line-height: 1.2;
-}
-
-.admin-test-stats-kpi-hint {
-	color: var(--text-secondary);
-	font-size: 0.78rem;
-}
-
-.admin-test-stats-note {
-	margin: 4px 0 0;
-	color: var(--text-secondary);
-	font-size: 0.85rem;
-}
-
 .admin-test-results-panel.is-embedded {
 	padding: 0;
 	border: 0;
@@ -856,72 +729,6 @@ html[data-theme='dark'] .admin-test-builder-page .admin-course-builder-test-orde
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
-}
-
-.admin-test-question-analytics-list {
-	display: grid;
-	gap: 12px;
-}
-
-.admin-test-question-analytics-card {
-	padding: 14px;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-	background: var(--bg-primary);
-}
-
-.admin-test-question-analytics-head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 8px;
-	margin-bottom: 10px;
-}
-
-.admin-test-question-analytics-head h4 {
-	margin: 0;
-	font-size: 0.98rem;
-	line-height: 1.35;
-}
-
-.admin-test-question-analytics-head span {
-	padding: 2px 8px;
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-elevated));
-	color: var(--text-secondary);
-	font-size: 0.75rem;
-	font-weight: 700;
-}
-
-.admin-test-question-analytics-metrics {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px 16px;
-	color: var(--text-secondary);
-	font-size: 0.84rem;
-}
-
-.admin-test-question-analytics-options {
-	display: grid;
-	gap: 6px;
-	margin-top: 10px;
-}
-
-.admin-test-question-analytics-option {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 8px 10px;
-	border: 1px solid var(--border-primary);
-	border-radius: 6px;
-	font-size: 0.84rem;
-}
-
-.admin-test-question-analytics-option.is-correct {
-	border-color: color-mix(in srgb, var(--color-success, #16a34a) 45%, var(--border-primary));
-	background: color-mix(in srgb, var(--color-success, #16a34a) 8%, var(--bg-primary));
 }
 
 .admin-test-breakdown-list {
@@ -938,11 +745,11 @@ html[data-theme='dark'] .admin-test-builder-page .admin-course-builder-test-orde
 }
 
 .admin-test-breakdown-row.is-correct {
-	border-color: color-mix(in srgb, var(--color-success, #16a34a) 40%, var(--border-primary));
+	border-color: color-mix(in srgb, var(--color-success) 40%, var(--border-primary));
 }
 
 .admin-test-breakdown-row.is-wrong {
-	border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-primary));
+	border-color: color-mix(in srgb, var(--color-danger, var(--color-error)) 35%, var(--border-primary));
 }
 
 .admin-test-breakdown-row-head {

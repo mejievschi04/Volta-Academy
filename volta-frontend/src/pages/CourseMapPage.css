@@ -65,7 +65,7 @@
 	background: #ffffff !important;
 	background-color: #ffffff !important;
 	border-color: rgba(15, 23, 42, 0.14) !important;
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
@@ -75,7 +75,7 @@
 .course-map-page-header--custom-colors .course-map-page-back svg,
 .course-map-page-back svg,
 .course-map-page-back-label {
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 }
 
 .course-map-page-header--branded .course-map-page-back:hover,
@@ -84,13 +84,13 @@
 	background: #ffffff !important;
 	background-color: #ffffff !important;
 	border-color: rgba(15, 23, 42, 0.22) !important;
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 }
 
 .course-map-page-header--branded:not(.course-map-page-header--custom-colors) .course-map-page-header-edit-btn {
 	background: rgba(255, 255, 255, 0.94);
 	border-color: rgba(15, 23, 42, 0.14);
-	color: #0f172a;
+	color: var(--text-primary);
 	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
 
@@ -102,7 +102,7 @@
 .course-map-page-header--custom-colors .course-map-page-header-edit-btn {
 	background: rgba(255, 255, 255, 0.94);
 	border-color: rgba(15, 23, 42, 0.14);
-	color: #0f172a;
+	color: var(--text-primary);
 	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
 
@@ -323,8 +323,8 @@
 
 .course-map-page-header-edit-save {
 	border: none;
-	background: var(--color-primary, #ffee00);
-	color: #0f172a;
+	background: var(--color-brand-primary);
+	color: var(--btn-primary-text);
 }
 
 .course-map-page-header-edit-save:disabled,
@@ -346,7 +346,7 @@
 	background-color: #ffffff !important;
 	border: 1px solid rgba(15, 23, 42, 0.14) !important;
 	border-radius: 999px;
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 	cursor: pointer;
 	transition: background 0.2s, border-color 0.2s;
 	flex-shrink: 0;
@@ -425,8 +425,8 @@
 	font-size: 0.875rem;
 	line-height: 1.45;
 	color: var(--text-secondary, #64748b);
-	background: color-mix(in srgb, var(--color-success, #059669) 10%, var(--bg-secondary));
-	border: 1px dashed color-mix(in srgb, var(--color-success, #059669) 32%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-success) 10%, var(--bg-secondary));
+	border: 1px dashed color-mix(in srgb, var(--color-success) 32%, var(--border-primary));
 	border-radius: 12px;
 }
 
@@ -528,7 +528,7 @@
 .course-map-course-drag-handle:focus-visible {
 	outline: none;
 	box-shadow:
-		0 0 0 2px var(--bg-elevated, #0f172a),
+		0 0 0 2px var(--bg-elevated, var(--text-primary)),
 		0 0 0 4px rgba(52, 211, 153, 0.8),
 		0 6px 14px rgba(2, 6, 23, 0.35);
 }
@@ -903,7 +903,7 @@
 	background: #ffffff !important;
 	background-color: #ffffff !important;
 	border-color: rgba(15, 23, 42, 0.14) !important;
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 	backdrop-filter: none;
 	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
@@ -912,7 +912,7 @@
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back .course-map-page-back-label,
 [data-theme="light"] .course-map-page-header--branded .course-map-page-back svg,
 [data-theme="light"] .course-map-page-header--custom-colors .course-map-page-back svg {
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 }
 
 [data-theme="light"] .course-map-page-header--branded .course-map-page-back:hover,
@@ -920,13 +920,13 @@
 	background: #ffffff !important;
 	background-color: #ffffff !important;
 	border-color: rgba(15, 23, 42, 0.22) !important;
-	color: #0f172a !important;
+	color: var(--text-primary) !important;
 }
 
 [data-theme="light"] .course-map-page-header--branded:not(.course-map-page-header--custom-colors) .course-map-page-header-edit-btn {
 	background: rgba(255, 255, 255, 0.92);
 	border-color: rgba(15, 23, 42, 0.12);
-	color: var(--text-primary, #0f172a);
+	color: var(--text-primary);
 	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 

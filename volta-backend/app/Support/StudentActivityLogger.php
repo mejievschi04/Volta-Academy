@@ -117,16 +117,4 @@ class StudentActivityLogger
             ->exists();
     }
 
-    public static function courseWasAlreadyCompleted(int $userId, int $courseId): bool
-    {
-        if (! DB::getSchemaBuilder()->hasTable('course_user')) {
-            return false;
-        }
-
-        return DB::table('course_user')
-            ->where('user_id', $userId)
-            ->where('course_id', $courseId)
-            ->whereNotNull('completed_at')
-            ->exists();
-    }
 }

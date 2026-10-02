@@ -77,11 +77,4 @@ class TestResult extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Check if result is passing
-     */
-    public function isPassing(): bool
-    {
-        return $this->passed;
-    }
 }

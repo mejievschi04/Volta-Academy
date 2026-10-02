@@ -333,7 +333,7 @@ const ProfilePage = () => {
 					<button
 						type="button"
 						onClick={() => navigate('/admin/users')}
-						className="admin-back-btn"
+						className="va-btn-back admin-back-btn"
 					>
 						<ArrowLeft size={18} aria-hidden />
 						<span>Înapoi la Utilizatori</span>

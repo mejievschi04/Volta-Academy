@@ -15,7 +15,7 @@ const AdminTasksPage = () => {
 					<button
 						type="button"
 						onClick={() => navigate('/admin')}
-						className="admin-back-btn"
+						className="va-btn-back admin-back-btn"
 						style={{ marginBottom: 'var(--space-4)' }}
 					>
 						<ArrowLeft size={18} aria-hidden />

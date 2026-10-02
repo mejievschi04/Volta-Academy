@@ -21,7 +21,6 @@
 	box-sizing: border-box;
 }
 .student-exam-page .exam-question-overview .student-exam-nav-item { min-width: 44px; min-height: 44px; }
-.student-exam-page .student-exam-question-flag { min-height: 44px; }
 @media (max-width: 768px) {
 	.va-shell .courses-page-student .courses-page-student-filters { gap: 4px !important; }
 	.va-shell .courses-page-student .courses-page-student-filter {
@@ -33,9 +32,4 @@
 	.student-exam-page .exam-question-overview { position: static; width: 100%; margin-bottom: 16px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-elevated); }
 	.student-exam-page .exam-question-overview summary { min-height: 44px; box-sizing: border-box; }
 	.student-exam-page .exam-question-overview .student-exam-nav { display: block !important; border: 0; }
-	.student-exam-page .student-exam-desktop-meta { display: block !important; margin-top: 12px; }
-	.student-exam-page .student-exam-desktop-meta-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-	.student-exam-page .student-exam-desktop-meta-seq { display: none; }
-	.student-exam-page .student-exam-desktop-progress { height: 6px; border-radius: 99px; background: var(--border-primary); overflow: hidden; }
-	.student-exam-page .student-exam-desktop-progress-fill { height: 100%; background: var(--color-primary); border-radius: inherit; }
 }

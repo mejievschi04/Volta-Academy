@@ -400,7 +400,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
     <div className="qb-page qb-page-v2 qb-folder-detail-page">
       <div className="qb-shell qb-shell-detail">
         <header className="qb-detail-hero">
-          <Link to="/admin/question-banks" className="qb-back-btn qb-detail-back admin-back-btn">
+          <Link to="/admin/question-banks" className="va-btn-back qb-back-btn qb-detail-back va-btn-back admin-back-btn">
             <ArrowLeft size={18} aria-hidden />
             Înapoi
           </Link>
@@ -522,7 +522,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
                 </button>
                 <button
                   type="button"
-                  className="lms-btn-secondary va-btn-danger qb-action-button"
+                  className="lms-btn-secondary va-btn-delete va-btn-danger qb-action-button"
                   disabled={!selectedIds.length}
                   onClick={runBulkDelete}
                 >
@@ -595,7 +595,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
             <button type="button" className="lms-btn-secondary" onClick={() => setEditOpen(false)}>
               Anulează
             </button>
-            <button type="button" className="lms-btn-primary" onClick={saveFolder}>
+            <button type="button" className="va-btn-save lms-btn-primary" onClick={saveFolder}>
               Salvează
             </button>
           </div>
@@ -610,7 +610,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
             <button type="button" className="lms-btn-secondary" onClick={() => setQuestionEditorOpen(false)} disabled={questionEditorSaving}>
               Anulează
             </button>
-            <button type="button" className="lms-btn-primary" onClick={saveQuestionFromEditor} disabled={questionEditorSaving}>
+            <button type="button" className="va-btn-save lms-btn-primary" onClick={saveQuestionFromEditor} disabled={questionEditorSaving}>
               {questionEditorSaving ? 'Se salvează...' : 'Salvează'}
             </button>
           </div>

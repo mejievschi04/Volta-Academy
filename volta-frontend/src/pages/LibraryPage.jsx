@@ -391,7 +391,7 @@ const LibraryPage = () => {
 												{canDeleteItem(item) && (
 													<button
 														type="button"
-														className="library-btn library-btn--danger library-btn--icon"
+														className="library-btn va-btn-delete library-btn--danger library-btn--icon"
 														disabled={deletingId === item.id}
 														onClick={(e) => {
 															e.stopPropagation();

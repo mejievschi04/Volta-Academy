@@ -33,7 +33,7 @@ const AdminProblematicCoursesPage = () => {
 				<div>
 					<button 
 						onClick={() => navigate('/admin')}
-						className="admin-back-btn"
+						className="va-btn-back admin-back-btn"
 						style={{ marginBottom: '1rem' }}
 					>
 						<ArrowLeft size={18} aria-hidden />

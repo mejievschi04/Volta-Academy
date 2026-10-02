@@ -58,7 +58,7 @@ export default function TestAttemptFooter({
                 </button>}
                 {children}
                 {showLeaveAfterSubmit && (
-                    <Link to={backTo} className="lms-btn-primary test-attempt-back-btn">{backLabel}</Link>
+                    <Link to={backTo} className="lms-btn-primary va-btn-back test-attempt-back-btn">{backLabel}</Link>
                 )}
                 {submitted && (
                     <Link to="/courses" className="test-attempt-home-btn">Pagina principală</Link>

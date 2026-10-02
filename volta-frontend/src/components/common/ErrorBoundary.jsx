@@ -1,6 +1,24 @@
 import React from 'react';
 import { logger } from '../../utils/logger';
 
+const CHUNK_RELOAD_KEY = 'va:chunk-reload';
+
+function isStaleChunkError(error) {
+	const message = String(error?.message || error || '');
+	return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message);
+}
+
+function reloadOnceForStaleChunk() {
+	try {
+		if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === '1') return false;
+		sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+	} catch {
+		return false;
+	}
+	window.location.reload();
+	return true;
+}
+
 /**
  * Default fallback UI for ErrorBoundary (functional component, no inline styles).
  */
@@ -58,6 +76,7 @@ class ErrorBoundary extends React.Component {
 	}
 
 	componentDidCatch(error, errorInfo) {
+		if (isStaleChunkError(error) && reloadOnceForStaleChunk()) return;
 		logger.error('Error Boundary caught an error:', {
 			error,
 			errorInfo,
@@ -67,6 +86,15 @@ class ErrorBoundary extends React.Component {
 	}
 
 	handleReset = () => {
+		if (isStaleChunkError(this.state.error)) {
+			try {
+				sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+			} catch {
+				/* ignore */
+			}
+			window.location.reload();
+			return;
+		}
 		this.setState({ hasError: false, error: null, errorInfo: null });
 	};
 

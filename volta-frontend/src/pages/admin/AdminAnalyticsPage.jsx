@@ -140,7 +140,7 @@ const AdminAnalyticsPage = () => {
 							))}
 						</div>
 						<button
-							className="analytics-back-btn admin-back-btn"
+							className="analytics-back-btn va-btn-back admin-back-btn"
 							onClick={() => navigate('/admin')}
 						>
 							<ArrowLeft size={14} weight="bold" aria-hidden /> Dashboard

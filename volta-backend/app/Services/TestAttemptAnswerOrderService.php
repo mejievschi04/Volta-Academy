@@ -346,16 +346,6 @@ class TestAttemptAnswerOrderService
         return $this->displayIndicesToOriginal($legacyDisplay, $order['display_to_original']);
     }
 
-    /**
-     * @return int[]
-     */
-    public function selectedOriginalAsDisplay(mixed $storedAnswer, string $questionType, array $order): array
-    {
-        $originalSelected = $this->selectedOriginalIndicesFromStored($storedAnswer, $questionType, $order);
-
-        return $this->originalIndicesToDisplay($originalSelected, $order['original_to_display']);
-    }
-
     public function comparableAnswerText(mixed $value): string
     {
         if (is_array($value)) {

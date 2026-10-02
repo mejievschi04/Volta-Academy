@@ -117,12 +117,6 @@
 	border-color: var(--btn-primary-border);
 }
 
-.library-reader-btn-secondary {
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	border-color: var(--border-primary);
-}
-
 .library-reader-floating-btn {
 	background: transparent;
 	color: var(--text-secondary);

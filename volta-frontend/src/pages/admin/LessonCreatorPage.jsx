@@ -305,7 +305,7 @@ const LessonCreatorPage = () => {
 						</p>
 					</div>
 					<button 
-						className="admin-back-btn" 
+						className="va-btn-back admin-back-btn" 
 						onClick={() => {
 							if (formData.course_id) {
 								navigate(`/admin/courses/${formData.course_id}`);

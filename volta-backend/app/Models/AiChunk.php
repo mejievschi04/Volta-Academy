@@ -46,11 +46,6 @@ class AiChunk extends Model
         return $this->belongsTo(Lesson::class);
     }
 
-    public function contentBlock()
-    {
-        return $this->belongsTo(ContentBlock::class);
-    }
-
     public function embeddings()
     {
         return $this->hasMany(AiEmbedding::class);

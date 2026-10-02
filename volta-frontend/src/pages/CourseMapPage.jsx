@@ -311,13 +311,13 @@ const CourseMapPage = () => {
 					<div className="course-map-page-header-top">
 						<button
 							type="button"
-							className="course-map-page-back"
+							className="va-btn-back course-map-page-back"
 							onClick={() => navigate(mapsListPath)}
 							aria-label={mapsListAriaLabel}
 							title={mapsListShortLabel}
 						>
 							<ArrowLeft size={20} weight="bold" aria-hidden="true" />
-							<span className="course-map-page-back-label">Înapoi</span>
+							<span className="va-btn-back course-map-page-back-label">Înapoi</span>
 						</button>
 						<div className="course-map-page-title-block">
 							<div className="course-map-page-title-row">

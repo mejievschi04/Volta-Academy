@@ -53,8 +53,8 @@
 .admin-container .btn-primary:hover:not(:disabled),
 .admin-container .lms-btn-primary:hover:not(:disabled),
 .admin-container .admin-btn-create-course:hover:not(:disabled) {
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-	transform: translateY(-2px);
+	box-shadow: none;
+	transform: none;
 }
 
 .va-shell-main .btn-primary:active:not(:disabled),
@@ -85,31 +85,23 @@
 }
 
 /* Secondary - rotunjit, hover modern */
-.va-shell-main .btn-secondary,
 .va-shell-main .admin-btn-secondary,
-.admin-container .btn-secondary,
 .admin-container .admin-btn-secondary {
 	border-radius: var(--btn-desktop-radius);
 }
 
-.va-shell-main .btn-secondary:hover:not(:disabled),
 .va-shell-main .admin-btn-secondary:hover:not(:disabled),
-.admin-container .btn-secondary:hover:not(:disabled),
 .admin-container .admin-btn-secondary:hover:not(:disabled) {
-	box-shadow: 0 4px 16px var(--color-primary-alpha-20);
-	transform: translateY(-2px);
+	box-shadow: none;
+	transform: none;
 }
 
-.va-shell-main .btn-secondary:active:not(:disabled),
 .va-shell-main .admin-btn-secondary:active:not(:disabled),
-.admin-container .btn-secondary:active:not(:disabled),
 .admin-container .admin-btn-secondary:active:not(:disabled) {
 	transform: translateY(0);
 }
 
-.va-shell-main .btn-secondary:focus-visible,
 .va-shell-main .admin-btn-secondary:focus-visible,
-.admin-container .btn-secondary:focus-visible,
 .admin-container .admin-btn-secondary:focus-visible {
 	outline: none;
 	box-shadow: 0 0 0 3px var(--color-primary-alpha-30);
@@ -117,9 +109,7 @@
 
 /* Grupuri de butoane - spațiere aranjată, gap consistent */
 .va-shell-main .admin-courses-header-actions,
-.va-shell-main .admin-courses-toolbar-actions,
-.admin-container .admin-courses-header-actions,
-.admin-container .admin-courses-toolbar-actions {
+.admin-container .admin-courses-header-actions {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);

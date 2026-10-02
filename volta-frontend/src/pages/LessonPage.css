@@ -76,10 +76,10 @@
 .lesson-study-tools {
 	margin-top: var(--space-8);
 	padding: var(--space-5);
-	border: 1px solid color-mix(in srgb, #ffee00 40%, var(--border-primary));
+	border: 1px solid color-mix(in srgb, var(--color-brand-primary) 40%, var(--border-primary));
 	border-radius: var(--radius-xl);
 	background:
-		linear-gradient(135deg, color-mix(in srgb, #ffee00 12%, transparent), transparent 48%),
+		linear-gradient(135deg, color-mix(in srgb, var(--color-brand-primary) 12%, transparent), transparent 48%),
 		var(--bg-elevated);
 	box-shadow: var(--shadow-sm);
 }
@@ -123,9 +123,9 @@
 
 .lesson-study-tool-btn {
 	padding: var(--space-2) var(--space-4);
-	border-radius: 999px;
-	border: 1px solid color-mix(in srgb, #ffee00 55%, var(--border-primary));
-	background: color-mix(in srgb, #ffee00 18%, var(--bg-elevated));
+	border-radius: var(--btn-desktop-radius);
+	border: 1px solid var(--border-secondary);
+	background: var(--bg-elevated);
 	color: var(--text-primary);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
@@ -134,9 +134,9 @@
 }
 
 .lesson-study-tool-btn:hover:not(:disabled) {
-	transform: translateY(-1px);
-	border-color: #ffd400;
-	background: color-mix(in srgb, #ffee00 28%, var(--bg-elevated));
+	transform: none;
+	border-color: var(--border-accent);
+	background: var(--bg-secondary);
 }
 
 .lesson-study-tool-btn:disabled {
@@ -177,9 +177,9 @@
 
 .lesson-study-result-header span {
 	padding: var(--space-1) var(--space-3);
-	border-radius: 999px;
-	background: #ffee00;
-	color: #161300;
+	border-radius: var(--btn-desktop-radius);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-bold);
 }
@@ -202,7 +202,7 @@
 .lesson-study-takeaway {
 	padding: var(--space-3);
 	border-radius: var(--radius-md);
-	background: color-mix(in srgb, #ffee00 16%, var(--bg-elevated));
+	background: color-mix(in srgb, var(--color-brand-primary) 16%, var(--bg-elevated));
 	font-weight: var(--font-weight-semibold);
 }
 
@@ -236,7 +236,7 @@
 
 .lesson-study-question li.is-correct {
 	font-weight: var(--font-weight-bold);
-	color: #166534;
+	color: var(--color-success);
 }
 
 .lesson-study-plan-step {
@@ -249,9 +249,9 @@
 	min-width: 54px;
 	text-align: center;
 	padding: var(--space-1) var(--space-2);
-	border-radius: 999px;
-	background: #ffee00;
-	color: #161300;
+	border-radius: var(--btn-desktop-radius);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-bold);
 }
@@ -457,7 +457,7 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-blocks .lesson-preview-co
 
 .lesson-page-type-badge {
 	padding: var(--space-1) var(--space-3);
-	background: rgba(255, 238, 0, 0.15);
+	background: rgba(var(--color-primary-rgb), 0.15);
 	color: var(--color-brand-primary);
 	border-radius: var(--radius-full);
 	font-size: var(--font-size-xs);
@@ -615,7 +615,7 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	width: 120px;
 	height: 120px;
 	margin: 0 auto var(--space-8);
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.1) 0%, rgba(255, 238, 0, 0.03) 100%);
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1) 0%, rgba(var(--color-primary-rgb), 0.03) 100%);
 	border-radius: 50%;
 	color: var(--text-tertiary);
 	border: 3px solid var(--border-primary);
@@ -676,7 +676,7 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 .lesson-page-btn-primary {
 	background: var(--color-brand-primary);
 	color: var(--text-inverse);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.25);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .lesson-page-btn-primary::before {
@@ -700,7 +700,7 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 .lesson-page-btn-primary:hover:not(:disabled) {
 	background: var(--color-brand-hover);
 	transform: translateY(-2px);
-	box-shadow: 0 6px 20px rgba(255, 238, 0, 0.35);
+	box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.35);
 }
 
 .lesson-page-btn-primary span,
@@ -719,7 +719,7 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	background: var(--bg-tertiary);
 	border-color: var(--color-brand-primary);
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.15);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.15);
 }
 
 .lesson-page-completed-badge {

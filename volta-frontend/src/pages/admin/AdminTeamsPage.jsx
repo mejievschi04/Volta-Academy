@@ -35,7 +35,6 @@ import { Books, PencilSimple, Plus, Trash, UsersThree } from '@phosphor-icons/re
 import { DragGripIcon } from '../../components/common/DragGripIcon';
 
 const teamIconSm = { size: 16, weight: 'bold', 'aria-hidden': true };
-const teamIconMd = { size: 18, weight: 'bold', 'aria-hidden': true };
 
 function SortableTeamCard({ team, index, canMutate, children }) {
 	const sortId = `team-${team.id}`;
@@ -316,13 +315,13 @@ const AdminTeamsPage = () => {
 											<PencilSimple {...teamIconSm} />
 										</button>
 										<button
-											className="admin-btn admin-btn-sm admin-btn-danger admin-team-card-compact__icon-btn"
+											className="admin-btn admin-btn-sm admin-btn-ghost admin-team-card-compact__icon-btn admin-team-card-compact__icon-btn--danger"
 											onClick={() => handleDeleteClick(team.id)}
 											title="Șterge echipă"
 											aria-label="Șterge echipă"
 											type="button"
 										>
-											<Trash {...teamIconMd} />
+											<Trash {...teamIconSm} />
 										</button>
 									</div>
 									)}
@@ -485,7 +484,7 @@ const AdminTeamsPage = () => {
 									>
 										Anulează
 									</button>
-									<button type="submit" className="lms-btn-primary">
+									<button type="submit" className="va-btn-save lms-btn-primary">
 										Salvează
 									</button>
 								</div>
@@ -660,7 +659,7 @@ const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) =
 							<button type="button" className="lms-btn-secondary" onClick={onClose}>
 								Anulează
 							</button>
-							<button type="submit" className="lms-btn-primary">
+							<button type="submit" className="va-btn-save lms-btn-primary">
 								Salvează
 							</button>
 						</div>
@@ -770,7 +769,7 @@ const TeamMemberAssignCoursesModal = ({ team, member, courses, onClose, onSaved 
 							</div>
 							<div className="admin-team-modal-footer">
 								<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={saving}>Anulează</button>
-								<button type="submit" className="lms-btn-primary" disabled={saving}>{saving ? 'Se salvează…' : 'Salvează'}</button>
+								<button type="submit" className="va-btn-save lms-btn-primary" disabled={saving}>{saving ? 'Se salvează…' : 'Salvează'}</button>
 							</div>
 						</form>
 					)}
@@ -841,7 +840,7 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 							<button type="button" className="lms-btn-secondary" onClick={onClose}>
 								Anulează
 							</button>
-							<button type="submit" className="lms-btn-primary">
+							<button type="submit" className="va-btn-save lms-btn-primary">
 								Salvează
 							</button>
 						</div>

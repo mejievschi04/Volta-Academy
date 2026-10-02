@@ -1018,7 +1018,7 @@ const MessagesPage = () => {
 								</div>
 								<button
 									type="button"
-									className="messages-chat-actions-btn va-btn-danger"
+									className="messages-chat-actions-btn va-btn-delete va-btn-danger"
 									title={selectedConversation?.is_group ? 'Șterge grupul' : 'Șterge conversația'}
 									aria-label={selectedConversation?.is_group ? 'Șterge grupul' : 'Șterge conversația'}
 									onClick={() => setShowDeleteConversationConfirm(true)}
@@ -1306,7 +1306,7 @@ const MessagesPage = () => {
 										/>
 										<button
 											type="button"
-											className="lms-btn-primary"
+											className="va-btn-save lms-btn-primary"
 											disabled={updatingParticipants}
 											onClick={handleSaveGroupName}
 										>

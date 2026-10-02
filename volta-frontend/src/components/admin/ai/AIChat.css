@@ -147,7 +147,7 @@
 }
 
 .ai-chat-message-user .ai-chat-message-content {
-	background: color-mix(in srgb, var(--accent-primary, var(--color-info)) 86%, #0f172a);
+	background: color-mix(in srgb, var(--accent-primary, var(--color-info)) 86%, var(--bg-elevated));
 	color: var(--color-white);
 	border-bottom-right-radius: 6px;
 }
@@ -164,22 +164,22 @@
 	flex-direction: column;
 	gap: 8px;
 	min-width: 240px;
-	background: #0b0b0b;
-	border: 1px solid #f7df1e;
+	background: var(--bg-elevated);
+	border: 1px solid var(--color-brand-primary);
 	border-radius: 10px;
 	padding: 10px 12px;
 }
 
 .ai-chat-build-status-live {
 	min-width: 260px;
-	box-shadow: 0 12px 26px -18px rgba(247, 223, 30, 0.45);
+	box-shadow: 0 12px 26px -18px rgba(var(--color-primary-rgb), 0.45);
 }
 
 .ai-chat-build-status-title {
 	margin: 0;
 	font-size: 0.92rem;
 	font-weight: 600;
-	color: #f7df1e;
+	color: var(--color-brand-primary);
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -189,7 +189,7 @@
 .ai-chat-build-status-subtitle {
 	margin: 0;
 	font-size: 0.82rem;
-	color: rgba(247, 223, 30, 0.82);
+	color: rgba(var(--color-primary-rgb), 0.82);
 }
 
 .ai-chat-build-title-text {
@@ -206,7 +206,7 @@
 	width: 4px;
 	height: 4px;
 	border-radius: 999px;
-	background: #f7df1e;
+	background: var(--color-brand-primary);
 	opacity: 0.35;
 	animation: ai-chat-dot-pulse 1.4s ease-in-out infinite;
 }
@@ -235,7 +235,7 @@
 	height: 8px;
 	border-radius: 999px;
 	overflow: hidden;
-	background: rgba(247, 223, 30, 0.18);
+	background: rgba(var(--color-primary-rgb), 0.18);
 }
 
 .ai-chat-build-progress-bar {
@@ -243,18 +243,13 @@
 	inset: 0 auto 0 -35%;
 	width: 35%;
 	border-radius: inherit;
-	background: linear-gradient(90deg, rgba(247, 223, 30, 0.2), #f7df1e, rgba(247, 223, 30, 0.2));
+	background: linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.2), var(--color-brand-primary), rgba(var(--color-primary-rgb), 0.2));
 	animation: ai-chat-progress-sweep 1.2s ease-in-out infinite;
 }
 
 @keyframes ai-chat-progress-sweep {
 	0% { transform: translateX(0); }
 	100% { transform: translateX(390%); }
-}
-
-.ai-chat-typing-indicator {
-	display: inline-block;
-	animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
@@ -493,22 +488,22 @@
 }
 
 .ai-chat-btn-send:hover:not(:disabled) {
-	background: color-mix(in srgb, var(--accent-primary, var(--color-info)) 90%, #0f172a);
+	background: color-mix(in srgb, var(--accent-primary, var(--color-info)) 90%, var(--bg-elevated));
 	transform: translateY(-1px) scale(1.01);
 	box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.55);
 }
 
 .ai-chat-btn-export {
-	background: color-mix(in srgb, #16a34a 12%, var(--bg-elevated, #fff));
-	color: #166534;
-	border: 1px solid color-mix(in srgb, #16a34a 45%, var(--border-primary, #d1d5db));
+	background: color-mix(in srgb, var(--color-success) 12%, var(--bg-elevated, #fff));
+	color: var(--color-success);
+	border: 1px solid color-mix(in srgb, var(--color-success) 45%, var(--border-primary, #d1d5db));
 	font-weight: 700;
 	min-width: 58px;
 }
 
 .ai-chat-btn-export:hover:not(:disabled) {
-	background: color-mix(in srgb, #16a34a 20%, var(--bg-elevated, #fff));
-	border-color: #16a34a;
+	background: color-mix(in srgb, var(--color-success) 20%, var(--bg-elevated, #fff));
+	border-color: var(--color-success);
 	transform: translateY(-1px);
 }
 
@@ -573,27 +568,6 @@
 }
 
 /* Modal Overlay */
-.ai-chat-modal-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.5);
-	backdrop-filter: blur(4px);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10000;
-	animation: fadeIn 0.2s ease-in;
-}
-
-.ai-chat-modal {
-	width: 92%;
-	max-width: 720px;
-	max-height: 88vh;
-	animation: slideUp 0.3s ease-out;
-}
 
 @keyframes slideUp {
 	from {
@@ -607,14 +581,3 @@
 }
 
 /* Button styles for Volt course creator chat */
-.admin-btn-ai {
-	background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary-hover) 100%);
-	color: var(--color-white);
-	border: none;
-}
-
-.admin-btn-ai:hover {
-	background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%);
-	transform: translateY(-1px);
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}

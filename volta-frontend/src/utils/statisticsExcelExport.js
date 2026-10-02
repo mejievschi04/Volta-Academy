@@ -149,21 +149,6 @@ export function downloadStructuredExcel(filename, sheetLabel, rows) {
 	downloadWorkbook(filename, workbook);
 }
 
-export function downloadSimpleExcel(filename, sheetLabel, headers, rows) {
-	const normalizedRows = [headers, ...rows].map((row) => row.map(normalizeCell));
-	const workbook = XLSX.utils.book_new();
-	const worksheet = XLSX.utils.aoa_to_sheet(normalizedRows);
-	worksheet['!cols'] = computeColumnWidths(normalizedRows);
-	worksheet['!autofilter'] = {
-		ref: XLSX.utils.encode_range({
-			s: { r: 0, c: 0 },
-			e: { r: Math.max(normalizedRows.length - 1, 0), c: Math.max(headers.length - 1, 0) },
-		}),
-	};
-	XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName(sheetLabel));
-	downloadWorkbook(filename, workbook);
-}
-
 export function statisticsExcelFilename(slug) {
 	const s = String(slug || 'export')
 		.toLowerCase()

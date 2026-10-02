@@ -355,7 +355,7 @@ const AdminEventsPage = () => {
 							</button>
 							<button
 								type="button"
-								className="lms-btn-secondary va-btn-danger"
+								className="lms-btn-secondary va-btn-delete va-btn-danger"
 								onClick={() => {
 									if (showDeleteConfirm) {
 										confirmDelete();

@@ -74,7 +74,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 					{!readOnly && (
 						<button
 							type="button"
-							className="lms-btn-secondary va-btn-danger admin-course-overview-action-btn"
+							className="lms-btn-secondary va-btn-delete va-btn-danger admin-course-overview-action-btn"
 							onClick={() => onQuickAction('delete')}
 						>
 							<Trash {...iconProps} />

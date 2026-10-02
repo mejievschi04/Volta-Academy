@@ -130,10 +130,10 @@
 	--space-16: 64px;
 
 	/* Primary Color Alpha - for overlays, highlights, focus rings */
-	--color-primary-alpha-10: rgba(255, 238, 0, 0.1);
-	--color-primary-alpha-15: rgba(255, 238, 0, 0.15);
-	--color-primary-alpha-20: rgba(255, 238, 0, 0.2);
-	--color-primary-alpha-30: rgba(255, 238, 0, 0.3);
+	--color-primary-alpha-10: rgba(var(--color-primary-rgb), 0.1);
+	--color-primary-alpha-15: rgba(var(--color-primary-rgb), 0.15);
+	--color-primary-alpha-20: rgba(var(--color-primary-rgb), 0.2);
+	--color-primary-alpha-30: rgba(var(--color-primary-rgb), 0.3);
 	
 	/* Extended Spacing - Component-specific */
 	--space-card: var(--space-6);      /* 24px - Card padding */
@@ -205,10 +205,10 @@
 	--border-secondary: rgb(148, 163, 184);
 
 	/* Primary Alpha - slightly stronger on light backgrounds for visibility */
-	--color-primary-alpha-10: rgba(255, 238, 0, 0.12);
-	--color-primary-alpha-15: rgba(255, 238, 0, 0.18);
-	--color-primary-alpha-20: rgba(255, 238, 0, 0.25);
-	--color-primary-alpha-30: rgba(255, 238, 0, 0.35);
+	--color-primary-alpha-10: rgba(var(--color-primary-rgb), 0.12);
+	--color-primary-alpha-15: rgba(var(--color-primary-rgb), 0.18);
+	--color-primary-alpha-20: rgba(var(--color-primary-rgb), 0.25);
+	--color-primary-alpha-30: rgba(var(--color-primary-rgb), 0.35);
 
 	/* Shadows - Soft, Layered, Modern */
 	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -314,12 +314,6 @@ h5 { font-size: var(--font-size-lg); }
 h6 { font-size: var(--font-size-base); }
 
 /* Display Text - Hero Headings */
-.display-text {
-	font-size: var(--font-size-display);
-	font-weight: var(--font-weight-bold);
-	line-height: var(--line-height-tight);
-	letter-spacing: -0.03em;
-}
 
 /* Caption Text */
 .caption {
@@ -349,17 +343,6 @@ a:hover {
 /* ============================================
    4. UTILITY CLASSES
    ============================================ */
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-tertiary { color: var(--text-tertiary); }
-.text-accent { color: var(--color-primary); }
-
-.bg-primary { background-color: var(--bg-primary); }
-.bg-secondary { background-color: var(--bg-secondary); }
-.bg-elevated { background-color: var(--bg-elevated); }
-
-.opacity-70 { opacity: 0.7; }
-.opacity-50 { opacity: 0.5; }
 
 /* ============================================
    4b. SELECTION & REDUCED MOTION

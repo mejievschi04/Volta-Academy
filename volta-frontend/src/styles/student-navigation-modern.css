@@ -64,7 +64,7 @@
 
 .va-shell-topnav .modern-topnav-left .va-logo-text:hover .va-logo-icon-img,
 .va-shell-topnav .va-topnav-brand .va-logo-text:hover .va-logo-icon-img {
-	filter: drop-shadow(0 4px 8px rgba(255, 238, 0, 0.3));
+	filter: drop-shadow(0 4px 8px rgba(var(--color-primary-rgb), 0.3));
 }
 
 .va-shell-topnav .modern-topnav-right {
@@ -117,13 +117,13 @@
 
 .student-more-menu-item:hover,
 .student-more-menu-item.active {
-	background: color-mix(in srgb, #ffee00 32%, var(--bg-primary));
-	color: #0f172a;
+	background: color-mix(in srgb, var(--color-brand-primary) 32%, var(--bg-primary));
+	color: var(--btn-primary-text);
 }
 
 html[data-theme='dark'] .student-more-menu-item:hover,
 html[data-theme='dark'] .student-more-menu-item.active {
-	color: #0f172a;
+	color: var(--text-primary);
 }
 
 .va-shell-topnav .modern-topnav-item,
@@ -184,8 +184,8 @@ html[data-theme='dark'] .student-more-menu-item.active {
 .va-shell-topnav .va-topnav-btn.is-active {
 	color: var(--color-primary);
 	font-weight: var(--font-weight-semibold);
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.25) 0%, rgba(230, 214, 0, 0.15) 100%);
-	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.25) 0%, rgba(230, 214, 0, 0.15) 100%);
+	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 }
 
 /* Light theme - yellow background with black text */
@@ -204,7 +204,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 .va-shell-topnav .va-topnav-btn.is-active::after {
 	width: 80%;
 	height: 3px;
-	box-shadow: 0 0 8px rgba(255, 238, 0, 0.5);
+	box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.5);
 }
 
 .va-shell-topnav .modern-topnav-item-icon,
@@ -248,7 +248,6 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	white-space: nowrap;
 }
 
-
 /* Student Top Nav Controls */
 /* Admin view switcher → admin-view-switcher.css (încărcat global din App.jsx) */
 
@@ -269,7 +268,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 .va-shell-topnav .admin-topnav-user:hover {
 	border-color: var(--color-primary);
 	background: transparent;
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.15);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.15);
 	transform: translateY(-1px);
 }
 
@@ -285,7 +284,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	font-weight: var(--font-weight-bold);
 	font-size: var(--font-size-sm);
 	flex-shrink: 0;
-	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.3);
+	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 	border: 2px solid rgba(255, 255, 255, 0.1);
 	overflow: hidden;
 }
@@ -369,7 +368,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
 	border-color: var(--color-primary);
 	color: var(--color-primary);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.2);
 	transform: translateY(-1px);
 }
 
@@ -391,142 +390,6 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	border: 2px solid var(--bg-elevated);
 	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 	animation: pulse 2s infinite;
-}
-
-.va-shell-topnav .va-topnav-notifications-dropdown,
-.va-shell-topnav .admin-topnav-notifications-dropdown {
-	position: absolute;
-	top: calc(100% + var(--space-2));
-	right: 0;
-	width: 360px;
-	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
-	z-index: var(--z-dropdown);
-	overflow: hidden;
-	animation: slideDown 0.2s ease-out;
-	backdrop-filter: blur(20px) saturate(180%);
-	-webkit-backdrop-filter: blur(20px) saturate(180%);
-}
-
-.va-shell-topnav .admin-topnav-notifications-header {
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid var(--border-primary);
-}
-
-.va-shell-topnav .admin-topnav-notifications-header h3 {
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin: 0;
-}
-
-.va-shell-topnav .va-topnav-notifications-header-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
-}
-
-.va-shell-topnav .va-topnav-notifications-header-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	flex-shrink: 0;
-}
-
-.va-shell-topnav .va-topnav-notifications-see-all {
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-semibold);
-	color: var(--color-primary);
-	text-decoration: none;
-	white-space: nowrap;
-}
-
-.va-shell-topnav .va-topnav-notifications-see-all:hover {
-	text-decoration: underline;
-}
-
-.va-shell-topnav .va-topnav-notifications-clear-btn {
-	flex-shrink: 0;
-	padding: var(--space-1) var(--space-3);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-secondary);
-	background: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-md);
-	cursor: pointer;
-	transition: background var(--transition-base), color var(--transition-base);
-}
-
-.va-shell-topnav .va-topnav-notifications-clear-btn:hover {
-	color: var(--text-primary);
-	background: var(--bg-tertiary);
-}
-
-.va-shell-topnav .va-topnav-notification-item-plain {
-	width: 100%;
-	text-align: left;
-	font: inherit;
-	background: none;
-	border: none;
-}
-
-.va-shell-topnav .admin-topnav-notifications-list {
-	max-height: 400px;
-	overflow-y: auto;
-}
-
-.va-shell-topnav .admin-topnav-notification-item {
-	display: flex;
-	gap: var(--space-3);
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid var(--border-primary);
-	transition: all var(--transition-base);
-	cursor: pointer;
-	text-decoration: none;
-	color: inherit;
-}
-
-.va-shell-topnav .admin-topnav-notification-item:hover {
-	background-color: var(--bg-secondary);
-}
-
-.va-shell-topnav .admin-topnav-notification-item:last-child {
-	border-bottom: none;
-}
-
-.va-shell-topnav .admin-topnav-notification-icon {
-	width: 24px;
-	height: 24px;
-	flex-shrink: 0;
-	color: var(--color-primary);
-}
-
-.va-shell-topnav .admin-topnav-notification-content {
-	flex: 1;
-	min-width: 0;
-}
-
-.va-shell-topnav .admin-topnav-notification-title {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-primary);
-	margin-bottom: var(--space-1);
-}
-
-.va-shell-topnav .admin-topnav-notification-time {
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
-}
-
-.va-shell-topnav .admin-topnav-notifications-empty {
-	padding: var(--space-8) var(--space-6);
-	text-align: center;
-	color: var(--text-tertiary);
-	font-size: var(--font-size-sm);
 }
 
 /* ============================================
@@ -579,7 +442,6 @@ html[data-theme='dark'] .student-more-menu-item.active {
 }
 
 /* Courses page - scrollable (only if many courses) */
-.va-shell-topnav .courses-page,
 .va-shell-topnav .courses-page-modern {
 	padding: var(--space-2) var(--space-8) var(--space-8);
 	max-width: 1600px;

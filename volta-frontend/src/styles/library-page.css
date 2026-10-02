@@ -43,13 +43,6 @@
 	letter-spacing: -0.02em;
 }
 
-.library-page-lead {
-	color: var(--text-secondary);
-	margin: 0;
-	line-height: 1.55;
-	font-size: var(--font-size-sm, 0.875rem);
-}
-
 .library-section-title {
 	font-size: 1.05rem;
 	font-weight: 700;
@@ -125,16 +118,6 @@
 	box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.35);
 }
 
-.library-book-card--pdf .library-book-spine {
-	width: 12px;
-	background: linear-gradient(
-		90deg,
-		rgba(15, 23, 42, 0.9) 0%,
-		rgba(255, 255, 255, 0.12) 40%,
-		rgba(15, 23, 42, 0.75) 100%
-	);
-}
-
 /* Copertă */
 .library-book-cover {
 	position: relative;
@@ -145,7 +128,7 @@
 	border-radius: 2px 14px 14px 2px;
 	overflow: hidden;
 	background:
-		linear-gradient(155deg, var(--lib-cover-a, #0f172a) 0%, var(--lib-cover-b, #059669) 48%, color-mix(in srgb, var(--lib-cover-b, #059669) 65%, #000) 100%);
+		linear-gradient(155deg, var(--lib-cover-a, var(--bg-elevated)) 0%, var(--lib-cover-b, var(--color-success)) 48%, color-mix(in srgb, var(--lib-cover-b, var(--color-success)) 65%, #000) 100%);
 	box-shadow:
 		inset 0 0 0 1px rgba(255, 255, 255, 0.1),
 		inset 0 -30px 50px rgba(0, 0, 0, 0.2),
@@ -173,14 +156,6 @@
 		0 0 24px rgba(0, 0, 0, 0.85),
 		0 2px 12px rgba(0, 0, 0, 0.9),
 		0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.library-book-card--pdf .library-book-cover {
-	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-		inset 3px 0 0 rgba(255, 255, 255, 0.06),
-		inset 0 -40px 60px rgba(0, 0, 0, 0.25),
-		6px 16px 36px rgba(0, 0, 0, 0.4);
 }
 
 /* Reflexie + grain */
@@ -271,7 +246,7 @@
 	z-index: 4;
 	width: 22px;
 	height: 44px;
-	background: linear-gradient(180deg, #ffee00 0%, #c9a900 100%);
+	background: linear-gradient(180deg, var(--color-brand-primary) 0%, var(--color-brand-hover) 100%);
 	border-radius: 0 0 4px 4px;
 	box-shadow:
 		0 4px 12px rgba(0, 0, 0, 0.35),
@@ -298,29 +273,6 @@
 	flex: 1;
 }
 
-.library-book-author {
-	margin: 0;
-	font-size: 0.75rem;
-	font-weight: 600;
-	color: var(--text-secondary);
-}
-
-.library-book-meta-chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.4rem;
-	font-size: 0.68rem;
-	color: var(--text-tertiary);
-}
-
-.library-book-meta-chips span {
-	padding: 0.2rem 0.45rem;
-	border-radius: 6px;
-	background: var(--bg-tertiary);
-	border: 1px solid var(--border-primary);
-	color: var(--text-tertiary);
-}
-
 .library-book-filename {
 	margin: 0;
 	font-size: 0.72rem;
@@ -328,17 +280,6 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.library-book-desc {
-	margin: 0.15rem 0 0;
-	font-size: 0.8rem;
-	line-height: 1.45;
-	color: var(--text-secondary);
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
 }
 
 .library-book-actions {
@@ -688,30 +629,17 @@
 /* Fallback fără color-mix (browsere vechi) */
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
 	.library-book-cover {
-		background: linear-gradient(155deg, var(--lib-cover-a, #0f172a) 0%, var(--lib-cover-b, #059669) 100%);
+		background: linear-gradient(155deg, var(--lib-cover-a, var(--bg-elevated)) 0%, var(--lib-cover-b, var(--color-success)) 100%);
 	}
 }
 
 /* light-theme-wcag: p/span/div → text-primary; refacem ierarhia pe zona bibliotecii */
-[data-theme="light"] .library-page p.library-page-lead,
 [data-theme="light"] .library-page p.library-empty,
 [data-theme="light"] .library-page p.library-hint {
 	color: var(--text-secondary) !important;
 }
 
-[data-theme="light"] .library-page .library-book-info p.library-book-author {
-	color: var(--text-secondary) !important;
-}
-
 [data-theme="light"] .library-page .library-book-info p.library-book-filename {
-	color: var(--text-tertiary) !important;
-}
-
-[data-theme="light"] .library-page .library-book-info p.library-book-desc {
-	color: var(--text-secondary) !important;
-}
-
-[data-theme="light"] .library-page .library-book-meta-chips span {
 	color: var(--text-tertiary) !important;
 }
 

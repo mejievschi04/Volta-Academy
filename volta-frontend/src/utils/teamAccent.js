@@ -21,13 +21,6 @@ function readTeamAccentColor(team) {
 }
 
 /**
- * Culoare afișată în liste/chip-uri: doar API sau gri neutru.
- */
-export function teamAccentNeutral(team) {
-	return readTeamAccentColor(team) || TEAM_ACCENT_NEUTRAL;
-}
-
-/**
  * Culoare stabilă per echipă (id): API sau intrare din paletă după id.
  */
 export function teamAccentByTeamId(team) {

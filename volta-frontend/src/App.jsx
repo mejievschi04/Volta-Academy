@@ -21,9 +21,9 @@ import ScrollToTop from './components/common/ScrollToTop';
 import { prefetchRoute } from './utils/prefetch';
 import { toImageUrl } from './utils/imageUrl';
 import { isStaffAdminRole } from './constants/staffRoles';
+import { BackButton } from './components/ui/ActionButtons';
 import { messagesService, adminService } from './services/api';
 import {
-	ArrowLeft,
 	BookOpenText,
 	Books,
 	CalendarDots,
@@ -51,9 +51,7 @@ import './styles/dark-theme.css';
 import './styles/unified-cards.css';
 import './styles/components.css';
 import './styles/button-modern.css';
-import './styles/common-patterns.css';
 import './styles/micro-interactions.css';
-import './styles/empty-states.css';
 import './styles/loading-states.css';
 import './styles/toast-system.css';
 import './styles/layout.css';
@@ -72,6 +70,8 @@ import './styles/builder-overrides.css';
 import './components/SplashScreen.css';
 /* Mobile optimizations must be last to override base styles */
 import './styles/mobile-optimizations.css';
+/* One control style, after every other global sheet. */
+import './styles/control-system.css';
 import logoShort from './assets/Volta Logo 2@300x 1.png';
 
 // Lazy load pages for code splitting
@@ -108,8 +108,6 @@ const AdminTasksPage = lazy(() => import('./pages/admin/AdminTasksPage'));
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
 const ModuleCreatorPage = lazy(() => import('./pages/admin/ModuleCreatorPage'));
 const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
-// const CourseCreatorPage = lazy(() => import('./pages/admin/CourseCreatorPage')); // Removed - will be rebuilt from scratch
-// const AdminCourseEditPage = lazy(() => import('./pages/admin/AdminCourseEditPage')); // Removed - will be rebuilt from scratch
 const CourseCreationPage = lazy(() => import('./pages/admin/CourseCreationPage'));
 const AdminCourseBuilderPage = lazy(() => import('./pages/admin/AdminCourseBuilderPage'));
 const AdminQuestionBanksPage = lazy(() => import('./pages/admin/AdminQuestionBanksPage'));
@@ -117,7 +115,6 @@ const AdminQuestionBankFolderDetailsPage = lazy(() => import('./pages/admin/Admi
 const AdminContentPage = lazy(() => import('./pages/admin/AdminContentPage'));
 const AdminTestsPendingReviewsPage = lazy(() => import('./pages/admin/AdminTestsPendingReviewsPage'));
 const AdminTestBuilderPage = lazy(() => import('./pages/admin/AdminTestBuilderPage'));
-// const AdminQuestionBankQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionBankQuestionsPage')); // Removed - will be rebuilt from scratch
 const QuestionBankBuilder = lazy(() => import('./components/admin/question-banks/QuestionBankBuilder'));
 const CompletedCoursesPage = lazy(() => import('./pages/CompletedCoursesPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
@@ -134,20 +131,6 @@ const PageLoader = () => (
 		<p>Se încarcă...</p>
 	</div>
 );
-
-function ProtectedRoute({ children }) {
-	const { user, loading } = useAuth();
-
-	if (loading) {
-		return null;
-	}
-
-	if (!user) {
-		return <Navigate to="/login" replace />;
-	}
-
-	return children;
-}
 
 function RedirectDetailToCourse() {
 	const { courseId } = useParams();
@@ -1165,13 +1148,12 @@ function AuthenticatedLayout({ children, authContext }) {
 							)}
 							{adminTopnavContext && (
 								<div className="admin-topnav-page-context desktop-only">
-									<button
-										type="button"
-										className="admin-topnav-page-context-back"
+									<BackButton
+										className="va-btn-back admin-topnav-page-context-back"
 										onClick={() => navigate(adminTopnavContext.backTo || '/admin/content?tab=courses&view=maps')}
 									>
-										<ArrowLeft size={14} weight="bold" aria-hidden /> {adminTopnavContext.backLabel || 'Înapoi'}
-									</button>
+										{adminTopnavContext.backLabel || 'Înapoi'}
+									</BackButton>
 									<span className="admin-topnav-page-context-title">
 										{adminTopnavContext.title || ''}
 									</span>
@@ -1425,9 +1407,8 @@ function AuthenticatedLayout({ children, authContext }) {
 
 					{/* Înapoi la Admin - minimal button when admin views as student */}
 					{isStudentPreviewMode && (
-						<button
-							type="button"
-							className="student-preview-back-to-admin"
+						<BackButton
+							className="va-btn-back student-preview-back-to-admin"
 							onClick={() => {
 								sessionStorage.removeItem('studentPreviewFromAdmin');
 								setAdminViewMode('admin');
@@ -1436,8 +1417,8 @@ function AuthenticatedLayout({ children, authContext }) {
 							title="Înapoi la Admin"
 							aria-label="Înapoi la Admin"
 						>
-							<ArrowLeft size={14} weight="bold" aria-hidden /> Admin
-						</button>
+							Admin
+						</BackButton>
 					)}
 				</>
 			)}
@@ -1460,6 +1441,17 @@ function App() {
 		const handleOpenSearch = () => setIsSearchOpen(true);
 		document.addEventListener('openGlobalSearch', handleOpenSearch);
 		return () => document.removeEventListener('openGlobalSearch', handleOpenSearch);
+	}, []);
+
+	useEffect(() => {
+		const id = window.setTimeout(() => {
+			try {
+				sessionStorage.removeItem('va:chunk-reload');
+			} catch {
+				/* ignore */
+			}
+		}, 4000);
+		return () => window.clearTimeout(id);
 	}, []);
 
 	return (

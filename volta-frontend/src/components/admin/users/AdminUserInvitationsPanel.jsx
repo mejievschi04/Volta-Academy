@@ -295,7 +295,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 												</button>
 												<button title="Anulează invitația" aria-label={`Anulează invitația: ${invitation.email}`}
 													type="button"
-													className="lms-btn-secondary lms-btn-sm va-btn-danger admin-users-action-compact"
+													className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger admin-users-action-compact"
 													disabled={busy}
 													onClick={() => handleCancel(invitation.id)}
 												>

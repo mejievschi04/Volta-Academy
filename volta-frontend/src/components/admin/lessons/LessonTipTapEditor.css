@@ -6,7 +6,7 @@
 	height: 100%;
 	border: 0;
 	background: transparent;
-	color: #111111;
+	color: var(--text-primary);
 }
 
 .lesson-tiptap-toolbar {
@@ -21,9 +21,9 @@
 	margin: 0 0 18px;
 	padding: 8px 0 10px;
 	border: 0;
-	border-bottom: 1px solid #e5e7eb;
+	border-bottom: 1px solid var(--border-primary);
 	border-radius: 0;
-	background: #ffffff;
+	background: var(--bg-elevated);
 }
 
 .lesson-tiptap-toolbar-tools,
@@ -43,7 +43,7 @@
 	width: 1px;
 	height: 16px;
 	margin: 0 4px;
-	background: #e5e7eb;
+	background: var(--border-primary);
 	flex-shrink: 0;
 }
 
@@ -62,7 +62,7 @@
 	border-radius: 8px !important;
 	background: transparent !important;
 	background-color: transparent !important;
-	color: #111111 !important;
+	color: var(--text-primary) !important;
 	cursor: pointer;
 	line-height: 0;
 	box-shadow: none !important;
@@ -72,27 +72,33 @@
 	width: 18px !important;
 	height: 18px !important;
 	display: block;
-	color: #111111 !important;
-	fill: #111111 !important;
+	color: var(--text-primary) !important;
+	fill: var(--text-primary) !important;
 	stroke: none !important;
 	background: transparent !important;
 	border-radius: 0 !important;
 }
 
 .lesson-tiptap-btn svg * {
-	fill: #111111 !important;
+	fill: var(--text-primary) !important;
 	stroke: none !important;
 }
 
 .lesson-tiptap-btn:hover:not(:disabled) {
-	background: #f4f4f5 !important;
-	background-color: #f4f4f5 !important;
+	background: var(--bg-secondary) !important;
+	background-color: var(--bg-secondary) !important;
 }
 
 .lesson-tiptap-btn.is-active {
-	background: #ffee00 !important;
-	background-color: #ffee00 !important;
-	color: #000000 !important;
+	background: var(--btn-primary-bg) !important;
+	background-color: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+}
+
+.lesson-tiptap-btn.is-active svg,
+.lesson-tiptap-btn.is-active svg * {
+	color: var(--btn-primary-text) !important;
+	fill: var(--btn-primary-text) !important;
 }
 
 .lesson-tiptap-btn:disabled {
@@ -103,10 +109,10 @@
 .lesson-tiptap-toolbar-end .admin-btn {
 	min-height: 32px;
 	padding: 6px 14px;
-	border: 0;
-	border-radius: 999px;
-	background: #ffee00;
-	color: #111111;
+	border: 1px solid var(--btn-primary-border);
+	border-radius: var(--btn-desktop-radius);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 	font-size: 0.82rem;
 	font-weight: 800;
 	cursor: pointer;
@@ -118,7 +124,7 @@
 }
 
 .lesson-tiptap-toolbar-end .admin-auto-save-indicator {
-	color: #64748b;
+	color: var(--text-tertiary);
 	font-size: 0.78rem;
 	font-weight: 700;
 	white-space: nowrap;
@@ -128,8 +134,8 @@
 	padding: 6px 14px;
 	border: 0;
 	border-radius: 999px;
-	background: #16a34a;
-	color: #ffffff !important;
+	background: var(--color-success);
+	color: var(--color-white) !important;
 }
 
 .lesson-tiptap-header .admin-course-builder-lesson-heading-row {
@@ -153,8 +159,8 @@
 	border: 0;
 	box-shadow: none;
 	background: transparent;
-	color: #111111;
-	caret-color: #111111;
+	color: var(--text-primary);
+	caret-color: var(--text-primary);
 	font-size: 17px;
 	line-height: 1.7;
 }
@@ -180,7 +186,7 @@
 .lesson-tiptap .ProseMirror h3 {
 	margin: 1.1em 0 0.4em;
 	line-height: 1.25;
-	color: #111111;
+	color: var(--text-primary);
 }
 
 .lesson-tiptap .ProseMirror p,
@@ -201,6 +207,6 @@
 }
 
 .lesson-tiptap .ProseMirror a {
-	color: #111111;
+	color: var(--text-primary);
 	text-decoration: underline;
 }

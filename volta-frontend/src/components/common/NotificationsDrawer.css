@@ -233,7 +233,7 @@
 
 .va-notif-drawer-row--action:hover {
 	border-color: var(--color-primary);
-	box-shadow: 0 4px 14px rgba(255, 238, 0, 0.12);
+	box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.12);
 }
 
 .va-notif-drawer-row--static {

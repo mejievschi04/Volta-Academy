@@ -70,8 +70,8 @@
 .guides-modal .library-form-row input:focus,
 .guides-modal .library-form-row textarea:focus {
 	outline: none;
-	border-color: #ffee00;
-	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.25);
+	border-color: var(--color-brand-primary);
+	box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .guides-cover-picker {
@@ -98,8 +98,8 @@
 	height: 64px;
 	border-radius: 10px;
 	overflow: hidden;
-	background: #0f172a;
-	color: #ffee00;
+	background: var(--color-brand-primary);
+	color: var(--btn-primary-text);
 }
 
 .guides-cover-picker-thumb img {
@@ -119,7 +119,7 @@
 .guides-cover-picker-copy strong {
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: #0f172a;
+	color: var(--text-primary);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -144,15 +144,15 @@ html body .guides-cover-picker-copy span {
 
 html body .guides-cover-picker-actions .library-btn--secondary.library-btn--secondary,
 html body .guides-modal .library-upload-modal-actions .library-btn--secondary.library-btn--secondary {
-	background: #0f172a !important;
-	color: #ffffff !important;
-	border: 1px solid #0f172a !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	border: 1px solid var(--border-secondary) !important;
 }
 
 html body .guides-cover-picker-actions .library-btn--danger.library-btn--danger {
-	background: #dc2626 !important;
-	color: #ffffff !important;
-	border: 1px solid #0f172a !important;
+	background: var(--color-error) !important;
+	color: var(--color-white) !important;
+	border: 1px solid var(--border-secondary) !important;
 }
 
 @media (max-width: 560px) {
@@ -170,7 +170,7 @@ html body .guides-cover-picker-actions .library-btn--danger.library-btn--danger 
 }
 
 [data-theme="dark"] .guides-cover-picker {
-	background: #111827;
+	background: var(--bg-elevated);
 	border-color: #6b7280;
 }
 

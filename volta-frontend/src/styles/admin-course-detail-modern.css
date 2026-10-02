@@ -526,7 +526,7 @@
 
 .course-distribution-btn-complete:hover:not(:disabled) {
 	border-color: var(--color-success, #22c55e);
-	color: var(--color-success, #16a34a);
+	color: var(--color-success);
 }
 
 .course-distribution-btn-complete:disabled {

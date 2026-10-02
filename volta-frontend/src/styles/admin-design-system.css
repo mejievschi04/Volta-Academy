@@ -1,29 +1,27 @@
 /*
- * Volta Academy admin design system.
- * Palette: accent #FFEE00 / #E6D800 / #FFF066, dark #0F172A / #111827,
- * surfaces #F8FAFC / #FFFFFF, text #0F172A / #6B7280 / #9CA3AF.
- * Selectors use `html body` + doubled classes so they win over page CSS and
- * the global theme button rules (those also exclude these classes).
+ * Admin controls follow design-system.css.
+ * --ds-* only aliases those tokens so older admin rules stay on the same scale.
+ * Selectors use `html body` + doubled classes so they win over page CSS.
  */
 
 :root {
-	--ds-accent: #ffee00;
-	--ds-accent-strong: #e6d800;
-	--ds-accent-soft: #fff066;
-	--ds-ink: #0f172a;
-	--ds-ink-2: #111827;
-	--ds-surface: #ffffff;
-	--ds-surface-soft: #f8fafc;
-	--ds-border: #e5e7eb;
-	--ds-muted: #6b7280;
-	--ds-faint: #9ca3af;
-	--ds-danger: #dc2626;
-	--ds-danger-strong: #b91c1c;
-	--ds-radius-sm: 10px;
-	--ds-radius: 12px;
-	--ds-radius-lg: 14px;
-	--ds-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
-	--ds-shadow-hover: 0 12px 24px rgba(15, 23, 42, 0.09);
+	--ds-accent: var(--color-brand-primary);
+	--ds-accent-strong: var(--color-brand-hover);
+	--ds-accent-soft: var(--color-brand-soft);
+	--ds-ink: var(--text-primary);
+	--ds-ink-2: var(--bg-sidebar-toggle);
+	--ds-surface: var(--bg-elevated);
+	--ds-surface-soft: var(--bg-primary);
+	--ds-border: var(--border-primary);
+	--ds-muted: var(--text-secondary);
+	--ds-faint: var(--text-disabled);
+	--ds-danger: var(--color-error);
+	--ds-danger-strong: var(--color-error);
+	--ds-radius-sm: var(--btn-desktop-radius);
+	--ds-radius: var(--radius-lg);
+	--ds-radius-lg: var(--radius-xl);
+	--ds-shadow: var(--shadow-sm);
+	--ds-shadow-hover: var(--shadow-md);
 }
 
 /* ---------- Segmented tabs (horizontal) ---------- */
@@ -45,21 +43,22 @@ html body .qb-tab-button.qb-tab-button,
 html body .admin-users-view-tab.admin-users-view-tab,
 html body .admin-settings-tab.admin-settings-tab,
 html body .admin-test-builder-section-tab.admin-test-builder-section-tab,
-html body .admin-statistics-tests-tab.admin-statistics-tests-tab {
+html body .admin-statistics-tests-tab.admin-statistics-tests-tab,
+html body .test-stats__nav-btn.test-stats__nav-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 8px;
-	height: 40px;
-	min-height: 40px;
-	padding: 0 16px;
-	border: 1px solid var(--ds-ink) !important;
-	border-radius: var(--ds-radius-sm) !important;
-	background: var(--ds-ink) !important;
-	color: #ffffff !important;
+	gap: var(--btn-desktop-gap);
+	height: var(--btn-desktop-min-height);
+	min-height: var(--btn-desktop-min-height);
+	padding: 0 var(--space-4);
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
 	box-shadow: none !important;
-	font-size: 14px;
-	font-weight: 800;
+	font-size: var(--btn-desktop-font-size);
+	font-weight: var(--font-weight-semibold);
 	line-height: 1;
 	white-space: nowrap;
 	cursor: pointer;
@@ -69,8 +68,9 @@ html body .admin-statistics-tests-tab.admin-statistics-tests-tab {
 html body .qb-tab-button.qb-tab-button svg,
 html body .admin-users-view-tab.admin-users-view-tab svg,
 html body .admin-settings-tab.admin-settings-tab svg,
-html body .admin-test-builder-section-tab.admin-test-builder-section-tab svg {
-	color: var(--ds-accent) !important;
+html body .admin-test-builder-section-tab.admin-test-builder-section-tab svg,
+html body .test-stats__nav-btn.test-stats__nav-btn svg {
+	color: var(--text-primary) !important;
 }
 
 html body .qb-tab-button.qb-tab-button span,
@@ -84,26 +84,30 @@ html body .qb-tab-button.qb-tab-button:hover:not(.is-active),
 html body .admin-users-view-tab.admin-users-view-tab:hover:not(.active),
 html body .admin-settings-tab.admin-settings-tab:hover:not(.active),
 html body .admin-test-builder-section-tab.admin-test-builder-section-tab:hover:not(.is-active),
-html body .admin-statistics-tests-tab.admin-statistics-tests-tab:hover:not(.is-active) {
-	border-color: var(--ds-accent) !important;
-	background: var(--ds-ink-2) !important;
+html body .admin-statistics-tests-tab.admin-statistics-tests-tab:hover:not(.is-active),
+html body .test-stats__nav-btn.test-stats__nav-btn:hover:not(.is-active) {
+	border-color: var(--border-accent) !important;
+	background: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
 }
 
 html body .qb-tab-button.qb-tab-button.is-active,
 html body .admin-users-view-tab.admin-users-view-tab.active,
 html body .admin-settings-tab.admin-settings-tab.active,
 html body .admin-test-builder-section-tab.admin-test-builder-section-tab.is-active,
-html body .admin-statistics-tests-tab.admin-statistics-tests-tab.is-active {
-	border-color: var(--ds-accent-strong) !important;
-	background: var(--ds-accent) !important;
-	color: var(--ds-ink) !important;
+html body .admin-statistics-tests-tab.admin-statistics-tests-tab.is-active,
+html body .test-stats__nav-btn.test-stats__nav-btn.is-active {
+	border-color: var(--btn-primary-border) !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
 }
 
 html body .qb-tab-button.qb-tab-button.is-active svg,
 html body .admin-users-view-tab.admin-users-view-tab.active svg,
 html body .admin-settings-tab.admin-settings-tab.active svg,
-html body .admin-test-builder-section-tab.admin-test-builder-section-tab.is-active svg {
-	color: var(--ds-ink) !important;
+html body .admin-test-builder-section-tab.admin-test-builder-section-tab.is-active svg,
+html body .test-stats__nav-btn.test-stats__nav-btn.is-active svg {
+	color: var(--btn-primary-text) !important;
 }
 
 /* ---------- Vertical nav (statistics sidebar) ---------- */
@@ -112,60 +116,115 @@ html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statisti
 	min-height: 42px;
 	align-items: flex-start;
 	gap: 4px;
-	padding: 12px 14px;
-	border: 2px solid var(--ds-ink) !important;
-	border-radius: 12px !important;
-	background: #ffffff !important;
-	color: var(--ds-ink) !important;
-	box-shadow: 3px 3px 0 var(--ds-ink) !important;
-	font-weight: 700;
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
+	font-weight: var(--font-weight-semibold);
+}
+
+html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn .admin-statistics-hub-nav-detail {
+	color: var(--text-secondary) !important;
+	font-weight: var(--font-weight-medium);
 }
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn:hover:not(.is-active) {
-	border-color: var(--ds-ink) !important;
-	background: #fff7a8 !important;
+	border-color: var(--border-accent) !important;
+	background: var(--bg-secondary) !important;
+	box-shadow: none !important;
 }
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn.is-active {
-	border-color: var(--ds-ink) !important;
-	background: var(--ds-accent) !important;
-	color: var(--ds-ink) !important;
-	box-shadow: 4px 4px 0 var(--ds-ink) !important;
-	font-weight: 800;
+	border-color: var(--btn-primary-border) !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	box-shadow: none !important;
+	font-weight: var(--font-weight-semibold);
 }
 
-/* ---------- Secondary (dark) action buttons ---------- */
+html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.is-active .admin-statistics-hub-nav-detail {
+	color: var(--btn-primary-text) !important;
+}
+
+html body .admin-statistics-team-filter select,
+html body .admin-container .va-input,
+html body .test-stats__filters select,
+html body .test-stats__filters input {
+	min-height: var(--btn-desktop-min-height);
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	font-weight: var(--font-weight-medium);
+	box-shadow: none !important;
+}
+
+/* ---------- Surface actions (same shape as tabs; primary stays yellow) ---------- */
 
 html body .qb-overview-refresh.qb-overview-refresh,
-html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn {
+html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn,
+html body .test-stats__refresh.test-stats__refresh,
+html body .admin-excel-export-btn.admin-excel-export-btn,
+html body .admin-container .lms-btn-secondary.lms-btn-secondary:not(.va-btn-danger),
+html body .admin-btn-secondary.admin-btn-secondary {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 8px;
-	min-height: 40px;
-	padding: 0 16px;
-	border: 1px solid var(--ds-ink) !important;
-	border-radius: var(--ds-radius) !important;
-	background: var(--ds-ink) !important;
-	color: #ffffff !important;
-	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18) !important;
-	font-size: 14px;
-	font-weight: 800;
+	gap: var(--btn-desktop-gap);
+	min-height: var(--btn-desktop-min-height);
+	padding: 0 var(--space-4);
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
+	font-size: var(--btn-desktop-font-size);
+	font-weight: var(--font-weight-semibold);
 	white-space: nowrap;
 	cursor: pointer;
 	transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 html body .qb-overview-refresh.qb-overview-refresh svg,
-html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn svg {
-	color: var(--ds-accent) !important;
+html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn svg,
+html body .test-stats__refresh.test-stats__refresh svg,
+html body .admin-container .lms-btn-secondary.lms-btn-secondary:not(.va-btn-danger) svg,
+html body .admin-container .lms-btn-primary.lms-btn-primary svg {
+	color: currentColor !important;
 }
 
 html body .qb-overview-refresh.qb-overview-refresh:hover,
-html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn:hover:not(:disabled) {
-	border-color: var(--ds-accent) !important;
-	background: var(--ds-ink-2) !important;
-	transform: translateY(-1px);
+html body .admin-exams-section-refresh-btn.admin-exams-section-refresh-btn:hover:not(:disabled),
+html body .test-stats__refresh.test-stats__refresh:hover:not(:disabled),
+html body .admin-excel-export-btn.admin-excel-export-btn:hover:not(:disabled),
+html body .admin-container .lms-btn-secondary.lms-btn-secondary:not(.va-btn-danger):hover,
+html body .admin-btn-secondary.admin-btn-secondary:hover:not(:disabled) {
+	border-color: var(--border-accent) !important;
+	background: var(--bg-secondary) !important;
+	color: var(--text-primary) !important;
+	transform: none;
+}
+
+html body .admin-btn-primary.admin-btn-primary,
+html body .admin-container .lms-btn-primary.lms-btn-primary {
+	min-height: var(--btn-desktop-min-height);
+	border: 1px solid var(--btn-primary-border) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	box-shadow: none !important;
+	font-size: var(--btn-desktop-font-size);
+	font-weight: var(--font-weight-semibold);
+}
+
+html body .admin-btn-primary.admin-btn-primary:hover:not(:disabled),
+html body .admin-container .lms-btn-primary.lms-btn-primary:hover {
+	background: var(--btn-primary-hover) !important;
+	border-color: var(--btn-primary-border) !important;
+	color: var(--btn-primary-text) !important;
+	transform: none;
 }
 
 /* ---------- Page hero ---------- */
@@ -365,7 +424,7 @@ html body .qb-search-field .qb-search-input:focus,
 html body .qb-search-field input[type='search']:focus {
 	border-color: var(--ds-accent-strong) !important;
 	background: var(--ds-surface) !important;
-	outline: 2px solid rgba(255, 238, 0, 0.35) !important;
+	outline: 2px solid rgba(var(--color-primary-rgb), 0.35) !important;
 	outline-offset: 1px;
 }
 

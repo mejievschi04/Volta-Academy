@@ -1564,12 +1564,15 @@ export const adminService = {
   getCourseBuilderStructure: async (courseId) => {
     const response = await api.get(`/admin/courses/${courseId}/builder/structure`, {
       params: { _t: Date.now() }, // evita cache-ul care poate returna ordinea veche
+      timeout: parseInt(import.meta.env.VITE_BUILDER_API_TIMEOUT || '60000', 10),
     });
     return response.data;
   },
 
   patchCourseBuilderStructure: async (courseId, ops) => {
-    const response = await api.patch(`/admin/courses/${courseId}/builder/structure`, { ops });
+    const response = await api.patch(`/admin/courses/${courseId}/builder/structure`, { ops }, {
+      timeout: parseInt(import.meta.env.VITE_BUILDER_API_TIMEOUT || '60000', 10),
+    });
     return response.data;
   },
 

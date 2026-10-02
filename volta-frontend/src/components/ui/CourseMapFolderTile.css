@@ -34,7 +34,7 @@
 }
 
 .course-map-folder-tile__hit:focus-visible .course-map-folder-tile__stage {
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #e6d800) 32%, transparent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 32%, transparent);
 }
 
 .course-map-folder-tile__stage {
@@ -182,7 +182,7 @@
 	display: block;
 	height: 100%;
 	border-radius: inherit;
-	background: var(--color-primary, #e6d800);
+	background: var(--color-brand-primary);
 }
 
 .course-map-folder-tile__footer {

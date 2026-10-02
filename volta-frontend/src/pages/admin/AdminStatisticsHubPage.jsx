@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
+import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
+import { BackButton } from '../../components/ui/ActionButtons';
 import {
 	buildStructuredExcelRows,
 	downloadStructuredExcel,
@@ -36,6 +38,20 @@ const AdminStatisticsHubPage = () => {
 	const [dateTo, setDateTo] = useState('');
 	const [testsViewMode, setTestsViewMode] = useState('tests');
 	const [testsSearch, setTestsSearch] = useState('');
+	const [openedTest, setOpenedTest] = useState(null);
+	const openTestRowProps = (row) => ({
+		className: 'admin-statistics-row-clickable',
+		role: 'button',
+		tabIndex: 0,
+		title: 'Deschide statistica testului',
+		onClick: () => setOpenedTest({ id: row.id, title: row.title }),
+		onKeyDown: (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				setOpenedTest({ id: row.id, title: row.title });
+			}
+		},
+	});
 	const formatDateShort = (value) => {
 		if (!value) return '—';
 		const date = new Date(value);
@@ -650,7 +666,7 @@ const AdminStatisticsHubPage = () => {
 					</thead>
 					<tbody>
 						{testProgressRows.map((row) => (
-							<tr key={row.id}>
+							<tr key={row.id} {...openTestRowProps(row)}>
 								<td><strong>{row.title}</strong></td>
 								<td>{row.attempts}</td>
 								<td>{row.passed}</td>
@@ -1385,7 +1401,7 @@ const AdminStatisticsHubPage = () => {
 					<tbody>
 						{testsViewMode === 'tests'
 							? filteredTestsRows.map((row) => (
-								<tr key={row.id}>
+								<tr key={row.id} {...openTestRowProps(row)}>
 									<td><strong>{row.title}</strong></td>
 									<td>{row.notStarted}</td>
 									<td>{row.started}</td>
@@ -1450,7 +1466,10 @@ const AdminStatisticsHubPage = () => {
 								key={item.id}
 								type="button"
 								className={`admin-statistics-hub-nav-btn${active === item.id ? ' is-active' : ''}`}
-								onClick={() => setActive(item.id)}
+								onClick={() => {
+									setActive(item.id);
+									setOpenedTest(null);
+								}}
 								aria-pressed={active === item.id}
 							>
 								<span className="admin-statistics-hub-nav-label">{item.label}</span>
@@ -1461,7 +1480,12 @@ const AdminStatisticsHubPage = () => {
 				</aside>
 
 				<section className="admin-statistics-hub-main">
-				{active === 'student-progress' ? (
+				{openedTest && (active === 'tests' || active === 'test-progress') ? (
+					<div className="admin-statistics-test-detail">
+						<BackButton onClick={() => setOpenedTest(null)}>Înapoi la teste</BackButton>
+						<TestStatisticsPanel testId={openedTest.id} testTitle={openedTest.title || 'Test'} />
+					</div>
+				) : active === 'student-progress' ? (
 					renderStudentProgress()
 				) : active === 'course-progress' ? (
 					renderCourseProgress()

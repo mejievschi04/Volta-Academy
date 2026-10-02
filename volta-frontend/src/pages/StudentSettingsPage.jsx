@@ -199,7 +199,7 @@ const StudentSettingsPage = () => {
 						{fieldErrors.bio ? <p className="va-input-error">{fieldErrors.bio}</p> : null}
 					</div>
 					<div className="student-settings-actions">
-						<button type="submit" className="lms-btn-primary student-settings-save-btn" disabled={saving}>
+						<button type="submit" className="lms-btn-primary va-btn-save student-settings-save-btn" disabled={saving}>
 							<FloppyDisk size={17} weight="duotone" aria-hidden />
 							{saving ? 'Se salvează...' : 'Salvează'}
 						</button>

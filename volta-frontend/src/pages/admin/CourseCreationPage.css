@@ -175,7 +175,7 @@
 .course-creation-simple-textarea:focus {
 	outline: none;
 	border-color: var(--color-primary);
-	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.15);
+	box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
 }
 
 .course-creation-simple-textarea {
@@ -295,12 +295,12 @@
 	color: var(--color-black);
 	cursor: pointer;
 	transition: all 0.2s;
-	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.25);
+	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .course-creation-simple-btn-primary:hover:not(:disabled) {
 	background: var(--color-primary-hover);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.35);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.35);
 }
 
 .course-creation-simple-btn-primary:disabled,

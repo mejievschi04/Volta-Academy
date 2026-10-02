@@ -252,47 +252,6 @@ class AIController extends Controller
         }
     }
 
-    /**
-     * Build the exact message payload used by the tutor job.
-     */
-    private function buildTutorJobPayload(Request $request, string $prompt): array
-    {
-        $messages = $request->input('messages', []);
-        $courseId = $request->input('courseId');
-        $lessonId = $request->input('lessonId');
-        $mode = (string) $request->input('mode', 'admin_tutor');
-        $intent = $this->determineTutorIntent($prompt);
-
-        $tutorContext = $this->buildTutorContext($request, $prompt);
-        if ($this->shouldUseUltraShortTutorMode($prompt, $tutorContext)) {
-            $mode .= ':ultra_short';
-        }
-
-        if ($intent !== 'answer') {
-            $mode .= ':' . $intent;
-        }
-
-        $systemPrompt = $this->getSystemPrompt('tutor', $courseId, false, $mode);
-        if ($tutorContext) {
-            $systemPrompt .= "\n\nContext din baza de date (folosește-l ca sursă principală și nu spune că nu ai acces la date dacă există context):\n"
-                . json_encode($tutorContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                . "\n\n" . $this->buildPlatformDataInstructions();
-        }
-
-        $attachments = $request->input('attachments', []);
-        if (is_array($attachments) && !empty($attachments)) {
-            $systemPrompt .= "\n\nDocumente atașate de administrator (folosește-le ca sursă adițională pentru răspuns):\n"
-                . $this->formatAttachmentContext($attachments);
-        }
-
-        return [
-            'mode' => $mode,
-            'messages' => $this->formatMessages($systemPrompt, $messages, $prompt),
-            'context_chunks' => $tutorContext['context_chunks'] ?? [],
-            'intent' => $intent,
-        ];
-    }
-
     private function canUseTutor(): bool
     {
         $user = auth()->user();
@@ -1690,47 +1649,6 @@ class AIController extends Controller
         return $deduped;
     }
 
-    public function validateTutorAnswerAgainstChunks(string $aiAnswer, array $chunks): bool
-    {
-        $answer = $this->normalizeTutorText($aiAnswer);
-        if ($answer === '') {
-            return false;
-        }
-
-        if (empty($chunks)) {
-            return false;
-        }
-
-        foreach ($chunks as $chunk) {
-            $chunkText = $this->normalizeTutorText((string) ($chunk['text'] ?? ''));
-            if ($chunkText === '') {
-                continue;
-            }
-
-            $snippet = mb_substr($chunkText, 0, 50);
-            if ($snippet !== '' && str_contains($answer, $snippet)) {
-                return true;
-            }
-
-            $chunkTokens = array_values(array_filter(preg_split('/\s+/u', $chunkText) ?: []));
-            $matches = 0;
-            foreach (array_slice($chunkTokens, 0, 10) as $token) {
-                if (mb_strlen($token) < 4) {
-                    continue;
-                }
-                if (str_contains($answer, $token)) {
-                    $matches++;
-                }
-            }
-
-            if ($matches >= 3) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function findCourseFromPrompt(string $prompt, $availableCourses): ?array
     {
         $normalizedPrompt = $this->normalizeTutorText($prompt);
@@ -2051,41 +1969,6 @@ class AIController extends Controller
 
         $text = trim(implode(' ', array_filter($parts)));
         return mb_substr($text, 0, 1800);
-    }
-
-    private function escapeTutorLike(string $value): string
-    {
-        return addcslashes($value, '%_\\');
-    }
-
-    private function formatTutorCourse(Course $course): array
-    {
-        return [
-            'id' => $course->id,
-            'title' => $course->title,
-            'description' => $course->description,
-            'level' => $course->level,
-            'status' => $course->status,
-            'teacher' => $course->teacher ? [
-                'id' => $course->teacher->id ?? null,
-                'name' => $course->teacher->name ?? null,
-            ] : null,
-            'module_count' => count($course->modules ?? []),
-            'lesson_count' => count($course->lessons ?? []),
-        ];
-    }
-
-    private function formatTutorLesson(Lesson $lesson): array
-    {
-        return [
-            'id' => $lesson->id,
-            'title' => $lesson->title,
-            'type' => $lesson->type,
-            'order' => $lesson->order,
-            'course_id' => $lesson->course_id,
-            'module_id' => $lesson->module_id,
-            'updated_at' => $lesson->updated_at?->toIso8601String(),
-        ];
     }
 
     private function streamResponse(Request $request, $type)

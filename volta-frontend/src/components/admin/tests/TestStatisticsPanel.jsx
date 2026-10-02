@@ -53,21 +53,6 @@ function typeLabel(type) {
 	return TYPE_LABELS[type] || type || 'Întrebare';
 }
 
-function difficultyTone(rate) {
-	if (rate == null) return 'neutral';
-	if (rate >= 70) return 'easy';
-	if (rate >= 40) return 'medium';
-	return 'hard';
-}
-
-function difficultyLabel(rate) {
-	const tone = difficultyTone(rate);
-	if (tone === 'easy') return 'Ușor';
-	if (tone === 'medium') return 'Mediu';
-	if (tone === 'hard') return 'Dificil';
-	return '—';
-}
-
 function discriminationLabel(index) {
 	if (index == null) return '—';
 	if (index >= 0.2) return 'Bună';
@@ -468,8 +453,6 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 				) : (
 					<div className="test-stats__items">
 						{sortedQuestions.map((question, index) => {
-							const rate = question.correct_rate;
-							const tone = difficultyTone(rate);
 							return (
 								<article key={question.question_id || index} className="test-stats__item">
 									<div className="test-stats__item-head">
@@ -484,11 +467,6 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 										</h4>
 										<div className="test-stats__item-badges">
 											<span className="test-stats__badge is-type">{typeLabel(question.question_type)}</span>
-											{rate != null ? (
-												<span className={`test-stats__badge${tone === 'hard' ? ' is-hard' : tone === 'easy' ? ' is-easy' : ''}`}>
-													{difficultyLabel(rate)} · {Math.round(rate)}%
-												</span>
-											) : null}
 										</div>
 									</div>
 
@@ -506,18 +484,6 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 											</span>
 										) : null}
 									</div>
-
-									{rate != null ? (
-										<div className="test-stats__difficulty">
-											<div className="test-stats__difficulty-top">
-												<span>Indice de dificultate</span>
-												<strong>{Number(question.difficulty_index ?? rate / 100).toFixed(2)}</strong>
-											</div>
-											<div className="test-stats__difficulty-track" aria-hidden>
-												<div className="test-stats__difficulty-fill" style={{ width: `${Math.max(0, Math.min(100, rate))}%` }} />
-											</div>
-										</div>
-									) : null}
 
 									{question.discrimination_index != null ? (
 										<div className={`test-stats__discrimination is-${discriminationTone(question.discrimination_index)}`}>

@@ -7,6 +7,7 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { useAuth } from '../../contexts/AuthContextShared.js';
 
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import { PublishSwitch } from '../../components/ui/PublishSwitch';
 import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import ExamContentPicker from '../../components/admin/exams/ExamContentPicker';
 import PassingScoreByQuestions from '../../components/admin/tests/PassingScoreByQuestions';
@@ -1147,7 +1148,7 @@ export default function AdminExamsPage() {
           <div className="admin-exams-builder-top-left">
             <button
               type="button"
-              className="admin-exams-builder-back-btn admin-back-btn"
+              className="admin-exams-builder-back-btn va-btn-back admin-back-btn"
               onClick={() => setViewMode('list')}
             >
               <ArrowLeft size={18} aria-hidden />
@@ -1160,22 +1161,11 @@ export default function AdminExamsPage() {
           </div>
 
           <div className="admin-exams-builder-actions">
-            <div className={`admin-exams-builder-publish${published ? ' is-published' : ''}`}>
-              <span>{published ? 'Publicat' : 'Ciornă'}</span>
-              <button
-                type="button"
-                className="admin-view-switcher admin-exams-header-switch"
-                onClick={handleTogglePublishedNow}
-                aria-pressed={published}
-                disabled={publishToggleLoading || saveState.loading}
-              >
-                <div
-                  className="admin-view-switcher-slider"
-                  style={{ transform: published ? 'translateX(27px)' : 'translateX(0)' }}
-                  aria-hidden
-                />
-              </button>
-            </div>
+            <PublishSwitch
+              published={published}
+              disabled={publishToggleLoading || saveState.loading}
+              onToggle={handleTogglePublishedNow}
+            />
             <button
               type="button"
               className="admin-exams-builder-ghost-btn"
@@ -1188,7 +1178,7 @@ export default function AdminExamsPage() {
             {canMutateInAdminArea ? (
               <button
                 type="button"
-                className="admin-exams-builder-save-btn"
+                className="va-btn-save admin-exams-builder-save-btn"
                 onClick={() => handleSaveExam()}
                 disabled={saveState.loading || publishToggleLoading}
               >
@@ -1296,7 +1286,7 @@ export default function AdminExamsPage() {
               <button type="button" className="admin-exams-list-btn-secondary" disabled={listActionId} onClick={() => setDeleteConfirmExam(null)}>
                 Anuleaza
               </button>
-              <button type="button" className="admin-exams-list-btn-danger-solid" disabled={listActionId} onClick={handleConfirmDeleteExam}>
+              <button type="button" className="va-btn-delete admin-exams-list-btn-danger-solid" disabled={listActionId} onClick={handleConfirmDeleteExam}>
                 {listActionId ? 'Se șterge...' : 'Da, șterge'}
               </button>
             </div>

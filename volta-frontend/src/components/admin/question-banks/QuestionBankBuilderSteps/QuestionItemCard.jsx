@@ -38,7 +38,7 @@ const QuestionItemCard = ({
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onPreview}>Previzualizare</button>
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onDuplicate} disabled={duplicateLoading}>Duplica</button>
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onEdit}>Editeaza</button>
-				<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-danger" onClick={onDelete}>Sterge</button>
+				<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={onDelete}>Sterge</button>
 			</div>
 		</div>
 	</div>

@@ -58,7 +58,7 @@
 }
 
 .lesson-image.is-selected .lesson-image-frame {
-	outline: 1px solid #111111;
+	outline: 1px solid var(--border-accent);
 	outline-offset: 0;
 }
 
@@ -68,9 +68,9 @@
 	box-sizing: border-box;
 	width: 9px;
 	height: 9px;
-	border: 1px solid #111111;
+	border: 1px solid var(--text-primary);
 	border-radius: 50%;
-	background: #ffee00;
+	background: var(--color-brand-primary);
 	touch-action: none;
 }
 

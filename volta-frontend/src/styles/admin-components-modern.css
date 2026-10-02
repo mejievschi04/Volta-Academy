@@ -6,46 +6,6 @@
 /* ============================================
    0. ADMIN CONTENT PAGE (Cursuri, Teste, Bănci)
    ============================================ */
-.admin-content-page .admin-content-page-header {
-	margin-bottom: var(--space-6);
-}
-
-.admin-content-page-title {
-	font-size: var(--font-size-3xl);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin: 0 0 var(--space-2) 0;
-	letter-spacing: -0.02em;
-}
-
-.admin-content-tabs {
-	display: flex;
-	gap: var(--space-2);
-	flex-wrap: wrap;
-	margin-top: var(--space-4);
-}
-
-.admin-content-tab {
-	padding: var(--space-2) var(--space-4);
-	border-radius: var(--radius-md);
-	font-size: var(--font-size-sm);
-	font-weight: 500;
-	color: var(--text-secondary);
-	background: transparent;
-	border: 1px solid transparent;
-	cursor: pointer;
-	transition: color, background, border-color var(--transition-base);
-}
-
-.admin-content-tab:hover {
-	color: var(--text-primary);
-}
-
-.admin-content-tab.active {
-	color: var(--color-primary);
-	background: rgba(255, 238, 0, 0.1);
-	border-color: var(--color-primary);
-}
 
 .admin-content-tab-panel {
 	margin-top: 0;
@@ -329,7 +289,7 @@
 	width: 100%;
 	height: 100%;
 	padding: 10px;
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.06), rgba(99, 102, 241, 0.06));
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.06), rgba(99, 102, 241, 0.06));
 	color: var(--text-secondary);
 	font-size: 0.78rem;
 	font-weight: 700;
@@ -375,7 +335,7 @@
 	padding: 0.68rem 0.95rem;
 	border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--border-primary));
 	border-radius: 12px;
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.16), rgba(255, 238, 0, 0.08));
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.16), rgba(var(--color-primary-rgb), 0.08));
 	color: var(--text-primary);
 	font-size: 0.86rem;
 	font-weight: 800;
@@ -385,7 +345,7 @@
 
 .admin-course-map-cover-button:hover {
 	border-color: color-mix(in srgb, var(--color-primary) 28%, var(--border-secondary));
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.24), rgba(255, 238, 0, 0.12));
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.24), rgba(var(--color-primary-rgb), 0.12));
 	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
 }
 
@@ -583,8 +543,8 @@
 
 .admin-course-map-visibility-option.is-selected,
 .admin-course-map-visibility-option:has(input:checked) {
-	border-color: color-mix(in srgb, var(--color-primary, #ffee00) 50%, var(--border-primary));
-	background: color-mix(in srgb, var(--color-primary, #ffee00) 14%, var(--bg-secondary));
+	border-color: color-mix(in srgb, var(--color-brand-primary) 50%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-brand-primary) 14%, var(--bg-secondary));
 }
 
 .admin-course-map-cover-compact {
@@ -775,17 +735,6 @@
 	border-bottom: none;
 }
 
-.admin-maps-reorder-hint {
-	margin: 0 0 var(--space-4, 1rem);
-	padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-	font-size: var(--font-size-sm, 0.875rem);
-	line-height: 1.45;
-	color: var(--text-secondary, #64748b);
-	background: color-mix(in srgb, var(--color-primary, #6366f1) 8%, var(--bg-elevated));
-	border: 1px dashed color-mix(in srgb, var(--color-primary, #6366f1) 35%, var(--border-primary));
-	border-radius: var(--radius-md, 10px);
-}
-
 .admin-course-map-order-hint {
 	margin: 0 0 var(--space-2, 0.5rem);
 	font-size: var(--font-size-sm, 0.875rem);
@@ -933,12 +882,6 @@
 	opacity: 0.7;
 }
 
-.admin-courses-subtitle-underline {
-	text-decoration: underline;
-	text-decoration-color: var(--color-primary);
-	text-underline-offset: 4px;
-}
-
 .admin-courses-header-actions {
 	display: flex;
 	align-items: center;
@@ -1003,28 +946,6 @@
 	background-color: var(--color-primary-hover);
 	border-color: var(--color-primary-hover);
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.admin-btn-ai-creator {
-	padding: var(--space-3) var(--space-6);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-primary);
-	font-size: var(--font-size-base);
-	font-weight: var(--font-weight-medium);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	font-family: var(--font-family);
-}
-
-.admin-btn-ai-creator:hover {
-	background-color: var(--bg-elevated);
-	border-color: var(--border-secondary);
-	box-shadow: var(--shadow-sm);
 }
 
 .admin-btn-create-course {
@@ -1141,22 +1062,6 @@
 	color: var(--text-primary);
 }
 
-.admin-courses-toolbar-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	flex-wrap: wrap;
-}
-
-.admin-view-mode-toggle {
-	display: flex;
-	gap: var(--space-1);
-	background: none;
-	background-color: transparent;
-	padding: 0;
-	border: none;
-}
-
 .admin-view-mode-btn {
 	padding: 4px 8px;
 	min-height: 28px;
@@ -1181,61 +1086,6 @@
 	background-color: var(--btn-primary-bg);
 	border-color: var(--color-primary);
 	color: var(--btn-primary-text);
-}
-
-.admin-btn-filter {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-3) var(--space-4);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-primary);
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	font-family: var(--font-family);
-	position: relative;
-}
-
-.admin-btn-filter:hover {
-	background-color: var(--bg-elevated);
-	border-color: var(--border-secondary);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-btn-filter.active {
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border-color: var(--btn-primary-border);
-}
-
-.admin-btn-filter svg {
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-}
-
-.admin-filter-badge {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 20px;
-	height: 20px;
-	padding: 0 var(--space-1);
-	background-color: var(--color-error);
-	color: white;
-	border-radius: var(--radius-full);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-semibold);
-	line-height: 1;
-	margin-left: var(--space-1);
-}
-
-.admin-btn-filter.active .admin-filter-badge {
-	background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ============================================
@@ -1269,13 +1119,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-}
-
-.admin-checkbox-input {
-	width: 18px;
-	height: 18px;
-	cursor: pointer;
-	accent-color: var(--color-primary);
 }
 
 .admin-course-table-thumbnail {
@@ -1457,7 +1300,7 @@
 
 .admin-course-card.selected {
 	border-color: var(--color-primary);
-	box-shadow: 0 4px 16px rgba(255, 238, 0, 0.25);
+	box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .admin-course-card.selected::before {
@@ -1628,7 +1471,7 @@
 .admin-course-map-drag-handle:focus-visible {
 	outline: none;
 	box-shadow:
-		0 0 0 2px var(--bg-elevated, #0f172a),
+		0 0 0 2px var(--bg-elevated, var(--text-primary)),
 		0 0 0 4px rgba(52, 211, 153, 0.8),
 		0 6px 14px rgba(2, 6, 23, 0.35);
 }
@@ -1714,7 +1557,7 @@
 .admin-course-map-color-button:focus-visible {
 	outline: none;
 	border-color: var(--color-primary);
-	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.14);
+	box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.14);
 }
 
 .admin-course-map-color-input-native {
@@ -2010,7 +1853,7 @@
 
 [data-theme="light"] .admin-course-map-showcase-wrap .admin-course-map-delete-btn {
 	background: #ffffff;
-	color: #0f172a;
+	color: var(--text-primary);
 	border: 1px solid rgba(15, 23, 42, 0.2);
 	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
@@ -2018,7 +1861,7 @@
 [data-theme="light"] .admin-course-map-showcase-wrap .course-showcase-dnd-handle,
 [data-theme="light"] .admin-course-map-showcase-wrap .admin-course-map-footer-actions .admin-course-map-edit-btn {
 	background: #ffffff;
-	color: #0f172a;
+	color: var(--text-primary);
 	border: 1px solid rgba(15, 23, 42, 0.2);
 	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 	backdrop-filter: none;
@@ -2039,7 +1882,7 @@
 
 [data-theme="light"] .admin-course-map-showcase-wrap .admin-course-map-footer-actions .admin-course-map-edit-btn:hover {
 	background: rgba(15, 23, 42, 0.08);
-	color: #0f172a;
+	color: var(--text-primary);
 	border-color: rgba(15, 23, 42, 0.32);
 }
 
@@ -2247,15 +2090,6 @@
 /* ============================================
    5. FILTERS PANEL
    ============================================ */
-.admin-courses-filters-panel {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-xl);
-	padding: var(--space-6);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-md);
-	margin-bottom: var(--space-6);
-	animation: slideDown 0.2s ease-out;
-}
 
 @keyframes slideDown {
 	from {
@@ -2268,126 +2102,9 @@
 	}
 }
 
-.admin-filters-content {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-	gap: var(--space-6);
-	margin-bottom: var(--space-4);
-}
-
-.admin-filter-group {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-}
-
-.admin-filter-label {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin-bottom: var(--space-2);
-}
-
-.admin-filter-buttons {
-	display: flex;
-	gap: var(--space-2);
-	flex-wrap: wrap;
-}
-
-.admin-filter-btn {
-	padding: var(--space-2) var(--space-4);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-primary);
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	font-family: var(--font-family);
-	white-space: nowrap;
-}
-
-.admin-filter-btn:hover {
-	background-color: var(--bg-elevated);
-	border-color: var(--border-secondary);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-filter-btn.active {
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border-color: var(--btn-primary-border);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-filter-select {
-	padding: var(--space-3) var(--space-4);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-primary);
-	font-size: var(--font-size-sm);
-	font-family: var(--font-family);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	appearance: none;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-	background-repeat: no-repeat;
-	background-position: right 0.75rem center;
-	background-size: 1em;
-	padding-right: 2.5rem;
-}
-
-.admin-filter-select:hover {
-	border-color: var(--border-secondary);
-	background-color: var(--bg-elevated);
-}
-
-.admin-filter-select:focus {
-	outline: none;
-	border-color: var(--border-focus);
-	box-shadow: var(--shadow-focus);
-	background-color: var(--bg-elevated);
-}
-
-.admin-filter-select option {
-	background-color: var(--bg-elevated);
-	color: var(--text-primary);
-}
-
 /* ============================================
    6. BULK ACTIONS BAR
    ============================================ */
-.admin-bulk-actions-bar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-4);
-	padding: var(--space-4) var(--space-6);
-	background-color: rgba(56, 189, 248, 0.1);
-	border: 1px solid var(--color-primary);
-	border-radius: var(--radius-xl);
-	margin-bottom: var(--space-6);
-	flex-wrap: wrap;
-}
-
-.admin-bulk-actions-info {
-	font-size: var(--font-size-base);
-	color: var(--text-primary);
-	font-weight: var(--font-weight-medium);
-}
-
-.admin-bulk-actions-info strong {
-	color: var(--color-primary);
-	font-weight: var(--font-weight-bold);
-}
-
-.admin-bulk-actions-buttons {
-	display: flex;
-	gap: var(--space-3);
-	flex-wrap: wrap;
-}
 
 /* ============================================
    7. COURSE CARD ADDITIONAL STYLES
@@ -2478,14 +2195,14 @@
 }
 
 .admin-course-card-action-btn-primary {
-	background: rgba(255, 238, 0, 0.2);
+	background: rgba(var(--color-primary-rgb), 0.2);
 	border-color: var(--color-primary);
 	color: var(--text-primary);
 	font-weight: 600;
 }
 
 .admin-course-card-action-btn-primary:hover {
-	background: rgba(255, 238, 0, 0.3);
+	background: rgba(var(--color-primary-rgb), 0.3);
 	border-color: var(--color-primary);
 	color: var(--text-primary);
 }
@@ -2630,7 +2347,7 @@
 
 [data-theme="light"] .admin-course-card.selected {
 	border-color: var(--color-primary);
-	box-shadow: 0 4px 20px rgba(255, 238, 0, 0.3);
+	box-shadow: 0 4px 20px rgba(var(--color-primary-rgb), 0.3);
 }
 
 [data-theme="light"] .admin-course-card-header {
@@ -2716,9 +2433,6 @@
 }
 
 /* Light theme improvements for other admin elements */
-[data-theme="light"] .admin-courses-page {
-	background-color: var(--bg-primary);
-}
 
 [data-theme="light"] .admin-courses-header-content {
 	background-color: var(--bg-elevated);
@@ -2757,24 +2471,8 @@
 
 [data-theme="light"] .admin-courses-search-input:focus {
 	border-color: var(--color-primary);
-	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
 	background-color: var(--bg-elevated);
-}
-
-[data-theme="light"] .admin-courses-filter-select {
-	background-color: var(--bg-elevated);
-	border: 1px solid var(--border-secondary);
-	color: var(--text-primary);
-}
-
-[data-theme="light"] .admin-courses-filter-select:hover {
-	border-color: var(--text-tertiary);
-	background-color: var(--bg-secondary);
-}
-
-[data-theme="light"] .admin-courses-filter-select:focus {
-	border-color: var(--color-primary);
-	box-shadow: 0 0 0 3px rgba(255, 238, 0, 0.2);
 }
 
 [data-theme="light"] .admin-view-mode-btn {
@@ -2794,23 +2492,6 @@
 	color: var(--text-inverse);
 }
 
-[data-theme="light"] .admin-btn-filter {
-	background-color: var(--bg-elevated);
-	border: 1px solid var(--border-secondary);
-	color: var(--text-secondary);
-}
-
-[data-theme="light"] .admin-btn-filter:hover {
-	background-color: var(--bg-secondary);
-	border-color: var(--text-tertiary);
-}
-
-[data-theme="light"] .admin-btn-filter.active {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border-color: var(--color-primary);
-}
-
 [data-theme="light"] .admin-course-table-row {
 	background-color: var(--bg-elevated);
 	border-bottom: 1px solid var(--border-primary);
@@ -2821,7 +2502,7 @@
 }
 
 [data-theme="light"] .admin-course-table-row.selected {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-left: 3px solid var(--color-primary);
 }
 
@@ -2865,7 +2546,6 @@
 		width: 100%;
 	}
 
-	.admin-btn-ai-creator,
 	.admin-btn-create-course {
 		flex: 1;
 		justify-content: center;
@@ -2884,38 +2564,5 @@
 
 	.admin-course-card-metrics {
 		grid-template-columns: 1fr;
-	}
-
-	.admin-courses-filters-panel {
-		padding: var(--space-4);
-	}
-
-	.admin-filters-content {
-		grid-template-columns: 1fr;
-		gap: var(--space-4);
-	}
-
-	.admin-filter-buttons {
-		flex-direction: column;
-	}
-
-	.admin-filter-btn {
-		width: 100%;
-		justify-content: center;
-	}
-
-	.admin-courses-toolbar-actions {
-		width: 100%;
-		justify-content: space-between;
-	}
-
-	.admin-view-mode-toggle {
-		order: 2;
-	}
-
-	.admin-btn-filter {
-		order: 1;
-		flex: 1;
-		justify-content: center;
 	}
 }

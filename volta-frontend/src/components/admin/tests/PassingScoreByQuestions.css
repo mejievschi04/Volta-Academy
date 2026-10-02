@@ -43,7 +43,7 @@
 .passing-score-by-questions-row input[type='number']:focus {
 	outline: none;
 	border-color: var(--builder-accent, var(--color-primary));
-	box-shadow: 0 0 0 3px var(--builder-accent-ring, rgba(255, 238, 0, 0.2));
+	box-shadow: 0 0 0 3px var(--builder-accent-ring, rgba(var(--color-primary-rgb), 0.2));
 }
 
 .passing-score-by-questions-din,
@@ -59,8 +59,8 @@
 	min-width: 3.4rem;
 	padding: 8px 12px;
 	border-radius: 10px;
-	background: color-mix(in srgb, var(--color-primary, #ffee00) 18%, var(--bg-elevated, var(--bg-primary)));
-	border: 1px solid color-mix(in srgb, var(--color-primary, #ffee00) 28%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-brand-primary) 18%, var(--bg-elevated, var(--bg-primary)));
+	border: 1px solid color-mix(in srgb, var(--color-brand-primary) 28%, var(--border-primary));
 	color: var(--text-primary);
 	font-size: 1rem;
 	font-weight: 800;

@@ -24,7 +24,7 @@
 
 @media (max-width: 768px) {
 	/* Buttons - PAGES ONLY (nu meniul). Touch target 44px. */
-	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch),
+	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch),
 	.va-shell-main .btn,
 	.va-shell-main .admin-btn,
 	.va-shell-main .va-btn,
@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
+	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -62,10 +62,8 @@
 	}
 
 	/* Icon buttons - pages only */
-	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch),
-	.va-shell-main .icon-btn,
-	.admin-container button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.admin-courses-showcase-edit-btn),
-	.admin-container .icon-btn {
+	.va-shell-main button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch),
+.admin-container button[aria-label]:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch):not(.admin-courses-showcase-edit-btn) {
 		min-width: var(--btn-mobile-min-width);
 		min-height: var(--btn-mobile-min-height);
 		padding: var(--space-2);
@@ -101,9 +99,8 @@
 	}
 
 	/* Links in navigation */
-	.nav-item,
 	.modern-nav-item,
-	.va-nav-btn {
+.va-nav-btn {
 		min-height: 44px;
 		padding: var(--space-3) var(--space-4);
 		display: flex;
@@ -146,8 +143,7 @@
 
 	/* Grid gaps */
 	.grid,
-	.admin-grid,
-	.courses-grid {
+.admin-grid {
 		gap: var(--space-4);
 	}
 
@@ -282,7 +278,6 @@
 	.student-sidebar.open {
 		left: 0 !important;
 	}
-
 
 	/* Mobile sidebar toggle - fundal ca bara de sus, icon alb (students + admins) */
 	.mobile-sidebar-toggle {
@@ -611,43 +606,6 @@
 	}
 
 	/* Bottom navigation for mobile (if needed for other purposes) */
-	.mobile-bottom-nav {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 64px;
-		background: var(--bg-elevated);
-		border-top: 1px solid var(--border-primary);
-		display: flex;
-		justify-content: space-around;
-		align-items: center;
-		z-index: var(--z-fixed);
-		padding-bottom: var(--safe-area-inset-bottom);
-		box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-	}
-
-	.mobile-bottom-nav-item {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-1);
-		min-height: 44px;
-		color: var(--text-secondary);
-		text-decoration: none;
-		font-size: var(--font-size-xs);
-		transition: all var(--transition-base);
-	}
-
-	.mobile-bottom-nav-item.active {
-		color: var(--color-primary);
-	}
-
-	.mobile-bottom-nav-icon {
-		font-size: var(--font-size-xl);
-	}
 
 	/* Main content padding for bottom nav */
 	body:has(.mobile-bottom-nav) .va-main,
@@ -675,9 +633,7 @@
 
 	/* Grids - single column */
 	.grid,
-	.admin-grid,
-	.courses-grid,
-	.certificates-grid {
+.admin-grid {
 		grid-template-columns: 1fr;
 	}
 
@@ -690,25 +646,11 @@
 	}
 
 	/* Modal - full screen on mobile */
-	.modal,
-	.modal-overlay {
+	.modal {
 		padding: var(--space-4);
 	}
 
-	.modal-content {
-		width: 100%;
-		max-width: 100%;
-		max-height: 90vh;
-		margin: 0;
-		border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-	}
-
 	/* Forms - stacked */
-	.form-grid,
-	.admin-form-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-4);
-	}
 
 	/* Form groups */
 	.form-group,
@@ -767,10 +709,6 @@
 
 @media (max-width: 768px) {
 	/* Swipeable cards */
-	.swipeable {
-		touch-action: pan-y;
-		-webkit-overflow-scrolling: touch;
-	}
 
 	/* Prevent text selection on buttons */
 	button,
@@ -804,20 +742,6 @@
 	}
 
 	/* Skip to content link */
-	.skip-link {
-		position: absolute;
-		top: -40px;
-		left: 0;
-		background: var(--color-primary);
-		color: var(--text-inverse);
-		padding: var(--space-2) var(--space-4);
-		text-decoration: none;
-		z-index: 1000;
-	}
-
-	.skip-link:focus {
-		top: 0;
-	}
 }
 
 /* ============================================
@@ -826,7 +750,6 @@
 
 /* Hide on mobile */
 @media (max-width: 768px) {
-	.hide-mobile,
 	.mobile-hidden {
 		display: none !important;
 	}
@@ -839,12 +762,7 @@
 
 @media (min-width: 769px) {
 	/* Utility classes */
-	.show-mobile-only,
-	.mobile-only {
-		display: none !important;
-	}
 
-	.hide-mobile,
 	.mobile-hidden {
 		display: block !important;
 	}
@@ -909,15 +827,6 @@
 		left: -9999px !important;
 	}
 
-	.modern-sidebar .sidebar-mobile-control-icon,
-	.sidebar .sidebar-mobile-control-icon,
-	.va-sidebar .sidebar-mobile-control-icon,
-	.student-sidebar .sidebar-mobile-control-icon {
-		display: none !important;
-		visibility: hidden !important;
-		opacity: 0 !important;
-	}
-
 	.modern-sidebar .sidebar-mobile-control-content,
 	.sidebar .sidebar-mobile-control-content,
 	.va-sidebar .sidebar-mobile-control-content,
@@ -962,10 +871,6 @@
 		flex-direction: row !important;
 		align-items: center !important;
 		gap: var(--space-2) !important;
-	}
-
-	.admin-topnav-control-label {
-		display: block !important;
 	}
 
 	.admin-topnav-user {
@@ -1019,10 +924,6 @@
 	}
 
 	/* Forms - reset to normal grid */
-	.form-grid,
-	.admin-form-grid {
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
-	}
 
 	/* Admin pages - reset to normal layout */
 	.admin-page-header {
@@ -1030,26 +931,7 @@
 		align-items: center !important;
 	}
 
-	.admin-page-header-actions {
-		width: auto !important;
-	}
-
-	.admin-page-header-actions .admin-btn {
-		width: auto !important;
-		margin-bottom: 0 !important;
-	}
-
 	/* Certificate wizard - reset to normal layout */
-	.certificate-wizard-content {
-		grid-template-columns: 1fr 1fr !important;
-	}
-
-	.certificate-wizard-preview {
-		position: sticky !important;
-		max-height: calc(100vh - 200px) !important;
-		order: 0 !important;
-		margin-bottom: 0 !important;
-	}
 
 	/* Settings tabs - reset to normal */
 	.admin-settings-tabs {
@@ -1068,9 +950,6 @@
 	}
 
 	/* Dashboard stats - reset to normal grid */
-	.admin-dashboard-stats {
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
-	}
 
 	/* Form actions - reset to normal */
 	.admin-form-actions {
@@ -1083,32 +962,9 @@
 	}
 }
 
-@media (max-width: 768px) {
-	.show-mobile-only,
-	.mobile-only {
-		display: block !important;
-	}
-}
-
 /* Full width on mobile */
-@media (max-width: 768px) {
-	.mobile-full-width {
-		width: 100% !important;
-		max-width: 100% !important;
-	}
-}
 
 /* Stack on mobile */
-@media (max-width: 768px) {
-	.mobile-stack {
-		flex-direction: column !important;
-	}
-
-	.mobile-stack > * {
-		width: 100% !important;
-		margin-bottom: var(--space-4);
-	}
-}
 
 /* ============================================
    11. SPECIFIC COMPONENT OPTIMIZATIONS
@@ -1120,15 +976,6 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-4);
-	}
-
-	.admin-page-header-actions {
-		width: 100%;
-	}
-
-	.admin-page-header-actions .admin-btn {
-		width: 100%;
-		margin-bottom: var(--space-2);
 	}
 
 	/* Ensure main content has padding for fixed topnav - match topnav height exactly */
@@ -1206,16 +1053,6 @@
 	}
 
 	/* Student notifications dropdown - centrat pe mobile */
-	.va-shell-topnav .va-topnav-notifications-dropdown,
-	.va-shell-topnav .admin-topnav-notifications-dropdown {
-		position: fixed !important;
-		left: 50% !important;
-		right: auto !important;
-		top: calc(var(--app-header-height, 56px) + var(--space-2)) !important;
-		transform: translateX(-50%) !important;
-		width: calc(100vw - var(--space-8)) !important;
-		max-width: 360px !important;
-	}
 
 	/* Sidebar mobile controls - only visible on mobile - fix bottom */
 	.sidebar-mobile-controls {
@@ -1250,25 +1087,7 @@
 		background: var(--bg-elevated);
 		transform: scale(0.98);
 		border-color: var(--color-primary);
-		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.15);
-	}
-
-	.sidebar-mobile-control-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		flex-shrink: 0;
-		color: var(--text-primary);
-		background: var(--bg-elevated);
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-primary);
-	}
-
-	.sidebar-mobile-control-icon svg {
-		width: 18px;
-		height: 18px;
+		box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.15);
 	}
 
 	.sidebar-mobile-control-content {
@@ -1278,15 +1097,6 @@
 		flex: 1;
 		gap: var(--space-3);
 		min-width: 0;
-	}
-
-	.sidebar-mobile-control-label {
-		font-size: var(--font-size-sm);
-		color: var(--text-primary);
-		font-weight: var(--font-weight-medium);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	.sidebar-mobile-control-item--view-switch {
@@ -1335,7 +1145,7 @@
 	.sidebar-mobile-logout-btn:active {
 		background: var(--bg-elevated) !important;
 		border-color: var(--color-primary);
-		box-shadow: 0 2px 8px rgba(255, 238, 0, 0.15);
+		box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.15);
 		transform: scale(0.98);
 	}
 
@@ -1365,12 +1175,8 @@
 
 	/* Titluri centrate doar pe paginile de overview (nu lecții/mesaje/bibliotecă) */
 	.va-shell-main-topnav .student-dashboard-title,
-	.va-shell-main-topnav .student-dashboard-subtitle,
-	.va-shell-main-topnav .student-dashboard-welcome,
-	.va-shell-main-topnav .courses-header h1,
-	.va-shell-main-topnav .events-header h1,
-	.va-shell-main-topnav .page-title,
-	.va-shell-main-topnav .page-subtitle {
+.va-shell-main-topnav .student-dashboard-subtitle,
+.va-shell-main-topnav .student-dashboard-welcome {
 		text-align: center !important;
 	}
 
@@ -1395,67 +1201,53 @@
 
 	/* Centrare doar pe pagini overview */
 	.student-dashboard-page,
-	.courses-page,
-	.events-page,
-	.va-profile-container {
+.events-page,
+.va-profile-container {
 		text-align: center !important;
 	}
 
 	.messages-page,
-	.library-page,
-	.library-reader-page,
-	.lessons-page,
-	.lesson-page,
-	.student-exam-page,
-	.exam-results-page {
+.library-page,
+.library-reader-page,
+.lesson-page,
+.student-exam-page,
+.exam-results-page {
 		text-align: left !important;
 	}
 
 	/* Center course cards, event cards content (exam results: left-aligned) */
-	.course-card,
-	.event-card {
+	.course-card {
 		text-align: center !important;
 	}
 
 	.course-card h1,
-	.course-card h2,
-	.course-card h3,
-	.course-card h4,
-	.course-card p,
-	.course-card .course-card-title,
-	.course-card .course-card-description,
-	.event-card h1,
-	.event-card h2,
-	.event-card h3,
-	.event-card h4,
-	.event-card p,
-	.event-card .event-card-title,
-	.event-card .event-card-description {
+.course-card h2,
+.course-card h3,
+.course-card h4,
+.course-card p,
+.course-card .course-card-title,
+.course-card .course-card-description {
 		text-align: center !important;
 	}
 
 	/* Center widget titles and descriptions */
 	.student-widget h1,
-	.student-widget h2,
-	.student-widget h3,
-	.student-widget h4,
-	.student-widget p,
-	.student-widget .widget-title,
-	.student-widget .widget-description {
+.student-widget h2,
+.student-widget h3,
+.student-widget h4,
+.student-widget p {
 		text-align: center !important;
 	}
 
 	/* Override for input fields and textareas - keep left aligned */
 	.student-dashboard-page input,
-	.student-dashboard-page textarea,
-	.courses-page input,
-	.courses-page textarea,
-	.events-page input,
-	.events-page textarea,
-	.exam-results-page input,
-	.exam-results-page textarea,
-	.va-profile-container input,
-	.va-profile-container textarea {
+.student-dashboard-page textarea,
+.events-page input,
+.events-page textarea,
+.exam-results-page input,
+.exam-results-page textarea,
+.va-profile-container input,
+.va-profile-container textarea {
 		text-align: left !important;
 	}
 
@@ -2021,32 +1813,6 @@
 	}
 
 	/* Courses Page - Mobile Optimization */
-	.courses-page {
-		padding: 0 var(--space-4) var(--space-6) !important;
-		padding-top: var(--space-1) !important;
-	}
-
-	.courses-header {
-		text-align: center !important;
-		margin-top: 0 !important;
-		margin-bottom: var(--space-5) !important;
-		padding-top: 0 !important;
-		padding-bottom: var(--space-3) !important;
-		border-bottom: 1px solid var(--border-primary) !important;
-	}
-
-	.courses-header h1 {
-		font-size: var(--font-size-2xl) !important;
-		margin-bottom: var(--space-2) !important;
-		text-align: center !important;
-	}
-
-	.courses-grid {
-		display: grid !important;
-		grid-template-columns: 1fr !important;
-		gap: var(--space-3) !important;
-		margin-top: var(--space-3) !important;
-	}
 
 	.course-card {
 		width: 100% !important;
@@ -2076,37 +1842,18 @@
 		padding-top: var(--space-2) !important;
 	}
 
-	.events-page-header,
-	.events-header {
+	.events-page-header {
 		margin-bottom: var(--space-4) !important;
 		text-align: left !important;
 	}
 
-	.events-page-title,
-	.events-header h1 {
+	.events-page-title {
 		font-size: var(--font-size-xl) !important;
 		margin-bottom: var(--space-2) !important;
 		line-height: 1.3 !important;
 	}
 
-	.events-page-subtitle {
-		font-size: var(--font-size-sm) !important;
-		line-height: 1.5 !important;
-	}
-
 	/* Filters - stack vertical, full width */
-	.va-events-filters {
-		flex-direction: column !important;
-		gap: var(--space-2) !important;
-		margin-bottom: var(--space-4) !important;
-	}
-
-	.events-filter-select {
-		width: 100% !important;
-		min-height: 44px !important;
-		padding: var(--space-2) var(--space-3) !important;
-		font-size: var(--font-size-base) !important;
-	}
 
 	/* Events grid - single column, compact gap */
 	.events-grid {
@@ -2118,8 +1865,7 @@
 
 	/* Event cards - compact, touch-friendly */
 	.events-page .va-card-enhanced,
-	.event-card,
-	.va-card-enhanced {
+.va-card-enhanced {
 		width: 100% !important;
 		margin: 0 !important;
 		padding: 0 !important;
@@ -2153,17 +1899,6 @@
 	}
 
 	/* Title + badge - wrap pe mobile */
-	.events-page .events-card-header {
-		flex-wrap: wrap !important;
-		gap: var(--space-2) !important;
-		align-items: center !important;
-	}
-
-	.events-page .events-card-status-badge {
-		flex-shrink: 0 !important;
-		font-size: 0.7rem !important;
-		padding: 0.2rem 0.5rem !important;
-	}
 
 	.events-page .va-card-body p,
 	.events-page .events-card-text {
@@ -2192,7 +1927,6 @@
 		justify-content: center !important;
 	}
 
-	.event-card:active,
 	.va-card-enhanced:active {
 		transform: scale(0.98) !important;
 		box-shadow: var(--shadow-lg) !important;
@@ -2205,8 +1939,7 @@
 		text-align: left !important;
 	}
 
-	.exam-results-page-header,
-	.exam-results-header {
+	.exam-results-page-header {
 		text-align: left !important;
 		margin-top: 0 !important;
 		margin-bottom: var(--space-5) !important;
@@ -2214,38 +1947,10 @@
 		padding-bottom: var(--space-3) !important;
 	}
 
-	.exam-results-page-title,
-	.exam-results-header h1 {
+	.exam-results-page-title {
 		font-size: var(--font-size-2xl) !important;
 		margin-bottom: var(--space-2) !important;
 		text-align: left !important;
-	}
-
-	.exam-results-page-subtitle {
-		text-align: left !important;
-	}
-
-	.exam-results-section-title {
-		text-align: left !important;
-		font-size: var(--font-size-lg) !important;
-	}
-
-	.exam-results-list {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-3) !important;
-		margin-top: var(--space-4) !important;
-	}
-
-	.exam-result-item {
-		width: 100% !important;
-		padding: var(--space-4) !important;
-		border-radius: var(--radius-xl) !important;
-		background: var(--bg-elevated) !important;
-		border: 1px solid var(--border-primary) !important;
-		text-align: left !important;
-		min-height: 44px !important;
-		box-shadow: var(--shadow-sm) !important;
 	}
 
 	/* Profile Page - Already optimized, ensure consistency */
@@ -2265,27 +1970,6 @@
 		gap: var(--space-3) !important;
 		margin-top: var(--space-4) !important;
 		width: 100% !important;
-	}
-
-	.va-profile-stat {
-		text-align: center !important;
-		padding: var(--space-3) !important;
-		background: var(--bg-elevated) !important;
-		border-radius: var(--radius-lg) !important;
-		border: 1px solid var(--border-primary) !important;
-	}
-
-	.va-profile-stat-value {
-		font-size: var(--font-size-xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		display: block !important;
-		margin-bottom: var(--space-1) !important;
-	}
-
-	.va-profile-stat-label {
-		font-size: var(--font-size-xs) !important;
-		color: var(--text-secondary) !important;
-		display: block !important;
 	}
 
 	/* ============================================
@@ -2800,18 +2484,6 @@
 		transform: translateY(-2px);
 	}
 
-	.va-stat-icon {
-		font-size: var(--font-size-2xl);
-		width: 48px;
-		height: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--bg-secondary);
-		border-radius: var(--radius-md);
-		flex-shrink: 0;
-	}
-
 	.va-stat-content {
 		width: 100%;
 		display: flex;
@@ -2834,29 +2506,7 @@
 		line-height: 1.4;
 	}
 
-	.va-stat-progress-bar {
-		width: 100%;
-		height: 6px;
-		background: var(--bg-secondary);
-		border-radius: var(--radius-full);
-		overflow: hidden;
-		margin-top: var(--space-2);
-	}
-
-	.va-stat-progress-fill {
-		height: 100%;
-		background: linear-gradient(90deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%);
-		border-radius: var(--radius-full);
-		transition: width var(--transition-smooth);
-	}
-
 	/* Profile Grid - Single column, clean spacing */
-	.va-profile-grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: var(--space-5);
-		margin-bottom: var(--space-6);
-	}
 
 	/* Profile Section - Modern card design */
 	.va-profile-section {
@@ -2893,34 +2543,6 @@
 		color: var(--text-secondary);
 		min-width: 28px;
 		text-align: center;
-	}
-
-	.va-section-title-group {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		width: 100%;
-		gap: var(--space-2);
-	}
-
-	.va-section-more-btn {
-		font-size: var(--font-size-xl);
-		padding: var(--space-1);
-		min-width: 36px;
-		height: 36px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-md);
-		background: transparent;
-		border: 1px solid var(--border-primary);
-		color: var(--text-secondary);
-		transition: all var(--transition-base);
-	}
-
-	.va-section-more-btn:hover {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
 	}
 
 	/* Courses List - Clean card design */
@@ -2995,14 +2617,6 @@
 		line-height: 1.4;
 	}
 
-	.va-course-card-progress {
-		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-semibold);
-		color: var(--color-primary);
-		flex-shrink: 0;
-		white-space: nowrap;
-	}
-
 	.va-course-card-description {
 		font-size: var(--font-size-sm);
 		color: var(--text-secondary);
@@ -3025,7 +2639,7 @@
 
 	.va-course-card-progress-fill {
 		height: 100%;
-		background: linear-gradient(90deg, var(--color-primary) 0%, rgba(255, 238, 0, 0.8) 100%);
+		background: linear-gradient(90deg, var(--color-primary) 0%, rgba(var(--color-primary-rgb), 0.8) 100%);
 		border-radius: var(--radius-full);
 		transition: width var(--transition-smooth);
 	}
@@ -3048,161 +2662,10 @@
 	}
 
 	/* Completed Courses List - Clean design */
-	.va-completed-courses-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.va-completed-course-item {
-		background: var(--bg-primary);
-		border: 1px solid var(--border-primary);
-		border-radius: var(--radius-md);
-		padding: var(--space-3) var(--space-4);
-		transition: all var(--transition-base);
-	}
-
-	.va-completed-course-item:hover {
-		background: var(--bg-secondary);
-		border-color: var(--border-secondary);
-	}
-
-	.va-completed-course-content {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		margin-bottom: var(--space-2);
-	}
-
-	.va-completed-course-title {
-		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-medium);
-		color: var(--text-primary);
-		flex: 1;
-		line-height: 1.4;
-	}
-
-	.va-completed-course-badge {
-		font-size: var(--font-size-xs);
-		font-weight: var(--font-weight-medium);
-		padding: var(--space-1) var(--space-2-5);
-		background: rgba(34, 197, 94, 0.15);
-		color: var(--color-success);
-		border-radius: var(--radius-full);
-		flex-shrink: 0;
-		white-space: nowrap;
-	}
-
-	.va-completed-course-meta {
-		font-size: var(--font-size-xs);
-		color: var(--text-tertiary);
-	}
 
 	/* Profile Badges Container - Clean section */
-	.va-profile-badges-container {
-		background: var(--bg-elevated);
-		border: 1px solid var(--border-primary);
-		border-radius: var(--radius-lg);
-		padding: var(--space-5);
-		margin-top: var(--space-6);
-		box-shadow: var(--shadow-sm);
-	}
-
-	.va-profile-badges-title {
-		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-semibold);
-		color: var(--text-primary);
-		margin: 0 0 var(--space-4) 0;
-		padding-bottom: var(--space-3);
-		border-bottom: 1px solid var(--border-primary);
-	}
-
-	.va-profile-badges-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.va-profile-badge-item {
-		background: var(--bg-primary);
-		border: 1px solid var(--border-primary);
-		border-radius: var(--radius-md);
-		padding: var(--space-4);
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: var(--space-4);
-		transition: all var(--transition-base);
-	}
-
-	.va-profile-badge-item:hover {
-		background: var(--bg-secondary);
-		border-color: var(--border-secondary);
-		transform: translateX(4px);
-	}
-
-	.va-profile-badge-icon {
-		font-size: var(--font-size-2xl);
-		width: 56px;
-		height: 56px;
-		min-width: 56px;
-		min-height: 56px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--bg-secondary);
-		border-radius: var(--radius-lg);
-		flex-shrink: 0;
-	}
-
-	.va-profile-badge-content {
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.va-profile-badge-name {
-		font-size: var(--font-size-base);
-		font-weight: var(--font-weight-semibold);
-		color: var(--text-primary);
-		margin: 0;
-		line-height: 1.3;
-	}
-
-	.va-profile-badge-description {
-		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
-		margin: 0;
-		line-height: 1.4;
-	}
-
-	.va-profile-badges-empty {
-		padding: var(--space-6) var(--space-4);
-		text-align: center;
-	}
-
-	.va-profile-badges-empty p {
-		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
-		margin: 0;
-		line-height: 1.5;
-	}
 
 	/* Certificate wizard */
-	.certificate-wizard-content {
-		grid-template-columns: 1fr;
-	}
-
-	.certificate-wizard-preview {
-		position: static;
-		max-height: none;
-		order: -1;
-		margin-bottom: var(--space-4);
-	}
 
 	/* Settings tabs */
 	.admin-settings-tabs {
@@ -3227,10 +2690,6 @@
 	}
 
 	/* Dashboard stats */
-	.admin-dashboard-stats {
-		grid-template-columns: 1fr;
-		gap: var(--space-4);
-	}
 
 	/* Forms */
 	.admin-form-actions {
@@ -3262,11 +2721,10 @@
 
 	/* Cards - smaller padding on small phones */
 	.card,
-	.va-card,
-	.admin-card,
-	.course-card,
-	.event-card,
-	.va-card-enhanced {
+.va-card,
+.admin-card,
+.course-card,
+.va-card-enhanced {
 		padding: var(--space-2) var(--space-3) !important;
 		margin-bottom: var(--space-3);
 	}
@@ -3287,7 +2745,6 @@
 		height: 120px !important;
 	}
 
-	.courses-grid,
 	.events-grid {
 		gap: var(--space-2) !important;
 	}
@@ -3378,58 +2835,6 @@
 		min-height: 44px;
 	}
 
-	.admin-courses-toolbar-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		width: 100%;
-		justify-content: space-between;
-	}
-
-	.admin-view-mode-toggle {
-		display: flex;
-		gap: var(--space-1);
-	}
-
-	.admin-btn-filter {
-		flex: 1;
-		justify-content: center;
-		min-height: 44px;
-	}
-
-	.admin-courses-filters-panel {
-		padding: var(--space-3);
-		margin-top: var(--space-2);
-	}
-
-	.admin-filter-buttons {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-	}
-
-	.admin-filter-btn {
-		flex: 1 1 calc(50% - var(--space-1));
-		min-width: 0;
-	}
-
-	.admin-bulk-actions-bar {
-		flex-direction: column;
-		gap: var(--space-3);
-		padding: var(--space-3);
-	}
-
-	.admin-bulk-actions-buttons {
-		flex-wrap: wrap;
-		gap: var(--space-2);
-	}
-
-	.admin-bulk-actions-buttons .lms-btn-secondary,
-	.admin-bulk-actions-buttons .va-btn-danger {
-		flex: 1 1 auto;
-		min-width: 120px;
-	}
-
 	/* Course cards - grid view */
 	.admin-course-card {
 		padding: var(--space-3);
@@ -3500,9 +2905,6 @@
 	}
 
 	/* Hide table header on mobile - rows become card-like */
-	.admin-courses-table .admin-courses-table-header {
-		display: none;
-	}
 
 	/* Admin Tests/Events - search wrapper with filters */
 	.admin-courses-search-wrapper {
@@ -3515,32 +2917,6 @@
 	.admin-courses-search {
 		width: 100%;
 		min-width: 0;
-	}
-
-	.admin-courses-filters {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		width: 100%;
-	}
-
-	.admin-courses-filter-select {
-		width: 100%;
-		min-height: 44px;
-		font-size: 16px; /* Prevent iOS zoom */
-		padding: var(--space-2) var(--space-3);
-		min-width: 0;
-	}
-
-	.admin-courses-view-toggle {
-		display: flex;
-		gap: var(--space-2);
-		align-self: flex-start;
-	}
-
-	.admin-courses-view-toggle button {
-		min-height: 44px;
-		min-width: 44px;
 	}
 
 	.admin-course-card-actions {
@@ -3568,10 +2944,6 @@
 		font-size: var(--font-size-xl);
 	}
 
-	.admin-courses-toolbar-actions {
-		flex-wrap: wrap;
-	}
-
 	.admin-course-card-thumbnail {
 		height: 120px;
 	}
@@ -3586,11 +2958,6 @@
 
 	.admin-course-table-metrics {
 		grid-template-columns: 1fr;
-	}
-
-	.admin-bulk-actions-buttons .lms-btn-secondary,
-	.admin-bulk-actions-buttons .va-btn-danger {
-		min-width: 100%;
 	}
 }
 
@@ -3797,46 +3164,12 @@
 		flex-shrink: 0;
 	}
 
-	.courses-page-toolbar {
-		flex-shrink: 0;
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: stretch !important;
-		gap: var(--space-4) !important;
-		position: relative;
-		z-index: 1;
-	}
-
 	.courses-page-search-wrapper {
 		flex-shrink: 0;
 		order: 1;
 		width: 100% !important;
 		min-width: 0 !important;
 		max-width: 100% !important;
-	}
-
-	.courses-page-toolbar-right {
-		order: 2;
-		display: flex !important;
-		flex-wrap: wrap !important;
-		gap: var(--space-3) !important;
-		align-items: center !important;
-	}
-
-	.courses-page-filters {
-		order: 1;
-		width: 100%;
-	}
-
-	.courses-page-view-toggle {
-		order: 2;
-		flex-shrink: 0;
-	}
-
-	.courses-page-sort-select {
-		order: 3;
-		flex: 1;
-		min-width: 120px;
 	}
 
 	.courses-page-content {
@@ -3865,45 +3198,12 @@
 		min-height: 44px;
 	}
 
-	.courses-page-filter-chip {
-		min-height: 44px;
-		padding: var(--space-2) var(--space-4);
-	}
-
-	.courses-page-view-btn {
-		min-width: 44px;
-		min-height: 44px;
-	}
-
-	.courses-page-sort-select {
-		min-height: 44px;
-		font-size: 16px;
-	}
-
 	.courses-page-create-btn {
 		min-height: 44px;
 		width: 100%;
 	}
 
 	/* Student courses page cards - left-aligned, clean layout on mobile */
-	.courses-page-modern .courses-page-card {
-		text-align: left !important;
-	}
-
-	.courses-page-modern .courses-page-card-content {
-		text-align: left !important;
-	}
-
-	.courses-page-modern .courses-page-card-title,
-	.courses-page-modern .courses-page-card-description,
-	.courses-page-modern .courses-page-card-meta,
-	.courses-page-modern .courses-page-card-meta-item {
-		text-align: left !important;
-	}
-
-	.courses-page-modern .courses-page-card-thumbnail {
-		height: 200px !important;
-	}
 
 	/* Student /courses — mape folder (nu carduri admin vechi) */
 	.courses-page-modern.courses-page-student {
@@ -3951,72 +3251,11 @@
 		padding: var(--space-4) var(--space-3) var(--space-4);
 	}
 
-	.courses-page-toolbar {
-		padding: var(--space-3);
-	}
-
 	.courses-page-content {
 		padding: 0 var(--space-3) var(--space-4);
 	}
 
 	/* Student courses page cards - improved mobile layout */
-	.courses-page-modern .courses-page-card {
-		text-align: left !important;
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: stretch !important;
-		border-radius: var(--radius-xl) !important;
-		overflow: hidden !important;
-		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
-		border: 1px solid var(--border-primary) !important;
-	}
-
-	.courses-page-modern .courses-page-card-thumbnail {
-		height: 180px !important;
-		width: 100% !important;
-		flex-shrink: 0 !important;
-	}
-
-	.courses-page-modern .courses-page-card-content {
-		padding: var(--space-4) !important;
-		text-align: left !important;
-		gap: var(--space-3) !important;
-	}
-
-	.courses-page-modern .courses-page-card-title {
-		text-align: left !important;
-		font-size: var(--font-size-lg) !important;
-		font-weight: var(--font-weight-bold) !important;
-		line-height: 1.35 !important;
-		-webkit-line-clamp: 2 !important;
-	}
-
-	.courses-page-modern .courses-page-card-description {
-		text-align: left !important;
-		font-size: var(--font-size-sm) !important;
-		-webkit-line-clamp: 2 !important;
-	}
-
-	.courses-page-modern .courses-page-card-status {
-		justify-content: flex-start !important;
-	}
-
-	.courses-page-modern .courses-page-card-meta {
-		text-align: left !important;
-		justify-content: flex-start !important;
-		border-top: 1px solid var(--border-primary) !important;
-		padding-top: var(--space-3) !important;
-		margin-top: var(--space-2) !important;
-	}
-
-	.courses-page-modern .courses-page-card-meta-item {
-		text-align: left !important;
-	}
-
-	.courses-page-modern .courses-page-card:active {
-		transform: scale(0.98) !important;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
-	}
 }
 
 /* ============================================
@@ -4130,11 +3369,6 @@
 
 	.lessons-page-sidebar-content {
 		padding: var(--space-3) !important;
-	}
-
-	.lessons-page-lesson-item {
-		min-height: 44px;
-		padding: var(--space-3);
 	}
 
 	.lessons-page-lesson-viewer .lessons-page-lesson-cta,
@@ -4325,12 +3559,6 @@
 	.admin-course-builder-input {
 		font-size: 16px;
 	}
-
-	.admin-creator-outline-item,
-	.admin-creator-lesson-item {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
 }
 
 @media (max-width: 480px) {
@@ -4445,69 +3673,14 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	.admin-page-header-actions {
-		flex-wrap: wrap;
-		gap: var(--space-2);
-	}
 
-	.admin-page-header-actions .admin-btn {
-		flex: 1 1 calc(50% - var(--space-1));
-		min-height: 44px;
-	}
-
-	.admin-test-creator-split {
-		margin-top: var(--space-4);
-	}
-
-	.admin-settings-input,
-	.admin-settings-select,
-	.admin-settings-textarea {
+	.admin-settings-select {
 		font-size: 16px;
 	}
 
 	.admin-settings-tab {
 		min-height: 44px;
 		padding: var(--space-2) var(--space-3);
-	}
-
-	.admin-settings-form-row {
-		flex-direction: column;
-	}
-
-	.admin-test-review-card {
-		padding: var(--space-4);
-	}
-
-	.admin-test-review-header {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--space-3);
-	}
-
-	.admin-test-review-body {
-		padding: var(--space-3);
-	}
-
-	.admin-test-review-body input,
-	.admin-test-review-body textarea {
-		font-size: 16px;
-		min-height: 44px;
-	}
-
-	.admin-test-review-body .admin-btn-create-course,
-	.admin-test-review-body .lms-btn-primary {
-		min-height: 44px;
-		width: 100%;
-	}
-}
-
-@media (max-width: 480px) {
-	.admin-page-header-actions .admin-btn {
-		flex: 1 1 100%;
-	}
-
-	.admin-test-review-card {
-		padding: var(--space-3);
 	}
 }
 
@@ -4651,11 +3824,6 @@
 		min-height: 44px;
 	}
 
-	.student-exam-page .student-exam-btn-primary {
-		min-height: 48px !important;
-		width: 100% !important;
-	}
-
 	.va-profile-back-button .lms-btn-secondary {
 		min-height: 44px;
 		width: 100%;
@@ -4703,157 +3871,11 @@
    ============================================ */
 
 /* Event Detail Page - base + mobile */
-.event-detail-page {
-	padding: var(--space-4);
-}
-.event-detail-card {
-	padding: 0;
-	overflow: hidden;
-}
-.event-detail-body {
-	padding: 2rem;
-}
-.event-detail-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: var(--space-4);
-}
-.event-detail-header .va-page-title {
-	flex: 1;
-	min-width: 0;
-}
-.event-detail-meta-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-	gap: 1rem;
-	margin-bottom: 2rem;
-	padding: 1.5rem;
-	background: var(--va-surface-2);
-	border-radius: 12px;
-}
-.event-detail-actions {
-	display: flex;
-	gap: 1rem;
-	flex-wrap: wrap;
-	padding: 1.5rem;
-	background: var(--va-surface-2);
-	border-radius: 12px;
-}
-.event-detail-stats {
-	margin-top: 2rem;
-	padding: 1.5rem;
-	background: var(--va-surface-2);
-	border-radius: 12px;
-}
-.event-detail-stats-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-	gap: 1rem;
-}
-.event-detail-short-desc {
-	font-size: 1.1rem;
-	color: var(--va-muted);
-	margin-bottom: 1.5rem;
-	line-height: 1.6;
-	word-wrap: break-word;
-}
-.event-detail-description {
-	margin-bottom: 2rem;
-}
-.event-detail-description h2 {
-	margin-bottom: 1rem;
-	color: var(--va-text);
-}
-.event-detail-description-text {
-	color: var(--va-text);
-	line-height: 1.8;
-	white-space: pre-wrap;
-	word-wrap: break-word;
-	overflow-wrap: break-word;
-}
 
 @media (max-width: 768px) {
-	.event-detail-page {
-		padding: var(--space-3);
-	}
-	.event-detail-back {
-		min-height: 44px;
-		width: 100%;
-	}
-	.event-detail-thumbnail {
-		height: 180px !important;
-	}
-	.event-detail-body {
-		padding: var(--space-4) !important;
-	}
-	.event-detail-header {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--space-3);
-	}
-	.event-detail-header .va-page-title {
-		font-size: var(--font-size-xl);
-		line-height: 1.3;
-		word-break: break-word;
-	}
-	.event-detail-status-badge {
-		align-self: flex-start;
-		text-align: center;
-	}
-	.event-detail-meta-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
-		padding: var(--space-4);
-		margin-bottom: var(--space-6);
-	}
-	.event-detail-meta-grid > div {
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--border-primary);
-	}
-	.event-detail-meta-grid > div:last-child {
-		border-bottom: none;
-		padding-bottom: 0;
-	}
-	.event-detail-actions {
-		flex-direction: column;
-		padding: var(--space-4);
-		gap: var(--space-3);
-	}
-	.event-detail-actions .lms-btn-primary,
-	.event-detail-actions .lms-btn-secondary,
-	.event-detail-action-btn {
-		width: 100% !important;
-		min-width: unset !important;
-		min-height: 44px;
-	}
-	.event-detail-stats {
-		margin-top: var(--space-6);
-		padding: var(--space-4);
-	}
-	.event-detail-stats-grid {
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--space-3);
-	}
-	.event-detail-short-desc {
-		font-size: 1rem;
-		margin-bottom: var(--space-4);
-	}
-	.event-detail-description {
-		margin-bottom: var(--space-6);
-	}
-	.event-detail-description h2 {
-		font-size: var(--font-size-lg);
-	}
 
 	.va-main .va-card-enhanced .va-card-body {
 		padding: var(--space-4) !important;
-	}
-
-	.va-main .page-header {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--space-4);
 	}
 
 	.va-main .lms-btn-primary,
@@ -4921,27 +3943,6 @@
 }
 
 @media (max-width: 480px) {
-	.event-detail-page {
-		padding: var(--space-2);
-	}
-	.event-detail-thumbnail {
-		height: 140px !important;
-	}
-	.event-detail-body {
-		padding: var(--space-3) !important;
-	}
-	.event-detail-meta-grid {
-		padding: var(--space-3);
-	}
-	.event-detail-actions {
-		padding: var(--space-3);
-	}
-	.event-detail-stats {
-		padding: var(--space-3);
-	}
-	.event-detail-stats-grid {
-		grid-template-columns: 1fr;
-	}
 
 	.va-main .va-card-body {
 		padding: var(--space-3) !important;
@@ -5000,75 +4001,12 @@
 	}
 
 	/* Badges Widget */
-	.student-badges-grid {
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--space-3);
-	}
-
-	.student-badge-item {
-		padding: var(--space-3);
-	}
 
 	/* Lesson Notes */
-	.student-lesson-notes-textarea {
-		font-size: 16px;
-		min-height: 120px;
-	}
 
 	/* Note Taking System */
-	.note-taking-toggle {
-		min-height: 44px;
-		min-width: 44px;
-	}
-
-	.note-taking-panel {
-		width: 100%;
-		max-width: 100%;
-	}
-
-	.note-taking-search-input {
-		font-size: 16px;
-		min-height: 44px;
-	}
-
-	.note-taking-action-btn,
-	.note-taking-add-btn,
-	.note-taking-item-action {
-		min-height: 44px;
-		min-width: 44px;
-	}
-
-	.note-taking-textarea {
-		font-size: 16px;
-	}
 
 	/* Enhanced Video Player */
-	.enhanced-video-player {
-		border-radius: 0;
-	}
-
-	.enhanced-video-control-btn {
-		min-width: 44px;
-		min-height: 44px;
-	}
-
-	.enhanced-video-progress-container {
-		height: 8px;
-	}
-
-	.enhanced-video-progress-handle {
-		width: 20px;
-		height: 20px;
-	}
-
-	.enhanced-video-controls-bar {
-		padding: var(--space-2);
-		gap: var(--space-2);
-	}
-
-	.enhanced-video-shortcuts-hint {
-		display: none;
-	}
 
 	/* Progress Indicator */
 	.student-progress-indicator {
@@ -5082,44 +4020,14 @@
 	}
 
 	/* Course Structure (CourseDetailPage) */
-	.student-course-structure {
-		padding: var(--space-4);
-	}
-
-	.student-course-structure-module,
-	.student-course-structure-lesson,
-	.student-course-structure-exam {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
-
-	.student-course-structure-module-toggle {
-		min-width: 44px;
-		min-height: 44px;
-	}
 
 	/* Calendar-like / list pages (calendar, notificări) */
-	.va-calendar-like {
-		padding: var(--space-4);
-	}
 }
 
 @media (max-width: 480px) {
-	.student-badges-grid {
-		grid-template-columns: 1fr;
-	}
 
 	.student-course-progress-thumbnail {
 		height: 80px;
-	}
-
-	.enhanced-video-controls-bar {
-		flex-wrap: wrap;
-	}
-
-	.enhanced-video-controls-left,
-	.enhanced-video-controls-right {
-		gap: var(--space-2);
 	}
 }
 
@@ -5152,60 +4060,12 @@
 	}
 
 	/* Course Header (student) */
-	.student-course-header {
-		padding: var(--space-4);
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.student-course-header-title {
-		font-size: var(--font-size-xl);
-	}
-
-	.student-course-header-progress {
-		width: 100%;
-	}
 
 	/* Milestone Notification */
-	.student-milestone-notification {
-		width: 95%;
-		max-width: 100%;
-		padding: var(--space-4);
-		bottom: calc(var(--student-tab-height, 0px) + var(--space-4));
-	}
-
-	.student-milestone-notification-close {
-		min-width: 44px;
-		min-height: 44px;
-	}
 
 	/* Progress Visualization */
-	.progress-vis-card {
-		padding: var(--space-4);
-	}
-
-	.progress-vis-milestones-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
-	}
-
-	.progress-vis-milestone-card {
-		padding: var(--space-3);
-	}
-
-	.progress-vis-milestone-marker {
-		min-width: 36px;
-		min-height: 36px;
-	}
 
 	/* Lesson Progress Indicator */
-	.student-lesson-progress-indicator {
-		padding: var(--space-3);
-	}
-
-	.student-lesson-progress-bar {
-		height: 8px;
-	}
 
 	/* Pro Course Card (UI) */
 	.pro-course-card {
@@ -5227,15 +4087,6 @@
 		width: 100%;
 		margin: var(--space-2);
 	}
-
-	.student-milestone-notification {
-		width: 100%;
-		margin: var(--space-2);
-	}
-
-	.progress-vis-stats {
-		grid-template-columns: 1fr;
-	}
 }
 
 /* ============================================
@@ -5243,25 +4094,6 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	.va-calendar-header {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--space-4);
-	}
-
-	.va-calendar-header .lms-btn-primary {
-		min-height: 44px;
-		width: 100%;
-	}
-
-	.va-events-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
-	}
-
-	.va-event-card {
-		padding: var(--space-4);
-	}
 
 	.va-completed-courses-cards {
 		grid-template-columns: 1fr;
@@ -5291,72 +4123,8 @@
 		text-align: left;
 	}
 
-	.exam-results-page-subtitle {
-		text-align: left;
-	}
-
-	.exam-results-grid {
-		display: grid !important;
-		grid-template-columns: 1fr !important;
-		gap: var(--space-4);
-	}
-
-	.exam-result-item {
-		padding: var(--space-4);
-		min-height: 44px;
-		text-align: left;
-	}
-
-	.exam-result-item:active {
-		transform: scale(0.98);
-		box-shadow: var(--shadow-md);
-	}
-
-	.exam-result-header,
-	.exam-result-meta,
-	.exam-result-score {
-		text-align: left;
-	}
-
-	.exam-result-details {
-		position: static !important;
-		max-height: none !important;
-		padding: var(--space-4);
-		border-radius: var(--radius-xl);
-	}
-
-	.exam-result-details-header {
-		flex-wrap: wrap;
-		gap: var(--space-3);
-	}
-
-	.exam-result-details-header .lms-btn-secondary {
-		min-height: 44px;
-		width: 100%;
-		justify-content: center;
-	}
-
-	.exam-result-summary {
-		padding: var(--space-4);
-	}
-
-	.exam-result-score-display {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
-	}
-
-	.exam-result-score-display-item-right {
-		text-align: left;
-	}
-
 	.exam-result-question {
 		padding: var(--space-4);
-	}
-
-	.exam-result-question-header {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--space-2);
 	}
 
 	.exam-result-answer {
@@ -5410,9 +4178,6 @@
 }
 
 @media (max-width: 480px) {
-	.va-event-card {
-		padding: var(--space-3);
-	}
 
 	.va-completed-course-card {
 		padding: var(--space-3);
@@ -5424,14 +4189,6 @@
 
 	.exam-results-page-title {
 		font-size: var(--font-size-xl);
-	}
-
-	.exam-result-item {
-		padding: var(--space-3);
-	}
-
-	.exam-result-details {
-		padding: var(--space-3);
 	}
 
 	.exam-result-question {
@@ -5554,8 +4311,7 @@
 		min-height: 44px;
 	}
 
-	.admin-team-modal,
-	.admin-activity-modal {
+	.admin-team-modal {
 		width: 95%;
 		max-width: 100%;
 		margin: var(--space-4);
@@ -5563,7 +4319,6 @@
 		overflow-y: auto;
 	}
 
-	.admin-activity-logs-table,
 	.admin-alerts-list {
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
@@ -5616,7 +4371,6 @@
 		min-height: 44px;
 	}
 
-	.admin-activity-logs-table,
 	.admin-activity-logs-list {
 		font-size: var(--font-size-sm);
 	}
@@ -5655,49 +4409,6 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	.va-calendar-view {
-		padding: var(--space-4);
-	}
-
-	.va-calendar-header-view {
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.va-calendar-nav {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		width: 100%;
-	}
-
-	.va-calendar-nav .lms-btn-secondary {
-		min-height: 44px;
-		min-width: 44px;
-		padding: var(--space-2);
-	}
-
-	.va-calendar-month-title {
-		font-size: var(--font-size-xl);
-	}
-
-	.va-calendar-header-view .lms-btn-primary {
-		min-height: 44px;
-		width: 100%;
-	}
-
-	.va-calendar-weekday {
-		font-size: var(--font-size-xs);
-	}
-
-	.va-calendar-day {
-		min-height: 60px;
-		padding: var(--space-1);
-	}
-
-	.va-calendar-day-number {
-		font-size: var(--font-size-sm);
-	}
 
 	.va-course-detail-layout {
 		flex-direction: column;
@@ -5725,8 +4436,6 @@
 		padding: var(--space-4);
 	}
 
-	.va-quiz-answer-option,
-	.va-quiz-question-option,
 	.va-answer-option {
 		min-height: 44px;
 		padding: var(--space-3);
@@ -5736,35 +4445,11 @@
 		flex-direction: column;
 		gap: var(--space-3);
 	}
-
-	.va-rewards-header {
-		margin-bottom: var(--space-4);
-	}
-
-	.va-certificates-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-4);
-	}
-
-	.va-certificate {
-		padding: var(--space-4);
-	}
 }
 
 @media (max-width: 480px) {
-	.va-calendar-view {
-		padding: var(--space-3);
-	}
-
-	.va-calendar-day {
-		min-height: 50px;
-	}
 
 	.va-course-content-main {
-		padding: var(--space-3);
-	}
-
-	.va-certificate {
 		padding: var(--space-3);
 	}
 }
@@ -6032,7 +4717,7 @@
 		min-height: 48px !important;
 		box-shadow: var(--shadow-md) !important;
 		box-sizing: border-box !important;
-		-webkit-tap-highlight-color: rgba(255, 238, 0, 0.3) !important;
+		-webkit-tap-highlight-color: rgba(var(--color-primary-rgb), 0.3) !important;
 		touch-action: manipulation !important;
 		user-select: none !important;
 	}
@@ -6363,13 +5048,6 @@
    ============================================ */
 
 @media (max-width: 768px) and (orientation: landscape) {
-	.modal-content {
-		max-height: 85vh;
-	}
-
-	.mobile-bottom-nav {
-		height: 56px;
-	}
 
 	/* Splash - spațiu redus în landscape */
 	.splash-center-area {
@@ -6726,8 +5404,8 @@
 	.student-mobile-tab.active .student-mobile-tab-label,
 	.student-mobile-tab.active .student-mobile-tab-icon,
 	.student-mobile-tab.active svg {
-		background: #ffee00;
-		color: #000000;
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
 	}
 	.student-mobile-tab.active .student-mobile-tab-label,
 	.student-mobile-tab.active .student-mobile-tab-icon,
@@ -6821,15 +5499,15 @@
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--next,
 .va-shell .lesson-page-actions .lesson-page-btn-primary {
-	background: #ffee00 !important;
-	color: #161300 !important;
-	border: 2px solid #ffee00;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	border: 1px solid var(--btn-primary-border);
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--prev,
 .va-shell .lesson-page-actions .lesson-page-btn-secondary {
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
-	border: 2px solid var(--text-secondary);
+	border: 1px solid var(--border-secondary);
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn svg { color: inherit !important; }
 .va-shell .lesson-page-actions .lesson-page-btn:disabled,
@@ -6879,20 +5557,20 @@
 	html[data-theme='dark'] .courses-page-student-filter.is-active,
 	html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-label,
 	html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-student-filter-count {
-		color: #000000 !important;
+		color: var(--btn-primary-text) !important;
 	}
 }
 
 /* Match active drawer items to the high-contrast mobile navigation. */
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) {
-	background: #ffee00 !important;
-	color: #000000 !important;
-	border-color: #ffee00 !important;
+	background: var(--btn-primary-bg) !important;
+	color: var(--btn-primary-text) !important;
+	border-color: var(--btn-primary-border) !important;
 }
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-label,
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-icon,
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) svg {
-	color: #000000 !important;
+	color: var(--btn-primary-text) !important;
 }
 
 @media (max-width: 768px) {

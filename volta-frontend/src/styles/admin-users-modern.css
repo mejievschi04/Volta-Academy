@@ -29,7 +29,7 @@
 }
 
 .admin-users-view-tab.active {
-	background: rgba(255, 238, 0, 0.15);
+	background: rgba(var(--color-primary-rgb), 0.15);
 	border-color: var(--color-primary);
 	color: var(--text-primary);
 }
@@ -278,9 +278,9 @@
 }
 
 .admin-users-role-badge.admin {
-	background-color: rgba(255, 238, 0, 0.15);
+	background-color: rgba(var(--color-primary-rgb), 0.15);
 	color: var(--color-primary);
-	border: 1px solid rgba(255, 238, 0, 0.3);
+	border: 1px solid rgba(var(--color-primary-rgb), 0.3);
 }
 
 .admin-users-role-badge.student {
@@ -333,7 +333,7 @@
 }
 
 .admin-users-progress-fill.medium {
-	background-color: rgba(255, 238, 0, 0.7);
+	background-color: rgba(var(--color-primary-rgb), 0.7);
 }
 
 .admin-users-progress-fill.low {
@@ -614,9 +614,7 @@
 	}
 
 	.admin-users-table--directory th:nth-child(5),
-	.admin-users-table--directory th:nth-child(6),
-	.admin-users-table--directory td:nth-child(5),
-	.admin-users-table--directory td:nth-child(6) {
+	.admin-users-table--directory td:nth-child(5) {
 		display: none;
 	}
 }
@@ -651,8 +649,8 @@
 
 	.admin-users-table--directory th:nth-child(2),
 	.admin-users-table--directory td:nth-child(2),
-	.admin-users-table--directory th:nth-child(7),
-	.admin-users-table--directory td:nth-child(7) {
+	.admin-users-table--directory th:nth-child(6),
+	.admin-users-table--directory td:nth-child(6) {
 		display: none;
 	}
 
@@ -928,7 +926,7 @@
 	width: 40px;
 	height: 40px;
 	border-radius: var(--radius-lg);
-	background: rgba(255, 238, 0, 0.14);
+	background: rgba(var(--color-primary-rgb), 0.14);
 	color: var(--accent-primary);
 	flex-shrink: 0;
 }
@@ -1054,8 +1052,7 @@
 .admin-users-table--directory th:nth-child(2) { width: 22%; }
 .admin-users-table--directory th:nth-child(3) { width: 12%; }
 .admin-users-table--directory th:nth-child(4) { width: 14%; }
-.admin-users-table--directory th:nth-child(5),
-.admin-users-table--directory th:nth-child(6) { width: 7%; }
+.admin-users-table--directory th:nth-child(5) { width: 10%; }
 .admin-users-page .admin-users-table th:last-child { width: 120px; }
 .admin-users-page .admin-invitations-table th:last-child { width: 172px; }
 .admin-users-page .admin-users-table-cell-user,

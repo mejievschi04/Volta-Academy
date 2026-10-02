@@ -118,7 +118,7 @@
 }
 
 .course-detail-sidebar-module.active {
-	background-color: rgba(255, 238, 0, 0.12);
+	background-color: rgba(var(--color-primary-rgb), 0.12);
 	border-color: var(--color-primary);
 	color: var(--color-primary);
 }
@@ -133,7 +133,7 @@
 }
 
 .course-detail-sidebar-module.in-progress .course-detail-sidebar-module-indicator {
-	background-color: rgba(255, 238, 0, 0.2);
+	background-color: rgba(var(--color-primary-rgb), 0.2);
 	color: var(--color-primary);
 }
 
@@ -811,13 +811,13 @@
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-3) var(--space-6);
-	background: linear-gradient(135deg, rgba(255, 238, 0, 0.15), rgba(255, 238, 0, 0.1));
-	border: 1px solid rgba(255, 238, 0, 0.3);
+	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.15), rgba(var(--color-primary-rgb), 0.1));
+	border: 1px solid rgba(var(--color-primary-rgb), 0.3);
 	border-radius: var(--radius-xl);
 	color: var(--color-primary);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-bold);
-	box-shadow: 0 4px 16px rgba(255, 238, 0, 0.15);
+	box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.15);
 }
 
 .course-detail-quiz-completed-icon {
@@ -1012,8 +1012,8 @@
 
 .course-detail-quiz-question-points {
 	padding: var(--space-2) var(--space-4);
-	background-color: rgba(255, 238, 0, 0.1);
-	border: 1px solid rgba(255, 238, 0, 0.2);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
+	border: 1px solid rgba(var(--color-primary-rgb), 0.2);
 	border-radius: var(--radius-lg);
 	color: var(--color-primary);
 	font-size: var(--font-size-xs);
@@ -1037,12 +1037,6 @@
 .course-detail-quiz-question-flag:hover {
 	background-color: var(--bg-secondary);
 	border-color: var(--border-secondary);
-}
-
-.course-detail-quiz-question-flag.flagged {
-	background-color: rgba(239, 68, 68, 0.15);
-	border-color: rgba(239, 68, 68, 0.3);
-	color: var(--color-error);
 }
 
 .course-detail-quiz-answer-options {
@@ -1070,7 +1064,7 @@
 }
 
 .course-detail-quiz-answer-option.selected {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-color: var(--color-primary);
 }
 

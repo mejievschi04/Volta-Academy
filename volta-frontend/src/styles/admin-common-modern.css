@@ -65,13 +65,6 @@ body.admin-view .va-main {
 	line-height: var(--line-height-relaxed);
 }
 
-.admin-page-header-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	flex-wrap: wrap;
-}
-
 /* ============================================
    3. ADMIN TOOLBAR
    ============================================ */
@@ -114,70 +107,6 @@ body.admin-view .va-main {
 
 .admin-search-input::placeholder {
 	color: var(--text-tertiary);
-}
-
-.admin-search-icon {
-	position: absolute;
-	left: var(--space-3);
-	top: 50%;
-	transform: translateY(-50%);
-	width: 20px;
-	height: 20px;
-	color: var(--text-tertiary);
-	pointer-events: none;
-}
-
-.admin-search-clear {
-	position: absolute;
-	right: var(--space-3);
-	top: 50%;
-	transform: translateY(-50%);
-	width: 24px;
-	height: 24px;
-	background: transparent;
-	border: none;
-	color: var(--text-tertiary);
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: var(--radius-sm);
-	transition: all var(--transition-base);
-}
-
-.admin-search-clear:hover {
-	background-color: var(--bg-elevated);
-	color: var(--text-primary);
-}
-
-.admin-courses-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	flex-wrap: wrap;
-}
-
-.admin-filter-select {
-	padding: var(--space-3) var(--space-4);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	color: var(--text-primary);
-	font-size: var(--font-size-sm);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	font-family: var(--font-family);
-}
-
-.admin-filter-select:focus {
-	outline: none;
-	border-color: var(--border-focus);
-	box-shadow: var(--shadow-focus);
-}
-
-.admin-events-view-toggle {
-	display: flex;
-	gap: var(--space-2);
 }
 
 /* ============================================
@@ -246,7 +175,7 @@ body.admin-view .va-main {
 }
 
 .admin-btn-secondary:hover:not(:disabled) {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-color: var(--color-primary-hover);
 	color: var(--color-primary-hover);
 }
@@ -308,31 +237,6 @@ body.admin-view .va-main {
 /* ============================================
    5. BULK ACTIONS BAR
    ============================================ */
-.admin-bulk-actions-bar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-4);
-	padding: var(--space-4) var(--space-6);
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	border: 1px solid var(--border-primary);
-	margin-bottom: var(--space-6);
-	flex-wrap: wrap;
-}
-
-.admin-bulk-actions-info {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-primary);
-}
-
-.admin-bulk-actions-buttons {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	flex-wrap: wrap;
-}
 
 /* ============================================
    6. ADMIN GRID & CARD
@@ -380,42 +284,6 @@ body.admin-view .va-main {
 	min-width: 0;
 }
 
-.admin-card-description {
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	margin: 0;
-	line-height: var(--line-height-relaxed);
-	min-height: 3em;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.admin-card-info {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	flex: 1;
-	min-height: 0;
-}
-
-.admin-card-info > div {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-}
-
-.admin-card-info > div > div {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	font-size: var(--font-size-sm);
-	line-height: 1.5;
-}
-
 .admin-card-actions {
 	display: flex;
 	gap: var(--space-2);
@@ -435,15 +303,6 @@ body.admin-view .va-main {
 /* ============================================
    7. ADMIN CARD BADGE
    ============================================ */
-.admin-card-badge {
-	padding: var(--space-1) var(--space-3);
-	border-radius: var(--radius-full);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-medium);
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
-}
 
 /* ============================================
    7. ADMIN SETTINGS PAGE
@@ -511,9 +370,7 @@ body.admin-view .va-main {
 	margin-bottom: var(--space-2);
 }
 
-.admin-settings-input,
-.admin-settings-select,
-.admin-settings-textarea {
+.admin-settings-select {
 	width: 100%;
 	padding: var(--space-3) var(--space-4);
 	background-color: var(--bg-secondary);
@@ -525,18 +382,11 @@ body.admin-view .va-main {
 	transition: all var(--transition-base);
 }
 
-.admin-settings-input:focus,
-.admin-settings-select:focus,
-.admin-settings-textarea:focus {
+.admin-settings-select:focus {
 	outline: none;
 	border-color: var(--border-focus);
 	box-shadow: var(--shadow-focus);
 	background-color: var(--bg-elevated);
-}
-
-.admin-settings-textarea {
-	resize: vertical;
-	min-height: 100px;
 }
 
 .admin-settings-toggle {
@@ -557,12 +407,6 @@ body.admin-view .va-main {
 	font-size: var(--font-size-sm);
 	color: var(--text-primary);
 	cursor: pointer;
-}
-
-.admin-settings-hint {
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
-	margin-top: var(--space-1);
 }
 
 .admin-settings-actions {
@@ -676,7 +520,7 @@ body.admin-view .va-main {
 .admin-settings-toggle-slider {
 	width: 18px;
 	height: 18px;
-	background-color: #0f172a;
+	background-color: var(--bg-elevated);
 	border-radius: var(--radius-full);
 	position: absolute;
 	top: 2px;
@@ -687,7 +531,7 @@ body.admin-view .va-main {
 
 .admin-settings-toggle-switch.active .admin-settings-toggle-slider {
 	transform: translateX(20px);
-	background-color: #0f172a;
+	background-color: var(--bg-elevated);
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
@@ -707,72 +551,6 @@ body.admin-view .va-main {
 }
 
 /* Currency Selector */
-.admin-currency-selector {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: var(--space-4);
-	margin-top: var(--space-4);
-}
-
-.admin-currency-option {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-	padding: var(--space-4) var(--space-5);
-	background-color: var(--bg-secondary);
-	border: 2px solid var(--border-primary);
-	border-radius: var(--radius-lg);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	text-align: left;
-	font-family: var(--font-family);
-}
-
-.admin-currency-option:hover {
-	border-color: var(--border-secondary);
-	box-shadow: var(--shadow-sm);
-	transform: translateY(-2px);
-}
-
-.admin-currency-option.active {
-	background-color: var(--color-primary);
-	border-color: var(--color-primary);
-	color: var(--bg-primary);
-	box-shadow: var(--shadow-md);
-}
-
-.admin-currency-option.active .admin-currency-symbol,
-.admin-currency-option.active .admin-currency-code,
-.admin-currency-option.active .admin-currency-name {
-	color: var(--bg-primary);
-}
-
-.admin-currency-option-header {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	margin-bottom: var(--space-1);
-}
-
-.admin-currency-symbol {
-	font-size: var(--font-size-2xl);
-	font-weight: var(--font-weight-bold);
-	color: var(--text-primary);
-	line-height: 1;
-}
-
-.admin-currency-code {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	letter-spacing: 0.05em;
-}
-
-.admin-currency-name {
-	font-size: var(--font-size-sm);
-	color: var(--text-tertiary);
-	font-weight: var(--font-weight-medium);
-}
 
 .admin-settings-actions .lms-btn-primary {
 	display: flex;
@@ -823,166 +601,11 @@ body.admin-view .va-main {
 	overflow: hidden;
 }
 
-.admin-events-two-groups {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-8);
-	padding-bottom: var(--space-4);
-}
-
-.admin-events-group__title {
-	margin: 0 0 var(--space-4) 0;
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-}
-
-.admin-events-group__empty {
-	margin: 0;
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-}
-
-.admin-events-time-menu {
-	flex-wrap: wrap;
-	margin: 0 0 var(--space-4) 0;
-	padding: 0 var(--space-1);
-}
-
-.admin-events-tab-empty .lms-btn-secondary {
-	margin-top: var(--space-3);
-}
-
-.admin-events-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-	gap: var(--space-6);
-}
-
-.admin-event-card {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
-	cursor: pointer;
-}
-
-.admin-event-card:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
-	transform: translateY(-2px);
-}
-
-.admin-event-card-header {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	margin-bottom: var(--space-4);
-}
-
-.admin-event-card-title {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin: 0 0 var(--space-2) 0;
-}
-
-.admin-event-card-meta {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-	font-size: var(--font-size-sm);
-	color: var(--text-tertiary);
-}
-
-.admin-event-card-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin-top: var(--space-4);
-	padding-top: var(--space-4);
-	border-top: 1px solid var(--border-primary);
-}
-
 /* Event card (list view) refinements */
-.admin-event-card-checkbox {
-	position: absolute;
-	top: var(--space-4);
-	right: var(--space-4);
-	z-index: 1;
-}
-
-.admin-event-card-header {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: var(--space-4);
-}
-
-.admin-event-card-tags {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-3);
-}
-
-.admin-event-kpis {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: var(--space-4);
-	margin-top: var(--space-2);
-}
-
-.admin-kpi-label {
-	font-size: var(--font-size-xs);
-	color: var(--text-secondary);
-	margin: 0 0 var(--space-1) 0;
-}
-
-.admin-kpi-value {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-bold);
-	color: var(--text-primary);
-	line-height: 1.2;
-}
-
-@media (max-width: 768px) {
-	.admin-event-kpis {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 480px) {
-	.admin-event-kpis {
-		grid-template-columns: 1fr;
-	}
-}
 
 /* ============================================
    9. ADMIN TEAMS PAGE
    ============================================ */
-.admin-teams-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: var(--space-6);
-}
-
-.admin-team-card {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
-	cursor: pointer;
-}
-
-.admin-team-card:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
-	transform: translateY(-2px);
-}
 
 /* Lista echipe — card compact (aceleași elemente, spațiere redusă) */
 .admin-team-card-compact.admin-card {
@@ -1069,43 +692,40 @@ body.admin-view .va-main {
 	flex-shrink: 0;
 }
 
+.admin-team-card-compact__icon-btn--danger {
+	color: var(--color-error);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-secondary);
+}
+
+.admin-team-card-compact__icon-btn--danger:hover,
+.admin-team-card-compact__icon-btn--danger:hover svg {
+	color: var(--color-error);
+	background: color-mix(in srgb, var(--color-error) 14%, var(--bg-elevated));
+	border-color: var(--color-error);
+}
+
+.admin-team-card-compact__icon-btn--danger:hover svg {
+	background: transparent;
+	fill: currentColor;
+}
+
+.admin-team-card-compact__icon-btn--danger svg {
+	color: currentColor;
+	fill: currentColor;
+}
+
 .admin-team-card-compact__avatar svg {
 	display: block;
 	flex-shrink: 0;
 }
 
 html[data-theme="dark"] .admin-team-card-compact__avatar {
-	color: #0f172a;
+	color: var(--text-primary);
 }
 
 html[data-theme="dark"] .admin-team-card-compact__avatar svg {
-	color: #0f172a;
-}
-
-.admin-team-card-compact__description {
-	margin-bottom: 0;
-	min-height: 2.5em;
-	-webkit-line-clamp: 2;
-}
-
-.admin-team-card-compact__owner {
-	font-size: var(--font-size-xs);
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 0;
-	white-space: nowrap;
-	line-height: 1.45;
-	gap: var(--space-2);
-	flex-direction: row;
-}
-
-.admin-team-card-compact__owner-name {
-	white-space: nowrap;
-	font-weight: var(--font-weight-medium);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	min-width: 0;
+	color: var(--text-primary);
 }
 
 .admin-team-card-compact__stats {
@@ -1196,27 +816,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 /* ============================================
    12. ADMIN LESSONS PAGE
    ============================================ */
-.admin-lessons-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: var(--space-6);
-}
-
-.admin-lesson-card {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
-	cursor: pointer;
-}
-
-.admin-lesson-card:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
-	transform: translateY(-2px);
-}
 
 .admin-btn-icon {
 	display: inline-flex;
@@ -1463,7 +1062,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 
 .admin-team-modal-list-item.selected {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-color: var(--color-primary);
 }
 
@@ -1522,12 +1121,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	margin: 0;
 }
 
-.publish-course-lead {
-	margin: 0 0 var(--space-4);
-	color: var(--text-secondary);
-	font-size: var(--font-size-sm);
-}
-
 .publish-course-section {
 	margin: 0 0 var(--space-5);
 	padding: 0;
@@ -1548,14 +1141,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	gap: var(--space-3);
 	margin-bottom: var(--space-3);
 	cursor: pointer;
-}
-
-.publish-course-choice-hint {
-	display: block;
-	margin-top: 2px;
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	font-weight: 400;
 }
 
 .publish-course-ready {
@@ -1589,7 +1174,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	cursor: pointer;
 }
 
-.publish-course-notify-summary,
 .publish-course-blocked-reason {
 	margin: 0 0 var(--space-3);
 	font-size: var(--font-size-sm);
@@ -1627,30 +1211,11 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	margin-bottom: var(--space-1);
 }
 
-.publish-course-error-list li.publish-course-error-more {
-	color: var(--text-tertiary);
-}
-
-.publish-course-error-hint {
-	margin: var(--space-2) 0 0;
-	font-size: var(--font-size-xs);
-	color: var(--text-secondary);
-}
-
 .publish-course-validate-section {
 	margin-bottom: var(--space-4);
 	padding: var(--space-4);
 	background: var(--bg-secondary);
 	border-radius: var(--radius-md);
-}
-
-.publish-course-validate-text {
-	margin: 0 0 var(--space-3) 0;
-	color: var(--text-secondary);
-}
-
-.publish-course-subtitle-margin {
-	margin-bottom: var(--space-4);
 }
 
 .publish-course-teams-muted {
@@ -1687,17 +1252,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	padding-top: var(--space-4);
 	border-top: 1px solid var(--border-primary);
 	justify-content: flex-end;
-}
-
-.publish-course-restored-banner {
-	padding: 0.75rem 0.9rem;
-	margin-bottom: var(--space-4);
-	border-radius: 10px;
-	border: 1px solid rgba(255, 238, 0, 0.35);
-	background: rgba(255, 238, 0, 0.08);
-	color: var(--text-secondary, #d1d5db);
-	font-size: 0.88rem;
-	line-height: 1.45;
 }
 
 .publish-course-assigned-users-list {
@@ -1756,215 +1310,16 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 /* ============================================
    17. ADMIN EVENTS PAGE
    ============================================ */
-.admin-events-view-toggle {
-	display: flex;
-	gap: var(--space-2);
-}
-
-.admin-events-view-toggle .lms-btn-secondary.active {
-	background-color: var(--color-primary);
-	color: var(--btn-primary-text);
-	border-color: var(--color-primary);
-}
-
-.admin-events-calendar-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid var(--border-primary);
-	background-color: var(--bg-elevated);
-}
-
-.admin-events-calendar-header-actions {
-	display: flex;
-	gap: var(--space-2);
-}
-
-.admin-events-calendar-month {
-	font-size: var(--font-size-xl);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin: 0;
-}
 
 /* ============================================
    18. ADMIN EVENTS CALENDAR
    ============================================ */
-.admin-events-calendar {
-	max-height: calc(100vh - 300px);
-	height: calc(100vh - 300px);
-	flex: 1;
-	min-height: 0;
-	display: flex;
-	flex-direction: column;
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	border: 1px solid var(--border-primary);
-	overflow: hidden;
-	margin-bottom: 0;
-}
 
 /* Ensure calendar contents participate in the flex layout */
-.admin-events-calendar > div {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	overflow: hidden;
-}
-
-.admin-events-calendar-weekdays {
-	display: grid;
-	grid-template-columns: repeat(7, 1fr);
-	background-color: var(--bg-secondary);
-	border-bottom: 1px solid var(--border-primary);
-}
-
-.admin-events-calendar-weekday {
-	padding: var(--space-3) var(--space-4);
-	text-align: center;
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-secondary);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
-.admin-events-calendar-days {
-	display: grid;
-	grid-template-columns: repeat(7, 1fr);
-	flex: 1;
-	overflow-y: auto;
-	gap: 1px;
-	background-color: var(--border-primary);
-	max-height: 450px;
-}
-
-.admin-events-calendar-day {
-	background-color: var(--bg-elevated);
-	min-height: 80px;
-	padding: var(--space-2);
-	display: flex;
-	flex-direction: column;
-	cursor: pointer;
-	transition: all var(--transition-base);
-	border: 1px solid transparent;
-}
-
-.admin-events-calendar-day:hover {
-	background-color: var(--bg-secondary);
-	border-color: var(--border-secondary);
-}
-
-.admin-events-calendar-day.today {
-	background-color: rgba(255, 238, 0, 0.1);
-	border-color: var(--color-primary);
-}
-
-.admin-events-calendar-day.today .admin-events-calendar-day-number {
-	color: var(--color-primary);
-	font-weight: var(--font-weight-bold);
-}
-
-.admin-events-calendar-day.other-month {
-	background-color: var(--bg-secondary);
-	opacity: 0.5;
-}
-
-.admin-events-calendar-day.other-month .admin-events-calendar-day-number {
-	color: var(--text-tertiary);
-}
-
-.admin-events-calendar-day-number {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-primary);
-	margin-bottom: var(--space-2);
-	line-height: 1;
-}
-
-.admin-events-calendar-day-events {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-	min-height: 0;
-	overflow: hidden;
-}
-
-.admin-events-calendar-day-event {
-	font-size: var(--font-size-xs);
-	padding: var(--space-1) var(--space-2);
-	background-color: var(--color-primary);
-	color: var(--btn-primary-text);
-	border-radius: var(--radius-sm);
-	cursor: pointer;
-	transition: all var(--transition-base);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	line-height: 1.3;
-}
-
-.admin-events-calendar-day-event:hover {
-	background-color: var(--color-primary-hover);
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-events-calendar-day-more {
-	font-size: var(--font-size-xs);
-	padding: var(--space-1) var(--space-2);
-	color: var(--text-secondary);
-	cursor: pointer;
-	transition: color var(--transition-base);
-	font-weight: var(--font-weight-medium);
-}
-
-.admin-events-calendar-day-more:hover {
-	color: var(--color-primary);
-}
 
 /* Custom scrollbar for calendar */
-.admin-events-calendar-days::-webkit-scrollbar {
-	width: 6px;
-}
-
-.admin-events-calendar-days::-webkit-scrollbar-track {
-	background: var(--bg-secondary);
-}
-
-.admin-events-calendar-days::-webkit-scrollbar-thumb {
-	background: var(--border-secondary);
-	border-radius: var(--radius-full);
-}
-
-.admin-events-calendar-days::-webkit-scrollbar-thumb:hover {
-	background: var(--text-tertiary);
-}
 
 /* Responsive calendar */
-@media (max-width: 768px) {
-	.admin-events-calendar-day {
-		min-height: 80px;
-		padding: var(--space-1);
-	}
-
-	.admin-events-calendar-day-number {
-		font-size: var(--font-size-xs);
-	}
-
-	.admin-events-calendar-day-event {
-		font-size: 10px;
-		padding: 2px 4px;
-	}
-
-	.admin-events-calendar-weekday {
-		padding: var(--space-2);
-		font-size: var(--font-size-xs);
-	}
-}
 
 .admin-event-modal-overlay {
 	position: fixed;
@@ -2121,7 +1476,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 
 .admin-event-btn-secondary:hover:not(:disabled) {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-color: var(--color-primary-hover);
 	color: var(--color-primary-hover);
 }
@@ -2144,14 +1499,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 /* ============================================
    19. ADMIN VOLT GENERATING STATE
    ============================================ */
-.admin-ai-generating {
-	padding: var(--space-6);
-	background-color: rgba(255, 238, 0, 0.1);
-	border-radius: var(--radius-lg);
-	text-align: center;
-	margin-top: var(--space-4);
-	border: 1px solid rgba(255, 238, 0, 0.2);
-}
 
 /* ============================================
    19.5. ADMIN FORM INPUTS (Global)
@@ -2174,12 +1521,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 .admin-event-form .admin-form-section:first-child {
 	margin-top: 0;
-}
-
-.admin-event-datetime-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--space-4);
 }
 
 .admin-event-form-grid-2 {
@@ -2246,12 +1587,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	font-weight: var(--font-weight-normal);
 	color: var(--text-tertiary);
 	font-size: var(--font-size-sm);
-}
-
-@media (max-width: 520px) {
-	.admin-event-datetime-grid {
-		grid-template-columns: 1fr;
-	}
 }
 
 .admin-form-label {
@@ -2436,7 +1771,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 
 .admin-course-builder-step.active {
-	background-color: rgba(255, 238, 0, 0.1);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
 	border-color: var(--color-primary);
 }
 
@@ -2554,19 +1889,19 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	background-color: var(--color-primary);
 	color: var(--text-inverse);
 	border: 1px solid var(--color-primary);
-	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .admin-course-builder-footer .admin-btn-primary:hover:not(:disabled) {
 	background-color: var(--color-primary-hover);
 	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 12px rgba(255, 238, 0, 0.3);
+	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
 	transform: translateY(-2px);
 }
 
 .admin-course-builder-footer .admin-btn-primary:active:not(:disabled) {
 	transform: translateY(0);
-	box-shadow: 0 2px 8px rgba(255, 238, 0, 0.2);
+	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .admin-course-builder-footer .admin-btn-secondary {
@@ -2643,8 +1978,8 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
    ============================================ */
 .admin-info-box {
 	padding: var(--space-4) var(--space-6);
-	background-color: rgba(255, 238, 0, 0.1);
-	border: 1px solid rgba(255, 238, 0, 0.2);
+	background-color: rgba(var(--color-primary-rgb), 0.1);
+	border: 1px solid rgba(var(--color-primary-rgb), 0.2);
 	border-radius: var(--radius-lg);
 }
 
@@ -2716,24 +2051,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	font-size: var(--font-size-sm);
 	color: var(--text-secondary);
 	margin-bottom: var(--space-2);
-}
-
-.admin-question-item-answers {
-	margin-top: var(--space-2);
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-}
-
-.admin-question-answer {
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	margin-top: var(--space-1);
-}
-
-.admin-question-answer.correct {
-	color: var(--color-success);
-	font-weight: var(--font-weight-medium);
 }
 
 .admin-question-item-actions {
@@ -2897,53 +2214,6 @@ body.admin-view .admin-lesson-creator-page {
 }
 
 /* Admin Lessons Page – card layout (fără inline styles) */
-.admin-lessons-card-header {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--space-4);
-	margin-bottom: var(--space-4);
-}
-
-.admin-lessons-card-icon {
-	width: 56px;
-	height: 56px;
-	border-radius: var(--radius-xl);
-	background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 28px;
-	flex-shrink: 0;
-	box-shadow: var(--shadow-md);
-}
-
-.admin-lessons-card-content {
-	flex: 1;
-	min-width: 0;
-}
-
-.admin-lessons-card-title-wrap {
-	margin-bottom: var(--space-2);
-}
-
-.admin-lessons-card-meta {
-	font-size: var(--font-size-sm);
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	flex-wrap: wrap;
-}
-
-.admin-lessons-card-preview {
-	margin-bottom: var(--space-4);
-}
-
-.admin-form-actions-inline {
-	display: flex;
-	gap: var(--space-2);
-	justify-content: flex-end;
-	margin-top: var(--space-6);
-}
 
 /* Lesson Creator Specific */
 .admin-lesson-form {
@@ -3120,11 +2390,6 @@ body.admin-view .admin-lesson-creator-page {
 		gap: var(--space-4);
 	}
 
-	.admin-page-header-actions {
-		width: 100%;
-		flex-wrap: wrap;
-	}
-
 	.admin-form-actions {
 		flex-direction: column;
 	}
@@ -3144,12 +2409,6 @@ body.admin-view .admin-lesson-creator-page {
 @media (max-width: 1024px) {
 	.admin-container {
 		padding: var(--space-6);
-	}
-
-	.admin-events-grid,
-	.admin-teams-grid,
-	.admin-lessons-grid {
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 	}
 }
 
@@ -3173,10 +2432,6 @@ body.admin-view .admin-lesson-creator-page {
 		padding: var(--space-4);
 	}
 
-	.admin-currency-selector {
-		grid-template-columns: 1fr;
-	}
-
 	.admin-settings-actions-grid {
 		grid-template-columns: 1fr;
 	}
@@ -3196,10 +2451,6 @@ body.admin-view .admin-lesson-creator-page {
 		align-items: flex-start;
 	}
 
-	.admin-page-header-actions {
-		width: 100%;
-	}
-
 	.admin-courses-toolbar {
 		flex-direction: column;
 		align-items: stretch;
@@ -3207,26 +2458,6 @@ body.admin-view .admin-lesson-creator-page {
 
 	.admin-courses-search {
 		min-width: 100%;
-	}
-
-	.admin-events-grid,
-	.admin-teams-grid,
-	.admin-lessons-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.admin-bulk-actions-bar {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.admin-bulk-actions-buttons {
-		width: 100%;
-		flex-direction: column;
-	}
-
-	.admin-bulk-actions-buttons .admin-btn {
-		width: 100%;
 	}
 
 	.admin-settings-tabs {
@@ -3252,21 +2483,6 @@ body.admin-view .admin-lesson-creator-page {
    ============================================ */
 
 /* Admin card badges with yellow background need dark text in light theme */
-[data-theme="light"] .admin-card-badge {
-	/* Override inline styles for yellow badges */
-}
-
-[data-theme="light"] .admin-card-badge[style*="rgba(255, 238, 0"] {
-	background: rgba(31, 41, 55, 0.1) !important;
-	color: var(--text-primary) !important;
-	border: 1px solid rgba(31, 41, 55, 0.2) !important;
-}
-
-[data-theme="light"] .admin-card-badge[style*="rgb(255, 238, 0)"] {
-	background: rgba(31, 41, 55, 0.1) !important;
-	color: var(--text-primary) !important;
-	border: 1px solid rgba(31, 41, 55, 0.2) !important;
-}
 
 /* Generic badge styles for light theme */
 [data-theme="light"] span[class*="badge"][style*="rgba(255, 238, 0"] {
@@ -3291,11 +2507,11 @@ html body .admin-back-btn.admin-back-btn {
 	height: 40px !important;
 	min-height: 40px !important;
 	padding: 0 16px !important;
-	border: 1px solid #0f172a !important;
-	border-radius: 12px !important;
-	background: #0f172a !important;
-	color: #ffffff !important;
-	box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18) !important;
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
 	font-size: 14px !important;
 	font-weight: 800 !important;
 	line-height: 1 !important;
@@ -3306,7 +2522,7 @@ html body .admin-back-btn.admin-back-btn {
 }
 
 html body .admin-back-btn.admin-back-btn svg {
-	color: #ffee00 !important;
+	color: var(--text-primary) !important;
 }
 
 html body .admin-back-btn.admin-back-btn span {
@@ -3314,13 +2530,13 @@ html body .admin-back-btn.admin-back-btn span {
 }
 
 html body .admin-back-btn.admin-back-btn:hover {
-	background: #111827 !important;
-	border-color: #ffee00 !important;
-	transform: translateY(-1px);
+	background: var(--bg-secondary) !important;
+	border-color: var(--border-accent) !important;
+	transform: none;
 }
 
 html body .admin-back-btn.admin-back-btn:focus-visible {
-	outline: 2px solid #ffee00 !important;
+	outline: 2px solid var(--border-focus) !important;
 	outline-offset: 2px;
 }
 
@@ -3332,11 +2548,11 @@ html body .admin-excel-export-btn.admin-excel-export-btn {
 	height: 40px !important;
 	min-height: 40px !important;
 	padding: 0 16px !important;
-	border: 1px solid #0f172a !important;
-	border-radius: 12px !important;
-	background: #16a34a !important;
-	color: #ffffff !important;
-	box-shadow: 0 6px 14px rgba(22, 163, 74, 0.25) !important;
+	border: 1px solid var(--border-secondary) !important;
+	border-radius: var(--btn-desktop-radius) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
 	font-size: 14px !important;
 	font-weight: 800 !important;
 	white-space: nowrap;
@@ -3345,8 +2561,9 @@ html body .admin-excel-export-btn.admin-excel-export-btn {
 }
 
 html body .admin-excel-export-btn.admin-excel-export-btn:hover:not(:disabled) {
-	background: #15803d !important;
-	transform: translateY(-1px);
+	background: var(--bg-secondary) !important;
+	border-color: var(--border-accent) !important;
+	transform: none;
 }
 
 html body .admin-excel-export-btn.admin-excel-export-btn:disabled {
@@ -3356,6 +2573,7 @@ html body .admin-excel-export-btn.admin-excel-export-btn:disabled {
 }
 
 html[data-theme='dark'] body .admin-back-btn.admin-back-btn {
-	border-color: #374151 !important;
-	background: #111827 !important;
+	border-color: var(--border-secondary) !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
 }

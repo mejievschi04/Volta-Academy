@@ -340,17 +340,6 @@ class AIKnowledgeService
         }, $chunks));
     }
 
-    public function cachePromptResponse(string $contextHash, string $response, int $ttlSeconds = 3600): void
-    {
-        Cache::put("ai_response:{$contextHash}", $response, now()->addSeconds($ttlSeconds));
-    }
-
-    public function getCachedPromptResponse(string $contextHash): ?string
-    {
-        $cached = Cache::get("ai_response:{$contextHash}");
-        return is_string($cached) && $cached !== '' ? $cached : null;
-    }
-
     public function getRankedChunksForTutor(
         string $question,
         ?int $courseId = null,
@@ -518,26 +507,6 @@ class AIKnowledgeService
         }
 
         return $chunks;
-    }
-
-    private function storeEmbeddingForChunk(AiChunk $chunk): void
-    {
-        $vector = $this->getEmbedding($chunk->content);
-        if (empty($vector)) {
-            return;
-        }
-
-        AiEmbedding::updateOrCreate(
-            [
-                'ai_chunk_id' => $chunk->id,
-                'model' => $this->getEmbeddingModel(),
-            ],
-            [
-                'dimensions' => count($vector),
-                'vector' => $vector,
-                'vector_hash' => hash('sha256', json_encode($vector)),
-            ]
-        );
     }
 
     private function syncEmbeddingForChunk(AiChunk $chunk): string

@@ -94,7 +94,7 @@ const LessonTipTapEditor = ({
 			StarterKit.configure({
 				heading: { levels: [2, 3] },
 				blockquote: false,
-				dropcursor: { color: '#111111', width: 2 },
+				dropcursor: { color: 'var(--text-primary)', width: 2 },
 			}),
 			Underline,
 			TextStyle,
@@ -226,57 +226,57 @@ const LessonTipTapEditor = ({
 			<div className="lesson-tiptap-toolbar" role="toolbar" aria-label="Formatare lecție">
 				<div className="lesson-tiptap-toolbar-tools">
 					<ToolbarButton label="Titlu" active={editor?.isActive('heading', { level: 2 })} disabled={!editor} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
-						<TextHTwo size={18} weight="bold" color="#111111" aria-hidden />
+						<TextHTwo size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Subtitlu" active={editor?.isActive('heading', { level: 3 })} disabled={!editor} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
-						<TextHThree size={18} weight="bold" color="#111111" aria-hidden />
+						<TextHThree size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<span className="lesson-tiptap-sep" aria-hidden />
 					<ToolbarButton label="Aldin" active={editor?.isActive('bold')} disabled={!editor} onClick={() => editor.chain().focus().toggleBold().run()}>
-						<TextB size={18} weight="bold" color="#111111" aria-hidden />
+						<TextB size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Cursiv" active={editor?.isActive('italic')} disabled={!editor} onClick={() => editor.chain().focus().toggleItalic().run()}>
-						<TextItalic size={18} weight="bold" color="#111111" aria-hidden />
+						<TextItalic size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Subliniat" active={editor?.isActive('underline')} disabled={!editor} onClick={() => editor.chain().focus().toggleUnderline().run()}>
-						<TextUnderline size={18} weight="bold" color="#111111" aria-hidden />
+						<TextUnderline size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Tăiat" active={editor?.isActive('strike')} disabled={!editor} onClick={() => editor.chain().focus().toggleStrike().run()}>
-						<TextStrikethrough size={18} weight="bold" color="#111111" aria-hidden />
+						<TextStrikethrough size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<span className="lesson-tiptap-sep" aria-hidden />
 					<ToolbarButton label="Listă" active={editor?.isActive('bulletList')} disabled={!editor} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-						<ListBullets size={18} weight="bold" color="#111111" aria-hidden />
+						<ListBullets size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Listă numerotată" active={editor?.isActive('orderedList')} disabled={!editor} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-						<ListNumbers size={18} weight="bold" color="#111111" aria-hidden />
+						<ListNumbers size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<span className="lesson-tiptap-sep" aria-hidden />
 					<ToolbarButton label="Aliniere stânga" active={alignActive('left')} disabled={!editor} onClick={() => alignBlock('left')}>
-						<TextAlignLeft size={18} weight="bold" color="#111111" aria-hidden />
+						<TextAlignLeft size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Aliniere centru" active={alignActive('center')} disabled={!editor} onClick={() => alignBlock('center')}>
-						<TextAlignCenter size={18} weight="bold" color="#111111" aria-hidden />
+						<TextAlignCenter size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Aliniere dreapta" active={alignActive('right')} disabled={!editor} onClick={() => alignBlock('right')}>
-						<TextAlignRight size={18} weight="bold" color="#111111" aria-hidden />
+						<TextAlignRight size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<span className="lesson-tiptap-sep" aria-hidden />
 					<ToolbarButton label="Link" active={editor?.isActive('link')} disabled={!editor} onClick={setLink}>
-						<LinkIcon size={18} weight="bold" color="#111111" aria-hidden />
+						<LinkIcon size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Imagine" disabled={!editor} onClick={() => fileRef.current?.click()}>
-						<ImageIcon size={18} weight="bold" color="#111111" aria-hidden />
+						<ImageIcon size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Chenar" active={editor?.isActive('lessonCallout')} disabled={!editor} onClick={openCalloutPanel}>
-						<ChatCircleText size={18} weight="bold" color="#111111" aria-hidden />
+						<ChatCircleText size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<span className="lesson-tiptap-sep" aria-hidden />
 					<ToolbarButton label="Anulează" disabled={!editor?.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
-						<ArrowCounterClockwise size={18} weight="bold" color="#111111" aria-hidden />
+						<ArrowCounterClockwise size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 					<ToolbarButton label="Refă" disabled={!editor?.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
-						<ArrowClockwise size={18} weight="bold" color="#111111" aria-hidden />
+						<ArrowClockwise size={18} weight="bold" color="currentColor" aria-hidden />
 					</ToolbarButton>
 				</div>
 				{toolbarEnd ? <div className="lesson-tiptap-toolbar-end">{toolbarEnd}</div> : null}

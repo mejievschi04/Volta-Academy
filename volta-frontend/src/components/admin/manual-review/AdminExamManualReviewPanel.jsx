@@ -170,7 +170,7 @@ export default function AdminExamManualReviewPanel() {
 					{canMutateInAdminArea ? (
 						<button
 							type="button"
-							className="admin-manual-review-clear-danger"
+							className="va-btn-delete admin-manual-review-clear-danger"
 							onClick={handleClearPending}
 							disabled={loading || clearing}
 						>

@@ -12,17 +12,6 @@ class CourseCatalog
 {
     public const SETTINGS_KEY = 'catalog_outside_map';
 
-    public static function isOutsideMap(Course $course): bool
-    {
-        if (! SchemaCache::hasColumn('courses', 'settings')) {
-            return false;
-        }
-
-        $settings = is_array($course->settings) ? $course->settings : [];
-
-        return (bool) ($settings[self::SETTINGS_KEY] ?? false);
-    }
-
     public static function applyOutsideMapFlag(Course $course, bool $value): Course
     {
         if (! SchemaCache::hasColumn('courses', 'settings')) {

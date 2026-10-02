@@ -2,10 +2,6 @@
 	margin: 0;
 }
 
-.events-card-desc {
-	margin-bottom: 1rem;
-}
-
 .event-desc-expand__text {
 	margin: 0;
 	font-size: var(--font-size-sm);

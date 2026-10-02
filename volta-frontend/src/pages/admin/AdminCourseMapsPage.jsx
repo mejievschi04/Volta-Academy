@@ -133,24 +133,17 @@ function SortableAdminMapShowcase({
 									<PencilSimple size={16} weight="bold" aria-hidden />
 								</button>
 							</div>
-							<span
-								role="button"
-								tabIndex={0}
+							<button
+								type="button"
 								className="admin-course-map-delete-btn va-card-icon-btn va-card-icon-btn--danger"
 								onClick={(e) => {
 									e.stopPropagation();
 									onDelete(map);
 								}}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										onDelete(map);
-									}
-								}}
 								aria-label="Șterge mapa"
 							>
-								<Trash size={18} weight="bold" aria-hidden />
-							</span>
+								<Trash size={16} weight="bold" aria-hidden />
+							</button>
 						</>
 					) : null
 				}
@@ -184,24 +177,17 @@ function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDe
 									<PencilSimple size={16} weight="bold" aria-hidden />
 								</button>
 							</div>
-							<span
-								role="button"
-								tabIndex={0}
+							<button
+								type="button"
 								className="admin-course-map-delete-btn va-card-icon-btn va-card-icon-btn--danger"
 								onClick={(e) => {
 									e.stopPropagation();
 									onDelete(map);
 								}}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										onDelete(map);
-									}
-								}}
 								aria-label="Șterge mapa"
 							>
-								<Trash size={18} weight="bold" aria-hidden />
-							</span>
+								<Trash size={16} weight="bold" aria-hidden />
+							</button>
 						</>
 					) : null
 				}
@@ -830,7 +816,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 							<button type="button" className="lms-btn-secondary" onClick={closeCreateModal}>
 								Anulare
 							</button>
-							<button type="button" className="lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>
+							<button type="button" className="va-btn-save lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>
 								{editingMap ? 'Salvează' : 'Creează'}
 							</button>
 						</div>

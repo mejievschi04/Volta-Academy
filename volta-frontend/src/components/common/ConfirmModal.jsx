@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useId } from 'react';
 import Modal from './Modal';
+import { DeleteButton } from '../ui/ActionButtons';
 import './ConfirmModal.css';
 
 /**
@@ -80,16 +81,27 @@ function ConfirmModal({
 					>
 						{cancelLabel}
 					</button>
-					<button
-						ref={confirmBtnRef}
-						type="button"
-						className={variant === 'danger' ? 'lms-btn-secondary va-btn-danger' : 'lms-btn-primary'}
-						onClick={handleConfirm}
-						disabled={loading}
-						aria-label={confirmLabel}
-					>
-						{loading ? 'Se procesează...' : confirmLabel}
-					</button>
+					{variant === 'danger' ? (
+						<DeleteButton
+							ref={confirmBtnRef}
+							onClick={handleConfirm}
+							disabled={loading}
+							aria-label={confirmLabel}
+						>
+							{loading ? 'Se procesează...' : confirmLabel}
+						</DeleteButton>
+					) : (
+						<button
+							ref={confirmBtnRef}
+							type="button"
+							className="lms-btn-primary"
+							onClick={handleConfirm}
+							disabled={loading}
+							aria-label={confirmLabel}
+						>
+							{loading ? 'Se procesează...' : confirmLabel}
+						</button>
+					)}
 				</div>
 			</div>
 		</Modal>

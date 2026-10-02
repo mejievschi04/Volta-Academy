@@ -162,7 +162,7 @@
 /* Copertă mapă: o singură imagine, se ridică ca un capac (fără dublare) */
 .rb-folder__front--image {
 	overflow: hidden;
-	background: #0f172a;
+	background: var(--bg-elevated);
 	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 

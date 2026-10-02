@@ -328,7 +328,7 @@ export default function ExamContentPicker({
                   <div className="exam-picker-folder-browser">
                     {folderLevel === 'questions' ? (
                       <div className="qb-catalog-nav">
-                        <button type="button" className="admin-back-btn" onClick={closeFolder}>
+                        <button type="button" className="va-btn-back admin-back-btn" onClick={closeFolder}>
                           <ArrowLeft size={16} aria-hidden />
                           Înapoi la foldere
                         </button>
@@ -538,7 +538,7 @@ export default function ExamContentPicker({
                 <div className="exam-picker-tray-head">
                   <h4>Întrebări selectate · {selectedQuestionItems.length}</h4>
                   {selectedQuestionItems.length > 0 && canMutate ? (
-                    <button type="button" className="exam-picker-clear-danger" onClick={onClearQuestions}>
+                    <button type="button" className="va-btn-delete exam-picker-clear-danger" onClick={onClearQuestions}>
                       Golește
                     </button>
                   ) : null}
@@ -638,7 +638,7 @@ export default function ExamContentPicker({
                 {selectedFolders.length > 0 && canMutate ? (
                   <button
                     type="button"
-                    className="exam-picker-clear-danger"
+                    className="va-btn-delete exam-picker-clear-danger"
                     onClick={() => setExamSettings((prev) => ({ ...prev, selectedFolderIds: [], contentBankId: null }))}
                   >
                     Golește
@@ -674,7 +674,7 @@ export default function ExamContentPicker({
 
           <button
             type="button"
-            className="lms-btn-primary exam-picker-confirm"
+            className="va-btn-save lms-btn-primary exam-picker-confirm"
             onClick={onConfirm}
             disabled={!canSave}
           >
@@ -708,7 +708,7 @@ export default function ExamContentPicker({
             <button type="button" className="lms-btn-secondary" onClick={() => setEditorQuestion(null)} disabled={editorSaving}>
               Anulează
             </button>
-            <button type="button" className="lms-btn-primary" onClick={saveEditorQuestion} disabled={editorSaving || !editorQuestion?.content}>
+            <button type="button" className="va-btn-save lms-btn-primary" onClick={saveEditorQuestion} disabled={editorSaving || !editorQuestion?.content}>
               {editorSaving ? 'Se salvează...' : 'Salvează'}
             </button>
           </div>

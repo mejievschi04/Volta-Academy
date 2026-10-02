@@ -184,7 +184,7 @@ const AdminCourseDetailPage = () => {
 				<div className="admin-course-detail-header-start">
 					<button
 						type="button"
-						className="admin-course-detail-back-btn admin-back-btn"
+						className="admin-course-detail-back-btn va-btn-back admin-back-btn"
 						onClick={() => navigate('/admin/courses')}
 					>
 						<ArrowLeft size={18} aria-hidden />

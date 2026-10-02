@@ -56,8 +56,4 @@ class RegistrationInvitation extends Model
         return $this->accepted_at !== null;
     }
 
-    public function isPending(): bool
-    {
-        return ! $this->isAccepted() && ! $this->isExpired();
-    }
 }

@@ -299,17 +299,11 @@ const CoursesPage = () => {
 												aria-pressed={active}
 												className={`courses-page-student-filter${active ? ' is-active' : ''}`}
 												onClick={() => setStudentFilter(filter.id)}
-												ref={(node) => {
-													if (!node) return;
-													node.style.setProperty('background-color', active ? '#ffee00' : '#ffffff', 'important');
-													node.style.setProperty('color', '#000000', 'important');
-													node.style.setProperty('border', active ? '2px solid #111111' : '1px solid #cbd5e1', 'important');
-												}}
 											>
 												{count != null ? (
-													<span className="courses-page-student-filter-count" style={active ? { color: '#000000', background: 'transparent' } : undefined}>{count}</span>
+													<span className="courses-page-student-filter-count">{count}</span>
 												) : null}
-												<span className="courses-page-student-filter-label" style={active ? { color: '#000000', background: 'transparent' } : undefined}>{filter.label}</span>
+												<span className="courses-page-student-filter-label">{filter.label}</span>
 											</button>
 										);
 									})}

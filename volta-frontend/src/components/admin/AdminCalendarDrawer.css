@@ -154,12 +154,6 @@
 	padding: var(--space-2, 0.5rem) var(--space-5, 1.25rem) var(--space-6, 1.5rem);
 }
 
-.va-cal-drawer-loading {
-	margin: var(--space-2, 0.5rem) 0;
-	font-size: 0.875rem;
-	color: var(--text-secondary);
-}
-
 .va-cal-drawer-month-nav {
 	display: flex;
 	align-items: center;

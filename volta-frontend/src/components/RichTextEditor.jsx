@@ -1834,7 +1834,7 @@ const ImageEditModal = ({ draft, onDraftChange, onApply, onClose, onDelete }) =>
 					</div>
 
 					<div className="rte-image-edit-actions">
-						<button type="button" className="rte-image-delete-btn" onClick={onDelete}>
+						<button type="button" className="va-btn-delete rte-image-delete-btn" onClick={onDelete}>
 							Șterge imaginea
 						</button>
 						<div className="rte-image-edit-actions__main">
@@ -1956,10 +1956,10 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 								onClick={() => onColorSelect(customColor)}
 								style={{
 									padding: '0.75rem 1.5rem',
-									background: 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))',
-									border: '1px solid rgba(255,238,0,0.4)',
+									background: 'rgba(var(--color-primary-rgb), 0.2)',
+									border: '1px solid rgba(var(--color-primary-rgb), 0.4)',
 									borderRadius: '10px',
-									color: '#ffee00',
+									color: 'var(--color-brand-primary)',
 									fontWeight: 700,
 									cursor: 'pointer',
 									transition: 'all 0.3s ease',
@@ -1982,92 +1982,6 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 		</div>
 	);
 };
-
-const CalloutDialogModal = ({
-	palette = RTE_COLOR_PALETTE,
-	types = RTE_CALLOUT_TYPES,
-	selectedType,
-	selectedColor,
-	onTypeChange,
-	onColorChange,
-	onApply,
-	onClose,
-}) => (
-	<div
-		className="rte-modal-overlay"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="rte-callout-title"
-	>
-		<div className="rte-modal" onClick={(e) => e.stopPropagation()}>
-			<div className="rte-modal-header">
-				<h3 id="rte-callout-title" className="rte-modal-title">Chenар stilizat</h3>
-				<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Inchide">
-					X
-				</button>
-			</div>
-			<div className="rte-modal-body">
-				<div className="rte-callout-modal-section">
-					<label className="rte-color-palette-label">Stil chenar</label>
-					<div className="rte-callout-type-grid">
-						{types.map((type) => (
-							<button
-								key={type.id}
-								type="button"
-								className={`rte-callout-type-btn ${selectedType === type.id ? 'is-selected' : ''}`}
-								data-type={type.id}
-								onClick={() => onTypeChange(type.id)}
-							>
-								<span className="rte-callout-type-btn-name">{type.label}</span>
-							</button>
-						))}
-					</div>
-				</div>
-				<div className="rte-callout-modal-section">
-					<label className="rte-color-palette-label">Culoare accent</label>
-					<div className="rte-color-palette-grid">
-						{palette.map((hex, i) => (
-							<div
-								key={`${hex}-${i}`}
-								role="button"
-								tabIndex={0}
-								className={`rte-color-swatch ${selectedColor === hex ? 'is-selected' : ''}`}
-								style={{ background: hex }}
-								onClick={() => onColorChange(hex)}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										onColorChange(hex);
-									}
-								}}
-								title={hex}
-								aria-label={`Culoare ${hex}`}
-							/>
-						))}
-					</div>
-				</div>
-				<div className="rte-callout-preview">
-					<blockquote
-						className="rte-callout-preview-box"
-						data-callout-box="true"
-						data-callout-type={selectedType}
-						style={{
-							'--rte-callout-accent': selectedColor,
-						}}
-					>
-						<div className="rte-callout-content">
-							<p>Preview pentru chenарul selectat.</p>
-						</div>
-					</blockquote>
-				</div>
-				<div className="rte-callout-actions">
-					<button type="button" className="rte-callout-action-secondary" onClick={onClose}>Anuleaza</button>
-					<button type="button" className="rte-callout-action-primary" onClick={onApply}>Aplica</button>
-				</div>
-			</div>
-		</div>
-	</div>
-);
 
 const CalloutInlinePanel = ({
 	palette = RTE_COLOR_PALETTE,
@@ -2163,7 +2077,7 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 				<div className="rte-modal-header">
 					<h3 style={{
 						margin: 0,
-						background: 'linear-gradient(135deg, #ffffff, #ffee00)',
+						background: 'linear-gradient(135deg, var(--color-white), var(--color-brand-primary))',
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 						backgroundClip: 'text',
@@ -2274,7 +2188,7 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 									? '1px solid rgba(255,238,0,0.4)'
 									: '1px solid rgba(255,255,255,0.1)',
 								borderRadius: '10px',
-								color: linkUrl.trim() ? '#ffee00' : 'rgba(255,255,255,0.5)',
+								color: linkUrl.trim() ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.5)',
 								fontWeight: 700,
 								cursor: linkUrl.trim() ? 'pointer' : 'not-allowed',
 								transition: 'all 0.3s ease',
@@ -2334,7 +2248,7 @@ const PdfUploadModal = ({
 				<div className="rte-modal-header">
 					<h3 style={{
 						margin: 0,
-						background: 'linear-gradient(135deg, #ffffff, #ffee00)',
+						background: 'linear-gradient(135deg, var(--color-white), var(--color-brand-primary))',
 						WebkitBackgroundClip: 'text',
 						WebkitTextFillColor: 'transparent',
 						backgroundClip: 'text',
@@ -2379,7 +2293,7 @@ const PdfUploadModal = ({
 						>
 							<div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
 							<div style={{
-								color: '#ffee00',
+								color: 'var(--color-brand-primary)',
 								fontSize: '1.1rem',
 								fontWeight: 700,
 								marginBottom: '0.5rem',
@@ -2410,7 +2324,7 @@ const PdfUploadModal = ({
 								<div style={{ fontSize: '2.5rem' }}>📄</div>
 								<div style={{ flex: 1 }}>
 									<div style={{
-										color: '#ffee00',
+										color: 'var(--color-brand-primary)',
 										fontWeight: 700,
 										marginBottom: '0.25rem',
 									}}>
@@ -2491,7 +2405,7 @@ const PdfUploadModal = ({
 										/>
 									</label>
 									<div style={{
-										color: isPartialRange ? '#ffee00' : 'rgba(255,255,255,0.55)',
+										color: isPartialRange ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.55)',
 										fontSize: '0.8rem',
 										fontWeight: 600,
 									}}>
@@ -2544,7 +2458,7 @@ const PdfUploadModal = ({
 									? '1px solid rgba(255,238,0,0.4)'
 									: '1px solid rgba(255,255,255,0.1)',
 								borderRadius: '10px',
-								color: pdfFile && !uploadingPdf ? '#ffee00' : 'rgba(255,255,255,0.5)',
+								color: pdfFile && !uploadingPdf ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.5)',
 								fontWeight: 700,
 								cursor: pdfFile && !uploadingPdf ? 'pointer' : 'not-allowed',
 								transition: 'all 0.3s ease',
