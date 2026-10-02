@@ -62,6 +62,35 @@ class EmailNotificationTest extends TestCase
         });
     }
 
+    public function test_deadline_email_is_not_sent_to_pending_or_suspended_users(): void
+    {
+        if (! Schema::hasTable('notifications')) {
+            $this->markTestSkipped('notifications table missing');
+        }
+
+        $pending = User::factory()->create([
+            'role' => 'student',
+            'email' => 'pending@test.local',
+            'status' => 'pending',
+        ]);
+        $suspended = User::factory()->create([
+            'role' => 'student',
+            'email' => 'suspended@test.local',
+            'status' => 'suspended',
+        ]);
+        $course = Course::factory()->published()->create(['title' => 'Curs cu termen']);
+        $settings = is_array($course->settings) ? $course->settings : [];
+        $settings['deadline_at'] = now()->addDays(3)->toDateTimeString();
+        $course->settings = $settings;
+        $course->save();
+
+        $notifications = app(NotificationService::class);
+        $notifications->notifyCourseEnrolled($pending, $course);
+        $notifications->notifyCourseEnrolled($suspended, $course);
+
+        Mail::assertNothingOutgoing();
+    }
+
     public function test_no_email_when_globally_disabled(): void
     {
         if (! Schema::hasTable('notifications')) {

@@ -15,6 +15,14 @@ class EmailNotificationService
         return (bool) Setting::get('email_notifications', true);
     }
 
+    /**
+     * Conturile fără status sunt tratate ca active, la fel ca la autentificare.
+     */
+    public function isActiveUser(User $user): bool
+    {
+        return (string) ($user->status ?? 'active') === 'active';
+    }
+
     public function absoluteUrl(?string $path): ?string
     {
         if ($path === null || $path === '') {
@@ -80,7 +88,7 @@ class EmailNotificationService
         }
 
         $email = trim((string) ($user->email ?? ''));
-        if ($email === '') {
+        if ($email === '' || ! $this->isActiveUser($user)) {
             return;
         }
 
