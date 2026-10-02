@@ -50,6 +50,7 @@ const LessonsPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
+	const completedLessonIdsRef = useRef(new Set());
 
 	const [course, setCourse] = useState(null);
 	const modules = useMemo(
@@ -171,7 +172,7 @@ const LessonsPage = () => {
 			if (user?.id) {
 				try {
 					const progressData = await courseProgressService.getCourseProgress(courseId);
-					setProgress((prev) => preserveCompletedLessons(prev, progressData));
+					setProgress((prev) => withRememberedCompletions(preserveCompletedLessons(prev, progressData)));
 				} catch  {
 					console.log('No progress data available');
 				}
@@ -213,7 +214,7 @@ const LessonsPage = () => {
 				try {
 					progressData = await courseProgressService.getCourseProgress(courseId);
 					setProgress((prev) => {
-						progressData = preserveCompletedLessons(prev, progressData);
+						progressData = withRememberedCompletions(preserveCompletedLessons(prev, progressData));
 						return progressData;
 					});
 				} catch {
@@ -246,7 +247,7 @@ const LessonsPage = () => {
 			const progressData = await courseProgressService.getCourseProgress(courseId);
 			let merged = progressData;
 			setProgress((prev) => {
-				merged = preserveCompletedLessons(prev, progressData);
+				merged = withRememberedCompletions(preserveCompletedLessons(prev, progressData));
 				return merged;
 			});
 			return merged;
@@ -258,6 +259,7 @@ const LessonsPage = () => {
 	const completeCurrentLesson = useCallback(async ({ force = false } = {}) => {
 		if (!selectedLessonId || !user?.id) return true;
 		if (isCompleted && !force) return true;
+		rememberCompletedLesson(selectedLessonId);
 		try {
 			setIsCompleting(true);
 			const result = await courseProgressService.completeLesson(selectedLessonId);
@@ -286,22 +288,23 @@ const LessonsPage = () => {
 					const nextHasLessons = Boolean(next?.modules?.length || next?.root_lessons?.length);
 					const prevHasLessons = Boolean(prev?.modules?.length || prev?.root_lessons?.length);
 					if (!nextHasLessons && prevHasLessons) {
-						return stampComplete({
+						return withRememberedCompletions(stampComplete({
 							...prev,
 							...next,
 							modules: prev.modules,
 							root_lessons: prev.root_lessons,
 							course_level_tests: next.course_level_tests || prev.course_level_tests,
-						});
+						}));
 					}
-					return next;
+					return withRememberedCompletions(next);
 				});
 			} else {
-				setProgress((prev) => stampComplete(prev));
+				setProgress((prev) => withRememberedCompletions(stampComplete(prev)));
 				await refreshCourseProgress();
 			}
 			return true;
 		} catch (err) {
+			completedLessonIdsRef.current.delete(Number(selectedLessonId));
 			const msg = err?.response?.data?.message || err?.message || 'Nu s-a putut marca lecția ca finalizată.';
 			showToast(msg, 'error');
 			return false;
@@ -310,7 +313,33 @@ const LessonsPage = () => {
 		}
 	}, [selectedLessonId, isCompleted, user?.id, refreshCourseProgress, showToast]);
 
-	const isLessonCompleted = (lessonId) => isLessonMarkedComplete(progress, lessonId);
+	const rememberCompletedLesson = (lessonId) => {
+		const id = Number(lessonId);
+		if (Number.isFinite(id)) completedLessonIdsRef.current.add(id);
+	};
+
+	const withRememberedCompletions = (source) => {
+		const ids = completedLessonIdsRef.current;
+		if (!source || ids.size === 0) return source;
+		const patch = (row, id) => (
+			ids.has(Number(id))
+				? { ...row, completed: true, progress_percentage: Math.max(100, Number(row?.progress_percentage) || 0) }
+				: row
+		);
+		return {
+			...source,
+			lessons: (source.lessons || []).map((row) => patch(row, row.lesson_id ?? row.id)),
+			root_lessons: (source.root_lessons || []).map((row) => patch(row, row.id)),
+			modules: (source.modules || []).map((mod) => ({
+				...mod,
+				lessons: (mod.lessons || []).map((row) => patch(row, row.id)),
+			})),
+		};
+	};
+
+	const isLessonCompleted = (lessonId) => (
+		completedLessonIdsRef.current.has(Number(lessonId)) || isLessonMarkedComplete(progress, lessonId)
+	);
 
 	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
 	const isLessonUnlockedForPlayer = (lessonId, lesson = null) => {
@@ -404,7 +433,7 @@ const LessonsPage = () => {
 			const p = await courseProgressService.getCourseProgress(courseId);
 			let merged = p;
 			setProgress((prev) => {
-				merged = preserveCompletedLessons(prev, p);
+				merged = withRememberedCompletions(preserveCompletedLessons(prev, p));
 				return merged;
 			});
 			if (p?.next_exam?.id) {

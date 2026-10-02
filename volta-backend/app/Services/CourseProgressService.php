@@ -67,8 +67,12 @@ class CourseProgressService
         }
 
         $map = [];
-        foreach (DB::table('lesson_progress')->where('user_id', $user->id)->get(['lesson_id', 'completed', 'progress_percentage']) as $row) {
-            $map[(int) $row->lesson_id] = $row;
+        foreach (DB::table('lesson_progress')->where('user_id', $user->id)->orderBy('id')->get(['lesson_id', 'completed', 'progress_percentage']) as $row) {
+            $lessonId = (int) $row->lesson_id;
+            $current = $map[$lessonId] ?? null;
+            if ($current === null || ($this->progressRowIsComplete($row) && ! $this->progressRowIsComplete($current))) {
+                $map[$lessonId] = $row;
+            }
         }
 
         return $this->lessonProgressByUser[$user->id] = $map;
@@ -354,30 +358,60 @@ class CourseProgressService
             return true;
         }
 
-        // Check if already completed
-        $existing = DB::table('lesson_progress')
-            ->where('user_id', $user->id)
-            ->where('lesson_id', $lesson->id)
-            ->first();
+        $wrote = DB::transaction(function () use ($user, $lesson) {
+            DB::table('lessons')->where('id', $lesson->id)->lockForUpdate()->first();
 
-        if ($existing && $existing->completed) {
-            return true;
-        }
+            $rows = DB::table('lesson_progress')
+                ->where('user_id', $user->id)
+                ->where('lesson_id', $lesson->id)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
 
-        // Insert or update
-        DB::table('lesson_progress')->updateOrInsert(
-            [
-                'user_id' => $user->id,
-                'lesson_id' => $lesson->id,
-            ],
-            [
+            $allComplete = $rows->isNotEmpty() && $rows->every(
+                fn ($row) => (bool) $row->completed && (int) $row->progress_percentage >= 100
+            );
+            if ($allComplete) {
+                return false;
+            }
+
+            $now = Carbon::now();
+            $payload = [
                 'completed' => true,
                 'progress_percentage' => 100,
-                'completed_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-                'created_at' => $existing ? $existing->created_at : Carbon::now(),
-            ]
-        );
+                'completed_at' => $now,
+                'updated_at' => $now,
+            ];
+            if ($rows->isEmpty()) {
+                $payload['created_at'] = $now;
+                try {
+                    DB::table('lesson_progress')->insert(array_merge([
+                        'user_id' => $user->id,
+                        'lesson_id' => $lesson->id,
+                    ], $payload));
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $sqlState = (string) ($e->errorInfo[0] ?? '');
+                    if (! in_array($sqlState, ['23000', '23505'], true)) {
+                        throw $e;
+                    }
+                    DB::table('lesson_progress')
+                        ->where('user_id', $user->id)
+                        ->where('lesson_id', $lesson->id)
+                        ->update($payload);
+                }
+            } else {
+                DB::table('lesson_progress')
+                    ->where('user_id', $user->id)
+                    ->where('lesson_id', $lesson->id)
+                    ->update($payload);
+            }
+
+            return true;
+        });
+
+        if (! $wrote) {
+            return true;
+        }
 
         $this->forgetUserProgressCache($user, $lesson->course_id ?? $lesson->module?->course_id);
 

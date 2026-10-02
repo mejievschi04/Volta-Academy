@@ -816,7 +816,10 @@ class CourseProgressController extends Controller
         ];
 
         $preserveCompletion = function (?object $row) use (&$payload): void {
-            if (! $row || ! (bool) $row->completed) {
+            $alreadyDone = $row && (
+                (bool) $row->completed || (int) ($row->progress_percentage ?? 0) >= 100
+            );
+            if (! $alreadyDone) {
                 return;
             }
             $payload['completed'] = true;
@@ -827,43 +830,38 @@ class CourseProgressController extends Controller
             }
         };
 
-        if (! $seen) {
-            try {
-                \DB::table('lesson_progress')->insert(array_merge($keys, $payload));
+        return \DB::transaction(function () use ($keys, &$payload, $preserveCompletion, $lessonId) {
+            \DB::table('lessons')->where('id', $lessonId)->lockForUpdate()->first();
+            $rows = \DB::table('lesson_progress')->where($keys)->lockForUpdate()->get();
+            if ($rows->isEmpty()) {
+                try {
+                    \DB::table('lesson_progress')->insert(array_merge($keys, $payload));
 
-                return [
-                    'completed' => (bool) $payload['completed'],
-                    'progress_percentage' => (float) $payload['progress_percentage'],
-                ];
-            } catch (\Illuminate\Database\QueryException $e) {
-                $sqlState = (string) ($e->errorInfo[0] ?? '');
-                if (! in_array($sqlState, ['23000', '23505'], true)) {
-                    throw $e;
-                }
-                $seen = \DB::table('lesson_progress')->where($keys)->first();
-                if (! $seen) {
-                    throw $e;
+                    return [
+                        'completed' => (bool) $payload['completed'],
+                        'progress_percentage' => (float) $payload['progress_percentage'],
+                    ];
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $sqlState = (string) ($e->errorInfo[0] ?? '');
+                    if (! in_array($sqlState, ['23000', '23505'], true)) {
+                        throw $e;
+                    }
+                    $rows = \DB::table('lesson_progress')->where($keys)->lockForUpdate()->get();
                 }
             }
-        }
 
-        $preserveCompletion($seen);
-        $updated = \DB::table('lesson_progress')
-            ->where('id', $seen->id)
-            ->where('completed', $seen->completed)
-            ->where('progress_percentage', $seen->progress_percentage)
-            ->update($payload);
+            foreach ($rows as $row) {
+                $preserveCompletion($row);
+            }
+            if ($rows->isNotEmpty()) {
+                \DB::table('lesson_progress')->where($keys)->update($payload);
+            }
 
-        if ($updated === 0) {
-            $fresh = \DB::table('lesson_progress')->where($keys)->first();
-            $preserveCompletion($fresh);
-            \DB::table('lesson_progress')->where($keys)->update($payload);
-        }
-
-        return [
-            'completed' => (bool) $payload['completed'],
-            'progress_percentage' => (float) $payload['progress_percentage'],
-        ];
+            return [
+                'completed' => (bool) $payload['completed'],
+                'progress_percentage' => (float) $payload['progress_percentage'],
+            ];
+        });
     }
 
     /**

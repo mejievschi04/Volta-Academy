@@ -132,13 +132,7 @@ class ProgressionEngine
         $previousLesson = $previousQuery->first();
 
         if ($previousLesson) {
-            $row = DB::table('lesson_progress')
-                ->where('user_id', $user->id)
-                ->where('lesson_id', $previousLesson->id)
-                ->first();
-
-            return (bool) ($row?->completed ?? false)
-                || (int) ($row?->progress_percentage ?? 0) >= 100;
+            return $this->userHasCompletedLesson($user, (int) $previousLesson->id);
         }
 
         return true;
@@ -163,13 +157,7 @@ class ProgressionEngine
         if ($previousModule) {
             $lessons = $previousModule->lessons()->where('status', 'published')->get();
             foreach ($lessons as $lesson) {
-                $row = DB::table('lesson_progress')
-                    ->where('user_id', $user->id)
-                    ->where('lesson_id', $lesson->id)
-                    ->first();
-                $isCompleted = (bool) ($row?->completed ?? false)
-                    || (int) ($row?->progress_percentage ?? 0) >= 100;
-                if (!$isCompleted) {
+                if (! $this->userHasCompletedLesson($user, (int) $lesson->id)) {
                     return false;
                 }
             }
@@ -198,6 +186,22 @@ class ProgressionEngine
         }
 
         return true;
+    }
+
+    protected function userHasCompletedLesson(User $user, int $lessonId): bool
+    {
+        $rows = DB::table('lesson_progress')
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lessonId)
+            ->get(['completed', 'progress_percentage']);
+
+        foreach ($rows as $row) {
+            if ((bool) ($row->completed ?? false) || (int) ($row->progress_percentage ?? 0) >= 100) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function hasUserPassedTest(User $user, int $testId, int $passingScore = 70, ?int $courseId = null): bool
