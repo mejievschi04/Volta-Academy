@@ -1,5 +1,6 @@
 import api, { ensureApiCsrfCookie, readXsrfToken, refreshApiCsrfCookie } from '../api.js';
 import { assertVoltEnabled } from '../utils/voltAvailability.js';
+import { logger } from '../utils/logger';
 
 async function fetchWithCsrfRetry(url, options) {
 	const send = () => {
@@ -89,7 +90,7 @@ export const openaiService = {
 		assertVoltEnabled();
 		try {
 			const token = localStorage.getItem('token');
-			console.log('Starting course generation request...', { courseId });
+			logger.log('Starting course generation request...', { courseId });
 			const response = await fetchWithCsrfRetry('/api/admin/ai/generate-course', {
 				method: 'POST',
 				headers: {
@@ -147,7 +148,7 @@ export const openaiService = {
 			let fullResponse = '';
 			let buffer = '';
 
-			console.log('Starting to read stream...');
+			logger.log('Starting to read stream...');
 
 			while (true) {
 				const { done, value } = await reader.read();
@@ -185,7 +186,7 @@ export const openaiService = {
 					if (line.startsWith('data: ')) {
 						const data = line.slice(6).trim();
 						if (data === '[DONE]') {
-							console.log('Stream marked as done');
+							logger.log('Stream marked as done');
 							continue;
 						}
 						
@@ -214,7 +215,7 @@ export const openaiService = {
 				}
 			}
 
-			console.log('Stream complete. Total response length:', fullResponse.length);
+			logger.log('Stream complete. Total response length:', fullResponse.length);
 			return { content: fullResponse };
 		} catch (error) {
 			console.error('Error streaming course generation:', error);
@@ -267,7 +268,7 @@ export const openaiService = {
 		assertVoltEnabled();
 		try {
 			const token = localStorage.getItem('token');
-			console.log('Starting test generation request...');
+			logger.log('Starting test generation request...');
 			const response = await fetchWithCsrfRetry('/api/admin/ai/generate-test', {
 				method: 'POST',
 				headers: {
@@ -300,7 +301,7 @@ export const openaiService = {
 			let fullResponse = '';
 			let buffer = '';
 
-			console.log('Starting to read stream...');
+			logger.log('Starting to read stream...');
 
 			while (true) {
 				const { done, value } = await reader.read();
@@ -338,7 +339,7 @@ export const openaiService = {
 					if (line.startsWith('data: ')) {
 						const data = line.slice(6).trim();
 						if (data === '[DONE]') {
-							console.log('Stream marked as done');
+							logger.log('Stream marked as done');
 							continue;
 						}
 						
@@ -368,7 +369,7 @@ export const openaiService = {
 				}
 			}
 
-			console.log('Stream complete. Total response length:', fullResponse.length);
+			logger.log('Stream complete. Total response length:', fullResponse.length);
 			return { content: fullResponse };
 		} catch (error) {
 			console.error('Error streaming test generation:', error);

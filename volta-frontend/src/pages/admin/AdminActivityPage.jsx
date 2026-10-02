@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/api';
 import ActivityFeed from '../../components/admin/ActivityFeed';
+import { logger } from '../../utils/logger';
 
 const AdminActivityPage = () => {
 	const navigate = useNavigate();
@@ -16,7 +17,7 @@ const AdminActivityPage = () => {
 				setLoading(true);
 				setError(null);
 				const data = await adminService.getDashboard({ period: 'month' });
-				console.log('Dashboard data:', data);
+				logger.log('Dashboard data:', data);
 				setDashboardData(data);
 			} catch (err) {
 				console.error('Error fetching activity:', err);

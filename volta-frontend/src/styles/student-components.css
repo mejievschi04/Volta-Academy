@@ -50,14 +50,6 @@
 	letter-spacing: -0.02em;
 }
 
-.student-widget-subtitle {
-	font-size: var(--font-size-sm);
-	color: var(--text-tertiary);
-	margin: 0;
-	opacity: 0.8;
-	line-height: 1.5;
-}
-
 .student-widget-content {
 	color: var(--text-primary);
 }
@@ -69,46 +61,6 @@
 	text-align: center;
 	padding: var(--space-4);
 	font-weight: var(--font-weight-medium);
-}
-
-.student-widget-empty-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: var(--space-8);
-	gap: var(--space-4);
-	text-align: center;
-}
-
-.student-widget-empty-icon {
-	font-size: 3rem;
-	opacity: 0.5;
-	margin-bottom: var(--space-2);
-}
-
-.student-widget-badge {
-	display: inline-flex;
-	align-items: center;
-	padding: var(--space-1) var(--space-3);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-bold);
-	border-radius: var(--radius-md);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	margin-right: var(--space-2);
-}
-
-.student-widget-badge-required {
-	background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-hover) 100%);
-	color: var(--color-white);
-	box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-}
-
-.student-widget-count-urgent {
-	background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-hover) 100%);
-	color: var(--color-white);
-	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
 /* ============================================
@@ -171,33 +123,6 @@
 /* ============================================
    3. COURSE PROGRESS WIDGET
    ============================================ */
-.student-course-progress-card {
-	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
-	border-radius: var(--radius-xl);
-	padding: var(--space-8);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-md), 0 0 0 1px rgba(var(--color-primary-rgb), 0.05);
-	transition: all var(--transition-smooth);
-	position: relative;
-	overflow: hidden;
-}
-
-.student-course-progress-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 4px;
-	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary-light) 100%);
-	opacity: 0.6;
-}
-
-.student-course-progress-card:hover {
-	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(var(--color-primary-rgb), 0.1);
-	border-color: var(--border-accent);
-	transform: translateY(-2px);
-}
 
 .student-course-mandatory {
 	border-left: 4px solid var(--color-error);
@@ -214,45 +139,6 @@
 	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 
-.student-course-progress-header {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--space-4);
-	margin-bottom: var(--space-4);
-}
-
-.student-course-progress-thumbnail {
-	width: 80px;
-	height: 80px;
-	border-radius: var(--radius-lg);
-	object-fit: cover;
-	background-color: var(--bg-secondary);
-	flex-shrink: 0;
-}
-
-.student-course-progress-info {
-	flex: 1;
-	min-width: 0;
-}
-
-.student-course-progress-title-row {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	flex-wrap: wrap;
-	margin-bottom: var(--space-1);
-}
-
-.student-course-progress-title {
-	font-size: var(--font-size-lg);
-	font-weight: var(--font-weight-bold);
-	color: var(--text-primary);
-	margin: 0;
-	line-height: var(--line-height-tight);
-	flex: 1;
-	min-width: 0;
-}
-
 .student-course-mandatory-badge {
 	display: inline-flex;
 	align-items: center;
@@ -266,44 +152,6 @@
 	letter-spacing: 0.05em;
 	box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 	flex-shrink: 0;
-}
-
-.student-course-progress-teacher {
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	margin: 0;
-	font-weight: var(--font-weight-medium);
-}
-
-.student-course-progress-body {
-	margin-bottom: var(--space-4);
-}
-
-.student-course-progress-next {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-	margin-top: var(--space-3);
-	padding-top: var(--space-3);
-	border-top: 1px solid var(--border-primary);
-}
-
-.student-course-progress-next-label {
-	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-
-.student-course-progress-next-module {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-medium);
-	color: var(--text-primary);
-}
-
-.student-course-progress-footer {
-	display: flex;
-	justify-content: flex-end;
 }
 
 /* ============================================
@@ -339,33 +187,6 @@
 /* ============================================
    5. PENDING EXAMS WIDGET
    ============================================ */
-.student-pending-exams-widget {
-	/* Inherits from .student-widget */
-}
-
-.student-widget-count {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 24px;
-	height: 24px;
-	padding: 0 var(--space-2);
-	border-radius: var(--radius-full);
-	font-size: var(--font-size-xs);
-	font-weight: var(--font-weight-bold);
-	color: var(--text-primary);
-}
-
-.student-widget-count-warning {
-	background-color: rgba(245, 158, 11, 0.2);
-	color: var(--color-warning);
-}
-
-.student-pending-exams-list {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-}
 
 .student-pending-exam-item {
 	display: flex;
@@ -473,56 +294,6 @@
 /* ============================================
    6. INCOMPLETE LESSONS WIDGET
    ============================================ */
-.student-incomplete-lessons-widget {
-	/* Inherits from .student-widget */
-}
-
-.student-incomplete-lessons-list {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-3);
-}
-
-.student-incomplete-lesson-item {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	padding: var(--space-3);
-	border-radius: var(--radius-lg);
-	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-primary);
-	transition: all var(--transition-base);
-	cursor: pointer;
-}
-
-.student-incomplete-lesson-item:hover {
-	background-color: var(--bg-elevated);
-	border-color: var(--border-secondary);
-	transform: translateX(4px);
-}
-
-.student-incomplete-lesson-icon {
-	font-size: var(--font-size-xl);
-	flex-shrink: 0;
-}
-
-.student-incomplete-lesson-info {
-	flex: 1;
-	min-width: 0;
-}
-
-.student-incomplete-lesson-title {
-	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
-	color: var(--text-primary);
-	margin: 0 0 var(--space-1) 0;
-}
-
-.student-incomplete-lesson-meta {
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	font-weight: var(--font-weight-medium);
-}
 
 /* ============================================
    7. BADGES WIDGET

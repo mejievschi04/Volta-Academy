@@ -61,12 +61,6 @@ export const courseMapsService = {
 };
 
 export const lessonsService = {
-  getAll: async (courseId = null) => {
-    const params = courseId ? { course_id: courseId } : {};
-    const response = await api.get('/lessons', { params });
-    return response.data;
-  },
-  
   getById: async (id) => {
     const response = await api.get(`/lessons/${id}`);
     return response.data?.data ?? response.data;
@@ -257,28 +251,6 @@ export const examService = {
   },
 };
 
-export const testService = {
-  // Get test for student (from course context)
-  getTest: async (testId, courseId = null) => {
-    const params = courseId ? { course_id: courseId } : {};
-    const response = await api.get(`/tests/${testId}`, { params });
-    return response.data;
-  },
-  
-  submitTest: async (testId, answers, courseId = null) => {
-    const payload = { answers };
-    if (courseId) payload.course_id = courseId;
-    const response = await api.post(`/tests/${testId}/submit`, payload);
-    return response.data;
-  },
-  
-  // Get available tests for a course
-  getCourseTests: async (courseId) => {
-    const response = await api.get(`/courses/${courseId}/tests`);
-    return response.data;
-  },
-};
-
 export const achievementsService = {
   getAchievements: async () => {
     const response = await api.get('/achievements');
@@ -350,18 +322,6 @@ export const eventsService = {
   
   markReplayWatched: async (eventId) => {
     const response = await api.post(`/events/${eventId}/mark-replay-watched`);
-    return response.data;
-  },
-};
-
-export const quizService = {
-  getQuiz: async (courseId) => {
-    const response = await api.get(`/courses/${courseId}/quiz`);
-    return response.data;
-  },
-  
-  submitQuiz: async (courseId, answers) => {
-    const response = await api.post(`/courses/${courseId}/quiz/submit`, { answers });
     return response.data;
   },
 };
@@ -653,12 +613,6 @@ export const adminService = {
           return rest;
         })();
     const response = await api.post('/admin/courses', payload, config);
-    return response.data;
-  },
-  
-  generateCourseStructure: async (courseInfo) => {
-    assertVoltEnabled();
-    const response = await api.post('/admin/ai/generate-course-structure', courseInfo);
     return response.data;
   },
   

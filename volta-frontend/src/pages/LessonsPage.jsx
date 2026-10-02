@@ -31,6 +31,7 @@ import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import './LessonsPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
+import { logger } from '../utils/logger';
 
 const renderTestStatusIcon = (passed) => (
 	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
@@ -174,7 +175,7 @@ const LessonsPage = () => {
 					const progressData = await courseProgressService.getCourseProgress(courseId);
 					setProgress((prev) => withRememberedCompletions(preserveCompletedLessons(prev, progressData)));
 				} catch  {
-					console.log('No progress data available');
+					logger.log('No progress data available');
 				}
 			}
 		} catch (err) {

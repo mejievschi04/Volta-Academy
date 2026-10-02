@@ -537,14 +537,12 @@
 	min-width: 0;
 }
 
-.student-exam-question-text,
-.va-question-text {
+.student-exam-question-text {
 	font-weight: 700;
 	color: var(--text-primary);
 }
 
-.student-exam-question-text *,
-.va-question-text * {
+.student-exam-question-text * {
 	font-weight: 700 !important;
 	font-style: normal !important;
 	text-decoration: none !important;

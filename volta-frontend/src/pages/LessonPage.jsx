@@ -27,6 +27,7 @@ import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import LessonPullRefresh from '../components/student/LessonPullRefresh';
 import './LessonPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
+import { logger } from '../utils/logger';
 
 const STUDY_TOOL_OPTIONS = [
 	{ id: 'summary', label: 'Rezumat' },
@@ -117,7 +118,7 @@ const LessonPage = () => {
 				const courseData = await coursesService.getById(courseId);
 				setCourse(courseData);
 			} catch  {
-				console.log('Could not fetch course data');
+				logger.log('Could not fetch course data');
 			}
 			
 			// Check if lesson is already completed
@@ -128,7 +129,7 @@ const LessonPage = () => {
 						setIsCompleted(true);
 					}
 				} catch  {
-					console.log('Could not fetch progress data');
+					logger.log('Could not fetch progress data');
 				}
 			}
 		} catch (err) {

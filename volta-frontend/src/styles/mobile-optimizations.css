@@ -1463,19 +1463,12 @@
 		text-align: center !important;
 	}
 
-	.student-widget-subtitle {
-		font-size: var(--font-size-xs) !important;
-		margin-top: var(--space-2) !important;
-		text-align: center !important;
-		color: var(--text-secondary) !important;
-	}
+	
 
 	/* Dashboard Widgets - Center all content */
 	.student-resume-widget,
-	.student-mandatory-courses-widget,
-	.student-active-courses-widget,
-	.student-incomplete-lessons-widget,
-	.student-pending-exams-widget {
+.student-mandatory-courses-widget,
+.student-active-courses-widget {
 		text-align: center !important;
 	}
 
@@ -1513,66 +1506,17 @@
 	}
 
 	/* Course Progress Cards - Horizontal layout, left-aligned */
-	.student-course-progress-card {
-		text-align: left !important;
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: stretch !important;
-		padding: var(--space-4) !important;
-		gap: var(--space-4) !important;
-		border-radius: var(--radius-xl) !important;
-		background: var(--bg-elevated) !important;
-		border: 1px solid var(--border-primary) !important;
-		box-shadow: var(--shadow-sm) !important;
-	}
+	
 
-	.student-course-progress-header {
-		display: flex !important;
-		flex-direction: row !important;
-		align-items: flex-start !important;
-		gap: var(--space-4) !important;
-		width: 100% !important;
-		text-align: left !important;
-		margin-bottom: 0 !important;
-	}
+	
 
-	.student-course-progress-thumbnail {
-		width: 100px !important;
-		height: 100px !important;
-		min-width: 100px !important;
-		min-height: 100px !important;
-		border-radius: var(--radius-lg) !important;
-		object-fit: cover !important;
-		flex-shrink: 0 !important;
-		margin: 0 !important;
-	}
+	
 
-	.student-course-progress-info {
-		flex: 1 !important;
-		min-width: 0 !important;
-		text-align: left !important;
-	}
+	
 
-	.student-course-progress-title-row {
-		display: flex !important;
-		flex-direction: row !important;
-		align-items: center !important;
-		flex-wrap: wrap !important;
-		gap: var(--space-2) !important;
-		margin-bottom: var(--space-1) !important;
-	}
+	
 
-	.student-course-progress-title {
-		text-align: left !important;
-		font-size: var(--font-size-base) !important;
-		font-weight: var(--font-weight-semibold) !important;
-		margin: 0 !important;
-		line-height: 1.3 !important;
-		-webkit-line-clamp: 2 !important;
-		display: -webkit-box !important;
-		-webkit-box-orient: vertical !important;
-		overflow: hidden !important;
-	}
+	
 
 	.student-course-mandatory-badge {
 		display: inline-flex !important;
@@ -1580,112 +1524,37 @@
 		flex-shrink: 0 !important;
 	}
 
-	.student-course-progress-teacher {
-		text-align: left !important;
-		margin: 0 !important;
-		font-size: var(--font-size-sm) !important;
-	}
+	
 
-	.student-course-progress-body {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: stretch !important;
-		gap: var(--space-3) !important;
-		width: 100% !important;
-		margin-bottom: 0 !important;
-	}
+	
 
-	.student-course-progress-next {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: flex-start !important;
-		gap: var(--space-1) !important;
-		text-align: left !important;
-		width: 100% !important;
-		padding-top: var(--space-3) !important;
-		border-top: 1px solid var(--border-primary) !important;
-		margin-top: var(--space-2) !important;
-	}
+	
 
-	.student-course-progress-next-label,
-	.student-course-progress-next-module {
-		text-align: left !important;
-	}
+	
 
-	.student-course-progress-footer {
-		display: flex !important;
-		justify-content: stretch !important;
-		width: 100% !important;
-		margin-top: var(--space-3) !important;
-	}
+	
 
-	.student-course-progress-footer .student-btn {
-		width: 100% !important;
-		justify-content: center !important;
-		min-height: 44px !important;
-	}
+	
 
 	/* Incomplete Lessons Widget - Centered */
-	.student-incomplete-lessons-list {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-3) !important;
-	}
+	
 
-	.student-incomplete-lesson-item {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		text-align: center !important;
-		padding: var(--space-4) !important;
-		gap: var(--space-3) !important;
-	}
+	
 
-	.student-incomplete-lesson-icon {
-		font-size: var(--font-size-2xl) !important;
-		margin-bottom: var(--space-2) !important;
-	}
+	
 
-	.student-incomplete-lesson-info {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-2) !important;
-		width: 100% !important;
-		text-align: center !important;
-	}
+	
 
-	.student-incomplete-lesson-title {
-		text-align: center !important;
-		font-size: var(--font-size-base) !important;
-		font-weight: var(--font-weight-semibold) !important;
-		margin-bottom: var(--space-1) !important;
-	}
+	
 
-	.student-incomplete-lesson-meta {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-1) !important;
-		text-align: center !important;
-	}
+	
 
-	.student-incomplete-lesson-course,
-	.student-incomplete-lesson-duration {
-		text-align: center !important;
-		font-size: var(--font-size-sm) !important;
-	}
+	
 
-	.student-incomplete-lesson-arrow {
-		display: none !important;
-	}
+	
 
 	/* Pending Exams Widget - Centered */
-	.student-pending-exams-list {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-3) !important;
-	}
+	
 
 	.student-pending-exam-item {
 		display: flex !important;
@@ -1745,38 +1614,19 @@
 	}
 
 	/* Widget Empty States - Centered */
-	.student-widget-empty-state {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		justify-content: center !important;
-		gap: var(--space-3) !important;
-		padding: var(--space-6) var(--space-4) !important;
-		text-align: center !important;
-	}
+	
 
-	.student-widget-empty-icon {
-		font-size: var(--font-size-4xl) !important;
-		margin-bottom: var(--space-2) !important;
-	}
+	
 
 	.student-widget-empty {
 		text-align: center !important;
 		margin: 0 !important;
 	}
 
-	.student-widget-empty-state .student-btn {
-		width: 100% !important;
-		justify-content: center !important;
-	}
+	
 
 	/* Widget Count Badges - Centered */
-	.student-widget-count {
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		margin: 0 auto !important;
-	}
+	
 
 	/* Widget Headers - Centered */
 	.student-widget-header {
@@ -1796,10 +1646,7 @@
 		width: 100% !important;
 	}
 
-	.student-widget-badge {
-		display: inline-block !important;
-		margin: 0 auto var(--space-2) auto !important;
-	}
+	
 
 	/* Widget Content - Centered */
 	.student-widget-content {
@@ -2577,13 +2424,9 @@
 		margin-bottom: var(--space-2) !important;
 	}
 
-	.pro-course-card-body {
-		padding: var(--space-3) var(--space-4) !important;
-	}
+	
 
-	.pro-course-card-media {
-		height: 140px !important;
-	}
+	
 
 	.va-completed-course-card {
 		padding: var(--space-3) var(--space-4) !important;
@@ -2730,8 +2573,7 @@
 	}
 
 	.course-card-content,
-	.pro-course-card-body,
-	.va-card-body {
+.va-card-body {
 		padding: var(--space-2) var(--space-3) !important;
 	}
 
@@ -2740,8 +2582,7 @@
 		padding: var(--space-2) var(--space-3) !important;
 	}
 
-	.course-card-thumbnail,
-	.pro-course-card-media {
+	.course-card-thumbnail {
 		height: 120px !important;
 	}
 
@@ -3967,20 +3808,11 @@
 
 @media (max-width: 768px) {
 	/* Course Progress Widget */
-	.student-course-progress-card {
-		padding: var(--space-4);
-	}
+	
 
-	.student-course-progress-thumbnail {
-		height: 100px;
-		border-radius: var(--radius-md);
-	}
+	
 
-	.student-course-progress-footer .student-btn {
-		min-height: 44px;
-		width: 100%;
-		justify-content: center;
-	}
+	
 
 	/* Resume Learning */
 	.student-btn-resume {
@@ -3989,7 +3821,6 @@
 	}
 
 	/* Incomplete Lessons & Pending Exams */
-	.student-incomplete-lesson-item,
 	.student-pending-exam-item {
 		min-height: 44px;
 		padding: var(--space-3);
@@ -4022,13 +3853,6 @@
 	/* Course Structure (CourseDetailPage) */
 
 	/* Calendar-like / list pages (calendar, notificări) */
-}
-
-@media (max-width: 480px) {
-
-	.student-course-progress-thumbnail {
-		height: 80px;
-	}
 }
 
 /* ============================================
@@ -4068,18 +3892,11 @@
 	/* Lesson Progress Indicator */
 
 	/* Pro Course Card (UI) */
-	.pro-course-card {
-		padding: 0;
-	}
+	
 
-	.pro-course-start {
-		min-height: 44px;
-		min-width: 44px;
-	}
+	
 
-	.pro-course-card-body {
-		padding: var(--space-4);
-	}
+	
 }
 
 @media (max-width: 480px) {
@@ -4203,91 +4020,6 @@
 /* ============================================
    12k. PRO COURSES & PRO DASHBOARD - Mobile
    ============================================ */
-
-@media (max-width: 768px) {
-	.pro-page {
-		flex-direction: column;
-	}
-
-	.pro-sidebar {
-		position: relative;
-		width: 100%;
-		flex-direction: row;
-		overflow-x: auto;
-		-webkit-overflow-scrolling: touch;
-		padding: var(--space-2);
-		gap: var(--space-2);
-	}
-
-	.pro-nav {
-		flex-direction: row;
-		flex-wrap: nowrap;
-		gap: var(--space-2);
-	}
-
-	.pro-nav-item {
-		min-height: 44px;
-		padding: var(--space-2) var(--space-3);
-		white-space: nowrap;
-	}
-
-	.pro-main {
-		width: 100%;
-		padding: var(--space-4);
-	}
-
-	.pro-hero {
-		padding: var(--space-4);
-	}
-
-	.pro-title {
-		font-size: var(--font-size-2xl);
-	}
-
-	.pro-filters {
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.pro-input,
-	.pro-select {
-		width: 100%;
-		min-height: 44px;
-		font-size: 16px;
-	}
-
-	.pro-course-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
-	}
-
-	.pro-card {
-		padding: var(--space-4);
-	}
-
-	.pro-hero-stats {
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--space-3);
-	}
-
-	.pro-section-row {
-		flex-direction: column;
-	}
-}
-
-@media (max-width: 480px) {
-	.pro-main {
-		padding: var(--space-3);
-	}
-
-	.pro-hero {
-		padding: var(--space-3);
-	}
-
-	.pro-hero-stats {
-		grid-template-columns: 1fr;
-	}
-}
 
 /* ============================================
    12l. ADMIN SETTINGS, TEAMS, ACTIVITY - Mobile
@@ -4414,22 +4146,11 @@
 		flex-direction: column;
 	}
 
-	.va-course-sidebar {
-		width: 100%;
-		max-height: 40vh;
-		overflow-y: auto;
-		border-right: none;
-		border-bottom: 1px solid var(--border-primary);
-	}
+	
 
-	.va-course-sidebar-back {
-		min-height: 44px;
-	}
+	
 
-	.va-course-sidebar-module {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
+	
 
 	.va-course-content-main {
 		margin-left: 0;
@@ -4441,10 +4162,7 @@
 		padding: var(--space-3);
 	}
 
-	.va-quiz-overview {
-		flex-direction: column;
-		gap: var(--space-3);
-	}
+	
 }
 
 @media (max-width: 480px) {

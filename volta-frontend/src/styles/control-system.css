@@ -187,8 +187,7 @@ html body .qb-back-btn.qb-back-btn,
 html body .course-map-page-back.course-map-page-back,
 html body .lessons-page-sidebar-back-btn.lessons-page-sidebar-back-btn,
 html body .lesson-page-back-btn.lesson-page-back-btn,
-html body .lessons-page-nav-btn--prev.lessons-page-nav-btn--prev,
-html body .va-course-sidebar-back.va-course-sidebar-back {
+html body .lessons-page-nav-btn--prev.lessons-page-nav-btn--prev {
 	display: inline-flex !important;
 	align-items: center !important;
 	justify-content: center !important;
@@ -214,8 +213,7 @@ html body .qb-back-btn.qb-back-btn:hover:not(:disabled),
 html body .course-map-page-back.course-map-page-back:hover:not(:disabled),
 html body .lessons-page-sidebar-back-btn.lessons-page-sidebar-back-btn:hover:not(:disabled),
 html body .lesson-page-back-btn.lesson-page-back-btn:hover:not(:disabled),
-html body .lessons-page-nav-btn--prev.lessons-page-nav-btn--prev:hover:not(:disabled),
-html body .va-course-sidebar-back.va-course-sidebar-back:hover:not(:disabled) {
+html body .lessons-page-nav-btn--prev.lessons-page-nav-btn--prev:hover:not(:disabled) {
 	background: var(--bg-secondary) !important;
 	background-color: var(--bg-secondary) !important;
 	border-color: var(--border-accent) !important;

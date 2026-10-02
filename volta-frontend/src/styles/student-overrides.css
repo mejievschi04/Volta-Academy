@@ -93,16 +93,14 @@
 }
 
 /* Student widgets - ensure visibility and contrast */
-.student-widget,
-.student-course-progress-card {
+.student-widget {
 	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
 	border: 1px solid var(--border-primary);
 	border-radius: 16px;
 	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.va-shell-topnav .student-widget:hover,
-.va-shell-topnav .student-course-progress-card:hover {
+.va-shell-topnav .student-widget:hover {
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
@@ -134,19 +132,16 @@
 }
 
 /* Student incomplete lessons & pending exams - hover states */
-.student-incomplete-lesson-item,
 .student-pending-exam-item {
 	cursor: pointer;
 	border-radius: 12px;
 }
 
 /* Light theme - student accent */
-[data-theme="light"] .student-widget::before,
-[data-theme="light"] .student-course-progress-card::before {
+[data-theme="light"] .student-widget::before {
 	background: linear-gradient(90deg, var(--accent-primary) 0%, var(--color-primary) 100%);
 }
 
-[data-theme="light"] .student-course-progress-card:hover,
 [data-theme="light"] .student-widget:hover {
 	box-shadow: var(--shadow-lg), 0 0 0 1px rgba(var(--color-primary-rgb), 0.15);
 }

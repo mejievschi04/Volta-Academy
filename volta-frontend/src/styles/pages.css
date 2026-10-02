@@ -862,11 +862,3 @@
 	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
 }
 
-[data-theme="light"] .student-widget-empty-state {
-	color: var(--text-secondary);
-}
-
-[data-theme="light"] .student-widget-empty-icon {
-	color: var(--text-tertiary);
-	opacity: 0.7;
-}

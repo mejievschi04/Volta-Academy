@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
 
 const ChangePasswordModal = () => {
-	useEffect(() => {
-		console.log('ChangePasswordModal mounted');
-		return () => {
-			console.log('ChangePasswordModal unmounted');
-		};
-	}, []);
 	const { changePassword } = useAuth();
 	const [formData, setFormData] = useState({
 		currentPassword: '',

@@ -76,10 +76,8 @@ import logoShort from './assets/Volta Logo 2@300x 1.png';
 
 // Lazy load pages for code splitting
 const VoltAssistantWidget = lazy(() => import('./components/ai/VoltAssistantWidget'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const CourseMapPage = lazy(() => import('./pages/CourseMapPage'));
-const QuizPage = lazy(() => import('./pages/QuizPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const ExamPage = lazy(() => import('./pages/ExamPage'));
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
@@ -1505,28 +1503,6 @@ function App() {
 											</UserRoute>
 										}
 									/>
-									<Route
-							path="/pro-dashboard"
-							element={
-								<UserRoute>
-									<Suspense fallback={<PageLoader />}>
-										<Navigate to="/courses" replace />
-									</Suspense>
-								</UserRoute>
-							}
-						/>
-
-						<Route
-							path="/pro-courses"
-							element={
-								<UserRoute>
-									<Suspense fallback={<PageLoader />}>
-										<Navigate to="/courses" replace />
-									</Suspense>
-								</UserRoute>
-							}
-						/>
-
 						{/* Course Lessons Page - Main course view */}
 									<Route
 										path="/courses/:courseId"
@@ -1581,16 +1557,6 @@ function App() {
 										}
 									/>
 									{/* Legacy routes - kept for backward compatibility */}
-									<Route
-										path="/courses/:courseId/quiz"
-										element={
-											<UserRoute>
-												<Suspense fallback={<PageLoader />}>
-													<QuizPage />
-												</Suspense>
-											</UserRoute>
-										}
-									/>
 									<Route
 										path="/monthly-tests"
 										element={
@@ -2109,7 +2075,6 @@ function SplashEntry() {
 	useEffect(() => {
 		Promise.all([
 			import('./pages/LoginPage'),
-			import('./pages/DashboardPage'),
 			import('./pages/CoursesPage'),
 		])
 			.then(() => setPrefetchDone(true))

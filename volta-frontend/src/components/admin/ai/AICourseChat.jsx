@@ -15,6 +15,7 @@ import {
 } from '../../../utils/statisticsExcelExport';
 import { isVoltEnabled, notifyVoltComingSoon, VOLT_COMING_SOON_MESSAGE } from '../../../utils/voltAvailability';
 import './AIChat.css';
+import { logger } from '../../../utils/logger';
 
 function summarizeCoursePlan(plan) {
 	const modules = plan?.modules || plan?.course?.modules || [];
@@ -606,7 +607,7 @@ const AICourseChat = ({
 				}, 12000);
 			}
 
-			console.log(runMode === 'assist' ? 'Starting builder diff stream...' : 'Starting course generation stream...');
+			logger.log(runMode === 'assist' ? 'Starting builder diff stream...' : 'Starting course generation stream...');
 
 			let courseId = null;
 			let streamResponseType = '';
@@ -686,7 +687,7 @@ const AICourseChat = ({
 				if (data?.course_id) {
 					courseId = data.course_id;
 					setCurrentCourseId(courseId);
-					console.log('Course created/updated with ID:', courseId);
+					logger.log('Course created/updated with ID:', courseId);
 				}
 			};
 
@@ -724,7 +725,7 @@ const AICourseChat = ({
 				}
 			}
 
-			console.log('Stream completed. Total length:', assistantResponse.length);
+			logger.log('Stream completed. Total length:', assistantResponse.length);
 			if (!assistantResponse && rawResponse && !buildModeDetected) {
 				assistantResponse = rawResponse;
 			}
