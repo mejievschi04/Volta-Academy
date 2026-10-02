@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model; // <--- trebuie adăugat
 use App\Models\User; // pentru relația teacher
 use App\Models\Module; // pentru relația modules
 use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
-use App\Jobs\SyncAiKnowledgeJob;
 use App\Support\CourseUserPivot;
 use Illuminate\Support\Facades\Storage;
 
@@ -206,12 +205,12 @@ class Course extends Model
 
         static::saved(function (self $course) {
             self::clearTutorKnowledgeCache((int) $course->id);
-            SyncAiKnowledgeJob::dispatch(null, (int) $course->id, 'sync')->onConnection('background');
+            self::queueKnowledgeSync(null, (int) $course->id, 'sync');
         });
 
         static::deleted(function (self $course) {
             self::clearTutorKnowledgeCache((int) $course->id);
-            SyncAiKnowledgeJob::dispatch(null, (int) $course->id, 'sync')->onConnection('background');
+            self::queueKnowledgeSync(null, (int) $course->id, 'sync');
         });
     }
 }

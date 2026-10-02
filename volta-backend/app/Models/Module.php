@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
-use App\Jobs\SyncAiKnowledgeJob;
 
 class Module extends Model
 {
@@ -76,7 +75,7 @@ class Module extends Model
         static::saved(function ($module) {
             try {
                 self::clearTutorKnowledgeCache((int) ($module->course_id ?? 0));
-                SyncAiKnowledgeJob::dispatch(null, (int) ($module->course_id ?? 0), 'sync')->onConnection('background');
+                self::queueKnowledgeSync(null, (int) ($module->course_id ?? 0), 'sync');
                 if ($module->course) {
                     app(\App\Services\CourseProgressService::class)
                         ->recalculateCourseProgress($module->course);
@@ -92,7 +91,7 @@ class Module extends Model
         static::deleted(function ($module) {
             try {
                 self::clearTutorKnowledgeCache((int) ($module->course_id ?? 0));
-                SyncAiKnowledgeJob::dispatch(null, (int) ($module->course_id ?? 0), 'sync')->onConnection('background');
+                self::queueKnowledgeSync(null, (int) ($module->course_id ?? 0), 'sync');
                 if ($module->course) {
                     app(\App\Services\CourseProgressService::class)
                         ->recalculateCourseProgress($module->course);
