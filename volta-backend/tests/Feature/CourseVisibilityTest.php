@@ -29,11 +29,22 @@ class CourseVisibilityTest extends TestCase
     {
         $student = User::factory()->create(['role' => 'student']);
         $course = Course::factory()->published()->create();
+        $course->assignedUsers()->attach($student->id, ['enrolled' => true]);
 
         $this->actingAs($student, 'sanctum')
             ->getJson("/api/courses/{$course->id}")
             ->assertOk()
             ->assertJsonPath('id', $course->id);
+    }
+
+    public function test_student_cannot_view_published_course_not_assigned_to_them(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $course = Course::factory()->published()->create();
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson("/api/courses/{$course->id}")
+            ->assertForbidden();
     }
 
     public function test_student_cannot_view_draft_lesson(): void

@@ -103,11 +103,14 @@ class GeneralIntegrityTest extends TestCase
         }
         $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$first->id}")->assertOk();
         $attempt = TestResult::where('user_id', $student->id)->where('test_id', $test->id)->firstOrFail();
+        // Încercările se numără pe test, nu pe curs: trimiterea din alt curs e acceptată,
+        // dar rezultatul rămâne pe cursul în care a fost deschisă încercarea.
         $this->postJson("/api/exams/{$test->id}/submit?course_id={$second->id}", [
             'attempt_id' => $attempt->id,
             'answers' => [$q->id => 0],
-        ])->assertForbidden();
+        ])->assertOk();
         $this->assertSame($first->id, $attempt->fresh()->course_id);
+        $this->assertNotNull($attempt->fresh()->completed_at);
     }
 
     public function test_failed_backup_restore_keeps_existing_rows(): void
