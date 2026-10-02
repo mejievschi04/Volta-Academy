@@ -9,6 +9,7 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\Lesson;
 use App\Models\Module;
+use App\Models\Team;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
@@ -312,10 +313,19 @@ class DashboardMetricsTest extends TestCase
             'completed_at' => now()->subMinutes(3),
         ]);
 
+        $team = Team::create([
+            'name' => 'Echipa statistici',
+            'owner_id' => $admin->id,
+        ]);
+        $student->teams()->attach($team->id);
+
         $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/statistics/course-test-detail?course_id=' . $course->id);
 
         $response->assertOk();
         $this->assertCount(2, $response->json('test_results'));
+        $response->assertJsonPath('teams.0.name', 'Echipa statistici');
+        $studentPayload = collect($response->json('students'))->firstWhere('id', $student->id);
+        $this->assertSame($team->id, $studentPayload['teams'][0]['id'] ?? null);
 
         $titles = collect($response->json('test_results'))->pluck('test_title');
         $this->assertTrue($titles->contains($test->title));

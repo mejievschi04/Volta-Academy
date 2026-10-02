@@ -110,23 +110,27 @@ html body .admin-test-builder-section-tab.admin-test-builder-section-tab.is-acti
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn {
 	min-height: 42px;
-	border: 1px solid var(--ds-border) !important;
-	border-radius: var(--ds-radius-sm) !important;
-	background: var(--ds-surface) !important;
+	align-items: flex-start;
+	gap: 4px;
+	padding: 12px 14px;
+	border: 2px solid var(--ds-ink) !important;
+	border-radius: 12px !important;
+	background: #ffffff !important;
 	color: var(--ds-ink) !important;
-	box-shadow: none !important;
+	box-shadow: 3px 3px 0 var(--ds-ink) !important;
 	font-weight: 700;
 }
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn:hover:not(.is-active) {
-	border-color: var(--ds-accent-strong) !important;
-	background: var(--ds-surface-soft) !important;
+	border-color: var(--ds-ink) !important;
+	background: #fff7a8 !important;
 }
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn.is-active {
-	border-color: var(--ds-accent-strong) !important;
+	border-color: var(--ds-ink) !important;
 	background: var(--ds-accent) !important;
 	color: var(--ds-ink) !important;
+	box-shadow: 4px 4px 0 var(--ds-ink) !important;
 	font-weight: 800;
 }
 

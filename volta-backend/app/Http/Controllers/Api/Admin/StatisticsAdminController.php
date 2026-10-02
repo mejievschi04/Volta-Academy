@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Course;
+use App\Models\Team;
 use App\Models\TestResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -318,6 +319,7 @@ class StatisticsAdminController extends Controller
             ->values();
 
         $studentsQuery = User::select('id', 'name', 'email', 'created_at')
+            ->with(['teams:id,name'])
             ->where('role', 'student')
             ->when($userId, fn ($q) => $q->where('id', (int) $userId));
 
@@ -344,9 +346,14 @@ class StatisticsAdminController extends Controller
             'total_learning_seconds' => (int) collect($learningKeyed)->sum(fn ($row) => (int) ($row->time_spent_seconds ?? 0)),
         ];
 
+        $teams = Schema::hasTable('teams')
+            ? Team::query()->orderBy('name')->get(['id', 'name'])
+            : collect();
+
         return [
             'courses' => $courses,
             'students' => $students,
+            'teams' => $teams,
             'enrollments' => $enrollments,
             'test_results' => $testResults,
             'course_tests' => $courseTests,

@@ -8,13 +8,13 @@ import {
 import './AdminStatisticsHubPage.css';
 
 const MENU_ITEMS = [
-	{ id: 'student-progress', label: 'Progresul utilizatorilor' },
-	{ id: 'course-progress', label: 'Progres cursuri' },
-	{ id: 'test-progress', label: 'Progres teste' },
-	{ id: 'students', label: 'Utilizatori' },
-	{ id: 'courses', label: 'Cursuri' },
-	{ id: 'tests', label: 'Teste' },
-	{ id: 'top-students', label: 'Top 10 studenți' },
+	{ id: 'student-progress', label: 'Progresul utilizatorilor', detail: 'Cursuri, lecții și teste pe fiecare elev' },
+	{ id: 'course-progress', label: 'Progres cursuri', detail: 'Cât au avansat elevii în fiecare curs' },
+	{ id: 'test-progress', label: 'Progres teste', detail: 'Scoruri și promovări pe teste' },
+	{ id: 'students', label: 'Utilizatori', detail: 'Lista elevilor și activitatea lor' },
+	{ id: 'courses', label: 'Cursuri', detail: 'Înscrieri și finalizări pe curs' },
+	{ id: 'tests', label: 'Teste', detail: 'Încercări, pe teste sau pe elevi' },
+	{ id: 'top-students', label: 'Top 10 studenți', detail: 'Cei mai activi și cei care au nevoie de atenție' },
 ];
 
 const formatLearningDuration = (totalSeconds) => {
@@ -30,7 +30,8 @@ const AdminStatisticsHubPage = () => {
 	const [active, setActive] = useState('student-progress');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [statsData, setStatsData] = useState(null);
+	const [statsPayload, setStatsPayload] = useState(null);
+	const [teamId, setTeamId] = useState('');
 	const [dateFrom, setDateFrom] = useState('');
 	const [dateTo, setDateTo] = useState('');
 	const [testsViewMode, setTestsViewMode] = useState('tests');
@@ -54,7 +55,7 @@ const AdminStatisticsHubPage = () => {
 				if (dateFrom) params.date_from = dateFrom;
 				if (dateTo) params.date_to = dateTo;
 				const res = await adminService.getStatisticsCourseTestDetail(params);
-				setStatsData(res || null);
+				setStatsPayload(res || null);
 			} catch (e) {
 				const detail = e?.response?.data?.message || e?.message;
 				console.error('Failed to load statistics report:', detail || e);
@@ -65,6 +66,21 @@ const AdminStatisticsHubPage = () => {
 		};
 		load();
 	}, [active, dateFrom, dateTo]);
+
+	const statsData = useMemo(() => {
+		if (!statsPayload || !teamId) return statsPayload;
+		const selected = Number(teamId);
+		const students = (statsPayload.students || []).filter((student) =>
+			(student.teams || []).some((team) => Number(team.id) === selected)
+		);
+		const ids = new Set(students.map((student) => student.id));
+		return {
+			...statsPayload,
+			students,
+			enrollments: (statsPayload.enrollments || []).filter((row) => ids.has(row.user_id)),
+			test_results: (statsPayload.test_results || []).filter((row) => ids.has(row.user_id)),
+		};
+	}, [statsPayload, teamId]);
 
 	const reportRows = useMemo(() => {
 		const enrollments = statsData?.enrollments || [];
@@ -1409,6 +1425,20 @@ const AdminStatisticsHubPage = () => {
 						Rapoarte de progres, cursuri, teste și clasamente — aliniate la datele din platformă
 					</p>
 				</div>
+				<label className="admin-statistics-team-filter">
+					<span className="va-input-label">Echipă</span>
+					<select
+						className="va-input"
+						value={teamId}
+						onChange={(e) => setTeamId(e.target.value)}
+						aria-label="Filtrează statisticile după echipă"
+					>
+						<option value="">Toate echipele</option>
+						{(statsPayload?.teams || []).map((team) => (
+							<option key={team.id} value={team.id}>{team.name}</option>
+						))}
+					</select>
+				</label>
 			</header>
 
 			<div className="admin-statistics-hub-layout">
@@ -1421,8 +1451,10 @@ const AdminStatisticsHubPage = () => {
 								type="button"
 								className={`admin-statistics-hub-nav-btn${active === item.id ? ' is-active' : ''}`}
 								onClick={() => setActive(item.id)}
+								aria-pressed={active === item.id}
 							>
-								{item.label}
+								<span className="admin-statistics-hub-nav-label">{item.label}</span>
+								<span className="admin-statistics-hub-nav-detail">{item.detail}</span>
 							</button>
 						))}
 					</nav>
