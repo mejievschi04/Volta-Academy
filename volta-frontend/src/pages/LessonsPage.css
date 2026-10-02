@@ -518,13 +518,17 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 .lessons-page-lesson-viewer .lessons-page-lesson-content-text h1,
 .lessons-page-lesson-viewer .lessons-page-lesson-content-text h2,
 .lessons-page-lesson-viewer .lessons-page-lesson-content-text h3,
-.lessons-page-lesson-viewer .lessons-page-lesson-content-text h4,
-.lessons-page-lesson-viewer .lessons-page-lesson-content-text p,
-.lessons-page-lesson-viewer .lessons-page-lesson-content-text li {
+.lessons-page-lesson-viewer .lessons-page-lesson-content-text h4 {
 	color: #000000;
 	margin-top: var(--space-6);
 	margin-bottom: var(--space-4);
 	font-weight: var(--font-weight-bold);
+}
+
+/* Textul obișnuit al lecției: aceeași culoare, greutate normală (ca în LessonPage) */
+.lessons-page-lesson-viewer .lessons-page-lesson-content-text p,
+.lessons-page-lesson-viewer .lessons-page-lesson-content-text li {
+	color: #000000;
 }
 
 .lessons-page-lesson-content-text h1 {

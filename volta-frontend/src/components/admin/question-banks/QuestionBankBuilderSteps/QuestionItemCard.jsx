@@ -1,8 +1,8 @@
 import React from 'react';
 
 const QUESTION_TYPE_LABELS = {
-	multiple_choice: 'Raspuns multiplu',
-	single_choice: 'Raspuns unic',
+	multiple_choice: 'Răspuns multiplu',
+	single_choice: 'Răspuns unic',
 	true_false: 'Adevarat/Fals',
 	yes_no: 'Da / Nu',
 	matching: 'Potrivire',
@@ -26,10 +26,10 @@ const QuestionItemCard = ({
 		<div className="admin-question-item-content">
 			<div className="admin-question-item-header">
 				<div className="admin-question-item-title">
-					#{index + 1}: {question.content || question.text || 'Fara continut'}
+					#{index + 1}: {question.content || question.text || 'Fără conținut'}
 				</div>
 				<div className="admin-question-item-meta">
-					{question.points || 1} puncte - {QUESTION_TYPE_LABELS[question.type] || 'Raspuns multiplu'}
+					{question.points || 1} puncte - {QUESTION_TYPE_LABELS[question.type] || 'Răspuns multiplu'}
 				</div>
 			</div>
 			<div className="admin-question-item-actions">
@@ -38,7 +38,7 @@ const QuestionItemCard = ({
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onPreview}>Previzualizare</button>
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onDuplicate} disabled={duplicateLoading}>Duplica</button>
 				<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onEdit}>Editeaza</button>
-				<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={onDelete}>Sterge</button>
+				<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={onDelete}>Șterge</button>
 			</div>
 		</div>
 	</div>

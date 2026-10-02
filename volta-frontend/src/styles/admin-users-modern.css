@@ -275,6 +275,7 @@
 	font-weight: var(--font-weight-medium);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
+	white-space: nowrap;
 }
 
 .admin-users-role-badge.admin {
@@ -357,6 +358,7 @@
    ============================================ */
 .admin-users-actions {
 	display: flex;
+	flex-wrap: nowrap;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
@@ -1053,7 +1055,8 @@
 .admin-users-table--directory th:nth-child(3) { width: 12%; }
 .admin-users-table--directory th:nth-child(4) { width: 14%; }
 .admin-users-table--directory th:nth-child(5) { width: 10%; }
-.admin-users-page .admin-users-table th:last-child { width: 120px; }
+/* Trei acțiuni de 44px (invitație, editare, ștergere) + spațiere + padding */
+.admin-users-page .admin-users-table th:last-child { width: 172px; }
 .admin-users-page .admin-invitations-table th:last-child { width: 172px; }
 .admin-users-page .admin-users-table-cell-user,
 .admin-users-page .admin-users-table-cell-user > div:last-child,
@@ -1071,9 +1074,10 @@
 .admin-users-page .admin-users-role-badge,
 .admin-users-page .admin-users-status-badge { max-width: 100%; }
 .admin-users-page .admin-users-team-chip-name { min-width: 0; }
-.admin-users-page .admin-users-role-badge,
 .admin-users-page .admin-users-status-badge { white-space: normal; overflow-wrap: anywhere; }
-.admin-users-page .admin-users-actions { flex-wrap: nowrap; gap: 8px; }
+.admin-users-page .admin-users-role-badge { white-space: nowrap; }
+/* Aliniat la dreapta: editare/ștergere stau în aceeași poziție indiferent dacă există invitație */
+.admin-users-page .admin-users-actions { flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 .admin-users-page .admin-users-actions .admin-users-action-compact {
     width: 44px;
     min-width: 44px;
@@ -1088,7 +1092,9 @@
 }
 @media (max-width: 768px) {
     .admin-users-page .admin-users-table { min-width: 0; width: 100%; }
-    .admin-users-page .admin-users-table th:last-child { width: 88px; }
+    .admin-users-page .admin-users-table th:last-child { width: 116px; }
+    /* Pe telefon coloana e îngustă: acțiunile trec pe două rânduri, aliniate la dreapta */
+    .admin-users-page .admin-users-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
     .admin-users-page .admin-invitations-table th:last-child { width: 172px; }
     .admin-users-page .admin-users-table th:last-child,
     .admin-users-page .admin-users-table td:last-child {
@@ -1108,12 +1114,3 @@
     }
 }
 
-.admin-users-page .admin-users-actions:has(.admin-users-invite-button) {
-    flex-wrap: wrap;
-}
-
-.admin-users-page .admin-users-invite-button {
-    flex: 0 0 100%;
-    white-space: normal;
-    justify-content: center;
-}

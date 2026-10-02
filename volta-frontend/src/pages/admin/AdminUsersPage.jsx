@@ -545,12 +545,13 @@ const AdminUsersPage = () => {
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions" onClick={(e) => e.stopPropagation()}>
                                                 {currentUser?.role === 'admin' && usersView === 'active' && !user.last_login_at && (user.status || 'active') === 'active' && (
-                                                    <button type="button" className="lms-btn-secondary lms-btn-sm admin-users-invite-button"
+                                                    <button type="button" className="lms-btn-secondary lms-btn-sm admin-users-invite-button admin-users-action-compact"
+                                                        title={invitingIds.includes(user.id) ? 'Se trimite…' : 'Trimite invitație'}
                                                         aria-label={`Trimite invitație: ${user.name}`}
+                                                        aria-busy={invitingIds.includes(user.id) || undefined}
                                                         disabled={invitingIds.includes(user.id)}
                                                         onClick={() => handleSendInvitation(user.id)}>
-                                                        <EnvelopeSimple size={18} aria-hidden="true" />
-                                                        {invitingIds.includes(user.id) ? 'Se trimite…' : 'Trimite invitație'}
+                                                        <EnvelopeSimple size={18} weight="bold" aria-hidden="true" />
                                                     </button>
                                                 )}
 												{!canMutateInAdminArea ? (

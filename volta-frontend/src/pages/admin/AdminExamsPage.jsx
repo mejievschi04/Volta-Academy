@@ -1405,7 +1405,7 @@ export default function AdminExamsPage() {
                 </div>
               </div>
             ) : (
-              <p>Nu exista date de previzualizare.</p>
+              <p>Nu există date de previzualizare.</p>
             )}
             <div className="admin-exams-create-modal-actions admin-exams-content-modal-actions">
               <button type="button" className="cancel" onClick={() => setShowPreviewModal(false)}>Închide</button>

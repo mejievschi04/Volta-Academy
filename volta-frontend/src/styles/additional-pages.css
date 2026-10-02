@@ -2815,6 +2815,11 @@ body.sidebar-expanded .messages-page {
 	margin-top: var(--space-6);
 }
 
+/* Starea goală ocupă toată grila, nu doar prima coloană */
+.va-completed-courses-cards > .lms-empty-state {
+	grid-column: 1 / -1;
+}
+
 .va-completed-course-card {
 	background-color: var(--bg-elevated);
 	border-radius: var(--radius-xl);

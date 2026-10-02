@@ -110,7 +110,7 @@ const CoursesPage = () => {
 
 			} catch (err) {
 				console.error('Error fetching courses:', err);
-				setError('Nu s-au putut incarca mapele.');
+				setError('Nu s-au putut încărca mapele.');
 			} finally {
 				setLoading(false);
 				fetchingRef.current = false;
@@ -249,7 +249,7 @@ const CoursesPage = () => {
 			<div className="courses-page-modern">
 				<div className="courses-page-loading">
 					<div className="courses-page-spinner" />
-					<p>Se incarca cursurile...</p>
+					<p>Se încarcă cursurile...</p>
 				</div>
 			</div>
 		);
@@ -401,7 +401,7 @@ const CoursesPage = () => {
 											<Books size={64} weight="duotone" aria-hidden />
 										</div>
 										<h3 className="courses-page-empty-title">
-											{searchQuery ? 'Nu am gasit cursuri' : 'Niciun curs in aceasta categorie'}
+											{searchQuery ? 'Nu am găsit cursuri' : 'Niciun curs în această categorie'}
 										</h3>
 										<p className="courses-page-empty-text">
 											{searchQuery
@@ -487,12 +487,12 @@ const CoursesPage = () => {
 										<Books size={64} weight="duotone" aria-hidden />
 									</div>
 									<h3 className="courses-page-empty-title">
-										{searchQuery ? 'Nu am gasit mape' : 'Nu exista mape disponibile'}
+										{searchQuery ? 'Nu am găsit mape' : 'Nu există mape disponibile'}
 									</h3>
 									<p className="courses-page-empty-text">
 										{searchQuery
 											? 'Incearca un alt termen de cautare.'
-											: 'Cursurile sunt afisate in mape sau direct in catalog, daca sunt publicate fara mapa.'}
+											: 'Cursurile sunt afișate în mape sau direct în catalog, dacă sunt publicate fără mapă.'}
 									</p>
 									{searchQuery ? (
 										<button

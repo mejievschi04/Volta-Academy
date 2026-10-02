@@ -26,12 +26,12 @@ const correctIndex = (opts) => {
 	return idx >= 0 ? idx : null;
 };
 const answerText = (value) => {
-	if (value === null || value === undefined || String(value).trim() === '') return '- (fara raspuns)';
+	if (value === null || value === undefined || String(value).trim() === '') return '- (fără răspuns)';
 	if (typeof value === 'object') {
 		try {
 			return JSON.stringify(value, null, 2);
 		} catch {
-			return '- (fara raspuns)';
+			return '- (fără răspuns)';
 		}
 	}
 	return String(value);
@@ -263,7 +263,7 @@ export default function AdminExamManualReviewPanel() {
 										{manual ? (
 											<div className="admin-exams-manual-q-body">
 												<div className="admin-exams-manual-student-answer">
-													<span className="admin-exams-manual-student-answer-label">Raspunsul elevului</span>
+													<span className="admin-exams-manual-student-answer-label">Răspunsul elevului</span>
 													<div className="admin-exams-manual-student-answer-box">{answerText(rawAnswer)}</div>
 												</div>
 												<label className="admin-exams-manual-grade-row">
@@ -318,7 +318,7 @@ export default function AdminExamManualReviewPanel() {
 											</div>
 										) : (
 											<div className="admin-exams-manual-q-body">
-												<span className="admin-exams-manual-student-answer-label">Raspuns inregistrat</span>
+												<span className="admin-exams-manual-student-answer-label">Răspuns înregistrat</span>
 												<pre className="admin-exams-manual-raw-answer">{answerText(rawAnswer)}</pre>
 											</div>
 										)}
@@ -339,7 +339,7 @@ export default function AdminExamManualReviewPanel() {
 								Anuleaza
 							</button>
 							<button type="button" className="confirm" onClick={submitManualReview} disabled={manualReviewSubmitting}>
-								{manualReviewSubmitting ? 'Se salveaza...' : 'Salveaza review-ul'}
+								{manualReviewSubmitting ? 'Se salveaza...' : 'Salvează evaluarea'}
 							</button>
 						</div>
 					</div>

@@ -241,7 +241,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
               {isChoiceType && (
                 <div className="admin-course-builder-test-question-answers">
-                  <p>Raspunsuri:</p>
+                  <p>Răspunsuri:</p>
                   {answers.map((answer, idx) => (
                     <div key={`ans-${idx}`} className="admin-course-builder-test-answer-row">
                       <input
@@ -254,7 +254,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                         type="text"
                         value={answer.text || ''}
                         onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
-                        placeholder="Introdu raspuns"
+                        placeholder="Introdu răspuns"
                         disabled={isBinaryType}
                       />
                       {!isBinaryType && (
@@ -335,7 +335,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
       <aside className={`admin-course-builder-test-sidepanel ${typePickerOpen ? 'is-open' : ''}`}>
         <div className="admin-course-builder-test-sidepanel-head">
-          <h3>Tipuri intrebari</h3>
+          <h3>Tipuri de întrebări</h3>
         </div>
         <div className="admin-course-builder-test-type-grid">
           {INLINE_QUESTION_TYPES.map((typeOpt) => (

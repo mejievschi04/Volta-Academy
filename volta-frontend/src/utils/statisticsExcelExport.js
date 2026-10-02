@@ -79,8 +79,8 @@ export function excelExportDateStamp() {
 export function formatExcelPeriodLabel(periodFrom, periodTo) {
 	if (periodFrom && periodTo) return `${periodFrom} -> ${periodTo}`;
 	if (periodFrom) return `De la ${periodFrom}`;
-	if (periodTo) return `Pana la ${periodTo}`;
-	return 'Toata perioada (fara filtru date in export)';
+	if (periodTo) return `Până la ${periodTo}`;
+	return 'Toată perioada (fără filtru de date în export)';
 }
 
 export function buildStructuredExcelRows({

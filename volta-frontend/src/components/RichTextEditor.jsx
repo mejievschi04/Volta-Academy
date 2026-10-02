@@ -2004,7 +2004,7 @@ const CalloutInlinePanel = ({
 		<div className="rte-callout-inline-header">
 			<div>
 				<div className="rte-callout-inline-title">Chenar</div>
-				<div className="rte-callout-inline-subtitle">Click direct pe stil si culoare</div>
+				<div className="rte-callout-inline-subtitle">Click direct pe stil și culoare</div>
 			</div>
 			<button type="button" onClick={onClose} className="rte-callout-inline-close" aria-label="Inchide">
 				X

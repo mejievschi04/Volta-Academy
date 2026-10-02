@@ -2,14 +2,14 @@ import React from 'react';
 
 const getQuestionTypeLabel = (type) => {
 	const labels = {
-		multiple_choice: 'Raspuns multiplu',
-		single_choice: 'Raspuns unic',
+		multiple_choice: 'Răspuns multiplu',
+		single_choice: 'Răspuns unic',
 		true_false: 'Adevarat/Fals',
 		yes_no: 'Da / Nu',
 		matching: 'Potrivire',
 		ordering: 'Ordonare',
 	};
-	return labels[type] || type || 'Raspuns multiplu';
+	return labels[type] || type || 'Răspuns multiplu';
 };
 
 const QuestionBankBuilderStep3 = ({ data, errors }) => {
@@ -49,13 +49,13 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 				)}
 
 				<div className="admin-form-section">
-					<h3 className="admin-form-section-title">Rezumat banca de intrebari</h3>
+					<h3 className="admin-form-section-title">Rezumatul băncii de întrebări</h3>
 
 					<div className="admin-question-bank-summary-grid">
 						<div className="admin-question-bank-summary-card">
 							<div className="admin-question-bank-summary-label">Titlu</div>
 							<div className="admin-question-bank-summary-value">
-								{data?.title || 'Fara titlu'}
+								{data?.title || 'Fără titlu'}
 							</div>
 						</div>
 
@@ -69,7 +69,7 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 						)}
 
 						<div className="admin-question-bank-summary-card">
-							<div className="admin-question-bank-summary-label">Intrebari</div>
+							<div className="admin-question-bank-summary-label">Întrebări</div>
 							<div className="admin-question-bank-summary-value">
 								{questionsCount}
 							</div>
@@ -86,7 +86,7 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 
 				{data?.questions && data.questions.length > 0 && (
 					<div className="admin-form-section">
-						<h3 className="admin-form-section-title">Previzualizare intrebari</h3>
+						<h3 className="admin-form-section-title">Previzualizare întrebări</h3>
 						<div className="admin-question-list">
 							{data.questions.slice(0, 5).map((question, index) => (
 								<div
@@ -94,7 +94,7 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 									className="admin-question-item"
 								>
 									<div className="admin-question-item-title">
-										#{index + 1}: {question.content || question.text || 'Fara continut'}
+										#{index + 1}: {question.content || question.text || 'Fără conținut'}
 									</div>
 									<div className="admin-question-item-meta">
 										{question.points || 1} puncte - {getQuestionTypeLabel(question.type)}
@@ -113,9 +113,9 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 				<div className="admin-info-box" style={{ marginTop: 'var(--space-6)' }}>
 					<h4 style={{ marginBottom: 'var(--space-2)' }}>Informatii</h4>
 					<ul style={{ margin: 0, paddingLeft: 'var(--space-6)' }}>
-						<li>Dupa publicare, banca de intrebari poate fi folosita in teste</li>
-						<li>Poti adauga mai multe intrebari dupa publicare</li>
-						<li>Intrebarile pot fi editate sau sterse ulterior</li>
+						<li>După publicare, banca de întrebări poate fi folosită în teste</li>
+						<li>Poți adăuga mai multe întrebări după publicare</li>
+						<li>Întrebările pot fi editate sau șterse ulterior</li>
 					</ul>
 				</div>
 			</div>

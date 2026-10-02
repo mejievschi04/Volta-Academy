@@ -15,10 +15,8 @@
 	padding: 1.35rem 1.5rem;
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-3xl, 24px);
-	background:
-		radial-gradient(ellipse 80% 50% at 100% 0%, var(--color-primary-alpha-15), transparent 52%),
-		linear-gradient(145deg, var(--bg-elevated), var(--bg-secondary));
-	box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	background: var(--bg-elevated);
+	box-shadow: var(--shadow-sm);
 }
 
 .library-page-header-copy {
@@ -533,11 +531,16 @@
 	min-width: 160px;
 }
 
+/* Aceeași stare goală ca în restul aplicației (card cu bordură punctată, text de mărime normală) */
 .library-empty {
+	margin: 0;
+	padding: var(--space-12, 3rem) var(--space-6, 1.5rem);
+	border: 1px dashed var(--border-primary);
+	border-radius: var(--radius-lg, 12px);
+	background: var(--bg-elevated);
 	text-align: center;
-	padding: var(--space-8, 2rem);
 	color: var(--text-secondary);
-	font-size: var(--font-size-sm, 0.875rem);
+	font-size: var(--font-size-base, 1rem);
 }
 
 .library-pagination {

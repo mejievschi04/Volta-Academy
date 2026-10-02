@@ -267,7 +267,7 @@ const AdminStatisticsHubPage = () => {
 					<strong>{kpis.avgCourses}</strong>
 				</article>
 				<article>
-					<span>Lectii (medie)</span>
+					<span>Lecții (medie)</span>
 					<strong>{kpis.avgLessons}</strong>
 				</article>
 				<article>
@@ -286,7 +286,7 @@ const AdminStatisticsHubPage = () => {
 						<tr>
 							<th>Nume complet</th>
 							<th>Cursuri finalizate</th>
-							<th>Lectii finalizate</th>
+							<th>Lecții finalizate</th>
 							<th>Teste finalizate</th>
 							<th>Scor mediu (%)</th>
 							<th>Timp studiu</th>
@@ -639,7 +639,7 @@ const AdminStatisticsHubPage = () => {
 					<strong>{testKpis.totalTests}</strong>
 				</article>
 				<article>
-					<span>Total incercari</span>
+					<span>Total încercări</span>
 					<strong>{testKpis.totalAttempts}</strong>
 				</article>
 				<article>

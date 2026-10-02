@@ -261,7 +261,7 @@ const ExamResultsPage = () => {
 			setResults(detailed);
 		} catch (err) {
 			handleApiError(err, 'fetchExamResults');
-			setError('Nu s-au putut incarca rezultatele testelor.');
+			setError('Nu s-au putut încărca rezultatele testelor.');
 		} finally {
 			setLoading(false);
 		}
@@ -293,7 +293,7 @@ const ExamResultsPage = () => {
 			<div className="exam-results-page">
 				<div className="exam-results-loading">
 					<div className="lms-spinner" />
-					<p>Se incarca rezultatele...</p>
+					<p>Se încarcă rezultatele...</p>
 				</div>
 			</div>
 		);

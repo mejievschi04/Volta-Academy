@@ -154,10 +154,6 @@
    LIGHT THEME - CERTIFICATE PREVIEW IMPROVEMENTS
    ============================================ */
 
-[data-theme="light"] .student-achievements-page {
-	background-color: var(--bg-tertiary);
-}
-
 [data-theme="light"] .student-achievements-title {
 	color: var(--text-primary);
 }

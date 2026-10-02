@@ -778,7 +778,7 @@ const AICourseChat = ({
 						await onPlanGenerated(plan, planSource);
 					}
 				} else {
-					showToast('Volt a raspuns, dar nu am putut interpreta un plan JSON valid.', 'warning');
+					showToast('Volt a răspuns, dar nu am putut interpreta un plan JSON valid.', 'warning');
 				}
 				return;
 			}

@@ -96,8 +96,9 @@ export const AuthProvider = ({ children }) => {
 			} catch {
 				/* rețea / backend indisponibil */
 			}
+			// Rulare anulată (demontare / dublul efect din StrictMode): nu marcăm încărcarea ca terminată
+			// fără utilizator, altfel rutele protejate redirecționează la /login deși sesiunea e validă.
 			if (cancelled) {
-				setLoading(false);
 				return;
 			}
 			await checkAuth();
