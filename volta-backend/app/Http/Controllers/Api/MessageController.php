@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
@@ -19,7 +19,7 @@ class MessageController extends Controller
     private function hasConversationParticipantsTable(): bool
     {
         if (self::$hasConversationParticipantsTable === null) {
-            self::$hasConversationParticipantsTable = Schema::hasTable('conversation_participants');
+            self::$hasConversationParticipantsTable = SchemaCache::hasTable('conversation_participants');
         }
 
         return self::$hasConversationParticipantsTable;

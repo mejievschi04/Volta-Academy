@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class UserAdminController extends Controller
 {
@@ -53,7 +53,7 @@ class UserAdminController extends Controller
         
         // Status filter
         if ($request->has('status') && $request->status !== 'all') {
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'status')) {
+            if (\App\Support\SchemaCache::hasColumn('users', 'status')) {
                 $query->where('status', $request->status);
             }
         }
@@ -349,7 +349,7 @@ class UserAdminController extends Controller
 
         DB::transaction(function () use ($user, $adminId, $ownedContent) {
             foreach ($ownedContent as $table => $column) {
-                if (Schema::hasTable($table) && Schema::hasColumn($table, $column)) {
+                if (SchemaCache::hasTable($table) && SchemaCache::hasColumn($table, $column)) {
                     DB::table($table)->where($column, $user->id)->update([$column => $adminId]);
                 }
             }
@@ -546,7 +546,7 @@ class UserAdminController extends Controller
         
         // Status filter
         if ($request->has('status') && $request->status !== 'all') {
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'status')) {
+            if (\App\Support\SchemaCache::hasColumn('users', 'status')) {
                 $query->where('status', $request->status);
             }
         }
@@ -624,7 +624,7 @@ class UserAdminController extends Controller
     {
         $user = User::findOrFail($id);
         
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'status')) {
+        if (\App\Support\SchemaCache::hasColumn('users', 'status')) {
             $user->status = 'active';
             $user->suspended_reason = null;
             $user->suspended_until = null;
@@ -656,7 +656,7 @@ class UserAdminController extends Controller
             'suspended_until' => 'nullable|date',
         ]);
         
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'status')) {
+        if (\App\Support\SchemaCache::hasColumn('users', 'status')) {
             $user->status = 'suspended';
             $user->suspended_reason = $validated['reason'] ?? null;
             $user->suspended_until = isset($validated['suspended_until']) 
@@ -744,7 +744,7 @@ class UserAdminController extends Controller
         }
         
         // Recent event registrations
-        if (\Illuminate\Support\Facades\Schema::hasTable('event_user')) {
+        if (\App\Support\SchemaCache::hasTable('event_user')) {
             $recentEvents = DB::table('event_user')
                 ->where('user_id', $userId)
                 ->where('registered', true)

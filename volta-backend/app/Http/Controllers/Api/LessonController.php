@@ -7,7 +7,7 @@ use App\Models\Lesson;
 use App\Services\PublishedCourseView;
 use App\Support\LearningVisibility;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class LessonController extends Controller
 {
@@ -27,10 +27,10 @@ class LessonController extends Controller
         ]);
 
         if (! $isStaff) {
-            if (Schema::hasColumn('lessons', 'status')) {
+            if (SchemaCache::hasColumn('lessons', 'status')) {
                 $query->where('status', 'published');
             }
-            if (Schema::hasColumn('courses', 'status')) {
+            if (SchemaCache::hasColumn('courses', 'status')) {
                 $query->whereHas('course', fn ($c) => $c->where('status', 'published'));
             }
         }

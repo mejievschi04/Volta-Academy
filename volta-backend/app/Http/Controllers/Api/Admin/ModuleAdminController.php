@@ -7,7 +7,7 @@ use App\Models\Module;
 use App\Models\Course;
 use App\Services\CourseBuilderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class ModuleAdminController extends Controller
 {
@@ -107,7 +107,7 @@ class ModuleAdminController extends Controller
             if (!array_key_exists($key, $validated)) {
                 continue;
             }
-            if (Schema::hasColumn('modules', $key)) {
+            if (SchemaCache::hasColumn('modules', $key)) {
                 $updateData[$key] = $validated[$key];
             }
         }

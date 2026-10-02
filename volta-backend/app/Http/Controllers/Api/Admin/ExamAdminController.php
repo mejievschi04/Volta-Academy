@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Database\QueryException;
 
 class ExamAdminController extends Controller
@@ -39,7 +39,7 @@ class ExamAdminController extends Controller
             }
             abort(403, 'Acces interzis.');
         }
-        if (Schema::hasColumn('exams', 'created_by') && (int) ($exam->created_by ?? 0) === (int) $user->id) {
+        if (SchemaCache::hasColumn('exams', 'created_by') && (int) ($exam->created_by ?? 0) === (int) $user->id) {
             return;
         }
         abort(403, 'Acces interzis.');
@@ -52,7 +52,7 @@ class ExamAdminController extends Controller
             $uid = (int) auth()->id();
             $query->where(function ($q) use ($uid) {
                 $q->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
-                if (Schema::hasColumn('exams', 'created_by')) {
+                if (SchemaCache::hasColumn('exams', 'created_by')) {
                     $q->orWhere(function ($q2) use ($uid) {
                         $q2->whereNull('course_id')->where('created_by', $uid);
                     });
@@ -202,7 +202,7 @@ class ExamAdminController extends Controller
                 if ((int) $course->teacher_id !== (int) auth()->id()) {
                     abort(403, 'Acces interzis. Poți crea examene doar pentru cursurile tale.');
                 }
-            } elseif (! Schema::hasColumn('exams', 'created_by')) {
+            } elseif (! SchemaCache::hasColumn('exams', 'created_by')) {
                 abort(403, 'Acces interzis. Instructorii trebuie să aleagă un curs.');
             }
         }
@@ -245,7 +245,7 @@ class ExamAdminController extends Controller
         if (array_key_exists('settings', $validated)) {
             $examData['settings'] = $this->sanitizeExamSettings($validated['settings']);
         }
-        if (Schema::hasColumn('exams', 'created_by')) {
+        if (SchemaCache::hasColumn('exams', 'created_by')) {
             $examData['created_by'] = (int) auth()->id();
         }
 
@@ -610,7 +610,7 @@ class ExamAdminController extends Controller
                 'passes_count' => 0,
                 'average_score' => null,
             ];
-            if (Schema::hasColumn('exams', 'created_by')) {
+            if (SchemaCache::hasColumn('exams', 'created_by')) {
                 $create['created_by'] = (int) auth()->id();
             }
             $new = Exam::create($create);
@@ -694,7 +694,7 @@ class ExamAdminController extends Controller
         $exam = Exam::with('course')->findOrFail($id);
         $this->assertExamAccessibleByInstructor($exam);
 
-        if (!Schema::hasTable('exam_results')) {
+        if (!SchemaCache::hasTable('exam_results')) {
             return response()->json([]);
         }
 
@@ -730,7 +730,7 @@ class ExamAdminController extends Controller
         $exam = Exam::with(['course', 'questions.answers'])->findOrFail($id);
         $this->assertExamAccessibleByInstructor($exam);
 
-        if (!Schema::hasTable('exam_results')) {
+        if (!SchemaCache::hasTable('exam_results')) {
             return response()->json([]);
         }
 
@@ -908,12 +908,30 @@ class ExamAdminController extends Controller
 
     public function getPendingReviews(Request $request)
     {
-        $query = ExamResult::with([
+        $results = $this->pendingReviewsQuery()
+            ->with([
                 'exam.course',
                 'exam.questions' => fn ($q) => $q->orderBy('order'),
                 'exam.questions.answers' => fn ($q) => $q->orderBy('order'),
                 'user:id,name,email',
             ])
+            ->orderBy('completed_at', 'desc')
+            ->get();
+
+        return response()->json($results);
+    }
+
+    /**
+     * Doar numărul rezultatelor de revizuit (pentru badge), fără a încărca întrebările.
+     */
+    public function pendingReviewsCount(Request $request)
+    {
+        return response()->json(['count' => $this->pendingReviewsQuery()->count()]);
+    }
+
+    private function pendingReviewsQuery()
+    {
+        $query = ExamResult::query()
             ->where('needs_manual_review', true)
             ->whereNull('reviewed_at');
         if (auth()->user()->isInstructor()) {
@@ -921,7 +939,7 @@ class ExamAdminController extends Controller
             $query->whereHas('exam', function ($q) use ($uid) {
                 $q->where(function ($q2) use ($uid) {
                     $q2->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
-                    if (Schema::hasColumn('exams', 'created_by')) {
+                    if (SchemaCache::hasColumn('exams', 'created_by')) {
                         $q2->orWhere(function ($q3) use ($uid) {
                             $q3->whereNull('course_id')->where('created_by', $uid);
                         });
@@ -929,9 +947,8 @@ class ExamAdminController extends Controller
                 });
             });
         }
-        $results = $query->orderBy('completed_at', 'desc')->get();
 
-        return response()->json($results);
+        return $query;
     }
 
     /**
@@ -958,7 +975,7 @@ class ExamAdminController extends Controller
             $query->whereHas('exam', function ($q) use ($uid) {
                 $q->where(function ($q2) use ($uid) {
                     $q2->whereHas('course', fn ($c) => $c->where('teacher_id', $uid));
-                    if (Schema::hasColumn('exams', 'created_by')) {
+                    if (SchemaCache::hasColumn('exams', 'created_by')) {
                         $q2->orWhere(function ($q3) use ($uid) {
                             $q3->whereNull('course_id')->where('created_by', $uid);
                         });

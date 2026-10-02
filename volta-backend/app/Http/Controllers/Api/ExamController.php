@@ -23,7 +23,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class ExamController extends Controller
 {
@@ -215,7 +214,7 @@ class ExamController extends Controller
                 return null;
             }
         }
-        if ($user->isInstructor() && ! $exam->course_id && \Illuminate\Support\Facades\Schema::hasColumn('exams', 'created_by')) {
+        if ($user->isInstructor() && ! $exam->course_id && \App\Support\SchemaCache::hasColumn('exams', 'created_by')) {
             if ((int) ($exam->created_by ?? 0) === (int) $user->id) {
                 return null;
             }

@@ -17,7 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class CourseProgressController extends Controller
 {
@@ -664,11 +664,11 @@ class CourseProgressController extends Controller
         }
 
         $enrolled = false;
-        if (Schema::hasTable('course_user')) {
+        if (SchemaCache::hasTable('course_user')) {
             $enrolledQuery = \DB::table('course_user')
                 ->where('course_id', $course->id)
                 ->where('user_id', $user->id);
-            if (Schema::hasColumn('course_user', 'enrolled')) {
+            if (SchemaCache::hasColumn('course_user', 'enrolled')) {
                 $enrolledQuery->where('enrolled', true);
             }
             $enrolled = $enrolledQuery->exists();
@@ -779,7 +779,7 @@ class CourseProgressController extends Controller
             'created_at' => $existingProgress ? ($existingProgress->created_at ?? $now) : $now,
         ];
 
-        if (\Schema::hasColumn('lesson_progress', 'last_milestone_reached')) {
+        if (\App\Support\SchemaCache::hasColumn('lesson_progress', 'last_milestone_reached')) {
             $payload['last_milestone_reached'] = $lastMilestoneReached;
         }
 

@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 /**
  * Builds a real, database-backed snapshot of the whole platform so Volt can
@@ -57,12 +57,12 @@ class VoltDataInsightService
 
     private function buildUsers(): ?array
     {
-        if (!Schema::hasTable('users')) {
+        if (!SchemaCache::hasTable('users')) {
             return null;
         }
 
-        $hasRole = Schema::hasColumn('users', 'role');
-        $hasCreatedAt = Schema::hasColumn('users', 'created_at');
+        $hasRole = SchemaCache::hasColumn('users', 'role');
+        $hasCreatedAt = SchemaCache::hasColumn('users', 'created_at');
         $since = Carbon::now()->subDays(30);
 
         $byRole = [];
@@ -89,7 +89,7 @@ class VoltDataInsightService
 
     private function buildStudentProfiles(int $limit = 50): ?array
     {
-        if (!Schema::hasTable('users')) {
+        if (!SchemaCache::hasTable('users')) {
             return null;
         }
 
@@ -153,7 +153,7 @@ class VoltDataInsightService
 
     private function buildMatchingStudents(array $tokens): array
     {
-        if (!Schema::hasTable('users') || empty($tokens)) {
+        if (!SchemaCache::hasTable('users') || empty($tokens)) {
             return [];
         }
 
@@ -198,7 +198,7 @@ class VoltDataInsightService
 
     private function buildMatchingCourses(array $tokens): array
     {
-        if (!Schema::hasTable('courses') || empty($tokens)) {
+        if (!SchemaCache::hasTable('courses') || empty($tokens)) {
             return [];
         }
 
@@ -230,7 +230,7 @@ class VoltDataInsightService
 
     private function buildMatchingTests(array $tokens): array
     {
-        if (!Schema::hasTable('tests') || empty($tokens)) {
+        if (!SchemaCache::hasTable('tests') || empty($tokens)) {
             return [];
         }
 
@@ -260,7 +260,7 @@ class VoltDataInsightService
 
     private function buildTopStudentsByTestScore(int $limit): array
     {
-        if (!Schema::hasTable('users') || !Schema::hasTable('test_results') || !Schema::hasColumn('test_results', 'percentage')) {
+        if (!SchemaCache::hasTable('users') || !SchemaCache::hasTable('test_results') || !SchemaCache::hasColumn('test_results', 'percentage')) {
             return [];
         }
 
@@ -369,7 +369,7 @@ class VoltDataInsightService
 
     private function buildCourseWatchlist(int $limit): array
     {
-        if (!Schema::hasTable('courses')) {
+        if (!SchemaCache::hasTable('courses')) {
             return [];
         }
 
@@ -422,7 +422,7 @@ class VoltDataInsightService
 
     private function buildTestWatchlist(int $limit): array
     {
-        if (!Schema::hasTable('tests')) {
+        if (!SchemaCache::hasTable('tests')) {
             return [];
         }
 
@@ -603,14 +603,14 @@ class VoltDataInsightService
 
     private function countActiveStudents(Carbon $since): ?int
     {
-        if (Schema::hasTable('lesson_progress') && Schema::hasColumn('lesson_progress', 'updated_at')) {
+        if (SchemaCache::hasTable('lesson_progress') && SchemaCache::hasColumn('lesson_progress', 'updated_at')) {
             return (int) DB::table('lesson_progress')
                 ->where('updated_at', '>=', $since)
                 ->distinct()
                 ->count('user_id');
         }
 
-        if (Schema::hasTable('test_results') && Schema::hasColumn('test_results', 'created_at')) {
+        if (SchemaCache::hasTable('test_results') && SchemaCache::hasColumn('test_results', 'created_at')) {
             return (int) DB::table('test_results')
                 ->where('created_at', '>=', $since)
                 ->distinct()
@@ -622,11 +622,11 @@ class VoltDataInsightService
 
     private function buildCourses(): ?array
     {
-        if (!Schema::hasTable('courses')) {
+        if (!SchemaCache::hasTable('courses')) {
             return null;
         }
 
-        $hasStatus = Schema::hasColumn('courses', 'status');
+        $hasStatus = SchemaCache::hasColumn('courses', 'status');
         $total = (int) DB::table('courses')->count();
         $published = $hasStatus ? (int) DB::table('courses')->where('status', 'published')->count() : null;
         $draft = $hasStatus ? (int) DB::table('courses')->where('status', 'draft')->count() : null;
@@ -639,10 +639,10 @@ class VoltDataInsightService
         ];
         $topCourses = [];
 
-        if (Schema::hasTable('course_user')) {
-            $hasProgress = Schema::hasColumn('course_user', 'progress_percentage');
-            $hasCompleted = Schema::hasColumn('course_user', 'completed_at');
-            $hasEnrolled = Schema::hasColumn('course_user', 'enrolled');
+        if (SchemaCache::hasTable('course_user')) {
+            $hasProgress = SchemaCache::hasColumn('course_user', 'progress_percentage');
+            $hasCompleted = SchemaCache::hasColumn('course_user', 'completed_at');
+            $hasEnrolled = SchemaCache::hasColumn('course_user', 'enrolled');
 
             $base = DB::table('course_user');
             if ($hasEnrolled) {
@@ -721,7 +721,7 @@ class VoltDataInsightService
 
     private function buildTests(): ?array
     {
-        if (!Schema::hasTable('tests')) {
+        if (!SchemaCache::hasTable('tests')) {
             return null;
         }
 
@@ -731,15 +731,15 @@ class VoltDataInsightService
         $avgScore = null;
         $topTests = [];
 
-        if (Schema::hasTable('test_results')) {
-            $hasPassed = Schema::hasColumn('test_results', 'passed');
-            $hasPercentage = Schema::hasColumn('test_results', 'percentage');
+        if (SchemaCache::hasTable('test_results')) {
+            $hasPassed = SchemaCache::hasColumn('test_results', 'passed');
+            $hasPercentage = SchemaCache::hasColumn('test_results', 'percentage');
 
             $attempts = (int) DB::table('test_results')->count();
             $passed = $hasPassed ? (int) DB::table('test_results')->where('passed', true)->count() : null;
             $avgScore = $hasPercentage ? round((float) DB::table('test_results')->avg('percentage'), 1) : null;
 
-            if (Schema::hasColumn('test_results', 'test_id')) {
+            if (SchemaCache::hasColumn('test_results', 'test_id')) {
                 $selects = [
                     'tests.title',
                     DB::raw('COUNT(test_results.id) as attempts'),
@@ -785,7 +785,7 @@ class VoltDataInsightService
 
     private function buildExams(): ?array
     {
-        if (!Schema::hasTable('exams')) {
+        if (!SchemaCache::hasTable('exams')) {
             return null;
         }
 
@@ -793,9 +793,9 @@ class VoltDataInsightService
         $attempts = null;
         $passed = null;
 
-        if (Schema::hasTable('exam_results')) {
+        if (SchemaCache::hasTable('exam_results')) {
             $attempts = (int) DB::table('exam_results')->count();
-            if (Schema::hasColumn('exam_results', 'passed')) {
+            if (SchemaCache::hasColumn('exam_results', 'passed')) {
                 $passed = (int) DB::table('exam_results')->where('passed', true)->count();
             }
         }
@@ -810,18 +810,18 @@ class VoltDataInsightService
 
     private function buildEvents(): ?array
     {
-        if (!Schema::hasTable('events')) {
+        if (!SchemaCache::hasTable('events')) {
             return null;
         }
 
         $total = (int) DB::table('events')->count();
         $upcoming = null;
 
-        $dateColumn = Schema::hasColumn('events', 'start_at')
+        $dateColumn = SchemaCache::hasColumn('events', 'start_at')
             ? 'start_at'
-            : (Schema::hasColumn('events', 'starts_at')
+            : (SchemaCache::hasColumn('events', 'starts_at')
                 ? 'starts_at'
-                : (Schema::hasColumn('events', 'start_date') ? 'start_date' : null));
+                : (SchemaCache::hasColumn('events', 'start_date') ? 'start_date' : null));
 
         if ($dateColumn) {
             $upcoming = (int) DB::table('events')->where($dateColumn, '>=', Carbon::now())->count();
@@ -835,7 +835,7 @@ class VoltDataInsightService
 
     private function buildLearning(): ?array
     {
-        if (!Schema::hasTable('lesson_progress') || !Schema::hasColumn('lesson_progress', 'time_spent_seconds')) {
+        if (!SchemaCache::hasTable('lesson_progress') || !SchemaCache::hasColumn('lesson_progress', 'time_spent_seconds')) {
             return null;
         }
 
@@ -849,7 +849,7 @@ class VoltDataInsightService
 
     private function getEnrollmentAggregatesForUsers(array $userIds): array
     {
-        if (empty($userIds) || !Schema::hasTable('course_user')) {
+        if (empty($userIds) || !SchemaCache::hasTable('course_user')) {
             return [];
         }
 
@@ -858,10 +858,10 @@ class VoltDataInsightService
             DB::raw('COUNT(course_id) as enrolled_courses'),
         ];
 
-        if (Schema::hasColumn('course_user', 'completed_at')) {
+        if (SchemaCache::hasColumn('course_user', 'completed_at')) {
             $selects[] = DB::raw('SUM(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END) as completed_courses');
         }
-        if (Schema::hasColumn('course_user', 'progress_percentage')) {
+        if (SchemaCache::hasColumn('course_user', 'progress_percentage')) {
             $selects[] = DB::raw('AVG(progress_percentage) as avg_course_progress_percent');
         }
 
@@ -869,7 +869,7 @@ class VoltDataInsightService
             ->select($selects)
             ->whereIn('user_id', $userIds);
 
-        if (Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->where('enrolled', true);
         }
 
@@ -890,15 +890,15 @@ class VoltDataInsightService
 
     private function getLearningAggregatesForUsers(array $userIds): array
     {
-        if (empty($userIds) || !Schema::hasTable('lesson_progress')) {
+        if (empty($userIds) || !SchemaCache::hasTable('lesson_progress')) {
             return [];
         }
 
         $selects = ['user_id'];
-        $selects[] = Schema::hasColumn('lesson_progress', 'completed')
+        $selects[] = SchemaCache::hasColumn('lesson_progress', 'completed')
             ? DB::raw('SUM(CASE WHEN completed THEN 1 ELSE 0 END) as lessons_completed')
             : DB::raw('0 as lessons_completed');
-        $selects[] = Schema::hasColumn('lesson_progress', 'time_spent_seconds')
+        $selects[] = SchemaCache::hasColumn('lesson_progress', 'time_spent_seconds')
             ? DB::raw('SUM(time_spent_seconds) as learning_seconds')
             : DB::raw('0 as learning_seconds');
 
@@ -918,7 +918,7 @@ class VoltDataInsightService
 
     private function getTestAggregatesForUsers(array $userIds): array
     {
-        if (empty($userIds) || !Schema::hasTable('test_results')) {
+        if (empty($userIds) || !SchemaCache::hasTable('test_results')) {
             return [];
         }
 
@@ -926,10 +926,10 @@ class VoltDataInsightService
             'user_id',
             DB::raw('COUNT(id) as test_attempts'),
         ];
-        if (Schema::hasColumn('test_results', 'passed')) {
+        if (SchemaCache::hasColumn('test_results', 'passed')) {
             $selects[] = DB::raw('SUM(CASE WHEN passed THEN 1 ELSE 0 END) as passed_tests');
         }
-        if (Schema::hasColumn('test_results', 'percentage')) {
+        if (SchemaCache::hasColumn('test_results', 'percentage')) {
             $selects[] = DB::raw('AVG(percentage) as avg_test_score_percent');
         }
 
@@ -967,7 +967,7 @@ class VoltDataInsightService
             }
         };
 
-        if (Schema::hasTable('lesson_progress') && Schema::hasColumn('lesson_progress', 'updated_at')) {
+        if (SchemaCache::hasTable('lesson_progress') && SchemaCache::hasColumn('lesson_progress', 'updated_at')) {
             DB::table('lesson_progress')
                 ->select('user_id', DB::raw('MAX(updated_at) as last_at'))
                 ->whereIn('user_id', $userIds)
@@ -976,10 +976,10 @@ class VoltDataInsightService
                 ->each(fn ($row) => $mergeDate((int) $row->user_id, $row->last_at));
         }
 
-        if (Schema::hasTable('test_results')) {
-            $dateColumn = Schema::hasColumn('test_results', 'completed_at')
+        if (SchemaCache::hasTable('test_results')) {
+            $dateColumn = SchemaCache::hasColumn('test_results', 'completed_at')
                 ? 'completed_at'
-                : (Schema::hasColumn('test_results', 'created_at') ? 'created_at' : null);
+                : (SchemaCache::hasColumn('test_results', 'created_at') ? 'created_at' : null);
 
             if ($dateColumn) {
                 DB::table('test_results')
@@ -991,7 +991,7 @@ class VoltDataInsightService
             }
         }
 
-        if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'updated_at')) {
+        if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'updated_at')) {
             DB::table('course_user')
                 ->select('user_id', DB::raw('MAX(updated_at) as last_at'))
                 ->whereIn('user_id', $userIds)
@@ -1005,7 +1005,7 @@ class VoltDataInsightService
 
     private function getCourseDetailsForUsers(array $userIds): array
     {
-        if (empty($userIds) || !Schema::hasTable('course_user') || !Schema::hasTable('courses')) {
+        if (empty($userIds) || !SchemaCache::hasTable('course_user') || !SchemaCache::hasTable('courses')) {
             return [];
         }
 
@@ -1013,13 +1013,13 @@ class VoltDataInsightService
             'course_user.user_id',
             'courses.title',
         ];
-        $selects[] = Schema::hasColumn('course_user', 'progress_percentage')
+        $selects[] = SchemaCache::hasColumn('course_user', 'progress_percentage')
             ? 'course_user.progress_percentage'
             : DB::raw('NULL as progress_percentage');
-        $selects[] = Schema::hasColumn('course_user', 'completed_at')
+        $selects[] = SchemaCache::hasColumn('course_user', 'completed_at')
             ? 'course_user.completed_at'
             : DB::raw('NULL as completed_at');
-        $selects[] = Schema::hasColumn('course_user', 'enrolled_at')
+        $selects[] = SchemaCache::hasColumn('course_user', 'enrolled_at')
             ? 'course_user.enrolled_at'
             : DB::raw('NULL as enrolled_at');
 
@@ -1029,7 +1029,7 @@ class VoltDataInsightService
             ->whereIn('course_user.user_id', $userIds)
             ->orderBy('courses.title');
 
-        if (Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->where('course_user.enrolled', true);
         }
 
@@ -1048,21 +1048,21 @@ class VoltDataInsightService
 
     private function getRecentTestDetailsForUsers(array $userIds): array
     {
-        if (empty($userIds) || !Schema::hasTable('test_results')) {
+        if (empty($userIds) || !SchemaCache::hasTable('test_results')) {
             return [];
         }
 
-        $hasTestsTable = Schema::hasTable('tests') && Schema::hasColumn('test_results', 'test_id');
-        $dateColumn = Schema::hasColumn('test_results', 'completed_at')
+        $hasTestsTable = SchemaCache::hasTable('tests') && SchemaCache::hasColumn('test_results', 'test_id');
+        $dateColumn = SchemaCache::hasColumn('test_results', 'completed_at')
             ? 'completed_at'
-            : (Schema::hasColumn('test_results', 'created_at') ? 'created_at' : null);
+            : (SchemaCache::hasColumn('test_results', 'created_at') ? 'created_at' : null);
 
         $query = DB::table('test_results')
             ->select([
                 'test_results.user_id',
                 $hasTestsTable ? 'tests.title as test_title' : DB::raw('NULL as test_title'),
-                Schema::hasColumn('test_results', 'percentage') ? 'test_results.percentage' : DB::raw('NULL as percentage'),
-                Schema::hasColumn('test_results', 'passed') ? 'test_results.passed' : DB::raw('NULL as passed'),
+                SchemaCache::hasColumn('test_results', 'percentage') ? 'test_results.percentage' : DB::raw('NULL as percentage'),
+                SchemaCache::hasColumn('test_results', 'passed') ? 'test_results.passed' : DB::raw('NULL as passed'),
                 $dateColumn ? 'test_results.' . $dateColumn . ' as completed_at' : DB::raw('NULL as completed_at'),
             ])
             ->whereIn('test_results.user_id', $userIds);
@@ -1094,20 +1094,20 @@ class VoltDataInsightService
 
     private function getCourseStats(int $courseId): array
     {
-        if (!Schema::hasTable('course_user')) {
+        if (!SchemaCache::hasTable('course_user')) {
             return [];
         }
 
         $query = DB::table('course_user')->where('course_id', $courseId);
-        if (Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->where('enrolled', true);
         }
 
         $enrolled = (int) (clone $query)->count();
-        $completed = Schema::hasColumn('course_user', 'completed_at')
+        $completed = SchemaCache::hasColumn('course_user', 'completed_at')
             ? (int) (clone $query)->whereNotNull('completed_at')->count()
             : null;
-        $avgProgress = Schema::hasColumn('course_user', 'progress_percentage')
+        $avgProgress = SchemaCache::hasColumn('course_user', 'progress_percentage')
             ? round((float) (clone $query)->avg('progress_percentage'), 1)
             : null;
 
@@ -1123,16 +1123,16 @@ class VoltDataInsightService
 
     private function getTestStats(int $testId): array
     {
-        if (!Schema::hasTable('test_results')) {
+        if (!SchemaCache::hasTable('test_results')) {
             return [];
         }
 
         $query = DB::table('test_results')->where('test_id', $testId);
         $attempts = (int) (clone $query)->count();
-        $passed = Schema::hasColumn('test_results', 'passed')
+        $passed = SchemaCache::hasColumn('test_results', 'passed')
             ? (int) (clone $query)->where('passed', true)->count()
             : null;
-        $avgScore = Schema::hasColumn('test_results', 'percentage')
+        $avgScore = SchemaCache::hasColumn('test_results', 'percentage')
             ? round((float) (clone $query)->avg('percentage'), 1)
             : null;
 
@@ -1194,15 +1194,15 @@ class VoltDataInsightService
         $since = Carbon::now()->subDays(30);
         $activity = [];
 
-        if (Schema::hasTable('users') && Schema::hasColumn('users', 'created_at')) {
+        if (SchemaCache::hasTable('users') && SchemaCache::hasColumn('users', 'created_at')) {
             $activity['new_users'] = (int) DB::table('users')->where('created_at', '>=', $since)->count();
         }
 
-        if (Schema::hasTable('course_user')) {
-            if (Schema::hasColumn('course_user', 'enrolled_at')) {
+        if (SchemaCache::hasTable('course_user')) {
+            if (SchemaCache::hasColumn('course_user', 'enrolled_at')) {
                 $activity['new_enrollments'] = (int) DB::table('course_user')->where('enrolled_at', '>=', $since)->count();
             }
-            if (Schema::hasColumn('course_user', 'completed_at')) {
+            if (SchemaCache::hasColumn('course_user', 'completed_at')) {
                 $activity['course_completions'] = (int) DB::table('course_user')
                     ->whereNotNull('completed_at')
                     ->where('completed_at', '>=', $since)
@@ -1210,7 +1210,7 @@ class VoltDataInsightService
             }
         }
 
-        if (Schema::hasTable('test_results') && Schema::hasColumn('test_results', 'created_at')) {
+        if (SchemaCache::hasTable('test_results') && SchemaCache::hasColumn('test_results', 'created_at')) {
             $activity['test_attempts'] = (int) DB::table('test_results')->where('created_at', '>=', $since)->count();
         }
 

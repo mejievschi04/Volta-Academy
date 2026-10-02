@@ -10,7 +10,7 @@ use App\Support\CourseMapBuckets;
 use App\Support\LearningVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 /**
  * Course maps for students: list and show only maps that contain published courses.
@@ -22,7 +22,7 @@ class CourseMapController extends Controller
      */
     public function index(Request $request)
     {
-        if (!Schema::hasTable('course_maps') || !Schema::hasTable('course_map_course')) {
+        if (!SchemaCache::hasTable('course_maps') || !SchemaCache::hasTable('course_map_course')) {
             return response()->json(['data' => []]);
         }
 
@@ -32,7 +32,7 @@ class CourseMapController extends Controller
 
         $query = CourseMap::query()
             ->when(
-                Schema::hasColumn('course_maps', 'visibility'),
+                SchemaCache::hasColumn('course_maps', 'visibility'),
                 fn ($q) => $q->where(fn ($inner) => $inner->where('visibility', 'public')->orWhereNull('visibility'))
             )
             ->whereHas('courses', function ($q) use ($assignedIds, $completedIds) {
@@ -48,7 +48,7 @@ class CourseMapController extends Controller
             fn (CourseMap $map) => in_array((int) $map->id, $defaultMapIds, true)
         );
         $mapIds = $mapsCollection->pluck('id')->all();
-        $hasCoverCol = Schema::hasColumn('course_maps', 'cover_image_path');
+        $hasCoverCol = SchemaCache::hasColumn('course_maps', 'cover_image_path');
         $previewByMapId = $hasCoverCol ? $this->firstPublishedCourseCoverByMapIds($mapIds, $assignedIds) : [];
         $progressByMapId = $this->mapProgressPercentages($request->user(), $mapIds);
 
@@ -60,12 +60,12 @@ class CourseMapController extends Controller
                 'courses_count' => $map->courses_count ?? 0,
                 'progress_percentage' => $progressByMapId[(int) $map->id] ?? 0,
             ];
-            if (Schema::hasColumn('course_maps', 'accent_color')) {
+            if (SchemaCache::hasColumn('course_maps', 'accent_color')) {
                 $row['accent_color'] = $map->accent_color;
             }
             if ($hasCoverCol) {
                 $row['cover_image_url'] = $map->cover_image_url;
-                if (Schema::hasColumn('course_maps', 'cover_focus')) {
+                if (SchemaCache::hasColumn('course_maps', 'cover_focus')) {
                     $row['cover_focus'] = CourseMap::normalizeCoverFocus($map->cover_focus);
                 }
                 $cover = $map->cover_image_url;
@@ -85,7 +85,7 @@ class CourseMapController extends Controller
      */
     public function show(Request $request, $id)
     {
-        if (!Schema::hasTable('course_maps') || !Schema::hasTable('course_map_course')) {
+        if (!SchemaCache::hasTable('course_maps') || !SchemaCache::hasTable('course_map_course')) {
             return response()->json(['error' => 'Mapă negăsită'], 404);
         }
 
@@ -105,7 +105,7 @@ class CourseMapController extends Controller
         ])->findOrFail($id);
 
         if (
-            Schema::hasColumn('course_maps', 'visibility')
+            SchemaCache::hasColumn('course_maps', 'visibility')
             && ($map->visibility ?? 'public') === 'private'
         ) {
             abort(404, 'Mapă negăsită.');
@@ -133,18 +133,18 @@ class CourseMapController extends Controller
                 ? 0
                 : (int) round(array_sum($assignedPercents) / count($assignedPercents)),
         ];
-        if (Schema::hasColumn('course_maps', 'accent_color')) {
+        if (SchemaCache::hasColumn('course_maps', 'accent_color')) {
             $payload['accent_color'] = $map->accent_color;
         }
-        if (Schema::hasColumn('course_maps', 'header_bg_color')) {
+        if (SchemaCache::hasColumn('course_maps', 'header_bg_color')) {
             $payload['header_bg_color'] = $map->header_bg_color;
         }
-        if (Schema::hasColumn('course_maps', 'header_text_color')) {
+        if (SchemaCache::hasColumn('course_maps', 'header_text_color')) {
             $payload['header_text_color'] = $map->header_text_color;
         }
-        if (Schema::hasColumn('course_maps', 'cover_image_path')) {
+        if (SchemaCache::hasColumn('course_maps', 'cover_image_path')) {
             $payload['cover_image_url'] = $map->cover_image_url;
-            if (Schema::hasColumn('course_maps', 'cover_focus')) {
+            if (SchemaCache::hasColumn('course_maps', 'cover_focus')) {
                 $payload['cover_focus'] = CourseMap::normalizeCoverFocus($map->cover_focus);
             }
         }
@@ -300,7 +300,7 @@ class CourseMapController extends Controller
      */
     private function learnerCompletedCourseIds($user): array
     {
-        if (! $user || ! Schema::hasTable('course_user')) {
+        if (! $user || ! SchemaCache::hasTable('course_user')) {
             return [];
         }
 

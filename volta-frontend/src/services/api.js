@@ -1427,6 +1427,11 @@ export const adminService = {
     return response.data;
   },
 
+  getPendingTestReviewsCount: async () => {
+    const response = await api.get('/admin/tests/pending-reviews/count');
+    return Number(response.data?.count) || 0;
+  },
+
   clearPendingTestReviews: async (olderThanDays = 30) => {
     const response = await api.post('/admin/tests/pending-reviews/clear', {
       older_than_days: olderThanDays,
@@ -1478,6 +1483,11 @@ export const adminService = {
   getPendingExamReviews: async () => {
     const response = await api.get('/admin/exams/pending-reviews');
     return response.data;
+  },
+
+  getPendingExamReviewsCount: async () => {
+    const response = await api.get('/admin/exams/pending-reviews/count');
+    return Number(response.data?.count) || 0;
   },
 
   clearPendingExamReviews: async (olderThanDays = 30) => {

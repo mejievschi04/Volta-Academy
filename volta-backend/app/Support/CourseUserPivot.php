@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Schema;
 
 final class CourseUserPivot
 {
@@ -21,7 +20,7 @@ final class CourseUserPivot
             'progress_percentage',
         ];
 
-        if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'assignment_source')) {
+        if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'assignment_source')) {
             $columns[] = 'assignment_source';
         }
 

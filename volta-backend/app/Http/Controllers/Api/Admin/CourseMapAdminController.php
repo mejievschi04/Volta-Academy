@@ -8,7 +8,7 @@ use App\Models\Course;
 use App\Support\CourseMapBuckets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Storage;
 
 class CourseMapAdminController extends Controller
@@ -149,7 +149,7 @@ class CourseMapAdminController extends Controller
             ? ($validated['visibility'] ?? 'public')
             : 'public';
 
-        if (array_key_exists('cover_focus', $validated) && ! Schema::hasColumn('course_maps', 'cover_focus')) {
+        if (array_key_exists('cover_focus', $validated) && ! SchemaCache::hasColumn('course_maps', 'cover_focus')) {
             unset($validated['cover_focus']);
         }
 
@@ -177,7 +177,7 @@ class CourseMapAdminController extends Controller
             'cover_focus' => 'nullable',
         ]);
 
-        if (array_key_exists('cover_focus', $validated) && ! Schema::hasColumn('course_maps', 'cover_focus')) {
+        if (array_key_exists('cover_focus', $validated) && ! SchemaCache::hasColumn('course_maps', 'cover_focus')) {
             unset($validated['cover_focus']);
         }
 
@@ -359,7 +359,7 @@ class CourseMapAdminController extends Controller
         }
 
         $map->cover_image_path = $path;
-        if ($request->exists('cover_focus') && Schema::hasColumn('course_maps', 'cover_focus')) {
+        if ($request->exists('cover_focus') && SchemaCache::hasColumn('course_maps', 'cover_focus')) {
             $map->cover_focus = CourseMap::normalizeCoverFocus($request->input('cover_focus'));
         }
         $map->save();
@@ -383,7 +383,7 @@ class CourseMapAdminController extends Controller
                 Log::warning('Could not delete course map cover: ' . $e->getMessage());
             }
             $map->cover_image_path = null;
-            if (Schema::hasColumn('course_maps', 'cover_focus')) {
+            if (SchemaCache::hasColumn('course_maps', 'cover_focus')) {
                 $map->cover_focus = null;
             }
             $map->save();

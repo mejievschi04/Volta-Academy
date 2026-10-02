@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\Course;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * Cursuri publicate vizibile în catalog fără a fi într-o mapă de cursuri.
@@ -15,7 +14,7 @@ class CourseCatalog
 
     public static function isOutsideMap(Course $course): bool
     {
-        if (! Schema::hasColumn('courses', 'settings')) {
+        if (! SchemaCache::hasColumn('courses', 'settings')) {
             return false;
         }
 
@@ -26,7 +25,7 @@ class CourseCatalog
 
     public static function applyOutsideMapFlag(Course $course, bool $value): Course
     {
-        if (! Schema::hasColumn('courses', 'settings')) {
+        if (! SchemaCache::hasColumn('courses', 'settings')) {
             return $course;
         }
 
@@ -41,7 +40,7 @@ class CourseCatalog
     {
         $query = Course::query()->where('status', 'published');
 
-        if (Schema::hasColumn('courses', 'settings')) {
+        if (SchemaCache::hasColumn('courses', 'settings')) {
             $query->where('settings->'.self::SETTINGS_KEY, true);
         } else {
             $query->whereRaw('1 = 0');

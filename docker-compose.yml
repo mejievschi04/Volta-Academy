@@ -85,6 +85,9 @@ services:
       AI_VERIFY_SSL: ${AI_VERIFY_SSL:-true}
       LOG_CHANNEL: stack
       LOG_LEVEL: ${LOG_LEVEL:-error}
+      # Procese PHP-FPM în paralel (~40–80 MB fiecare). 16 pentru 4 GB RAM; pe 2 GB folosește ~8.
+      # Minim 6 (altfel depășește pm.max_spare_servers=6 din Dockerfile și FPM nu pornește).
+      PHP_FPM_MAX_CHILDREN: ${PHP_FPM_MAX_CHILDREN:-16}
     depends_on:
       postgres:
         condition: service_healthy

@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Carbon\Carbon;
 
 class StudentDashboardController extends Controller
@@ -505,7 +505,7 @@ class StudentDashboardController extends Controller
             $table = $definition['table'];
             $idColumn = $definition['id_column'];
 
-            if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'percentage') || !Schema::hasColumn($table, $idColumn)) {
+            if (!SchemaCache::hasTable($table) || !SchemaCache::hasColumn($table, 'percentage') || !SchemaCache::hasColumn($table, $idColumn)) {
                 continue;
             }
 
@@ -527,7 +527,7 @@ class StudentDashboardController extends Controller
                 $query->where($table . '.' . $idColumn, $testId);
             }
 
-            if (Schema::hasColumn($table, 'attempt_number')) {
+            if (SchemaCache::hasColumn($table, 'attempt_number')) {
                 $query->addSelect($table . '.attempt_number');
             } else {
                 $query->addSelect(DB::raw('NULL as attempt_number'));

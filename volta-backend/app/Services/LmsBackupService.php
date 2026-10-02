@@ -6,6 +6,7 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 
@@ -175,7 +176,7 @@ class LmsBackupService
         }
 
         foreach ($tables as $table => $rows) {
-            if (! is_string($table) || ! is_array($rows) || ! Schema::hasTable($table) || in_array($table, $this->skippedTables(), true)) {
+            if (! is_string($table) || ! is_array($rows) || ! SchemaCache::hasTable($table) || in_array($table, $this->skippedTables(), true)) {
                 continue;
             }
             $columns = Schema::getColumnListing($table);
@@ -208,13 +209,13 @@ class LmsBackupService
 
         try {
             foreach (array_keys($tables) as $table) {
-                if (! Schema::hasTable($table) || in_array($table, $this->skippedTables(), true)) {
+                if (! SchemaCache::hasTable($table) || in_array($table, $this->skippedTables(), true)) {
                     continue;
                 }
                 DB::table($table)->delete();
             }
             foreach ($tables as $table => $rows) {
-                if (! Schema::hasTable($table) || in_array($table, $this->skippedTables(), true) || ! is_array($rows)) {
+                if (! SchemaCache::hasTable($table) || in_array($table, $this->skippedTables(), true) || ! is_array($rows)) {
                     continue;
                 }
                 foreach (array_chunk($rows, 100) as $chunk) {

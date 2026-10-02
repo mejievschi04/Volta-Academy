@@ -18,7 +18,7 @@ use App\Support\LearningVisibility;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Str;
 use Illuminate\Http\UploadedFile;
 
@@ -202,10 +202,10 @@ class AIController extends Controller
             ]);
 
         if (!$isStaff) {
-            if (Schema::hasColumn('lessons', 'status')) {
+            if (SchemaCache::hasColumn('lessons', 'status')) {
                 $lessonQuery->where('status', 'published');
             }
-            if (Schema::hasColumn('courses', 'status')) {
+            if (SchemaCache::hasColumn('courses', 'status')) {
                 $lessonQuery->whereHas('course', fn ($q) => $q->where('status', 'published'));
             }
         }
@@ -1324,7 +1324,7 @@ class AIController extends Controller
                 ->withCount(['modules', 'lessons'])
                 ->orderBy('title');
 
-            if (!$canSeeDrafts && Schema::hasColumn('courses', 'status')) {
+            if (!$canSeeDrafts && SchemaCache::hasColumn('courses', 'status')) {
                 $query->where('status', 'published');
             }
 
@@ -1378,7 +1378,7 @@ class AIController extends Controller
                     },
                 ]);
 
-            if (!$canSeeDrafts && Schema::hasColumn('courses', 'status')) {
+            if (!$canSeeDrafts && SchemaCache::hasColumn('courses', 'status')) {
                 $query->whereHas('course', function ($q) {
                     $q->where('status', 'published');
                 });
@@ -1423,7 +1423,7 @@ class AIController extends Controller
                 },
             ]);
 
-        if (!$canSeeDrafts && Schema::hasColumn('courses', 'status')) {
+        if (!$canSeeDrafts && SchemaCache::hasColumn('courses', 'status')) {
             $query->whereHas('course', function ($courseQuery) {
                 $courseQuery->where('status', 'published');
             });

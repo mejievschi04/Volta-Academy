@@ -15,6 +15,9 @@ import { useToast } from '../../../contexts/ToastContextShared.js';
 import { logger } from '../../../utils/logger';
 import Modal from '../../common/Modal';
 
+// Reîncărcare cât timp emailurile de invitație sunt încă în coadă; oprită când tab-ul e ascuns.
+const INVITATION_STATUS_POLL_MS = 8000;
+
 const ROLE_LABELS = {
 	student: 'Utilizator',
 	instructor: 'Instructor',
@@ -70,7 +73,9 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 
 	useEffect(() => {
 		if (!stats.pending_email) return undefined;
-		const timer = window.setInterval(() => fetchInvitations(true), 3000);
+		const timer = window.setInterval(() => {
+			if (!document.hidden) fetchInvitations(true);
+		}, INVITATION_STATUS_POLL_MS);
 		return () => window.clearInterval(timer);
 	}, [stats.pending_email, fetchInvitations]);
 

@@ -308,6 +308,7 @@ Route::middleware([
     // Exams Management (rute fixe înainte de {id})
     Route::get('/exams', [ExamAdminController::class, 'index']);
     Route::get('/exams/pending-reviews', [ExamAdminController::class, 'getPendingReviews']);
+    Route::get('/exams/pending-reviews/count', [ExamAdminController::class, 'pendingReviewsCount']);
     Route::post('/exams/pending-reviews/clear', [ExamAdminController::class, 'clearPendingReviews']);
     Route::get('/exams/{id}', [ExamAdminController::class, 'show']);
     Route::get('/exams/{id}/preview', [ExamAdminController::class, 'preview']);
@@ -323,6 +324,7 @@ Route::middleware([
     // Tests Management (Standalone Test Builder)
     Route::get('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'index']);
     Route::get('/tests/pending-reviews', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getPendingReviews']);
+    Route::get('/tests/pending-reviews/count', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'pendingReviewsCount']);
     Route::post('/tests/pending-reviews/clear', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'clearPendingReviews']);
     Route::get('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'show']);
     Route::post('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'store']);

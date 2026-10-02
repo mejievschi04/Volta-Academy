@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Carbon\Carbon;
 
 class EventAdminController extends Controller
@@ -35,7 +35,7 @@ class EventAdminController extends Controller
 
         // Status filter
         if ($request->filled('status') && $request->status !== 'all') {
-            if (Schema::hasColumn('events', 'status')) {
+            if (SchemaCache::hasColumn('events', 'status')) {
                 $status = $request->status;
                 $now = now();
 
@@ -59,7 +59,7 @@ class EventAdminController extends Controller
                     $query->where('status', $status);
                 }
             }
-        } elseif (Schema::hasColumn('events', 'status')) {
+        } elseif (SchemaCache::hasColumn('events', 'status')) {
             // Default admin list: no drafts (evenimentele noi se publică automat)
             $query->whereNotIn('status', ['draft']);
         }
@@ -71,14 +71,14 @@ class EventAdminController extends Controller
 
         // Access type filter
         if ($request->has('access_type') && $request->access_type !== 'all') {
-            if (Schema::hasColumn('events', 'access_type')) {
+            if (SchemaCache::hasColumn('events', 'access_type')) {
                 $query->where('access_type', $request->access_type);
             }
         }
 
         // Instructor filter
         if ($request->has('instructor') && $request->instructor) {
-            if (Schema::hasColumn('events', 'instructor_id')) {
+            if (SchemaCache::hasColumn('events', 'instructor_id')) {
                 $query->where('instructor_id', $request->instructor);
             }
         }
@@ -289,7 +289,7 @@ class EventAdminController extends Controller
     private function extractEventAttributes(array $validated): array
     {
         unset($validated['team_ids']);
-        if (! Schema::hasColumn('events', 'audience_type')) {
+        if (! SchemaCache::hasColumn('events', 'audience_type')) {
             unset($validated['audience_type']);
         } else {
             $validated['audience_type'] = ($validated['audience_type'] ?? 'all') === 'teams' ? 'teams' : 'all';
@@ -303,13 +303,13 @@ class EventAdminController extends Controller
 
     private function syncEventAudience(Event $event, array $validated): void
     {
-        if (! Schema::hasTable('event_team') || ! method_exists($event, 'teams')) {
+        if (! SchemaCache::hasTable('event_team') || ! method_exists($event, 'teams')) {
             return;
         }
         $audience = $validated['audience_type'] ?? $event->audience_type ?? 'all';
         $teamIds = $audience === 'teams' ? array_values(array_unique(array_map('intval', $validated['team_ids'] ?? []))) : [];
         $event->teams()->sync($teamIds);
-        if (Schema::hasColumn('events', 'audience_type')) {
+        if (SchemaCache::hasColumn('events', 'audience_type')) {
             $event->audience_type = $teamIds === [] ? 'all' : 'teams';
             $event->save();
         }
@@ -338,7 +338,7 @@ class EventAdminController extends Controller
             'attended' => 'required|boolean',
         ]);
 
-        if (! Schema::hasTable('event_user')) {
+        if (! SchemaCache::hasTable('event_user')) {
             return response()->json(['message' => 'Înregistrările nu sunt disponibile'], 400);
         }
 
@@ -528,7 +528,7 @@ class EventAdminController extends Controller
 
         // Total registrations
         $totalRegistrations = 0;
-        if (Schema::hasTable('event_user')) {
+        if (SchemaCache::hasTable('event_user')) {
             $rq = DB::table('event_user')->where('registered', true);
             if ($instructorScoped) {
                 $totalRegistrations = $myEventIds->isEmpty() ? 0 : $rq->whereIn('event_id', $myEventIds)->count();
@@ -539,7 +539,7 @@ class EventAdminController extends Controller
 
         // Total attendance
         $totalAttendance = 0;
-        if (Schema::hasTable('event_user')) {
+        if (SchemaCache::hasTable('event_user')) {
             $aq = DB::table('event_user')->where('attended', true);
             if ($instructorScoped) {
                 $totalAttendance = $myEventIds->isEmpty() ? 0 : $aq->whereIn('event_id', $myEventIds)->count();
@@ -621,7 +621,7 @@ class EventAdminController extends Controller
     private function addEventMetrics($event)
     {
         // Update KPI counts if needed
-        if (Schema::hasTable('event_user')) {
+        if (SchemaCache::hasTable('event_user')) {
             $event->registrations_count = DB::table('event_user')
                 ->where('event_id', $event->id)
                 ->where('registered', true)
@@ -643,7 +643,7 @@ class EventAdminController extends Controller
             }
         }
 
-        if (Schema::hasTable('event_team') && method_exists($event, 'teams')) {
+        if (SchemaCache::hasTable('event_team') && method_exists($event, 'teams')) {
             $event->loadMissing('teams:id,name');
             $event->setAttribute('team_ids', $event->teams->pluck('id')->values()->all());
         }

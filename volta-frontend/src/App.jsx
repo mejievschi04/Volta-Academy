@@ -484,12 +484,10 @@ function AuthenticatedLayout({ children, authContext }) {
 			return;
 		}
 		try {
-			const [tests, exams] = await Promise.all([
-				adminService.getPendingTestReviews(),
-				adminService.getPendingExamReviews(),
+			const [testCount, examCount] = await Promise.all([
+				adminService.getPendingTestReviewsCount(),
+				adminService.getPendingExamReviewsCount(),
 			]);
-			const testCount = Array.isArray(tests) ? tests.length : 0;
-			const examCount = Array.isArray(exams) ? exams.length : (Array.isArray(exams?.data) ? exams.data.length : 0);
 			setPendingReviewCount(testCount + examCount);
 		} catch {
 			/* keep last count */

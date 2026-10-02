@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
@@ -24,7 +23,7 @@ class StudentSessionLogger
 
         static $activityLogsReady = null;
         if ($activityLogsReady === null) {
-            $activityLogsReady = Schema::hasTable('activity_logs');
+            $activityLogsReady = SchemaCache::hasTable('activity_logs');
         }
         if (! $activityLogsReady) {
             return;

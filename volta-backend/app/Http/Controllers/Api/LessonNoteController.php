@@ -8,7 +8,7 @@ use App\Models\LessonNote;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class LessonNoteController extends Controller
 {
@@ -20,7 +20,7 @@ class LessonNoteController extends Controller
         if (! $this->userCanManageLessonNotes($user, $lesson)) {
             return response()->json(['message' => 'Nu ai acces la această lecție.'], 403);
         }
-        if (! Schema::hasTable('lesson_notes')) {
+        if (! SchemaCache::hasTable('lesson_notes')) {
             return response()->json(['notes' => []]);
         }
         $row = LessonNote::query()->where('user_id', $user->id)->where('lesson_id', $lessonId)->first();
@@ -36,7 +36,7 @@ class LessonNoteController extends Controller
         if (! $this->userCanManageLessonNotes($user, $lesson)) {
             return response()->json(['message' => 'Nu ai acces la această lecție.'], 403);
         }
-        if (! Schema::hasTable('lesson_notes')) {
+        if (! SchemaCache::hasTable('lesson_notes')) {
             return response()->json(['message' => 'Notițele nu sunt activate pe server.'], 503);
         }
 

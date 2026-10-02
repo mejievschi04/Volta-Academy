@@ -1629,10 +1629,28 @@ class TestAdminController extends Controller
      */
     public function getPendingReviews(Request $request)
     {
-        $query = TestResult::with([
-            'test' => fn($q) => $q->with(['questions', 'questionBank.questions', 'courses']),
-            'user:id,name,email',
-        ])
+        $results = $this->pendingReviewsQuery()
+            ->with([
+                'test' => fn($q) => $q->with(['questions', 'questionBank.questions', 'courses']),
+                'user:id,name,email',
+            ])
+            ->orderBy('completed_at', 'desc')
+            ->get();
+
+        return response()->json($results);
+    }
+
+    /**
+     * Doar numărul rezultatelor de revizuit (pentru badge), fără a încărca întrebările.
+     */
+    public function pendingReviewsCount(Request $request)
+    {
+        return response()->json(['count' => $this->pendingReviewsQuery()->count()]);
+    }
+
+    private function pendingReviewsQuery()
+    {
+        $query = TestResult::query()
             ->where(function ($q) {
                 $q->where('status', 'pending_review')
                   ->orWhere('needs_manual_review', true);
@@ -1641,9 +1659,8 @@ class TestAdminController extends Controller
         if (auth()->user()->isInstructor()) {
             $query->whereHas('test', fn($q) => $q->where('created_by', auth()->id()));
         }
-        $results = $query->orderBy('completed_at', 'desc')->get();
 
-        return response()->json($results);
+        return $query;
     }
 
     /**

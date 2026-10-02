@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Support\SchemaCache;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with($appUrl, 'https://')) {
             URL::forceScheme('https');
         }
+
+        // Structura tabelelor e ținută în cache (SchemaCache); orice migrare o invalidează.
+        Event::listen(MigrationsEnded::class, fn () => SchemaCache::flush());
 
         // Citiri mesagerie (polling): buget mare, separat de mutații ca să nu se „fure” între ele.
         RateLimiter::for('api-messages-read', function (Request $request) {

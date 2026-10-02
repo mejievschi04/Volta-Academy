@@ -7,7 +7,7 @@ use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 /**
  * TestBuilderService
@@ -46,7 +46,7 @@ class TestBuilderService
             'version' => $data['version'] ?? '1.0.0',
         ];
 
-        if (Schema::hasColumn('tests', 'question_selection')) {
+        if (SchemaCache::hasColumn('tests', 'question_selection')) {
             $insert['question_selection'] = isset($data['question_selection'])
                 ? $this->normalizeQuestionSelection($data['question_selection'])
                 : null;
@@ -90,7 +90,7 @@ class TestBuilderService
         $table = $test->getTable();
         $updateData = [];
         foreach ($data as $key => $value) {
-            if (Schema::hasColumn($table, $key)) {
+            if (SchemaCache::hasColumn($table, $key)) {
                 if ($key === 'question_selection') {
                     $value = $this->normalizeQuestionSelection($value);
                 }
@@ -242,7 +242,7 @@ class TestBuilderService
     public function deleteTest(Test $test): bool
     {
         return DB::transaction(function () use ($test) {
-            if (Schema::hasTable('course_test')) {
+            if (SchemaCache::hasTable('course_test')) {
                 DB::table('course_test')->where('unlock_after_test_id', $test->id)->update(['unlock_after_test_id' => null]);
                 DB::table('course_test')->where('test_id', $test->id)->delete();
             }

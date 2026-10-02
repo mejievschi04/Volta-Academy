@@ -13,7 +13,7 @@ use App\Models\ActivityLog;
 use App\Support\LearningVisibility;
 use App\Support\StudentActivityLogger;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Carbon\Carbon;
 
 class CourseProgressService
@@ -88,7 +88,7 @@ class CourseProgressService
             ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 
-        if (Schema::hasColumn('test_results', 'needs_manual_review')) {
+        if (SchemaCache::hasColumn('test_results', 'needs_manual_review')) {
             $query->where(function ($q) {
                 $q->whereNull('needs_manual_review')->orWhere('needs_manual_review', false);
             });
@@ -166,7 +166,7 @@ class CourseProgressService
             ->where('course_id', $course->id)
             ->first(['progress_percentage', 'completed_at', 'manually_completed']);
 
-        if ($row && Schema::hasColumn('course_user', 'manually_completed') && ($row->manually_completed ?? false)) {
+        if ($row && SchemaCache::hasColumn('course_user', 'manually_completed') && ($row->manually_completed ?? false)) {
             return $this->courseProgressMemo[$memoKey] = 100.0;
         }
 
@@ -519,7 +519,7 @@ class CourseProgressService
             return true;
         }
 
-        if (Schema::hasColumn('course_user', 'manually_completed')) {
+        if (SchemaCache::hasColumn('course_user', 'manually_completed')) {
             $forced = DB::table('course_user')
                 ->where('user_id', $user->id)
                 ->where('course_id', $course->id)
@@ -635,7 +635,7 @@ class CourseProgressService
             'completed_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ];
-        if (Schema::hasColumn('course_user', 'manually_completed')) {
+        if (SchemaCache::hasColumn('course_user', 'manually_completed')) {
             $courseUser['manually_completed'] = true;
         }
 
@@ -982,7 +982,7 @@ class CourseProgressService
             ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 
-        if (Schema::hasColumn('test_results', 'needs_manual_review')) {
+        if (SchemaCache::hasColumn('test_results', 'needs_manual_review')) {
             $query->where(function ($q) {
                 $q->whereNull('needs_manual_review')->orWhere('needs_manual_review', false);
             });

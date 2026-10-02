@@ -7,7 +7,7 @@ use App\Models\Course;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class NotificationService
 {
@@ -22,7 +22,7 @@ class NotificationService
      */
     public function notifyCoursePublished(Course $course, array $teamIds = [], bool $broadcastAllStudentsIfNoTargets = false): int
     {
-        if (! Schema::hasTable('notifications')) {
+        if (! SchemaCache::hasTable('notifications')) {
             return 0;
         }
 
@@ -76,7 +76,7 @@ class NotificationService
      */
     public function notifyCourseEnrolled(User $student, Course $course): void
     {
-        if (! Schema::hasTable('notifications') || $student->isLearningActivityExempt()) {
+        if (! SchemaCache::hasTable('notifications') || $student->isLearningActivityExempt()) {
             return;
         }
 
@@ -125,7 +125,7 @@ class NotificationService
      */
     public function notifyNewMessage(User $sender, Conversation $conversation, string $preview): void
     {
-        if (! Schema::hasTable('notifications')) {
+        if (! SchemaCache::hasTable('notifications')) {
             return;
         }
 
@@ -181,7 +181,7 @@ class NotificationService
      */
     public function notifyCourseCompleted(User $student, Course $course): void
     {
-        if (! Schema::hasTable('notifications')) {
+        if (! SchemaCache::hasTable('notifications')) {
             return;
         }
 
@@ -225,7 +225,7 @@ class NotificationService
      */
     public function notifyRegistrationRequested(User $user): void
     {
-        if (! Schema::hasTable('notifications')) {
+        if (! SchemaCache::hasTable('notifications')) {
             return;
         }
 
@@ -262,7 +262,7 @@ class NotificationService
     {
         $ids = [];
 
-        if (count($teamIds) > 0 && Schema::hasTable('team_user')) {
+        if (count($teamIds) > 0 && SchemaCache::hasTable('team_user')) {
             $ids = array_merge($ids, DB::table('team_user')
                 ->whereIn('team_id', $teamIds)
                 ->join('users', 'team_user.user_id', '=', 'users.id')
@@ -272,7 +272,7 @@ class NotificationService
                 ->all());
         }
 
-        if (Schema::hasTable('course_user')) {
+        if (SchemaCache::hasTable('course_user')) {
             $enrolled = DB::table('course_user')
                 ->where('course_id', $course->id)
                 ->where('enrolled', true)
@@ -283,7 +283,7 @@ class NotificationService
             $ids = array_merge($ids, $enrolled);
         }
 
-        if (Schema::hasTable('course_team') && Schema::hasTable('team_user')) {
+        if (SchemaCache::hasTable('course_team') && SchemaCache::hasTable('team_user')) {
             $courseTeamIds = DB::table('course_team')
                 ->where('course_id', $course->id)
                 ->pluck('team_id')

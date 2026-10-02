@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class ExamResultController extends Controller
 {
@@ -782,7 +782,7 @@ class ExamResultController extends Controller
             
             // Get legacy exam results (only if exam_results table exists)
             $examResults = collect();
-            if (Schema::hasTable('exam_results')) {
+            if (SchemaCache::hasTable('exam_results')) {
                 try {
                     $examResults = ExamResult::with([
                         'exam.course:id,title',
@@ -1062,7 +1062,7 @@ class ExamResultController extends Controller
             }
             
             // Fallback to legacy ExamResult (only if exam_results table exists)
-            if (! Schema::hasTable('exam_results')) {
+            if (! SchemaCache::hasTable('exam_results')) {
                 return response()->json([
                     'error' => 'Rezultatul nu a fost găsit',
                 ], 404);

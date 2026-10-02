@@ -13,7 +13,7 @@ use App\Services\TestAttemptService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class UserAssignedCoursesService
 {
@@ -105,7 +105,7 @@ class UserAssignedCoursesService
                 ->orderByDesc('id')
                 ->get()
                 ->groupBy(fn ($row) => (int) $row->test_id);
-            if (Schema::hasTable('user_test_attempt_grants')) {
+            if (SchemaCache::hasTable('user_test_attempt_grants')) {
                 $extraAttemptsByTest = UserTestAttemptGrant::query()
                     ->where('user_id', $user->id)
                     ->whereIn('test_id', $testIds)
@@ -505,7 +505,7 @@ class UserAssignedCoursesService
      */
     public function constrainToDirectAssignedUsers($query, Course $course): void
     {
-        if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->wherePivot('enrolled', true);
         }
         if (! $this->hasAssignmentSourceColumn()) {
@@ -579,7 +579,7 @@ class UserAssignedCoursesService
 
     private function hasAssignmentSourceColumn(): bool
     {
-        return Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'assignment_source');
+        return SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'assignment_source');
     }
 
     /**

@@ -11,7 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Str;
 
 class TestAttemptService
@@ -176,7 +176,7 @@ class TestAttemptService
 
     public function extraAttemptsFor(int $userId, int $testId): int
     {
-        if (! Schema::hasTable('user_test_attempt_grants')) {
+        if (! SchemaCache::hasTable('user_test_attempt_grants')) {
             return 0;
         }
 

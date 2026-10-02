@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 
 class RegistrationInvitationController extends Controller
 {
@@ -103,7 +103,7 @@ class RegistrationInvitationController extends Controller
             return $user;
         });
 
-        if (Schema::hasTable('activity_logs')) {
+        if (SchemaCache::hasTable('activity_logs')) {
             \App\Models\ActivityLog::create([
                 'user_id' => $user->id,
                 'action' => 'user_invited',

@@ -9,7 +9,7 @@ use App\Models\Team;
 use App\Models\TestResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Carbon\Carbon;
 
 class StatisticsAdminController extends Controller
@@ -25,7 +25,7 @@ class StatisticsAdminController extends Controller
 
     private function hasColumn(string $table, string $column): bool
     {
-        return $this->columns[$table . "." . $column] ??= Schema::hasTable($table) && Schema::hasColumn($table, $column);
+        return $this->columns[$table . "." . $column] ??= SchemaCache::hasTable($table) && SchemaCache::hasColumn($table, $column);
     }
 
     private function selectOrNull(string $table, string $column, ?string $alias = null, string $fallback = 'NULL'): mixed
@@ -73,7 +73,7 @@ class StatisticsAdminController extends Controller
         }
 
         $testCourseMap = [];
-        if (Schema::hasTable('course_test')) {
+        if (SchemaCache::hasTable('course_test')) {
             foreach (DB::table('course_test')->select('test_id', 'course_id')->when($courseId, fn ($q) => $q->where('course_id', (int) $courseId))->get() as $ct) {
                 if (!isset($testCourseMap[(int) $ct->test_id])) {
                     $testCourseMap[(int) $ct->test_id] = (int) $ct->course_id;
@@ -87,7 +87,7 @@ class StatisticsAdminController extends Controller
             ->get();
 
         $enrollments = [];
-        if (Schema::hasTable('course_user')) {
+        if (SchemaCache::hasTable('course_user')) {
             $courseUserHasEnrolled = $this->hasColumn('course_user', 'enrolled');
             $courseUserHasEnrolledAt = $this->hasColumn('course_user', 'enrolled_at');
             $courseUserHasCompletedAt = $this->hasColumn('course_user', 'completed_at');
@@ -155,9 +155,9 @@ class StatisticsAdminController extends Controller
         unset($e);
 
         $testResults = [];
-        if (Schema::hasTable('test_results')) {
-            $hasTestsTable = Schema::hasTable('tests');
-            $hasCourseTestTable = Schema::hasTable('course_test');
+        if (SchemaCache::hasTable('test_results')) {
+            $hasTestsTable = SchemaCache::hasTable('tests');
+            $hasCourseTestTable = SchemaCache::hasTable('course_test');
             $hasTestIdColumn = $this->hasColumn('test_results', 'test_id');
             $testCompletedColumn = $this->hasColumn('test_results', 'completed_at')
                 ? 'completed_at'
@@ -225,8 +225,8 @@ class StatisticsAdminController extends Controller
             $testResults = array_merge($testResults, $results);
         }
 
-        if (Schema::hasTable('exam_results')) {
-            $hasExamsTable = Schema::hasTable('exams');
+        if (SchemaCache::hasTable('exam_results')) {
+            $hasExamsTable = SchemaCache::hasTable('exams');
             $hasExamIdColumn = $this->hasColumn('exam_results', 'exam_id');
             $examCompletedColumn = $this->hasColumn('exam_results', 'completed_at')
                 ? 'completed_at'
@@ -334,7 +334,7 @@ class StatisticsAdminController extends Controller
         }
 
         $courseTests = [];
-        if (Schema::hasTable('course_test')) {
+        if (SchemaCache::hasTable('course_test')) {
             $query = DB::table('course_test')->select('course_id', 'test_id');
             if ($courseId) {
                 $query->where('course_id', (int) $courseId);
@@ -346,7 +346,7 @@ class StatisticsAdminController extends Controller
             'total_learning_seconds' => (int) collect($learningKeyed)->sum(fn ($row) => (int) ($row->time_spent_seconds ?? 0)),
         ];
 
-        $teams = Schema::hasTable('teams')
+        $teams = SchemaCache::hasTable('teams')
             ? Team::query()->orderBy('name')->get(['id', 'name'])
             : collect();
 
@@ -372,13 +372,13 @@ class StatisticsAdminController extends Controller
      */
     private function getLearningAggregatesByUserCourse($courseId = null, $userId = null): array
     {
-        if (!Schema::hasTable('lesson_progress') || !Schema::hasTable('lessons')) {
+        if (!SchemaCache::hasTable('lesson_progress') || !SchemaCache::hasTable('lessons')) {
             return [];
         }
 
         $lessonHasCourseId = $this->hasColumn('lessons', 'course_id');
         $lessonHasModuleId = $this->hasColumn('lessons', 'module_id');
-        $moduleHasCourseId = Schema::hasTable('modules') && $this->hasColumn('modules', 'course_id');
+        $moduleHasCourseId = SchemaCache::hasTable('modules') && $this->hasColumn('modules', 'course_id');
 
         if (! $lessonHasCourseId && ! ($lessonHasModuleId && $moduleHasCourseId)) {
             return [];

@@ -30,7 +30,7 @@ class CourseController extends Controller
             // Cursanții văd doar cursurile atribuite lor.
             $user = $request->user();
             $isAdmin = LearningVisibility::isStaff($user);
-            if (!$isAdmin && \Illuminate\Support\Facades\Schema::hasColumn('courses', 'status')) {
+            if (!$isAdmin && \App\Support\SchemaCache::hasColumn('courses', 'status')) {
                 $query->where('status', 'published');
             }
             $assignedIds = LearningVisibility::assignedCourseIdsForLearner($user);

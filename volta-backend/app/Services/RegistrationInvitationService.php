@@ -131,7 +131,7 @@ class RegistrationInvitationService
             ->where('expires_at', '>', now())
             ->where('expires_at', '<=', now()->addHours(48));
 
-        if (\Illuminate\Support\Facades\Schema::hasColumn('registration_invitations', 'reminder_sent_at')) {
+        if (\App\Support\SchemaCache::hasColumn('registration_invitations', 'reminder_sent_at')) {
             $query->whereNull('reminder_sent_at');
         }
 

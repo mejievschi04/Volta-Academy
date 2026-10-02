@@ -18,7 +18,7 @@ use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
@@ -33,30 +33,9 @@ class CourseAdminController extends Controller
     public function index(Request $request)
     {
         try {
-            // Check if courses table exists
-            if (!Schema::hasTable('courses')) {
-                return response()->json(['data' => [], 'total' => 0]);
-            }
-            
             $query = Course::with(['teacher:id,name,email'])
-                ->withCount('modules');
-        
-        // Add enrollments count if course_user table exists
-        if (Schema::hasTable('course_user')) {
-            try {
-                $query->withCount(['assignedUsers as enrollments_count' => function($q) {
-                    if (Schema::hasColumn('course_user', 'enrolled')) {
-                        $q->where('enrolled', true);
-                    }
-                }]);
-            } catch (\Exception $e) {
-                // If relationship fails, add default count
-                $query->addSelect(DB::raw('0 as enrollments_count'));
-            }
-        } else {
-            // If table doesn't exist, add a default count
-            $query->addSelect(DB::raw('0 as enrollments_count'));
-        }
+                ->withCount('modules')
+                ->withCount(['assignedUsers as enrollments_count' => fn ($q) => $q->where('enrolled', true)]);
 
         // Search
         if ($request->has('search') && $request->search) {
@@ -72,13 +51,7 @@ class CourseAdminController extends Controller
 
         // Status filter (default to 'published' if status column exists, otherwise show all)
         if ($request->has('status') && $request->status !== 'all') {
-            // If status column exists in database
-            if (Schema::hasColumn('courses', 'status')) {
-                $query->where('status', $request->status);
-            } else {
-                // Fallback: treat all as published for now
-                // You can add status migration later
-            }
+            $query->where('status', $request->status);
         }
 
 
@@ -90,7 +63,7 @@ class CourseAdminController extends Controller
         }
 
         // Filter by course map (cursuri din această mapă)
-        if ($request->has('course_map_id') && Schema::hasTable('course_map_course')) {
+        if ($request->has('course_map_id')) {
             $mapId = (int) $request->course_map_id;
             if ($mapId > 0) {
                 $query->whereHas('courseMaps', fn ($q) => $q->where('course_maps.id', $mapId));
@@ -99,9 +72,7 @@ class CourseAdminController extends Controller
 
         // Level filter (if level column exists)
         if ($request->has('level') && $request->level !== 'all') {
-            if (Schema::hasColumn('courses', 'level')) {
-                $query->where('level', $request->level);
-            }
+            $query->where('level', $request->level);
         }
 
         // Sort
@@ -125,12 +96,8 @@ class CourseAdminController extends Controller
                 $query->orderBy('updated_at', $sortDirection);
                 break;
             case 'list_order':
-                if (Schema::hasColumn('courses', 'list_order')) {
-                    $query->orderBy('list_order', strtolower($sortDirection) === 'desc' ? 'desc' : 'asc')
-                        ->orderBy('id', 'asc');
-                } else {
-                    $query->orderBy('updated_at', 'desc');
-                }
+                $query->orderBy('list_order', strtolower($sortDirection) === 'desc' ? 'desc' : 'asc')
+                    ->orderBy('id', 'asc');
                 break;
             default:
                 $query->orderBy($sortBy, $sortDirection);
@@ -140,9 +107,10 @@ class CourseAdminController extends Controller
             $perPage = $request->get('per_page', 50);
             $courses = $query->paginate($perPage);
 
-            // Add metrics to each course
-            $courses->getCollection()->transform(function($course) {
-                return $this->addCourseMetrics($course);
+            // Metrici pentru toată pagina dintr-un singur query, nu câte unul per curs.
+            $enrollmentCounts = $this->enrollmentCountsFor($courses->getCollection()->pluck('id')->all());
+            $courses->getCollection()->transform(function($course) use ($enrollmentCounts) {
+                return $this->addCourseMetrics($course, $enrollmentCounts);
             });
 
             return response()->json($courses);
@@ -165,7 +133,7 @@ class CourseAdminController extends Controller
      */
     public function reorderList(Request $request)
     {
-        if (!Schema::hasColumn('courses', 'list_order')) {
+        if (!SchemaCache::hasColumn('courses', 'list_order')) {
             return response()->json(['message' => 'Coloana list_order lipsește. Rulează migrările.'], 422);
         }
 
@@ -208,33 +176,45 @@ class CourseAdminController extends Controller
         return [];
     }
 
-    private function addCourseMetrics($course)
+    /**
+     * Înscrieri active și finalizări (course_user) pentru cursurile date.
+     *
+     * @param  array<int, int>  $courseIds
+     * @return array<int, array{enrolled: int, completed: int}>
+     */
+    private function enrollmentCountsFor(array $courseIds): array
+    {
+        if ($courseIds === []) {
+            return [];
+        }
+
+        return DB::table('course_user')
+            ->whereIn('course_id', $courseIds)
+            ->groupBy('course_id')
+            ->selectRaw(
+                'course_id,
+                SUM(CASE WHEN enrolled = ? THEN 1 ELSE 0 END) AS enrolled,
+                SUM(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END) AS completed',
+                [true]
+            )
+            ->get()
+            ->mapWithKeys(fn ($row) => [(int) $row->course_id => [
+                'enrolled' => (int) $row->enrolled,
+                'completed' => (int) $row->completed,
+            ]])
+            ->all();
+    }
+
+    /**
+     * @param  array<int, array{enrolled: int, completed: int}>|null  $enrollmentCounts  preîncărcate (listă) sau null (un singur curs)
+     */
+    private function addCourseMetrics($course, ?array $enrollmentCounts = null)
     {
         try {
-            // Get enrollments count
-            $enrollmentsCount = 0;
-            if (Schema::hasTable('course_user')) {
-                $enrollmentsCount = DB::table('course_user')
-                    ->where('course_id', $course->id)
-                    ->where(function($q) {
-                        if (Schema::hasColumn('course_user', 'enrolled')) {
-                            $q->where('enrolled', true);
-                        } else {
-                            // If enrolled column doesn't exist, count all records
-                            $q->whereNotNull('course_id');
-                        }
-                    })
-                    ->count();
-            }
-
-            // Get completed count
-            $completedCount = 0;
-            if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'completed_at')) {
-                $completedCount = DB::table('course_user')
-                    ->where('course_id', $course->id)
-                    ->whereNotNull('completed_at')
-                    ->count();
-            }
+            $enrollmentCounts ??= $this->enrollmentCountsFor([(int) $course->id]);
+            $counts = $enrollmentCounts[(int) $course->id] ?? ['enrolled' => 0, 'completed' => 0];
+            $enrollmentsCount = $counts['enrolled'];
+            $completedCount = $counts['completed'];
 
             // Calculate completion rate
             $completionRate = $enrollmentsCount > 0 
@@ -242,18 +222,11 @@ class CourseAdminController extends Controller
                 : 0;
 
             // Revenue - use from course if available, otherwise 0
-            $revenue = 0;
-            if (Schema::hasColumn('courses', 'total_revenue')) {
-                $revenue = $course->total_revenue ?? 0;
-            }
+            $revenue = $course->total_revenue ?? 0;
 
             // Rating - use from course if available
-            $rating = null;
-            $ratingCount = 0;
-            if (Schema::hasColumn('courses', 'average_rating')) {
-                $rating = $course->average_rating;
-                $ratingCount = $course->rating_count ?? 0;
-            }
+            $rating = $course->average_rating;
+            $ratingCount = $course->rating_count ?? 0;
 
             // Check for alerts
             $hasAlerts = false;
@@ -262,10 +235,7 @@ class CourseAdminController extends Controller
             }
 
             // Status (default to published if no status column)
-            $status = 'published';
-            if (Schema::hasColumn('courses', 'status')) {
-                $status = $course->status ?? 'draft';
-            }
+            $status = $course->status ?? 'draft';
 
             // Add metrics to course
             $course->enrollments_count = $enrollmentsCount;
@@ -522,7 +492,7 @@ class CourseAdminController extends Controller
         $course = $this->courseBuilderService->createCourse($data, $teacher);
         $this->attachCourseToDefaultMap($course, (int) $request->user()->id);
 
-        if (Schema::hasColumn('courses', 'list_order')) {
+        if (SchemaCache::hasColumn('courses', 'list_order')) {
             $q = Course::query()->where('id', '!=', $course->id);
             if ($request->user()->isInstructor()) {
                 $q->where('teacher_id', $request->user()->id);
@@ -685,7 +655,7 @@ class CourseAdminController extends Controller
     public function getTeachers()
     {
         try {
-            if (!Schema::hasTable('users')) {
+            if (!SchemaCache::hasTable('users')) {
                 return response()->json([]);
             }
             if (auth()->user()->isInstructor()) {
@@ -913,7 +883,7 @@ class CourseAdminController extends Controller
                 $this->notifyStudentsCoursePublished($published['course'] ?? $course->fresh(), $course->status);
                 break;
             case 'unpublish':
-                if (Schema::hasColumn('courses', 'status')) {
+                if (SchemaCache::hasColumn('courses', 'status')) {
                     $course->update(['status' => 'draft']);
                 }
                 break;
@@ -969,7 +939,7 @@ class CourseAdminController extends Controller
                             $updated++;
                             break;
                         case 'unpublish':
-                            if (Schema::hasColumn('courses', 'status')) {
+                            if (SchemaCache::hasColumn('courses', 'status')) {
                                 $course->update(['status' => 'draft']);
                                 $updated++;
                             }
@@ -1092,31 +1062,15 @@ class CourseAdminController extends Controller
             $thresholdDaysOutdated = 90; // 90 days outdated threshold
 
             $courses = Course::with('teacher')->get();
+            $enrollmentCounts = $this->enrollmentCountsFor($courses->pluck('id')->all());
 
             foreach ($courses as $course) {
-                $enrollments = 0;
-                if (Schema::hasTable('course_user')) {
-                    $enrollments = DB::table('course_user')
-                        ->where('course_id', $course->id)
-                        ->where(function($q) {
-                            if (Schema::hasColumn('course_user', 'enrolled')) {
-                                $q->where('enrolled', true);
-                            } else {
-                                $q->whereNotNull('course_id');
-                            }
-                        })
-                        ->count();
-                }
+                $counts = $enrollmentCounts[(int) $course->id] ?? ['enrolled' => 0, 'completed' => 0];
+                $enrollments = $counts['enrolled'];
 
                 if ($enrollments === 0) continue;
 
-                $completed = 0;
-                if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'completed_at')) {
-                    $completed = DB::table('course_user')
-                        ->where('course_id', $course->id)
-                        ->whereNotNull('completed_at')
-                        ->count();
-                }
+                $completed = $counts['completed'];
 
                 $completionRate = $enrollments > 0 ? ($completed / $enrollments) * 100 : 0;
 

@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Str;
 
 class AIKnowledgeService
@@ -398,7 +398,7 @@ class AIKnowledgeService
             $query->where('course_id', $courseId);
         }
 
-        if (!$canSeeDrafts && Schema::hasColumn('courses', 'status')) {
+        if (!$canSeeDrafts && SchemaCache::hasColumn('courses', 'status')) {
             $query->whereHas('course', function ($courseQuery) {
                 $courseQuery->where('status', 'published');
             });
@@ -956,7 +956,7 @@ class AIKnowledgeService
     private function knowledgeTablesReady(): bool
     {
         try {
-            return Schema::hasTable('ai_chunks') && Schema::hasTable('ai_embeddings');
+            return SchemaCache::hasTable('ai_chunks') && SchemaCache::hasTable('ai_embeddings');
         } catch (\Throwable $e) {
             Log::warning('Volt knowledge table check failed', [
                 'error' => $e->getMessage(),

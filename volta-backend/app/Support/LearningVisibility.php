@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class LearningVisibility
 {
@@ -25,7 +24,7 @@ class LearningVisibility
             return true;
         }
 
-        if (! Schema::hasColumn('courses', 'status')) {
+        if (! SchemaCache::hasColumn('courses', 'status')) {
             return true;
         }
 
@@ -34,7 +33,7 @@ class LearningVisibility
 
     public static function applyPublishedCourseFilter($query, bool $isStaff): void
     {
-        if (! $isStaff && Schema::hasColumn('courses', 'status')) {
+        if (! $isStaff && SchemaCache::hasColumn('courses', 'status')) {
             $query->where('status', 'published');
         }
     }
@@ -42,7 +41,7 @@ class LearningVisibility
     public static function publishedLessonScope($query, bool $isStaff): void
     {
         $query->orderBy('order');
-        if (! $isStaff && Schema::hasColumn('lessons', 'status')) {
+        if (! $isStaff && SchemaCache::hasColumn('lessons', 'status')) {
             $query->where('status', 'published');
         }
     }
@@ -50,7 +49,7 @@ class LearningVisibility
     public static function publishedModuleScope($query, bool $isStaff): void
     {
         $query->orderBy('order');
-        if (! $isStaff && Schema::hasColumn('modules', 'status')) {
+        if (! $isStaff && SchemaCache::hasColumn('modules', 'status')) {
             $query->where('status', 'published');
         }
     }
@@ -63,14 +62,14 @@ class LearningVisibility
         if (self::isStaff($user)) {
             return true;
         }
-        if (! Schema::hasTable('course_user')) {
+        if (! SchemaCache::hasTable('course_user')) {
             return false;
         }
 
         $query = DB::table('course_user')
             ->where('user_id', $user->id)
             ->where('course_id', $courseId);
-        if (Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->where('enrolled', true);
         }
 
@@ -87,12 +86,12 @@ class LearningVisibility
         if (! $user || ($user->role ?? '') !== 'student') {
             return null;
         }
-        if (! Schema::hasTable('course_user')) {
+        if (! SchemaCache::hasTable('course_user')) {
             return [];
         }
 
         $query = DB::table('course_user')->where('user_id', $user->id);
-        if (Schema::hasColumn('course_user', 'enrolled')) {
+        if (SchemaCache::hasColumn('course_user', 'enrolled')) {
             $query->where('enrolled', true);
         }
 

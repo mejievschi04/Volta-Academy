@@ -7,7 +7,7 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Carbon\Carbon;
 
 class EventController extends Controller
@@ -29,7 +29,7 @@ class EventController extends Controller
                 $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             });
 
-        if (Schema::hasTable('event_team')) {
+        if (SchemaCache::hasTable('event_team')) {
             $query->with('teams:id,name');
         }
 
@@ -40,7 +40,7 @@ class EventController extends Controller
 
         // Access type filter
         if ($request->has('access_type') && $request->access_type !== 'all') {
-            if (Schema::hasColumn('events', 'access_type')) {
+            if (SchemaCache::hasColumn('events', 'access_type')) {
                 $query->where('access_type', $request->access_type);
             }
         }
@@ -155,7 +155,7 @@ class EventController extends Controller
     {
         $user = Auth::user();
 
-        if (! Schema::hasTable('event_user')) {
+        if (! SchemaCache::hasTable('event_user')) {
             return response()->json(['message' => 'Înscrierea nu este disponibilă'], 400);
         }
 
@@ -178,12 +178,12 @@ class EventController extends Controller
                     if (!$event->course_id) {
                         abort(400, 'Evenimentul nu este asociat cu un curs');
                     }
-                    if (Schema::hasTable('course_user')) {
+                    if (SchemaCache::hasTable('course_user')) {
                         $enrolled = DB::table('course_user')
                             ->where('course_id', $event->course_id)
                             ->where('user_id', $user->id)
                             ->where(function ($q) {
-                                if (Schema::hasColumn('course_user', 'enrolled')) {
+                                if (SchemaCache::hasColumn('course_user', 'enrolled')) {
                                     $q->where('enrolled', true);
                                 } else {
                                     $q->whereNotNull('course_id');
@@ -238,7 +238,7 @@ class EventController extends Controller
         $user = Auth::user();
 
         // Check if user is registered
-        if (Schema::hasTable('event_user')) {
+        if (SchemaCache::hasTable('event_user')) {
             $registration = DB::table('event_user')
                 ->where('event_id', $event->id)
                 ->where('user_id', $user->id)
@@ -299,7 +299,7 @@ class EventController extends Controller
         }
 
         // Check if user is registered or attended
-        if (Schema::hasTable('event_user')) {
+        if (SchemaCache::hasTable('event_user')) {
             $registration = DB::table('event_user')
                 ->where('event_id', $event->id)
                 ->where('user_id', $user->id)
@@ -341,7 +341,7 @@ class EventController extends Controller
     {
         $user = Auth::user();
 
-        if (! Schema::hasTable('event_user')) {
+        if (! SchemaCache::hasTable('event_user')) {
             return response()->json(['message' => 'Înscrierea nu este disponibilă'], 400);
         }
 
@@ -394,7 +394,7 @@ class EventController extends Controller
         $user = Auth::user();
         $filter = $request->get('filter', 'all'); // all, registered, attended, upcoming, past
 
-        if (!Schema::hasTable('event_user')) {
+        if (!SchemaCache::hasTable('event_user')) {
             return response()->json([
                 'data' => [],
                 'total' => 0,
@@ -448,7 +448,7 @@ class EventController extends Controller
      */
     private function addUserEventData($event)
     {
-        if (!Auth::check() || !Schema::hasTable('event_user')) {
+        if (!Auth::check() || !SchemaCache::hasTable('event_user')) {
             $event->user_registered = false;
             $event->user_attended = false;
             $event->user_watched_replay = false;
@@ -483,7 +483,7 @@ class EventController extends Controller
         if ((int) ($event->instructor_id ?? 0) === (int) $user->id) {
             return true;
         }
-        if (! Schema::hasTable('event_user')) {
+        if (! SchemaCache::hasTable('event_user')) {
             return false;
         }
 
@@ -509,7 +509,7 @@ class EventController extends Controller
 
     private function eventVisibleToUser($event, $user, array $userTeamIds): bool
     {
-        $audience = Schema::hasColumn('events', 'audience_type')
+        $audience = SchemaCache::hasColumn('events', 'audience_type')
             ? ($event->audience_type ?? 'all')
             : 'all';
         if ($audience !== 'teams') {

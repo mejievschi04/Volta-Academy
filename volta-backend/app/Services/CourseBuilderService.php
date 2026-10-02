@@ -15,7 +15,7 @@ use App\Models\CourseVersionSnapshot;
 use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -37,7 +37,7 @@ class CourseBuilderService
             'teams:id,name',
             'assignedUsers' => function ($query) {
                 $query->select('users.id', 'users.name', 'users.email', 'users.role');
-                if (Schema::hasTable('course_user') && Schema::hasColumn('course_user', 'enrolled')) {
+                if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'enrolled')) {
                     $query->wherePivot('enrolled', true);
                 }
             },
@@ -639,69 +639,69 @@ class CourseBuilderService
         ];
 
         // Only add columns that exist (for PostgreSQL compatibility)
-        if (Schema::hasColumn($table, 'category')) {
+        if (SchemaCache::hasColumn($table, 'category')) {
             $createData['category'] = $data['category'] ?? null;
         }
-        if (Schema::hasColumn($table, 'level')) {
+        if (SchemaCache::hasColumn($table, 'level')) {
             $createData['level'] = $data['level'] ?? null;
         }
-        if (Schema::hasColumn($table, 'status')) {
+        if (SchemaCache::hasColumn($table, 'status')) {
             $createData['status'] = 'draft';
         }
-        if (Schema::hasColumn($table, 'workflow_status')) {
+        if (SchemaCache::hasColumn($table, 'workflow_status')) {
             $createData['workflow_status'] = 'draft';
         }
-        if (Schema::hasColumn($table, 'settings')) {
+        if (SchemaCache::hasColumn($table, 'settings')) {
             $createData['settings'] = $settings;
         }
-        if (Schema::hasColumn($table, 'short_description')) {
+        if (SchemaCache::hasColumn($table, 'short_description')) {
             $createData['short_description'] = $data['short_description'] ?? null;
         }
-        if (Schema::hasColumn($table, 'access_type')) {
+        if (SchemaCache::hasColumn($table, 'access_type')) {
             $createData['access_type'] = $data['access_type'] ?? 'free';
         }
-        if (Schema::hasColumn($table, 'enrollment_type')) {
+        if (SchemaCache::hasColumn($table, 'enrollment_type')) {
             $createData['enrollment_type'] = $data['enrollment_type'] ?? 'open';
         }
-        if (Schema::hasColumn($table, 'price')) {
+        if (SchemaCache::hasColumn($table, 'price')) {
             $createData['price'] = 0;
         }
-        if (Schema::hasColumn($table, 'currency')) {
+        if (SchemaCache::hasColumn($table, 'currency')) {
             $createData['currency'] = $data['currency'] ?? 'RON';
         }
-        if (Schema::hasColumn($table, 'has_certificate')) {
+        if (SchemaCache::hasColumn($table, 'has_certificate')) {
             $createData['has_certificate'] = $settings['certificate']['enabled'] ?? false;
         }
-        if (Schema::hasColumn($table, 'min_test_score')) {
+        if (SchemaCache::hasColumn($table, 'min_test_score')) {
             $createData['min_test_score'] = $settings['certificate']['min_score'] ?? 70;
-        } elseif (Schema::hasColumn($table, 'min_exam_score')) {
+        } elseif (SchemaCache::hasColumn($table, 'min_exam_score')) {
             $createData['min_exam_score'] = $settings['certificate']['min_score'] ?? 70;
         }
-        if (Schema::hasColumn($table, 'allow_retake')) {
+        if (SchemaCache::hasColumn($table, 'allow_retake')) {
             $createData['allow_retake'] = $settings['certificate']['allow_retake'] ?? true;
         }
-        if (Schema::hasColumn($table, 'max_retakes')) {
+        if (SchemaCache::hasColumn($table, 'max_retakes')) {
             $createData['max_retakes'] = $settings['certificate']['max_retakes'] ?? 3;
         }
-        if (Schema::hasColumn($table, 'drip_content')) {
+        if (SchemaCache::hasColumn($table, 'drip_content')) {
             $createData['drip_content'] = $settings['drip']['enabled'] ?? false;
         }
-        if (Schema::hasColumn($table, 'drip_schedule')) {
+        if (SchemaCache::hasColumn($table, 'drip_schedule')) {
             $createData['drip_schedule'] = $settings['drip']['schedule'] ?? null;
         }
-        if (Schema::hasColumn($table, 'estimated_duration_hours')) {
+        if (SchemaCache::hasColumn($table, 'estimated_duration_hours')) {
             $createData['estimated_duration_hours'] = $data['estimated_duration_hours'] ?? null;
         }
-        if (Schema::hasColumn($table, 'visibility')) {
+        if (SchemaCache::hasColumn($table, 'visibility')) {
             $createData['visibility'] = $data['visibility'] ?? 'public';
         }
-        if (Schema::hasColumn($table, 'sequential_unlock')) {
+        if (SchemaCache::hasColumn($table, 'sequential_unlock')) {
             $createData['sequential_unlock'] = $data['sequential_unlock'] ?? true;
         }
-        if (Schema::hasColumn($table, 'marketing_tags')) {
+        if (SchemaCache::hasColumn($table, 'marketing_tags')) {
             $createData['marketing_tags'] = is_array($data['marketing_tags'] ?? null) ? $data['marketing_tags'] : [];
         }
-        if (Schema::hasColumn($table, 'card_color') && array_key_exists('card_color', $data)) {
+        if (SchemaCache::hasColumn($table, 'card_color') && array_key_exists('card_color', $data)) {
             $createData['card_color'] = $data['card_color'];
         }
 
@@ -777,7 +777,7 @@ class CourseBuilderService
             \App\Support\CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
             Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            if (Schema::hasTable('course_team') && $teamIds !== []) {
+            if (SchemaCache::hasTable('course_team') && $teamIds !== []) {
                 app(UserAssignedCoursesService::class)->syncCourseTeams($course, $teamIds);
             }
             $this->publishDraftLinkedAssessmentsForCourse((int) $course->id);
@@ -807,7 +807,7 @@ class CourseBuilderService
                 ? $data['marketing_tags']
                 : (array) ($data['marketing_tags'] ?? []);
         }
-        if (Schema::hasColumn('courses', 'settings')) {
+        if (SchemaCache::hasColumn('courses', 'settings')) {
             $settings = $this->buildSettings($data, $course->settings);
             $updateData['settings'] = $settings;
         }
