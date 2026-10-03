@@ -255,8 +255,8 @@
 		background: var(--bg-elevated);
 		box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5);
 		pointer-events: auto;
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 		display: flex;
 		flex-direction: column;
 	}
@@ -266,10 +266,10 @@
 	.modern-sidebar *,
 	.va-sidebar *,
 	.student-sidebar * {
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
-		filter: none !important;
-		-webkit-filter: none !important;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		filter: none;
+		-webkit-filter: none;
 	}
 
 	.sidebar.open,
@@ -281,19 +281,19 @@
 
 	/* Mobile sidebar toggle - fundal ca bara de sus, icon alb (students + admins) */
 	.mobile-sidebar-toggle {
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		width: 44px !important;
-		height: 44px !important;
-		min-width: 44px !important;
-		min-height: 44px !important;
-		padding: var(--space-2) !important;
-		background: var(--bg-elevated) !important;
-		border: none !important;
-		border-radius: var(--radius-md) !important;
-		color: var(--text-primary) !important;
-		cursor: pointer !important;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		min-width: 44px;
+		min-height: 44px;
+		padding: var(--space-2);
+		background: var(--bg-elevated);
+		border: none;
+		border-radius: var(--radius-md);
+		color: var(--text-primary);
+		cursor: pointer;
 	}
 	.mobile-sidebar-toggle:hover {
 		background: var(--bg-secondary) !important;
@@ -305,9 +305,9 @@
 	.modern-topnav,
 	.va-topnav,
 	.admin-topnav {
-		display: flex !important;
-		visibility: visible !important;
-		opacity: 1 !important;
+		display: flex;
+		visibility: visible;
+		opacity: 1;
 		height: var(--app-header-height, 56px);
 		padding: 0 var(--space-4);
 		position: fixed;
@@ -316,8 +316,8 @@
 		right: 0;
 		z-index: 998;
 		background-color: var(--border-primary);
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 	}
 
 	/* Topnav left section - logo centered, hamburger on left */
@@ -325,13 +325,13 @@
 	.va-topnav-brand,
 	.va-shell-topnav .modern-topnav-left,
 	.va-shell-topnav .va-topnav-brand {
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		gap: var(--space-3) !important;
 		flex: 1 !important;
-		min-width: 0 !important;
-		position: relative !important;
+		min-width: 0;
+		position: relative;
 	}
 
 	/* Hamburger stays on left when logo is centered */
@@ -339,8 +339,8 @@
 	.modern-topnav .va-topnav-brand .mobile-sidebar-toggle,
 	.va-topnav .modern-topnav-left .mobile-sidebar-toggle,
 	.va-topnav .va-topnav-brand .mobile-sidebar-toggle {
-		position: absolute !important;
-		left: 0 !important;
+		position: absolute;
+		left: 0;
 	}
 
 	/* Logo doar în meniul deschis (drawer), nu în topnav pe mobil */
@@ -353,28 +353,28 @@
 	/* Titlu pagină lângă hamburger când meniul e închis */
 	.modern-topnav-left,
 	.va-topnav-brand {
-		justify-content: flex-start !important;
-		padding-left: 52px !important;
+		justify-content: flex-start;
+		padding-left: 52px;
 	}
 
 	.va-topnav-page-title {
-		text-align: left !important;
-		flex: 1 !important;
-		min-width: 0 !important;
+		text-align: left;
+		flex: 1;
+		min-width: 0;
 	}
 
 	/* Page title next to logo - no flex so logo+title stay centered */
 	.va-topnav-page-title {
-		display: block !important;
-		font-size: var(--font-size-lg) !important;
-		font-weight: var(--font-weight-semibold) !important;
-		color: var(--text-primary) !important;
-		margin: 0 !important;
-		white-space: nowrap !important;
-		overflow: hidden !important;
-		text-overflow: ellipsis !important;
-		flex: none !important;
-		min-width: 0 !important;
+		display: block;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-primary);
+		margin: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		flex: none;
+		min-width: 0;
 	}
 
 	/* Hide title when sidebar is expanded */
@@ -409,12 +409,12 @@
 	.va-sidebar-brand,
 	.student-sidebar .modern-sidebar-brand,
 	.student-sidebar .va-sidebar-brand {
-		display: flex !important;
-		flex-direction: row !important;
-		align-items: center !important;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
 		justify-content: flex-start !important;
-		gap: var(--space-3) !important;
-		flex-shrink: 0 !important;
+		gap: var(--space-3);
+		flex-shrink: 0;
 	}
 
 	/* Nav: container flex; scroll pe .va-sidebar-nav-scroll */
@@ -426,19 +426,19 @@
 	.va-sidebar .va-sidebar-nav,
 	.student-sidebar .modern-nav,
 	.student-sidebar .va-sidebar-nav {
-		flex: 1 1 0 !important;
-		min-height: 0 !important;
-		overflow: hidden !important;
+		flex: 1 1 0;
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.sidebar .va-sidebar-nav-scroll,
 	.modern-sidebar .va-sidebar-nav-scroll,
 	.va-sidebar .va-sidebar-nav-scroll,
 	.student-sidebar .va-sidebar-nav-scroll {
-		flex: 1 1 0 !important;
-		min-height: 0 !important;
-		overflow-y: auto !important;
-		-webkit-overflow-scrolling: touch !important;
+		flex: 1 1 0;
+		min-height: 0;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	/* Student drawer — header + nav list */
@@ -527,28 +527,28 @@
 
 	/* Student sidebar nav - padding pe zona scroll */
 	.student-sidebar .va-sidebar-nav-scroll {
-		padding: var(--space-3) var(--space-4) var(--space-4) !important;
-		gap: var(--space-2) !important;
-		margin-top: 0 !important;
+		padding: var(--space-3) var(--space-4) var(--space-4);
+		gap: var(--space-2);
+		margin-top: 0;
 	}
 
 	/* Student sidebar nav — listă simplă, lizibilă */
 	.student-sidebar .modern-nav-item,
 	.student-sidebar .va-nav-btn {
-		margin-bottom: 2px !important;
-		padding: var(--space-3) var(--space-3) !important;
-		min-height: 48px !important;
-		border-radius: var(--radius-lg) !important;
-		align-items: center !important;
-		justify-content: flex-start !important;
-		gap: var(--space-3) !important;
-		text-align: left !important;
-		background: transparent !important;
-		border: none !important;
-		box-shadow: none !important;
-		font-weight: var(--font-weight-medium) !important;
-		color: var(--text-secondary) !important;
-		transition: background-color var(--transition-base), color var(--transition-base) !important;
+		margin-bottom: 2px;
+		padding: var(--space-3) var(--space-3);
+		min-height: 48px;
+		border-radius: var(--radius-lg);
+		align-items: center;
+		justify-content: flex-start;
+		gap: var(--space-3);
+		text-align: left;
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		font-weight: var(--font-weight-medium);
+		color: var(--text-secondary);
+		transition: background-color var(--transition-base), color var(--transition-base);
 	}
 
 	.student-sidebar .modern-nav-item:hover,
@@ -561,48 +561,48 @@
 	.student-sidebar .modern-nav-item.is-active,
 	.student-sidebar .va-nav-btn.active,
 	.student-sidebar .va-nav-btn.is-active {
-		background: var(--color-primary-alpha-15) !important;
-		color: var(--color-primary) !important;
-		font-weight: var(--font-weight-semibold) !important;
+		background: var(--color-primary-alpha-15);
+		color: var(--color-primary);
+		font-weight: var(--font-weight-semibold);
 	}
 
 	.student-sidebar .modern-nav-item:last-child,
 	.student-sidebar .va-nav-btn:last-child {
-		margin-bottom: 0 !important;
+		margin-bottom: 0;
 	}
 
 	/* Icon + text combined - aligned, balanced */
 	.student-sidebar .modern-nav-item-icon,
 	.student-sidebar .va-nav-icon {
-		width: 22px !important;
-		height: 22px !important;
-		min-width: 22px !important;
-		min-height: 22px !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		flex-shrink: 0 !important;
-		opacity: 1 !important;
-		color: inherit !important;
+		width: 22px;
+		height: 22px;
+		min-width: 22px;
+		min-height: 22px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		opacity: 1;
+		color: inherit;
 	}
 
 	.student-sidebar .modern-nav-item .modern-nav-item-icon svg,
 	.student-sidebar .va-nav-btn .va-nav-icon svg {
-		width: 22px !important;
-		height: 22px !important;
+		width: 22px;
+		height: 22px;
 	}
 
 	.student-sidebar .modern-nav-item-label,
 	.student-sidebar .va-nav-label {
-		font-size: var(--font-size-base) !important;
-		font-weight: var(--font-weight-medium) !important;
-		line-height: 1.25 !important;
-		white-space: nowrap !important;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-medium);
+		line-height: 1.25;
+		white-space: nowrap;
 	}
 
 	.student-sidebar .modern-nav-item,
 	.student-sidebar .va-nav-btn {
-		gap: 14px !important;
+		gap: 14px;
 	}
 
 	/* Bottom navigation for mobile (if needed for other purposes) */
@@ -625,7 +625,7 @@
 .va-card,
 .admin-card {
 		width: 100%;
-		padding: var(--space-3) !important;
+		padding: var(--space-3);
 		margin-bottom: var(--space-3);
 		border-radius: var(--radius-lg);
 	}
@@ -672,8 +672,8 @@
 
 	/* Reduce animations on mobile for better performance */
 	* {
-		animation-duration: 0.2s !important;
-		transition-duration: 0.2s !important;
+		animation-duration: 0.2s;
+		transition-duration: 0.2s;
 	}
 
 	/* Disable hover effects on touch devices */
@@ -750,7 +750,7 @@
 /* Hide on mobile */
 @media (max-width: 768px) {
 	.mobile-hidden {
-		display: none !important;
+		display: none;
 	}
 }
 
@@ -980,7 +980,7 @@
 	.va-main,
 	.va-shell-main {
 		padding-top: 0 !important;
-		margin-top: 0 !important;
+		margin-top: 0;
 	}
 
 	/* Viewport dinamic pe mobile - paginile se adaptează la înălțimea ecranului (100dvh) */
@@ -992,53 +992,53 @@
 
 	/* Scroll doar când conținutul depășește ecranul - 100svh evită bara neagră pe iOS */
 	.va-shell-topnav .va-shell-main {
-		margin-top: var(--app-header-height, 56px) !important;
-		padding-top: 0 !important;
-		height: calc(100svh - var(--app-header-height, 56px) - var(--student-tab-height, 0px)) !important;
-		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px)) !important;
+		margin-top: var(--app-header-height, 56px);
+		padding-top: 0;
+		height: calc(100svh - var(--app-header-height, 56px) - var(--student-tab-height, 0px));
+		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px));
 		overflow-y: auto !important;
-		-webkit-overflow-scrolling: touch !important;
-		background-color: var(--bg-primary) !important;
+		-webkit-overflow-scrolling: touch;
+		background-color: var(--bg-primary);
 	}
 
 	/* Elimină bara neagră - fără padding, background consistent */
 	.va-shell-topnav .va-main {
 		padding-bottom: 0 !important;
-		background-color: var(--bg-primary) !important;
+		background-color: var(--bg-primary);
 	}
 
 	body:has(.va-shell-topnav) {
-		padding: 0 !important;
-		margin: 0 !important;
-		min-height: 100svh !important;
-		min-height: 100dvh !important;
-		overflow-x: hidden !important;
-		background-color: var(--bg-primary) !important;
+		padding: 0;
+		margin: 0;
+		min-height: 100svh;
+		min-height: 100dvh;
+		overflow-x: hidden;
+		background-color: var(--bg-primary);
 	}
 
 	html:has(.va-shell-topnav) {
-		padding: 0 !important;
-		margin: 0 !important;
-		height: 100% !important;
+		padding: 0;
+		margin: 0;
+		height: 100%;
 	}
 
 	/* #root și va-shell - fill viewport, același background */
 	#root:has(.va-shell-topnav),
 	.va-shell.va-shell-topnav {
-		min-height: 100% !important;
-		height: 100% !important;
+		min-height: 100%;
+		height: 100%;
 		background-color: var(--bg-primary) !important;
 	}
 
 	/* Admin sidebar - adjust main content when sidebar is open */
 	.va-shell-main-topnav {
-		margin-left: 0 !important;
-		margin-top: 0 !important;
+		margin-left: 0;
+		margin-top: 0;
 	}
 
 	/* Hide toggle controls from topnav on mobile - they're in sidebar */
 	.admin-topnav-control.desktop-only {
-		display: none !important;
+		display: none;
 	}
 
 	.admin-topnav-user {
@@ -1047,7 +1047,7 @@
 
 	/* Hide student topnav navigation on mobile - it's in sidebar */
 	.va-topnav .modern-topnav-nav.desktop-only {
-		display: none !important;
+		display: none;
 	}
 
 	/* Student notifications dropdown - centrat pe mobile */
@@ -1066,7 +1066,7 @@
 
 	/* Show student sidebar on mobile */
 	.student-sidebar {
-		display: flex !important;
+		display: flex;
 	}
 
 	.sidebar-mobile-control-item {
@@ -1114,7 +1114,7 @@
 
 	/* Mobile Logout Button - positioned at bottom, fix */
 	.sidebar-mobile-logout {
-		flex-shrink: 0 !important;
+		flex-shrink: 0;
 		margin-top: var(--space-2);
 		padding: var(--space-3);
 		padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
@@ -1130,9 +1130,9 @@
 		padding: var(--space-2-5) var(--space-3);
 		border-radius: var(--radius-md);
 		min-height: 44px;
-		background: var(--bg-secondary) !important;
-		border: 1px solid var(--border-primary) !important;
-		color: var(--text-primary) !important;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+		color: var(--text-primary);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
 		cursor: pointer;
@@ -1179,22 +1179,22 @@
 
 	/* Topnav dreapta — iconițe compacte */
 	.va-shell-topnav .modern-topnav-right {
-		gap: var(--space-2) !important;
-		flex-shrink: 0 !important;
+		gap: var(--space-2);
+		flex-shrink: 0;
 	}
 
 	.va-shell-topnav .admin-topnav-notification-btn {
-		width: 40px !important;
-		height: 40px !important;
-		min-width: 40px !important;
-		min-height: 40px !important;
+		width: 40px;
+		height: 40px;
+		min-width: 40px;
+		min-height: 40px;
 	}
 
 	/* Centrare doar pe pagini overview */
 	.student-dashboard-page,
 .events-page,
 .va-profile-container {
-		text-align: center !important;
+		text-align: center;
 	}
 
 	.messages-page,
@@ -1203,7 +1203,7 @@
 .lesson-page,
 .student-exam-page,
 .exam-results-page {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	/* Center widget titles and descriptions */
@@ -1224,7 +1224,7 @@
 .exam-results-page textarea,
 .va-profile-container input,
 .va-profile-container textarea {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	/* Student Dashboard - Centered and Clean */
@@ -1343,13 +1343,13 @@
 
 	.events-page-header {
 		margin-bottom: var(--space-4) !important;
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.events-page-title {
-		font-size: var(--font-size-xl) !important;
+		font-size: var(--font-size-xl);
 		margin-bottom: var(--space-2) !important;
-		line-height: 1.3 !important;
+		line-height: 1.3;
 	}
 
 	/* Filters - stack vertical, full width */
@@ -1382,7 +1382,7 @@
 
 	.events-page .va-card-body,
 	.events-page .va-card-enhanced .va-card-body {
-		padding: var(--space-3) var(--space-4) !important;
+		padding: var(--space-3) var(--space-4);
 	}
 
 	.events-page .va-card-title,
@@ -1433,42 +1433,42 @@
 
 	/* Exam Results Page - Mobile Optimization (left-aligned) */
 	.exam-results-page {
-		padding: 0 var(--space-4) var(--space-6) !important;
-		padding-top: var(--space-2) !important;
-		text-align: left !important;
+		padding: 0 var(--space-4) var(--space-6);
+		padding-top: var(--space-2);
+		text-align: left;
 	}
 
 	.exam-results-page-header {
-		text-align: left !important;
+		text-align: left;
 		margin-top: 0 !important;
 		margin-bottom: var(--space-5) !important;
-		padding-top: 0 !important;
-		padding-bottom: var(--space-3) !important;
+		padding-top: 0;
+		padding-bottom: var(--space-3);
 	}
 
 	.exam-results-page-title {
 		font-size: var(--font-size-2xl) !important;
 		margin-bottom: var(--space-2) !important;
-		text-align: left !important;
+		text-align: left;
 	}
 
 	/* Profile Page - Already optimized, ensure consistency */
 	.va-profile-container {
-		padding: 0 var(--space-4) var(--space-6) !important;
-		padding-top: var(--space-1) !important;
+		padding: 0 var(--space-4) var(--space-6);
+		padding-top: var(--space-1);
 	}
 
 	.va-profile-header {
-		margin-top: 0 !important;
-		margin-bottom: var(--space-5) !important;
+		margin-top: 0;
+		margin-bottom: var(--space-5);
 	}
 
 	.va-profile-stats {
-		display: grid !important;
-		grid-template-columns: repeat(2, 1fr) !important;
-		gap: var(--space-3) !important;
-		margin-top: var(--space-4) !important;
-		width: 100% !important;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+		margin-top: var(--space-4);
+		width: 100%;
 	}
 
 	/* ============================================
@@ -1492,15 +1492,15 @@
 
 	/* messages-container - full height pentru flex children */
 	.messages-container {
-		min-height: 0 !important;
+		min-height: 0;
 	}
 
 	/* messages-main: flex column - header fix, mesaje scroll, input fix jos */
 	.messages-main {
-		display: flex !important;
-		flex-direction: column !important;
-		min-height: 0 !important;
-		height: 100% !important;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		height: 100%;
 	}
 
 	.messages-chat-header {
@@ -1526,8 +1526,8 @@
 
 	.messages-container {
 		position: relative;
-		width: 100% !important;
-		height: 100% !important;
+		width: 100%;
+		height: 100%;
 	}
 
 	/* Sidebar - Full screen on mobile when no conversation selected */
@@ -1535,9 +1535,9 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		width: 100% !important;
-		height: 100% !important;
-		max-width: none !important;
+		width: 100%;
+		height: 100%;
+		max-width: none;
 		z-index: 1;
 		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		transform: translateX(0);
@@ -1556,9 +1556,9 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		width: 100% !important;
-		height: 100% !important;
-		max-width: none !important;
+		width: 100%;
+		height: 100%;
+		max-width: none;
 		z-index: 1;
 		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		transform: translateX(0);
@@ -1842,13 +1842,13 @@
 	}
 
 	.va-profile-info {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-4) !important;
-		margin-top: 0 !important;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-4);
+		margin-top: 0;
 		padding: 0 !important;
-		min-height: 0 !important;
+		min-height: 0;
 		width: 100%;
 		text-align: center;
 	}
@@ -1859,9 +1859,9 @@
 	}
 
 	.va-profile-avatar {
-		width: 96px !important;
-		height: 96px !important;
-		flex-shrink: 0 !important;
+		width: 96px;
+		height: 96px;
+		flex-shrink: 0;
 	}
 
 	.va-profile-avatar-img {
@@ -1873,8 +1873,8 @@
 		width: 96px !important;
 		height: 96px !important;
 		font-size: var(--font-size-2xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		color: var(--text-inverse) !important;
+		font-weight: var(--font-weight-bold);
+		color: var(--text-inverse);
 		border: 4px solid var(--bg-primary) !important;
 		box-shadow: var(--shadow-md) !important;
 	}
@@ -1906,9 +1906,9 @@
 
 	.va-profile-name {
 		font-size: var(--font-size-xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		margin: 0 !important;
-		color: var(--text-primary) !important;
+		font-weight: var(--font-weight-bold);
+		margin: 0;
+		color: var(--text-primary);
 		line-height: 1.25 !important;
 		letter-spacing: -0.02em;
 		width: 100%;
@@ -1931,10 +1931,10 @@
 
 	.va-profile-role {
 		font-size: var(--font-size-sm) !important;
-		margin: 0 !important;
-		color: var(--text-secondary) !important;
+		margin: 0;
+		color: var(--text-secondary);
 		line-height: 1.4 !important;
-		font-weight: var(--font-weight-medium) !important;
+		font-weight: var(--font-weight-medium);
 		padding: var(--space-1) var(--space-2);
 		background: var(--bg-secondary);
 		border-radius: var(--radius-md);
@@ -2055,7 +2055,7 @@
 		background: var(--bg-primary);
 		border: 1px solid var(--border-primary);
 		border-radius: var(--radius-md);
-		padding: var(--space-3) !important;
+		padding: var(--space-3);
 		transition: all var(--transition-base);
 		box-shadow: var(--shadow-sm);
 	}
@@ -2214,17 +2214,17 @@
 .va-card,
 .admin-card,
 .va-card-enhanced {
-		padding: var(--space-2) var(--space-3) !important;
+		padding: var(--space-2) var(--space-3);
 		margin-bottom: var(--space-3);
 	}
 
 	.va-card-body {
-		padding: var(--space-2) var(--space-3) !important;
+		padding: var(--space-2) var(--space-3);
 	}
 
 	.va-course-card,
 	.va-completed-course-card {
-		padding: var(--space-2) var(--space-3) !important;
+		padding: var(--space-2) var(--space-3);
 	}
 
 	.events-grid {
@@ -2243,7 +2243,7 @@
 
 	.events-page .va-card-body,
 	.events-page .va-card-enhanced .va-card-body {
-		padding: var(--space-2) var(--space-3) !important;
+		padding: var(--space-2) var(--space-3);
 	}
 
 	.events-page .va-card-title {
@@ -2637,8 +2637,8 @@
 @media (max-width: 768px) {
 	/* Layout: fără suprapunere - flow normal, gap între secțiuni */
 	.courses-page-modern {
-		display: flex !important;
-		flex-direction: column !important;
+		display: flex;
+		flex-direction: column;
 		min-height: 0;
 	}
 
@@ -2650,7 +2650,7 @@
 		flex-shrink: 0;
 		order: 1;
 		width: 100% !important;
-		min-width: 0 !important;
+		min-width: 0;
 		max-width: 100% !important;
 	}
 
@@ -2662,10 +2662,10 @@
 
 	.courses-page-modern.courses-page-student,
 	.courses-page-modern.courses-page-student .courses-page-student-main {
-		display: block !important;
+		display: block;
 		height: auto !important;
-		min-height: 0 !important;
-		overflow: visible !important;
+		min-height: 0;
+		overflow: visible;
 	}
 
 	.courses-page-modern.courses-page-student .courses-page-content {
@@ -2689,11 +2689,11 @@
 
 	/* Student /courses — mape folder (nu carduri admin vechi) */
 	.courses-page-modern.courses-page-student {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.courses-page-modern.courses-page-student .courses-page-hero-title {
-		text-align: center !important;
+		text-align: center;
 	}
 
 	.courses-page-modern.courses-page-student .course-map-folder-tile__title,
@@ -2704,7 +2704,7 @@
 
 	.courses-page-modern.courses-page-student .courses-page-empty-title,
 	.courses-page-modern.courses-page-student .courses-page-empty-text {
-		text-align: center !important;
+		text-align: center;
 	}
 
 	/* Mapă curs — /courses/map/:mapId */
@@ -2747,10 +2747,10 @@
 @media (max-width: 768px) {
 	/* Sidebar sub meniu - nu sub topnav */
 	.va-shell-topnav .lessons-page-sidebar {
-		top: var(--app-header-height, 56px) !important;
-		bottom: var(--student-tab-height, 0px) !important;
+		top: var(--app-header-height, 56px);
+		bottom: var(--student-tab-height, 0px);
 		height: auto !important;
-		max-height: none !important;
+		max-height: none;
 	}
 
 	.lessons-page-main-content {
@@ -2758,7 +2758,7 @@
 	}
 
 	.lessons-page-sidebar-toggle {
-		top: calc(var(--app-header-height, 56px) + var(--space-2)) !important;
+		top: calc(var(--app-header-height, 56px) + var(--space-2));
 		padding: var(--space-2) var(--space-4) !important;
 		font-size: var(--font-size-sm) !important;
 		min-height: 44px !important;
@@ -2766,13 +2766,13 @@
 	}
 
 	.lessons-page-sidebar-toggle svg {
-		width: 18px !important;
-		height: 18px !important;
+		width: 18px;
+		height: 18px;
 	}
 
 	.lessons-page-sidebar-back-btn {
-		min-height: 44px !important;
-		padding: var(--space-2) var(--space-4) !important;
+		min-height: 44px;
+		padding: var(--space-2) var(--space-4);
 		font-size: var(--font-size-sm) !important;
 	}
 
@@ -2807,7 +2807,7 @@
 	}
 
 	.lessons-page-sidebar-lesson-title {
-		font-size: 0.75rem !important;
+		font-size: 0.75rem;
 		line-height: 1.3 !important;
 	}
 
@@ -2823,7 +2823,7 @@
 
 	.lessons-page-sidebar-lessons {
 		padding: var(--space-2) var(--space-2-5) var(--space-2) !important;
-		gap: var(--space-1) !important;
+		gap: var(--space-1);
 	}
 
 	/* Secțiunea Teste - aceleași dimensiuni ca lecțiile */
@@ -2833,7 +2833,7 @@
 		padding-top: var(--space-2) !important;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-1) !important;
+		gap: var(--space-1);
 	}
 
 	.lessons-page-sidebar-tests-section .lessons-page-sidebar-lesson,
@@ -2845,7 +2845,7 @@
 
 	.lessons-page-sidebar-tests-header {
 		font-size: 0.65rem !important;
-		margin-bottom: var(--space-2) !important;
+		margin-bottom: var(--space-2);
 		padding: 0 var(--space-3) !important;
 	}
 
@@ -2889,8 +2889,8 @@
 	}
 
 	.lessons-page-sidebar-toggle svg {
-		width: 16px !important;
-		height: 16px !important;
+		width: 16px;
+		height: 16px;
 	}
 
 	.lessons-page-sidebar-header {
@@ -2898,8 +2898,8 @@
 	}
 
 	.lessons-page-sidebar-back-btn {
-		min-height: 34px !important;
-		padding: var(--space-1) var(--space-2) !important;
+		min-height: 34px;
+		padding: var(--space-1) var(--space-2);
 		font-size: 0.75rem !important;
 	}
 
@@ -2933,7 +2933,7 @@
 	}
 
 	.lessons-page-sidebar-lesson-title {
-		font-size: 0.7rem !important;
+		font-size: 0.7rem;
 		line-height: 1.3 !important;
 	}
 
@@ -2949,7 +2949,7 @@
 
 	.lessons-page-sidebar-lessons {
 		padding: var(--space-2) !important;
-		gap: var(--space-1) !important;
+		gap: var(--space-1);
 	}
 
 	/* Secțiunea Teste - și mai mică pe ecrane foarte mici */
@@ -2968,7 +2968,7 @@
 
 	.lessons-page-sidebar-tests-header {
 		font-size: 0.6rem !important;
-		margin-bottom: var(--space-1) !important;
+		margin-bottom: var(--space-1);
 		padding: 0 var(--space-2) !important;
 	}
 
@@ -3202,12 +3202,12 @@
 @media (max-width: 768px) {
 
 	.student-exam-page {
-		padding: 0 !important;
-		overflow: hidden !important;
+		padding: 0;
+		overflow: hidden;
 	}
 
 	.student-exam-page .student-exam-title {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.student-exam-page .student-exam-nav-item,
@@ -3329,7 +3329,7 @@
 @media (max-width: 480px) {
 
 	.va-main .va-card-body {
-		padding: var(--space-3) !important;
+		padding: var(--space-3);
 	}
 
 	.student-achievements-stats {
@@ -3469,17 +3469,17 @@
 
 	/* Pas 5 — restul paginilor student */
 	.library-page {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.student-settings-page,
 	.student-achievements-page,
 	.va-student-activity-page {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.va-completed-courses-cards {
-		text-align: left !important;
+		text-align: left;
 	}
 
 	.va-completed-course-card-actions .lms-btn-secondary,
@@ -3660,169 +3660,169 @@
 @media (max-width: 768px) {
 	/* Auth Container - Full screen, safe area, scrollable for keyboard */
 	.modern-auth-container {
-		padding: 0 !important;
-		padding-left: max(var(--space-4), env(safe-area-inset-left)) !important;
-		padding-right: max(var(--space-4), env(safe-area-inset-right)) !important;
-		padding-top: max(var(--space-4), env(safe-area-inset-top)) !important;
-		padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)) !important;
-		min-height: 100vh !important;
-		min-height: 100dvh !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: flex-start !important;
-		background: var(--bg-sidebar-toggle) !important;
-		background-color: var(--bg-sidebar-toggle) !important;
-		overflow-y: auto !important;
-		overflow-x: hidden !important;
-		-webkit-overflow-scrolling: touch !important;
-		overscroll-behavior-y: contain !important;
+		padding: 0;
+		padding-left: max(var(--space-4), env(safe-area-inset-left));
+		padding-right: max(var(--space-4), env(safe-area-inset-right));
+		padding-top: max(var(--space-4), env(safe-area-inset-top));
+		padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+		min-height: 100vh;
+		min-height: 100dvh;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		background: var(--bg-sidebar-toggle);
+		background-color: var(--bg-sidebar-toggle);
+		overflow-y: auto;
+		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior-y: contain;
 	}
 
 	.modern-auth-background {
-		position: fixed !important;
-		inset: 0 !important;
-		z-index: 0 !important;
-		background: var(--bg-sidebar-toggle) !important;
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		background: var(--bg-sidebar-toggle);
 	}
 
 	.modern-auth-gradient {
-		display: none !important;
+		display: none;
 	}
 
 	.modern-auth-pattern {
-		background: var(--bg-sidebar-toggle) !important;
+		background: var(--bg-sidebar-toggle);
 	}
 
 	.modern-auth-content {
-		position: relative !important;
-		z-index: 1 !important;
-		width: 100% !important;
-		max-width: 100% !important;
-		padding: var(--space-2) 0 var(--space-6) 0 !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		min-height: min(100vh, 100dvh) !important;
-		flex: 1 !important;
+		position: relative;
+		z-index: 1;
+		width: 100%;
+		max-width: 100%;
+		padding: var(--space-2) 0 var(--space-6) 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: min(100vh, 100dvh);
+		flex: 1;
 	}
 
 	.modern-auth-card {
-		width: 100% !important;
-		max-width: 360px !important;
-		padding: var(--space-5) var(--space-4) !important;
-		border-radius: var(--radius-lg) !important;
-		box-shadow: var(--shadow-xl) !important;
-		backdrop-filter: blur(20px) !important;
-		background-color: var(--bg-elevated) !important;
-		border: 1px solid var(--border-primary) !important;
-		margin: auto 0 !important;
-		flex-shrink: 0 !important;
+		width: 100%;
+		max-width: 360px;
+		padding: var(--space-5) var(--space-4);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-xl);
+		backdrop-filter: blur(20px);
+		background-color: var(--bg-elevated);
+		border: 1px solid var(--border-primary);
+		margin: auto 0;
+		flex-shrink: 0;
 	}
 
 	/* Auth Header - Centered, compact on mobile */
 	.modern-auth-header {
-		text-align: center !important;
-		margin-bottom: var(--space-4) !important;
-		padding: 0 !important;
+		text-align: center;
+		margin-bottom: var(--space-4);
+		padding: 0;
 	}
 
 	.modern-auth-logo {
-		display: flex !important;
-		justify-content: center !important;
-		align-items: center !important;
-		margin-bottom: var(--space-3) !important;
-		padding: 0 !important;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin-bottom: var(--space-3);
+		padding: 0;
 	}
 
 	.modern-auth-logo-img {
-		height: 40px !important;
-		width: auto !important;
-		object-fit: contain !important;
-		display: block !important;
+		height: 40px;
+		width: auto;
+		object-fit: contain;
+		display: block;
 	}
 
 	.modern-auth-title {
-		font-size: var(--font-size-xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		color: var(--text-primary) !important;
-		margin: 0 0 var(--space-2) 0 !important;
-		line-height: 1.3 !important;
-		letter-spacing: -0.01em !important;
-		padding: 0 !important;
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-bold);
+		color: var(--text-primary);
+		margin: 0 0 var(--space-2) 0;
+		line-height: 1.3;
+		letter-spacing: -0.01em;
+		padding: 0;
 	}
 
 	.modern-auth-subtitle {
-		font-size: var(--font-size-xs) !important;
-		color: var(--text-tertiary) !important;
-		margin: 0 !important;
-		line-height: 1.4 !important;
-		padding: 0 var(--space-1) !important;
-		opacity: 0.8 !important;
+		font-size: var(--font-size-xs);
+		color: var(--text-tertiary);
+		margin: 0;
+		line-height: 1.4;
+		padding: 0 var(--space-1);
+		opacity: 0.8;
 	}
 
 	/* Auth Form - Compact on mobile */
 	.modern-auth-form {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-4) !important;
-		width: 100% !important;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		width: 100%;
 	}
 
 	.modern-form-group {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-2) !important;
-		width: 100% !important;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		width: 100%;
 	}
 
 	.modern-form-label {
-		font-size: var(--font-size-sm) !important;
-		font-weight: var(--font-weight-medium) !important;
-		color: var(--text-primary) !important;
-		margin: 0 !important;
-		padding: 0 !important;
-		line-height: 1.4 !important;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-medium);
+		color: var(--text-primary);
+		margin: 0;
+		padding: 0;
+		line-height: 1.4;
 	}
 
 	.modern-form-input-wrapper {
-		position: relative !important;
-		width: 100% !important;
-		min-width: 0 !important;
-		display: block !important;
-		isolation: isolate !important;
+		position: relative;
+		width: 100%;
+		min-width: 0;
+		display: block;
+		isolation: isolate;
 	}
 
 	.modern-form-icon {
-		position: absolute !important;
-		left: 14px !important;
-		top: 50% !important;
-		transform: translateY(-50%) !important;
-		width: 20px !important;
-		height: 20px !important;
-		color: var(--text-tertiary) !important;
-		z-index: 2 !important;
-		pointer-events: none !important;
+		position: absolute;
+		left: 14px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 20px;
+		height: 20px;
+		color: var(--text-tertiary);
+		z-index: 2;
+		pointer-events: none;
 	}
 
 	.modern-form-input {
-		position: relative !important;
-		z-index: 1 !important;
-		width: 100% !important;
-		min-width: 0 !important;
-		box-sizing: border-box !important;
-		padding: 14px 14px 14px 48px !important;
-		background-color: var(--bg-secondary) !important;
-		border: 1px solid var(--border-primary) !important;
-		border-radius: var(--radius-lg) !important;
-		color: var(--text-primary) !important;
-		font-size: 16px !important; /* Prevents iOS zoom on focus */
-		font-family: var(--font-family) !important;
-		min-height: 48px !important;
-		box-sizing: border-box !important;
-		transition: all var(--transition-base) !important;
-		-webkit-appearance: none !important;
-		appearance: none !important;
-		touch-action: manipulation !important;
+		position: relative;
+		z-index: 1;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		padding: 14px 14px 14px 48px;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-lg);
+		color: var(--text-primary);
+		font-size: 16px; /* Prevents iOS zoom on focus */
+		font-family: var(--font-family);
+		min-height: 48px;
+		box-sizing: border-box;
+		transition: all var(--transition-base);
+		-webkit-appearance: none;
+		appearance: none;
+		touch-action: manipulation;
 	}
 
 	.modern-form-input:focus {
@@ -3834,29 +3834,29 @@
 
 	/* Password field - extra right padding for toggle button */
 	.modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
-		padding-right: 52px !important;
+		padding-right: 52px;
 	}
 
 	.modern-password-toggle {
-		position: absolute !important;
-		right: 6px !important;
-		top: 50% !important;
-		transform: translateY(-50%) !important;
-		width: 44px !important;
-		height: 44px !important;
-		min-width: 44px !important;
-		min-height: 44px !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		background: transparent !important;
-		border: none !important;
-		color: var(--text-tertiary) !important;
-		cursor: pointer !important;
-		border-radius: var(--radius-md) !important;
-		z-index: 2 !important;
-		padding: 0 !important;
-		transition: all var(--transition-base) !important;
+		position: absolute;
+		right: 6px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 44px;
+		height: 44px;
+		min-width: 44px;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		color: var(--text-tertiary);
+		cursor: pointer;
+		border-radius: var(--radius-md);
+		z-index: 2;
+		padding: 0;
+		transition: all var(--transition-base);
 	}
 
 	.modern-password-toggle:hover {
@@ -3865,8 +3865,8 @@
 	}
 
 	.modern-password-toggle svg {
-		width: 20px !important;
-		height: 20px !important;
+		width: 20px;
+		height: 20px;
 	}
 
 	/* Auth Error - Well positioned */
@@ -3897,28 +3897,28 @@
 	.modern-auth-form .modern-auth-submit,
 	button[type="submit"].modern-auth-submit,
 	.modern-auth-form button[type="submit"].modern-auth-submit {
-		width: 100% !important;
-		padding: var(--space-4) var(--space-6) !important;
-		background-color: var(--color-primary) !important;
-		color: var(--text-inverse) !important;
-		border: 1px solid var(--color-primary) !important;
-		border-radius: var(--radius-lg) !important;
-		font-size: var(--font-size-base) !important;
-		font-weight: var(--font-weight-semibold) !important;
-		font-family: var(--font-family) !important;
-		cursor: pointer !important;
-		transition: all var(--transition-base) !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		gap: var(--space-2) !important;
-		margin-top: var(--space-3) !important;
-		min-height: 48px !important;
-		box-shadow: var(--shadow-md) !important;
-		box-sizing: border-box !important;
-		-webkit-tap-highlight-color: rgba(var(--color-primary-rgb), 0.3) !important;
-		touch-action: manipulation !important;
-		user-select: none !important;
+		width: 100%;
+		padding: var(--space-4) var(--space-6);
+		background-color: var(--color-primary);
+		color: var(--text-inverse);
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-lg);
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
+		font-family: var(--font-family);
+		cursor: pointer;
+		transition: all var(--transition-base);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		min-height: 48px;
+		box-shadow: var(--shadow-md);
+		box-sizing: border-box;
+		-webkit-tap-highlight-color: rgba(var(--color-primary-rgb), 0.3);
+		touch-action: manipulation;
+		user-select: none;
 	}
 
 	/* Span color inside submit button - Must override button color */
@@ -3928,7 +3928,7 @@
 	.modern-auth-form .modern-auth-submit span,
 	button[type="submit"].modern-auth-submit span,
 	.modern-auth-form button[type="submit"].modern-auth-submit span {
-		color: var(--btn-primary-text) !important;
+		color: var(--btn-primary-text);
 	}
 
 	.modern-auth-submit:hover:not(:disabled),
@@ -3959,34 +3959,34 @@
 
 	.modern-auth-submit svg,
 	.modern-auth-form button.modern-auth-submit svg {
-		width: 20px !important;
-		height: 20px !important;
-		flex-shrink: 0 !important;
+		width: 20px;
+		height: 20px;
+		flex-shrink: 0;
 	}
 
 	/* Auth Footer - Clean separation */
 	.modern-auth-footer {
-		margin-top: var(--space-8) !important;
-		padding-top: var(--space-6) !important;
-		border-top: 1px solid var(--border-primary) !important;
-		text-align: center !important;
-		width: 100% !important;
+		margin-top: var(--space-8);
+		padding-top: var(--space-6);
+		border-top: 1px solid var(--border-primary);
+		text-align: center;
+		width: 100%;
 	}
 
 	.modern-auth-footer-text {
-		font-size: var(--font-size-sm) !important;
-		color: var(--text-tertiary) !important;
-		margin: 0 !important;
-		line-height: 1.5 !important;
+		font-size: var(--font-size-sm);
+		color: var(--text-tertiary);
+		margin: 0;
+		line-height: 1.5;
 	}
 
 	.modern-auth-link {
-		color: var(--color-primary) !important;
-		text-decoration: none !important;
-		font-weight: var(--font-weight-semibold) !important;
-		transition: all var(--transition-base) !important;
-		display: inline-block !important;
-		margin-left: var(--space-1) !important;
+		color: var(--color-primary);
+		text-decoration: none;
+		font-weight: var(--font-weight-semibold);
+		transition: all var(--transition-base);
+		display: inline-block;
+		margin-left: var(--space-1);
 	}
 
 	.modern-auth-link:hover {
@@ -3996,113 +3996,113 @@
 
 	/* Form Hint */
 	.modern-form-hint {
-		font-size: var(--font-size-xs) !important;
-		color: var(--text-tertiary) !important;
-		margin-top: var(--space-1) !important;
-		padding-left: var(--space-1) !important;
-		line-height: 1.4 !important;
+		font-size: var(--font-size-xs);
+		color: var(--text-tertiary);
+		margin-top: var(--space-1);
+		padding-left: var(--space-1);
+		line-height: 1.4;
 	}
 }
 
 @media (max-width: 480px) {
 	.modern-auth-container {
-		padding-left: max(var(--space-3), env(safe-area-inset-left)) !important;
-		padding-right: max(var(--space-3), env(safe-area-inset-right)) !important;
+		padding-left: max(var(--space-3), env(safe-area-inset-left));
+		padding-right: max(var(--space-3), env(safe-area-inset-right));
 	}
 
 	.modern-auth-content {
-		padding: var(--space-2) 0 var(--space-4) 0 !important;
+		padding: var(--space-2) 0 var(--space-4) 0;
 	}
 
 	.modern-auth-card {
-		max-width: 340px !important;
-		padding: var(--space-4) var(--space-3) !important;
-		border-radius: var(--radius-lg) !important;
+		max-width: 340px;
+		padding: var(--space-4) var(--space-3);
+		border-radius: var(--radius-lg);
 	}
 
 	.modern-auth-header {
-		margin-bottom: var(--space-3) !important;
+		margin-bottom: var(--space-3);
 	}
 
 	.modern-auth-logo {
-		margin-bottom: var(--space-2) !important;
+		margin-bottom: var(--space-2);
 	}
 
 	.modern-auth-logo-img {
-		height: 36px !important;
+		height: 36px;
 	}
 
 	.modern-auth-title {
-		font-size: var(--font-size-xl) !important;
-		margin-bottom: var(--space-2) !important;
+		font-size: var(--font-size-xl);
+		margin-bottom: var(--space-2);
 	}
 
 	.modern-auth-subtitle {
-		font-size: var(--font-size-xs) !important;
+		font-size: var(--font-size-xs);
 	}
 
 	.modern-auth-form {
-		gap: var(--space-4) !important;
+		gap: var(--space-4);
 	}
 
 	.modern-form-input {
-		padding: 12px 12px 12px 44px !important; /* 44px left = icon(18) + left(12) + gap(14) */
-		font-size: 16px !important; /* Keep 16px to prevent iOS zoom */
-		min-height: 48px !important;
+		padding: 12px 12px 12px 44px; /* 44px left = icon(18) + left(12) + gap(14) */
+		font-size: 16px; /* Keep 16px to prevent iOS zoom */
+		min-height: 48px;
 	}
 
 	.modern-form-input-wrapper:has(.modern-password-toggle) .modern-form-input {
-		padding-right: 48px !important;
+		padding-right: 48px;
 	}
 
 	.modern-form-icon {
-		left: 12px !important;
-		width: 18px !important;
-		height: 18px !important;
+		left: 12px;
+		width: 18px;
+		height: 18px;
 	}
 
 	.modern-password-toggle {
-		right: var(--space-2) !important;
-		width: 44px !important;
-		height: 44px !important;
-		min-width: 44px !important;
-		min-height: 44px !important;
+		right: var(--space-2);
+		width: 44px;
+		height: 44px;
+		min-width: 44px;
+		min-height: 44px;
 	}
 
 	.modern-password-toggle svg {
-		width: 18px !important;
-		height: 18px !important;
+		width: 18px;
+		height: 18px;
 	}
 
 	.modern-auth-submit {
-		padding: var(--space-3-5) var(--space-5) !important;
-		font-size: var(--font-size-base) !important;
-		min-height: 48px !important;
+		padding: var(--space-3-5) var(--space-5);
+		font-size: var(--font-size-base);
+		min-height: 48px;
 	}
 
 	.modern-auth-footer {
-		margin-top: var(--space-4) !important;
-		padding-top: var(--space-3) !important;
+		margin-top: var(--space-4);
+		padding-top: var(--space-3);
 	}
 }
 
 /* Extra small phones (320px) */
 @media (max-width: 360px) {
 	.modern-auth-card {
-		max-width: 100% !important;
-		padding: var(--space-3) var(--space-2) !important;
+		max-width: 100%;
+		padding: var(--space-3) var(--space-2);
 	}
 
 	.modern-auth-title {
-		font-size: var(--font-size-lg) !important;
+		font-size: var(--font-size-lg);
 	}
 
 	.modern-auth-subtitle {
-		font-size: 0.75rem !important;
+		font-size: 0.75rem;
 	}
 
 	.modern-auth-form {
-		gap: var(--space-4) !important;
+		gap: var(--space-4);
 	}
 }
 
@@ -4319,27 +4319,27 @@
 /* Phone layout: reserve the fixed header once, then use the available width. */
 @media (max-width: 768px) {
 	.va-shell .va-shell-main {
-		margin-top: var(--app-header-height, 56px) !important;
-		padding-top: 0 !important;
-		margin-left: 0 !important;
-		width: 100% !important;
+		margin-top: var(--app-header-height, 56px);
+		padding-top: 0;
+		margin-left: 0;
+		width: 100%;
 		min-width: 0;
 	}
 
 	.va-shell.va-shell-topnav .va-shell-main {
-		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px)) !important;
-		min-height: 0 !important;
+		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height, 0px));
+		min-height: 0;
 	}
 
 	.va-shell .va-shell-main > .va-main {
 		padding: 20px 16px max(24px, env(safe-area-inset-bottom)) !important;
-		min-height: 0 !important;
+		min-height: 0;
 		min-width: 0;
 	}
 
 	.va-shell .va-shell-main > .va-main > .va-main {
-		padding: 0 !important;
-		margin: 0 !important;
+		padding: 0;
+		margin: 0;
 		width: 100%;
 		min-width: 0;
 	}
@@ -4366,30 +4366,30 @@
 	.va-shell .courses-page-modern.courses-page-student,
 	.va-shell .courses-page-student-main {
 		padding: 0 !important;
-		margin: 0 !important;
+		margin: 0;
 		width: 100% !important;
 		min-width: 0;
 	}
 
 	.va-shell .courses-page-student .courses-page-hero,
 	.va-shell .courses-page-student .courses-page-content {
-		padding: 0 !important;
-		margin: 0 0 20px !important;
+		padding: 0;
+		margin: 0 0 20px;
 	}
 
 	.va-shell .courses-page-student .courses-page-hero-title {
-		font-size: 24px !important;
-		text-align: left !important;
+		font-size: 24px;
+		text-align: left;
 		margin-bottom: 16px !important;
 	}
 
 	.va-shell .courses-page-student .courses-page-student-filters {
-		display: grid !important;
+		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 4px !important;
+		gap: 4px;
 		width: 100%;
 		max-width: 100%;
-		padding: 6px !important;
+		padding: 6px;
 	}
 
 	.va-shell .courses-page-student button.courses-page-student-filter {
@@ -4400,37 +4400,37 @@
 	}
 
 	.va-shell .courses-page-student .courses-page-student-filter-label {
-		font-size: 10px !important;
+		font-size: 10px;
 		white-space: normal;
 		text-wrap: balance;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty {
-		padding: 28px 20px !important;
-		min-height: 0 !important;
+		padding: 28px 20px;
+		min-height: 0;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty-icon {
-		width: 64px !important;
-		height: 64px !important;
-		margin-bottom: 16px !important;
+		width: 64px;
+		height: 64px;
+		margin-bottom: 16px;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty-title {
-		font-size: 20px !important;
-		line-height: 1.4 !important;
+		font-size: 20px;
+		line-height: 1.4;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty-text {
-		font-size: 16px !important;
-		line-height: 1.6 !important;
+		font-size: 16px;
+		line-height: 1.6;
 	}
 
 	.va-shell .admin-users-filters input,
 	.va-shell .admin-users-filters select,
 	.va-shell .admin-users-modal input,
 	.va-shell .admin-users-modal select {
-		font-size: 16px !important;
+		font-size: 16px;
 		min-height: 44px;
 	}
 }
@@ -4442,10 +4442,10 @@
 	}
 	.va-shell-topnav:has(.student-mobile-tabs) { --student-tab-height: calc(68px + env(safe-area-inset-bottom, 0px)); }
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs):not(:has(.student-exam-page)) .va-shell-main {
-		margin-top: var(--app-header-height, 56px) !important;
-		padding-top: 0 !important;
-		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height)) !important;
-		max-height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height)) !important;
+		margin-top: var(--app-header-height, 56px);
+		padding-top: 0;
+		height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height));
+		max-height: calc(100dvh - var(--app-header-height, 56px) - var(--student-tab-height));
 		overflow-x: hidden !important;
 		overflow-y: auto !important;
 		-webkit-overflow-scrolling: touch;
@@ -4478,11 +4478,11 @@
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .messages-sidebar {
-		display: grid !important;
+		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		grid-template-rows: auto minmax(0, 1fr);
-		width: 100% !important;
-		height: 100% !important;
+		width: 100%;
+		height: 100%;
 		border-right: none;
 	}
 
@@ -4576,7 +4576,7 @@
 	}
 	html:has(.messages-page--thread) .student-mobile-tabs,
 	html:has(.student-exam-page) .student-mobile-tabs {
-		display: none !important;
+		display: none;
 	}
 	.va-shell.va-shell-topnav:has(.student-mobile-tabs):has(.messages-page--thread) .va-shell-main {
 		margin-top: 0 !important;
@@ -4698,11 +4698,11 @@
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--prev,
 .va-shell .lesson-page-actions .lesson-page-btn-secondary {
-	background: var(--bg-elevated) !important;
-	color: var(--text-primary) !important;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
 	border: 1px solid var(--border-secondary);
 }
-.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn svg { color: inherit !important; }
+.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn svg { color: inherit; }
 .va-shell .lesson-page-actions .lesson-page-btn:disabled,
 .va-shell .lessons-page-lesson-actions .lessons-page-nav-btn:disabled { opacity: .45; cursor: not-allowed; }
 .va-shell .lesson-page-actions button:focus-visible,
@@ -4733,7 +4733,7 @@
 	.va-shell .lesson-page-actions .lesson-page-completed-badge { display: none; }
 	.va-shell .lesson-page-main,
 	.va-shell .lessons-page-lesson-viewer {
-		padding-bottom: 72px !important;
+		padding-bottom: 72px;
 	}
 	.va-shell .lesson-page-actions .lesson-page-btn { padding: 10px 8px; font-size: 14px; }
 
@@ -4756,9 +4756,9 @@
 
 /* Match active drawer items to the high-contrast mobile navigation. */
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) {
-	background: var(--btn-primary-bg) !important;
-	color: var(--btn-primary-text) !important;
-	border-color: var(--btn-primary-border) !important;
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	border-color: var(--btn-primary-border);
 }
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-label,
 html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) .modern-nav-item-icon,
@@ -4768,59 +4768,59 @@ html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) svg {
 
 @media (max-width: 768px) {
 	.va-shell.va-shell-topnav:has(.student-exam-page) .va-shell-main {
-		display: flex !important;
-		flex-direction: column !important;
-		height: 100dvh !important;
-		max-height: 100dvh !important;
-		min-height: 0 !important;
-		margin-top: 0 !important;
-		padding-top: var(--app-header-height, 56px) !important;
-		padding-right: 0 !important;
-		padding-bottom: 0 !important;
-		padding-left: 0 !important;
-		box-sizing: border-box !important;
-		overflow: hidden !important;
+		display: flex;
+		flex-direction: column;
+		height: 100dvh;
+		max-height: 100dvh;
+		min-height: 0;
+		margin-top: 0;
+		padding-top: var(--app-header-height, 56px);
+		padding-right: 0;
+		padding-bottom: 0;
+		padding-left: 0;
+		box-sizing: border-box;
+		overflow: hidden;
 	}
 
 	.va-shell.va-shell-topnav:has(.student-exam-page) .va-shell-main > .va-main {
-		display: flex !important;
-		flex-direction: column !important;
-		flex: 1 1 auto !important;
-		width: 100% !important;
-		height: auto !important;
-		max-height: none !important;
-		min-height: 0 !important;
-		margin: 0 !important;
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		width: 100%;
+		height: auto;
+		max-height: none;
+		min-height: 0;
+		margin: 0;
 		padding: 0 !important;
-		overflow: hidden !important;
+		overflow: hidden;
 	}
 
 	.va-shell.va-shell-topnav:has(.student-exam-page) .student-exam-page {
-		display: flex !important;
-		flex-direction: column !important;
-		flex: 1 1 auto !important;
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
 		width: 100% !important;
 		height: 100% !important;
-		max-height: 100% !important;
-		min-height: 0 !important;
-		margin: 0 !important;
-		padding: 0 !important;
-		overflow: hidden !important;
+		max-height: 100%;
+		min-height: 0;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
 	}
 
 	.va-shell.va-shell-topnav:has(.student-exam-page) .student-exam-body {
-		flex: 1 1 0 !important;
-		min-height: 0 !important;
-		overflow-x: hidden !important;
-		overflow-y: auto !important;
-		padding: 12px 16px 16px !important;
+		flex: 1 1 0;
+		min-height: 0;
+		overflow-x: hidden;
+		overflow-y: auto;
+		padding: 12px 16px 16px;
 		-webkit-overflow-scrolling: touch;
 	}
 
 	.va-shell.va-shell-topnav:has(.student-exam-page) .test-attempt-footer {
-		position: relative !important;
-		inset: auto !important;
-		flex-shrink: 0 !important;
+		position: relative;
+		inset: auto;
+		flex-shrink: 0;
 		width: 100% !important;
 	}
 }
