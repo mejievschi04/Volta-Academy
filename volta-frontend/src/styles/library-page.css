@@ -6,6 +6,12 @@
 	padding: clamp(1rem, 2.5vw, 2rem);
 }
 
+/* În cadrul de admin „body.admin-view .va-main” scoate spațierea (paginile admin o au din .admin-container);
+   Biblioteca și Ghidurile sunt și .va-main, deci conținutul ajungea lipit de meniul lateral. */
+body.admin-view .va-main.library-page {
+	padding: clamp(1rem, 2.5vw, 2rem);
+}
+
 .library-page-header {
 	display: flex;
 	align-items: flex-start;
@@ -673,6 +679,12 @@
 		align-items: stretch;
 		gap: var(--space-4);
 		padding: var(--space-4);
+	}
+
+	/* <section> primește spațiere laterală din regulile globale de pe telefon: aliniem secțiunile cu antetul */
+	.library-page > section {
+		padding-left: 0;
+		padding-right: 0;
 	}
 
 	.library-page-title {

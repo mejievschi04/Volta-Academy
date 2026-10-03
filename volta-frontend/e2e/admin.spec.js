@@ -120,3 +120,21 @@ test('pagina Ghiduri deschisă direct are meniul de admin stilizat', async ({ pa
 	const position = await page.locator('aside.modern-sidebar').first().evaluate((el) => getComputedStyle(el).position);
 	expect(['fixed', 'sticky']).toContain(position);
 });
+
+test('Biblioteca și Ghidurile au margine față de meniu, iar antetul e aliniat cu lista', async ({ page }) => {
+	for (const [url, list] of [['/library', 'Materiale disponibile'], ['/guides', 'Ghiduri disponibile']]) {
+		await page.goto(url);
+		const header = page.locator('.library-page-header');
+		const listTitle = page.getByRole('heading', { name: list });
+		await expect(listTitle).toBeVisible();
+		// stilurile de admin se încarcă după pagină: așteptăm meniul lateral stilizat înainte de măsurare
+		await expect.poll(() => page.locator('aside.modern-sidebar').first().evaluate((el) => getComputedStyle(el).position)).toMatch(/fixed|sticky/);
+		// marginea stângă a zonei de conținut (imediat după meniul lateral)
+		const mainLeft = await page.locator('.va-shell-main').first().evaluate((el) => el.getBoundingClientRect().left);
+		const headerBox = await header.boundingBox();
+		const listBox = await listTitle.boundingBox();
+		// înainte conținutul era lipit de meniul lateral (spațierea era anulată în cadrul de admin)
+		expect(headerBox.x - mainLeft, url).toBeGreaterThanOrEqual(16);
+		expect(Math.round(listBox.x), url).toBe(Math.round(headerBox.x));
+	}
+});
