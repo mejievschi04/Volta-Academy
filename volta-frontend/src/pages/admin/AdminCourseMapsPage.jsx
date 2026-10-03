@@ -522,7 +522,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 					{canMutateInAdminArea && (
 					<div className="admin-courses-header-actions">
 						{headerActions}
-						<button type="button" className="admin-btn-create-course" onClick={openCreate}>
+						<button type="button" className="lms-btn-primary admin-btn-create-course" onClick={openCreate}>
 							<Plus size={18} weight="bold" aria-hidden />
 							Creează mapă
 						</button>

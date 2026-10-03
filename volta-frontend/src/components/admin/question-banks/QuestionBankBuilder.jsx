@@ -406,7 +406,7 @@ const QuestionBankBuilder = () => {
 					{currentStep < 3 ? (
 						<button
 							type="button"
-							className="admin-btn admin-btn-primary"
+							className="admin-btn lms-btn-primary"
 							onClick={handleNext}
 							disabled={saving}
 						>
@@ -424,7 +424,7 @@ const QuestionBankBuilder = () => {
 							</button>
 							<button
 								type="button"
-								className="admin-btn admin-btn-primary"
+								className="admin-btn lms-btn-primary"
 								onClick={handlePublish}
 								disabled={saving}
 							>
@@ -576,7 +576,7 @@ const QuestionBankBuilder = () => {
 						<button type="button" className="admin-btn admin-btn-secondary" onClick={handleSave} disabled={saving}>
 							{saving ? 'Se salvează…' : 'Salvează ciornă'}
 						</button>
-						<button type="button" className="admin-btn admin-btn-primary" onClick={handlePublish} disabled={saving}>
+						<button type="button" className="admin-btn lms-btn-primary" onClick={handlePublish} disabled={saving}>
 							{saving ? 'Se publică…' : 'Publică'}
 						</button>
 					</>

@@ -3,16 +3,14 @@
  * Surface: elevated background, secondary border, 40px, shared radius.
  * Primary and selected: brand yellow, dark text, same shape.
  * No lift and no offset shadow.
+ *
+ * Butonul principal are o singură clasă: .lms-btn-primary. Clasele proprii ale componentelor
+ * (ex. .library-btn--primary) rămân doar pentru așezare (lățime, margini), nu pentru culori.
  */
 
 html body :is(
 	.lms-btn-primary,
-	.admin-btn-primary,
-	.btn-primary,
-	.admin-btn-create-course,
-	.modern-auth-submit,
-	.lesson-page-btn-primary,
-	.lessons-page-nav-btn--next
+	.modern-auth-submit
 ) {
 	min-height: var(--btn-desktop-min-height) !important;
 	border: 1px solid var(--btn-primary-border) !important;
@@ -27,12 +25,7 @@ html body :is(
 
 html body :is(
 	.lms-btn-primary,
-	.admin-btn-primary,
-	.btn-primary,
-	.admin-btn-create-course,
-	.modern-auth-submit,
-	.lesson-page-btn-primary,
-	.lessons-page-nav-btn--next
+	.modern-auth-submit
 ):hover:not(:disabled) {
 	background: var(--btn-primary-hover) !important;
 	background-color: var(--btn-primary-hover) !important;
@@ -42,12 +35,17 @@ html body :is(
 	transform: none !important;
 }
 
+/* Dezactivat: aceeași culoare, estompată (nu mai are fiecare variantă regula ei) */
 html body :is(
 	.lms-btn-primary,
-	.admin-btn-primary,
-	.btn-primary,
-	.lesson-page-btn-primary,
-	.lessons-page-nav-btn--next
+	.modern-auth-submit
+):is(:disabled, [aria-disabled="true"], .disabled) {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+html body :is(
+	.lms-btn-primary
 ) :is(svg, span) {
 	color: inherit !important;
 }
@@ -59,21 +57,11 @@ html body :is(
  */
 html[data-theme="dark"] body :is(
 	.lms-btn-primary,
-	.admin-btn-primary,
-	.btn-primary,
-	.admin-btn-create-course,
-	.modern-auth-submit,
-	.lesson-page-btn-primary,
-	.lessons-page-nav-btn--next
+	.modern-auth-submit
 ):not(.va-btn-danger):not(:disabled):not([aria-disabled="true"]),
 html[data-theme="dark"] body :is(
 	.lms-btn-primary,
-	.admin-btn-primary,
-	.btn-primary,
-	.admin-btn-create-course,
-	.modern-auth-submit,
-	.lesson-page-btn-primary,
-	.lessons-page-nav-btn--next
+	.modern-auth-submit
 ):not(.va-btn-danger):not(:disabled):not([aria-disabled="true"]) :is(svg, span, div, p, small, strong) {
 	color: var(--btn-primary-text) !important;
 }

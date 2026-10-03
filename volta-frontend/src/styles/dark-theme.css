@@ -136,22 +136,8 @@ html[data-theme="dark"] .admin-topnav-user-avatar * {
 	color: var(--text-inverse) !important;
 }
 
-html[data-theme="dark"] .btn-primary,
 html[data-theme="dark"] .lms-btn-primary,
-html[data-theme="dark"] .admin-btn-create-course,
-html[data-theme="dark"] .admin-btn-primary,
-html[data-theme="dark"] .admin-event-btn-primary,
-html[data-theme="dark"] .student-btn-primary,
-html[data-theme="dark"] .library-btn--primary,
-html[data-theme="dark"] .library-reader-btn-primary,
-html[data-theme="dark"] .btn-primary *,
 html[data-theme="dark"] .lms-btn-primary *,
-html[data-theme="dark"] .admin-btn-create-course *,
-html[data-theme="dark"] .admin-btn-primary *,
-html[data-theme="dark"] .admin-event-btn-primary *,
-html[data-theme="dark"] .student-btn-primary *,
-html[data-theme="dark"] .library-btn--primary *,
-html[data-theme="dark"] .library-reader-btn-primary *,
 html[data-theme="dark"] .course-detail-lesson-number,
 html[data-theme="dark"] .course-detail-lesson-number * {
 	color: var(--text-inverse) !important;

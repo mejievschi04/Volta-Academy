@@ -41,7 +41,7 @@ function ErrorBoundaryFallback({ error, errorInfo, showDetails, onReset }) {
 					</details>
 				)}
 				<div className="error-boundary-actions">
-					<button type="button" className="error-boundary-btn error-boundary-btn-primary" onClick={onReset}>
+					<button type="button" className="error-boundary-btn lms-btn-primary error-boundary-btn-primary" onClick={onReset}>
 						Încearcă din nou
 					</button>
 					<button

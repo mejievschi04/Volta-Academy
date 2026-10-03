@@ -85,7 +85,7 @@ export default function InlineTestEditorShell({
               {status !== 'published' ? (
                 <button
                   type="button"
-                  className="admin-btn admin-btn-primary"
+                  className="admin-btn lms-btn-primary"
                   onClick={() => handlePublishInlineTest()}
                   disabled={creatingTest || inlineTestSaving || inlinePublishLoading}
                 >
@@ -371,7 +371,7 @@ export default function InlineTestEditorShell({
               )}
               {canMutateInAdminArea ? (
                 <div className="admin-course-builder-test-add-bottom">
-                  <button type="button" className="admin-btn admin-btn-primary" onClick={handleAddDefaultInlineQuestion} disabled={addingQuestion}>
+                  <button type="button" className="admin-btn lms-btn-primary" onClick={handleAddDefaultInlineQuestion} disabled={addingQuestion}>
                     {addingQuestion ? 'Se adaugă...' : 'Adaugă întrebare'}
                   </button>
                   {showImportButton ? (

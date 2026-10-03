@@ -51,7 +51,7 @@ const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 						<p className="courses-page-resume-lesson">{nextLesson.title}</p>
 					) : null}
 				</div>
-				<button type="button" className="courses-page-btn courses-page-btn-primary" onClick={handleResume}>
+				<button type="button" className="courses-page-btn lms-btn-primary courses-page-btn-primary" onClick={handleResume}>
 					Continuă lecția
 				</button>
 			</section>
@@ -85,7 +85,7 @@ const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 				</div>
 				<button
 					type="button"
-					className="student-btn student-btn-primary student-btn-resume"
+					className="student-btn lms-btn-primary student-btn-primary student-btn-resume"
 					onClick={handleResume}
 				>
 					Continuă lecția →

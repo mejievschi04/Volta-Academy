@@ -1226,7 +1226,7 @@ const AICourseChat = ({
 					<div className="ai-chat-plan-actions">
 						<button
 							type="button"
-							className="ai-chat-btn ai-chat-btn-primary"
+							className="ai-chat-btn lms-btn-primary ai-chat-btn-primary"
 							onClick={() => onCourseGenerated?.(pendingCreatedCourse)}
 						>
 							Deschide ciorna în builder
@@ -1262,7 +1262,7 @@ const AICourseChat = ({
 					<div className="ai-chat-plan-actions">
 						<button
 							type="button"
-							className="ai-chat-btn ai-chat-btn-primary"
+							className="ai-chat-btn lms-btn-primary ai-chat-btn-primary"
 							onClick={applyPendingDraft}
 							disabled={isApplying}
 						>
@@ -1311,7 +1311,7 @@ const AICourseChat = ({
 					<div className="ai-chat-plan-actions">
 						<button
 							type="button"
-							className="ai-chat-btn ai-chat-btn-primary"
+							className="ai-chat-btn lms-btn-primary ai-chat-btn-primary"
 							onClick={async () => {
 								const applyHandler = onApplyPlan || (currentCourseId
 									? (nextPlan) => applyVoltCoursePlan(currentCourseId, nextPlan)

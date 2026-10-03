@@ -1839,7 +1839,7 @@ const ImageEditModal = ({ draft, onDraftChange, onApply, onClose, onDelete }) =>
 						</button>
 						<div className="rte-image-edit-actions__main">
 							<button type="button" className="rte-image-modal-btn rte-image-modal-btn--secondary" onClick={onClose}>Anulează</button>
-							<button type="button" className="rte-image-modal-btn rte-image-modal-btn--primary" onClick={onApply}>Aplică</button>
+							<button type="button" className="rte-image-modal-btn lms-btn-primary rte-image-modal-btn--primary" onClick={onApply}>Aplică</button>
 						</div>
 					</div>
 				</div>

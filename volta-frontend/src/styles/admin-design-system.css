@@ -207,7 +207,6 @@ html body .admin-btn-secondary.admin-btn-secondary:hover:not(:disabled) {
 	transform: none;
 }
 
-html body .admin-btn-primary.admin-btn-primary,
 html body .admin-container .lms-btn-primary.lms-btn-primary {
 	min-height: var(--btn-desktop-min-height);
 	border: 1px solid var(--btn-primary-border) !important;
@@ -219,7 +218,6 @@ html body .admin-container .lms-btn-primary.lms-btn-primary {
 	font-weight: var(--font-weight-semibold);
 }
 
-html body .admin-btn-primary.admin-btn-primary:hover:not(:disabled),
 html body .admin-container .lms-btn-primary.lms-btn-primary:hover {
 	background: var(--btn-primary-hover) !important;
 	border-color: var(--btn-primary-border) !important;

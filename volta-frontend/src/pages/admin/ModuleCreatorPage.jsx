@@ -206,7 +206,7 @@ const ModuleCreatorPage = () => {
 								</button>
 								<button
 									type="submit"
-									className="admin-btn admin-btn-primary"
+									className="admin-btn lms-btn-primary"
 									disabled={loading}
 								>
 									{loading ? 'Se salvează...' : (id && id !== 'new' ? 'Actualizează Modul' : 'Creează Modul')}

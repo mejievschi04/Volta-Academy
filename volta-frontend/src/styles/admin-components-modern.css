@@ -950,26 +950,11 @@
 
 .admin-btn-create-course {
 	padding: var(--btn-desktop-padding-y) var(--btn-desktop-padding-x);
-	min-height: var(--btn-desktop-min-height);
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border: 1px solid var(--btn-primary-border);
-	border-radius: var(--btn-desktop-radius);
 	font-size: var(--btn-desktop-font-size);
-	font-weight: var(--font-weight-semibold);
-	cursor: pointer;
-	transition: all var(--transition-base);
 	display: flex;
 	align-items: center;
 	gap: var(--btn-desktop-gap);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 	font-family: var(--font-family);
-}
-
-.admin-btn-create-course:hover {
-	background-color: var(--btn-primary-hover);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-	transform: translateY(-1px);
 }
 
 .admin-courses-search-wrapper {
@@ -2448,19 +2433,6 @@
 
 [data-theme="light"] .admin-courses-subtitle {
 	color: var(--text-secondary);
-}
-
-[data-theme="light"] .admin-btn-create-course {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border: 1px solid var(--color-primary);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-[data-theme="light"] .admin-btn-create-course:hover {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .admin-courses-search-input {

@@ -491,7 +491,7 @@ const LessonsPage = () => {
 					<h2>Eroare</h2>
 					<p>{error || 'Cursul nu a fost găsit'}</p>
 					<button
-						className="lessons-page-btn lessons-page-btn-primary"
+						className="lessons-page-btn lms-btn-primary lessons-page-btn-primary"
 						onClick={() => navigate('/courses')}
 					>
 						Înapoi la cursuri
@@ -820,7 +820,7 @@ const LessonsPage = () => {
 									</button>
 									{isLastLessonInCourse ? (
 										<button
-											className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta lessons-page-lesson-cta--finalize"
+											className="lessons-page-btn lms-btn-primary lessons-page-btn-primary lessons-page-lesson-cta lessons-page-lesson-cta--finalize"
 											type="button"
 											disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
 											title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
@@ -838,7 +838,7 @@ const LessonsPage = () => {
 									) : (
 										<button
 											type="button"
-											className="lessons-page-nav-btn lessons-page-nav-btn--next"
+											className="lessons-page-nav-btn lms-btn-primary lessons-page-nav-btn--next"
 											disabled={!hasNextLesson || isCompleting || finalizingCourse || !canAdvanceLesson}
 											onClick={handleNextLesson}
 											aria-label="Lecția următoare"
@@ -850,7 +850,7 @@ const LessonsPage = () => {
 								</>
 							) : (
 								<button
-									className="lessons-page-btn lessons-page-btn-primary lessons-page-lesson-cta"
+									className="lessons-page-btn lms-btn-primary lessons-page-btn-primary lessons-page-lesson-cta"
 									type="button"
 									disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
 									title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}

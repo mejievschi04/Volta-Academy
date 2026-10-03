@@ -423,7 +423,7 @@ const LessonCreatorPage = () => {
 								</label>
 								<button
 									type="button"
-									className="admin-btn admin-btn-sm admin-btn-primary"
+									className="admin-btn admin-btn-sm lms-btn-primary"
 									onClick={() => setShowBlockSelector(!showBlockSelector)}
 								>
 									<span>➕</span>
@@ -500,7 +500,7 @@ const LessonCreatorPage = () => {
 							</button>
 							<button
 								type="submit"
-								className={`admin-btn admin-btn-primary ${completionPercentage() < 100 ? 'disabled' : ''}`}
+								className={`admin-btn lms-btn-primary ${completionPercentage() < 100 ? 'disabled' : ''}`}
 								disabled={loading || completionPercentage() < 100}
 							>
 								{loading ? (

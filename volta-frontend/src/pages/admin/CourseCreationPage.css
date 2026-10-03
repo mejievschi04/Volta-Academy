@@ -288,19 +288,6 @@
 .course-creation-simple-btn-primary {
 	padding: var(--space-2) var(--space-5);
 	font-size: var(--font-size-sm);
-	font-weight: 600;
-	border-radius: 8px;
-	border: none;
-	background: var(--color-primary);
-	color: var(--color-black);
-	cursor: pointer;
-	transition: all 0.2s;
-	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
-}
-
-.course-creation-simple-btn-primary:hover:not(:disabled) {
-	background: var(--color-primary-hover);
-	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.35);
 }
 
 .course-creation-simple-btn-primary:disabled,

@@ -162,7 +162,7 @@ const LibraryReaderPage = () => {
 					<div className="library-reader-empty-icon">PDF</div>
 					<h1>Material indisponibil</h1>
 					<p>{error || 'Materialul nu a fost găsit.'}</p>
-					<button type="button" className="library-reader-btn library-reader-btn-primary" onClick={() => navigate('/library')}>
+					<button type="button" className="library-reader-btn lms-btn-primary library-reader-btn-primary" onClick={() => navigate('/library')}>
 						Înapoi la bibliotecă
 					</button>
 				</div>
@@ -227,7 +227,7 @@ const LibraryReaderPage = () => {
 						<div className="library-reader-empty-icon">PDF</div>
 						<h1>Acest material nu este PDF</h1>
 						<p>Fișierul poate fi descărcat din bibliotecă.</p>
-						<button type="button" className="library-reader-btn library-reader-btn-primary" onClick={handleDownload}>
+						<button type="button" className="library-reader-btn lms-btn-primary library-reader-btn-primary" onClick={handleDownload}>
 							Descarcă fișierul
 						</button>
 					</div>
@@ -241,7 +241,7 @@ const LibraryReaderPage = () => {
 						<div className="library-reader-empty-icon">PDF</div>
 						<h1>Nu am putut deschide PDF-ul</h1>
 						<p>{pdfError}</p>
-						<button type="button" className="library-reader-btn library-reader-btn-primary" onClick={handleDownload}>
+						<button type="button" className="library-reader-btn lms-btn-primary library-reader-btn-primary" onClick={handleDownload}>
 							Descarcă documentul
 						</button>
 					</div>

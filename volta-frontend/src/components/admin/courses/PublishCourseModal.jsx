@@ -356,7 +356,7 @@ const PublishCourseModal = ({
 						</button>
 						<button
 							type="button"
-							className="admin-btn admin-btn-primary"
+							className="admin-btn lms-btn-primary"
 							onClick={handlePublish}
 							disabled={!canPublish}
 							aria-busy={loading}

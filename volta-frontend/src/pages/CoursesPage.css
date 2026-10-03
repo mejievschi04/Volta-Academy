@@ -951,42 +951,6 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	overflow: hidden;
 }
 
-.courses-page-btn-primary {
-	background: var(--color-brand-primary);
-	color: var(--text-inverse);
-	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.25);
-}
-
-.courses-page-btn-primary::before {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 0;
-	height: 0;
-	border-radius: 50%;
-	background: rgba(0, 0, 0, 0.1);
-	transform: translate(-50%, -50%);
-	transition: width 0.6s, height 0.6s;
-}
-
-.courses-page-btn-primary:hover::before {
-	width: 300px;
-	height: 300px;
-}
-
-.courses-page-btn-primary:hover {
-	background: var(--color-brand-hover);
-	transform: translateY(-2px);
-	box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.35);
-}
-
-.courses-page-btn-primary span,
-.courses-page-btn-primary svg {
-	position: relative;
-	z-index: 1;
-}
-
 .courses-page-btn-secondary {
 	background: var(--bg-secondary);
 	color: var(--text-primary);

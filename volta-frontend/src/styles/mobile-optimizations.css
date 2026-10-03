@@ -3388,7 +3388,7 @@
 		min-height: 44px;
 	}
 
-	.admin-course-builder-actions .admin-btn-primary,
+	.admin-course-builder-actions .admin-btn.lms-btn-primary,
 	.admin-course-builder-actions .admin-btn-secondary {
 		min-height: 44px;
 	}
@@ -5214,12 +5214,6 @@
 	border-radius: 12px;
 	font-size: 15px;
 	font-weight: 700;
-}
-.va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--next,
-.va-shell .lesson-page-actions .lesson-page-btn-primary {
-	background: var(--btn-primary-bg) !important;
-	color: var(--btn-primary-text) !important;
-	border: 1px solid var(--btn-primary-border);
 }
 .va-shell .lessons-page-lesson-viewer .lessons-page-nav-btn--prev,
 .va-shell .lesson-page-actions .lesson-page-btn-secondary {

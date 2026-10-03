@@ -226,7 +226,7 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 						{!readOnly && event && onEdit ? (
 							<button
 								type="button"
-								className="admin-event-btn-primary"
+								className="lms-btn-primary admin-event-btn-primary"
 								onClick={() => onEdit(event)}
 							>
 								Editează

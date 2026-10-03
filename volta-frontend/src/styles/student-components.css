@@ -320,31 +320,6 @@
 	gap: var(--space-2);
 }
 
-.student-btn-primary {
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border: 1px solid var(--btn-primary-border);
-}
-
-.student-btn-primary:hover {
-	background-color: var(--btn-primary-hover);
-	box-shadow: var(--shadow-md);
-}
-
-/* Light theme - yellow background with black text */
-[data-theme="light"] .student-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border: 1px solid var(--color-primary);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .student-btn-primary:hover {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
 .student-btn-secondary {
 	background-color: var(--btn-secondary-bg);
 	color: var(--btn-secondary-text);

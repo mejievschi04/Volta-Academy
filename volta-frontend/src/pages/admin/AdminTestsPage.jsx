@@ -240,7 +240,7 @@ export default function AdminTestsPage() {
         </div>
         {canMutateInAdminArea && pageView === 'list' ? (
           <div className="admin-content-list-header__actions">
-            <button type="button" className="admin-content-list-btn-primary" onClick={openCreateModal}>
+            <button type="button" className="lms-btn-primary admin-content-list-btn-primary" onClick={openCreateModal}>
               Creează test
             </button>
           </div>
@@ -355,7 +355,7 @@ export default function AdminTestsPage() {
             <>
               <p>Niciun test încă.</p>
               {canMutateInAdminArea ? (
-                <button type="button" className="admin-content-list-btn-primary" onClick={openCreateModal}>
+                <button type="button" className="lms-btn-primary admin-content-list-btn-primary" onClick={openCreateModal}>
                   Creează test
                 </button>
               ) : null}

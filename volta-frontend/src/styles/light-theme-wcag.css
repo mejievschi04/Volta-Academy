@@ -131,22 +131,8 @@
 }
 
 /* Butoane galbene - text NEGRU (brand rule) */
-[data-theme="light"] .btn-primary,
 [data-theme="light"] .lms-btn-primary,
-[data-theme="light"] .admin-btn-create-course,
-[data-theme="light"] .admin-btn-primary,
-[data-theme="light"] .admin-event-btn-primary,
-[data-theme="light"] .student-btn-primary,
-[data-theme="light"] .library-btn--primary,
-[data-theme="light"] .library-reader-btn-primary,
-[data-theme="light"] .btn-primary *,
 [data-theme="light"] .lms-btn-primary *,
-[data-theme="light"] .admin-btn-create-course *,
-[data-theme="light"] .admin-btn-primary *,
-[data-theme="light"] .admin-event-btn-primary *,
-[data-theme="light"] .student-btn-primary *,
-[data-theme="light"] .library-btn--primary *,
-[data-theme="light"] .library-reader-btn-primary *,
 [data-theme="light"] .course-detail-lesson-number,
 [data-theme="light"] .course-detail-lesson-number * {
 	color: var(--text-inverse) !important;

@@ -88,13 +88,7 @@
 }
 
 .error-boundary-btn-primary {
-	background: var(--accent-primary, var(--color-primary));
-	color: var(--text-inverse);
 	margin-right: var(--space-4);
-}
-
-.error-boundary-btn-primary:hover {
-	opacity: 0.95;
 }
 
 .error-boundary-btn-secondary {

@@ -145,7 +145,7 @@ const ChangePasswordModal = () => {
 						<div className="modal-footer">
 							<button 
 								type="submit" 
-								className="btn btn-primary"
+								className="btn lms-btn-primary"
 								disabled={loading}
 							>
 								{loading ? 'Se salvează...' : 'Schimbă parola'}

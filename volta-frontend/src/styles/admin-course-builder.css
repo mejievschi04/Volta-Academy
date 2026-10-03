@@ -1438,21 +1438,10 @@ body.admin-course-builder-lesson-drag-active .admin-course-builder-outline-lesso
 	color: var(--text-primary);
 }
 
-.admin-course-builder-page .admin-btn-primary {
+.admin-course-builder-page .admin-btn.lms-btn-primary {
 	padding: var(--space-1) var(--space-4);
-	border-radius: var(--radius-md);
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-semibold);
-	background: var(--color-primary);
-	color: var(--color-black);
-	border: none;
-	box-shadow: 0 1px 4px rgba(var(--color-primary-rgb), 0.2);
-	transition: all 0.2s ease;
-}
-
-.admin-course-builder-page .admin-btn-primary:hover {
-	background: var(--color-primary-hover);
-	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 }
 
 /* ----- Tabs: control segmentat vizibil ----- */

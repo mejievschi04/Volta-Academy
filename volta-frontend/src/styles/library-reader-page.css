@@ -111,12 +111,6 @@
 	transform: none;
 }
 
-.library-reader-btn-primary {
-	background: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border-color: var(--btn-primary-border);
-}
-
 .library-reader-floating-btn {
 	background: transparent;
 	color: var(--text-secondary);

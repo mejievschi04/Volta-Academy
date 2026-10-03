@@ -361,7 +361,7 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 					<button type="button" className="admin-btn admin-btn-secondary" onClick={onClose} disabled={courseEditSaving}>
 						Anulează
 					</button>
-					<button type="button" className="va-btn-save admin-btn admin-btn-primary" onClick={handleSaveCourseEdit} disabled={courseEditSaving}>
+					<button type="button" className="va-btn-save admin-btn lms-btn-primary" onClick={handleSaveCourseEdit} disabled={courseEditSaving}>
 						{courseEditSaving ? 'Se salvează...' : 'Salvează'}
 					</button>
 				</div>

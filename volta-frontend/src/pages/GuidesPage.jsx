@@ -195,7 +195,7 @@ const GuidesPage = () => {
 					<div className="library-page-header-actions">
 						<button
 							type="button"
-							className="library-btn library-btn--primary library-upload-trigger"
+							className="library-btn lms-btn-primary library-btn--primary library-upload-trigger"
 							onClick={openCreateModal}
 						>
 							<Plus size={18} weight="bold" aria-hidden />
@@ -282,7 +282,7 @@ const GuidesPage = () => {
 											<div className="library-book-actions">
 												<button
 													type="button"
-													className="library-btn library-btn--primary library-btn--grow"
+													className="library-btn lms-btn-primary library-btn--primary library-btn--grow"
 													onClick={(e) => {
 														e.stopPropagation();
 														onOpenLink(item);
@@ -449,7 +449,7 @@ const GuidesPage = () => {
 							<button type="button" className="library-btn library-btn--secondary" onClick={closeModal} disabled={saving}>
 								Renunță
 							</button>
-							<button type="submit" className="va-btn-save library-btn library-btn--primary" disabled={saving}>
+							<button type="submit" className="va-btn-save library-btn lms-btn-primary library-btn--primary" disabled={saving}>
 								{saving ? 'Se salvează...' : editingItem ? 'Salvează' : 'Adaugă ghid'}
 							</button>
 						</div>

@@ -641,7 +641,7 @@ export default function AdminExamsPage() {
         </div>
         {canMutateInAdminArea ? (
           <div className="admin-content-list-header__actions">
-            <button type="button" className="admin-content-list-btn-primary" onClick={handleOpenCreateModal}>
+            <button type="button" className="lms-btn-primary admin-content-list-btn-primary" onClick={handleOpenCreateModal}>
               Creează examen
             </button>
           </div>

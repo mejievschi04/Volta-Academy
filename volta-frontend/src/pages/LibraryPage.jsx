@@ -284,7 +284,7 @@ const LibraryPage = () => {
 						</button>
 						<button
 							type="button"
-							className="library-btn library-btn--primary library-upload-trigger"
+							className="library-btn lms-btn-primary library-btn--primary library-upload-trigger"
 							onClick={() => setShowUploadModal(true)}
 						>
 							Încarcă material
@@ -362,7 +362,7 @@ const LibraryPage = () => {
 											<div className="library-book-actions">
 												<button
 													type="button"
-													className="library-btn library-btn--primary library-btn--grow"
+													className="library-btn lms-btn-primary library-btn--primary library-btn--grow"
 													onClick={(e) => {
 														e.stopPropagation();
 														if (isTextItem(item)) {
@@ -551,7 +551,7 @@ const LibraryPage = () => {
 							<button type="button" className="library-btn library-btn--secondary" onClick={() => setShowUploadModal(false)} disabled={uploading}>
 								Renunță
 							</button>
-							<button type="submit" className="library-btn library-btn--primary" disabled={uploading}>
+							<button type="submit" className="library-btn lms-btn-primary library-btn--primary" disabled={uploading}>
 								{uploading ? 'Se încarcă...' : 'Încarcă în bibliotecă'}
 							</button>
 						</div>

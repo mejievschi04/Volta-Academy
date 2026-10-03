@@ -282,7 +282,7 @@ const LibraryComposePage = () => {
 					<button type="button" className="library-btn library-btn--secondary" onClick={() => navigate('/library')} disabled={saving}>
 						Anulează
 					</button>
-					<button type="submit" className="va-btn-save library-btn library-btn--primary" disabled={saving}>
+					<button type="submit" className="va-btn-save library-btn lms-btn-primary library-btn--primary" disabled={saving}>
 						{saving ? 'Se salvează...' : isEditing ? 'Salvează modificările' : 'Publică în bibliotecă'}
 					</button>
 				</div>

@@ -184,7 +184,7 @@ const BuildCourseModal = ({
 								</button>
 								<button
 									type="submit"
-									className="build-course-modal-btn build-course-modal-btn-submit"
+									className="build-course-modal-btn lms-btn-primary build-course-modal-btn-submit"
 									disabled={loading}
 								>
 									{loading ? 'Se salvează...' : 'Creează acum'}
@@ -204,7 +204,7 @@ const BuildCourseModal = ({
 								)}
 								<button
 									type="submit"
-									className="build-course-modal-btn build-course-modal-btn-submit"
+									className="build-course-modal-btn lms-btn-primary build-course-modal-btn-submit"
 									disabled={loading}
 								>
 									{loading ? 'Se salvează...' : isEdit ? 'Salvează' : 'Creează și deschide în Builder'}

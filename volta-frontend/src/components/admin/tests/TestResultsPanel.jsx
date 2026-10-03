@@ -380,7 +380,7 @@ export default function TestResultsPanel({
 						<button type="button" className="admin-btn admin-btn-secondary" onClick={closeEdit} disabled={saving}>
 							Anulează
 						</button>
-						<button type="button" className="va-btn-save admin-btn admin-btn-primary" onClick={handleSaveScore} disabled={saving}>
+						<button type="button" className="va-btn-save admin-btn lms-btn-primary" onClick={handleSaveScore} disabled={saving}>
 							{saving ? 'Se salvează…' : 'Salvează punctajul'}
 						</button>
 					</div>

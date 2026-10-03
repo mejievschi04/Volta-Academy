@@ -163,7 +163,7 @@ const CourseCreationPage = () => {
 						</button>
 						<button
 							type="submit"
-							className="course-creation-simple-btn-primary"
+							className="lms-btn-primary course-creation-simple-btn-primary"
 							disabled={loading}
 							aria-describedby={primaryHint ? PRIMARY_HINT_ID : (error ? FORM_ERROR_ID : undefined)}
 						>

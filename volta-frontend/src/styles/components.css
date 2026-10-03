@@ -5,9 +5,8 @@
 
 /* ============================================
    1. BUTTONS - PRIMARY & SECONDARY
-   Convenție: .admin-btn .admin-btn-primary / .admin-btn-secondary în admin;
-   .lms-btn-primary / .lms-btn-secondary în rest. .btn-primary / .btn-secondary
-   păstrate pentru compatibilitate.
+   Convenție: butonul principal e mereu .lms-btn-primary (stilul e în control-system.css);
+   secundarul: .admin-btn-secondary în admin, .lms-btn-secondary în rest.
    ============================================ */
 .btn {
 	display: inline-flex;
@@ -25,45 +24,6 @@
 	transition: all var(--transition-base);
 	text-decoration: none;
 	white-space: nowrap;
-}
-
-/* Primary Button - Yellow Background, Dark Text */
-.btn-primary {
-	background-color: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border: 1px solid var(--btn-primary-border);
-	box-shadow: var(--shadow-sm);
-}
-
-.btn-primary:hover:not(:disabled) {
-	background-color: var(--btn-primary-hover);
-	border-color: var(--btn-primary-hover);
-	box-shadow: var(--shadow-md);
-	transform: translateY(-1px);
-}
-
-/* Light theme - yellow background with black text */
-[data-theme="light"] .btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border: 1px solid var(--color-primary);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.btn-primary:active:not(:disabled) {
-	transform: translateY(0);
-	box-shadow: var(--shadow-sm);
-}
-
-.btn-primary:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
 }
 
 /* Secondary Button - Transparent, Yellow Border/Text */

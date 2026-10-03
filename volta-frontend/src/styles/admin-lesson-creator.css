@@ -207,10 +207,9 @@
 }
 
 /* Add Block Button */
-.admin-lesson-creator-page .admin-btn-sm.admin-btn-primary {
+.admin-lesson-creator-page .admin-btn-sm.lms-btn-primary {
 	padding: var(--space-2) var(--space-4);
 	font-weight: var(--font-weight-semibold);
-	border-radius: var(--radius-lg);
 }
 
 /* Editor Wrapper */
@@ -234,15 +233,9 @@
 	gap: var(--space-4);
 }
 
-.admin-lesson-creator-page .admin-form-actions .admin-btn-primary {
+.admin-lesson-creator-page .admin-form-actions .admin-btn.lms-btn-primary {
 	padding: var(--space-3) var(--space-6);
 	font-weight: var(--font-weight-semibold);
-	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-md);
-}
-
-.admin-lesson-creator-page .admin-form-actions .admin-btn-primary:not(.disabled):hover {
-	box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.3);
 }
 
 /* Preview Panel */

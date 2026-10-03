@@ -130,44 +130,6 @@ body.admin-view .va-main {
 	white-space: nowrap;
 }
 
-.admin-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border-color: var(--color-primary);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: var(--shadow-md);
-	transform: translateY(-1px);
-}
-
-/* Light theme - yellow background with black text */
-[data-theme="light"] .admin-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border-color: var(--color-primary);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .admin-btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.admin-btn-primary:active:not(:disabled) {
-	transform: translateY(0);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-btn-primary:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
 .admin-btn-secondary {
 	background-color: transparent;
 	color: var(--color-primary);
@@ -1411,20 +1373,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	border-top: 1px solid var(--border-primary);
 }
 
-/* Light theme - dark background for yellow buttons */
-[data-theme="light"] .admin-event-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border: 1px solid var(--color-primary);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .admin-event-btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
 .admin-event-btn-primary,
 .admin-event-btn-secondary {
 	display: inline-flex;
@@ -1443,30 +1391,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	white-space: nowrap;
 	min-width: 92px;
 	height: 34px;
-}
-
-.admin-event-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border-color: var(--color-primary);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-event-btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: var(--shadow-md);
-	transform: translateY(-1px);
-}
-
-.admin-event-btn-primary:active:not(:disabled) {
-	transform: translateY(0);
-	box-shadow: var(--shadow-sm);
-}
-
-.admin-event-btn-primary:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
 }
 
 .admin-event-btn-secondary {
@@ -1871,7 +1795,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	margin-left: auto;
 }
 
-.admin-course-builder-footer .admin-btn-primary,
+.admin-course-builder-footer .admin-btn.lms-btn-primary,
 .admin-course-builder-footer .admin-btn-secondary {
 	min-width: 140px;
 	padding: var(--space-3) var(--space-5);
@@ -1883,25 +1807,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
-}
-
-.admin-course-builder-footer .admin-btn-primary {
-	background-color: var(--color-primary);
-	color: var(--text-inverse);
-	border: 1px solid var(--color-primary);
-	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
-}
-
-.admin-course-builder-footer .admin-btn-primary:hover:not(:disabled) {
-	background-color: var(--color-primary-hover);
-	border-color: var(--color-primary-hover);
-	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
-	transform: translateY(-2px);
-}
-
-.admin-course-builder-footer .admin-btn-primary:active:not(:disabled) {
-	transform: translateY(0);
-	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
 }
 
 .admin-course-builder-footer .admin-btn-secondary {
@@ -1921,7 +1826,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	transform: translateY(0);
 }
 
-.admin-course-builder-footer .admin-btn-primary:disabled,
+.admin-course-builder-footer .admin-btn.lms-btn-primary:disabled,
 .admin-course-builder-footer .admin-btn-secondary:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;

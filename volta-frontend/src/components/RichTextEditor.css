@@ -411,12 +411,6 @@
 	color: var(--text-primary);
 }
 
-.rte-image-modal-btn--primary {
-	border: 1px solid var(--color-brand-primary);
-	background: var(--color-brand-primary);
-	color: var(--btn-primary-text);
-}
-
 .rte-callout-inline-panel {
 	position: fixed;
 	z-index: 10003;

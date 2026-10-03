@@ -299,15 +299,7 @@
 }
 
 .build-course-modal-btn-submit {
-	background: var(--color-primary);
-	color: var(--text-inverse);
-	border: none;
 	min-width: 180px;
-}
-
-.build-course-modal-btn-submit:hover:not(:disabled) {
-	background: var(--color-brand-hover);
-	transform: translateY(-1px);
 }
 
 .build-course-modal-btn-submit:disabled {

@@ -335,7 +335,7 @@ const LessonPage = () => {
 					<h2>Eroare</h2>
 					<p>{error || 'Lecția nu a fost găsită'}</p>
 					<button
-						className="lesson-page-btn lesson-page-btn-primary"
+						className="lesson-page-btn lms-btn-primary lesson-page-btn-primary"
 						onClick={() => navigate(`/courses/${courseId}`)}
 					>
 						Înapoi la curs
@@ -473,7 +473,7 @@ const LessonPage = () => {
 						<button type="button" className="lesson-page-btn lesson-page-btn-secondary" disabled={previousLessonTarget == null || finalizingCourse} onClick={() => navigate(`/courses/${courseId}/lessons/${previousLessonTarget}`)}><ArrowLeft size={20} weight="bold" aria-hidden /><span>Anterioară</span></button>
 						<button
 							type="button"
-							className="lesson-page-btn lesson-page-btn-primary"
+							className="lesson-page-btn lms-btn-primary lesson-page-btn-primary"
 							disabled={finalizingCourse || !canAdvanceLesson}
 							title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
 							onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNext}

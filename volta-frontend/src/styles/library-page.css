@@ -487,19 +487,6 @@
 	transition: background 0.15s, border-color 0.15s, transform 0.12s, color 0.15s, filter 0.15s;
 }
 
-.library-btn--primary {
-	background: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	border-color: var(--btn-primary-border);
-	box-shadow: var(--shadow-sm);
-}
-
-.library-btn--primary:hover:not(:disabled) {
-	background: var(--btn-primary-hover);
-	filter: brightness(1.02);
-	transform: translateY(-1px);
-}
-
 .library-btn--secondary {
 	background: transparent;
 	color: var(--text-primary);

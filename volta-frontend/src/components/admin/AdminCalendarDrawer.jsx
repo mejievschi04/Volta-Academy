@@ -170,7 +170,7 @@ const AdminCalendarDrawer = ({ open, onClose }) => {
 					{allowAdminCalendarEdit && (
 						<button
 							type="button"
-							className="va-cal-drawer-btn-primary"
+							className="lms-btn-primary va-cal-drawer-btn-primary"
 							onClick={() => {
 								setEditingEvent(null);
 								setPrefill(null);

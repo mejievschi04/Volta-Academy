@@ -265,7 +265,7 @@ const CoursesPage = () => {
 					<h2>Eroare</h2>
 					<p>{error}</p>
 					<button
-						className="courses-page-btn courses-page-btn-primary"
+						className="courses-page-btn lms-btn-primary courses-page-btn-primary"
 						onClick={() => window.location.reload()}
 					>
 						Incearca din nou
@@ -504,7 +504,7 @@ const CoursesPage = () => {
 									) : (
 										isAdmin && (
 											<button
-												className="courses-page-btn courses-page-btn-primary"
+												className="courses-page-btn lms-btn-primary courses-page-btn-primary"
 												onClick={() => navigate('/admin/content?tab=course-maps')}
 											>
 												<Plus size={20} weight="bold" aria-hidden />

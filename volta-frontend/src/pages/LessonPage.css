@@ -673,42 +673,6 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 	transform: none;
 }
 
-.lesson-page-btn-primary {
-	background: var(--color-brand-primary);
-	color: var(--text-inverse);
-	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.25);
-}
-
-.lesson-page-btn-primary::before {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 0;
-	height: 0;
-	border-radius: 50%;
-	background: rgba(0, 0, 0, 0.1);
-	transform: translate(-50%, -50%);
-	transition: width 0.6s, height 0.6s;
-}
-
-.lesson-page-btn-primary:hover:not(:disabled)::before {
-	width: 300px;
-	height: 300px;
-}
-
-.lesson-page-btn-primary:hover:not(:disabled) {
-	background: var(--color-brand-hover);
-	transform: translateY(-2px);
-	box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.35);
-}
-
-.lesson-page-btn-primary span,
-.lesson-page-btn-primary svg {
-	position: relative;
-	z-index: 1;
-}
-
 .lesson-page-btn-secondary {
 	background: var(--bg-secondary);
 	color: var(--text-primary);

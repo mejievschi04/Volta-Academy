@@ -1979,7 +1979,7 @@ const AdminCourseBuilderPage = () => {
 										{canPublish ? (
 											<button
 												type="button"
-												className="admin-btn admin-btn-primary admin-course-builder-actions-primary"
+												className="admin-btn lms-btn-primary admin-course-builder-actions-primary"
 												onClick={() => handleCourseStatusAction('publish')}
 												disabled={courseActionLoading}
 											>
@@ -2152,7 +2152,7 @@ const AdminCourseBuilderPage = () => {
 												/>
 												<button
 													type="button"
-													className="va-btn-save admin-btn admin-btn-primary"
+													className="va-btn-save admin-btn lms-btn-primary"
 													onClick={handleManualLessonSave}
 													disabled={lessonSaveStatus === 'saving'}
 												>
@@ -2200,7 +2200,7 @@ const AdminCourseBuilderPage = () => {
 								<button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowCreateTestModal(false)} disabled={creatingTestFromModal}>
 									Anulează
 								</button>
-								<button type="submit" className="admin-btn admin-btn-primary" disabled={creatingTestFromModal}>
+								<button type="submit" className="admin-btn lms-btn-primary" disabled={creatingTestFromModal}>
 									{creatingTestFromModal ? 'Se creează...' : 'Continuă'}
 								</button>
 							</div>

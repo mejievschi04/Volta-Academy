@@ -549,7 +549,7 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 							>
 								Anulează
 							</button>
-							<button type="submit" className="va-btn-save admin-event-btn-primary">
+							<button type="submit" className="va-btn-save lms-btn-primary admin-event-btn-primary">
 								{editingEvent ? 'Salvează modificările' : 'Creează evenimentul'}
 							</button>
 						</div>

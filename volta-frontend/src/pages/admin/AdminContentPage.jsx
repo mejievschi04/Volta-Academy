@@ -48,7 +48,7 @@ const AdminContentPage = () => {
 								headerActions={canMutateInAdminArea ? (
 									<button
 										type="button"
-										className="admin-btn-create-course"
+										className="lms-btn-primary admin-btn-create-course"
 										onClick={() => navigate('/admin/courses/new')}
 									>
 										<Plus size={18} weight="bold" aria-hidden />
