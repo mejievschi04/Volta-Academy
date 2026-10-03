@@ -260,7 +260,7 @@
 		display: flex;
 		flex-direction: column;
 	}
-	
+
 	/* Force remove blur from sidebar and all its children on mobile */
 	.sidebar *,
 	.modern-sidebar *,
@@ -622,9 +622,8 @@
 @media (max-width: 768px) {
 	/* Cards - full width, compact padding on mobile */
 	.card,
-	.va-card,
-	.admin-card,
-	.course-card {
+.va-card,
+.admin-card {
 		width: 100%;
 		padding: var(--space-3) !important;
 		margin-bottom: var(--space-3);
@@ -916,9 +915,8 @@
 
 	/* Cards - reset to normal grid */
 	.card,
-	.va-card,
-	.admin-card,
-	.course-card {
+.va-card,
+.admin-card {
 		width: auto !important;
 		margin-bottom: var(--space-6) !important;
 	}
@@ -1173,13 +1171,6 @@
 	   Centered, well-arranged, modern design
 	   ============================================ */
 
-	/* Titluri centrate doar pe paginile de overview (nu lecții/mesaje/bibliotecă) */
-	.va-shell-main-topnav .student-dashboard-title,
-.va-shell-main-topnav .student-dashboard-subtitle,
-.va-shell-main-topnav .student-dashboard-welcome {
-		text-align: center !important;
-	}
-
 	/* Conținut lizibil: aliniat stânga implicit */
 	.va-shell-main-topnav .va-main,
 	.va-shell-main-topnav main {
@@ -1215,21 +1206,6 @@
 		text-align: left !important;
 	}
 
-	/* Center course cards, event cards content (exam results: left-aligned) */
-	.course-card {
-		text-align: center !important;
-	}
-
-	.course-card h1,
-.course-card h2,
-.course-card h3,
-.course-card h4,
-.course-card p,
-.course-card .course-card-title,
-.course-card .course-card-description {
-		text-align: center !important;
-	}
-
 	/* Center widget titles and descriptions */
 	.student-widget h1,
 .student-widget h2,
@@ -1259,190 +1235,6 @@
 		margin: 0 auto !important;
 	}
 
-	.student-dashboard-header {
-		text-align: center !important;
-		margin-top: 0 !important;
-		margin-bottom: var(--space-5) !important;
-		padding-top: 0 !important;
-		padding-bottom: var(--space-3) !important;
-		border-bottom: 1px solid var(--border-primary) !important;
-	}
-
-	.student-dashboard-welcome {
-		justify-content: center !important;
-		margin-bottom: var(--space-3) !important;
-		font-size: var(--font-size-sm) !important;
-	}
-
-	.student-dashboard-title {
-		font-size: var(--font-size-2xl) !important;
-		line-height: 1.3 !important;
-		margin-bottom: var(--space-3) !important;
-		text-align: center !important;
-	}
-
-	.student-dashboard-subtitle {
-		font-size: var(--font-size-sm) !important;
-		line-height: 1.5 !important;
-		text-align: center !important;
-		padding: 0 var(--space-2) !important;
-	}
-
-	/* Hero Section - Centered Cards */
-	.student-dashboard-hero {
-		margin-bottom: var(--space-5) !important;
-	}
-
-	.student-dashboard-hero-content {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-4) !important;
-		align-items: stretch !important;
-	}
-
-	.student-dashboard-global-progress {
-		padding: var(--space-5) var(--space-4) !important;
-		border-radius: var(--radius-xl) !important;
-		text-align: center !important;
-		background: var(--bg-elevated) !important;
-		border: 1px solid var(--border-primary) !important;
-		box-shadow: var(--shadow-md) !important;
-	}
-
-	.student-global-progress-header {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-4) !important;
-		margin-bottom: var(--space-5) !important;
-	}
-
-	.student-global-progress-header h2 {
-		font-size: var(--font-size-xl) !important;
-		margin: 0 !important;
-		text-align: center !important;
-	}
-
-	.student-global-progress-stats {
-		display: flex !important;
-		justify-content: center !important;
-		gap: var(--space-4) !important;
-		width: 100% !important;
-		flex-wrap: wrap !important;
-	}
-
-	.student-global-progress-stat {
-		flex: 1 1 calc(50% - var(--space-2)) !important;
-		min-width: 120px !important;
-		padding: var(--space-3) var(--space-2) !important;
-		text-align: center !important;
-		background: var(--bg-secondary) !important;
-		border-radius: var(--radius-lg) !important;
-		border: 1px solid var(--border-primary) !important;
-	}
-
-	.student-global-progress-stat-value {
-		font-size: var(--font-size-2xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		display: block !important;
-		margin-bottom: var(--space-1) !important;
-		color: var(--text-primary) !important;
-	}
-
-	.student-global-progress-stat-label {
-		font-size: var(--font-size-xs) !important;
-		color: var(--text-secondary) !important;
-		display: block !important;
-	}
-
-	.student-global-progress-bar-container {
-		margin-top: var(--space-4) !important;
-	}
-
-	.student-global-progress-percentage {
-		text-align: left !important;
-		font-size: var(--font-size-lg) !important;
-		font-weight: var(--font-weight-semibold) !important;
-	}
-
-	/* Quick Stats - Grid 2x2, Centered */
-	.student-dashboard-quick-stats {
-		display: grid !important;
-		grid-template-columns: repeat(2, 1fr) !important;
-		gap: var(--space-3) !important;
-		margin-top: var(--space-4) !important;
-	}
-
-	.student-quick-stat {
-		padding: var(--space-5) var(--space-4) !important;
-		border-radius: var(--radius-xl) !important;
-		text-align: center !important;
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		justify-content: center !important;
-		gap: var(--space-3) !important;
-		min-height: 110px !important;
-		background: var(--bg-elevated) !important;
-		border: 1px solid var(--border-primary) !important;
-		box-shadow: var(--shadow-sm) !important;
-		transition: all var(--transition-base) !important;
-	}
-
-	.student-quick-stat:active {
-		transform: scale(0.98) !important;
-		box-shadow: var(--shadow-md) !important;
-	}
-
-	.student-quick-stat-icon {
-		font-size: var(--font-size-2xl) !important;
-		line-height: 1 !important;
-		margin-bottom: 0 !important;
-		width: 44px !important;
-		height: 44px !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		background: var(--bg-tertiary) !important;
-		border-radius: var(--radius-lg) !important;
-	}
-
-	.student-quick-stat-content {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-1) !important;
-	}
-
-	.student-quick-stat-value {
-		font-size: var(--font-size-xl) !important;
-		font-weight: var(--font-weight-bold) !important;
-		color: var(--text-primary) !important;
-		line-height: 1.2 !important;
-	}
-
-	.student-quick-stat-label {
-		font-size: var(--font-size-xs) !important;
-		color: var(--text-secondary) !important;
-		line-height: 1.3 !important;
-		text-align: center !important;
-	}
-
-	/* Dashboard Content - Single Column */
-	.student-dashboard-content {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-5) !important;
-	}
-
-	.student-dashboard-left,
-	.student-dashboard-right {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: var(--space-4) !important;
-		width: 100% !important;
-	}
-
 	/* Widgets - Clean and Centered */
 	.student-widget {
 		border-radius: var(--radius-xl) !important;
@@ -1463,12 +1255,10 @@
 		text-align: center !important;
 	}
 
-	
+
 
 	/* Dashboard Widgets - Center all content */
-	.student-resume-widget,
-.student-mandatory-courses-widget,
-.student-active-courses-widget {
+	.student-resume-widget {
 		text-align: center !important;
 	}
 
@@ -1505,128 +1295,20 @@
 		justify-content: center !important;
 	}
 
-	/* Course Progress Cards - Horizontal layout, left-aligned */
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	.student-course-mandatory-badge {
-		display: inline-flex !important;
-		margin: 0 !important;
-		flex-shrink: 0 !important;
-	}
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	/* Incomplete Lessons Widget - Centered */
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	/* Pending Exams Widget - Centered */
-	
-
-	.student-pending-exam-item {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		text-align: center !important;
-		padding: var(--space-4) !important;
-		gap: var(--space-3) !important;
-	}
-
-	.student-pending-exam-icon {
-		font-size: var(--font-size-2xl) !important;
-		margin-bottom: var(--space-2) !important;
-	}
-
-	.student-pending-exam-info {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-2) !important;
-		width: 100% !important;
-		text-align: center !important;
-	}
-
-	.student-pending-exam-title {
-		text-align: center !important;
-		font-size: var(--font-size-base) !important;
-		font-weight: var(--font-weight-semibold) !important;
-		margin-bottom: var(--space-1) !important;
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-1) !important;
-	}
-
-	.student-pending-exam-required {
-		display: inline-block !important;
-		margin: 0 auto !important;
-	}
-
-	.student-pending-exam-meta {
-		display: flex !important;
-		flex-direction: column !important;
-		align-items: center !important;
-		gap: var(--space-1) !important;
-		text-align: center !important;
-	}
-
-	.student-pending-exam-course,
-	.student-pending-exam-score {
-		text-align: center !important;
-		font-size: var(--font-size-sm) !important;
-	}
-
-	.student-pending-exam-arrow {
-		display: none !important;
-	}
-
 	/* Widget Empty States - Centered */
-	
 
-	
+
+
 
 	.student-widget-empty {
 		text-align: center !important;
 		margin: 0 !important;
 	}
 
-	
+
 
 	/* Widget Count Badges - Centered */
-	
+
 
 	/* Widget Headers - Centered */
 	.student-widget-header {
@@ -1646,41 +1328,11 @@
 		width: 100% !important;
 	}
 
-	
+
 
 	/* Widget Content - Centered */
 	.student-widget-content {
 		text-align: center !important;
-	}
-
-	.student-widget-content .student-btn-link {
-		width: 100% !important;
-		justify-content: center !important;
-		margin-top: var(--space-4) !important;
-	}
-
-	/* Courses Page - Mobile Optimization */
-
-	.course-card {
-		width: 100% !important;
-		margin: 0 !important;
-		border-radius: var(--radius-lg) !important;
-		overflow: hidden !important;
-		box-shadow: var(--shadow-md) !important;
-		transition: all var(--transition-base) !important;
-	}
-
-	.course-card-content {
-		padding: var(--space-3) var(--space-4) !important;
-	}
-
-	.course-card-thumbnail {
-		height: 140px !important;
-	}
-
-	.course-card:active {
-		transform: scale(0.98) !important;
-		box-shadow: var(--shadow-lg) !important;
 	}
 
 	/* Events Page - Mobile Optimization */
@@ -2424,9 +2076,9 @@
 		margin-bottom: var(--space-2) !important;
 	}
 
-	
 
-	
+
+
 
 	.va-completed-course-card {
 		padding: var(--space-3) var(--space-4) !important;
@@ -2527,11 +2179,6 @@
 		white-space: nowrap;
 	}
 
-	/* Course cards */
-	.course-card {
-		width: 100%;
-	}
-
 	/* Dashboard stats */
 
 	/* Forms */
@@ -2566,24 +2213,18 @@
 	.card,
 .va-card,
 .admin-card,
-.course-card,
 .va-card-enhanced {
 		padding: var(--space-2) var(--space-3) !important;
 		margin-bottom: var(--space-3);
 	}
 
-	.course-card-content,
-.va-card-body {
+	.va-card-body {
 		padding: var(--space-2) var(--space-3) !important;
 	}
 
 	.va-course-card,
 	.va-completed-course-card {
 		padding: var(--space-2) var(--space-3) !important;
-	}
-
-	.course-card-thumbnail {
-		height: 120px !important;
 	}
 
 	.events-grid {
@@ -3530,56 +3171,6 @@
    ============================================ */
 
 @media (max-width: 768px) {
-	.course-creation-wizard-page {
-		padding: var(--space-4);
-	}
-
-	.course-creation-wizard {
-		padding: var(--space-4);
-	}
-
-	.course-creation-wizard-header {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--space-3);
-	}
-
-	.course-creation-wizard-close {
-		min-width: 44px;
-		min-height: 44px;
-	}
-
-	.course-creation-wizard-steps-indicator {
-		overflow-x: auto;
-		-webkit-overflow-scrolling: touch;
-		padding-bottom: var(--space-2);
-	}
-
-	.course-creation-wizard-content {
-		flex-direction: column;
-	}
-
-	.course-creation-wizard-form-panel,
-	.course-creation-wizard-preview-panel {
-		width: 100%;
-	}
-
-	.course-creation-wizard-form-panel input,
-	.course-creation-wizard-form-panel select,
-	.course-creation-wizard-form-panel textarea {
-		font-size: 16px;
-		min-height: 44px;
-	}
-
-	.course-creation-wizard-footer {
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.course-creation-wizard-btn {
-		min-height: 44px;
-		width: 100%;
-	}
 
 	.admin-lesson-creator-page,
 	.admin-module-creator-page {
@@ -3604,48 +3195,11 @@
 	}
 }
 
-@media (max-width: 480px) {
-	.course-creation-wizard-page,
-	.course-creation-wizard {
-		padding: var(--space-3);
-	}
-}
-
 /* ============================================
    12h. USER COURSE DETAIL, EXAM, PROFILE - Mobile
    ============================================ */
 
 @media (max-width: 768px) {
-	.course-detail-back-btn,
-	.course-detail-action-btn {
-		min-height: 44px;
-	}
-
-	.course-detail-sidebar-back {
-		min-height: 44px;
-		align-items: center;
-	}
-
-	.course-detail-lesson,
-	.course-detail-module-header {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
-
-	.course-detail-quiz-answer-option {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
-
-	.course-detail-quiz-question-flag {
-		min-width: 44px;
-		min-height: 44px;
-	}
-
-	.course-detail-navigation .lms-btn-primary,
-	.course-detail-navigation .lms-btn-secondary {
-		min-height: 44px;
-	}
 
 	.student-exam-page {
 		padding: 0 !important;
@@ -3682,17 +3236,6 @@
 }
 
 @media (max-width: 480px) {
-	.course-detail-hero {
-		padding: var(--space-4) var(--space-3);
-	}
-
-	.course-detail-content {
-		padding: var(--space-4) var(--space-3);
-	}
-
-	.course-detail-quiz-questions-body {
-		padding: var(--space-3);
-	}
 
 	.student-exam-page {
 		padding: 0;
@@ -3808,46 +3351,16 @@
 
 @media (max-width: 768px) {
 	/* Course Progress Widget */
-	
 
-	
 
-	
+
+
+
 
 	/* Resume Learning */
 	.student-btn-resume {
 		min-height: 44px;
 		width: 100%;
-	}
-
-	/* Incomplete Lessons & Pending Exams */
-	.student-pending-exam-item {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
-
-	.student-btn-link {
-		min-height: 44px;
-		padding: var(--space-2) var(--space-3);
-	}
-
-	/* Badges Widget */
-
-	/* Lesson Notes */
-
-	/* Note Taking System */
-
-	/* Enhanced Video Player */
-
-	/* Progress Indicator */
-	.student-progress-indicator {
-		min-height: 8px;
-	}
-
-	/* Active Courses Grid */
-	.student-active-courses-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-3);
 	}
 
 	/* Course Structure (CourseDetailPage) */
@@ -3892,11 +3405,11 @@
 	/* Lesson Progress Indicator */
 
 	/* Pro Course Card (UI) */
-	
 
-	
 
-	
+
+
+
 }
 
 @media (max-width: 480px) {
@@ -4139,38 +3652,6 @@
 /* ============================================
    12m. CALENDAR VIEW, QUIZ, REWARDS - Mobile
    ============================================ */
-
-@media (max-width: 768px) {
-
-	.va-course-detail-layout {
-		flex-direction: column;
-	}
-
-	
-
-	
-
-	
-
-	.va-course-content-main {
-		margin-left: 0;
-		padding: var(--space-4);
-	}
-
-	.va-answer-option {
-		min-height: 44px;
-		padding: var(--space-3);
-	}
-
-	
-}
-
-@media (max-width: 480px) {
-
-	.va-course-content-main {
-		padding: var(--space-3);
-	}
-}
 
 /* ============================================
    13. AUTH PAGES (LOGIN/REGISTER) - Mobile
