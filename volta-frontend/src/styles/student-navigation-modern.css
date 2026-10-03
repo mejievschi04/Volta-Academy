@@ -505,8 +505,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 }
 
 /* Legacy pages - scrollable content, scrollbar hidden */
-.va-shell-topnav .lesson-detail-page,
-.va-shell-topnav .course-detail-page {
+.va-shell-topnav .lesson-detail-page {
 	padding-top: var(--space-4);
 	height: 100%;
 	overflow-y: auto;
@@ -516,8 +515,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	scrollbar-width: none;
 	-ms-overflow-style: none;
 }
-.va-shell-topnav .lesson-detail-page::-webkit-scrollbar,
-.va-shell-topnav .course-detail-page::-webkit-scrollbar {
+.va-shell-topnav .lesson-detail-page::-webkit-scrollbar {
 	display: none;
 }
 

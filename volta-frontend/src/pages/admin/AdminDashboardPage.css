@@ -497,11 +497,6 @@
 	}
 }
 
-.bar {
-	flex: 1;
-	border-radius: 3px 3px 0 0;
-}
-
 .chart-modern-empty {
 	margin: 8px 0 0;
 	font-size: var(--font-size-xs);

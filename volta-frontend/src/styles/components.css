@@ -322,16 +322,6 @@ html[data-theme='dark'] .lms-btn-secondary.va-btn-danger:hover:not(:disabled) {
 }
 
 /* ============================================
-   8. DIVIDERS
-   ============================================ */
-.divider {
-	height: 1px;
-	background-color: var(--border-primary);
-	border: none;
-	margin: var(--space-4) 0;
-}
-
-/* ============================================
    9. RESPONSIVE ADJUSTMENTS
    ============================================ */
 @media (max-width: 768px) {

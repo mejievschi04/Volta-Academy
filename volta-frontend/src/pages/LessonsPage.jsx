@@ -1,4 +1,3 @@
-import '../styles/course-detail-modern.css';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {

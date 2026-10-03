@@ -73,39 +73,6 @@
 }
 
 /* ============================================
-   2. COURSE CARD (Pro Courses)
-   ============================================ */
-
-/* ============================================
-   3. PROGRESS CHART
-   ============================================ */
-
-/* ============================================
-   4. WIDGET COMPONENTS
-   ============================================ */
-.course-progress-widget {
-	background-color: var(--bg-elevated);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
-	border: 1px solid var(--border-primary);
-	box-shadow: var(--shadow-sm);
-	transition: all var(--transition-base);
-}
-
-.course-progress-widget:hover {
-	box-shadow: var(--shadow-md);
-	border-color: var(--border-secondary);
-}
-
-/* ============================================
-   5. LOADING STATES
-   ============================================ */
-
-/* ============================================
-   6. ERROR STATES
-   ============================================ */
-
-/* ============================================
    7. RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {

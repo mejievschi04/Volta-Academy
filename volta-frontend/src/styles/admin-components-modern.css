@@ -1096,10 +1096,6 @@
 	border-left: 3px solid var(--color-primary);
 }
 
-.admin-course-table-row.has-alerts {
-	border-left: 3px solid var(--color-warning);
-}
-
 .admin-course-table-checkbox {
 	display: flex;
 	align-items: center;
@@ -2086,10 +2082,6 @@
 		transform: translateY(0);
 	}
 }
-
-/* ============================================
-   6. BULK ACTIONS BAR
-   ============================================ */
 
 /* ============================================
    7. COURSE CARD ADDITIONAL STYLES

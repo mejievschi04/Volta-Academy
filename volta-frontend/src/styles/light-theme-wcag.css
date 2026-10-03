@@ -144,9 +144,7 @@
 
 /* Butoane galbene - text NEGRU (brand rule) */
 [data-theme="light"] .lms-btn-primary,
-[data-theme="light"] .lms-btn-primary *,
-[data-theme="light"] .course-detail-lesson-number,
-[data-theme="light"] .course-detail-lesson-number * {
+[data-theme="light"] .lms-btn-primary * {
 	color: var(--text-inverse) !important;
 }
 

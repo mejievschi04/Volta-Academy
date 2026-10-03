@@ -150,9 +150,7 @@ html[data-theme="dark"] .admin-topnav-user-avatar * {
 }
 
 html[data-theme="dark"] .lms-btn-primary,
-html[data-theme="dark"] .lms-btn-primary *,
-html[data-theme="dark"] .course-detail-lesson-number,
-html[data-theme="dark"] .course-detail-lesson-number * {
+html[data-theme="dark"] .lms-btn-primary * {
 	color: var(--text-inverse) !important;
 }
 
@@ -209,8 +207,6 @@ html[data-theme="dark"] .courses-page-modern,
 html[data-theme="dark"] .lesson-page-modern,
 html[data-theme="dark"] .lessons-page-modern,
 html[data-theme="dark"] .lessons-page-player-layout,
-html[data-theme="dark"] .course-detail-page,
-html[data-theme="dark"] .course-detail-layout,
 html[data-theme="dark"] .admin-dashboard-page,
 html[data-theme="dark"] .va-profile-container,
 html[data-theme="dark"] .va-main:has(.library-page) {

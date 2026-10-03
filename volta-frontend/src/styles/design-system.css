@@ -313,17 +313,6 @@ h4 { font-size: var(--font-size-xl); }
 h5 { font-size: var(--font-size-lg); }
 h6 { font-size: var(--font-size-base); }
 
-/* Display Text - Hero Headings */
-
-/* Caption Text */
-.caption {
-	font-size: var(--font-size-caption);
-	color: var(--text-tertiary);
-	line-height: var(--line-height-normal);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
 p {
 	margin: 0;
 	color: var(--text-secondary);
@@ -339,10 +328,6 @@ a {
 a:hover {
 	color: var(--color-primary-hover);
 }
-
-/* ============================================
-   4. UTILITY CLASSES
-   ============================================ */
 
 /* ============================================
    4b. SELECTION & REDUCED MOTION
@@ -485,14 +470,3 @@ a:focus-visible {
 	.sm\:hidden { display: none; }
 }
 
-@media (min-width: 768px) {
-	.md\:hidden { display: none; }
-	.md\:block { display: block; }
-	.md\:flex { display: flex; }
-}
-
-@media (min-width: 1024px) {
-	.lg\:hidden { display: none; }
-	.lg\:block { display: block; }
-	.lg\:flex { display: flex; }
-}
