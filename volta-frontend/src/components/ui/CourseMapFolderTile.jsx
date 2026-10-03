@@ -33,6 +33,8 @@ const CourseMapFolderTile = ({
 	];
 
 	const handleKeyDown = (event) => {
+		// doar când mapa are focusul: tastele de pe butoanele din card (ex. mutare) nu o deschid
+		if (event.target !== event.currentTarget) return;
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			onOpen?.();

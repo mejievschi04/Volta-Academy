@@ -16,7 +16,7 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DragGripIcon } from '../../components/common/DragGripIcon';
+import { DragHandle } from '../../components/common/DragHandle';
 import {
 	CourseShowcaseEditButton,
 	CourseShowcasePublishToggle,
@@ -63,20 +63,7 @@ function SortableAdminCourseCard({
 	};
 	const imageUrl = coverSrc || COURSE_SHOWCASE_FALLBACK_IMAGE;
 	const dragHandle = canMutate ? (
-		<span
-			className="course-showcase-dnd-handle va-card-icon-btn"
-			{...attributes}
-			{...listeners}
-			aria-label="Trage pentru a reordona cursul"
-			title="Reordonare"
-			onClick={(e) => e.stopPropagation()}
-			onKeyDown={(e) => {
-				e.stopPropagation();
-				if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-			}}
-		>
-			<DragGripIcon size={14} />
-		</span>
+		<DragHandle attributes={attributes} listeners={listeners} label="Trage pentru a reordona cursul" />
 	) : null;
 
 	return (

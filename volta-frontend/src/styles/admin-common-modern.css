@@ -682,12 +682,13 @@ body.admin-view .va-main {
 	flex-shrink: 0;
 }
 
+/* pe fundalul galben iconița rămâne închisă și în tema întunecată (albă nu se vedea) */
 html[data-theme="dark"] .admin-team-card-compact__avatar {
-	color: var(--text-primary);
+	color: var(--btn-primary-text);
 }
 
 html[data-theme="dark"] .admin-team-card-compact__avatar svg {
-	color: var(--text-primary);
+	color: var(--btn-primary-text);
 }
 
 .admin-team-card-compact__stats {
@@ -837,37 +838,6 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 
 .admin-team-card-sortable {
 	position: relative;
-}
-
-.admin-team-card-sortable .admin-card-body {
-	padding-left: 36px;
-}
-
-.admin-team-drag-handle {
-	position: absolute;
-	left: 8px;
-	top: 14px;
-	z-index: 5;
-	width: 32px;
-	height: 32px;
-	border: none;
-	border-radius: 8px;
-	background: rgba(0, 0, 0, 0.06);
-	cursor: grab;
-	font-size: 12px;
-	line-height: 1;
-	color: var(--text-secondary);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.admin-team-drag-handle:hover {
-	background: rgba(0, 0, 0, 0.1);
-}
-
-.admin-team-drag-handle:active {
-	cursor: grabbing;
 }
 
 .admin-team-member-assign-list {
@@ -2481,4 +2451,76 @@ html[data-theme='dark'] body .admin-back-btn.admin-back-btn {
 	border-color: var(--border-secondary) !important;
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
+}
+
+/*
+ * Antetul cardului de echipă pe două rânduri: sus mutarea (stânga) și editare/ștergere (dreapta),
+ * ca pe cardurile de mape; dedesubt iconița și numele pe toată lățimea (înainte numele se rupea).
+ */
+html body .admin-team-card-compact .admin-team-card-compact__header {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	column-gap: var(--space-3);
+	row-gap: var(--space-3);
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__header-main {
+	display: contents;
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__header-main > .va-drag-handle {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__header-actions {
+	grid-column: 3;
+	grid-row: 1;
+	width: auto;
+	justify-content: flex-end;
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__avatar {
+	grid-column: 1;
+	grid-row: 2;
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__title-wrap {
+	grid-column: 2 / -1;
+	grid-row: 2;
+}
+
+/* fără mutare (ex. analist): primul rând are doar acțiunile sau dispare */
+html body .admin-team-card-compact .admin-team-card-compact__header:not(:has(.va-drag-handle)):not(:has(.admin-team-card-compact__header-actions)) .admin-team-card-compact__avatar,
+html body .admin-team-card-compact .admin-team-card-compact__header:not(:has(.va-drag-handle)):not(:has(.admin-team-card-compact__header-actions)) .admin-team-card-compact__title-wrap {
+	grid-row: 1;
+}
+
+/* editare și ștergere: același format ca butonul de mutare */
+html body .admin-team-card-compact .admin-team-card-compact__icon-btn.admin-team-card-compact__icon-btn {
+	/* !important: stratul global al butoanelor .admin-btn le face rotunde de 40px pe desktop */
+	width: 32px !important;
+	min-width: 32px !important;
+	height: 32px !important;
+	min-height: 32px !important;
+	padding: 0 !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 8px !important;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__icon-btn.admin-team-card-compact__icon-btn:hover {
+	border-color: var(--btn-outline-border-hover) !important;
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__icon-btn--danger.admin-team-card-compact__icon-btn--danger {
+	color: var(--color-error);
+}
+
+html body .admin-team-card-compact .admin-team-card-compact__icon-btn--danger.admin-team-card-compact__icon-btn--danger:hover {
+	border-color: var(--color-error) !important;
+	background: color-mix(in srgb, var(--color-error) 12%, var(--bg-elevated));
 }

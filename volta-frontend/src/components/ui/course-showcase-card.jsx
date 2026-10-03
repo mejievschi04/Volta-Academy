@@ -75,6 +75,8 @@ const CourseShowcaseCard = React.forwardRef(
 					tabIndex={0}
 					onClick={onOpen}
 					onKeyDown={(e) => {
+						// doar când cardul are focusul: tastele de pe butoanele din card (ex. mutare) nu îl deschid
+						if (e.target !== e.currentTarget) return;
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
 							onOpen();

@@ -3,12 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\Course;
+use App\Models\CourseMap;
 use App\Models\CourseTest;
 use App\Models\Lesson;
 use App\Models\MediaAsset;
 use App\Models\Module;
 use App\Models\Question;
 use App\Models\QuestionBank;
+use App\Models\Team;
 use App\Models\Test;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -191,6 +193,21 @@ class E2eSeeder extends Seeder
                 'order' => 1,
             ]));
         }
+
+        // O mapă privată (doar pentru admin) cu două cursuri și o echipă: cardurile lor au butonul de reordonare.
+        $map = CourseMap::create([
+            'name' => 'Mapă E2E',
+            'description' => 'Mapă folosită de testele end-to-end.',
+            'visibility' => 'private',
+            'created_by' => $admin->id,
+            'order' => 0,
+        ]);
+        $map->courses()->attach([
+            $course->id => ['order' => 0],
+            Course::where('title', 'Curs editor desktop')->value('id') => ['order' => 1],
+        ]);
+        Team::create(['name' => 'Echipa E2E', 'description' => 'Echipă de test', 'owner_id' => $admin->id, 'sort_order' => 0]);
+        Team::create(['name' => 'Echipa E2E 2', 'description' => 'A doua echipă de test', 'owner_id' => $admin->id, 'sort_order' => 1]);
 
         // Cursanții văd doar cursurile atribuite.
         foreach ($students as $student) {

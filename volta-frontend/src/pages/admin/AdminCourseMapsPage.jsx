@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { MagnifyingGlass, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
-import { DragGripIcon } from '../../components/common/DragGripIcon';
+import { DragHandle } from '../../components/common/DragHandle';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -93,20 +93,7 @@ function SortableAdminMapShowcase({
 
 	const dragHandle =
 		canMutate && isRealMapId(map.id) ? (
-			<span
-				className="course-showcase-dnd-handle va-card-icon-btn"
-				{...attributes}
-				{...listeners}
-				aria-label="Trage pentru a reordona mapa"
-				title="Reordonare"
-				onClick={(e) => e.stopPropagation()}
-				onKeyDown={(e) => {
-					e.stopPropagation();
-					if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-				}}
-			>
-				<DragGripIcon size={14} />
-			</span>
+			<DragHandle attributes={attributes} listeners={listeners} label="Trage pentru a reordona mapa" />
 		) : null;
 
 	return (

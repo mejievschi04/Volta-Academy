@@ -32,7 +32,7 @@ import { normalizeColorInputToHex } from '../../utils/color';
 import { matchesDirectorySearch } from '../../utils/directorySearch';
 import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
 import { Books, PencilSimple, Plus, Trash, UsersThree } from '@phosphor-icons/react';
-import { DragGripIcon } from '../../components/common/DragGripIcon';
+import { DragHandle } from '../../components/common/DragHandle';
 
 const teamIconSm = { size: 16, weight: 'bold', 'aria-hidden': true };
 
@@ -54,19 +54,10 @@ function SortableTeamCard({ team, index, canMutate, children }) {
 			style={{ ...style, borderLeft: `8px solid ${accent}` }}
 			className="admin-card admin-team-card-compact admin-team-card-sortable"
 		>
-			{canMutate && (
-				<button
-					type="button"
-					className="admin-team-drag-handle"
-					{...attributes}
-					{...listeners}
-					aria-label="Trage pentru a reordona echipa"
-					title="Reordonare"
-				>
-					<DragGripIcon size={14} />
-				</button>
-			)}
-			{children}
+			{/* butonul de mutare stă în antetul cardului, ca la cursuri și mape în colțul din stânga */}
+			{children(canMutate ? (
+				<DragHandle attributes={attributes} listeners={listeners} label="Trage pentru a reordona echipa" />
+			) : null)}
 		</div>
 	);
 }
@@ -284,10 +275,12 @@ const AdminTeamsPage = () => {
 						<div className="admin-grid admin-teams-page-grid">
 							{orderedTeams.map((team, index) => (
 								<SortableTeamCard key={team.id} team={team} index={index} canMutate={canMutateInAdminArea}>
+							{(dragHandle) => (
 							<div className="admin-card-body">
 								{/* Header with icon and actions */}
 								<div className="admin-team-card-compact__header">
 									<div className="admin-team-card-compact__header-main">
+										{dragHandle}
 										<div className="admin-team-card-compact__avatar" aria-hidden>
 											<UsersThree size={20} weight="duotone" aria-hidden />
 										</div>
@@ -377,6 +370,7 @@ const AdminTeamsPage = () => {
 								</div>
 								)}
 							</div>
+							)}
 								</SortableTeamCard>
 							))}
 						</div>

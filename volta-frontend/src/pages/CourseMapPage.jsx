@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowLeft, Info } from '@phosphor-icons/react';
 import CourseMapHeaderStyleEditor from '../components/admin/course-maps/CourseMapHeaderStyleEditor';
-import { DragGripIcon } from '../components/common/DragGripIcon';
+import { DragHandle } from '../components/common/DragHandle';
 import {
 	CourseShowcaseEditButton,
 	CourseShowcasePublishToggle,
@@ -101,20 +101,7 @@ function SortableCourseMapCourseCard({
 	const coverSrc = courseCoverSrc(course);
 	const imageUrl = coverSrc || COURSE_SHOWCASE_FALLBACK_IMAGE;
 	const dragHandle = (
-		<span
-			className="course-showcase-dnd-handle"
-			{...attributes}
-			{...listeners}
-			aria-label="Trage pentru a reordona cursul în mapă"
-			title="Reordonare"
-			onClick={(e) => e.stopPropagation()}
-			onKeyDown={(e) => {
-				e.stopPropagation();
-				if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-			}}
-		>
-			<DragGripIcon size={14} />
-		</span>
+		<DragHandle attributes={attributes} listeners={listeners} label="Trage pentru a reordona cursul în mapă" />
 	);
 	return (
 		<div

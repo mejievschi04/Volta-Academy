@@ -1759,12 +1759,6 @@
 	padding: var(--space-2, 8px) var(--space-4, 16px);
 }
 
-.admin-course-map-showcase-wrap--sortable .course-showcase-dnd-handle {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-}
-
 /* Mapă admin — variantă CourseShowcaseCard */
 .admin-course-map-showcase-wrap {
 	position: relative;
@@ -1804,7 +1798,6 @@
 	margin-left: 0;
 }
 
-.admin-course-map-showcase-wrap .course-showcase-dnd-handle,
 .admin-course-map-showcase-wrap .admin-course-map-delete-btn,
 .admin-course-map-showcase-wrap .admin-course-map-footer-actions .admin-course-map-edit-btn {
 	position: static;
@@ -1839,7 +1832,6 @@
 	box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
 
-[data-theme="light"] .admin-course-map-showcase-wrap .course-showcase-dnd-handle,
 [data-theme="light"] .admin-course-map-showcase-wrap .admin-course-map-footer-actions .admin-course-map-edit-btn {
 	background: #ffffff;
 	color: var(--text-primary);
