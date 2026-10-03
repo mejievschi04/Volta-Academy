@@ -77,6 +77,43 @@ html body .va-dialog__section-title {
 	color: var(--text-primary);
 }
 
+/* File în fereastră (ex. mapa: Aspect / Cursuri) */
+html body .va-dialog__tabs {
+	display: flex;
+	flex: 0 0 auto;
+	gap: 8px;
+	margin-left: auto;
+}
+
+html body .va-dialog__tab.va-dialog__tab {
+	display: inline-flex;
+	align-items: center;
+	min-height: 36px;
+	padding: 0 16px;
+	border: 1px solid var(--btn-outline-border);
+	border-radius: 999px;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+html body .va-dialog__tab.va-dialog__tab:hover {
+	border-color: var(--btn-outline-border-hover);
+}
+
+html body .va-dialog__tab.va-dialog__tab.is-active {
+	border-color: var(--btn-primary-border);
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+}
+
+html body .va-dialog__tab.va-dialog__tab:focus-visible {
+	outline: 2px solid var(--border-focus);
+	outline-offset: 2px;
+}
+
 /* ---------- Grila de câmpuri ---------- */
 
 html body .va-form-grid {
@@ -332,6 +369,22 @@ html body .va-list__empty {
 		padding: 12px 16px;
 	}
 
+	/* pe telefon filele trec sub titlu, pe toată lățimea */
+	html body .va-dialog__header:has(.va-dialog__tabs) {
+		flex-wrap: wrap;
+	}
+
+	html body .va-dialog__tabs {
+		order: 3;
+		width: 100%;
+		margin-left: 0;
+	}
+
+	html body .va-dialog__tab.va-dialog__tab {
+		flex: 1 1 0;
+		justify-content: center;
+	}
+
 	html body .va-dialog__footer > * {
 		flex: 1 1 0;
 	}
@@ -359,11 +412,7 @@ html body .va-field-stack {
 	min-width: 0;
 }
 
-/* Fereastra mapei: date | previzualizare + copertă | cursuri, fără derulare pe desktop */
-html body .va-dialog.admin-course-map-dialog--with-courses {
-	width: min(1120px, calc(100vw - 32px));
-}
-
+/* Fereastra mapei: fila Aspect (date | previzualizare + copertă) și fila Cursuri */
 html body .admin-course-map-dialog__grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -371,8 +420,29 @@ html body .admin-course-map-dialog__grid {
 	gap: 24px;
 }
 
-html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+html body .admin-course-map-dialog__courses-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 24px;
+}
+
+/* <section> primește spațiere din regulile globale de pe telefon */
+html body .va-dialog .admin-course-map-dialog__courses {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+html body .admin-course-map-dialog__courses .va-list--scroll {
+	max-height: 340px;
+}
+
+/* panoul filei neselectate (display: grid de mai sus ar anula atributul hidden) */
+html body .admin-course-map-dialog [hidden] {
+	display: none !important;
 }
 
 html body .admin-course-map-dialog__preview {
@@ -415,29 +485,10 @@ html body .admin-course-map-dialog__cover .map-cover-focus-editor__zoom::before 
 	color: var(--text-secondary);
 }
 
-html body .admin-course-map-dialog__courses .va-list--scroll {
-	max-height: 150px;
-}
-
-html body .admin-course-map-dialog__courses {
-	gap: 16px;
-}
-
-@media (max-width: 1100px) {
-	html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	html body .admin-course-map-dialog__courses {
-		grid-column: 1 / -1;
-		padding-top: 16px;
-		border-top: 1px solid var(--border-primary);
-	}
-}
 
 @media (max-width: 640px) {
 	html body .admin-course-map-dialog__grid,
-	html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
+	html body .admin-course-map-dialog__courses-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }

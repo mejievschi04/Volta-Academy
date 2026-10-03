@@ -187,6 +187,8 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [showCreateModal, setShowCreateModal] = useState(false);
+	// fereastra de editare are două file: aspectul mapei și cursurile din ea
+	const [mapDialogTab, setMapDialogTab] = useState('aspect');
 	const [editingMap, setEditingMap] = useState(null);
 	const [managingMap, setManagingMap] = useState(null);
 	const [allCourses, setAllCourses] = useState([]);
@@ -282,6 +284,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		setPendingMapCoverPreviewUrl(null);
 		setFormCoverFocus(DEFAULT_COVER_FOCUS);
 		setCoverBusy(false);
+		setMapDialogTab('aspect');
 		setShowCreateModal(true);
 	};
 
@@ -299,6 +302,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			setCoverBusy(false);
 			setAddCourseIds([]);
 			fetchCourses();
+			setMapDialogTab('aspect');
 			setShowCreateModal(true);
 		} catch  {
 			showToast('Nu s-a putut încărca mapa', 'error');
@@ -592,15 +596,42 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 				className="va-dialog-overlay"
 				unstyledContent
 			>
-				<div className={`va-dialog va-dialog--wide admin-course-map-dialog${editingMap ? ' admin-course-map-dialog--with-courses' : ''}`}>
+				<div className="va-dialog va-dialog--wide admin-course-map-dialog">
 					<header className="va-dialog__header">
 						<h2 id="course-map-dialog-title" className="va-dialog__title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
+						{editingMap ? (
+							<div className="va-dialog__tabs" role="tablist" aria-label="Secțiuni mapă">
+								{[
+									['aspect', 'Aspect'],
+									['courses', `Cursuri (${(editingMap.courses || []).length})`],
+								].map(([id, label]) => (
+									<button
+										key={id}
+										type="button"
+										role="tab"
+										id={`course-map-tab-${id}`}
+										aria-controls={`course-map-panel-${id}`}
+										aria-selected={mapDialogTab === id}
+										className={`va-dialog__tab${mapDialogTab === id ? ' is-active' : ''}`}
+										onClick={() => setMapDialogTab(id)}
+									>
+										{label}
+									</button>
+								))}
+							</div>
+						) : null}
 						<button type="button" className="va-close-btn" onClick={closeCreateModal} aria-label="Închide">
 							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</header>
 					<div className="va-dialog__body">
-						<div className="admin-course-map-dialog__grid">
+						<div
+							className="admin-course-map-dialog__grid"
+							id="course-map-panel-aspect"
+							role={editingMap ? 'tabpanel' : undefined}
+							aria-labelledby={editingMap ? 'course-map-tab-aspect' : undefined}
+							hidden={Boolean(editingMap) && mapDialogTab !== 'aspect'}
+						>
 							<div className="va-field-stack">
 								<div className="va-field">
 									<label htmlFor="course-map-name">Nume</label>
@@ -720,72 +751,78 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 								</div>
 							</div>
 
-							{editingMap ? (
-								<section className="va-field-stack admin-course-map-dialog__courses" aria-label="Cursuri în mapă">
-									<div className="va-field-stack">
-										<div className="va-field">
-											<h3 className="va-dialog__section-title">În mapă</h3>
-											{(editingMap.courses || []).length === 0 ? (
-												<p className="va-list__empty">Niciun curs.</p>
-											) : (
-												<ul className="va-list va-list--scroll">
-													{(editingMap.courses || []).map((c) => (
-														<li key={c.id}>
+						</div>
+						{editingMap ? (
+							<section
+								className="admin-course-map-dialog__courses"
+								id="course-map-panel-courses"
+								role="tabpanel"
+								aria-labelledby="course-map-tab-courses"
+								hidden={mapDialogTab !== 'courses'}
+							>
+								<div className="admin-course-map-dialog__courses-grid">
+									<div className="va-field">
+										<h3 className="va-dialog__section-title">În mapă</h3>
+										{(editingMap.courses || []).length === 0 ? (
+											<p className="va-list__empty">Niciun curs.</p>
+										) : (
+											<ul className="va-list va-list--scroll">
+												{(editingMap.courses || []).map((c) => (
+													<li key={c.id}>
+														<span>{c.title}</span>
+														<button
+															type="button"
+															className="lms-btn-secondary lms-btn-sm"
+															onClick={() => removeCourseFromMap(c.id, true)}
+															aria-label={`Scoate ${c.title} din mapă`}
+														>
+															Scoate
+														</button>
+													</li>
+												))}
+											</ul>
+										)}
+									</div>
+									<div className="va-field">
+										<h3 className="va-dialog__section-title">Adaugă cursuri</h3>
+										{availableCoursesForEdit.length === 0 ? (
+											<p className="va-list__empty">Nu mai sunt cursuri disponibile.</p>
+										) : (
+											<ul className="va-list va-list--scroll" role="group" aria-label="Selectează cursuri de adăugat">
+												{availableCoursesForEdit.map((c) => (
+													<li key={c.id}>
+														<label className="va-check">
+															<input
+																type="checkbox"
+																checked={addCourseIds.includes(c.id)}
+																onChange={(e) => {
+																	if (e.target.checked) {
+																		setAddCourseIds((prev) => [...prev, c.id]);
+																	} else {
+																		setAddCourseIds((prev) => prev.filter((id) => id !== c.id));
+																	}
+																}}
+															/>
 															<span>{c.title}</span>
-															<button
-																type="button"
-																className="lms-btn-secondary lms-btn-sm"
-																onClick={() => removeCourseFromMap(c.id, true)}
-																aria-label={`Scoate ${c.title} din mapă`}
-															>
-																Scoate
-															</button>
-														</li>
-													))}
-												</ul>
-											)}
-										</div>
-										<div className="va-field">
-											<h3 className="va-dialog__section-title">Adaugă cursuri</h3>
-											{availableCoursesForEdit.length === 0 ? (
-												<p className="va-list__empty">Nu mai sunt cursuri disponibile.</p>
-											) : (
-												<ul className="va-list va-list--scroll" role="group" aria-label="Selectează cursuri de adăugat">
-													{availableCoursesForEdit.map((c) => (
-														<li key={c.id}>
-															<label className="va-check">
-																<input
-																	type="checkbox"
-																	checked={addCourseIds.includes(c.id)}
-																	onChange={(e) => {
-																		if (e.target.checked) {
-																			setAddCourseIds((prev) => [...prev, c.id]);
-																		} else {
-																			setAddCourseIds((prev) => prev.filter((id) => id !== c.id));
-																		}
-																	}}
-																/>
-																<span>{c.title}</span>
-															</label>
-														</li>
-													))}
-												</ul>
-											)}
-											<div className="va-media-field__actions">
-												<button
-													type="button"
-													className="lms-btn-primary lms-btn-sm"
-													onClick={() => addCoursesToMap(true)}
-													disabled={addCourseIds.length === 0}
-												>
-													Adaugă în mapă{addCourseIds.length > 0 ? ` (${addCourseIds.length})` : ''}
-												</button>
-											</div>
+														</label>
+													</li>
+												))}
+											</ul>
+										)}
+										<div className="va-media-field__actions">
+											<button
+												type="button"
+												className="lms-btn-primary lms-btn-sm"
+												onClick={() => addCoursesToMap(true)}
+												disabled={addCourseIds.length === 0}
+											>
+												Adaugă în mapă{addCourseIds.length > 0 ? ` (${addCourseIds.length})` : ''}
+											</button>
 										</div>
 									</div>
-								</section>
-							) : null}
-						</div>
+								</div>
+							</section>
+						) : null}
 					</div>
 					<footer className="va-dialog__footer">
 						<button type="button" className="lms-btn-secondary" onClick={closeCreateModal}>

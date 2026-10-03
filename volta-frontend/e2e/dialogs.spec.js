@@ -47,16 +47,21 @@ test('salvează descrierea mapei din fereastra de editare', async ({ page }, tes
 
 	await expect(dialog.getByLabel('Nume')).toHaveValue('Mapă E2E');
 
-	// coperta: imaginea apare, iar lista „În mapă” rămâne (răspunsul la încărcare nu conține cursurile)
+	// fila Aspect: coperta se încarcă, iar pe desktop totul încape fără derulare
+	await expect(dialog.getByRole('tab', { name: 'Aspect' })).toHaveAttribute('aria-selected', 'true');
 	await dialog.locator('input[type="file"]').setInputFiles(coverPath);
 	await expect(page.getByText('Coperta a fost încărcată')).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Schimbă imaginea' })).toBeVisible();
-	await expect(dialog.getByRole('button', { name: 'Scoate Curs E2E din mapă' })).toBeVisible();
 	if (testInfo.project.name === 'desktop') {
-		// pe desktop totul încape fără derulare, chiar și cu coperta
 		const [scrollHeight, clientHeight] = await dialog.locator('.va-dialog__body').evaluate((el) => [el.scrollHeight, el.clientHeight]);
 		expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
 	}
+
+	// fila Cursuri: lista „În mapă” a rămas după încărcarea copertei (răspunsul nu conține cursurile)
+	await dialog.getByRole('tab', { name: /Cursuri/ }).click();
+	await expect(dialog.getByRole('button', { name: 'Scoate Curs E2E din mapă' })).toBeVisible();
+	await expect(dialog.getByLabel('Nume')).toBeHidden();
+	await dialog.getByRole('tab', { name: 'Aspect' }).click();
 
 	await dialog.getByLabel(/Descriere/).fill(description);
 	await save.click();
