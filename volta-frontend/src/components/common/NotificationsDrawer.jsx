@@ -12,10 +12,6 @@ import {
 } from '../../utils/notificationInboxStorage';
 import './NotificationsDrawer.css';
 
-const CloseIcon = () => (
-	<X size={22} weight="bold" aria-hidden />
-);
-
 function StudentRowIcon({ type }) {
 	if (type === 'pending_exam') {
 		return (
@@ -151,8 +147,8 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 						</h2>
 						<p className="va-notif-drawer-sub">{subtitle}</p>
 					</div>
-					<button type="button" className="va-notif-drawer-close" onClick={onClose} aria-label="Închide">
-						<CloseIcon />
+					<button type="button" className="va-notif-drawer-close va-close-btn" onClick={onClose} aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</header>
 

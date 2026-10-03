@@ -536,11 +536,11 @@ const LessonsPage = () => {
 							<span>Înapoi</span>
 						</button>
 						<button 
-							className="lessons-page-sidebar-close-btn"
+							className="lessons-page-sidebar-close-btn va-close-btn"
 							onClick={() => setSidebarOpen(false)}
 							aria-label="Închide meniul"
 						>
-							<X size={24} weight="bold" aria-hidden />
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 					<h2 className="lessons-page-sidebar-title">{course.title}</h2>

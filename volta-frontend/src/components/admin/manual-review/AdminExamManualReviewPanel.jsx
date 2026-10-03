@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { X } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
@@ -232,11 +233,12 @@ export default function AdminExamManualReviewPanel() {
 							</div>
 							<button
 								type="button"
-								className="admin-exams-manual-modal-close"
+								className="admin-exams-manual-modal-close va-close-btn"
 								onClick={() => !manualReviewSubmitting && closeManualReviewModal()}
 								disabled={manualReviewSubmitting}
+								aria-label="Închide"
 							>
-								×
+								<X size={18} weight="bold" aria-hidden="true" />
 							</button>
 						</div>
 						<div className="admin-exams-manual-test-preview">

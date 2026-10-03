@@ -219,11 +219,11 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 					)}
 					<button
 						type="button"
-						className="global-search-close"
+						className="global-search-close va-close-btn"
 						onClick={onClose}
 						aria-label="Închide căutarea"
 					>
-						<X size={16} weight="bold" aria-hidden />
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 					<div className="global-search-shortcut">
 						<kbd>⌘</kbd>

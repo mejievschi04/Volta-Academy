@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { X } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 
@@ -419,11 +420,11 @@ export default function AdminTestsPage() {
             <h2 id="admin-test-create-title" className="admin-team-modal-title">Test nou</h2>
             <button
               type="button"
-              className="admin-team-modal-close"
+              className="admin-team-modal-close va-close-btn"
               onClick={() => !creating && setShowCreateModal(false)}
               aria-label="Închide"
             >
-              ×
+              <X size={18} weight="bold" aria-hidden="true" />
             </button>
           </div>
           <div className="admin-team-modal-body">

@@ -1231,12 +1231,12 @@ function AuthenticatedLayout({ children, authContext }) {
 						<div className="sidebar-mobile-header">
 							<button
 								type="button"
-								className="sidebar-mobile-close"
+								className="sidebar-mobile-close va-close-btn"
 								onClick={() => setIsSidebarExpanded(false)}
 								title="Închide meniul"
 								aria-label="Închide meniul"
 							>
-								<X size={22} weight="bold" aria-hidden />
+								<X size={18} weight="bold" aria-hidden="true" />
 							</button>
 							<div className="sidebar-mobile-header-brand">
 								<img

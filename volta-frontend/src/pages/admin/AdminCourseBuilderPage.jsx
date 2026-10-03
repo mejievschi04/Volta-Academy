@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Plus, Trash } from '@phosphor-icons/react';
+import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Plus, Trash, X } from '@phosphor-icons/react';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -2058,8 +2058,8 @@ const AdminCourseBuilderPage = () => {
 										>
 											{qualityAuditLoading ? 'Se auditează…' : 'Re-rulează'}
 										</button>
-										<button type="button" className="admin-course-builder-qa-close" onClick={() => setQualityAuditReport(null)}>
-											×
+										<button type="button" className="admin-course-builder-qa-close va-close-btn" onClick={() => setQualityAuditReport(null)} aria-label="Închide">
+											<X size={18} weight="bold" aria-hidden="true" />
 										</button>
 									</div>
 								</div>

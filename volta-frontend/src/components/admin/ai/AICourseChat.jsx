@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
 import { useLocation } from 'react-router-dom';
 import { openaiService } from '../../../services/openaiService';
 import { adminService } from '../../../services/api';
@@ -1005,8 +1006,8 @@ const AICourseChat = ({
 						<h2 id={titleId}>{title}</h2>
 					</div>
 					{onClose && (
-						<button type="button" className="ai-chat-close" onClick={onClose} aria-label="Închide">
-							×
+						<button type="button" className="ai-chat-close va-close-btn" onClick={onClose} aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					)}
 				</div>
@@ -1030,8 +1031,8 @@ const AICourseChat = ({
 					)}
 				</div>
 				{onClose && (
-					<button type="button" className="ai-chat-close" onClick={onClose} aria-label="Închide">
-						×
+					<button type="button" className="ai-chat-close va-close-btn" onClick={onClose} aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				)}
 			</div>

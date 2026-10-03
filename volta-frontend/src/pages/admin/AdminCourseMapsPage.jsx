@@ -16,7 +16,7 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { MagnifyingGlass, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import { MagnifyingGlass, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react';
 import { DragHandle } from '../../components/common/DragHandle';
 import { adminService } from '../../services/api';
 
@@ -600,7 +600,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 					>
 						<div className="admin-course-map-modal__head">
 							<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
-							<button type="button" className="admin-team-modal-close" onClick={closeCreateModal} aria-label="Închide">×</button>
+							<button type="button" className="admin-team-modal-close va-close-btn" onClick={closeCreateModal} aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
 						</div>
 						<div className="admin-modal-body">
 							<div className="admin-course-map-modal__identity">

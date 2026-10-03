@@ -1,4 +1,5 @@
 import { emptyEventForm, DEFAULT_DURATION_MINUTES } from './AdminEventFormModalShared.js';
+import { X } from '@phosphor-icons/react';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { adminService } from '../../../services/api';
 
@@ -270,14 +271,15 @@ const EventForm = ({ open, onClose, editingEvent, prefill, onSaved }) => {
 					</h2>
 					<button
 						type="button"
-						className="admin-event-modal-close"
+						className="admin-event-modal-close va-close-btn"
 						onClick={() => {
 							onClose();
 							resetForm();
 						}}
 						title="Închide"
+						aria-label="Închide"
 					>
-						×
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 				<div ref={bodyRef} className="admin-event-modal-body">

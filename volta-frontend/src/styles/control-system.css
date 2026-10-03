@@ -526,3 +526,89 @@ html[data-theme='dark'] body .va-publish-switch.va-publish-switch:not([aria-chec
 	background: #4b5563 !important;
 	background-color: #4b5563 !important;
 }
+
+/*
+ * Butonul de închidere (X) din ferestre, panouri, sertare și notificări: un singur aspect.
+ * Clasele proprii (ex. .admin-team-modal-close) rămân doar pentru poziționare.
+ */
+html body .va-close-btn.va-close-btn {
+	display: inline-flex !important;
+	flex: 0 0 auto !important;
+	align-items: center !important;
+	justify-content: center !important;
+	box-sizing: border-box !important;
+	width: 36px !important;
+	min-width: 36px !important;
+	max-width: 36px !important;
+	height: 36px !important;
+	min-height: 36px !important;
+	max-height: 36px !important;
+	padding: 0 !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 8px !important;
+	background: var(--bg-elevated) !important;
+	background-color: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
+	font-size: 0 !important;
+	line-height: 1 !important;
+	opacity: 1 !important;
+	cursor: pointer;
+	transform: none !important;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+html body .va-close-btn.va-close-btn:hover:not(:disabled) {
+	background: var(--bg-secondary) !important;
+	background-color: var(--bg-secondary) !important;
+	border-color: var(--btn-outline-border-hover) !important;
+	color: var(--text-primary) !important;
+}
+
+html body .va-close-btn.va-close-btn:active:not(:disabled) {
+	transform: scale(0.94) !important;
+}
+
+html body .va-close-btn.va-close-btn:focus-visible {
+	outline: 2px solid var(--border-focus) !important;
+	outline-offset: 2px !important;
+}
+
+html body .va-close-btn.va-close-btn:disabled {
+	opacity: 0.5 !important;
+	cursor: not-allowed;
+}
+
+html body .va-close-btn.va-close-btn svg {
+	width: 18px !important;
+	height: 18px !important;
+	color: inherit !important;
+	fill: currentColor;
+	pointer-events: none;
+}
+
+@media (max-width: 768px) {
+	html body .va-close-btn.va-close-btn {
+		width: 40px !important;
+		min-width: 40px !important;
+		max-width: 40px !important;
+		height: 40px !important;
+		min-height: 40px !important;
+		max-height: 40px !important;
+	}
+}
+
+/* varianta mică, în notificările toast */
+html body .va-close-btn.va-close-btn.va-close-btn--sm {
+	width: 28px !important;
+	min-width: 28px !important;
+	max-width: 28px !important;
+	height: 28px !important;
+	min-height: 28px !important;
+	max-height: 28px !important;
+}
+
+html body .va-close-btn.va-close-btn.va-close-btn--sm svg {
+	width: 14px !important;
+	height: 14px !important;
+}

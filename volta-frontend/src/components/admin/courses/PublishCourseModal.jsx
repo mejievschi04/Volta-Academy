@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { X } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
 import { teamAccent } from '../../../utils/teamAccent';
 import {
@@ -220,7 +221,7 @@ const PublishCourseModal = ({
 					<h2 id="publish-course-modal-title" className="admin-team-modal-title">
 						Publicare curs
 					</h2>
-					<button type="button" className="admin-team-modal-close" onClick={onClose} aria-label="Închide">×</button>
+					<button type="button" className="admin-team-modal-close va-close-btn" onClick={onClose} aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
 				</div>
 				<div className="admin-team-modal-body">
 					{error && (

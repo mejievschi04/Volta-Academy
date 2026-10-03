@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { UserList } from '@phosphor-icons/react';
+import { UserList, X } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
 import EventDescriptionExpandable from '../../common/EventDescriptionExpandable';
 import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
@@ -134,8 +134,8 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 						<h2 id="aev-detail-title" className="admin-event-modal-title">
 							{loading ? 'Se încarcă…' : event?.title || 'Eveniment'}
 						</h2>
-						<button type="button" className="admin-event-modal-close" onClick={onClose} title="Închide">
-							×
+						<button type="button" className="admin-event-modal-close va-close-btn" onClick={onClose} title="Închide" aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 

@@ -62,3 +62,20 @@ test('în tema închisă butoanele din antetul mapei au text lizibil', async ({ 
 		expect(ratio, name).toBeGreaterThanOrEqual(4.5);
 	}
 });
+
+test('butonul X închide fereastra și are aspectul comun', async ({ page }) => {
+	await page.goto('/admin/teams');
+	await page.getByRole('button', { name: 'Adaugă Echipă' }).first().click();
+	const heading = page.getByRole('heading', { name: 'Adaugă Echipă Nouă' });
+	await expect(heading).toBeVisible();
+	const close = page.locator('.va-close-btn:visible');
+	await expect(close).toHaveCount(1);
+	await expect(close).toHaveAccessibleName('Închide');
+	// iconița comună (nu caracterul „×”), într-un buton cu margine vizibilă
+	await expect(close.locator('svg')).toHaveCount(1);
+	await expect(close).toHaveText('');
+	const borderWidth = await close.evaluate((el) => getComputedStyle(el).borderTopWidth);
+	expect(borderWidth).toBe('1px');
+	await close.click();
+	await expect(heading).toHaveCount(0);
+});

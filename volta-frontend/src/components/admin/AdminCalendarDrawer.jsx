@@ -1,4 +1,5 @@
 import { notifyAdminEventsRefresh } from './AdminCalendarDrawerShared.js';
+import { X } from '@phosphor-icons/react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
@@ -161,8 +162,8 @@ const AdminCalendarDrawer = ({ open, onClose }) => {
 						<h2 className="va-cal-drawer-title">Calendar</h2>
 						<p className="va-cal-drawer-sub">Evenimente planificate</p>
 					</div>
-					<button type="button" className="va-cal-drawer-close" onClick={onClose} aria-label="Închide">
-						×
+					<button type="button" className="va-cal-drawer-close va-close-btn" onClick={onClose} aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 

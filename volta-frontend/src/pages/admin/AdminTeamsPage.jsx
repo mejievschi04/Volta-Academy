@@ -31,7 +31,7 @@ import {
 import { normalizeColorInputToHex } from '../../utils/color';
 import { matchesDirectorySearch } from '../../utils/directorySearch';
 import { useScrollResetOnOpen } from '../../hooks/useScrollResetOnOpen';
-import { Books, PencilSimple, Plus, Trash, UsersThree } from '@phosphor-icons/react';
+import { Books, PencilSimple, Plus, Trash, UsersThree, X } from '@phosphor-icons/react';
 import { DragHandle } from '../../components/common/DragHandle';
 
 const teamIconSm = { size: 16, weight: 'bold', 'aria-hidden': true };
@@ -416,11 +416,12 @@ const AdminTeamsPage = () => {
 							</div>
 							<button
 								type="button"
-								className="admin-team-modal-close"
+								className="admin-team-modal-close va-close-btn"
 								onClick={() => setShowModal(false)}
 								title="Închide"
+								aria-label="Închide"
 							>
-								×
+								<X size={18} weight="bold" aria-hidden="true" />
 							</button>
 						</div>
 						<div className="admin-team-modal-body">
@@ -572,11 +573,12 @@ const TeamUsersModal = ({ team, users, onClose, onSave, onOpenMemberCourses }) =
 					</div>
 					<button
 						type="button"
-						className="admin-team-modal-close"
+						className="admin-team-modal-close va-close-btn"
 						onClick={onClose}
 						title="Închide"
+						aria-label="Închide"
 					>
-						×
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 				<div className="admin-team-modal-body">
@@ -734,7 +736,7 @@ const TeamMemberAssignCoursesModal = ({ team, member, courses, onClose, onSaved 
 						/>
 						<h2 className="admin-team-modal-title">Cursuri pentru {member.name} — {team.name}</h2>
 					</div>
-					<button type="button" className="admin-team-modal-close" onClick={onClose} title="Închide">×</button>
+					<button type="button" className="admin-team-modal-close va-close-btn" onClick={onClose} title="Închide" aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
 				</div>
 				<div className="admin-team-modal-body">
 					{loadingUser ? (
@@ -795,11 +797,12 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 					</div>
 					<button
 						type="button"
-						className="admin-team-modal-close"
+						className="admin-team-modal-close va-close-btn"
 						onClick={onClose}
 						title="Închide"
+						aria-label="Închide"
 					>
-						×
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 				<div className="admin-team-modal-body">

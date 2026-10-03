@@ -93,12 +93,12 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 						<strong id={titleId}>Aspect mapă</strong>
 						<button
 							type="button"
-							className="course-map-page-header-edit-panel__close"
+							className="course-map-page-header-edit-panel__close va-close-btn"
 							onClick={handleClose}
 							aria-label="Închide"
 							disabled={saving}
 						>
-							<X size={16} weight="bold" aria-hidden="true" />
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 

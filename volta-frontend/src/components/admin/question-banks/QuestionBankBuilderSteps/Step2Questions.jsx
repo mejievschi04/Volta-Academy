@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { adminService } from '../../../../services/api';
+import { X } from '@phosphor-icons/react';
 
 import { useToast } from '../../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../../components/common/ConfirmModal';
@@ -973,14 +974,14 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 						</h2>
 						<button
 							type="button"
-							className="qb-student-preview-close"
+							className="qb-student-preview-close va-close-btn"
 							onClick={() => {
 								setPreviewQuestion(null);
 								setPreviewShowCorrect(false);
 							}}
 							aria-label="Închide"
 						>
-							×
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 					<label className="qb-student-preview-toggle">

@@ -697,12 +697,12 @@ const AdminUsersPage = () => {
 						<h2 id="admin-users-modal-title" className="admin-users-modal-title">{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
 						<button
 							type="button"
-							className="admin-users-modal-close"
+							className="admin-users-modal-close va-close-btn"
 							onClick={() => setShowModal(false)}
 							title="Închide"
 							aria-label="Închide"
 						>
-							<X size={18} weight="bold" aria-hidden />
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 						<div className="admin-users-modal-body">

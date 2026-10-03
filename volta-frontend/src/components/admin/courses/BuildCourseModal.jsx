@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X } from '@phosphor-icons/react';
 import './BuildCourseModal.css';
 
 /**
@@ -67,11 +68,11 @@ const BuildCourseModal = ({
 					</div>
 					<button
 						type="button"
-						className="build-course-modal-close"
+						className="build-course-modal-close va-close-btn"
 						onClick={onClose}
 						aria-label="Închide"
 					>
-						×
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</header>
 

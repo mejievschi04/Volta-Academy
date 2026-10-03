@@ -1,4 +1,5 @@
 import '../styles/profile-modern.css';
+import { X } from '@phosphor-icons/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -614,7 +615,7 @@ const AvatarEditorModal = ({ open, imageUrl, fileName, busy, onClose, onSave }) 
 						<h3>Poziționează poza de profil</h3>
 						<p>Mută imaginea și ajustează zoom-ul până arată exact cum vrei.</p>
 					</div>
-					<button type="button" className="va-avatar-editor-close" onClick={onClose} disabled={busy}>×</button>
+					<button type="button" className="va-avatar-editor-close va-close-btn" onClick={onClose} disabled={busy} aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
 				</div>
 				<div className="va-avatar-editor-stage-wrap">
 					<div

@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { ImageSquare, LinkSimple, Plus } from '@phosphor-icons/react';
+import { ImageSquare, LinkSimple, Plus, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import '../styles/guides-page.css';
 
@@ -364,8 +364,8 @@ const GuidesPage = () => {
 							<h2 id="guides-modal-title">{editingItem ? 'Editează ghid' : 'Adaugă ghid'}</h2>
 							<p>Completează titlul și linkul. Poți adăuga o descriere scurtă și o imagine de copertă opțională.</p>
 						</div>
-						<button type="button" className="library-upload-modal-close" onClick={closeModal} aria-label="Închide">
-							×
+						<button type="button" className="library-upload-modal-close va-close-btn" onClick={closeModal} aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</header>
 					<form onSubmit={onSubmit} className="library-upload-modal-form">

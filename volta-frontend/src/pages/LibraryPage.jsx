@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { UploadSimple } from '@phosphor-icons/react';
+import { UploadSimple, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 
 function formatBytes(n) {
@@ -453,11 +453,11 @@ const LibraryPage = () => {
 						</div>
 						<button
 							type="button"
-							className="library-upload-modal-close"
+							className="library-upload-modal-close va-close-btn"
 							onClick={() => setShowUploadModal(false)}
 							aria-label="Închide"
 						>
-							×
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</header>
 					<form key={uploadFormKey} onSubmit={onSubmitUpload} className="library-upload-modal-form">

@@ -332,8 +332,8 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 								{createdLink ? 'Invitație creată' : 'Invitație nouă'}
 							</h2>
 						</div>
-						<button type="button" className="admin-users-modal-close" onClick={closeModal} aria-label="Închide">
-							<X size={18} weight="bold" aria-hidden />
+						<button type="button" className="admin-users-modal-close va-close-btn" onClick={closeModal} aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</div>
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
 import { createPortal } from 'react-dom';
 import { LESSON_CALLOUT_TYPES } from './lessonCallout.js';
 
@@ -34,8 +35,8 @@ export default function LessonCalloutPanel({
 		>
 			<div className="lesson-callout-panel-head">
 				<span>Chenar</span>
-				<button type="button" className="lesson-callout-close" aria-label="Închide" onClick={onClose}>
-					×
+				<button type="button" className="lesson-callout-close va-close-btn" aria-label="Închide" onClick={onClose}>
+					<X size={18} weight="bold" aria-hidden="true" />
 				</button>
 			</div>
 			<div className="lesson-callout-types">

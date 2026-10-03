@@ -24,6 +24,7 @@ import {
 	TextT,
 	TextUnderline,
 	VideoCamera,
+	X,
 } from '@phosphor-icons/react';
 
 import { useToast } from '../contexts/ToastContextShared.js';
@@ -1788,7 +1789,7 @@ const ImageEditModal = ({ draft, onDraftChange, onApply, onClose, onDelete }) =>
 			<div className="rte-modal rte-image-edit-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="rte-modal-header">
 					<h3 id="rte-image-edit-title" className="rte-modal-title">Setări imagine</h3>
-					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">×</button>
+					<button type="button" onClick={onClose} className="rte-modal-close va-close-btn" aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
 				</div>
 
 				<div className="rte-modal-body">
@@ -1878,10 +1879,10 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 					<button
 						type="button"
 						onClick={onClose}
-						className="rte-modal-close"
+						className="rte-modal-close va-close-btn"
 						aria-label="Închide"
 					>
-						×
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 
@@ -1966,8 +1967,8 @@ const CalloutInlinePanel = ({
 				<div className="rte-callout-inline-title">Chenar</div>
 				<div className="rte-callout-inline-subtitle">Click direct pe stil și culoare</div>
 			</div>
-			<button type="button" onClick={onClose} className="rte-callout-inline-close" aria-label="Inchide">
-				X
+			<button type="button" onClick={onClose} className="rte-callout-inline-close va-close-btn" aria-label="Închide">
+				<X size={18} weight="bold" aria-hidden="true" />
 			</button>
 		</div>
 		<div className="rte-callout-inline-section">
@@ -2031,8 +2032,8 @@ const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 			<div className="rte-modal rte-modal--form" onClick={(e) => e.stopPropagation()}>
 				<div className="rte-modal-header">
 					<h3 id="rte-link-title" className="rte-modal-title">🔗 Inserare Link</h3>
-					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">
-						×
+					<button type="button" onClick={onClose} className="rte-modal-close va-close-btn" aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 
@@ -2092,8 +2093,8 @@ const PdfUploadModal = ({
 			<div className="rte-modal rte-modal--form rte-modal--wide" onClick={(e) => e.stopPropagation()}>
 				<div className="rte-modal-header">
 					<h3 id="rte-pdf-title" className="rte-modal-title">📄 Încarcă PDF original</h3>
-					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">
-						×
+					<button type="button" onClick={onClose} className="rte-modal-close va-close-btn" aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 

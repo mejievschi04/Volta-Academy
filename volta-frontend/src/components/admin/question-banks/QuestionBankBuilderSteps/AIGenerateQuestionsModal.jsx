@@ -1,4 +1,5 @@
 import { AI_QUESTION_TYPE_OPTIONS, DEFAULT_AI_QUESTION_TYPES, getAiQuestionTypeLabel } from './AIGenerateQuestionsModalShared.js';
+import { X } from '@phosphor-icons/react';
 import React from 'react';
 import { createPortal } from 'react-dom';
 
@@ -53,8 +54,8 @@ const AIGenerateQuestionsModal = ({
             </p>
           </div>
           {!aiGenerating && (
-            <button type="button" className="admin-team-modal-close" onClick={onClose}>
-              ×
+            <button type="button" className="admin-team-modal-close va-close-btn" onClick={onClose} aria-label="Închide">
+              <X size={18} weight="bold" aria-hidden="true" />
             </button>
           )}
         </div>

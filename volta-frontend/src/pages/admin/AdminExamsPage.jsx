@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { X } from '@phosphor-icons/react';
 import { ArrowLeft, BarChart3, ChevronRight, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
 import { adminService } from '../../services/api';
 
@@ -1313,11 +1314,11 @@ export default function AdminExamsPage() {
             <h2 id="exam-create-title" className="admin-team-modal-title">Examen nou</h2>
             <button
               type="button"
-              className="admin-team-modal-close"
+              className="admin-team-modal-close va-close-btn"
               onClick={() => !creatingExam && setShowCreateModal(false)}
               aria-label="Închide"
             >
-              ×
+              <X size={18} weight="bold" aria-hidden="true" />
             </button>
           </div>
           <div className="admin-team-modal-body">

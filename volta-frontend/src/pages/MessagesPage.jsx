@@ -1102,7 +1102,7 @@ const MessagesPage = () => {
 						<div className="messages-modal-header">
 							<h3>Conversație nouă</h3>
 							<button 
-								className="messages-modal-close"
+								className="messages-modal-close va-close-btn"
 								onClick={() => {
 									setShowNewConversationModal(false);
 									setNewConversationType('direct');
@@ -1112,8 +1112,9 @@ const MessagesPage = () => {
 									setNewConversationSearch('');
 									setAvailableUsers([]);
 								}}
+								aria-label="Închide"
 							>
-								<X size={16} weight="bold" aria-hidden />
+								<X size={18} weight="bold" aria-hidden="true" />
 							</button>
 						</div>
 						<div className="messages-modal-body">
@@ -1285,10 +1286,11 @@ const MessagesPage = () => {
 						<div className="messages-modal-header">
 							<h3>Participanți grup</h3>
 							<button
-								className="messages-modal-close"
+								className="messages-modal-close va-close-btn"
 								onClick={() => setShowParticipantsModal(false)}
+								aria-label="Închide"
 							>
-								<X size={16} weight="bold" aria-hidden />
+								<X size={18} weight="bold" aria-hidden="true" />
 							</button>
 						</div>
 						<div className="messages-modal-body">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { X } from '@phosphor-icons/react';
 
 const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 	const [isVisible, setIsVisible] = useState(false);
@@ -65,7 +66,7 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 			<div className="toast-message" style={{ flex: 1, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>{message}</div>
 			<button
 				type="button"
-				className="toast-close"
+				className="toast-close va-close-btn va-close-btn--sm"
 				aria-label="Închide notificare"
 				onClick={(e) => {
 					e.stopPropagation();
@@ -86,7 +87,7 @@ const Toast = ({ message, type = 'info', onClose, duration = 4000 }) => {
 					flexShrink: 0,
 				}}
 			>
-				×
+				<X size={18} weight="bold" aria-hidden="true" />
 			</button>
 		</div>
 	);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X } from '@phosphor-icons/react';
 import { createPortal } from 'react-dom';
 import { adminService } from '../../../services/api';
 
@@ -140,8 +141,8 @@ const AdminEventParticipantsModal = ({
 						</h2>
 						<p className="aev-participants-subtitle">{title}</p>
 					</div>
-					<button type="button" className="admin-event-modal-close" onClick={onClose} title="Închide">
-						×
+					<button type="button" className="admin-event-modal-close va-close-btn" onClick={onClose} title="Închide" aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
 					</button>
 				</div>
 
