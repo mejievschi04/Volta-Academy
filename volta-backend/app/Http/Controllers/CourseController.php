@@ -429,8 +429,10 @@ class CourseController extends Controller
 
     private function redactRestrictedLessonBodies(Course $course, $user): void
     {
-        $redact = function ($lesson) use ($user, $course) {
-            if (! $lesson || LearningVisibility::learnerMaySeeLessonBody($user, $lesson, $course)) {
+        // Înscrierea e aceeași pentru toate lecțiile cursului: o verificăm o singură dată, nu per lecție.
+        $enrolled = LearningVisibility::isEnrolledInCourse($user, (int) $course->id);
+        $redact = function ($lesson) use ($user, $course, $enrolled) {
+            if (! $lesson || LearningVisibility::learnerMaySeeLessonBody($user, $lesson, $course, $enrolled)) {
                 return;
             }
             $lesson->content = null;

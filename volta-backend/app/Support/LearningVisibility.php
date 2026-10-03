@@ -102,7 +102,11 @@ class LearningVisibility
             ->all();
     }
 
-    public static function learnerMaySeeLessonBody(?User $user, object $lesson, ?object $course): bool
+    /**
+     * @param  bool|null  $enrolled  înscrierea deja calculată pentru acest curs (ex. o singură dată pentru
+     *                               toate lecțiile cursului); null = o verifică aici
+     */
+    public static function learnerMaySeeLessonBody(?User $user, object $lesson, ?object $course, ?bool $enrolled = null): bool
     {
         if (self::isStaff($user)) {
             return true;
@@ -120,6 +124,6 @@ class LearningVisibility
             return false;
         }
 
-        return self::isEnrolledInCourse($user, (int) $course->id);
+        return $enrolled ?? self::isEnrolledInCourse($user, (int) $course->id);
     }
 }

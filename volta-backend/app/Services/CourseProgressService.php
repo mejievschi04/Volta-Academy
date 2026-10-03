@@ -1078,6 +1078,15 @@ class CourseProgressService
         }
 
         $passedIds = $this->passedTestIdSet($user, (int) $course->id);
+        // Toate testele atașate cursului, o singură dată (cu testul), apoi filtrate în memorie:
+        // înainte era câte o interogare pentru fiecare lecție și modul.
+        $attachedTests = CourseTest::with('test')
+            ->where('course_id', $course->id)
+            ->orderBy('order')
+            ->get();
+        $testsFor = fn (string $scope, ?int $scopeId = null) => $attachedTests
+            ->filter(fn (CourseTest $ct) => $ct->scope === $scope && ($scopeId === null || (int) $ct->scope_id === $scopeId))
+            ->values();
         $rootLessons = $this->getCourseRootLessons($course);
         foreach ($rootLessons as $lesson) {
             if (!$this->isLessonUnlocked($user, $lesson, null, $course)) {
@@ -1088,11 +1097,7 @@ class CourseProgressService
                 continue;
             }
 
-            $lessonTests = CourseTest::where('course_id', $course->id)
-                ->where('scope', 'lesson')
-                ->where('scope_id', $lesson->id)
-                ->orderBy('order')
-                ->get();
+            $lessonTests = $testsFor('lesson', (int) $lesson->id);
 
             foreach ($lessonTests as $courseTest) {
                 $test = $courseTest->test;
@@ -1134,11 +1139,7 @@ class CourseProgressService
                     continue;
                 }
 
-                $lessonTests = CourseTest::where('course_id', $course->id)
-                    ->where('scope', 'lesson')
-                    ->where('scope_id', $lesson->id)
-                    ->orderBy('order')
-                    ->get();
+                $lessonTests = $testsFor('lesson', (int) $lesson->id);
 
                 foreach ($lessonTests as $courseTest) {
                     $test = $courseTest->test;
@@ -1154,11 +1155,7 @@ class CourseProgressService
                 }
             }
 
-            $moduleTests = CourseTest::where('course_id', $course->id)
-                ->where('scope', 'module')
-                ->where('scope_id', $module->id)
-                ->orderBy('order')
-                ->get();
+            $moduleTests = $testsFor('module', (int) $module->id);
 
             foreach ($moduleTests as $courseTest) {
                 $test = $courseTest->test;
@@ -1174,10 +1171,7 @@ class CourseProgressService
             }
         }
 
-        $courseTests = CourseTest::where('course_id', $course->id)
-            ->where('scope', 'course')
-            ->orderBy('order')
-            ->get();
+        $courseTests = $testsFor('course');
 
         foreach ($courseTests as $courseTest) {
             $test = $courseTest->test;

@@ -221,15 +221,35 @@ class ProgressionEngine
     private function publishedLessonsInScope(?int $moduleId, int $courseId)
     {
         $key = $moduleId ? "m{$moduleId}" : "c{$courseId}";
+        if (isset($this->publishedLessonsByScope[$key])) {
+            return $this->publishedLessonsByScope[$key];
+        }
 
+        // O singură interogare pentru tot cursul (lecțiile din modulele lui + cele fără modul), apoi pe
+        // module în memorie: înainte era câte o interogare pentru fiecare modul.
+        $moduleIds = $this->modulesForCourse($courseId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if (! $moduleId || in_array($moduleId, $moduleIds, true)) {
+            $lessons = Lesson::query()
+                ->where('status', 'published')
+                ->where(function ($q) use ($courseId, $moduleIds) {
+                    $q->where(fn ($root) => $root->whereNull('module_id')->where('course_id', $courseId));
+                    if ($moduleIds !== []) {
+                        $q->orWhereIn('module_id', $moduleIds);
+                    }
+                })
+                ->get(['id', 'order', 'module_id']);
+
+            $this->publishedLessonsByScope["c{$courseId}"] = $lessons->whereNull('module_id')->values();
+            foreach ($moduleIds as $id) {
+                $this->publishedLessonsByScope["m{$id}"] = $lessons->where('module_id', $id)->values();
+            }
+        }
+
+        // Modul care nu aparține cursului (date inconsecvente): îl încărcăm separat, ca înainte.
         return $this->publishedLessonsByScope[$key] ??= Lesson::query()
             ->where('status', 'published')
-            ->when(
-                $moduleId,
-                fn ($q) => $q->where('module_id', $moduleId),
-                fn ($q) => $q->whereNull('module_id')->where('course_id', $courseId)
-            )
-            ->get(['id', 'order']);
+            ->where('module_id', $moduleId)
+            ->get(['id', 'order', 'module_id']);
     }
 
     private function modulesForCourse(int $courseId)
