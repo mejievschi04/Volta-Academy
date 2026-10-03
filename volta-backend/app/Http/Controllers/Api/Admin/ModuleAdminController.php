@@ -17,30 +17,6 @@ class ModuleAdminController extends Controller
     {
         $this->courseBuilderService = $courseBuilderService;
     }
-    public function index(Request $request)
-    {
-        $query = Module::with(['course', 'lessons' => function($q) {
-            $q->orderBy('order');
-        }]);
-
-        if (auth()->user()->isInstructor()) {
-            $query->whereHas('course', fn($q) => $q->where('teacher_id', auth()->id()));
-        }
-        if ($request->has('course_id')) {
-            $query->where('course_id', $request->course_id);
-            if (auth()->user()->isInstructor()) {
-                $c = Course::find($request->course_id);
-                if (!$c || (int) $c->teacher_id !== (int) auth()->id()) {
-                    abort(403, 'Acces interzis.');
-                }
-            }
-        }
-
-        $modules = $query->orderBy('order')->get();
-
-        return response()->json($modules);
-    }
-
     public function show($id)
     {
         $module = Module::with(['course', 'lessons' => function($q) {
@@ -140,18 +116,4 @@ class ModuleAdminController extends Controller
         ]);
     }
 
-    public function toggleLock($id)
-    {
-        $module = Module::with('course')->findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $module->course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
-        $module->is_locked = !$module->is_locked;
-        $module->save();
-
-        return response()->json([
-            'message' => $module->is_locked ? 'Modul blocat' : 'Modul deblocat',
-            'module' => $module->load(['course', 'lessons']),
-        ]);
-    }
 }

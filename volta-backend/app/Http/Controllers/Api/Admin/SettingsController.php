@@ -46,27 +46,6 @@ class SettingsController extends Controller
     }
 
     /**
-     * Get a specific setting
-     */
-    public function show($key)
-    {
-        $setting = Setting::where('key', $key)->first();
-
-        if (!$setting) {
-            return response()->json([
-                'message' => 'Setarea nu a fost găsită',
-            ], 404);
-        }
-
-        return response()->json([
-            'key' => $setting->key,
-            'value' => $this->castValue($setting->value, $setting->type),
-            'type' => $setting->type,
-            'description' => $setting->description,
-        ]);
-    }
-
-    /**
      * Update settings
      */
     public function update(Request $request)

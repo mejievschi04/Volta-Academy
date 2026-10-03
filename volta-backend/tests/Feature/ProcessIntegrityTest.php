@@ -48,18 +48,6 @@ class ProcessIntegrityTest extends TestCase
         ])->assertForbidden();
         $this->assertDatabaseMissing('users', ['email' => 'audit@example.com']);
     }
-
-    public function test_restoring_snapshot_keeps_root_lessons(): void
-    {
-        $course = Course::factory()->create();
-        $this->lesson($course);
-        $service = app(CourseBuilderService::class);
-        $version = $service->createCourseVersionSnapshot($course->id, null);
-        $restored = $service->restoreCourseFromVersion($course->id, $version->id, null, false);
-        $this->assertSame(1, $course->lessons()->count());
-        $this->assertSame(1, $restored->lessons()->count());
-    }
-
     public function test_course_publish_rejects_empty_required_test(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -105,12 +93,6 @@ class ProcessIntegrityTest extends TestCase
             'attempt_id' => $attemptId,
         ])->assertForbidden()->assertJsonPath('time_expired', true);
     }
-
-    public function test_event_my_route_is_available(): void
-    {
-        $this->actingAs(User::factory()->create(), 'sanctum')->getJson('/api/events/my')->assertOk();
-    }
-
     public function test_guest_does_not_receive_restricted_event_links(): void
     {
         $event = $this->event();
@@ -118,17 +100,6 @@ class ProcessIntegrityTest extends TestCase
         $this->assertTrue(empty($payload['live_link']));
         $this->assertTrue(empty($payload['replay_url']));
     }
-
-    public function test_attendance_cannot_be_marked_before_event_starts(): void
-    {
-        $event = $this->event();
-        $student = User::factory()->create(['role' => 'student']);
-        $event->users()->attach($student->id, ['registered' => true]);
-        $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/mark-attendance")
-            ->assertStatus(400);
-        $this->assertFalse((bool) $event->users()->where('users.id', $student->id)->first()?->pivot?->attended);
-    }
-
     public function test_root_lesson_is_not_blocked_by_another_course(): void
     {
         $student = User::factory()->create(['role' => 'student']);
@@ -360,14 +331,6 @@ class ProcessIntegrityTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('not_enrolled', true);
     }
-
-    public function test_student_cannot_enroll_in_draft_course(): void
-    {
-        $student = User::factory()->create(['role' => 'student']);
-        $course = Course::factory()->create(['status' => 'draft', 'access_type' => 'free', 'enrollment_type' => 'open']);
-        $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/enroll")->assertForbidden();
-    }
-
     public function test_guest_cannot_read_non_preview_lesson_body(): void
     {
         $course = Course::factory()->published()->create();

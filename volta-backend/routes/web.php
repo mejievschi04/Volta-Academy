@@ -1,7 +1,6 @@
 <?php
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LessonController;
 
 // Serve storage files (fallback when symlink doesn't work, e.g. on Windows)
 Route::get('/storage/{path}', function (string $path) {
@@ -34,5 +33,4 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/courses/{id}', [DashboardController::class, 'showCourse']);
-    Route::get('/courses/{courseId}/progress/{userId}', [LessonController::class, 'getProgress']);
 });

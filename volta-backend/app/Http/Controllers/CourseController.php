@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
-use App\Models\ActivityLog;
 use App\Models\CourseTest;
 use App\Support\CourseCatalog;
 use App\Support\CourseViews;
@@ -458,14 +457,6 @@ class CourseController extends Controller
         }
     }
 
-    /**
-     * @deprecated Use POST /api/courses/{courseId}/finish (auth required).
-     */
-    public function complete(Request $request, $courseId)
-    {
-        return app(\App\Http\Controllers\Api\CourseProgressController::class)
-            ->finishCourse($courseId);
-    }
 }
 
 

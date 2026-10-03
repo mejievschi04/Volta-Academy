@@ -471,57 +471,6 @@ class QuestionAdminController extends Controller
         return $normalized;
     }
 
-    public function improveWithAi(Request $request, int $id)
-    {
-        $question = Question::with(['test', 'questionBank'])->findOrFail($id);
-        if (auth()->user()->isInstructor()) {
-            $ok = ($question->test_id && $question->test && (int) $question->test->created_by === (int) auth()->id())
-                || ($question->question_bank_id && $question->questionBank && (int) $question->questionBank->created_by === (int) auth()->id());
-            if (!$ok) {
-                abort(403, 'Acces interzis.');
-            }
-        }
-
-        $validated = $request->validate([
-            'instruction' => 'nullable|string|max:1000',
-        ]);
-
-        $instruction = trim((string) ($validated['instruction'] ?? ''));
-        $prompt = "Îmbunătățește următoarea întrebare pentru claritate pedagogică, fără să schimbi subiectul. Răspunde DOAR JSON valid în format:\n";
-        $prompt .= "{\"content\":\"...\",\"answers\":[{\"text\":\"...\",\"is_correct\":true}],\"explanation\":\"...\",\"difficulty\":\"easy|medium|hard\"}\n\n";
-        $prompt .= "Întrebare curentă:\n" . json_encode([
-            'type' => $question->type,
-            'content' => $question->content,
-            'answers' => $question->answers,
-            'explanation' => $question->explanation,
-            'metadata' => $question->metadata,
-        ], JSON_UNESCAPED_UNICODE);
-        if ($instruction !== '') {
-            $prompt .= "\nInstrucțiune suplimentară: {$instruction}";
-        }
-
-        if (! $this->aiKeyAvailable()) {
-            return response()->json(['error' => 'Volt nu este configurat: lipsește cheia AI.'], 503);
-        }
-
-        $raw = $this->callAi($prompt);
-        $data = $this->decodeJsonObject($raw);
-        if (!$data) {
-            return response()->json(['error' => 'Răspuns AI invalid pentru improve.'], 422);
-        }
-
-        return response()->json([
-            'draft' => [
-                'content' => (string) ($data['content'] ?? $question->content),
-                'answers' => is_array($data['answers'] ?? null) ? $data['answers'] : ($question->answers ?? []),
-                'explanation' => (string) ($data['explanation'] ?? ($question->explanation ?? '')),
-                'metadata' => [
-                    'difficulty' => (string) ($data['difficulty'] ?? (($question->metadata['difficulty'] ?? '') ?: '')),
-                ],
-            ],
-        ]);
-    }
-
     private function decodeJsonObject(string $response): ?array
     {
         $jsonPattern = '/\{[\s\S]*\}/';
@@ -538,15 +487,6 @@ class QuestionAdminController extends Controller
         }
 
         return null;
-    }
-
-    /** Aceeași regulă ca în callAi(): Groq (cu rezervă OpenAI) sau OpenAI. */
-    private function aiKeyAvailable(): bool
-    {
-        $groq = (string) config('ai.groq.api_key', '') !== '';
-        $openai = (string) config('ai.openai.api_key', '') !== '';
-
-        return (string) config('ai.provider', 'groq') === 'groq' ? ($groq || $openai) : $openai;
     }
 
     private function callAi(string $prompt): string

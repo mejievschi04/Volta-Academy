@@ -138,9 +138,4 @@ class ActivityLogAdminController extends Controller
         ]);
     }
 
-    public function show($id)
-    {
-        $log = ActivityLog::with('user:id,name,email')->findOrFail($id);
-        return response()->json($log);
-    }
 }

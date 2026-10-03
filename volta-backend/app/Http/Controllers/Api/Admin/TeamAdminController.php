@@ -29,13 +29,6 @@ class TeamAdminController extends Controller
         return response()->json($teams);
     }
 
-    public function show($id)
-    {
-        $team = Team::with(['owner', 'users', 'courses'])->findOrFail($id);
-        
-        return response()->json($team);
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([

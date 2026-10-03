@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Course;
-use App\Models\Exam;
-use App\Models\ExamResult;
 use App\Models\Test;
 use App\Services\UserAssignedCoursesService;
 use App\Services\TestAttemptService;
@@ -417,42 +415,6 @@ class UserAdminController extends Controller
         ]);
     }
 
-    public function assignCourses(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        if ($user->isLearningActivityExempt()) {
-            return response()->json([
-                'message' => 'Nu atribuim cursuri pentru rolurile administrator sau analist.',
-            ], 422);
-        }
-
-        $validated = $request->validate([
-            'course_ids' => 'present|array',
-            'course_ids.*' => 'exists:courses,id',
-            'is_mandatory' => 'nullable|boolean',
-        ]);
-
-        $courseIds = $validated['course_ids'];
-        $isMandatory = $validated['is_mandatory'] ?? true;
-
-        $assignment = app(UserAssignedCoursesService::class);
-        $assignment->syncDirectAssignments($user, $courseIds, [
-            'is_mandatory' => $isMandatory,
-            'assigned_at' => now(),
-            'enrolled' => true,
-            'enrolled_at' => now(),
-        ]);
-
-        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
-        \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
-
-        return response()->json([
-            'message' => 'Cursuri atribuite cu succes',
-            'user' => $user->load('assignedCourses'),
-        ]);
-    }
-
     public function markCourseCompleted(Request $request, $id, $courseId)
     {
         $user = User::findOrFail($id);
@@ -521,99 +483,6 @@ class UserAdminController extends Controller
 
         return response()->json([
             'message' => 'Curs eliminat cu succes',
-        ]);
-    }
-
-    /**
-     * Get team members (admin, instructor, analyst)
-     */
-    public function getTeamMembers(Request $request)
-    {
-        $perPage = $request->get('per_page', 50);
-        
-        // Build query for team members only
-        $query = User::with($this->eagerLoadTeamsCoursesAssigned())
-            ->whereIn('role', ['admin', 'instructor', 'analyst']);
-        
-        if ($request->filled('search')) {
-            $query->whereDirectorySearch($request->string('search')->toString());
-        }
-        
-        // Role filter
-        if ($request->has('role') && $request->role !== 'all') {
-            $query->where('role', $request->role);
-        }
-        
-        // Status filter
-        if ($request->has('status') && $request->status !== 'all') {
-            if (\App\Support\SchemaCache::hasColumn('users', 'status')) {
-                $query->where('status', $request->status);
-            }
-        }
-        
-        // Sort
-        $sortBy = $request->get('sort_by', 'updated_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-        $query->orderBy($sortBy, $sortDirection);
-        
-        $usersPaginated = $query->paginate($perPage);
-        $users = $usersPaginated->items();
-        
-        // Add additional data for each user
-        $usersWithData = collect($users)->map(function($user) {
-            // Get assigned courses count
-            $assignedCoursesCount = $user->assignedCourses()->count();
-            
-            // Get recent activity (last 7 days)
-            $recentActivity = $this->getRecentActivity($user->id);
-            
-            // Add to user object
-            $user->assigned_courses_count = $assignedCoursesCount;
-            $user->recent_activity = $recentActivity;
-            
-            return $user;
-        });
-        
-        $usersPaginated->setCollection($usersWithData);
-        
-        return response()->json($usersPaginated);
-    }
-
-    /**
-     * Update user role and permissions
-     */
-    public function updateRoleAndPermissions(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        
-        // Prevent changing own role/permissions
-        if ($user->id === \Illuminate\Support\Facades\Auth::id()) {
-            return response()->json([
-                'message' => 'Nu poți modifica propriul rol sau permisiuni',
-            ], 400);
-        }
-        
-        $validated = $request->validate([
-            'role' => 'sometimes|required|string|in:admin,instructor,analyst,student',
-            'permissions' => 'nullable|array',
-        ]);
-        
-        if (isset($validated['role'])) {
-            $user->role = $validated['role'];
-        }
-        
-        if (isset($validated['permissions'])) {
-            $user->permissions = $validated['permissions'];
-        }
-        
-        $user->save();
-        if ($user->isLearningActivityExempt()) {
-            $user->assignedCourses()->detach();
-        }
-        
-        return response()->json([
-            'message' => 'Rol și permisiuni actualizate cu succes',
-            'user' => $user->load($this->eagerLoadTeamsCourses()),
         ]);
     }
 
@@ -688,78 +557,4 @@ class UserAdminController extends Controller
         ]);
     }
 
-    /**
-     * Remove user from team (remove from all teams)
-     */
-    public function removeFromTeam($id)
-    {
-        $user = User::findOrFail($id);
-        
-        $teams = $user->teams()->get();
-        $user->teams()->detach();
-        foreach ($teams as $team) {
-            app(UserAssignedCoursesService::class)->revokeTeamOnlyEnrollmentsForUser($user, $team);
-        }
-
-        return response()->json([
-            'message' => 'Utilizator eliminat din toate echipele',
-            'user' => $user->load($this->eagerLoadTeamsCourses()),
-        ]);
-    }
-
-    /**
-     * Get recent activity for a user
-     */
-    private function getRecentActivity($userId)
-    {
-        $activities = [];
-        
-        // Recent course completions
-        $recentCompletions = DB::table('course_user')
-            ->where('user_id', $userId)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', now()->subDays(7))
-            ->count();
-        
-        if ($recentCompletions > 0) {
-            $activities[] = [
-                'type' => 'course_completion',
-                'count' => $recentCompletions,
-                'label' => 'Cursuri finalizate',
-            ];
-        }
-        
-        // Recent exam submissions
-        $recentExams = DB::table('exam_results')
-            ->where('user_id', $userId)
-            ->where('created_at', '>=', now()->subDays(7))
-            ->count();
-        
-        if ($recentExams > 0) {
-            $activities[] = [
-                'type' => 'exam_submission',
-                'count' => $recentExams,
-                'label' => 'Examene completate',
-            ];
-        }
-        
-        // Recent event registrations
-        if (\App\Support\SchemaCache::hasTable('event_user')) {
-            $recentEvents = DB::table('event_user')
-                ->where('user_id', $userId)
-                ->where('registered', true)
-                ->where('registered_at', '>=', now()->subDays(7))
-                ->count();
-            
-            if ($recentEvents > 0) {
-                $activities[] = [
-                    'type' => 'event_registration',
-                    'count' => $recentEvents,
-                    'label' => 'Evenimente',
-                ];
-            }
-        }
-        
-        return $activities;
-    }
 }

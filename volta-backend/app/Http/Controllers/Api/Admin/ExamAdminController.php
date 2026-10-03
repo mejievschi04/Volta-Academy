@@ -12,7 +12,6 @@ use App\Services\ExamBankQuestionSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use App\Support\SchemaCache;
 use Illuminate\Database\QueryException;
 
@@ -662,30 +661,6 @@ class ExamAdminController extends Controller
                 'created_at' => $newExam->created_at,
                 'updated_at' => $newExam->updated_at,
             ],
-        ], 201);
-    }
-
-    public function uploadCover(Request $request, $id)
-    {
-        $exam = Exam::with('course')->findOrFail($id);
-        $this->assertExamAccessibleByInstructor($exam);
-
-        $validated = $request->validate([
-            'file' => 'required|image|max:5120',
-        ]);
-
-        $file = $validated['file'];
-        $path = $file->store('exam-covers', 'public');
-        $url = '/storage/' . ltrim($path, '/');
-
-        $settings = is_array($exam->settings) ? $exam->settings : [];
-        $settings['cover_url'] = $url;
-        $settings['cover_name'] = $file->getClientOriginalName();
-        $exam->update(['settings' => $settings]);
-
-        return response()->json([
-            'url' => $url,
-            'filename' => $file->getClientOriginalName(),
         ], 201);
     }
 

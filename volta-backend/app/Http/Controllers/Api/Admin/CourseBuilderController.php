@@ -4,19 +4,15 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\ContentBlock;
 use App\Models\Course;
-use App\Support\CourseCatalog;
 use App\Models\Lesson;
 use App\Models\Module;
-use App\Models\CourseVersion;
 use App\Models\Test;
 use App\Models\CourseTest;
 use App\Models\MediaAsset;
 use App\Services\CourseBuilderService;
 use App\Services\CourseBuilderValidator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -342,157 +338,6 @@ class CourseBuilderController extends Controller
         ]);
     }
 
-    public function createContentBlock(Request $request, int $courseId, int $lessonId)
-    {
-        $this->ensureCourseAccess($courseId);
-        try {
-            $lesson = Lesson::where('id', $lessonId)
-                ->where('course_id', $courseId)
-                ->firstOrFail();
-
-            $validated = $request->validate([
-                'type' => 'required|string|max:50',
-                'source' => 'nullable|string',
-                'metadata' => 'nullable|array',
-                'payload' => 'nullable|array',
-                'language' => 'nullable|string|max:25',
-                'visible' => 'nullable|boolean',
-            ]);
-
-            $block = $this->courseBuilderService->createContentBlock($lesson, $validated);
-
-            ActivityLog::create([
-                'user_id' => $request->user()?->id,
-                'action' => 'builder.create_content_block',
-                'model_type' => ContentBlock::class,
-                'model_id' => $block->id,
-                'description' => 'Create content block',
-                'old_values' => null,
-                'new_values' => $block->toArray(),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
-            return response()->json([
-                'content_block' => $block->fresh(),
-            ], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            \Log::error('createContentBlock failed', [
-                'course_id' => $courseId,
-                'lesson_id' => $lessonId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'message' => config('app.debug') ? $e->getMessage() : 'Eroare la crearea content block.',
-            ], 500);
-        }
-    }
-
-    public function updateContentBlock(Request $request, int $courseId, int $blockId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $block = ContentBlock::query()
-            ->where('id', $blockId)
-            ->whereHas('lesson', function ($q) use ($courseId) {
-                $q->where('course_id', $courseId);
-            })
-            ->firstOrFail();
-
-        $validated = $request->validate([
-            'type' => 'sometimes|required|string|max:50',
-            'source' => 'nullable|string',
-            'metadata' => 'nullable|array',
-            'payload' => 'nullable|array',
-            'language' => 'nullable|string|max:25',
-            'visible' => 'nullable|boolean',
-            'order' => 'nullable|integer|min:0',
-        ]);
-
-        $old = $block->toArray();
-        $block = $this->courseBuilderService->updateContentBlock($block, $validated);
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.update_content_block',
-            'model_type' => ContentBlock::class,
-            'model_id' => $block->id,
-            'description' => 'Update content block',
-            'old_values' => $old,
-            'new_values' => $block->toArray(),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'content_block' => $block->fresh(),
-        ]);
-    }
-
-    public function deleteContentBlock(Request $request, int $courseId, int $blockId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $block = ContentBlock::query()
-            ->where('id', $blockId)
-            ->whereHas('lesson', function ($q) use ($courseId) {
-                $q->where('course_id', $courseId);
-            })
-            ->firstOrFail();
-
-        $old = $block->toArray();
-        $lessonId = $block->lesson_id;
-        $this->courseBuilderService->deleteContentBlock($block);
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.delete_content_block',
-            'model_type' => ContentBlock::class,
-            'model_id' => $blockId,
-            'description' => 'Delete content block',
-            'old_values' => $old,
-            'new_values' => ['deleted' => true, 'lesson_id' => $lessonId],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'message' => 'Content block deleted',
-        ]);
-    }
-
-    public function reorderContentBlocks(Request $request, int $courseId, int $lessonId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $lesson = Lesson::where('id', $lessonId)
-            ->where('course_id', $courseId)
-            ->firstOrFail();
-
-        $validated = $request->validate([
-            'content_block_ids' => 'required|array|min:1',
-            'content_block_ids.*' => 'exists:content_blocks,id',
-        ]);
-
-        $this->courseBuilderService->reorderContentBlocks($lesson, $validated['content_block_ids']);
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.reorder_content_blocks',
-            'model_type' => Lesson::class,
-            'model_id' => $lesson->id,
-            'description' => 'Reorder content blocks',
-            'old_values' => null,
-            'new_values' => ['content_block_ids' => $validated['content_block_ids']],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'content_blocks' => $lesson->contentBlocks()->orderBy('order')->get(),
-        ]);
-    }
-
     public function validateCourse(Request $request, int $courseId)
     {
         $this->ensureCourseAccess($courseId);
@@ -509,40 +354,6 @@ class CourseBuilderController extends Controller
         $report = $this->courseBuilderValidator->qualityAudit($course);
 
         return response()->json($report);
-    }
-
-    public function submitForReview(Request $request, int $courseId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $course = Course::with(['modules.lessons.contentBlocks'])->findOrFail($courseId);
-        $report = $this->courseBuilderValidator->validate($course);
-
-        if (!($report['ok'] ?? false)) {
-            return response()->json($report, 422);
-        }
-
-        // Keep `status` as draft (so students don't see it), but mark workflow as review.
-        $course->update(['workflow_status' => 'review']);
-
-        $this->courseBuilderService->createCourseVersionSnapshot($course->id, $request->user(), 'review');
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.submit_for_review',
-            'model_type' => Course::class,
-            'model_id' => $course->id,
-            'description' => 'Submit for review',
-            'old_values' => null,
-            'new_values' => ['workflow_status' => 'review'],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'course' => $course->fresh(),
-            'report' => $report,
-        ]);
     }
 
     public function publish(Request $request, int $courseId)
@@ -630,46 +441,6 @@ class CourseBuilderController extends Controller
 
         $newCourse = $this->courseBuilderService->cloneCourse(
             $courseId,
-            $request->user(),
-            (bool)($validated['include_teams'] ?? true)
-        );
-
-        return response()->json([
-            'course' => $newCourse,
-        ], 201);
-    }
-
-    /**
-     * List course versions (snapshots).
-     */
-    public function versions(Request $request, int $courseId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $versions = CourseVersion::with([
-            'creator:id,name,email',
-            'snapshot:id,course_version_id,created_at',
-        ])->where('course_id', $courseId)
-            ->orderByDesc('version')
-            ->get();
-
-        return response()->json([
-            'versions' => $versions,
-        ]);
-    }
-
-    /**
-     * Restore a version into a NEW course (safe rollback).
-     */
-    public function restoreVersion(Request $request, int $courseId, int $versionId)
-    {
-        $this->ensureCourseAccess($courseId);
-        $validated = $request->validate([
-            'include_teams' => 'nullable|boolean',
-        ]);
-
-        $newCourse = $this->courseBuilderService->restoreCourseFromVersion(
-            $courseId,
-            $versionId,
             $request->user(),
             (bool)($validated['include_teams'] ?? true)
         );

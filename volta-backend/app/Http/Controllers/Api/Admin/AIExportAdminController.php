@@ -17,13 +17,6 @@ class AIExportAdminController extends Controller
         }
     }
 
-    public function datasets()
-    {
-        return response()->json([
-            'datasets' => $this->exportService->getDatasetCatalog(),
-        ]);
-    }
-
     public function generate(Request $request)
     {
         $validated = $request->validate([

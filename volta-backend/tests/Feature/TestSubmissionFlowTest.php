@@ -71,7 +71,11 @@ class TestSubmissionFlowTest extends TestCase
                 'required' => false,
                 'passing_score' => 70,
             ]);
-            $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/enroll")->assertOk();
+            // cursanții primesc cursurile prin atribuire (nu se mai înscriu singuri)
+            \Illuminate\Support\Facades\DB::table('course_user')->insert([
+                'course_id' => $course->id, 'user_id' => $student->id, 'enrolled' => true, 'enrolled_at' => now(),
+                'is_mandatory' => false, 'assigned_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
         }
 
         $this->actingAs($student, 'sanctum')
@@ -224,7 +228,11 @@ class TestSubmissionFlowTest extends TestCase
                 'required' => false,
                 'passing_score' => 70,
             ]);
-            $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/enroll")->assertOk();
+            // cursanții primesc cursurile prin atribuire (nu se mai înscriu singuri)
+            \Illuminate\Support\Facades\DB::table('course_user')->insert([
+                'course_id' => $course->id, 'user_id' => $student->id, 'enrolled' => true, 'enrolled_at' => now(),
+                'is_mandatory' => false, 'assigned_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
         }
         TestResult::create([
             'test_id' => $test->id,

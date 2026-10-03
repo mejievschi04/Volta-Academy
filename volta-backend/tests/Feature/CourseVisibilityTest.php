@@ -85,15 +85,6 @@ class CourseVisibilityTest extends TestCase
         $this->getJson("/api/courses/{$course->id}")
             ->assertNotFound();
     }
-
-    public function test_course_complete_requires_authentication(): void
-    {
-        $course = Course::factory()->published()->create();
-
-        $this->postJson("/api/courses/{$course->id}/complete")
-            ->assertUnauthorized();
-    }
-
     public function test_admin_course_show_omits_draft_linked_tests_by_default(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -95,41 +95,6 @@ class CourseAssignmentTest extends TestCase
             $student->assignedCourses()->pluck('courses.id')->all()
         );
     }
-
-    public function test_user_assign_courses_merges_instead_of_wiping_unrelated_enrollments_when_ids_include_existing(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $student = User::factory()->create(['role' => 'student']);
-        $keep = Course::factory()->published()->create();
-        $add = Course::factory()->published()->create();
-
-        $student->assignedCourses()->attach($keep->id, [
-            'is_mandatory' => false,
-            'assigned_at' => now(),
-            'enrolled' => true,
-            'enrolled_at' => now(),
-            'assignment_source' => 'direct',
-        ]);
-
-        $this->actingAs($admin, 'sanctum')
-            ->postJson("/api/admin/users/{$student->id}/courses", [
-                'course_ids' => [$keep->id, $add->id],
-                'is_mandatory' => false,
-            ])
-            ->assertOk();
-
-        $this->assertEqualsCanonicalizing(
-            [$keep->id, $add->id],
-            $student->fresh()->assignedCourses()->pluck('courses.id')->all()
-        );
-        $this->assertDatabaseHas('course_user', [
-            'user_id' => $student->id,
-            'course_id' => $add->id,
-            'enrolled' => true,
-            'assignment_source' => 'direct',
-        ]);
-    }
-
     public function test_attaching_courses_to_team_enrolls_members_and_removing_unenrolls_team_source(): void
     {
         [$admin, $course, $team, $student] = $this->setupCourseTeamAndStudents();
@@ -170,37 +135,6 @@ class CourseAssignmentTest extends TestCase
             'assignment_source' => 'team',
         ]);
     }
-
-    public function test_user_course_sync_keeps_team_enrollments_not_in_the_direct_list(): void
-    {
-        [$admin, $course, $team, $student] = $this->setupCourseTeamAndStudents();
-        $direct = Course::factory()->published()->create();
-        $team->users()->sync([$student->id]);
-        $team->courses()->sync([$course->id]);
-
-        $this->actingAs($admin, 'sanctum')
-            ->postJson("/api/admin/courses/{$course->id}/teams", ['team_ids' => [$team->id]])
-            ->assertOk();
-
-        $this->actingAs($admin, 'sanctum')
-            ->postJson("/api/admin/users/{$student->id}/courses", [
-                'course_ids' => [$direct->id],
-                'is_mandatory' => false,
-            ])
-            ->assertOk();
-
-        $this->assertDatabaseHas('course_user', [
-            'user_id' => $student->id,
-            'course_id' => $course->id,
-            'assignment_source' => 'team',
-        ]);
-        $this->assertDatabaseHas('course_user', [
-            'user_id' => $student->id,
-            'course_id' => $direct->id,
-            'assignment_source' => 'direct',
-        ]);
-    }
-
     public function test_detaching_a_direct_assign_demotes_to_team_when_user_still_in_linked_team(): void
     {
         [$admin, $course, $team, $student] = $this->setupCourseTeamAndStudents();

@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\LessonController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\RegistrationInvitationController;
@@ -104,7 +103,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-read
     Route::get('/messages/conversations', [\App\Http\Controllers\Api\MessageController::class, 'getConversations']);
     Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
     Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
-    Route::get('/messages/conversations/{id}/participants', [\App\Http\Controllers\Api\MessageController::class, 'getParticipants']);
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
     Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
 });
@@ -128,8 +126,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
     // Lesson completion removed - we use modules now, course completion is through quiz passing
-    // Route::post('/lessons/{id}/complete', [LessonController::class, 'complete']);
-    Route::get('/courses/{courseId}/progress/{userId}', [LessonController::class, 'getProgress']);
     
     // Student Dashboard
     Route::get('/student/dashboard', [\App\Http\Controllers\Api\StudentDashboardController::class, 'index']);
@@ -144,17 +140,10 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     // Course Progress
     Route::get('/courses/standalone', [CourseController::class, 'learnerStandaloneCourses']);
     Route::get('/courses/{courseId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'getCourseProgress']);
-    Route::post('/courses/{courseId}/enroll', [\App\Http\Controllers\Api\CourseProgressController::class, 'enrollCourse']);
     Route::post('/courses/{courseId}/finish', [\App\Http\Controllers\Api\CourseProgressController::class, 'finishCourse']);
-    Route::post('/courses/{courseId}/complete', [CourseController::class, 'complete']);
     Route::post('/lessons/{lessonId}/complete', [\App\Http\Controllers\Api\CourseProgressController::class, 'completeLesson']);
     Route::put('/lessons/{lessonId}/progress', [\App\Http\Controllers\Api\CourseProgressController::class, 'updateLessonProgress']);
-    Route::get('/modules/{moduleId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkModuleAccess']);
-    Route::get('/lessons/{lessonId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkLessonAccess']);
-    Route::get('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'show']);
-    Route::put('/lessons/{lessonId}/notes', [\App\Http\Controllers\Api\LessonNoteController::class, 'update']);
     Route::post('/lessons/{lessonId}/study-tools', [\App\Http\Controllers\AIController::class, 'generateLessonStudyTool']);
-    Route::get('/exams/{examId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkExamAccess']);
 
     // Course maps (student: list and show map with published courses)
     Route::get('/course-maps', [\App\Http\Controllers\Api\CourseMapController::class, 'index']);
@@ -182,7 +171,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     // Ghiduri — linkuri utile (listare toți utilizatorii autentificați)
     Route::get('/guides/items', [\App\Http\Controllers\Api\GuideController::class, 'index']);
     Route::post('/guides/items', [\App\Http\Controllers\Api\GuideController::class, 'store']);
-    Route::put('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'update']);
     Route::post('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'update']);
     Route::delete('/guides/items/{id}', [\App\Http\Controllers\Api\GuideController::class, 'destroy']);
 
@@ -192,11 +180,8 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     Route::get('/achievements', [\App\Http\Controllers\Api\AchievementController::class, 'index']);
     
     // User Events
-    Route::get('/events/my', [EventController::class, 'myEvents']);
     Route::post('/events/{id}/register', [EventController::class, 'register'])->whereNumber('id');
     Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration'])->whereNumber('id');
-    Route::post('/events/{id}/mark-attendance', [EventController::class, 'markAttendance'])->whereNumber('id');
-    Route::post('/events/{id}/mark-replay-watched', [EventController::class, 'markReplayWatched'])->whereNumber('id');
 
     // Admin AI Assistant
     Route::post('/ai/extract-document', [\App\Http\Controllers\AIController::class, 'extractDocumentContext']);
@@ -218,9 +203,6 @@ Route::middleware([
     // Courses Management
     Route::get('/courses', [CourseAdminController::class, 'index']);
     // Specific routes must come before parameterized routes
-    Route::get('/courses/insights', [CourseAdminController::class, 'insights']);
-    Route::get('/courses/teachers/list', [CourseAdminController::class, 'getTeachers']);
-    Route::post('/courses/bulk-actions', [CourseAdminController::class, 'bulkAction']);
     Route::post('/courses/reorder', [CourseAdminController::class, 'reorderList']);
     // Parameterized routes
     Route::get('/courses/{id}', [CourseAdminController::class, 'show']);
@@ -233,9 +215,7 @@ Route::middleware([
     Route::get('/courses/{id}/assignable-learners', [CourseAdminController::class, 'assignableLearners']);
     Route::post('/courses/{id}/learners', [CourseAdminController::class, 'attachLearners']);
     Route::delete('/courses/{id}/learners/{userId}', [CourseAdminController::class, 'detachLearner']);
-    Route::post('/courses/{id}/actions/{action}', [CourseAdminController::class, 'quickAction']);
     Route::post('/courses/{id}/modules/reorder', [CourseAdminController::class, 'reorderModules']);
-    Route::get('/courses/{id}/preview', [CourseAdminController::class, 'preview']);
 
     // Course maps (folders to group courses)
     Route::get('/course-maps', [CourseMapAdminController::class, 'index']);
@@ -263,21 +243,14 @@ Route::middleware([
         Route::post('/lessons', [CourseBuilderController::class, 'createLesson']);
         Route::put('/lessons/{lessonId}', [CourseBuilderController::class, 'updateLesson']);
 
-        Route::post('/lessons/{lessonId}/content-blocks', [CourseBuilderController::class, 'createContentBlock']);
-        Route::patch('/lessons/{lessonId}/content-blocks/reorder', [CourseBuilderController::class, 'reorderContentBlocks']);
-        Route::put('/content-blocks/{blockId}', [CourseBuilderController::class, 'updateContentBlock']);
-        Route::delete('/content-blocks/{blockId}', [CourseBuilderController::class, 'deleteContentBlock']);
         Route::post('/upload', [CourseBuilderController::class, 'uploadContentFile']);
         Route::get('/media/{mediaId}/file', [CourseBuilderController::class, 'serveMediaFile']);
 
         Route::post('/validate', [CourseBuilderController::class, 'validateCourse']);
         Route::post('/quality-audit', [CourseBuilderController::class, 'qualityAudit']);
-        Route::post('/submit-for-review', [CourseBuilderController::class, 'submitForReview']);
         Route::post('/publish', [CourseBuilderController::class, 'publish']);
         Route::post('/clone', [CourseBuilderController::class, 'clone']);
 
-        Route::get('/versions', [CourseBuilderController::class, 'versions']);
-        Route::post('/versions/{versionId}/restore', [CourseBuilderController::class, 'restoreVersion']);
 
         Route::get('/tests', [CourseBuilderController::class, 'tests']);
         Route::post('/tests/attach', [CourseBuilderController::class, 'attachTest']);
@@ -285,20 +258,16 @@ Route::middleware([
     });
     
     // Modules Management
-    Route::get('/modules', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'index']);
     Route::get('/modules/{id}', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'show']);
     Route::post('/modules', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'store']);
     Route::put('/modules/{id}', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'update']);
     Route::delete('/modules/{id}', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'destroy']);
-    Route::post('/modules/{id}/toggle-lock', [\App\Http\Controllers\Api\Admin\ModuleAdminController::class, 'toggleLock']);
     
     // Lessons Management
-    Route::get('/lessons', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'index']);
     Route::get('/lessons/{id}', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'show']);
     Route::post('/lessons', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'store']);
     Route::put('/lessons/{id}', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'update']);
     Route::delete('/lessons/{id}', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'destroy']);
-    Route::post('/modules/{moduleId}/lessons/reorder', [\App\Http\Controllers\Api\Admin\LessonAdminController::class, 'reorder']);
     
     // Exams Management (rute fixe înainte de {id})
     Route::get('/exams', [ExamAdminController::class, 'index']);
@@ -312,7 +281,6 @@ Route::middleware([
     Route::post('/exams', [ExamAdminController::class, 'store']);
     Route::patch('/exams/{id}/status', [ExamAdminController::class, 'patchStatus']);
     Route::put('/exams/{id}', [ExamAdminController::class, 'update']);
-    Route::post('/exams/{id}/cover', [ExamAdminController::class, 'uploadCover']);
     Route::post('/exams/{id}/duplicate', [ExamAdminController::class, 'duplicate']);
     Route::delete('/exams/{id}', [ExamAdminController::class, 'destroy']);
     
@@ -323,20 +291,14 @@ Route::middleware([
     Route::post('/tests/pending-reviews/clear', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'clearPendingReviews']);
     Route::get('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'show']);
     Route::post('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'store']);
-    Route::post('/tests/ai/suggest-blueprint-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'suggestBlueprintFromCourse']);
-    Route::post('/tests/ai/preview-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'previewFromCourse']);
-    Route::post('/tests/ai/regenerate-question-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'regenerateQuestionFromCourse']);
-    Route::post('/tests/ai/create-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'createFromCourse']);
     Route::put('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'update']);
     Route::delete('/tests/{id}', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'destroy']);
     Route::get('/tests/{id}/results', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'results']);
     Route::get('/tests/{id}/statistics', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'statisticsSummary']);
     Route::get('/tests/{id}/question-analytics', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'questionAnalytics']);
     Route::post('/tests/{id}/publish', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'publish']);
-    Route::post('/tests/{id}/selection-preview', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'selectionPreview']);
     Route::get('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'getQuestions']);
     Route::post('/tests/{id}/questions', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'addQuestion']);
-    Route::post('/tests/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'reorderQuestions']);
     Route::get('/questions', [QuestionAdminController::class, 'index']);
     Route::get('/question-catalog/maps', [QuestionCatalogAdminController::class, 'maps']);
     Route::get('/question-catalog/maps/{mapId}/tests', [QuestionCatalogAdminController::class, 'tests']);
@@ -344,9 +306,7 @@ Route::middleware([
     Route::post('/questions/{id}/toggle-star', [QuestionAdminController::class, 'toggleStar']);
     Route::put('/questions/{id}', [QuestionAdminController::class, 'update']);
     Route::delete('/questions/{id}', [QuestionAdminController::class, 'destroy']);
-    Route::post('/questions/{id}/improve', [QuestionAdminController::class, 'improveWithAi']);
     Route::post('/tests/{id}/link-to-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'linkToCourse']);
-    Route::post('/tests/{id}/unlink-from-course', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'unlinkFromCourse']);
     
     // Question Banks Management
     Route::get('/question-banks', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'index']);
@@ -361,25 +321,18 @@ Route::middleware([
     Route::delete('/question-banks/{id}/questions/{questionId}', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'removeQuestion']);
     Route::post('/question-banks/{id}/questions/reorder', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'reorderQuestions']);
     Route::post('/question-banks/{id}/ai/preview', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'previewAiQuestions']);
-    Route::post('/question-banks/{id}/generate-from-course', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromCourse']);
-    Route::post('/question-banks/{id}/generate-from-text', [\App\Http\Controllers\Api\Admin\QuestionBankAdminController::class, 'generateFromText']);
     
     // Events Management
     Route::get('/events', [EventAdminController::class, 'index']);
-    Route::get('/events/insights', [EventAdminController::class, 'insights']);
-    Route::get('/events/instructors/list', [EventAdminController::class, 'getInstructors']);
-    Route::post('/events/bulk-actions', [EventAdminController::class, 'bulkAction']);
     Route::get('/events/{id}', [EventAdminController::class, 'show']);
     Route::post('/events', [EventAdminController::class, 'store']);
     Route::put('/events/{id}', [EventAdminController::class, 'update']);
     Route::delete('/events/{id}', [EventAdminController::class, 'destroy']);
-    Route::post('/events/{id}/actions/{action}', [EventAdminController::class, 'quickAction']);
     Route::put('/events/{id}/participants/{userId}/attendance', [EventAdminController::class, 'updateParticipantAttendance']);
     
     // Teams Management
     Route::get('/teams', [TeamAdminController::class, 'index']);
     Route::post('/teams/reorder', [TeamAdminController::class, 'reorderTeams']);
-    Route::get('/teams/{id}', [TeamAdminController::class, 'show']);
     Route::post('/teams', [TeamAdminController::class, 'store']);
     Route::put('/teams/{id}', [TeamAdminController::class, 'update']);
     Route::delete('/teams/{id}', [TeamAdminController::class, 'destroy']);
@@ -403,28 +356,22 @@ Route::middleware([
     Route::post('/users/{id}/send-invitation', [UserAdminController::class, 'sendInvitation'])->middleware('throttle:6,1');
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
-    Route::post('/users/{id}/courses', [UserAdminController::class, 'assignCourses']);
     Route::post('/users/{id}/courses/{courseId}/complete', [UserAdminController::class, 'markCourseCompleted']);
     Route::post('/users/{id}/tests/{testId}/extra-attempt', [UserAdminController::class, 'grantTestExtraAttempt']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     
     // Team Members Management
-    Route::get('/team-members', [UserAdminController::class, 'getTeamMembers']);
-    Route::put('/team-members/{id}/role-permissions', [UserAdminController::class, 'updateRoleAndPermissions']);
     Route::post('/team-members/{id}/activate', [UserAdminController::class, 'activate']);
     Route::post('/team-members/{id}/suspend', [UserAdminController::class, 'suspend']);
     Route::post('/team-members/{id}/reset-access', [UserAdminController::class, 'resetAccess']);
-    Route::post('/team-members/{id}/remove-from-team', [UserAdminController::class, 'removeFromTeam']);
     
     
     // Statistici (doar admin)
     Route::get('/statistics/course-test-detail', [StatisticsAdminController::class, 'courseTestDetail']);
-    Route::get('/statistics/ai-export/datasets', [\App\Http\Controllers\Api\Admin\AIExportAdminController::class, 'datasets']);
     Route::post('/statistics/ai-export', [\App\Http\Controllers\Api\Admin\AIExportAdminController::class, 'generate']);
 
     // Activity Logs
     Route::get('/activity-logs', [ActivityLogAdminController::class, 'index']);
-    Route::get('/activity-logs/{id}', [ActivityLogAdminController::class, 'show']);
     
     // Exam Manual Review (legacy Exam model)
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
@@ -438,7 +385,6 @@ Route::middleware([
     
     // Admin Settings
     Route::get('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'index']);
-    Route::get('/settings/{key}', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'show']);
     Route::put('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'update']);
     
     // Admin System

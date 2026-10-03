@@ -26,9 +26,11 @@ class LearningJourneyTest extends TestCase
             ->assertCreated()
             ->json('course.id');
 
-        $this->actingAs($student, 'sanctum')
-            ->postJson("/api/courses/{$courseId}/enroll")
-            ->assertForbidden();
+        // cursul nepublicat nu e accesibil cursantului
+        $this->assertContains(
+            $this->actingAs($student, 'sanctum')->getJson("/api/courses/{$courseId}")->status(),
+            [403, 404]
+        );
 
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/admin/courses/{$courseId}/builder/publish")
@@ -97,10 +99,10 @@ class LearningJourneyTest extends TestCase
             ->assertOk()
             ->assertJsonPath('course.status', 'published');
 
-        $this->actingAs($student, 'sanctum')
-            ->postJson("/api/courses/{$courseId}/enroll")
-            ->assertOk()
-            ->assertJsonPath('enrolled', true);
+        // adminul atribuie cursul (cursanții nu se mai înscriu singuri)
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/admin/courses/{$courseId}/learners", ['user_ids' => [$student->id], 'is_mandatory' => false])
+            ->assertOk();
 
         $this->actingAs($student, 'sanctum')
             ->getJson("/api/lessons/{$firstLessonId}")
@@ -145,12 +147,6 @@ class LearningJourneyTest extends TestCase
             ->postJson("/api/courses/{$courseId}/finish")
             ->assertOk();
 
-        $this->actingAs($student, 'sanctum')
-            ->putJson("/api/lessons/{$firstLessonId}/notes", [
-                'notes' => [['content' => 'Notiță de parcurs', 'timestamp' => 0]],
-            ])
-            ->assertOk();
-
         $cloneId = $this->actingAs($admin, 'sanctum')
             ->postJson("/api/admin/courses/{$courseId}/builder/clone")
             ->assertCreated()
@@ -176,7 +172,6 @@ class LearningJourneyTest extends TestCase
         ]);
 
         $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/register")->assertOk();
-        $this->actingAs($student, 'sanctum')->getJson('/api/events/my')->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/cancel-registration")
             ->assertOk()
             ->assertJsonPath('event.user_registered', false);
@@ -186,6 +181,10 @@ class LearningJourneyTest extends TestCase
             'registered' => false,
         ]);
         $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/register")->assertOk();
-        $this->actingAs($student, 'sanctum')->postJson("/api/events/{$event->id}/mark-attendance")->assertOk();
+        // prezența o marchează adminul, după începerea evenimentului
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/admin/events/{$event->id}/participants/{$student->id}/attendance", ['attended' => true])
+            ->assertOk();
     }
 }

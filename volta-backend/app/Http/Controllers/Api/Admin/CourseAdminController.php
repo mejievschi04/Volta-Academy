@@ -9,18 +9,14 @@ use App\Models\Lesson;
 use App\Models\User;
 use App\Models\Team;
 use App\Models\Module;
-use App\Models\CourseMap;
 use App\Support\CourseMapBuckets;
-use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Services\CourseBuilderService;
 use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 class CourseAdminController extends Controller
 {
@@ -652,34 +648,6 @@ class CourseAdminController extends Controller
         ]);
     }
 
-    public function getTeachers()
-    {
-        try {
-            if (!SchemaCache::hasTable('users')) {
-                return response()->json([]);
-            }
-            if (auth()->user()->isInstructor()) {
-                $teachers = User::where('id', auth()->id())->get(['id', 'name', 'email']);
-                return response()->json($teachers);
-            }
-            $teachers = User::whereIn('role', ['admin', 'instructor'])
-                ->orderBy('name')
-                ->get(['id', 'name', 'email']);
-
-            return response()->json($teachers);
-        } catch (\Exception $e) {
-            \Log::error('Error fetching teachers', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'error' => 'Failed to fetch teachers',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function attachTeams(Request $request, $id)
     {
         $course = Course::findOrFail($id);
@@ -867,129 +835,7 @@ class CourseAdminController extends Controller
     }
 
     // Quick Actions
-    public function quickAction(Request $request, $id, $action)
-    {
-        $course = Course::findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
-
-        switch ($action) {
-            case 'publish':
-                $published = $this->courseBuilderService->publishLive($course, $request->user());
-                if (! ($published['ok'] ?? false)) {
-                    return response()->json($published, 422);
-                }
-                $this->notifyStudentsCoursePublished($published['course'] ?? $course->fresh(), $course->status);
-                break;
-            case 'unpublish':
-                if (SchemaCache::hasColumn('courses', 'status')) {
-                    $course->update(['status' => 'draft']);
-                }
-                break;
-            case 'duplicate':
-                $course = $this->courseBuilderService->cloneCourse((int) $course->id, $request->user());
-                break;
-            default:
-                return response()->json(['message' => 'Acțiune invalidă'], 400);
-        }
-
-        return response()->json([
-            'message' => 'Acțiune efectuată cu succes',
-            'course' => $this->addCourseMetrics($course->fresh()),
-        ]);
-    }
-
     // Bulk Actions
-    public function bulkAction(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'course_ids' => 'required|array|min:1',
-                'course_ids.*' => 'exists:courses,id',
-                'action' => 'required|in:publish,delete,unpublish',
-            ]);
-
-            $query = Course::whereIn('id', $validated['course_ids']);
-            if (auth()->user()->isInstructor()) {
-                $query->where('teacher_id', auth()->id());
-            }
-            $courses = $query->get();
-
-            if ($courses->isEmpty()) {
-                return response()->json([
-                    'message' => 'Nu s-au găsit cursuri',
-                ], 404);
-            }
-
-            $updated = 0;
-            $deleted = 0;
-            $errors = [];
-
-            foreach ($courses as $course) {
-                try {
-                    switch ($validated['action']) {
-                        case 'publish':
-                            $published = $this->courseBuilderService->publishLive($course, $request->user());
-                            if (! ($published['ok'] ?? false)) {
-                                $errors[] = "Cursul {$course->id} nu a putut fi publicat.";
-                                break;
-                            }
-                            $this->notifyStudentsCoursePublished($published['course'] ?? $course->fresh(), $course->status);
-                            $updated++;
-                            break;
-                        case 'unpublish':
-                            if (SchemaCache::hasColumn('courses', 'status')) {
-                                $course->update(['status' => 'draft']);
-                                $updated++;
-                            }
-                            break;
-                        case 'delete':
-                            if ($course->image) {
-                                try {
-                                    Storage::disk('public')->delete($course->image);
-                                } catch (\Exception $e) {
-                                    // Continue even if image deletion fails
-                                }
-                            }
-                            $course->delete();
-                            $deleted++;
-                            break;
-                    }
-                } catch (\Exception $e) {
-                    $errors[] = "Eroare la cursul {$course->id}: " . $e->getMessage();
-                    \Log::error("Bulk action error for course {$course->id}: " . $e->getMessage());
-                }
-            }
-
-            $message = $validated['action'] === 'delete' 
-                ? "Șters {$deleted} cursuri"
-                : "Actualizat {$updated} cursuri";
-
-            $response = [
-                'message' => $message,
-                'updated' => $updated,
-                'deleted' => $deleted,
-            ];
-
-            if (!empty($errors)) {
-                $response['errors'] = $errors;
-            }
-
-            return response()->json($response);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Date invalide',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            \Log::error("Bulk action error: " . $e->getMessage());
-            return response()->json([
-                'message' => 'Eroare la procesarea acțiunii: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
     // Reorder Modules
     public function reorderModules(Request $request, $id)
     {
@@ -1027,89 +873,7 @@ class CourseAdminController extends Controller
     }
 
     // Preview course (for admin / instructor)
-    public function preview($id)
-    {
-        $course = Course::findOrFail($id);
-        if (auth()->user()->isInstructor() && (int) $course->teacher_id !== (int) auth()->id()) {
-            abort(403, 'Acces interzis.');
-        }
-        $course = Course::with([
-            'modules' => function($query) {
-                $query->orderBy('order')->with(['lessons' => function($q) {
-                    $q->orderBy('order');
-                }]);
-            },
-            'tests' => function($query) {
-                $query->withPivot('scope', 'scope_id', 'required', 'passing_score', 'order');
-            },
-            'teacher'
-        ])->findOrFail($id);
-        
-        // Return course data for preview
-        return response()->json([
-            'course' => $course,
-            'preview_mode' => true,
-        ]);
-    }
-
     // Insights
-    public function insights()
-    {
-        try {
-            $insights = [];
-            $thresholdCompletion = 30; // 30% completion threshold
-            $thresholdDaysOutdated = 90; // 90 days outdated threshold
-
-            $courses = Course::with('teacher')->get();
-            $enrollmentCounts = $this->enrollmentCountsFor($courses->pluck('id')->all());
-
-            foreach ($courses as $course) {
-                $counts = $enrollmentCounts[(int) $course->id] ?? ['enrolled' => 0, 'completed' => 0];
-                $enrollments = $counts['enrolled'];
-
-                if ($enrollments === 0) continue;
-
-                $completed = $counts['completed'];
-
-                $completionRate = $enrollments > 0 ? ($completed / $enrollments) * 100 : 0;
-
-                // Low completion
-                if ($completionRate < $thresholdCompletion && $enrollments > 5) {
-                    $insights[] = [
-                        'id' => 'low_completion_' . $course->id,
-                        'type' => 'low_completion',
-                        'course_id' => $course->id,
-                        'course_title' => $course->title,
-                        'message' => "Rată de finalizare " . round($completionRate, 1) . "% (sub {$thresholdCompletion}%)",
-                        'severity' => 'warning',
-                    ];
-                }
-
-                // Outdated course
-                if ($course->updated_at) {
-                    $daysSinceUpdate = Carbon::parse($course->updated_at)->diffInDays(Carbon::now());
-                    if ($daysSinceUpdate > $thresholdDaysOutdated) {
-                        $insights[] = [
-                            'id' => 'outdated_' . $course->id,
-                            'type' => 'outdated',
-                            'course_id' => $course->id,
-                            'course_title' => $course->title,
-                            'message' => "Neactualizat de {$daysSinceUpdate} zile",
-                            'severity' => 'info',
-                        ];
-                    }
-                }
-            }
-
-            return response()->json($insights);
-        } catch (\Exception $e) {
-            \Log::error("Error fetching insights: " . $e->getMessage());
-            return response()->json([
-                'error' => 'Error fetching insights: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
     private function notifyStudentsCoursePublished(Course $course, ?string $previousStatus): void
     {
         if (($previousStatus ?? '') === 'published' || ($course->status ?? '') !== 'published') {
