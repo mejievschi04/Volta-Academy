@@ -218,9 +218,9 @@
 
 .va-shell .courses-page-student button.courses-page-student-filter.is-active .courses-page-student-filter-count,
 .va-shell .courses-page-student button.courses-page-student-filter.is-active .courses-page-student-filter-label {
-	color: #000000 !important;
-	background: transparent !important;
-	background-color: transparent !important;
+	color: #000000;
+	background: transparent;
+	background-color: transparent;
 }
 
 html[data-theme='dark'] .courses-page-student-filter.is-active,

@@ -1158,7 +1158,7 @@
 	.student-exam-page--mobile-focus .student-exam-question span[style],
 	.student-exam-page--mobile-focus .student-exam-question label,
 	.student-exam-page--mobile-focus .student-exam-question select {
-		color: var(--text-primary) !important;
+		color: var(--text-primary);
 	}
 
 	.student-exam-page--mobile-focus .student-exam-question select {

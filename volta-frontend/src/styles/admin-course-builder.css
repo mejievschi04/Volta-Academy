@@ -14,11 +14,11 @@
 }
 
 body.admin-course-builder-scroll-lock {
-	overflow: hidden !important;
+	overflow: hidden;
 }
 
 body.admin-course-builder-scroll-lock .va-main {
-	overflow: hidden !important;
+	overflow: hidden;
 }
 
 .admin-course-builder-qa-panel {
@@ -1355,7 +1355,7 @@ body.admin-course-builder-lesson-drag-active .admin-course-builder-outline-lesso
 	border: 1px solid #fecaca;
 	border-radius: var(--btn-desktop-radius, 12px);
 	background: #fef2f2;
-	color: var(--color-error) !important;
+	color: var(--color-error);
 	font: inherit;
 	font-size: 0.875rem;
 	font-weight: 700;
@@ -1363,7 +1363,7 @@ body.admin-course-builder-lesson-drag-active .admin-course-builder-outline-lesso
 }
 
 .admin-course-builder-actions-delete svg {
-	color: var(--color-error) !important;
+	color: var(--color-error);
 	flex-shrink: 0;
 }
 
@@ -2945,7 +2945,7 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 	.admin-course-builder-layout-clean {
 		grid-template-columns: 1fr;
 		padding-top: 0;
-		padding-left: 0 !important;
+		padding-left: 0;
 		height: auto;
 		overflow: visible;
 	}
@@ -2954,9 +2954,9 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 		position: static;
 		width: 100%;
 		height: auto;
-		transform: none !important;
-		opacity: 1 !important;
-		pointer-events: auto !important;
+		transform: none;
+		opacity: 1;
+		pointer-events: auto;
 		margin-bottom: 10px;
 	}
 
@@ -3201,30 +3201,30 @@ body.sidebar-expanded .admin-course-builder-sidebar-show-btn {
 .admin-course-builder-page .admin-course-builder-direct-editor-wrap .rte-editor,
 .admin-course-builder-page .admin-course-builder-direct-editor-wrap .rte-editor-shell,
 .admin-course-builder-page .admin-course-builder-direct-editor-wrap .rte-editor-shell > .rte-editor {
-	background: var(--lesson-sheet-bg) !important;
-	background-color: var(--lesson-sheet-bg) !important;
-	border: none !important;
-	box-shadow: none !important;
-	color: #000000 !important;
+	background: var(--lesson-sheet-bg);
+	background-color: var(--lesson-sheet-bg);
+	border: none;
+	box-shadow: none;
+	color: #000000;
 }
 
 .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-lesson-title-inline {
-	all: unset !important;
-	display: block !important;
-	width: min(100%, 900px) !important;
-	margin: 0 auto var(--space-4) !important;
-	font-size: clamp(1.75rem, 4vw, 2.5rem) !important;
-	font-weight: 800 !important;
-	line-height: 1.2 !important;
-	letter-spacing: -0.02em !important;
-	text-align: center !important;
+	all: unset;
+	display: block;
+	width: min(100%, 900px);
+	margin: 0 auto var(--space-4);
+	font-size: clamp(1.75rem, 4vw, 2.5rem);
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+	text-align: center;
 	color: #000000 !important;
-	background: transparent !important;
-	background-color: transparent !important;
-	box-shadow: none !important;
+	background: transparent;
+	background-color: transparent;
+	box-shadow: none;
 	border: none !important;
-	direction: ltr !important;
-	unicode-bidi: plaintext !important;
+	direction: ltr;
+	unicode-bidi: plaintext;
 }
 
 .admin-course-builder-page .admin-course-builder-workspace-clean .admin-course-builder-lesson-title-inline:focus {
@@ -3268,7 +3268,7 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 	.admin-course-builder-layout-clean {
 		min-height: auto;
 		gap: 12px;
-		padding: 0 !important;
+		padding: 0;
 	}
 
 	.admin-course-builder-sidebar,
@@ -3336,7 +3336,7 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 	}
 
 	.admin-course-builder-sidebar-toggle {
-		display: none !important;
+		display: none;
 	}
 
 	.admin-course-builder-icon-wrap,
@@ -3396,18 +3396,18 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 
 	.admin-course-builder-page.has-detached-sidebar .admin-course-builder-layout-clean,
 	.admin-course-builder-page.is-detached-sidebar-hidden .admin-course-builder-layout-clean {
-		padding-left: 0 !important;
+		padding-left: 0;
 	}
 
 	.admin-course-builder-sidebar-detached {
-		position: fixed !important;
+		position: fixed;
 		top: calc(var(--builder-topnav-height, 56px) + 8px);
 		right: 12px;
 		bottom: 12px;
 		left: 12px;
-		width: auto !important;
-		height: auto !important;
-		max-height: none !important;
+		width: auto;
+		height: auto;
+		max-height: none;
 		z-index: 80;
 		margin: 0;
 		border-radius: 16px;
@@ -3415,9 +3415,9 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 	}
 
 	.admin-course-builder-sidebar-detached.is-hidden {
-		opacity: 0 !important;
-		pointer-events: none !important;
-		transform: translateY(16px) !important;
+		opacity: 0;
+		pointer-events: none;
+		transform: translateY(16px);
 	}
 
 	.admin-course-builder-sidebar-detached.is-visible {
@@ -3427,11 +3427,11 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 	}
 
 	.admin-course-builder-sidebar-toggle {
-		display: inline-flex !important;
+		display: inline-flex;
 	}
 
 	.admin-course-builder-sidebar-show-btn {
-		display: inline-flex !important;
+		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		top: auto;
@@ -3979,10 +3979,10 @@ html[data-theme='dark'] .admin-course-builder-page .admin-course-builder-workspa
 	align-items: center;
 	padding: 5px 10px;
 	border-radius: 999px;
-	background: rgb(255, 238, 0) !important;
-	background-color: rgb(255, 238, 0) !important;
-	color: #000000 !important;
-	border: 1px solid rgba(0, 0, 0, 0.14) !important;
+	background: rgb(255, 238, 0);
+	background-color: rgb(255, 238, 0);
+	color: #000000;
+	border: 1px solid rgba(0, 0, 0, 0.14);
 	font-size: 0.75rem;
 	font-weight: 800;
 	letter-spacing: 0.01em;
@@ -4011,10 +4011,10 @@ html[data-theme='dark'] .admin-course-builder-test-question-badge,
 html[data-theme='dark'] .admin-course-builder-test-question-badge-btn,
 [data-theme='light'] .admin-course-builder-test-question-badge,
 [data-theme='light'] .admin-course-builder-test-question-badge-btn {
-	background: rgb(255, 238, 0) !important;
-	background-color: rgb(255, 238, 0) !important;
-	color: #000000 !important;
-	border-color: rgba(0, 0, 0, 0.14) !important;
+	background: rgb(255, 238, 0);
+	background-color: rgb(255, 238, 0);
+	color: #000000;
+	border-color: rgba(0, 0, 0, 0.14);
 }
 
 html[data-theme='dark'] .admin-course-builder-test-question-badge-btn:hover,

@@ -34,32 +34,32 @@
     padding: 0;
     border: 1px solid var(--btn-primary-border);
     border-radius: var(--btn-desktop-radius);
-    background: var(--btn-primary-bg) !important;
-    color: var(--btn-primary-text) !important;
-    border-color: var(--btn-primary-border) !important;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-color: var(--btn-primary-border);
     box-shadow: none;
     cursor: pointer;
     transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .test-attempt-nav-btn svg,
 .test-attempt-nav-btn svg path {
-    color: var(--btn-primary-text) !important;
-    fill: var(--btn-primary-text) !important;
+    color: var(--btn-primary-text);
+    fill: var(--btn-primary-text);
     flex-shrink: 0;
 }
 [data-theme="light"] .test-attempt-nav-btn,
 html[data-theme="dark"] .test-attempt-nav-btn {
-    background: var(--btn-primary-bg) !important;
-    background-color: var(--btn-primary-bg) !important;
-    color: var(--btn-primary-text) !important;
-    border-color: var(--btn-primary-border) !important;
+    background: var(--btn-primary-bg);
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-color: var(--btn-primary-border);
 }
 [data-theme="light"] .test-attempt-nav-btn svg,
 [data-theme="light"] .test-attempt-nav-btn svg path,
 html[data-theme="dark"] .test-attempt-nav-btn svg,
 html[data-theme="dark"] .test-attempt-nav-btn svg path {
-    color: var(--btn-primary-text) !important;
-    fill: var(--btn-primary-text) !important;
+    color: var(--btn-primary-text);
+    fill: var(--btn-primary-text);
 }
 .test-attempt-nav-btn:hover:not(:disabled) {
     background: var(--btn-primary-hover) !important;

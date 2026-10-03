@@ -459,11 +459,11 @@ body.admin-view .va-main {
 
 /* Toggle switch - exclude from generic button styles (va-shell-main, admin-container) */
 .admin-settings-toggle-switch {
-	width: 44px !important;
-	height: 24px !important;
-	min-width: 44px !important;
-	min-height: 24px !important;
-	padding: 0 !important;
+	width: 44px;
+	height: 24px;
+	min-width: 44px;
+	min-height: 24px;
+	padding: 0;
 	background-color: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-full);
@@ -471,7 +471,7 @@ body.admin-view .va-main {
 	cursor: pointer;
 	transition: all var(--transition-base);
 	flex-shrink: 0;
-	font-size: 0 !important; /* Prevent text/icon sizing from button rules */
+	font-size: 0; /* Prevent text/icon sizing from button rules */
 }
 
 .admin-settings-toggle-switch.active {
@@ -2409,25 +2409,25 @@ html body .admin-back-btn.admin-back-btn {
 	gap: 8px;
 	box-sizing: border-box;
 	width: auto !important;
-	height: 40px !important;
-	min-height: 40px !important;
+	height: 40px;
+	min-height: 40px;
 	padding: 0 16px !important;
-	border: 1px solid var(--border-secondary) !important;
-	border-radius: var(--btn-desktop-radius) !important;
-	background: var(--bg-elevated) !important;
-	color: var(--text-primary) !important;
-	box-shadow: none !important;
+	border: 1px solid var(--border-secondary);
+	border-radius: var(--btn-desktop-radius);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	box-shadow: none;
 	font-size: 14px !important;
-	font-weight: 800 !important;
+	font-weight: 800;
 	line-height: 1 !important;
-	text-decoration: none !important;
+	text-decoration: none;
 	white-space: nowrap;
 	cursor: pointer;
 	transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 html body .admin-back-btn.admin-back-btn svg {
-	color: var(--text-primary) !important;
+	color: var(--text-primary);
 }
 
 html body .admin-back-btn.admin-back-btn span {
@@ -2450,16 +2450,16 @@ html body .admin-excel-export-btn.admin-excel-export-btn {
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	height: 40px !important;
-	min-height: 40px !important;
+	height: 40px;
+	min-height: 40px;
 	padding: 0 16px !important;
-	border: 1px solid var(--border-secondary) !important;
-	border-radius: var(--btn-desktop-radius) !important;
-	background: var(--bg-elevated) !important;
-	color: var(--text-primary) !important;
-	box-shadow: none !important;
+	border: 1px solid var(--border-secondary);
+	border-radius: var(--btn-desktop-radius);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	box-shadow: none;
 	font-size: 14px !important;
-	font-weight: 800 !important;
+	font-weight: 800;
 	white-space: nowrap;
 	cursor: pointer;
 	transition: background-color 0.15s ease, transform 0.15s ease;

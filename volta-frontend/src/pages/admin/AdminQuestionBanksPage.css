@@ -94,7 +94,7 @@
 
 .qb-search-input {
 	width: 100%;
-	border-radius: 11px !important;
+	border-radius: 11px;
 }
 
 .qb-catalog-toolbar-actions {
@@ -806,8 +806,8 @@
 .qb-search-field .qb-search-input {
 	width: 100%;
 	min-height: 42px;
-	padding-left: 40px !important;
-	border-radius: 8px !important;
+	padding-left: 40px;
+	border-radius: 8px;
 }
 
 .qb-action-button {
@@ -958,12 +958,12 @@
 	height: auto !important;
 	width: auto !important;
 	padding: 0 !important;
-	border: 0 !important;
+	border: 0;
 	border-radius: 0 !important;
-	background: transparent !important;
-	box-shadow: none !important;
+	background: transparent;
+	box-shadow: none;
 	font-size: inherit !important;
-	color: inherit !important;
+	color: inherit;
 }
 
 button.qb-crumb:hover {

@@ -51,37 +51,37 @@
 .lesson-tiptap-btn {
 	all: unset;
 	box-sizing: border-box;
-	display: inline-flex !important;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: 32px !important;
 	min-width: 32px !important;
-	height: 32px !important;
+	height: 32px;
 	padding: 0 !important;
-	border: 0 !important;
+	border: 0;
 	border-radius: 8px !important;
-	background: transparent !important;
-	background-color: transparent !important;
-	color: var(--text-primary) !important;
+	background: transparent;
+	background-color: transparent;
+	color: var(--text-primary);
 	cursor: pointer;
 	line-height: 0;
-	box-shadow: none !important;
+	box-shadow: none;
 }
 
 .lesson-tiptap-btn svg {
 	width: 18px !important;
-	height: 18px !important;
+	height: 18px;
 	display: block;
-	color: var(--text-primary) !important;
-	fill: var(--text-primary) !important;
-	stroke: none !important;
-	background: transparent !important;
-	border-radius: 0 !important;
+	color: var(--text-primary);
+	fill: var(--text-primary);
+	stroke: none;
+	background: transparent;
+	border-radius: 0;
 }
 
 .lesson-tiptap-btn svg * {
-	fill: var(--text-primary) !important;
-	stroke: none !important;
+	fill: var(--text-primary);
+	stroke: none;
 }
 
 .lesson-tiptap-btn:hover:not(:disabled) {
@@ -90,15 +90,15 @@
 }
 
 .lesson-tiptap-btn.is-active {
-	background: var(--btn-primary-bg) !important;
-	background-color: var(--btn-primary-bg) !important;
-	color: var(--btn-primary-text) !important;
+	background: var(--btn-primary-bg);
+	background-color: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
 }
 
 .lesson-tiptap-btn.is-active svg,
 .lesson-tiptap-btn.is-active svg * {
-	color: var(--btn-primary-text) !important;
-	fill: var(--btn-primary-text) !important;
+	color: var(--btn-primary-text);
+	fill: var(--btn-primary-text);
 }
 
 .lesson-tiptap-btn:disabled {

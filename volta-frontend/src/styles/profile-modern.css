@@ -272,7 +272,7 @@
 	justify-content: center;
 	font-size: var(--font-size-4xl);
 	font-weight: var(--font-weight-bold);
-	color: var(--text-inverse) !important;
+	color: var(--text-inverse);
 	border: 5px solid var(--bg-elevated);
 	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(var(--color-primary-rgb), 0.2);
 	position: relative;
@@ -1018,11 +1018,11 @@ html body .va-profile-section-admin-courses .va-course-card.va-course-card-admin
 	flex-direction: column;
 	gap: 6px;
 	min-height: 100%;
-	padding: 16px !important;
-	border: 1px solid var(--border-primary) !important;
-	border-radius: 12px !important;
-	background: var(--bg-elevated) !important;
-	box-shadow: none !important;
+	padding: 16px;
+	border: 1px solid var(--border-primary);
+	border-radius: 12px;
+	background: var(--bg-elevated);
+	box-shadow: none;
 	transform: none;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -1056,7 +1056,7 @@ html body .va-profile-section-admin-courses .va-course-card-title {
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
-	color: var(--text-primary) !important;
+	color: var(--text-primary);
 	font-size: 0.95rem;
 	font-weight: 600;
 	line-height: 1.35;
@@ -1074,8 +1074,8 @@ html body .va-profile-section-admin-courses .va-course-status-badge {
 	flex-shrink: 0;
 	padding: 3px 8px;
 	border-radius: 999px;
-	background: color-mix(in srgb, var(--course-card-accent) 12%, transparent) !important;
-	color: var(--course-card-accent) !important;
+	background: color-mix(in srgb, var(--course-card-accent) 12%, transparent);
+	color: var(--course-card-accent);
 	font-size: 0.68rem;
 	font-weight: 600;
 	letter-spacing: 0.02em;
@@ -1083,8 +1083,8 @@ html body .va-profile-section-admin-courses .va-course-status-badge {
 }
 
 html body .va-profile-section-admin-courses .va-course-status-badge.is-in_progress {
-	background: color-mix(in srgb, var(--color-brand-primary) 22%, transparent) !important;
-	color: var(--text-primary) !important;
+	background: color-mix(in srgb, var(--color-brand-primary) 22%, transparent);
+	color: var(--text-primary);
 }
 
 .va-profile-section-admin-courses .va-course-card-progress-bar {
@@ -1132,14 +1132,14 @@ html body .va-profile-section-admin-courses .va-course-card-actions > button {
 	padding: 10px 14px;
 	border: 1px solid rgba(0, 0, 0, 0.14) !important;
 	border-radius: 8px !important;
-	background-color: rgb(255, 238, 0) !important;
+	background-color: rgb(255, 238, 0);
 	color: #000000 !important;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
 	font-size: 0.84rem;
 	font-weight: 700;
 	line-height: 1.2;
 	letter-spacing: 0.01em;
-	text-decoration: none !important;
+	text-decoration: none;
 	cursor: pointer;
 	transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }

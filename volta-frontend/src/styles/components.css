@@ -36,9 +36,9 @@
 .qb-delete-btn,
 .messages-chat-actions-btn,
 .admin-content-card__action.is-danger {
-	color: #991b1b !important;
-	background-color: rgba(239, 68, 68, 0.12) !important;
-	border-color: rgba(220, 38, 38, 0.45) !important;
+	color: #991b1b;
+	background-color: rgba(239, 68, 68, 0.12);
+	border-color: rgba(220, 38, 38, 0.45);
 }
 
 .va-btn-danger:hover:not(:disabled),
@@ -54,9 +54,9 @@
 /* Când e combinat cu secondary, nu moșteni gri */
 .lms-btn-secondary.va-btn-danger,
 button.lms-btn-secondary.va-btn-danger {
-	color: #991b1b !important;
-	background-color: rgba(239, 68, 68, 0.12) !important;
-	border-color: rgba(220, 38, 38, 0.45) !important;
+	color: #991b1b;
+	background-color: rgba(239, 68, 68, 0.12);
+	border-color: rgba(220, 38, 38, 0.45);
 }
 
 .lms-btn-secondary.va-btn-danger:hover:not(:disabled) {
@@ -91,8 +91,8 @@ html[data-theme='dark'] .lms-btn-secondary.va-btn-danger:hover:not(:disabled) {
 .va-btn-danger svg,
 .admin-btn-danger svg,
 .messages-chat-actions-btn svg {
-	color: currentColor !important;
-	stroke: currentColor !important;
+	color: currentColor;
+	stroke: currentColor;
 }
 
 /* ============================================

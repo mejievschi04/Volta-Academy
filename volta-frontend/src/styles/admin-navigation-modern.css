@@ -458,8 +458,8 @@
 [data-theme="light"] .modern-nav-item.is-active svg,
 [data-theme="light"] .va-nav-btn.active svg,
 [data-theme="light"] .va-nav-btn.is-active svg {
-	color: var(--text-inverse) !important;
-	stroke: currentColor !important;
+	color: var(--text-inverse);
+	stroke: currentColor;
 }
 
 /* Keep Phosphor and legacy SVGs synced with active color */
@@ -467,7 +467,7 @@
 [data-theme="light"] .modern-nav-item.is-active svg *,
 [data-theme="light"] .va-nav-btn.active svg *,
 [data-theme="light"] .va-nav-btn.is-active svg * {
-	stroke: currentColor !important;
+	stroke: currentColor;
 }
 
 .modern-nav-item:hover .modern-nav-item-icon,
@@ -512,7 +512,7 @@
 .modern-nav-item.is-active .modern-nav-item-label,
 .va-nav-btn.active .va-nav-label,
 .va-nav-btn.is-active .va-nav-label {
-	color: var(--bg-primary) !important;
+	color: var(--bg-primary);
 	font-weight: var(--font-weight-semibold);
 }
 
@@ -520,7 +520,7 @@
 [data-theme="light"] .modern-nav-item.is-active .modern-nav-item-label,
 [data-theme="light"] .va-nav-btn.active .va-nav-label,
 [data-theme="light"] .va-nav-btn.is-active .va-nav-label {
-	color: var(--text-inverse) !important;
+	color: var(--text-inverse);
 	font-weight: var(--font-weight-semibold);
 }
 
@@ -574,9 +574,9 @@
 /* Părintele (Cursuri, Teste & Bănci) nu e niciodată activ – doar subitem-ul curent e galben */
 .modern-nav-group .modern-nav-group-label,
 .modern-nav-group button.va-nav-btn {
-	background-color: transparent !important;
-	color: var(--text-secondary) !important;
-	font-weight: inherit !important;
+	background-color: transparent;
+	color: var(--text-secondary);
+	font-weight: inherit;
 }
 .modern-nav-group .modern-nav-group-label::before,
 .modern-nav-group button.va-nav-btn::before {
@@ -593,7 +593,7 @@
 .modern-nav-group button.modern-nav-group-label {
 	width: 100%;
 	text-align: left;
-	background: transparent !important;
+	background: transparent;
 	border: none;
 	cursor: pointer;
 	font: inherit;
@@ -1207,37 +1207,37 @@
 	/* Remove blur from sidebar on mobile - must be first */
 	.modern-sidebar,
 	.va-sidebar {
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 	}
 	.modern-topnav,
 	.admin-topnav,
 	.va-topnav {
 		padding: 0 var(--space-4);
-		display: flex !important;
-		visibility: visible !important;
+		display: flex;
+		visibility: visible;
 	}
 
 	/* Logo visible in topnav on mobile */
 	.modern-topnav-left,
 	.va-topnav-brand {
-		display: flex !important;
-		visibility: visible !important;
+		display: flex;
+		visibility: visible;
 	}
 
 	.va-logo-text,
 	.modern-sidebar-logo {
-		display: flex !important;
-		visibility: visible !important;
-		opacity: 1 !important;
+		display: flex;
+		visibility: visible;
+		opacity: 1;
 	}
 
 	.va-logo-icon-img {
-		display: block !important;
-		visibility: visible !important;
-		opacity: 1 !important;
-		width: 32px !important;
-		height: 32px !important;
+		display: block;
+		visibility: visible;
+		opacity: 1;
+		width: 32px;
+		height: 32px;
 	}
 
 	.admin-topnav-search {
@@ -1246,11 +1246,11 @@
 
 	/* Hide toggle controls from topnav on mobile - they're in bottom menu */
 	.admin-topnav-control {
-		display: none !important;
+		display: none;
 	}
 
 	.admin-topnav-user {
-		display: none !important;
+		display: none;
 	}
 
 	.admin-topnav-user-info {
@@ -1259,13 +1259,13 @@
 
 	.va-main {
 		padding: var(--space-4);
-		padding-top: 56px !important;
+		padding-top: 56px;
 	}
 
 	/* Mobile hamburger button in topnav - matches topnav background */
 	.mobile-sidebar-toggle {
-		display: flex !important;
-		visibility: visible !important;
+		display: flex;
+		visibility: visible;
 		align-items: center;
 		justify-content: center;
 		width: 44px;
@@ -1273,7 +1273,7 @@
 		min-width: 44px;
 		min-height: 44px;
 		padding: var(--space-2);
-		background: var(--bg-elevated) !important;
+		background: var(--bg-elevated);
 		border: none;
 		border-radius: var(--radius-md);
 		color: var(--text-primary);
