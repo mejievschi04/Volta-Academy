@@ -7,4 +7,7 @@ return [
 
     'mail_from_name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Volta Academy')),
 
+    // Folderul backup-urilor LMS (baza de date + storage/app/public)
+    'backup_root' => storage_path('app/lms-backups'),
+
 ];

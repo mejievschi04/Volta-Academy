@@ -14,7 +14,7 @@ class LmsBackupService
 {
     public function backupRoot(): string
     {
-        return storage_path('app/lms-backups');
+        return (string) config('volta.backup_root', storage_path('app/lms-backups'));
     }
 
     public function shouldRunScheduledBackup(): bool
