@@ -12,7 +12,6 @@
         "laravel/tinker": "^2.10.1"
     },
     "require-dev": {
-        "cweagans/composer-patches": "^1.7",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
@@ -73,11 +72,6 @@
     "extra": {
         "laravel": {
             "dont-discover": []
-        },
-        "patches": {
-            "laravel/framework": {
-                "PHP 8.5: Pdo\\\\Mysql::ATTR_SSL_CA instead of PDO::MYSQL_ATTR_SSL_CA": "patches/laravel-framework-php85-database.patch"
-            }
         }
     },
     "config": {
@@ -88,9 +82,11 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
-            "cweagans/composer-patches": true,
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.2.29"
         }
     },
     "minimum-stability": "stable",
