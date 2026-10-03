@@ -129,12 +129,10 @@ test('Biblioteca și Ghidurile au margine față de meniu, iar antetul e aliniat
 		await expect(listTitle).toBeVisible();
 		// stilurile de admin se încarcă după pagină: așteptăm meniul lateral stilizat înainte de măsurare
 		await expect.poll(() => page.locator('aside.modern-sidebar').first().evaluate((el) => getComputedStyle(el).position)).toMatch(/fixed|sticky/);
-		// marginea stângă a zonei de conținut (imediat după meniul lateral)
-		const mainLeft = await page.locator('.va-shell-main').first().evaluate((el) => el.getBoundingClientRect().left);
-		const headerBox = await header.boundingBox();
-		const listBox = await listTitle.boundingBox();
+		// pagina intră cu o animație: comparăm pozițiile după ce s-au stabilizat
+		await expect.poll(async () => Math.round((await listTitle.boundingBox()).x - (await header.boundingBox()).x), { message: url }).toBe(0);
 		// înainte conținutul era lipit de meniul lateral (spațierea era anulată în cadrul de admin)
-		expect(headerBox.x - mainLeft, url).toBeGreaterThanOrEqual(16);
-		expect(Math.round(listBox.x), url).toBe(Math.round(headerBox.x));
+		const mainLeft = await page.locator('.va-shell-main').first().evaluate((el) => el.getBoundingClientRect().left);
+		expect((await header.boundingBox()).x - mainLeft, url).toBeGreaterThanOrEqual(16);
 	}
 });
