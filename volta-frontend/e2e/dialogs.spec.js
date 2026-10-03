@@ -69,7 +69,8 @@ test('salvează descrierea mapei din fereastra de editare', async ({ page }, tes
 
 test('salvează descrierea scurtă a cursului din fereastra de editare', async ({ page }, testInfo) => {
 	const summary = `Rezumat ${testInfo.project.name} ${Date.now()}`;
-	// cursul-ciornă al proiectului: salvarea scrie toate setările (ex. scorul minim), deci nu atingem „Curs E2E”
+	// cursul-ciornă al proiectului: editarea unui curs publicat îl trece în „editing”, iar cursanții primesc ultima
+	// versiune publicată; „Curs E2E” din seeder nu are una, deci testele lui ar dispărea pentru cursanți
 	const title = `Curs editor ${testInfo.project.name}`;
 	const courses = await page.evaluate(async (q) => {
 		const res = await fetch(`/api/admin/courses?search=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } });
