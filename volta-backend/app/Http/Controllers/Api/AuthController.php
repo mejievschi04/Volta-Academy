@@ -108,17 +108,12 @@ class AuthController extends Controller
             // Check if user has default password (must change password)
             $mustChangePassword = $user->must_change_password ?? false;
             
-            // Log successful login
-            $sessionId = $request->session()->getId();
-            $sessionName = $request->session()->getName();
-            
+            // Fără ID-ul de sesiune: cine citește logul nu trebuie să poată prelua sesiunea
             Log::info('User logged in', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-                'session_id' => $sessionId,
-                'session_name' => $sessionName,
             ]);
             
             $responseData = [
@@ -140,25 +135,9 @@ class AuthController extends Controller
             if ($wantsMobileToken) {
                 $responseData['token'] = $user->createToken('volta-student-mobile', ['*'])->plainTextToken;
             }
-            
-            // Only include debug info in development
-            if (config('app.debug')) {
-                $responseData['debug'] = [
-                    'session_id' => $sessionId,
-                    'session_name' => $sessionName,
-                ];
-            }
-            
-            $response = response()->json($responseData);
-            
-            // Log response headers only in development
-            if (config('app.debug')) {
-                Log::info('Login response headers', [
-                    'set_cookie_header' => $response->headers->get('Set-Cookie'),
-                ]);
-            }
-            
-            return $response;
+
+
+            return response()->json($responseData);
         }
 
         // Log failed login attempt
