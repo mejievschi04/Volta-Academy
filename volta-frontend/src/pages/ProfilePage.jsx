@@ -282,7 +282,7 @@ const ProfilePage = () => {
 										<strong>{test.title}</strong>
 										<span>{resultLabel}</span>
 									</div>
-									{failed && test.max_attempts != null ? (
+									{failed && test.max_attempts != null && (viewerRole !== 'instructor' || Number(test.created_by) === Number(currentUser?.id)) ? (
 										<button
 											type="button"
 											className="lms-btn-secondary lms-btn-sm"

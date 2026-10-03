@@ -82,13 +82,20 @@ class GrantTestExtraAttemptTest extends TestCase
         ])->assertOk();
     }
 
-    public function test_instructor_can_grant_extra_attempt(): void
+    public function test_instructor_grants_extra_attempts_only_on_own_tests(): void
     {
-        $instructor = User::factory()->create(['role' => 'instructor']);
+        $owner = User::factory()->create(['role' => 'instructor']);
+        $other = User::factory()->create(['role' => 'instructor']);
         $student = User::factory()->create(['role' => 'student']);
-        $test = Test::factory()->published()->create(['max_attempts' => 1]);
+        $test = Test::factory()->published()->create(['created_by' => $owner->id, 'max_attempts' => 1]);
 
-        $this->actingAs($instructor, 'sanctum')
+        $this->actingAs($other, 'sanctum')
+            ->postJson("/api/admin/users/{$student->id}/tests/{$test->id}/extra-attempt")
+            ->assertForbidden();
+        $this->assertDatabaseCount('user_test_attempt_grants', 0);
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($owner, 'sanctum')
             ->postJson("/api/admin/users/{$student->id}/tests/{$test->id}/extra-attempt")
             ->assertOk()
             ->assertJsonPath('extra_attempts', 1);

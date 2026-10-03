@@ -42,10 +42,10 @@ class UserAssignedCoursesService
             $user->load([
                 'assignedCourses.modules:id,course_id,title,order',
                 'assignedCourses.teacher:id,name',
-                'assignedCourses.tests:id,title,max_attempts,passing_score,status',
+                'assignedCourses.tests:id,title,max_attempts,passing_score,status,created_by',
             ]);
         } elseif ($user->assignedCourses->isNotEmpty() && ! $user->assignedCourses->first()->relationLoaded('tests')) {
-            $user->assignedCourses->load(['tests:id,title,max_attempts,passing_score,status']);
+            $user->assignedCourses->load(['tests:id,title,max_attempts,passing_score,status,created_by']);
         }
 
         $courses = $user->assignedCourses;
@@ -163,6 +163,7 @@ class UserAssignedCoursesService
                     'id' => (int) $test->id,
                     'title' => $test->title ?? 'Test',
                     'max_attempts' => $test->max_attempts,
+                    'created_by' => $test->created_by !== null ? (int) $test->created_by : null,
                     'extra_attempts' => $extraAttempts,
                     'attempts_used' => $attemptsUsed,
                     'remaining_attempts' => $remaining,
