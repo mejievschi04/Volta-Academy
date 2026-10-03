@@ -42,3 +42,23 @@ test('lista de utilizatori își arată numele și emailul pe câte un rând', a
 	expect(await textLines(email)).toBe(1);
 	await expect(row.getByRole('button', { name: 'Editează utilizatorul: Cursant E2E desktop' })).toBeVisible();
 });
+
+test('în tema închisă butoanele din antetul mapei au text lizibil', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('volta-ui-theme', 'dark'));
+	await page.goto('/admin/maps/1');
+	const header = page.locator('.course-map-page-header');
+	for (const name of ['Înapoi', 'Editează']) {
+		const label = header.getByText(name, { exact: true });
+		await expect(label).toBeVisible();
+		// contrast text / fundalul butonului (fundalul era alb, iar textul lua culoarea deschisă a temei)
+		const ratio = await label.evaluate((el) => {
+			const rgb = (c) => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+			const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+				.reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+			const button = el.closest('button');
+			const [a, b] = [lum(rgb(getComputedStyle(el).color)), lum(rgb(getComputedStyle(button).backgroundColor))];
+			return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+		});
+		expect(ratio, name).toBeGreaterThanOrEqual(4.5);
+	}
+});

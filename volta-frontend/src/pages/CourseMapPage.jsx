@@ -304,7 +304,7 @@ const CourseMapPage = () => {
 							title={mapsListShortLabel}
 						>
 							<ArrowLeft size={20} weight="bold" aria-hidden="true" />
-							<span className="va-btn-back course-map-page-back-label">Înapoi</span>
+							<span className="course-map-page-back-label">Înapoi</span>
 						</button>
 						<div className="course-map-page-title-block">
 							<div className="course-map-page-title-row">
@@ -324,7 +324,7 @@ const CourseMapPage = () => {
 					<p className="course-map-page-dnd-hint" role="note">
 						<Info size={18} weight="bold" aria-hidden />
 						<span>
-							Trage cursurile din <strong>banda din stânga</strong> (nu acoperi coperta). Poți{' '}
+							Trage cursurile de <strong>butonul de mutare</strong> din colțul cardului ca să le reordonezi. Poți{' '}
 							<strong>adăuga sau schimba imaginea</strong> din zona copertei pe fiecare card.
 						</span>
 					</p>
