@@ -1,0 +1,131 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Course;
+use App\Models\CourseTest;
+use App\Models\Lesson;
+use App\Models\Module;
+use App\Models\Question;
+use App\Models\Test;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+/**
+ * Date pentru testele end-to-end (volta-frontend/e2e). Rulează doar pe baza separată a testelor:
+ * php artisan migrate:fresh --seed --seeder=E2eSeeder
+ */
+class E2eSeeder extends Seeder
+{
+    public const PASSWORD = 'E2e-parola-1';
+
+    public function run(): void
+    {
+        $password = Hash::make(self::PASSWORD);
+
+        $admin = User::create([
+            'name' => 'Admin E2E',
+            'email' => 'admin@e2e.test',
+            'password' => $password,
+            'role' => 'admin',
+            'status' => 'active',
+            'must_change_password' => false,
+        ]);
+
+        // Câte un cursant pentru fiecare proiect Playwright (desktop, mobile): testele rulează pe aceeași
+        // bază, iar o încercare trimisă pe desktop nu trebuie să schimbe ce vede rularea de pe mobil.
+        $students = collect(['desktop', 'mobile'])->map(fn (string $project) => User::create([
+            'name' => 'Cursant E2E ' . $project,
+            'email' => "student-{$project}@e2e.test",
+            'password' => $password,
+            'role' => 'student',
+            'status' => 'active',
+            'must_change_password' => false,
+        ]));
+
+        // Fără evenimente de model: nu pornim reindexarea Volt și recalculările de progres.
+        $course = Course::withoutEvents(fn () => Course::factory()->published()->create([
+            'title' => 'Curs E2E',
+            'description' => 'Curs folosit de testele end-to-end.',
+            'teacher_id' => $admin->id,
+        ]));
+
+        $module = Module::withoutEvents(fn () => Module::create([
+            'course_id' => $course->id,
+            'title' => 'Modulul 1',
+            'description' => 'Primul modul',
+            'order' => 1,
+            'status' => 'published',
+        ]));
+
+        foreach (range(1, 3) as $index) {
+            Lesson::withoutEvents(fn () => Lesson::create([
+                'course_id' => $course->id,
+                'module_id' => $module->id,
+                'title' => "Lecția {$index}",
+                'content' => "<h2>Introducere {$index}</h2><p>Conținutul lecției {$index}, cu un paragraf de text pentru test.</p>",
+                'type' => 'text',
+                'status' => 'published',
+                'order' => $index,
+            ]));
+        }
+
+        $test = Test::factory()->published()->create([
+            'title' => 'Test final E2E',
+            'created_by' => $admin->id,
+            'time_limit_minutes' => null,
+            'max_attempts' => 3,
+            'passing_score' => 50,
+            'randomize_answers' => false,
+        ]);
+
+        Question::factory()->create([
+            'test_id' => $test->id,
+            'type' => 'multiple_choice',
+            'content' => 'Care este capitala României?',
+            'points' => 1,
+            'order' => 0,
+            'answers' => [
+                ['text' => 'București', 'is_correct' => true],
+                ['text' => 'Cluj-Napoca', 'is_correct' => false],
+            ],
+        ]);
+
+        Question::factory()->create([
+            'test_id' => $test->id,
+            'type' => 'multiple_choice',
+            'content' => 'Cât face 2 + 2?',
+            'points' => 1,
+            'order' => 1,
+            'answers' => [
+                ['text' => '4', 'is_correct' => true],
+                ['text' => '5', 'is_correct' => false],
+            ],
+        ]);
+
+        CourseTest::create([
+            'course_id' => $course->id,
+            'test_id' => $test->id,
+            'scope' => 'course',
+            'required' => true,
+            'passing_score' => 50,
+            'order' => 0,
+        ]);
+
+        // Cursanții văd doar cursurile atribuite.
+        foreach ($students as $student) {
+            DB::table('course_user')->insert([
+                'course_id' => $course->id,
+                'user_id' => $student->id,
+                'enrolled' => true,
+                'enrolled_at' => now(),
+                'is_mandatory' => false,
+                'assigned_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+}
