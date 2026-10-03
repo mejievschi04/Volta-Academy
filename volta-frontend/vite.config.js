@@ -53,7 +53,8 @@ export default defineConfig({
         onlyExplicitManualChunks: true,
         manualChunks(id) {
           if (id.includes('/node_modules/three/')) return 'three';
-          if (id.includes('/node_modules/@phosphor-icons/')) return 'icons-phosphor';
+          // Iconițele Phosphor nu au chunk propriu: fiecare intră lângă paginile care o folosesc.
+          // Un chunk comun (275 KB, toate greutățile fiecărei iconițe) se descărca la pornire pe orice pagină.
           if (id.includes('/node_modules/lucide-react/')) return 'icons-lucide';
           if (id.includes('/node_modules/xlsx/')) return 'xlsx';
           if (id.includes('pdfjs-dist') && id.includes('pdf.worker')) {
