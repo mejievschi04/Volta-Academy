@@ -1151,6 +1151,199 @@
 	color: var(--text-primary);
 }
 
+/*
+ * Ferestrele de link, PDF și culoare personalizată: doar tokenuri, ca să meargă în ambele teme.
+ * Prefixul .rte-modal: fereastra poate apărea în formulare cu reguli generale pe input (ex. width: 100%).
+ */
+.rte-modal--form {
+	width: min(480px, 92vw);
+}
+
+.rte-modal--wide {
+	width: min(600px, 92vw);
+}
+
+.rte-modal .rte-modal-label {
+	display: block;
+	margin-bottom: var(--space-2);
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
+.rte-modal .rte-modal-hint {
+	display: block;
+	margin: var(--space-2) 0 0;
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+}
+
+.rte-modal .rte-modal-input {
+	width: 100%;
+	min-height: var(--btn-desktop-min-height);
+	padding: 0 var(--space-3);
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-size: var(--font-size-base);
+}
+
+.rte-modal .rte-modal-input:focus {
+	outline: none;
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 3px var(--color-primary-alpha-30);
+}
+
+.rte-modal .rte-modal-input--page {
+	width: 76px;
+	margin-left: var(--space-2);
+}
+
+.rte-modal .rte-modal-color-row {
+	display: flex;
+	gap: var(--space-3);
+	align-items: center;
+}
+
+.rte-modal .rte-modal-color-row .rte-modal-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.rte-modal .rte-modal-color-input {
+	flex-shrink: 0;
+	width: 56px;
+	height: var(--btn-desktop-min-height);
+	padding: 2px;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+}
+
+.rte-modal .rte-modal-btn {
+	flex-shrink: 0;
+	padding: 0 var(--space-5);
+}
+
+.rte-modal .rte-modal-btn--sm {
+	padding: 0 var(--space-3);
+}
+
+.rte-modal .rte-modal-actions {
+	display: flex;
+	gap: var(--space-3);
+	justify-content: flex-end;
+	margin-top: var(--space-6);
+}
+
+.rte-modal .rte-modal-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	padding: var(--space-10) var(--space-6);
+	background: var(--bg-secondary);
+	border: 2px dashed var(--border-secondary);
+	border-radius: var(--radius-xl);
+	color: var(--text-primary);
+	text-align: center;
+	cursor: pointer;
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.rte-modal .rte-modal-dropzone:hover,
+.rte-modal .rte-modal-dropzone:focus-visible {
+	border-color: var(--color-primary);
+	background: var(--bg-tertiary);
+	outline: none;
+}
+
+.rte-modal .rte-modal-dropzone__icon {
+	font-size: 3rem;
+	line-height: 1;
+}
+
+.rte-modal .rte-modal-dropzone__title {
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+}
+
+.rte-modal .rte-modal-file {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	padding: var(--space-5);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+}
+
+.rte-modal .rte-modal-file__head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+}
+
+.rte-modal .rte-modal-file__icon {
+	font-size: 2.25rem;
+	line-height: 1;
+}
+
+.rte-modal .rte-modal-file__meta {
+	flex: 1;
+	min-width: 0;
+}
+
+.rte-modal .rte-modal-file__name {
+	color: var(--text-primary);
+	font-weight: var(--font-weight-bold);
+	overflow-wrap: anywhere;
+}
+
+.rte-modal .rte-modal-file__meta .rte-modal-hint {
+	margin-top: var(--space-1);
+}
+
+.rte-modal .rte-modal-range {
+	padding: var(--space-3);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+}
+
+.rte-modal .rte-modal-range__title {
+	margin: 0 0 var(--space-3);
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.rte-modal .rte-modal-range__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	align-items: center;
+}
+
+.rte-modal .rte-modal-range__field {
+	display: inline-flex;
+	align-items: center;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.rte-modal .rte-modal-range__note {
+	color: var(--text-tertiary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
+.rte-modal .rte-modal-range__note.is-partial {
+	color: var(--text-primary);
+}
+
 /* Paletă culori - grid stabil, butoane cu dimensiuni fixe */
 .rte-color-palette-label {
 	display: block;

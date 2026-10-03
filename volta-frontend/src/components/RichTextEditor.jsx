@@ -1913,66 +1913,26 @@ const ColorPickerModal = ({ palette = RTE_COLOR_PALETTE, selectedColor, onColorS
 
 					{/* Custom Color Input */}
 					<div>
-						<label style={{
-							display: 'block',
-							marginBottom: '0.75rem',
-							color: 'rgba(255,255,255,0.7)',
-							fontSize: '0.9rem',
-							fontWeight: 600,
-						}}>
+						<label className="rte-modal-label" htmlFor="rte-custom-color-text">
 							Culoare personalizată
 						</label>
-						<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+						<div className="rte-modal-color-row">
 							<input
 								type="color"
+								className="rte-modal-color-input"
 								value={customColor}
 								onChange={(e) => setCustomColor(e.target.value)}
-								style={{
-									width: '60px',
-									height: '40px',
-									border: '1px solid rgba(255,238,0,0.3)',
-									borderRadius: '8px',
-									cursor: 'pointer',
-									background: 'transparent',
-								}}
+								aria-label="Alege culoarea"
 							/>
 							<input
+								id="rte-custom-color-text"
 								type="text"
+								className="rte-modal-input"
 								value={customColor}
 								onChange={(e) => setCustomColor(e.target.value)}
 								placeholder="#ffee00"
-								style={{
-									flex: 1,
-									padding: '0.75rem',
-									background: 'rgba(255,255,255,0.05)',
-									border: '1px solid rgba(255,238,0,0.2)',
-									borderRadius: '10px',
-									color: '#fff',
-									fontSize: '0.95rem',
-								}}
 							/>
-							<button
-								type="button"
-								onClick={() => onColorSelect(customColor)}
-								style={{
-									padding: '0.75rem 1.5rem',
-									background: 'rgba(var(--color-primary-rgb), 0.2)',
-									border: '1px solid rgba(var(--color-primary-rgb), 0.4)',
-									borderRadius: '10px',
-									color: 'var(--color-brand-primary)',
-									fontWeight: 700,
-									cursor: 'pointer',
-									transition: 'all 0.3s ease',
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.3), rgba(255,238,0,0.2))';
-									e.currentTarget.style.transform = 'translateY(-2px)';
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))';
-									e.currentTarget.style.transform = 'translateY(0)';
-								}}
-							>
+							<button type="button" className="lms-btn-primary rte-modal-btn" onClick={() => onColorSelect(customColor)}>
 								Aplică
 							</button>
 						</div>
@@ -2067,147 +2027,38 @@ const CalloutInlinePanel = ({
 // Link Dialog Modal Component
 const LinkDialogModal = ({ linkUrl, setLinkUrl, onInsert, onClose }) => {
 	return (
-		<div
-			className="rte-modal-overlay"
-		>
-			<div
-				className="rte-modal"
-				onClick={(e) => e.stopPropagation()}
-			>
+		<div className="rte-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rte-link-title">
+			<div className="rte-modal rte-modal--form" onClick={(e) => e.stopPropagation()}>
 				<div className="rte-modal-header">
-					<h3 style={{
-						margin: 0,
-						background: 'linear-gradient(135deg, var(--color-white), var(--color-brand-primary))',
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-						backgroundClip: 'text',
-						fontSize: '1.25rem',
-						fontWeight: 700,
-					}}>
-						🔗 Inserare Link
-					</h3>
-					<button
-						type="button"
-						onClick={onClose}
-						className="rte-modal-close"
-					>
+					<h3 id="rte-link-title" className="rte-modal-title">🔗 Inserare Link</h3>
+					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">
 						×
 					</button>
 				</div>
 
 				<div className="rte-modal-body">
-					<div>
-						<label style={{
-							display: 'block',
-							marginBottom: '0.75rem',
-							color: 'rgba(255,255,255,0.7)',
-							fontSize: '0.9rem',
-							fontWeight: 600,
-						}}>
-							URL
-						</label>
-						<input
-							type="text"
-							value={linkUrl}
-							onChange={(e) => setLinkUrl(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter') {
-									onInsert();
-								}
-							}}
-							placeholder="https://… sau domeniu.extensie"
-							autoFocus
-							style={{
-								width: '100%',
-								padding: '1rem',
-								background: 'rgba(255,255,255,0.05)',
-								border: '1px solid rgba(255,238,0,0.2)',
-								borderRadius: '12px',
-								color: '#fff',
-								fontSize: '1rem',
-								transition: 'all 0.3s ease',
-							}}
-							onFocus={(e) => {
-								e.target.style.borderColor = 'rgba(255,238,0,0.4)';
-								e.target.style.background = 'rgba(255,255,255,0.08)';
-							}}
-							onBlur={(e) => {
-								e.target.style.borderColor = 'rgba(255,238,0,0.2)';
-								e.target.style.background = 'rgba(255,255,255,0.05)';
-							}}
-						/>
-						<div style={{
-							marginTop: '0.5rem',
-							color: 'rgba(255,255,255,0.6)',
-							fontSize: '0.85rem',
-						}}>
-							💡 Poți introduce un URL complet (https://…) sau doar domeniul.
-						</div>
-					</div>
+					<label className="rte-modal-label" htmlFor="rte-link-url">URL</label>
+					<input
+						id="rte-link-url"
+						type="text"
+						className="rte-modal-input"
+						value={linkUrl}
+						onChange={(e) => setLinkUrl(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter') {
+								onInsert();
+							}
+						}}
+						placeholder="https://… sau domeniu.extensie"
+						autoFocus
+					/>
+					<p className="rte-modal-hint">💡 Poți introduce un URL complet (https://…) sau doar domeniul.</p>
 
-					<div style={{
-						display: 'flex',
-						gap: '1rem',
-						justifyContent: 'flex-end',
-						marginTop: '1.5rem',
-					}}>
-						<button
-							type="button"
-							onClick={onClose}
-							style={{
-								padding: '0.75rem 1.5rem',
-								background: 'rgba(255,255,255,0.05)',
-								border: '1px solid rgba(255,255,255,0.15)',
-								borderRadius: '10px',
-								color: '#fff',
-								fontWeight: 600,
-								cursor: 'pointer',
-								transition: 'all 0.3s ease',
-							}}
-							onMouseEnter={(e) => {
-								e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-							}}
-						>
+					<div className="rte-modal-actions">
+						<button type="button" className="lms-btn-secondary rte-modal-btn" onClick={onClose}>
 							Anulează
 						</button>
-						<button
-							type="button"
-							onClick={onInsert}
-							disabled={!linkUrl.trim()}
-							style={{
-								padding: '0.75rem 1.5rem',
-								background: linkUrl.trim()
-									? 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))'
-									: 'rgba(255,255,255,0.05)',
-								border: linkUrl.trim()
-									? '1px solid rgba(255,238,0,0.4)'
-									: '1px solid rgba(255,255,255,0.1)',
-								borderRadius: '10px',
-								color: linkUrl.trim() ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.5)',
-								fontWeight: 700,
-								cursor: linkUrl.trim() ? 'pointer' : 'not-allowed',
-								transition: 'all 0.3s ease',
-							}}
-							onMouseEnter={(e) => {
-								if (linkUrl.trim()) {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.3), rgba(255,238,0,0.2))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.5)';
-									e.currentTarget.style.transform = 'translateY(-2px)';
-								}
-							}}
-							onMouseLeave={(e) => {
-								if (linkUrl.trim()) {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
-									e.currentTarget.style.transform = 'translateY(0)';
-								}
-							}}
-						>
+						<button type="button" className="lms-btn-primary rte-modal-btn" onClick={onInsert} disabled={!linkUrl.trim()}>
 							Inserare
 						</button>
 					</div>
@@ -2237,261 +2088,76 @@ const PdfUploadModal = ({
 	const isPartialRange = totalPages > 0 && (safeStart > 1 || safeEnd < totalPages);
 
 	return (
-		<div
-			className="rte-modal-overlay"
-		>
-			<div
-				className="rte-modal"
-				onClick={(e) => e.stopPropagation()}
-				style={{ maxWidth: '600px' }}
-			>
+		<div className="rte-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rte-pdf-title">
+			<div className="rte-modal rte-modal--form rte-modal--wide" onClick={(e) => e.stopPropagation()}>
 				<div className="rte-modal-header">
-					<h3 style={{
-						margin: 0,
-						background: 'linear-gradient(135deg, var(--color-white), var(--color-brand-primary))',
-						WebkitBackgroundClip: 'text',
-						WebkitTextFillColor: 'transparent',
-						backgroundClip: 'text',
-						fontSize: '1.25rem',
-						fontWeight: 700,
-					}}>
-						📄 Încarcă PDF original
-					</h3>
-					<button
-						type="button"
-						onClick={onClose}
-						className="rte-modal-close"
-					>
+					<h3 id="rte-pdf-title" className="rte-modal-title">📄 Încarcă PDF original</h3>
+					<button type="button" onClick={onClose} className="rte-modal-close" aria-label="Închide">
 						×
 					</button>
 				</div>
 
 				<div className="rte-modal-body">
-					{/* File Selection Area */}
 					{!pdfFile ? (
-						<div
-							onClick={onFileSelect}
-							style={{
-								border: '2px dashed rgba(255,238,0,0.3)',
-								borderRadius: '16px',
-								padding: '3rem 2rem',
-								textAlign: 'center',
-								cursor: 'pointer',
-								transition: 'all 0.3s ease',
-								background: 'rgba(255,238,0,0.05)',
-							}}
-							onMouseEnter={(e) => {
-								e.currentTarget.style.borderColor = 'rgba(255,238,0,0.5)';
-								e.currentTarget.style.background = 'rgba(255,238,0,0.1)';
-								e.currentTarget.style.transform = 'translateY(-2px)';
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.borderColor = 'rgba(255,238,0,0.3)';
-								e.currentTarget.style.background = 'rgba(255,238,0,0.05)';
-								e.currentTarget.style.transform = 'translateY(0)';
-							}}
-						>
-							<div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
-							<div style={{
-								color: 'var(--color-brand-primary)',
-								fontSize: '1.1rem',
-								fontWeight: 700,
-								marginBottom: '0.5rem',
-							}}>
-								Click pentru a selecta PDF
-							</div>
-							<div style={{
-								color: 'rgba(255,255,255,0.6)',
-								fontSize: '0.9rem',
-							}}>
-								Maxim 10MB · PDF-ul va fi inserat ca document vizibil în lecție
-							</div>
-						</div>
+						<button type="button" className="rte-modal-dropzone" onClick={onFileSelect}>
+							<span className="rte-modal-dropzone__icon" aria-hidden="true">📄</span>
+							<span className="rte-modal-dropzone__title">Click pentru a selecta PDF</span>
+							<span className="rte-modal-hint">Maxim 10MB · PDF-ul va fi inserat ca document vizibil în lecție</span>
+						</button>
 					) : (
-						<div style={{
-							padding: '1.5rem',
-							background: 'rgba(255,238,0,0.1)',
-							border: '1px solid rgba(255,238,0,0.3)',
-							borderRadius: '16px',
-							marginBottom: '1.5rem',
-						}}>
-							<div style={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: '1rem',
-								marginBottom: '1rem',
-							}}>
-								<div style={{ fontSize: '2.5rem' }}>📄</div>
-								<div style={{ flex: 1 }}>
-									<div style={{
-										color: 'var(--color-brand-primary)',
-										fontWeight: 700,
-										marginBottom: '0.25rem',
-									}}>
-										{pdfFileName}
-									</div>
-									<div style={{
-										color: 'rgba(255,255,255,0.6)',
-										fontSize: '0.85rem',
-									}}>
-										{(pdfFile.size / 1024 / 1024).toFixed(2)} MB
-									</div>
+						<div className="rte-modal-file">
+							<div className="rte-modal-file__head">
+								<span className="rte-modal-file__icon" aria-hidden="true">📄</span>
+								<div className="rte-modal-file__meta">
+									<div className="rte-modal-file__name">{pdfFileName}</div>
+									<div className="rte-modal-hint">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB</div>
 								</div>
-								<button
-									type="button"
-									onClick={onFileSelect}
-									style={{
-										padding: '0.5rem 1rem',
-										background: 'rgba(255,255,255,0.05)',
-										border: '1px solid rgba(255,255,255,0.15)',
-										borderRadius: '8px',
-										color: '#fff',
-										cursor: 'pointer',
-										fontSize: '0.85rem',
-										transition: 'all 0.3s ease',
-									}}
-									onMouseEnter={(e) => {
-										e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-										e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-									}}
-									onMouseLeave={(e) => {
-										e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-										e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-									}}
-								>
+								<button type="button" className="lms-btn-secondary rte-modal-btn rte-modal-btn--sm" onClick={onFileSelect}>
 									Schimbă
 								</button>
 							</div>
 
-							<div style={{
-								padding: '0.85rem',
-								background: 'rgba(255,255,255,0.04)',
-								border: '1px solid rgba(255,255,255,0.1)',
-								borderRadius: '10px',
-							}}>
-								<div style={{
-									color: 'rgba(255,255,255,0.82)',
-									fontSize: '0.85rem',
-									marginBottom: '0.65rem',
-								}}>
+							<div className="rte-modal-range">
+								<p className="rte-modal-range__title">
 									Taie PDF după pagini ({totalPages || 0} pagini detectate)
-								</div>
-								<div style={{
-									display: 'flex',
-									gap: '0.75rem',
-									alignItems: 'center',
-									flexWrap: 'wrap',
-								}}>
-									<label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
+								</p>
+								<div className="rte-modal-range__row">
+									<label className="rte-modal-range__field">
 										De la
 										<input
 											type="number"
+											className="rte-modal-input rte-modal-input--page"
 											min={1}
 											max={Math.max(1, totalPages || 1)}
 											value={safeStart}
 											onChange={(e) => onStartPageChange(Number(e.target.value || 1))}
-											style={{ marginLeft: '0.45rem', width: '76px' }}
 										/>
 									</label>
-									<label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
+									<label className="rte-modal-range__field">
 										Până la
 										<input
 											type="number"
+											className="rte-modal-input rte-modal-input--page"
 											min={safeStart}
 											max={Math.max(safeStart, totalPages || safeStart)}
 											value={safeEnd}
 											onChange={(e) => onEndPageChange(Number(e.target.value || safeStart))}
-											style={{ marginLeft: '0.45rem', width: '76px' }}
 										/>
 									</label>
-									<div style={{
-										color: isPartialRange ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.55)',
-										fontSize: '0.8rem',
-										fontWeight: 600,
-									}}>
+									<span className={`rte-modal-range__note${isPartialRange ? ' is-partial' : ''}`}>
 										{isPartialRange ? `Se va insera doar intervalul ${safeStart}-${safeEnd}.` : 'Se va insera PDF-ul complet.'}
-									</div>
+									</span>
 								</div>
 							</div>
 						</div>
 					)}
 
-					<div style={{
-						display: 'flex',
-						gap: '1rem',
-						justifyContent: 'flex-end',
-					}}>
-						<button
-							type="button"
-							onClick={onClose}
-							style={{
-								padding: '0.75rem 1.5rem',
-								background: 'rgba(255,255,255,0.05)',
-								border: '1px solid rgba(255,255,255,0.15)',
-								borderRadius: '10px',
-								color: '#fff',
-								fontWeight: 600,
-								cursor: 'pointer',
-								transition: 'all 0.3s ease',
-							}}
-							onMouseEnter={(e) => {
-								e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-								e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-							}}
-						>
+					<div className="rte-modal-actions">
+						<button type="button" className="lms-btn-secondary rte-modal-btn" onClick={onClose}>
 							Anulează
 						</button>
-						<button
-							type="button"
-							onClick={onUpload}
-							disabled={!pdfFile || uploadingPdf}
-							style={{
-								padding: '0.75rem 1.5rem',
-								background: pdfFile && !uploadingPdf
-									? 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))'
-									: 'rgba(255,255,255,0.05)',
-								border: pdfFile && !uploadingPdf
-									? '1px solid rgba(255,238,0,0.4)'
-									: '1px solid rgba(255,255,255,0.1)',
-								borderRadius: '10px',
-								color: pdfFile && !uploadingPdf ? 'var(--color-brand-primary)' : 'rgba(255,255,255,0.5)',
-								fontWeight: 700,
-								cursor: pdfFile && !uploadingPdf ? 'pointer' : 'not-allowed',
-								transition: 'all 0.3s ease',
-								display: 'inline-flex',
-								alignItems: 'center',
-								gap: '0.5rem',
-							}}
-							onMouseEnter={(e) => {
-								if (pdfFile && !uploadingPdf) {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.3), rgba(255,238,0,0.2))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.5)';
-									e.currentTarget.style.transform = 'translateY(-2px)';
-								}
-							}}
-							onMouseLeave={(e) => {
-								if (pdfFile && !uploadingPdf) {
-									e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15))';
-									e.currentTarget.style.borderColor = 'rgba(255,238,0,0.4)';
-									e.currentTarget.style.transform = 'translateY(0)';
-								}
-							}}
-						>
-							{uploadingPdf ? (
-								<>
-									<span>⏳</span>
-									<span>Se încarcă...</span>
-								</>
-							) : (
-								<>
-									<span>✅</span>
-									<span>Inserează PDF original</span>
-								</>
-							)}
+						<button type="button" className="lms-btn-primary rte-modal-btn" onClick={onUpload} disabled={!pdfFile || uploadingPdf}>
+							{uploadingPdf ? 'Se încarcă…' : 'Inserează PDF original'}
 						</button>
 					</div>
 				</div>

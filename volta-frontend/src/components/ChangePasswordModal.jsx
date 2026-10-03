@@ -83,15 +83,7 @@ const ChangePasswordModal = () => {
 					</p>
 
 					{error && (
-						<div style={{ 
-							padding: 'var(--space-3)', 
-							background: 'rgba(239, 68, 68, 0.2)', 
-							color: 'var(--color-error)', 
-							borderRadius: 'var(--radius-lg)', 
-							marginBottom: 'var(--space-4)',
-							border: '1px solid rgba(239, 68, 68, 0.3)',
-							fontSize: 'var(--font-size-sm)',
-						}}>
+						<div className="lms-error-message" role="alert">
 							{error}
 						</div>
 					)}

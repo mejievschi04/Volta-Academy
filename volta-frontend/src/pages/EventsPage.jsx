@@ -114,7 +114,7 @@ const EventsPage = () => {
 			</div>
 
 			{error && (
-				<div style={{ padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px', marginBottom: '1.5rem' }}>
+				<div className="lms-error-message" role="alert">
 					{error}
 				</div>
 			)}

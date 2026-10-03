@@ -70,11 +70,17 @@
 	background-color: var(--bg-elevated) !important;
 }
 
-/* Modals and overlays */
+/*
+ * Fundal implicit pentru ferestre, fără specificitate: orice componentă care își setează fundalul
+ * câștigă. Înainte, cu !important, prindea tot ce are „modal” în clasă: butoanele principale din
+ * ferestre deveneau albe, iar fundalul semitransparent din spatele ferestrei devenea opac.
+ */
+:where(
 [data-theme="light"] .modal,
 [data-theme="light"] [class*="modal"],
-[data-theme="light"] [class*="Modal"] {
-	background-color: var(--bg-elevated) !important;
+[data-theme="light"] [class*="Modal"]
+) {
+	background-color: var(--bg-elevated);
 }
 
 /* Tables */

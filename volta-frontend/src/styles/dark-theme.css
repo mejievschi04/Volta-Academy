@@ -83,10 +83,17 @@ html[data-theme="dark"] [class*="Card"]:not([class*="CourseShowcase"]) {
 	background-color: var(--bg-elevated) !important;
 }
 
+/*
+ * Fundal implicit pentru ferestre, fără specificitate: orice componentă care își setează fundalul
+ * câștigă. Înainte, cu !important, prindea tot ce are „modal” în clasă: butoanele principale din
+ * ferestre deveneau albe, iar fundalul semitransparent din spatele ferestrei devenea opac.
+ */
+:where(
 html[data-theme="dark"] .modal,
 html[data-theme="dark"] [class*="modal"],
-html[data-theme="dark"] [class*="Modal"] {
-	background-color: var(--bg-elevated) !important;
+html[data-theme="dark"] [class*="Modal"]
+) {
+	background-color: var(--bg-elevated);
 }
 
 html[data-theme="dark"] table,

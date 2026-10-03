@@ -1,22 +1,22 @@
 import React from 'react';
 
+// Culorile stărilor sunt în common-components.css (.is-pending / .is-saving / .is-saved / .is-error).
 const AutoSaveIndicator = ({ status, onRetry, liveHint = false }) => {
 	const getStatusConfig = () => {
 		switch (status) {
 			case 'pending':
-				return { text: 'Nesalvat', icon: '•', color: '#ca8a04' };
+				return { text: 'Nesalvat', icon: '•' };
 			case 'saving':
-				return { text: 'Se salvează...', icon: '⏳', color: '#9FE22F' };
+				return { text: 'Se salvează...', icon: '⏳' };
 			case 'saved':
 				return {
 					text: liveHint ? 'Salvat · nepublicat' : 'Salvat',
 					icon: '✓',
-					color: '#09A86B',
 				};
 			case 'error':
-				return { text: 'Modificările nu au fost salvate', icon: '⚠️', color: '#ef4444' };
+				return { text: 'Modificările nu au fost salvate', icon: '⚠️' };
 			default:
-				return { text: '', icon: '', color: '' };
+				return { text: '', icon: '' };
 		}
 	};
 
@@ -27,7 +27,6 @@ const AutoSaveIndicator = ({ status, onRetry, liveHint = false }) => {
 	return (
 		<div
 			className={`admin-auto-save-indicator is-${status || 'idle'}`}
-			style={{ color: config.color }}
 			role={status === 'error' ? 'alert' : 'status'}
 		>
 			<span>{config.icon}</span>
