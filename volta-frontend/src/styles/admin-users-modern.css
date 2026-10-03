@@ -1164,3 +1164,63 @@
     }
 }
 
+
+/*
+ * Pe telefon tabelul de utilizatori devine o listă de carduri: cu coloane fixe, celula
+ * utilizatorului rămânea de ~70px și emailul se rupea literă cu literă.
+ * Card: avatar, nume și email sus; rolul și echipa dedesubt; acțiunile în dreapta.
+ */
+@media (max-width: 768px) {
+    .admin-users-page .admin-users-table--directory,
+    .admin-users-page .admin-users-table--directory tbody {
+        display: block;
+        width: 100%;
+    }
+    /* antetul rămâne pentru cititoarele de ecran */
+    .admin-users-page .admin-users-table--directory thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    .admin-users-page .admin-users-table--directory tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 8px;
+        padding: 14px 12px;
+    }
+    .admin-users-page .admin-users-table--directory tbody td {
+        display: block;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+    /* emailul apare sub nume; cursurile și procentul sunt în profil */
+    .admin-users-page .admin-users-table--directory tbody td:is(:nth-child(2), :nth-child(5), :nth-child(6)) { display: none; }
+    .admin-users-page .admin-users-table--directory tbody td:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+    .admin-users-page .admin-users-table--directory tbody td:nth-child(3) { grid-column: 1; grid-row: 2; }
+    .admin-users-page .admin-users-table--directory tbody td:nth-child(4) { grid-column: 1; grid-row: 3; }
+    .admin-users-page .admin-users-table--directory tbody td:nth-child(4):has(> .admin-users-table-cell-muted) { display: none; }
+    .admin-users-page .admin-users-table--directory tbody td:last-child {
+        grid-column: 2;
+        grid-row: 2 / span 2;
+        position: static;
+        width: auto;
+        background: transparent;
+        box-shadow: none;
+    }
+    .admin-users-page .admin-users-table--directory .admin-users-actions { flex-wrap: nowrap; }
+    /* rândul fără date („Nu există utilizatori”) ocupă tot cardul */
+    .admin-users-page .admin-users-table--directory tbody td[colspan] { grid-column: 1 / -1; grid-row: auto; }
+    .admin-users-page .admin-users-table--directory .admin-users-table-cell-email-stacked {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        word-break: normal;
+    }
+}

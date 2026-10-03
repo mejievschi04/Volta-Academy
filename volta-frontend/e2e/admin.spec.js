@@ -24,3 +24,21 @@ test('o adresă inexistentă din admin arată pagina 404', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Pagina nu a fost găsită' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Înapoi la administrare' })).toBeVisible();
 });
+
+test('lista de utilizatori își arată numele și emailul pe câte un rând', async ({ page }) => {
+	await page.goto('/admin/users');
+	const row = page.locator('.admin-users-table tbody tr').filter({ hasText: 'student-desktop@e2e.test' });
+	// rândurile de text ocupate de un element (pe telefon emailul se rupea literă cu literă)
+	const textLines = (locator) => locator.evaluate((el) => {
+		const range = document.createRange();
+		range.selectNodeContents(el);
+		return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+	});
+	const name = row.locator('.admin-users-table-cell-name');
+	await expect(name).toHaveText('Cursant E2E desktop');
+	expect(await textLines(name)).toBe(1);
+	const email = row.locator(':is(.admin-users-table-cell-email, .admin-users-table-cell-email-stacked):visible');
+	await expect(email).toHaveText('student-desktop@e2e.test');
+	expect(await textLines(email)).toBe(1);
+	await expect(row.getByRole('button', { name: 'Editează utilizatorul: Cursant E2E desktop' })).toBeVisible();
+});
