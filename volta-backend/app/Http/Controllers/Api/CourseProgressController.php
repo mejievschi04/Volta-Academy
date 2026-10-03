@@ -331,7 +331,10 @@ class CourseProgressController extends Controller
                 'message' => 'Lecția a fost deschisă fără a fi înregistrată în progres.',
             ]);
         }
-        $lesson = Lesson::with(['module.course', 'course'])->findOrFail($lessonId);
+        $lesson = Lesson::with(['module.course', 'course'])->find($lessonId);
+        if (! $lesson) {
+            return $this->removedLessonResponse($request, (int) $lessonId);
+        }
 
         $module = $lesson->module;
         $course = $module?->course ?: $lesson->course;
@@ -380,12 +383,43 @@ class CourseProgressController extends Controller
     }
 
     /**
+     * Lecție ștearsă de admin, dar încă în versiunea publicată pe care o vede cursantul (până la
+     * următoarea publicare): nu mai contează la progres, deci finalizarea ei nu are ce înregistra.
+     * Răspundem cu succes în loc de 404, ca trecerea la lecția următoare să nu afișeze o eroare.
+     */
+    private function removedLessonResponse(Request $request, int $lessonId)
+    {
+        $user = Auth::user();
+        $published = app(PublishedCourseView::class)->hydratePublishedLesson($lessonId, $request);
+        $course = $published?->course;
+        if (! $course || ! LearningVisibility::courseVisibleToLearner($user, $course)) {
+            abort(404, 'Lecție negăsită.');
+        }
+
+        $accessStatus = $this->withFlattenedLessonProgress(
+            $this->progressService->getUserAccessStatus($user, $course)
+        );
+        $accessStatus['progress_percentage'] = $accessStatus['course_progress'] ?? 0;
+
+        return response()->json([
+            'message' => 'Lecția nu mai face parte din curs.',
+            'lesson_removed' => true,
+            'completed' => true,
+            'progress_percentage' => 100,
+            'progress' => $accessStatus,
+        ]);
+    }
+
+    /**
      * Update lesson progress (auto-complete when 100%)
      */
     public function updateLessonProgress(Request $request, $lessonId)
     {
         $user = Auth::user();
-        $lesson = Lesson::with(['module.course', 'course'])->findOrFail($lessonId);
+        $lesson = Lesson::with(['module.course', 'course'])->find($lessonId);
+        if (! $lesson) {
+            return $this->removedLessonResponse($request, (int) $lessonId);
+        }
 
         if ($user->isLearningActivityExempt()) {
             return response()->json([

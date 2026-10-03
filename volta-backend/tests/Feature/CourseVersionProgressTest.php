@@ -136,4 +136,31 @@ class CourseVersionProgressTest extends TestCase
         $this->assertSame(100, $state['pct']);
         $this->assertTrue($state['complete']);
     }
+
+    public function test_completing_a_lesson_deleted_after_publishing_does_not_fail(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $this->enroll($student);
+        $deleted = $this->lessons[1];
+        $this->asAdmin()->deleteJson("/api/admin/lessons/{$deleted->id}")->assertSuccessful();
+
+        // până la următoarea publicare cursantul vede încă lecția (din versiunea publicată) și o poate deschide
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($student, 'sanctum')->getJson("/api/lessons/{$deleted->id}")->assertOk();
+
+        // finalizarea ei nu mai are ce înregistra, dar nu trebuie să dea eroare (înainte: 404)
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($student, 'sanctum')
+            ->postJson("/api/lessons/{$deleted->id}/complete")
+            ->assertOk()
+            ->assertJsonPath('lesson_removed', true);
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($student, 'sanctum')
+            ->putJson("/api/lessons/{$deleted->id}/progress", ['progress_percentage' => 50])
+            ->assertOk();
+
+        // o lecție care n-a existat niciodată rămâne 404
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($student, 'sanctum')->postJson('/api/lessons/999999/complete')->assertNotFound();
+    }
 }
