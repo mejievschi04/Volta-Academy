@@ -26,12 +26,6 @@ class CourseProgressController extends Controller
         $this->progressService = $progressService;
     }
 
-    private function canSelfEnroll(Course $course): bool
-    {
-        return ($course->access_type ?? 'free') === 'free'
-            && in_array($course->enrollment_type ?? 'open', ['open'], true);
-    }
-
     /**
      * @param  array<string, mixed>  $accessStatus
      * @return array<string, mixed>
@@ -80,22 +74,12 @@ class CourseProgressController extends Controller
                 ->where('enrolled', true)
                 ->first();
 
-            // If not enrolled, auto-enroll the user only for open/free courses
-            if (! $enrollment && ! $isLearningExempt && $this->canSelfEnroll($course)) {
-                \DB::table('course_user')->updateOrInsert(
-                    [
-                        'user_id' => $user->id,
-                        'course_id' => $courseId,
-                    ],
-                    [
-                        'enrolled' => true,
-                        'enrolled_at' => now(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-                StudentActivityLogger::logEnrolledCourse($user, $course, 'auto');
-                app(\App\Services\NotificationService::class)->notifyCourseEnrolled($user, $course);
+            // Cursantul primește cursuri doar prin atribuire (ca la GET /courses/{id}); fără înscriere
+            // automată, altfel deschiderea adresei unui curs neatribuit îl înscria pe loc.
+            if (! $enrollment && ! $isLearningExempt && ! LearningVisibility::isStaff($user)) {
+                return response()->json([
+                    'error' => 'Cursul nu îți este atribuit.',
+                ], 403);
             }
 
             // Recalculate progress in real-time
@@ -370,22 +354,6 @@ class CourseProgressController extends Controller
             ->where('course_id', $course->id)
             ->where('enrolled', true)
             ->first();
-
-        if (!$enrollment && $this->canSelfEnroll($course)) {
-            \DB::table('course_user')->updateOrInsert(
-                [
-                    'user_id' => $user->id,
-                    'course_id' => $course->id,
-                ],
-                [
-                    'enrolled' => true,
-                    'enrolled_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-            $enrollment = true;
-        }
 
         if (! $enrollment && ! LearningVisibility::isStaff($user)) {
             return response()->json([
