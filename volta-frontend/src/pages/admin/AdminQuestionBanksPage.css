@@ -1468,6 +1468,15 @@ html[data-theme='dark'] .qb-page .qb-star-btn.is-starred {
 		grid-column: 3;
 		justify-content: space-between;
 		width: 100%;
+		/* eticheta tipului nu se mai taie („Ră…”): butoanele trec dedesubt când nu încap */
+		flex-wrap: wrap;
+	}
+
+	/* eticheta stă singură pe primul rând, butoanele împreună pe al doilea */
+	.qb-folder-detail-page .qb-question-type {
+		flex: 0 0 auto;
+		max-width: 100%;
+		margin-right: 100%;
 	}
 
 	.qb-detail-actions .qb-action-button {
