@@ -218,6 +218,10 @@ class QuestionBankAdminController extends Controller
     public function addQuestion(Request $request, $id)
     {
         $bank = QuestionBank::findOrFail($id);
+        // Instructorul modifică doar întrebările din folderele lui (ca la show/update/destroy).
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
+        }
 
         $validated = $request->validate([
             'type' => 'required|string|in:multiple_choice,single_choice,true_false,yes_no,matching,ordering',
@@ -247,6 +251,10 @@ class QuestionBankAdminController extends Controller
     public function updateQuestion(Request $request, $id, $questionId)
     {
         $bank = QuestionBank::findOrFail($id);
+        // Instructorul modifică doar întrebările din folderele lui (ca la show/update/destroy).
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
+        }
         $question = Question::where('question_bank_id', $bank->id)
             ->findOrFail($questionId);
 
@@ -278,6 +286,10 @@ class QuestionBankAdminController extends Controller
     public function removeQuestion($id, $questionId)
     {
         $bank = QuestionBank::findOrFail($id);
+        // Instructorul modifică doar întrebările din folderele lui (ca la show/update/destroy).
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
+        }
         $question = Question::where('question_bank_id', $bank->id)
             ->findOrFail($questionId);
 
@@ -305,6 +317,10 @@ class QuestionBankAdminController extends Controller
     public function reorderQuestions(Request $request, $id)
     {
         $bank = QuestionBank::findOrFail($id);
+        // Instructorul modifică doar întrebările din folderele lui (ca la show/update/destroy).
+        if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
+            abort(403, 'Acces interzis. Poți accesa doar băncile tale de întrebări.');
+        }
 
         $validated = $request->validate([
             'question_ids' => 'required|array|min:1',
