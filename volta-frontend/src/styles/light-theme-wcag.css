@@ -65,9 +65,15 @@
 	box-shadow: none !important;
 }
 
+/*
+ * Fundal implicit pentru carduri, fără specificitate: orice componentă care își setează fundalul câștigă.
+ * Înainte, cu !important, prindea tot ce are „card” în clasă (inclusiv butoane și insigne din carduri).
+ */
+:where(
 [data-theme="light"] [class*="card"]:not([class*="course-showcase"]):not([class*="course-map-card--showcase"]):not([class*="library-book"]):not([class*="content-card__"]):not([class*="test-questions-card"]),
-[data-theme="light"] [class*="Card"]:not([class*="CourseShowcase"]) {
-	background-color: var(--bg-elevated) !important;
+[data-theme="light"] [class*="Card"]:not([class*="CourseShowcase"])
+) {
+	background-color: var(--bg-elevated);
 }
 
 /*

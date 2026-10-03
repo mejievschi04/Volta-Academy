@@ -77,10 +77,16 @@ html[data-theme="dark"] textarea::placeholder {
 }
 
 /* Exclude course-showcase-*: class names contain "card" (…showcase-card…) and would paint over cover */
+/*
+ * Fundal implicit pentru carduri, fără specificitate: orice componentă care își setează fundalul câștigă.
+ * Înainte, cu !important, prindea tot ce are „card” în clasă (inclusiv butoane și insigne din carduri).
+ */
+:where(
 html[data-theme="dark"] .card,
 html[data-theme="dark"] [class*="card"]:not([class*="course-showcase"]):not([class*="course-map-card--showcase"]):not([class*="library-book"]):not([class*="content-card__"]):not([class*="test-questions-card"]),
-html[data-theme="dark"] [class*="Card"]:not([class*="CourseShowcase"]) {
-	background-color: var(--bg-elevated) !important;
+html[data-theme="dark"] [class*="Card"]:not([class*="CourseShowcase"])
+) {
+	background-color: var(--bg-elevated);
 }
 
 /*
