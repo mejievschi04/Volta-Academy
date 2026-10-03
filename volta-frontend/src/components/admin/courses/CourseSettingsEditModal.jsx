@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
+import { X } from '@phosphor-icons/react';
 import Modal from '../../common/Modal';
 import { courseCoverSrc } from '../../../utils/imageUrl';
 import '../../../styles/admin-course-builder.css';
@@ -118,6 +119,10 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 
 	if (!open || !course?.id) return null;
 
+	const set = (field) => (e) => setCourseEditDraft((prev) => ({ ...prev, [field]: e.target.value }));
+	const coverSrc = courseEditImagePreviewUrl || courseCoverSrc(course);
+	const cardColor = courseEditDraft.card_color || '#5b72ff';
+
 	return (
 		<Modal
 			isOpen={open}
@@ -125,20 +130,33 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 			closeOnBackdropClick={!courseEditSaving}
 			closeOnEscape={!courseEditSaving}
 			ariaLabelledby="course-settings-edit-heading"
-			className="admin-course-builder-test-modal-overlay"
+			className="va-dialog-overlay"
 			unstyledContent
 		>
-			<div className="admin-course-builder-test-modal admin-course-builder-course-edit-modal">
-				<h3 id="course-settings-edit-heading">Editare curs</h3>
-				<div className="admin-course-builder-test-modal-form admin-course-builder-course-edit-form">
-					<div className="admin-course-builder-course-edit-grid">
-						<div className="admin-course-builder-course-edit-field">
-							<label htmlFor="course-settings-edit-title">Titlu curs *</label>
+			<form
+				className="va-dialog"
+				onSubmit={(e) => {
+					e.preventDefault();
+					handleSaveCourseEdit();
+				}}
+				noValidate
+			>
+				<header className="va-dialog__header">
+					<h2 id="course-settings-edit-heading" className="va-dialog__title">Editare curs</h2>
+					<button type="button" className="va-close-btn" onClick={onClose} disabled={courseEditSaving} aria-label="Închide">
+						<X size={18} weight="bold" aria-hidden="true" />
+					</button>
+				</header>
+
+				<div className="va-dialog__body">
+					<div className="va-form-grid">
+						<div className="va-field va-field--full">
+							<label htmlFor="course-settings-edit-title">Titlu curs</label>
 							<input
 								id="course-settings-edit-title"
 								type="text"
 								value={courseEditDraft.title}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, title: e.target.value }))}
+								onChange={set('title')}
 								placeholder="Titlu curs"
 								disabled={courseEditSaving}
 								data-modal-initial-focus
@@ -146,96 +164,61 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 								aria-required="true"
 							/>
 						</div>
-						<div className="admin-course-builder-course-edit-field">
-							<label htmlFor="course-settings-edit-card-color">Culoare cartonaș</label>
-							<input
-								id="course-settings-edit-card-color"
-								type="color"
-								value={courseEditDraft.card_color || '#5b72ff'}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, card_color: e.target.value }))}
+
+						<div className="va-field va-field--full">
+							<label htmlFor="course-settings-edit-description">Descriere</label>
+							<textarea
+								id="course-settings-edit-description"
+								rows={4}
+								value={courseEditDraft.description}
+								onChange={set('description')}
+								placeholder="Descrierea cursului"
 								disabled={courseEditSaving}
 							/>
-							<div
-								className="admin-course-builder-card-color-preview"
-								style={{ '--course-preview-accent': courseEditDraft.card_color || '#5b72ff' }}
-							>
-								<span className="admin-course-builder-card-color-preview-swatch" aria-hidden="true" />
-								<div className="admin-course-builder-card-color-preview-copy">
-									<strong>Previzualizare</strong>
-									<p>Cardul din listă va folosi această culoare.</p>
-								</div>
-							</div>
 						</div>
-					</div>
 
-					<div className="admin-course-builder-course-edit-field">
-						<label htmlFor="course-settings-edit-description">Descriere</label>
-						<textarea
-							id="course-settings-edit-description"
-							rows={4}
-							value={courseEditDraft.description}
-							onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, description: e.target.value }))}
-							placeholder="Descrierea cursului"
-							disabled={courseEditSaving}
-						/>
-					</div>
-
-					<div className="admin-course-builder-course-edit-field">
-						<label htmlFor="course-settings-edit-short-description">Descriere scurtă</label>
-						<textarea
-							id="course-settings-edit-short-description"
-							rows={2}
-							value={courseEditDraft.short_description}
-							onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, short_description: e.target.value }))}
-							placeholder="Rezumatul care apare în carduri sau liste"
-							disabled={courseEditSaving}
-						/>
-					</div>
-
-					<div className="admin-course-builder-course-edit-grid">
-						<div className="admin-course-builder-course-edit-field">
-							<label htmlFor="course-settings-edit-level">Nivel</label>
-							<select
-								id="course-settings-edit-level"
-								value={courseEditDraft.level || 'beginner'}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, level: e.target.value }))}
+						<div className="va-field va-field--full">
+							<label htmlFor="course-settings-edit-short-description">
+								Descriere scurtă <span className="va-field__optional">(în carduri și liste)</span>
+							</label>
+							<textarea
+								id="course-settings-edit-short-description"
+								rows={2}
+								value={courseEditDraft.short_description}
+								onChange={set('short_description')}
+								placeholder="Rezumatul cursului"
 								disabled={courseEditSaving}
-							>
+							/>
+						</div>
+
+						<div className="va-field">
+							<label htmlFor="course-settings-edit-level">Nivel</label>
+							<select id="course-settings-edit-level" value={courseEditDraft.level || 'beginner'} onChange={set('level')} disabled={courseEditSaving}>
 								<option value="beginner">Începător</option>
 								<option value="intermediate">Intermediar</option>
 								<option value="advanced">Avansat</option>
 							</select>
 						</div>
-						<div className="admin-course-builder-course-edit-field">
+						<div className="va-field">
 							<label htmlFor="course-settings-edit-status">Status</label>
-							<select
-								id="course-settings-edit-status"
-								value={courseEditDraft.status || 'draft'}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, status: e.target.value }))}
-								disabled={courseEditSaving}
-							>
-								<option value="draft">Draft</option>
+							<select id="course-settings-edit-status" value={courseEditDraft.status || 'draft'} onChange={set('status')} disabled={courseEditSaving}>
+								<option value="draft">Ciornă</option>
 								<option value="published">Publicat</option>
 							</select>
 						</div>
-					</div>
 
-					<div className="admin-course-builder-course-edit-grid">
-						<div className="admin-course-builder-course-edit-field">
+						<div className="va-field">
 							<label htmlFor="course-settings-edit-visibility">Vizibilitate</label>
-							<select
-								id="course-settings-edit-visibility"
-								value={courseEditDraft.visibility || 'public'}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, visibility: e.target.value }))}
-								disabled={courseEditSaving}
-							>
+							<select id="course-settings-edit-visibility" value={courseEditDraft.visibility || 'public'} onChange={set('visibility')} disabled={courseEditSaving}>
 								<option value="public">Public</option>
 								<option value="private">Privat</option>
 								<option value="hidden">Ascuns</option>
 							</select>
 						</div>
-						<div className="admin-course-builder-course-edit-field">
-							<label htmlFor="course-settings-edit-hours">Durată estimată (ore)</label>
+						<div className="va-field">
+							<label htmlFor="course-settings-edit-hours">
+								Durată estimată <span className="va-field__optional">(ore)</span>
+							</label>
 							<input
 								id="course-settings-edit-hours"
 								type="number"
@@ -249,11 +232,11 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 								disabled={courseEditSaving}
 							/>
 						</div>
-					</div>
 
-					<div className="admin-course-builder-course-edit-grid">
-						<div className="admin-course-builder-course-edit-field">
-							<label htmlFor="course-settings-edit-min-score">Scor minim quiz (%)</label>
+						<div className="va-field">
+							<label htmlFor="course-settings-edit-min-score">
+								Scor minim la teste <span className="va-field__optional">(%)</span>
+							</label>
 							<input
 								id="course-settings-edit-min-score"
 								type="number"
@@ -267,40 +250,50 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 								disabled={courseEditSaving}
 							/>
 						</div>
-						<div className="admin-course-builder-course-edit-field">
-							<div className="admin-course-builder-course-edit-media">
-								<div className="admin-course-builder-course-edit-media-preview">
-									{(courseEditImagePreviewUrl || courseCoverSrc(course)) ? (
-										<img src={courseEditImagePreviewUrl || courseCoverSrc(course)} alt="" />
-									) : (
-										<div className="admin-course-builder-course-edit-media-placeholder">
-											<span>Fără copertă</span>
-										</div>
-									)}
+						<div className="va-field">
+							<label htmlFor="course-settings-edit-card-color">Culoarea cardului</label>
+							<div className="va-color-input">
+								<input
+									id="course-settings-edit-card-color"
+									type="color"
+									value={cardColor}
+									onChange={set('card_color')}
+									disabled={courseEditSaving}
+								/>
+								<input
+									type="text"
+									value={cardColor}
+									onChange={set('card_color')}
+									aria-label="Codul culorii cardului"
+									maxLength={7}
+									disabled={courseEditSaving}
+								/>
+							</div>
+						</div>
+
+						<div className="va-field va-field--full">
+							<span className="va-field__label">Copertă</span>
+							<div className="va-media-field">
+								<div className="va-media-field__preview">
+									{coverSrc ? <img src={coverSrc} alt="" /> : <span>Fără copertă</span>}
 								</div>
-								<div className="admin-course-builder-course-edit-media-copy">
-									<div className="admin-course-builder-course-edit-media-head">
-										<label htmlFor="course-settings-edit-image">Poză curs {courseCoverSrc(course) ? '' : '*'}</label>
-										<span className="admin-course-builder-course-edit-media-chip">
-											{courseEditImageFile ? 'Previzualizare nouă' : courseCoverSrc(course) ? 'Copertă curentă' : 'Lipsă'}
-										</span>
-									</div>
-									<p className="admin-course-builder-course-edit-media-note">
-										Thumbnail-ul apare în cardul cursului. Recomandat 16:9, max. 4MB.
+								<div className="va-media-field__copy">
+									<p className="va-field__hint">
+										{courseEditImageFile
+											? 'Imagine nouă — se salvează odată cu cursul.'
+											: courseCoverSrc(course)
+												? 'Apare pe cardul cursului.'
+												: 'Cursul nu are încă o copertă.'}
+										{' '}Recomandat 16:9, cel mult 4 MB.
 									</p>
-									<div className="admin-course-builder-course-edit-media-actions">
-										<button
-											type="button"
-											className="admin-course-builder-course-edit-media-button"
-											onClick={openCourseEditImagePicker}
-											disabled={courseEditSaving}
-										>
-											Alege imaginea
+									<div className="va-media-field__actions">
+										<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={openCourseEditImagePicker} disabled={courseEditSaving}>
+											{coverSrc ? 'Schimbă imaginea' : 'Alege imaginea'}
 										</button>
 										{courseEditImageFile ? (
 											<button
 												type="button"
-												className="admin-course-builder-course-edit-media-button admin-course-builder-course-edit-media-button--ghost"
+												className="lms-btn-secondary lms-btn-sm"
 												onClick={() => {
 													setCourseEditImageFile(null);
 													if (courseEditImageInputRef.current) {
@@ -329,43 +322,44 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div className="admin-course-builder-course-edit-checks">
-						<label className="admin-course-builder-course-edit-check">
-							<input
-								type="checkbox"
-								checked={courseEditDraft.sequential_unlock !== false}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, sequential_unlock: e.target.checked }))}
-								disabled={courseEditSaving}
-							/>
-							<span>Deblocare secvențială</span>
-						</label>
-						<label className="admin-course-builder-course-edit-check">
-							<input
-								type="checkbox"
-								checked={courseEditDraft.has_certificate === true}
-								onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, has_certificate: e.target.checked }))}
-								disabled={courseEditSaving}
-							/>
-							<span>Certificat la finalizare</span>
-						</label>
+						<div className="va-field va-field--full">
+							<div className="va-checks">
+								<label className="va-check">
+									<input
+										type="checkbox"
+										checked={courseEditDraft.sequential_unlock !== false}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, sequential_unlock: e.target.checked }))}
+										disabled={courseEditSaving}
+									/>
+									<span>Deblocare secvențială</span>
+								</label>
+								<label className="va-check">
+									<input
+										type="checkbox"
+										checked={courseEditDraft.has_certificate === true}
+										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, has_certificate: e.target.checked }))}
+										disabled={courseEditSaving}
+									/>
+									<span>Certificat la finalizare</span>
+								</label>
+							</div>
+							<p className="va-field__hint">
+								Cursul rămâne gratuit și deschis implicit; aici ajustezi setările de publicare și finalizare.
+							</p>
+						</div>
 					</div>
-
-					<p className="admin-course-builder-course-edit-note">
-						Cursul rămâne gratuit și deschis implicit; aici ajustezi doar setările importante de publicare și finalizare.
-					</p>
 				</div>
 
-				<div className="admin-course-builder-test-modal-actions">
-					<button type="button" className="admin-btn admin-btn-secondary" onClick={onClose} disabled={courseEditSaving}>
+				<footer className="va-dialog__footer">
+					<button type="button" className="lms-btn-secondary" onClick={onClose} disabled={courseEditSaving}>
 						Anulează
 					</button>
-					<button type="button" className="va-btn-save admin-btn lms-btn-primary" onClick={handleSaveCourseEdit} disabled={courseEditSaving}>
-						{courseEditSaving ? 'Se salvează...' : 'Salvează'}
+					<button type="submit" className="va-btn-save lms-btn-primary" disabled={courseEditSaving}>
+						{courseEditSaving ? 'Se salvează…' : 'Salvează'}
 					</button>
-				</div>
-			</div>
+				</footer>
+			</form>
 		</Modal>
 	);
 };

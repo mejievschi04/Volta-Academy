@@ -175,6 +175,7 @@ const AdminUsersPage = () => {
 				await adminService.createUser(dataToSend);
 			}
 
+			showSuccess(editingUser ? 'Utilizatorul a fost actualizat.' : 'Utilizatorul a fost creat.');
 			setShowModal(false);
 			setEditingUser(null);
 			setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
@@ -690,226 +691,225 @@ const AdminUsersPage = () => {
 				isOpen={showModal}
 				onClose={() => setShowModal(false)}
 				ariaLabelledby="admin-users-modal-title"
-				className="admin-users-modal-overlay"
+				className="admin-users-modal-overlay va-dialog-overlay"
+				unstyledContent
 			>
-				<div className="admin-users-modal">
-					<div className="admin-users-modal-header">
-						<h2 id="admin-users-modal-title" className="admin-users-modal-title">{editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}</h2>
+				<form onSubmit={handleSubmit} className="va-dialog" autoComplete="off">
+					<header className="va-dialog__header">
+						<h2 id="admin-users-modal-title" className="va-dialog__title">{editingUser ? 'Editează utilizatorul' : 'Adaugă utilizator nou'}</h2>
 						<button
 							type="button"
 							className="admin-users-modal-close va-close-btn"
 							onClick={() => setShowModal(false)}
-							title="Închide"
 							aria-label="Închide"
 						>
 							<X size={18} weight="bold" aria-hidden="true" />
 						</button>
-					</div>
-						<div className="admin-users-modal-body">
-							<form onSubmit={handleSubmit} className="admin-users-modal-form" autoComplete="off">
-								<div className="admin-form-group">
-									<label className="admin-form-label">Nume</label>
-									<input
-										type="text"
-										className="admin-form-input"
-										value={formData.name}
-										onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-										required
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Echipă</label>
-									{editingUser ? (
-										<>
-											{Array.isArray(editingUser.teams) && editingUser.teams.length > 0 ? (
-												<div className="admin-users-team-chips admin-users-team-chips--readonly">
-													{editingUser.teams.filter((t) => t?.name).map((t) => (
-														<span key={t.id} className="admin-users-team-chip" title={t.name}>
+					</header>
+					<div className="va-dialog__body">
+						<div className="va-form-grid">
+							<div className="va-field">
+								<label htmlFor="admin-users-field-name">Nume</label>
+								<input
+									id="admin-users-field-name"
+									type="text"
+									className="admin-form-input"
+									value={formData.name}
+									onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+									required
+									data-modal-initial-focus
+								/>
+							</div>
+							<div className="va-field">
+								<label htmlFor="admin-users-field-role">Rol</label>
+								<select
+									id="admin-users-field-role"
+									className="admin-form-input"
+									value={formData.role}
+									onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+									required
+								>
+									<option value="student">Utilizator</option>
+									<option value="admin">Administrator</option>
+									<option value="instructor">Instructor</option>
+									<option value="analyst">Analist</option>
+								</select>
+							</div>
+							<div className="va-field">
+								<label htmlFor="admin-users-field-email">Email</label>
+								<input
+									id="admin-users-field-email"
+									type="email"
+									name="managed-user-email"
+									autoComplete="off"
+									data-lpignore="true"
+									data-1p-ignore="true"
+									readOnly
+									onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
+									onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
+									className="admin-form-input"
+									value={formData.email}
+									onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+									required
+								/>
+							</div>
+							<div className="va-field">
+								<label htmlFor="admin-users-field-password">
+									Parolă <span className="va-field__optional">{editingUser ? '(lasă gol pentru a nu o schimba)' : '(opțională)'}</span>
+								</label>
+								<input
+									id="admin-users-field-password"
+									type="password"
+									name="managed-user-password"
+									autoComplete="new-password"
+									data-lpignore="true"
+									data-1p-ignore="true"
+									readOnly
+									onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
+									onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
+									className="admin-form-input"
+									value={formData.password}
+									onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+									placeholder={!editingUser ? 'Implicit: volta2026' : 'Neschimbată'}
+									minLength={formData.password ? 6 : undefined}
+								/>
+								{!editingUser ? (
+									<p className="va-field__hint">
+										Dacă rămâne goală, utilizatorul primește parola <strong>volta2026</strong> și o schimbă la prima autentificare.
+									</p>
+								) : null}
+							</div>
+							<div className="va-field va-field--full">
+								<label htmlFor={editingUser ? undefined : 'admin-users-field-team'}>Echipă</label>
+								{editingUser ? (
+									<>
+										{Array.isArray(editingUser.teams) && editingUser.teams.length > 0 ? (
+											<div className="admin-users-team-chips admin-users-team-chips--readonly">
+												{editingUser.teams.filter((t) => t?.name).map((t) => (
+													<span key={t.id} className="admin-users-team-chip" title={t.name}>
+														<span
+															className="admin-users-team-swatch"
+															style={{ background: teamAccent(t) }}
+															aria-hidden
+														/>
+														<span className="admin-users-team-chip-name">{t.name}</span>
+													</span>
+												))}
+											</div>
+										) : (
+											<p className="va-field__hint">Fără echipă</p>
+										)}
+										<p className="va-field__hint">
+											Echipa se modifică din pagina <strong>Echipe</strong> (atașare membri).
+										</p>
+									</>
+								) : (
+									<>
+										<select
+											id="admin-users-field-team"
+											className="admin-form-input"
+											value={formData.team_id}
+											onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+																						>
+											<option value="">Fără echipă</option>
+											{teams.map((team) => (
+												<option key={team.id} value={team.id}>{team.name}</option>
+											))}
+										</select>
+										{formData.team_id ? (
+											<div className="admin-users-team-select-preview">
+												{(() => {
+													const t = teams.find((x) => String(x.id) === String(formData.team_id));
+													if (!t) return null;
+													return (
+														<>
 															<span
-																className="admin-users-team-swatch"
+																className="admin-users-team-swatch admin-users-team-swatch--lg"
 																style={{ background: teamAccent(t) }}
 																aria-hidden
 															/>
-															<span className="admin-users-team-chip-name">{t.name}</span>
-														</span>
-													))}
-												</div>
-											) : (
-												<p className="admin-users-table-cell-muted" style={{ margin: 0 }}>Fără echipă</p>
-											)}
-											<p className="admin-form-hint" style={{ marginTop: 8, marginBottom: 0 }}>
-												Echipa se modifică din pagina <strong>Echipe</strong> (atașare membri).
-											</p>
-										</>
-									) : (
-										<>
-											<select
-												className="admin-form-input"
-												value={formData.team_id}
-												onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
-												aria-label="Echipă la creare utilizator"
-											>
-												<option value="">Fără echipă</option>
-												{teams.map((team) => (
-													<option key={team.id} value={team.id}>{team.name}</option>
-												))}
-											</select>
-											{formData.team_id ? (
-												<div className="admin-users-team-select-preview">
-													{(() => {
-														const t = teams.find((x) => String(x.id) === String(formData.team_id));
-														if (!t) return null;
-														return (
-															<>
-																<span
-																	className="admin-users-team-swatch admin-users-team-swatch--lg"
-																	style={{ background: teamAccent(t) }}
-																	aria-hidden
-																/>
-																<span className="admin-users-team-select-preview-label">Echipă selectată: {t.name}</span>
-															</>
-														);
-													})()}
-												</div>
-											) : null}
-											<p className="admin-form-hint" style={{ marginTop: 8, marginBottom: 0 }}>
-												{formData.team_id
-													? 'Utilizatorul va fi asociat echipei alese la creare (poți lăsa gol).'
-													: 'Opțional — utilizatorul poate fi adăugat într-o echipă din pagina Echipe.'}
-											</p>
-										</>
-									)}
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Email</label>
-									<input
-										type="email"
-                                        name="managed-user-email"
-                                        autoComplete="off"
-                                        data-lpignore="true"
-                                        data-1p-ignore="true"
-                                        readOnly
-                                        onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
-                                        onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
-										className="admin-form-input"
-										value={formData.email}
-										onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-										required
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">
-										Parolă {!editingUser ? <span className="admin-form-label-hint">(opțională)</span> : <span className="admin-form-label-hint">(lasă gol pentru a nu schimba)</span>}
-									</label>
-									<input
-										type="password"
-                                        name="managed-user-password"
-                                        autoComplete="new-password"
-                                        data-lpignore="true"
-                                        data-1p-ignore="true"
-                                        readOnly
-                                        onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
-                                        onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
-										className="admin-form-input"
-										value={formData.password}
-										onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-										placeholder={!editingUser ? 'Lasă gol pentru parola implicită: volta2026' : 'Lasă gol pentru a păstra parola actuală'}
-										minLength={formData.password ? 6 : undefined}
-									/>
-								</div>
-								<div className="admin-form-group">
-									<label className="admin-form-label">Rol</label>
-									<select
-										className="admin-form-input"
-										value={formData.role}
-										onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-										required
-									>
-										<option value="student">Utilizator</option>
-										<option value="admin">Administrator</option>
-										<option value="instructor">Instructor</option>
-										<option value="analyst">Analist</option>
-									</select>
-								</div>
-								{!editingUser && (
-									<div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
-										<p className="admin-form-hint">
-											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2026</strong> și va trebui să o schimbe la prima autentificare.
-										</p>
-									</div>
-								)}
-								{editingUser && currentUser?.role === 'admin' && editingUser.id !== currentUser?.id && (
-									<section className="admin-users-access" aria-labelledby="admin-users-access-title">
-										<h3 id="admin-users-access-title" className="admin-users-access-title">Acces cont</h3>
-										<p className="admin-users-access-status">
-											Status:{' '}
-											<strong>{editingUser.status === 'suspended' ? 'Suspendat' : editingUser.status === 'pending' ? 'În așteptare' : 'Activ'}</strong>
-											{editingUser.status === 'suspended' && editingUser.suspended_reason ? ` — ${editingUser.suspended_reason}` : ''}
-										</p>
-										{editingUser.must_change_password ? (
-											<p className="admin-form-hint">Va trebui să-și schimbe parola la următoarea autentificare.</p>
-										) : null}
-
-										{accessStep === 'suspend' ? (
-											<div className="admin-users-access-confirm">
-												<label className="admin-form-label" htmlFor="admin-users-suspend-reason">
-													Motiv <span className="admin-form-label-hint">(opțional, vizibil doar adminilor)</span>
-												</label>
-												<input
-													id="admin-users-suspend-reason"
-													className="admin-form-input"
-													value={suspendReason}
-													onChange={(e) => setSuspendReason(e.target.value)}
-													maxLength={1000}
-												/>
-												<p className="admin-form-hint">Contul nu se va mai putea autentifica până la reactivare. Progresul rămâne.</p>
-												<div className="admin-users-access-actions">
-													<button type="button" className="lms-btn-secondary" onClick={() => setAccessStep(null)} disabled={accessBusy}>
-														Renunță
-													</button>
-													<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => runAccessAction('suspend')} disabled={accessBusy}>
-														{accessBusy ? 'Se suspendă…' : 'Confirmă suspendarea'}
-													</button>
-												</div>
+															<span className="admin-users-team-select-preview-label">Echipă selectată: {t.name}</span>
+														</>
+													);
+												})()}
 											</div>
-										) : (
+										) : null}
+										<p className="va-field__hint">
+											{formData.team_id
+												? 'Utilizatorul va fi asociat echipei alese la creare (poți lăsa gol).'
+												: 'Opțional — utilizatorul poate fi adăugat într-o echipă din pagina Echipe.'}
+										</p>
+									</>
+								)}
+							</div>
+							{editingUser && currentUser?.role === 'admin' && editingUser.id !== currentUser?.id && (
+								<section className="admin-users-access va-field va-field--full" aria-labelledby="admin-users-access-title">
+									<h3 id="admin-users-access-title" className="admin-users-access-title">Acces cont</h3>
+									<p className="admin-users-access-status">
+										Status:{' '}
+										<strong>{editingUser.status === 'suspended' ? 'Suspendat' : editingUser.status === 'pending' ? 'În așteptare' : 'Activ'}</strong>
+										{editingUser.status === 'suspended' && editingUser.suspended_reason ? ` — ${editingUser.suspended_reason}` : ''}
+									</p>
+									{editingUser.must_change_password ? (
+										<p className="admin-form-hint">Va trebui să-și schimbe parola la următoarea autentificare.</p>
+									) : null}
+
+									{accessStep === 'suspend' ? (
+										<div className="admin-users-access-confirm">
+											<label className="admin-form-label" htmlFor="admin-users-suspend-reason">
+												Motiv <span className="admin-form-label-hint">(opțional, vizibil doar adminilor)</span>
+											</label>
+											<input
+												id="admin-users-suspend-reason"
+												className="admin-form-input"
+												value={suspendReason}
+												onChange={(e) => setSuspendReason(e.target.value)}
+												maxLength={1000}
+											/>
+											<p className="admin-form-hint">Contul nu se va mai putea autentifica până la reactivare. Progresul rămâne.</p>
 											<div className="admin-users-access-actions">
-												{editingUser.status === 'suspended' ? (
-													<button type="button" className="lms-btn-secondary" onClick={() => runAccessAction('activate')} disabled={accessBusy}>
-														Reactivează contul
-													</button>
-												) : (
-													<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => setAccessStep('suspend')} disabled={accessBusy}>
-														Suspendă contul
-													</button>
-												)}
-												<button
-													type="button"
-													className="lms-btn-secondary"
-													onClick={() => runAccessAction('reset')}
-													disabled={accessBusy || Boolean(editingUser.must_change_password)}
-												>
-													Cere schimbarea parolei
+												<button type="button" className="lms-btn-secondary" onClick={() => setAccessStep(null)} disabled={accessBusy}>
+													Renunță
+												</button>
+												<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => runAccessAction('suspend')} disabled={accessBusy}>
+													{accessBusy ? 'Se suspendă…' : 'Confirmă suspendarea'}
 												</button>
 											</div>
-										)}
-									</section>
-								)}
-								<div className="admin-users-modal-footer">
-									<button
-										type="button"
-										className="lms-btn-secondary"
-										onClick={() => setShowModal(false)}
-									>
-										Anulează
-									</button>
-									<button type="submit" className="va-btn-save lms-btn-primary">
-										Salvează
-									</button>
-								</div>
-							</form>
+										</div>
+									) : (
+										<div className="admin-users-access-actions">
+											{editingUser.status === 'suspended' ? (
+												<button type="button" className="lms-btn-secondary" onClick={() => runAccessAction('activate')} disabled={accessBusy}>
+													Reactivează contul
+												</button>
+											) : (
+												<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => setAccessStep('suspend')} disabled={accessBusy}>
+													Suspendă contul
+												</button>
+											)}
+											<button
+												type="button"
+												className="lms-btn-secondary"
+												onClick={() => runAccessAction('reset')}
+												disabled={accessBusy || Boolean(editingUser.must_change_password)}
+											>
+												Cere schimbarea parolei
+											</button>
+										</div>
+									)}
+								</section>
+							)}
 						</div>
-				</div>
+					</div>
+					<footer className="va-dialog__footer">
+						<button type="button" className="lms-btn-secondary" onClick={() => setShowModal(false)}>
+							Anulează
+						</button>
+						<button type="submit" className="va-btn-save lms-btn-primary">
+							Salvează
+						</button>
+					</footer>
+				</form>
 			</Modal>
 			</>
 			)}

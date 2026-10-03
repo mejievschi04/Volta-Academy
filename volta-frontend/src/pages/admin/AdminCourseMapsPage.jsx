@@ -22,6 +22,7 @@ import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import Modal from '../../components/common/Modal';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import { mapFolderCardImageUrl, toImageUrl } from '../../utils/imageUrl';
@@ -42,27 +43,21 @@ function isRealMapId(id) {
 	return id !== 'unassigned' && id != null;
 }
 
-function MapColorRow({ label, value, fallback, onChange, onClear, canClear }) {
+function MapColorRow({ id, label, value, fallback, onChange, onClear, canClear }) {
 	const hex = normalizeColorInputToHex(value?.trim() ? value : fallback, fallback);
 	return (
-		<label className="admin-course-map-color-row">
-			<span>{label}</span>
-			<span className="admin-course-map-color-row__controls">
-				<input type="color" value={hex} onChange={(e) => onChange(e.target.value)} aria-label={label} />
-				<input
-					type="text"
-					className="admin-form-input"
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					placeholder={fallback}
-				/>
+		<div className="va-field">
+			<label htmlFor={id}>{label}</label>
+			<div className="va-color-input">
+				<input type="color" value={hex} onChange={(e) => onChange(e.target.value)} aria-label={`${label} — alege culoarea`} />
+				<input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={fallback} maxLength={7} />
 				{canClear && value?.trim() ? (
-					<button type="button" className="admin-course-map-color-clear" onClick={onClear} aria-label={`Resetează ${label}`}>
-						×
+					<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={onClear} aria-label={`Resetează ${label.toLowerCase()}`}>
+						Resetează
 					</button>
 				) : null}
-			</span>
-		</label>
+			</div>
+		</div>
 	);
 }
 
@@ -361,11 +356,6 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 	const previewAccent = normalizeColorInputToHex(formAccent, COURSE_MAP_ACCENT_COLORS[0]);
 	const previewName = formName.trim() || 'Mapă nouă';
 	const previewCourseCount = editingMap?.courses?.length ?? 0;
-	const coverPreviewLabel = pendingMapCoverFile
-		? 'Nouă'
-		: editingMap?.cover_image_url
-			? 'Setată'
-			: 'Fără';
 
 	const handleCoverFileChange = async (event) => {
 		const file = event.target.files?.[0];
@@ -592,124 +582,86 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 				</div>
 			)}
 
-			{showCreateModal && canMutateInAdminArea && (
-				<div className="admin-modal-overlay" onClick={closeCreateModal}>
-					<div
-						className="admin-modal admin-modal-create admin-course-map-modal admin-modal-lg"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className="admin-course-map-modal__head">
-							<h2 className="admin-modal-title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
-							<button type="button" className="admin-team-modal-close va-close-btn" onClick={closeCreateModal} aria-label="Închide"><X size={18} weight="bold" aria-hidden="true" /></button>
-						</div>
-						<div className="admin-modal-body">
-							<div className="admin-course-map-modal__identity">
-								<label className="admin-form-label" htmlFor="course-map-name">Nume</label>
-								<input
-									id="course-map-name"
-									type="text"
-									className="admin-form-input"
-									value={formName}
-									onChange={(e) => setFormName(e.target.value)}
-									placeholder="Numele mapei"
-									aria-required="true"
-									autoFocus
-								/>
-								<label className="admin-form-label" htmlFor="course-map-desc">Descriere</label>
-								<textarea
-									id="course-map-desc"
-									className="admin-form-input"
-									value={formDescription}
-									onChange={(e) => setFormDescription(e.target.value)}
-									placeholder="Opțional"
-									rows={2}
-								/>
-								{!editingMap && isAdmin ? (
-									<fieldset className="admin-course-map-visibility-fieldset">
-										<legend className="admin-form-label">Vizibilitate</legend>
-										<div className="admin-course-map-visibility-options">
-											<label className={`admin-course-map-visibility-option${formVisibility === 'public' ? ' is-selected' : ''}`}>
-												<input
-													type="radio"
-													name="course-map-visibility"
-													value="public"
-													checked={formVisibility === 'public'}
-													onChange={() => setFormVisibility('public')}
-												/>
-												Publică
-											</label>
-											<label className={`admin-course-map-visibility-option${formVisibility === 'private' ? ' is-selected' : ''}`}>
-												<input
-													type="radio"
-													name="course-map-visibility"
-													value="private"
-													checked={formVisibility === 'private'}
-													onChange={() => setFormVisibility('private')}
-												/>
-												Privată
-											</label>
-										</div>
-									</fieldset>
-								) : null}
-							</div>
-
-							<div className="admin-course-map-modal__aside">
-								<div className={`admin-course-map-cover-compact${coverPreviewSrc ? ' admin-course-map-cover-compact--focus' : ''}`}>
-									{coverPreviewSrc ? (
-										<MapCoverFocusEditor
-											src={coverPreviewSrc}
-											value={formCoverFocus}
-											onChange={setFormCoverFocus}
-											disabled={coverBusy}
-										/>
-									) : (
-										<button
-											type="button"
-											className="admin-course-map-cover-compact__thumb"
-											onClick={openMapCoverPicker}
-											disabled={coverBusy}
-											aria-label="Alege coperta"
-										>
-											<span>Copertă</span>
-										</button>
-									)}
-									<div className="admin-course-map-cover-compact__meta">
-										<span className="admin-form-label">Copertă</span>
-										<span className="admin-course-map-cover-chip">{coverPreviewLabel}</span>
-										<div className="admin-course-map-cover-actions">
-											<button type="button" className="admin-course-map-cover-button" onClick={openMapCoverPicker} disabled={coverBusy}>
-												{coverBusy ? 'Se încarcă...' : 'Alege'}
-											</button>
-											{(pendingMapCoverFile || editingMap?.cover_image_url) ? (
-												<button
-													type="button"
-													className="admin-course-map-cover-button admin-course-map-cover-button--ghost"
-													onClick={handleCoverRemove}
-													disabled={coverBusy}
-												>
-													Șterge
-												</button>
-											) : null}
-										</div>
-									</div>
+			<Modal
+				isOpen={showCreateModal && canMutateInAdminArea}
+				onClose={closeCreateModal}
+				closeOnBackdropClick
+				closeOnEscape
+				ariaLabelledby="course-map-dialog-title"
+				className="va-dialog-overlay"
+				unstyledContent
+			>
+				<div className="va-dialog va-dialog--wide admin-course-map-dialog">
+					<header className="va-dialog__header">
+						<h2 id="course-map-dialog-title" className="va-dialog__title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
+						<button type="button" className="va-close-btn" onClick={closeCreateModal} aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
+						</button>
+					</header>
+					<div className="va-dialog__body">
+						<div className="va-form-grid">
+							<div className="va-field-stack">
+								<div className="va-field">
+									<label htmlFor="course-map-name">Nume</label>
 									<input
-										ref={mapCoverInputRef}
-										type="file"
-										accept="image/jpeg,image/png,image/gif,image/webp"
-										onChange={handleCoverFileChange}
-										className="admin-course-map-cover-input"
-										hidden
+										id="course-map-name"
+										type="text"
+										value={formName}
+										onChange={(e) => setFormName(e.target.value)}
+										placeholder="Numele mapei"
+										aria-required="true"
+										data-modal-initial-focus
 									/>
 								</div>
-
+								<div className="va-field">
+									<label htmlFor="course-map-desc">
+										Descriere <span className="va-field__optional">(opțională)</span>
+									</label>
+									<textarea
+										id="course-map-desc"
+										value={formDescription}
+										onChange={(e) => setFormDescription(e.target.value)}
+										placeholder="Despre ce sunt cursurile din mapă"
+										rows={3}
+									/>
+								</div>
+							{!editingMap && isAdmin ? (
+								<fieldset className="va-field admin-course-map-visibility-fieldset">
+									<legend>Vizibilitate</legend>
+									<div className="admin-course-map-visibility-options">
+										<label className={`admin-course-map-visibility-option${formVisibility === 'public' ? ' is-selected' : ''}`}>
+											<input
+												type="radio"
+												name="course-map-visibility"
+												value="public"
+												checked={formVisibility === 'public'}
+												onChange={() => setFormVisibility('public')}
+											/>
+											Publică
+										</label>
+										<label className={`admin-course-map-visibility-option${formVisibility === 'private' ? ' is-selected' : ''}`}>
+											<input
+												type="radio"
+												name="course-map-visibility"
+												value="private"
+												checked={formVisibility === 'private'}
+												onChange={() => setFormVisibility('private')}
+											/>
+											Privată
+										</label>
+									</div>
+								</fieldset>
+							) : null}
 								<MapColorRow
-									label="Accent"
+									id="course-map-accent"
+									label="Culoarea mapei"
 									value={formAccent}
 									fallback={COURSE_MAP_ACCENT_COLORS[0]}
 									onChange={setFormAccent}
 								/>
 								<MapColorRow
-									label="Text"
+									id="course-map-text"
+									label="Culoarea textului din antet"
 									value={formHeaderText}
 									fallback="#f8fafc"
 									onChange={setFormHeaderText}
@@ -718,57 +670,94 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 								/>
 							</div>
 
-							<div className="admin-course-map-modal__preview" aria-label="Previzualizare mapă">
-								<p className="admin-form-label">Așa va arăta</p>
-								<div className="admin-course-map-modal__tile-frame">
-									<CourseMapFolderTile
-										className="admin-course-map-modal__tile"
-										title={previewName}
-										subtitle={formDescription.trim() || `${previewCourseCount} ${previewCourseCount === 1 ? 'curs' : 'cursuri'}`}
-										count={previewCourseCount}
-										color={previewAccent}
-										imageUrl={coverPreviewSrc}
-										coverFocus={formCoverFocus}
-										onOpen={() => {}}
-										ctaLabel="Deschide mapa"
+							<div className="va-field-stack">
+								<div className="va-field" aria-label="Previzualizare mapă">
+									<span className="va-field__label">Așa va arăta</span>
+									<div className="admin-course-map-dialog__preview">
+										<CourseMapFolderTile
+											className="admin-course-map-modal__tile"
+											title={previewName}
+											subtitle={formDescription.trim() || `${previewCourseCount} ${previewCourseCount === 1 ? 'curs' : 'cursuri'}`}
+											count={previewCourseCount}
+											color={previewAccent}
+											imageUrl={coverPreviewSrc}
+											coverFocus={formCoverFocus}
+											onOpen={() => {}}
+											ctaLabel="Deschide mapa"
+										/>
+									</div>
+								</div>
+								<div className="va-field">
+									<span className="va-field__label">Copertă</span>
+									{coverPreviewSrc ? (
+										<div className="admin-course-map-dialog__focus">
+											<MapCoverFocusEditor
+												src={coverPreviewSrc}
+												value={formCoverFocus}
+												onChange={setFormCoverFocus}
+												disabled={coverBusy}
+											/>
+										</div>
+									) : null}
+									<p className="va-field__hint">
+										{coverPreviewSrc
+											? 'Trage pe imagine ca să alegi zona vizibilă pe mapă.'
+											: 'Fără copertă — mapa folosește doar culoarea.'}
+									</p>
+									<div className="va-media-field__actions">
+										<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={openMapCoverPicker} disabled={coverBusy}>
+											{coverBusy ? 'Se încarcă…' : coverPreviewSrc ? 'Schimbă imaginea' : 'Alege imaginea'}
+										</button>
+										{(pendingMapCoverFile || editingMap?.cover_image_url) ? (
+											<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={handleCoverRemove} disabled={coverBusy}>
+												Șterge coperta
+											</button>
+										) : null}
+									</div>
+									<input
+										ref={mapCoverInputRef}
+										type="file"
+										accept="image/jpeg,image/png,image/gif,image/webp"
+										onChange={handleCoverFileChange}
+										hidden
 									/>
 								</div>
 							</div>
 
-							{editingMap && (
-								<section className="admin-course-map-modal__courses" aria-label="Cursuri în mapă">
-									<div>
-										<h3 className="admin-form-section-title">În mapă</h3>
-										{(editingMap.courses || []).length === 0 ? (
-											<p className="admin-text-muted">Niciun curs.</p>
-										) : (
-											<ul className="admin-course-map-current-list">
-												{(editingMap.courses || []).map((c) => (
-													<li key={c.id} className="admin-course-map-current-item">
-														<span>{c.title}</span>
-														<button
-															type="button"
-															className="admin-course-map-remove-btn"
-															onClick={() => removeCourseFromMap(c.id, true)}
-															aria-label={`Scoate ${c.title} din mapă`}
-														>
-															Scoate
-														</button>
-													</li>
-												))}
-											</ul>
-										)}
-									</div>
-									<div>
-										<h3 className="admin-form-section-title">Adaugă</h3>
-										<div className="admin-course-map-picker" role="group" aria-label="Selectează cursuri de adăugat">
-											{availableCoursesForEdit.length === 0 ? (
-												<p className="admin-text-muted">Nu mai sunt cursuri disponibile.</p>
+							{editingMap ? (
+								<section className="va-field va-field--full admin-course-map-dialog__courses" aria-label="Cursuri în mapă">
+									<div className="va-form-grid">
+										<div className="va-field">
+											<h3 className="va-dialog__section-title">În mapă</h3>
+											{(editingMap.courses || []).length === 0 ? (
+												<p className="va-list__empty">Niciun curs.</p>
 											) : (
-												<ul className="admin-course-map-checkbox-list">
+												<ul className="va-list va-list--scroll">
+													{(editingMap.courses || []).map((c) => (
+														<li key={c.id}>
+															<span>{c.title}</span>
+															<button
+																type="button"
+																className="lms-btn-secondary lms-btn-sm"
+																onClick={() => removeCourseFromMap(c.id, true)}
+																aria-label={`Scoate ${c.title} din mapă`}
+															>
+																Scoate
+															</button>
+														</li>
+													))}
+												</ul>
+											)}
+										</div>
+										<div className="va-field">
+											<h3 className="va-dialog__section-title">Adaugă cursuri</h3>
+											{availableCoursesForEdit.length === 0 ? (
+												<p className="va-list__empty">Nu mai sunt cursuri disponibile.</p>
+											) : (
+												<ul className="va-list va-list--scroll" role="group" aria-label="Selectează cursuri de adăugat">
 													{availableCoursesForEdit.map((c) => (
-														<li key={c.id} className="admin-course-map-checkbox-item">
-															<label className="admin-checkbox-label">
+														<li key={c.id}>
+															<label className="va-check">
 																<input
 																	type="checkbox"
 																	checked={addCourseIds.includes(c.id)}
@@ -786,30 +775,32 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 													))}
 												</ul>
 											)}
+											<div className="va-media-field__actions">
+												<button
+													type="button"
+													className="lms-btn-primary lms-btn-sm"
+													onClick={() => addCoursesToMap(true)}
+													disabled={addCourseIds.length === 0}
+												>
+													Adaugă în mapă{addCourseIds.length > 0 ? ` (${addCourseIds.length})` : ''}
+												</button>
+											</div>
 										</div>
-										<button
-											type="button"
-											className="lms-btn-primary lms-btn-sm"
-											onClick={() => addCoursesToMap(true)}
-											disabled={addCourseIds.length === 0}
-										>
-											Adaugă{addCourseIds.length > 0 ? ` (${addCourseIds.length})` : ''}
-										</button>
 									</div>
 								</section>
-							)}
-						</div>
-						<div className="admin-modal-actions">
-							<button type="button" className="lms-btn-secondary" onClick={closeCreateModal}>
-								Anulare
-							</button>
-							<button type="button" className="va-btn-save lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>
-								{editingMap ? 'Salvează' : 'Creează'}
-							</button>
+							) : null}
 						</div>
 					</div>
+					<footer className="va-dialog__footer">
+						<button type="button" className="lms-btn-secondary" onClick={closeCreateModal}>
+							Anulează
+						</button>
+						<button type="button" className="va-btn-save lms-btn-primary" onClick={saveMap} disabled={!formName?.trim()}>
+							{editingMap ? 'Salvează' : 'Creează'}
+						</button>
+					</footer>
 				</div>
-			)}
+			</Modal>
 
 			{/* Manage courses modal */}
 			{managingMap && canMutateInAdminArea && (

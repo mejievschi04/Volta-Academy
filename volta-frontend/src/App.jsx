@@ -72,6 +72,7 @@ import './components/SplashScreen.css';
 import './styles/mobile-optimizations.css';
 /* One control style, after every other global sheet. */
 import './styles/control-system.css';
+import './styles/dialog-system.css';
 import logoShort from './assets/Volta Logo 2@300x 1.png';
 
 // Lazy load pages for code splitting
