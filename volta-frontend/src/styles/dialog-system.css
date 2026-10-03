@@ -359,30 +359,87 @@ html body .va-field-stack {
 	min-width: 0;
 }
 
-/* Fereastra mapei */
+/* Fereastra mapei: date | previzualizare + copertă | cursuri, fără derulare pe desktop */
+html body .va-dialog.admin-course-map-dialog--with-courses {
+	width: min(1120px, calc(100vw - 32px));
+}
+
+html body .admin-course-map-dialog__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 24px;
+}
+
+html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 html body .admin-course-map-dialog__preview {
 	display: flex;
 	justify-content: center;
-	padding: 16px;
+	padding: 8px;
 	border: 1px solid var(--border-primary);
 	border-radius: 12px;
 	background: var(--bg-secondary);
 }
 
-html body .admin-course-map-dialog__preview .admin-course-map-modal__tile {
-	width: 100%;
-	max-width: 260px;
+/* previzualizarea la scară redusă (zoom micșorează și spațiul ocupat, nu doar desenul) */
+html body .admin-course-map-dialog__preview .course-map-folder-tile {
+	zoom: 0.66;
+	pointer-events: none;
 }
 
-html body .admin-course-map-dialog__focus {
-	overflow: hidden;
-	border: 1px solid var(--border-primary);
-	border-radius: 12px;
+/* Coperta: miniatură pe care tragi pentru zona vizibilă, mărimea alături, butoanele dedesubt */
+html body .admin-course-map-dialog__cover .map-cover-focus-editor {
+	display: grid;
+	grid-template-columns: 112px minmax(0, 1fr);
+	align-items: center;
+	gap: 12px;
+}
+
+html body .admin-course-map-dialog__cover .map-cover-focus-editor__stage {
+	width: 112px;
+}
+
+html body .admin-course-map-dialog__cover .map-cover-focus-editor__hint {
+	display: none;
+}
+
+html body .admin-course-map-dialog__cover .map-cover-focus-editor__zoom::before {
+	content: "Trage pe imagine ca să alegi zona vizibilă.";
+	margin-bottom: 4px;
+	font-size: 0.8125rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: var(--text-secondary);
+}
+
+html body .admin-course-map-dialog__courses .va-list--scroll {
+	max-height: 150px;
 }
 
 html body .admin-course-map-dialog__courses {
-	padding-top: 16px;
-	border-top: 1px solid var(--border-primary);
+	gap: 16px;
+}
+
+@media (max-width: 1100px) {
+	html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	html body .admin-course-map-dialog__courses {
+		grid-column: 1 / -1;
+		padding-top: 16px;
+		border-top: 1px solid var(--border-primary);
+	}
+}
+
+@media (max-width: 640px) {
+	html body .admin-course-map-dialog__grid,
+	html body .admin-course-map-dialog--with-courses .admin-course-map-dialog__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 html body .admin-course-map-dialog .admin-course-map-visibility-options {
@@ -438,4 +495,16 @@ html body .admin-course-map-dialog .admin-course-map-visibility-option.is-select
 html body .admin-course-map-dialog .admin-course-map-visibility-option:has(input:focus-visible) {
 	outline: 2px solid var(--border-focus);
 	outline-offset: 2px;
+}
+
+html body .admin-course-map-dialog__cover .map-cover-focus-editor__zoom-ends {
+	display: none;
+}
+
+@media (max-width: 640px) {
+	/* pe telefon cardul se întinde pe toată lățimea: îl limităm ca previzualizarea să nu umple ecranul */
+	html body .admin-course-map-dialog__preview .course-map-folder-tile {
+		zoom: 0.55;
+		max-width: 360px;
+	}
 }

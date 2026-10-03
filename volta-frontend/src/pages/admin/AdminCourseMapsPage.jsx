@@ -369,7 +369,8 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		setCoverBusy(true);
 		try {
 			const updated = await adminService.uploadCourseMapCover(editingMap.id, file, DEFAULT_COVER_FOCUS);
-			setEditingMap(updated);
+			// răspunsul nu conține lista de cursuri: fără îmbinare, „În mapă” apărea gol
+			setEditingMap((prev) => ({ ...prev, ...updated, courses: updated?.courses ?? prev?.courses }));
 			showToast('Coperta a fost încărcată', 'success');
 			fetchMaps();
 		} catch (err) {
@@ -390,7 +391,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		setCoverBusy(true);
 		try {
 			const updated = await adminService.deleteCourseMapCover(editingMap.id);
-			setEditingMap(updated);
+			setEditingMap((prev) => ({ ...prev, ...updated, courses: updated?.courses ?? prev?.courses }));
 			setFormCoverFocus(DEFAULT_COVER_FOCUS);
 			showToast('Coperta a fost eliminată', 'success');
 			fetchMaps();
@@ -591,7 +592,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 				className="va-dialog-overlay"
 				unstyledContent
 			>
-				<div className="va-dialog va-dialog--wide admin-course-map-dialog">
+				<div className={`va-dialog va-dialog--wide admin-course-map-dialog${editingMap ? ' admin-course-map-dialog--with-courses' : ''}`}>
 					<header className="va-dialog__header">
 						<h2 id="course-map-dialog-title" className="va-dialog__title">{editingMap ? 'Editează mapa' : 'Mapă nouă'}</h2>
 						<button type="button" className="va-close-btn" onClick={closeCreateModal} aria-label="Închide">
@@ -599,7 +600,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 						</button>
 					</header>
 					<div className="va-dialog__body">
-						<div className="va-form-grid">
+						<div className="admin-course-map-dialog__grid">
 							<div className="va-field-stack">
 								<div className="va-field">
 									<label htmlFor="course-map-name">Nume</label>
@@ -687,23 +688,18 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 										/>
 									</div>
 								</div>
-								<div className="va-field">
+								<div className="va-field admin-course-map-dialog__cover">
 									<span className="va-field__label">Copertă</span>
 									{coverPreviewSrc ? (
-										<div className="admin-course-map-dialog__focus">
-											<MapCoverFocusEditor
-												src={coverPreviewSrc}
-												value={formCoverFocus}
-												onChange={setFormCoverFocus}
-												disabled={coverBusy}
-											/>
-										</div>
-									) : null}
-									<p className="va-field__hint">
-										{coverPreviewSrc
-											? 'Trage pe imagine ca să alegi zona vizibilă pe mapă.'
-											: 'Fără copertă — mapa folosește doar culoarea.'}
-									</p>
+										<MapCoverFocusEditor
+											src={coverPreviewSrc}
+											value={formCoverFocus}
+											onChange={setFormCoverFocus}
+											disabled={coverBusy}
+										/>
+									) : (
+										<p className="va-field__hint">Fără copertă — mapa folosește doar culoarea.</p>
+									)}
 									<div className="va-media-field__actions">
 										<button type="button" className="lms-btn-secondary lms-btn-sm" onClick={openMapCoverPicker} disabled={coverBusy}>
 											{coverBusy ? 'Se încarcă…' : coverPreviewSrc ? 'Schimbă imaginea' : 'Alege imaginea'}
@@ -725,8 +721,8 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 							</div>
 
 							{editingMap ? (
-								<section className="va-field va-field--full admin-course-map-dialog__courses" aria-label="Cursuri în mapă">
-									<div className="va-form-grid">
+								<section className="va-field-stack admin-course-map-dialog__courses" aria-label="Cursuri în mapă">
+									<div className="va-field-stack">
 										<div className="va-field">
 											<h3 className="va-dialog__section-title">În mapă</h3>
 											{(editingMap.courses || []).length === 0 ? (

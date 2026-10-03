@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { login, ADMIN_EMAIL } from './helpers.js';
+
+const coverPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures-cover.png');
 
 // Ferestrele de editare (mapă, utilizator, curs) au aceeași structură: titlu + X, câmpuri, iar
 // Anulează / Salvează se văd fără derulare, inclusiv pe telefon.
@@ -42,6 +46,18 @@ test('salvează descrierea mapei din fereastra de editare', async ({ page }, tes
 	const { dialog, save } = await expectDialogShell(page, 'Editează mapa');
 
 	await expect(dialog.getByLabel('Nume')).toHaveValue('Mapă E2E');
+
+	// coperta: imaginea apare, iar lista „În mapă” rămâne (răspunsul la încărcare nu conține cursurile)
+	await dialog.locator('input[type="file"]').setInputFiles(coverPath);
+	await expect(page.getByText('Coperta a fost încărcată')).toBeVisible();
+	await expect(dialog.getByRole('button', { name: 'Schimbă imaginea' })).toBeVisible();
+	await expect(dialog.getByRole('button', { name: 'Scoate Curs E2E din mapă' })).toBeVisible();
+	if (testInfo.project.name === 'desktop') {
+		// pe desktop totul încape fără derulare, chiar și cu coperta
+		const [scrollHeight, clientHeight] = await dialog.locator('.va-dialog__body').evaluate((el) => [el.scrollHeight, el.clientHeight]);
+		expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
+	}
+
 	await dialog.getByLabel(/Descriere/).fill(description);
 	await save.click();
 	await expect(page.getByText('Mapa a fost actualizată')).toBeVisible();
@@ -53,11 +69,18 @@ test('salvează descrierea mapei din fereastra de editare', async ({ page }, tes
 
 test('salvează descrierea scurtă a cursului din fereastra de editare', async ({ page }, testInfo) => {
 	const summary = `Rezumat ${testInfo.project.name} ${Date.now()}`;
-	await page.goto('/admin/courses/1');
+	// cursul-ciornă al proiectului: salvarea scrie toate setările (ex. scorul minim), deci nu atingem „Curs E2E”
+	const title = `Curs editor ${testInfo.project.name}`;
+	const courses = await page.evaluate(async (q) => {
+		const res = await fetch(`/api/admin/courses?search=${encodeURIComponent(q)}`, { headers: { Accept: 'application/json' } });
+		return res.json();
+	}, title);
+	const course = (courses.data || []).find((item) => item.title === title);
+	await page.goto(`/admin/courses/${course.id}`);
 	await page.getByRole('button', { name: 'Editează curs' }).first().click();
 	const { dialog, save } = await expectDialogShell(page, 'Editare curs');
 
-	await expect(dialog.getByLabel('Titlu curs')).toHaveValue('Curs E2E');
+	await expect(dialog.getByLabel('Titlu curs')).toHaveValue(title);
 	await dialog.getByLabel(/Descriere scurtă/).fill(summary);
 	await save.click();
 	await expect(page.getByText('Datele cursului au fost actualizate.')).toBeVisible();
