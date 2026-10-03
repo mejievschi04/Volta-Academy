@@ -40,7 +40,6 @@ export default defineConfig({
       clientFiles: [
         './src/App.jsx',
         './src/main.jsx',
-        './src/pages/DashboardPage.jsx',
         './src/pages/CoursesPage.jsx',
         './src/pages/LoginPage.jsx',
         './src/components/SplashScreen.jsx',

@@ -1823,8 +1823,8 @@ const AdminCourseBuilderPage = () => {
 														onDrop={(e) => handleLessonDropAtModuleEnd(e, null)}
 													>
 														{modules.length > 0
-															? 'Eliberă aici — mută lecția în afara modulelor'
-															: 'Eliberă aici — mută lecția la final'}
+															? 'Eliberează aici — mută lecția în afara modulelor'
+															: 'Eliberează aici — mută lecția la final'}
 													</li>
 												) : null}
 												{modules.map((moduleItem, moduleIndex) => {
@@ -1944,7 +1944,7 @@ const AdminCourseBuilderPage = () => {
 																		onDragOver={(e) => handleLessonDragOverModuleEnd(e, moduleItem)}
 																		onDrop={(e) => handleLessonDropAtModuleEnd(e, moduleItem)}
 																	>
-																		Eliberă aici — mută lecția la finalul modulului
+																		Eliberează aici — mută lecția la finalul modulului
 																	</li>
 																) : null}
 															</ul>
