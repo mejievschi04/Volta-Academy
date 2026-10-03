@@ -58,7 +58,12 @@ test('salvează descrierea mapei din fereastra de editare', async ({ page }, tes
 	}
 
 	// fila Cursuri: lista „În mapă” a rămas după încărcarea copertei (răspunsul nu conține cursurile)
+	const aspectBox = await dialog.boundingBox();
 	await dialog.getByRole('tab', { name: /Cursuri/ }).click();
+	// fereastra are mărime fixă: nu se micșorează când fila are mai puțin conținut
+	const coursesBox = await dialog.boundingBox();
+	expect(Math.round(coursesBox.height)).toBe(Math.round(aspectBox.height));
+	expect(Math.round(coursesBox.width)).toBe(Math.round(aspectBox.width));
 	await expect(dialog.getByRole('button', { name: 'Scoate Curs E2E din mapă' })).toBeVisible();
 	await expect(dialog.getByLabel('Nume')).toBeHidden();
 	await dialog.getByRole('tab', { name: 'Aspect' }).click();

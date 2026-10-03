@@ -357,6 +357,11 @@ html body .va-list__empty {
 		max-height: 92vh;
 	}
 
+	html body .va-dialog.admin-course-map-dialog {
+		width: calc(100vw - 24px);
+		height: calc(100dvh - 48px);
+	}
+
 	html body .va-dialog__header {
 		padding: 14px 16px;
 	}
@@ -413,6 +418,13 @@ html body .va-field-stack {
 }
 
 /* Fereastra mapei: fila Aspect (date | previzualizare + copertă) și fila Cursuri */
+/* Mărime fixă: nu se schimbă între file sau după cât conținut are fila (care se derulează în interior) */
+html body .va-dialog.admin-course-map-dialog {
+	width: min(1040px, calc(100vw - 32px));
+	height: min(760px, calc(100vh - 48px));
+	max-height: none;
+}
+
 html body .admin-course-map-dialog__grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -437,7 +449,7 @@ html body .va-dialog .admin-course-map-dialog__courses {
 }
 
 html body .admin-course-map-dialog__courses .va-list--scroll {
-	max-height: 340px;
+	max-height: 440px;
 }
 
 /* panoul filei neselectate (display: grid de mai sus ar anula atributul hidden) */
@@ -456,7 +468,7 @@ html body .admin-course-map-dialog__preview {
 
 /* previzualizarea la scară redusă (zoom micșorează și spațiul ocupat, nu doar desenul) */
 html body .admin-course-map-dialog__preview .course-map-folder-tile {
-	zoom: 0.66;
+	zoom: 0.74;
 	pointer-events: none;
 }
 
