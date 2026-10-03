@@ -165,7 +165,10 @@ class CourseProgressService
         $row = DB::table('course_user')
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
-            ->first(['progress_percentage', 'completed_at', 'manually_completed']);
+            ->first(array_merge(
+                ['progress_percentage', 'completed_at', 'manually_completed'],
+                SchemaCache::hasColumn('course_user', 'progress_floor') ? ['progress_floor'] : []
+            ));
 
         if ($row && SchemaCache::hasColumn('course_user', 'manually_completed') && ($row->manually_completed ?? false)) {
             return $this->courseProgressMemo[$memoKey] = 100.0;
@@ -197,6 +200,17 @@ class CourseProgressService
         $isComplete = ($totalLessons > 0 || $hasTests)
             && ($totalLessons === 0 || $completedLessons === $totalLessons)
             && $testsPassed;
+
+        // Progresul fixat la publicarea unei versiuni noi (lockProgressBeforeNewVersion): conținutul
+        // adăugat ulterior nu scade procentul, iar un curs terminat pe versiunea veche rămâne terminat.
+        $floor = $row && isset($row->progress_floor) ? (int) $row->progress_floor : null;
+        if ($floor !== null) {
+            if ($floor >= 100) {
+                $isComplete = true;
+            } elseif (! $isComplete) {
+                $progress = max($progress, (float) $floor);
+            }
+        }
         if ($isComplete) {
             $progress = 100.0;
         }
@@ -526,6 +540,16 @@ class CourseProgressService
                 ->where('course_id', $course->id)
                 ->value('manually_completed');
             if ($forced) {
+                return true;
+            }
+        }
+
+        if (SchemaCache::hasColumn('course_user', 'progress_floor')) {
+            $floor = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->value('progress_floor');
+            if ($floor !== null && (int) $floor >= 100) {
                 return true;
             }
         }
@@ -1308,6 +1332,42 @@ class CourseProgressService
                 $this->calculateCourseProgress($user, $course);
             }
         }
+    }
+
+    /**
+     * Apelată la publicare, înainte ca versiunea nouă să devină vizibilă: fixează progresul fiecărui
+     * cursant înscris, calculat pe versiunea pe care a învățat până acum (progress_floor).
+     */
+    public function lockProgressBeforeNewVersion(Course $course): void
+    {
+        if (! SchemaCache::hasColumn('course_user', 'progress_floor')) {
+            return;
+        }
+
+        $rows = DB::table('course_user')
+            ->where('course_id', $course->id)
+            ->where('enrolled', true)
+            ->get(['user_id', 'progress_floor']);
+
+        foreach (User::whereIn('id', $rows->pluck('user_id'))->get() as $user) {
+            if ($user->isLearningActivityExempt()) {
+                continue;
+            }
+            $complete = $this->isCourseComplete($user, $course);
+            $current = $complete ? 100 : (int) round($this->calculateCourseProgress($user, $course));
+            $previous = (int) ($rows->firstWhere('user_id', $user->id)->progress_floor ?? 0);
+            $floor = max($previous, $current);
+            if ($floor > 0) {
+                DB::table('course_user')
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->update(['progress_floor' => $floor]);
+            }
+            $this->forgetUserProgressCache($user, $course->id);
+        }
+        $this->courseProgressMemo = [];
+        $this->accessStatusMemo = [];
+        $this->learnerOutlineMemo = [];
     }
 
     /**

@@ -574,6 +574,10 @@ class CourseBuilderService
         }
 
         DB::transaction(function () use ($course, $actor, $teamIds, $catalogOutsideMap) {
+            // progresul cursanților pe versiunea curentă devine minimul garantat după publicare
+            if (($course->status ?? '') === 'published') {
+                app(CourseProgressService::class)->lockProgressBeforeNewVersion($course);
+            }
             $course->update(['status' => 'published', 'workflow_status' => 'published']);
             \App\Support\CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
