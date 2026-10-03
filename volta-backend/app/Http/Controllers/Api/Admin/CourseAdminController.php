@@ -13,7 +13,9 @@ use App\Support\CourseMapBuckets;
 use App\Models\ActivityLog;
 use App\Services\CourseBuilderService;
 use App\Services\UserAssignedCoursesService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Cache;
@@ -118,7 +120,7 @@ class CourseAdminController extends Controller
             
             return response()->json([
                 'error' => 'Failed to fetch courses',
-                'message' => $e->getMessage()
+                'message' => (config('app.debug') ? $e->getMessage() : null)
             ], 500);
         }
     }
@@ -381,6 +383,9 @@ class CourseAdminController extends Controller
             $course = $this->addCourseMetrics($course);
             
             return response()->json($course);
+        } catch (ModelNotFoundException|HttpExceptionInterface $e) {
+            // Curs inexistent sau al altui instructor: 404/403, nu eroare de server.
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error fetching course', [
                 'course_id' => $id,
@@ -390,7 +395,7 @@ class CourseAdminController extends Controller
             
             return response()->json([
                 'error' => 'Failed to fetch course',
-                'message' => $e->getMessage()
+                'message' => (config('app.debug') ? $e->getMessage() : null)
             ], 500);
         }
     }

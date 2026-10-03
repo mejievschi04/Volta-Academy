@@ -63,7 +63,7 @@ class ProfileController extends Controller
             ]);
             return response()->json([
                 'error' => 'Eroare la încărcarea profilului',
-                'message' => $e->getMessage()
+                'message' => (config('app.debug') ? $e->getMessage() : null)
             ], 500);
         }
     }

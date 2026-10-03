@@ -2119,7 +2119,7 @@ class AIController extends Controller
                     ]);
 
                     return response()->json([
-                        'error' => $e->getMessage(),
+                        'error' => config('app.debug') ? $e->getMessage() : 'A apărut o eroare. Încearcă din nou.',
                     ], 500);
                 }
             }

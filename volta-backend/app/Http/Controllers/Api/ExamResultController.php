@@ -906,7 +906,7 @@ class ExamResultController extends Controller
             ]);
             return response()->json([
                 'error' => 'Nu s-au putut încărca rezultatele',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }
@@ -1158,7 +1158,7 @@ class ExamResultController extends Controller
             ]);
             return response()->json([
                 'error' => 'Nu s-a putut încărca rezultatul',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }

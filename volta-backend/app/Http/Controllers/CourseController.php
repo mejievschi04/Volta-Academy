@@ -92,7 +92,7 @@ class CourseController extends Controller
             
             return response()->json([
                 'error' => 'Nu s-au putut încărca cursurile',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }
@@ -336,7 +336,7 @@ class CourseController extends Controller
 
             return response()->json([
                 'error' => 'Nu s-a putut încărca cursul',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }
@@ -394,7 +394,7 @@ class CourseController extends Controller
 
             return response()->json([
                 'error' => 'Nu s-au putut încărca cursurile',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }

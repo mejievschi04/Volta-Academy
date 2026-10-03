@@ -1837,7 +1837,7 @@ class ExamController extends Controller
             
             return response()->json([
                 'error' => 'Eroare la trimiterea testului',
-                'message' => $e->getMessage(),
+                'message' => (config('app.debug') ? $e->getMessage() : null),
             ], 500);
         }
     }

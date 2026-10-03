@@ -225,7 +225,7 @@ class AuthController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
-                'error' => 'Eroare la verificarea autentificării: ' . $e->getMessage()
+                'error' => 'Eroare la verificarea autentificării.' . (config('app.debug') ? ' ' . $e->getMessage() : '')
             ], 500);
         }
     }

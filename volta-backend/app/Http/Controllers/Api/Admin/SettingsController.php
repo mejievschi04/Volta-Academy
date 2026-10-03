@@ -150,7 +150,7 @@ class SettingsController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Eroare la ștergerea cache-ului: ' . $e->getMessage(),
+                'message' => 'Eroare la ștergerea cache-ului.' . (config('app.debug') ? ' ' . $e->getMessage() : ''),
             ], 500);
         }
     }
@@ -348,7 +348,7 @@ class SettingsController extends Controller
             DB::rollBack();
             \Illuminate\Database\Eloquent\Model::reguard();
             return response()->json([
-                'message' => 'Eroare la importarea backup-ului: ' . $e->getMessage(),
+                'message' => 'Eroare la importarea backup-ului.' . (config('app.debug') ? ' ' . $e->getMessage() : ''),
             ], 500);
         }
     }

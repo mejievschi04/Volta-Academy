@@ -420,7 +420,7 @@ class QuestionBankAdminController extends Controller
                 'error' => $e->getMessage(),
             ]);
             return response()->json([
-                'error' => 'Eroare la generarea draftului Volt: ' . ($e->getMessage() ?: 'Problema Volt'),
+                'error' => 'Eroare la generarea draftului Volt: ' . ((config('app.debug') ? $e->getMessage() : null) ?: 'Problema Volt'),
             ], 500);
         }
 
