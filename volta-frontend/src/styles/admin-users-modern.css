@@ -223,7 +223,7 @@
 	height: 40px;
 	border-radius: var(--radius-full);
 	background-color: var(--color-primary);
-	color: var(--text-primary); /* Gri închis pentru inițiale */
+	color: var(--btn-primary-text); /* text închis pe galben, în ambele teme */
 	display: flex;
 	align-items: center;
 	justify-content: center;

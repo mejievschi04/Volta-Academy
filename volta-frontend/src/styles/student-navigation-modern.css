@@ -313,7 +313,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 
 .va-shell-topnav .admin-topnav-user-role {
 	font-size: var(--font-size-xs);
-	color: var(--text-tertiary);
+	color: var(--text-secondary);
 	margin: 0;
 }
 

@@ -122,6 +122,26 @@
 	border: 1px solid;
 }
 
+.admin-course-status-badge.is-published {
+	color: #047857;
+	background: rgba(16, 185, 129, 0.12);
+	border-color: rgba(16, 185, 129, 0.45);
+}
+
+.admin-course-status-badge.is-draft {
+	color: #92400e;
+	background: rgba(245, 158, 11, 0.14);
+	border-color: rgba(245, 158, 11, 0.5);
+}
+
+html[data-theme="dark"] .admin-course-status-badge.is-published {
+	color: #6ee7b7;
+}
+
+html[data-theme="dark"] .admin-course-status-badge.is-draft {
+	color: #fcd34d;
+}
+
 .admin-course-overview-actions {
 	display: flex;
 	gap: var(--space-3);

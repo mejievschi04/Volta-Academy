@@ -5,13 +5,12 @@ const iconProps = { size: 18, weight: 'bold', 'aria-hidden': true };
 
 const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCourseEdit = false }) => {
 
-	const getStatusBadge = (status) => {
-		const badges = {
-			published: { label: 'Publicat', color: '#09A86B', bg: 'rgba(9, 168, 107, 0.1)' },
-			draft: { label: 'Ciornă', color: '#9FE22F', bg: 'rgba(159, 226, 47, 0.1)' },
-		};
-		return badges[status] || badges.draft;
-	};
+	// Culorile stau în CSS (admin-course-detail-modern.css), cu variante pentru tema luminoasă și întunecată.
+	const getStatusBadge = (status) => (
+		status === 'published'
+			? { label: 'Publicat', tone: 'is-published' }
+			: { label: 'Ciornă', tone: 'is-draft' }
+	);
 
 	const statusBadge = getStatusBadge(course.status);
 
@@ -20,14 +19,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 			<div className="admin-course-overview-header">
 				<div className="admin-course-overview-title">
 					<h2>Prezentare curs</h2>
-					<div
-						className="admin-course-status-badge"
-						style={{
-							backgroundColor: statusBadge.bg,
-							color: statusBadge.color,
-							borderColor: statusBadge.color,
-						}}
-					>
+					<div className={`admin-course-status-badge ${statusBadge.tone}`}>
 						{statusBadge.label}
 					</div>
 				</div>
