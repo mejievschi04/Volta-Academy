@@ -9,6 +9,7 @@ import AdminQuestionBanksPage from './AdminQuestionBanksPage';
 import AdminExamsPage from './AdminExamsPage';
 import AdminTestsPage from './AdminTestsPage';
 import AdminManualReviewPage from './AdminManualReviewPage';
+import AdminMediaLibraryPage from './AdminMediaLibraryPage';
 
 const AdminContentPage = () => {
 	const { user, canMutateInAdminArea } = useAuth();
@@ -23,7 +24,7 @@ const AdminContentPage = () => {
 			? 'list'
 			: 'maps';
 	const shouldOpenNewMap = searchParams.get('new') === '1';
-	const activeTab = ['courses', 'tests', 'banks', 'exams', 'manual-review'].includes(tab) ? tab : 'courses';
+	const activeTab = ['courses', 'tests', 'banks', 'exams', 'manual-review', 'media'].includes(tab) ? tab : 'courses';
 	const showCourseMaps = activeTab === 'courses' && view === 'maps';
 
 	useEffect(() => {
@@ -63,6 +64,7 @@ const AdminContentPage = () => {
 				{activeTab === 'exams' && <AdminExamsPage />}
 				{activeTab === 'manual-review' && <AdminManualReviewPage />}
 				{activeTab === 'banks' && <AdminQuestionBanksPage embedded />}
+				{activeTab === 'media' && <AdminMediaLibraryPage />}
 			</div>
 		</div>
 	);

@@ -78,17 +78,14 @@ class MediaAdminController extends Controller
             abort(403, 'Acces interzis. Poți șterge doar fișierele încărcate de tine.');
         }
 
+        // Un fișier folosit într-o lecție nu se șterge (ar rămâne imagini/PDF-uri rupte în conținut).
         $usages = $this->findMediaUsages($asset);
-        if (count($usages) > 0 && ! $request->boolean('force')) {
+        if (count($usages) > 0) {
             return response()->json([
-                'message' => 'Fișierul este folosit în conținut. Elimină referințele sau trimite force=1.',
+                'message' => 'Fișierul este folosit în lecții. Scoate-l mai întâi din conținutul lor.',
                 'in_use' => true,
                 'usages' => $usages,
             ], 409);
-        }
-
-        if (count($usages) > 0 && $request->boolean('force')) {
-            $this->scrubMediaUsages($asset, $usages);
         }
 
         if ($asset->path) {
@@ -98,16 +95,20 @@ class MediaAdminController extends Controller
         $asset->delete();
 
         return response()->json([
-            'message' => 'Media deleted',
+            'message' => 'Fișierul a fost șters.',
         ]);
     }
 
     private function findMediaUsages(MediaAsset $asset): array
     {
+        // Imaginile sunt referite prin cale (/storage/…), PDF-urile prin adrese cu id-ul fișierului
+        // (/api/builder-media/{curs}/{id}?token=… sau …/builder/media/{id}/file).
         $needles = array_values(array_filter([
             $asset->path,
             $asset->filename,
             $asset->getUrlAttribute(),
+            $asset->course_id ? "/builder-media/{$asset->course_id}/{$asset->id}" : null,
+            "/builder/media/{$asset->id}/file",
         ]));
         if ($needles === []) {
             return [];
@@ -149,53 +150,6 @@ class MediaAdminController extends Controller
         }
 
         return $usages;
-    }
-
-    private function scrubMediaUsages(MediaAsset $asset, array $usages): void
-    {
-        $needles = array_values(array_filter([
-            $asset->path,
-            $asset->filename,
-            $asset->getUrlAttribute(),
-        ]));
-        if ($needles === []) {
-            return;
-        }
-
-        foreach ($usages as $usage) {
-            if (($usage['type'] ?? '') === 'content_block') {
-                $block = ContentBlock::find($usage['id'] ?? 0);
-                if (! $block) {
-                    continue;
-                }
-                $block->source = is_string($block->source) ? str_replace($needles, '', $block->source) : $block->source;
-                $block->payload = $this->scrubNeedles($block->payload, $needles);
-                $block->save();
-                continue;
-            }
-
-            if (($usage['type'] ?? '') === 'lesson') {
-                $lesson = Lesson::find($usage['id'] ?? 0);
-                if (! $lesson) {
-                    continue;
-                }
-                $lesson->content = is_string($lesson->content) ? str_replace($needles, '', $lesson->content) : $lesson->content;
-                $lesson->video_url = is_string($lesson->video_url) ? str_replace($needles, '', $lesson->video_url) : $lesson->video_url;
-                $lesson->save();
-            }
-        }
-    }
-
-    private function scrubNeedles(mixed $value, array $needles): mixed
-    {
-        if (is_string($value)) {
-            return str_replace($needles, '', $value);
-        }
-        if (is_array($value)) {
-            return array_map(fn ($item) => $this->scrubNeedles($item, $needles), $value);
-        }
-
-        return $value;
     }
 }
 

@@ -867,6 +867,16 @@ export const adminService = {
     return response.data;
   },
   /** Șterge folderul (soft delete). 422 dacă e folosit de un test. */
+  /** Biblioteca media: fișierele încărcate din builder (instructorii le văd doar pe ale lor). */
+  getMediaAssets: async (params = {}) => {
+    const response = await api.get('/admin/media', { params });
+    return response.data;
+  },
+  /** 409 dacă fișierul e folosit într-o lecție (răspunsul conține `usages`). */
+  deleteMediaAsset: async (id) => {
+    const response = await api.delete(`/admin/media/${id}`);
+    return response.data;
+  },
   deleteQuestionBank: async (id) => {
     const response = await api.delete(`/admin/question-banks/${id}`);
     return response.data;

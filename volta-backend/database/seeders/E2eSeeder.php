@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Course;
 use App\Models\CourseTest;
 use App\Models\Lesson;
+use App\Models\MediaAsset;
 use App\Models\Module;
 use App\Models\Question;
 use App\Models\QuestionBank;
@@ -139,6 +140,30 @@ class E2eSeeder extends Seeder
                     'content' => "{$content} ({$project})",
                     'order' => $order,
                 ]);
+            }
+        }
+
+        // Fișiere media pentru fiecare proiect: unul nefolosit (se poate șterge) și unul inserat în
+        // lecția 3 ca PDF (adresă cu id-ul fișierului), deci ștergerea lui trebuie refuzată.
+        $lessonWithPdf = Lesson::where('course_id', $course->id)->where('order', 3)->first();
+        foreach (['desktop', 'mobile'] as $project) {
+            foreach (['nefolosit', 'folosit'] as $kind) {
+                $asset = MediaAsset::create([
+                    'course_id' => $course->id,
+                    'uploaded_by_user_id' => $admin->id,
+                    'disk' => 'public',
+                    'type' => 'document',
+                    'path' => "content-blocks/document/e2e-{$kind}-{$project}.pdf",
+                    'filename' => "{$kind}-{$project}.pdf",
+                    'mime_type' => 'application/pdf',
+                    'size' => 2048,
+                ]);
+                if ($kind === 'folosit' && $lessonWithPdf) {
+                    Lesson::withoutEvents(fn () => $lessonWithPdf->update([
+                        'content' => $lessonWithPdf->content . "<p><a href=\"/api/builder-media/{$course->id}/{$asset->id}\">PDF {$project}</a></p>",
+                    ]));
+                    $lessonWithPdf->refresh();
+                }
             }
         }
 

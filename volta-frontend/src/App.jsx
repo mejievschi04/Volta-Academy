@@ -702,6 +702,7 @@ function AuthenticatedLayout({ children, authContext }) {
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
 						{ path: '/admin/content', search: '?tab=manual-review', label: 'De corectat', badge: pendingReviewCount },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
+						{ path: '/admin/content', search: '?tab=media', label: 'Fișiere media' },
 					]
 					: [
 						{ path: '/admin/content', search: '?tab=courses&view=list', label: 'Toate cursurile' },
@@ -710,6 +711,7 @@ function AuthenticatedLayout({ children, authContext }) {
 						{ path: '/admin/content', search: '?tab=exams', label: 'Examene' },
 						{ path: '/admin/content', search: '?tab=manual-review', label: 'De corectat', badge: pendingReviewCount },
 						{ path: '/admin/content', search: '?tab=banks', label: 'Întrebări' },
+						{ path: '/admin/content', search: '?tab=media', label: 'Fișiere media' },
 					],
 		},
 		{
