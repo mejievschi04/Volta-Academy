@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Course, CourseTest, Lesson, Module, Question, Setting, Test, TestResult, User};
+use App\Models\{Course, CourseTest, Lesson, Module, Question, Test, TestResult, User};
 use App\Services\LmsBackupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -53,20 +53,6 @@ class GeneralIntegrityTest extends TestCase
         $this->actingAs($admin, 'sanctum')->putJson("/api/admin/lessons/{$lesson->id}", ['video_url' => null])->assertOk();
         $this->assertNull($lesson->fresh()->video_url);
     }
-
-    public function test_legacy_register_respects_disabled_registration_and_approval(): void
-    {
-        Setting::set('registration_enabled', '0', 'boolean');
-        $this->from('/register')->post('/register', [
-            'name' => 'Audit',
-            'email' => 'legacy-audit@example.com',
-            'password' => 'abcdef',
-            'password_confirmation' => 'abcdef',
-        ])->assertRedirect('/register');
-        $this->assertDatabaseMissing('users', ['email' => 'legacy-audit@example.com']);
-        $this->assertGuest('web');
-    }
-
     public function test_two_avatar_uploads_in_same_second_keep_current_file(): void
     {
         Storage::fake('public');

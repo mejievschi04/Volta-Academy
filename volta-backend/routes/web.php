@@ -1,6 +1,4 @@
 <?php
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
 
 // Serve storage files (fallback when symlink doesn't work, e.g. on Windows)
 Route::get('/storage/{path}', function (string $path) {
@@ -23,14 +21,4 @@ Route::get('/storage/{path}', function (string $path) {
     return response()->file($realPath);
 })->where('path', '.*');
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
-
-Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::get('/courses/{id}', [DashboardController::class, 'showCourse']);
-});
+// Interfața (login, cursuri, admin) e aplicația React separată; backend-ul servește doar /api și /storage.

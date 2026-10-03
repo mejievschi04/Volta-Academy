@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('volta:remind-invitation-expiry')->hourly();
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        // Nu există pagini web de login pe backend: vizitatorul neautentificat care deschide o rută
+        // protejată în browser ajunge la login-ul aplicației; cererile API primesc 401 (JSON).
+        $middleware->redirectGuestsTo(fn (\Illuminate\Http\Request $request) => $request->expectsJson()
+            ? null
+            : config('volta.frontend_url') . '/login');
         $middleware->alias([
             'account.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
         ]);
