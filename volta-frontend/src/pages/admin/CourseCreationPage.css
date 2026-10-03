@@ -1,9 +1,19 @@
 /* Pagina creare curs – wizard simplu */
 
-.course-creation-simple-page {
+/*
+ * .admin-container (CSS-ul de admin, încărcat asincron) are aceeași specificitate: cine se încărca
+ * ultimul câștiga, iar pagina ieșea uneori lată de 1400px. Cu ambele clase, pagina câștigă mereu.
+ */
+.admin-container.course-creation-simple-page {
 	max-width: 640px;
 	margin: 0 auto;
 	padding: var(--space-6);
+}
+
+@media (max-width: 768px) {
+	.admin-container.course-creation-simple-page {
+		padding: var(--space-4);
+	}
 }
 
 .course-creation-simple-card {
