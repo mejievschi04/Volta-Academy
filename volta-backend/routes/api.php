@@ -33,7 +33,7 @@ Route::get('/health', function () {
     try {
         DB::connection()->getPdo();
     } catch (\Throwable $e) {
-        $expose = config('app.debug') || filter_var(env('VOLTA_EXPOSE_API_ERRORS', false), FILTER_VALIDATE_BOOLEAN);
+        $expose = config('app.debug') || config('app.expose_api_errors');
         return response()->json([
             'ok' => false,
             'database' => 'error',

@@ -103,9 +103,9 @@ class AIController extends Controller
             'mixtral-8x7b-32768',
         ];
 
-        $primary = trim((string) env('GROQ_CREATOR_MODEL', env('GROQ_MODEL', 'llama-3.1-8b-instant')));
-        $quality = trim((string) env('GROQ_CREATOR_QUALITY_MODEL', ''));
-        $fallbackRaw = (string) env('GROQ_FALLBACK_MODELS', '');
+        $primary = trim((string) (config('ai.groq.creator_model') ?: config('ai.groq.model', 'llama-3.1-8b-instant')));
+        $quality = trim((string) config('ai.groq.creator_quality_model', ''));
+        $fallbackRaw = (string) config('ai.groq.fallback_models', '');
         $fallbackList = array_map('trim', explode(',', $fallbackRaw));
 
         foreach (array_merge([$primary, $quality], $fallbackList) as $candidate) {
@@ -130,7 +130,7 @@ class AIController extends Controller
 
     private function getMinLessonLines(): int
     {
-        return max(1, (int) env('AI_MIN_LESSON_LINES', self::DEFAULT_MIN_LESSON_LINES));
+        return max(1, (int) (config('ai.min_lesson_lines') ?? self::DEFAULT_MIN_LESSON_LINES));
     }
     
     /**
@@ -452,15 +452,15 @@ class AIController extends Controller
         // Generarea ghidată face mai multe request-uri + backoff la rate limit; poate depăși 30s.
         @set_time_limit(0);
         $useHighQualityCreatorModel = $this->shouldUseHighQualityCreatorModel($messages, $mode);
-        $defaultTimeout = max(30, (int) env('AI_REQUEST_TIMEOUT', 180));
-        $guidedTimeoutRaw = (int) env('AI_GUIDED_CREATION_TIMEOUT', 0);
+        $defaultTimeout = max(30, (int) config('ai.timeouts.request', 180));
+        $guidedTimeoutRaw = (int) config('ai.timeouts.guided_creation', 0);
         $timeout = $guidedTimeoutRaw <= 0 ? $defaultTimeout : max($defaultTimeout, $guidedTimeoutRaw);
-        $connectTimeout = max(5, (int) env('AI_CONNECT_TIMEOUT', 15));
+        $connectTimeout = max(5, (int) config('ai.timeouts.connect', 15));
         // Full guided courses need large JSON (2+ modules, 2+ lessons each, long HTML per lesson).
         // Defaults around 1100–1200 truncate output → invalid JSON or validation failure.
         // Plafon dur 8192: multe modele Groq (ex. llama-4-scout) resping max_tokens > 8192 (HTTP 400),
         // iar pe tier-ul gratuit max_tokens + input trebuie să încapă în limita TPM a modelului.
-        $maxTokens = max(700, min(8192, (int) env('AI_GUIDED_MAX_TOKENS', 8192)));
+        $maxTokens = max(700, min(8192, (int) config('ai.max_tokens.guided', 8192)));
         if ($maxTokens < 4000) {
             Log::warning("{$providerName} guided course: AI_GUIDED_MAX_TOKENS is low; increase toward 8192 if courses fail to save", [
                 'max_tokens' => $maxTokens,
@@ -469,14 +469,14 @@ class AIController extends Controller
 
         $effectiveModel = $this->model;
         if ($this->provider === 'groq') {
-            $effectiveModel = env('GROQ_CREATOR_MODEL', $effectiveModel);
+            $effectiveModel = (config('ai.groq.creator_model') ?: $effectiveModel);
             if ($useHighQualityCreatorModel) {
-                $effectiveModel = env('GROQ_CREATOR_QUALITY_MODEL', $effectiveModel);
+                $effectiveModel = (config('ai.groq.creator_quality_model') ?: $effectiveModel);
             }
         } elseif ($this->provider === 'openai') {
-            $effectiveModel = env('OPENAI_CREATOR_MODEL', $effectiveModel);
+            $effectiveModel = (config('ai.openai.creator_model') ?: $effectiveModel);
             if ($useHighQualityCreatorModel) {
-                $effectiveModel = env('OPENAI_CREATOR_QUALITY_MODEL', $effectiveModel);
+                $effectiveModel = (config('ai.openai.creator_quality_model') ?: $effectiveModel);
             }
         }
 
@@ -525,7 +525,7 @@ class AIController extends Controller
                         ->timeout($timeout)
                         ->connectTimeout($connectTimeout)
                         ->withOptions([
-                            'verify' => filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
+                            'verify' => (bool) config('ai.verify_ssl', true),
                         ])
                         ->post("{$this->apiUrl}/chat/completions", $payload);
 
@@ -2072,8 +2072,8 @@ class AIController extends Controller
             // Pe tier-ul gratuit (ex. Groq) generarea poate atinge limita de tokeni/minut.
             // Reîncercăm automat cu backoff în loc să cerem utilizatorului să apese din nou.
             @set_time_limit(0);
-            $maxRateLimitRetries = max(0, (int) env('AI_GUIDED_RATE_LIMIT_RETRIES', 2));
-            $maxBackoffSeconds = max(5, (int) env('AI_GUIDED_RATE_LIMIT_MAX_BACKOFF', 15));
+            $maxRateLimitRetries = max(0, (int) config('ai.guided_rate_limit.retries', 2));
+            $maxBackoffSeconds = max(5, (int) config('ai.guided_rate_limit.max_backoff', 15));
             $rateLimitAttempt = 0;
 
             while (true) {
@@ -2147,7 +2147,7 @@ class AIController extends Controller
             $builderDiffMode = str_contains((string) $mode, 'builder_diff');
             // Reset model index pentru fiecare request nou (doar pentru Groq)
             if ($this->provider === 'groq') {
-                $envModel = env('GROQ_MODEL');
+                $envModel = config('ai.groq.model');
                 if ($envModel) {
                     $this->currentModelIndex = array_search($envModel, $this->groqModelFallbackChain);
                     if ($this->currentModelIndex === false) {
@@ -2440,34 +2440,34 @@ class AIController extends Controller
             $isBuilderDiff = str_contains((string) $mode, 'builder_diff');
             $isTutorMode = str_starts_with((string) $mode, 'admin_tutor') || str_starts_with((string) $mode, 'student_tutor') || $type === 'tutor';
             $isAdminTutor = str_starts_with((string) $mode, 'admin_tutor');
-            $adminTutorMaxTokens = max(400, (int) env('AI_ADMIN_TUTOR_MAX_TOKENS', 900));
+            $adminTutorMaxTokens = max(400, (int) config('ai.max_tokens.admin_tutor', 900));
             $useHighQualityCreatorModel = $this->shouldUseHighQualityCreatorModel($messages, (string) $mode);
-            $defaultTimeout = max(30, (int) env('AI_REQUEST_TIMEOUT', 180));
-            $guidedTimeoutRaw = (int) env('AI_GUIDED_CREATION_TIMEOUT', 0);
+            $defaultTimeout = max(30, (int) config('ai.timeouts.request', 180));
+            $guidedTimeoutRaw = (int) config('ai.timeouts.guided_creation', 0);
             // 0 => no timeout for guided course creation (can run longer on local Ollama).
             $guidedTimeout = $guidedTimeoutRaw <= 0 ? 0 : max($defaultTimeout, $guidedTimeoutRaw);
-            $tutorTimeout = max(30, (int) env('AI_TUTOR_TIMEOUT', 120));
-            $connectTimeout = max(5, (int) env('AI_CONNECT_TIMEOUT', 15));
+            $tutorTimeout = max(30, (int) config('ai.timeouts.tutor', 120));
+            $connectTimeout = max(5, (int) config('ai.timeouts.connect', 15));
             $effectiveTimeout = $isGuidedCreation ? $guidedTimeout : ($isTutorMode ? $tutorTimeout : $defaultTimeout);
-            $guidedMaxTokens = max(500, (int) env('AI_GUIDED_MAX_TOKENS', 8192));
+            $guidedMaxTokens = max(500, (int) config('ai.max_tokens.guided', 8192));
             $effectiveModel = $this->model;
             if ($isGuidedCreation || $isBuilderDiff) {
                 if ($this->provider === 'groq') {
-                    $effectiveModel = env('GROQ_CREATOR_MODEL', $effectiveModel);
+                    $effectiveModel = (config('ai.groq.creator_model') ?: $effectiveModel);
                     if ($useHighQualityCreatorModel) {
-                        $effectiveModel = env('GROQ_CREATOR_QUALITY_MODEL', $effectiveModel);
+                        $effectiveModel = (config('ai.groq.creator_quality_model') ?: $effectiveModel);
                     }
                 } elseif ($this->provider === 'openai') {
-                    $effectiveModel = env('OPENAI_CREATOR_MODEL', $effectiveModel);
+                    $effectiveModel = (config('ai.openai.creator_model') ?: $effectiveModel);
                     if ($useHighQualityCreatorModel) {
-                        $effectiveModel = env('OPENAI_CREATOR_QUALITY_MODEL', $effectiveModel);
+                        $effectiveModel = (config('ai.openai.creator_quality_model') ?: $effectiveModel);
                     }
                 }
             } elseif ($isTutorMode) {
                 if ($this->provider === 'groq') {
-                    $effectiveModel = env('GROQ_CREATOR_MODEL', $effectiveModel);
+                    $effectiveModel = (config('ai.groq.creator_model') ?: $effectiveModel);
                 } elseif ($this->provider === 'openai') {
-                    $effectiveModel = env('OPENAI_CREATOR_MODEL', $effectiveModel);
+                    $effectiveModel = (config('ai.openai.creator_model') ?: $effectiveModel);
                 }
             }
 
@@ -2482,7 +2482,7 @@ class AIController extends Controller
                 'max_tokens' => $isGuidedCreation
                     ? $guidedMaxTokens
                     : ($isBuilderDiff
-                        ? max(2000, (int) env('AI_BUILDER_DIFF_MAX_TOKENS', 6000))
+                        ? max(2000, (int) config('ai.max_tokens.builder_diff', 6000))
                         : ($isTutorMode
                             ? (str_contains((string) $mode, ':ultra_short')
                                 ? 180
@@ -2514,7 +2514,7 @@ class AIController extends Controller
             }
             curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-            $verify = filter_var(env('AI_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN);
+            $verify = (bool) config('ai.verify_ssl', true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verify);
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
             curl_setopt($ch, CURLOPT_TIMEOUT, $effectiveTimeout);
@@ -2701,7 +2701,8 @@ class AIController extends Controller
                 $url = "{$this->hfApiUrl}/v1/chat/completions";
                 
                 $response = Http::withOptions([
-                    'verify' => env('APP_ENV') === 'production', // Verify SSL only in production
+                    // Verificare SSL ca la celelalte apeluri AI (AI_VERIFY_SSL)
+                    'verify' => (bool) config('ai.verify_ssl', true),
                 ])->withHeaders([
                     'Authorization' => "Bearer {$this->hfApiKey}",
                     'Content-Type' => 'application/json',
@@ -2735,7 +2736,8 @@ class AIController extends Controller
                 ]);
 
                 $response = Http::withOptions([
-                    'verify' => env('APP_ENV') === 'production', // Verify SSL only in production
+                    // Verificare SSL ca la celelalte apeluri AI (AI_VERIFY_SSL)
+                    'verify' => (bool) config('ai.verify_ssl', true),
                 ])->withHeaders([
                     'Authorization' => "Bearer {$this->hfApiKey}",
                     'Content-Type' => 'application/json',

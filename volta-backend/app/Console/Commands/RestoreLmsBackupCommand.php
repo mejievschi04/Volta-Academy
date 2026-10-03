@@ -19,7 +19,7 @@ class RestoreLmsBackupCommand extends Command
             return self::FAILURE;
         }
 
-        if (app()->environment('production') && ! filter_var(env('ALLOW_LMS_BACKUP_RESTORE', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (app()->environment('production') && ! config('app.allow_lms_backup_restore')) {
             $this->error('Restaurarea în producție cere ALLOW_LMS_BACKUP_RESTORE=true.');
 
             return self::FAILURE;
