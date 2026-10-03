@@ -161,14 +161,14 @@ class QuestionBankAdminController extends Controller
         // Check if bank is used in any tests
         if ($bank->tests()->count() > 0) {
             return response()->json([
-                'error' => 'Cannot delete question bank that is used in tests',
+                'error' => 'Folderul este folosit într-un test și nu poate fi șters.',
             ], 422);
         }
 
         $bank->delete();
 
         return response()->json([
-            'message' => 'Question bank deleted successfully',
+            'message' => 'Folderul a fost șters.',
         ]);
     }
 

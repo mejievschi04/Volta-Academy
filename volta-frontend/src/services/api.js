@@ -866,6 +866,19 @@ export const adminService = {
     const response = await api.put(`/admin/question-banks/${id}`, bankData);
     return response.data;
   },
+  /** Șterge folderul (soft delete). 422 dacă e folosit de un test. */
+  deleteQuestionBank: async (id) => {
+    const response = await api.delete(`/admin/question-banks/${id}`);
+    return response.data;
+  },
+  /** Mută întrebările selectate în alt folder. */
+  moveQuestionsToBank: async (questionIds, targetBankId) => {
+    const response = await api.post('/admin/questions/bulk-move', {
+      question_ids: questionIds,
+      target_bank_id: targetBankId,
+    });
+    return response.data;
+  },
   
   getQuestionBankQuestions: async (bankId) => {
     const response = await api.get(`/admin/question-banks/${bankId}/questions`);

@@ -7,6 +7,7 @@ use App\Models\CourseTest;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Question;
+use App\Models\QuestionBank;
 use App\Models\Test;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -113,6 +114,21 @@ class E2eSeeder extends Seeder
             'passing_score' => 50,
             'order' => 0,
         ]);
+
+        // Foldere de întrebări pentru fiecare proiect (testele le mută/șterg).
+        foreach (['desktop', 'mobile'] as $project) {
+            $source = QuestionBank::create(['title' => "Folder sursă {$project}", 'status' => 'published', 'created_by' => $admin->id]);
+            QuestionBank::create(['title' => "Folder țintă {$project}", 'status' => 'published', 'created_by' => $admin->id]);
+            QuestionBank::create(['title' => "Folder de șters {$project}", 'status' => 'published', 'created_by' => $admin->id]);
+            foreach (['Prima întrebare din folder', 'A doua întrebare din folder'] as $order => $content) {
+                Question::factory()->create([
+                    'test_id' => null,
+                    'question_bank_id' => $source->id,
+                    'content' => "{$content} ({$project})",
+                    'order' => $order,
+                ]);
+            }
+        }
 
         // Cursanții văd doar cursurile atribuite.
         foreach ($students as $student) {

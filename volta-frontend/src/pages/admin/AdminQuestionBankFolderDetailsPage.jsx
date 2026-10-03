@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckSquare,
   Edit3,
+  FolderInput,
   ListChecks,
   Plus,
   RefreshCcw,
@@ -45,6 +46,7 @@ const normalizeSearch = (value = '') => stripHtml(value).toLowerCase();
 
 const AdminQuestionBankFolderDetailsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { canMutateInAdminArea } = useAuth();
   const readOnly = !canMutateInAdminArea;
   const { success, error, showToast } = useToast();
@@ -75,6 +77,13 @@ const AdminQuestionBankFolderDetailsPage = () => {
   });
   const [deleteConfirmQuestionId, setDeleteConfirmQuestionId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [deleteFolderLoading, setDeleteFolderLoading] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveFolders, setMoveFolders] = useState([]);
+  const [moveFoldersLoading, setMoveFoldersLoading] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState('');
+  const [moveLoading, setMoveLoading] = useState(false);
   const [questionDraft, setQuestionDraft] = useState({
     id: null,
     type: 'single_choice',
@@ -233,6 +242,57 @@ const AdminQuestionBankFolderDetailsPage = () => {
       error('Nu am putut șterge întrebarea.');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const openMoveModal = async () => {
+    if (!selectedIds.length) return;
+    setMoveOpen(true);
+    setMoveTargetId('');
+    setMoveFoldersLoading(true);
+    try {
+      const banks = await adminService.getQuestionBanks();
+      setMoveFolders(banks.filter((bank) => String(bank.id) !== String(id)));
+    } catch {
+      setMoveFolders([]);
+      error('Nu am putut încărca folderele.');
+    } finally {
+      setMoveFoldersLoading(false);
+    }
+  };
+
+  const runMove = async () => {
+    if (!moveTargetId || !selectedIds.length) return;
+    setMoveLoading(true);
+    try {
+      const result = await adminService.moveQuestionsToBank(selectedIds, Number(moveTargetId));
+      const target = moveFolders.find((bank) => String(bank.id) === String(moveTargetId));
+      success(`${result?.moved ?? selectedIds.length} întrebări mutate în „${target?.title || 'folderul ales'}”.`);
+      if (drawerQuestion && selectedIds.includes(drawerQuestion.id)) {
+        setDrawerQuestion(null);
+      }
+      setSelectedIds([]);
+      setMoveOpen(false);
+      await loadData();
+    } catch (e) {
+      error(e?.response?.data?.error || e?.response?.data?.message || 'Nu am putut muta întrebările.');
+    } finally {
+      setMoveLoading(false);
+    }
+  };
+
+  const confirmDeleteFolder = async () => {
+    setDeleteFolderLoading(true);
+    try {
+      await adminService.deleteQuestionBank(id);
+      success('Folderul a fost șters.');
+      navigate('/admin/question-banks');
+    } catch (e) {
+      // ex. 422: folderul e folosit de un test
+      error(e?.response?.data?.error || 'Nu am putut șterge folderul.');
+      setDeleteFolderOpen(false);
+    } finally {
+      setDeleteFolderLoading(false);
     }
   };
 
@@ -425,6 +485,14 @@ const AdminQuestionBankFolderDetailsPage = () => {
                 <Sparkles size={17} aria-hidden />
                 Generează cu Volt
               </button>
+              <button
+                type="button"
+                className="lms-btn-secondary va-btn-delete va-btn-danger qb-action-button"
+                onClick={() => setDeleteFolderOpen(true)}
+              >
+                <Trash2 size={17} aria-hidden />
+                Șterge folderul
+              </button>
             </div>
           ) : null}
         </header>
@@ -519,6 +587,15 @@ const AdminQuestionBankFolderDetailsPage = () => {
                   onClick={() => setSelectedIds([])}
                 >
                   Golește
+                </button>
+                <button
+                  type="button"
+                  className="lms-btn-secondary qb-action-button"
+                  disabled={!selectedIds.length}
+                  onClick={openMoveModal}
+                >
+                  <FolderInput size={16} aria-hidden />
+                  Mută în alt folder
                 </button>
                 <button
                   type="button"
@@ -627,6 +704,52 @@ const AdminQuestionBankFolderDetailsPage = () => {
         cancelLabel="Anulare"
         variant="danger"
         loading={deleteLoading}
+      />
+
+      <Modal isOpen={moveOpen && !readOnly} onClose={() => !moveLoading && setMoveOpen(false)}>
+        <div className="qb-modal">
+          <h3>Mută {selectedIds.length} {selectedIds.length === 1 ? 'întrebare' : 'întrebări'}</h3>
+          <label htmlFor="qb-move-target">Folderul în care le muți</label>
+          {moveFoldersLoading ? (
+            <p className="qb-empty-hint">Se încarcă folderele...</p>
+          ) : moveFolders.length ? (
+            <select
+              id="qb-move-target"
+              className="admin-form-input"
+              value={moveTargetId}
+              onChange={(e) => setMoveTargetId(e.target.value)}
+            >
+              <option value="">Alege folderul</option>
+              {moveFolders.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.title || 'Folder fără nume'}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="qb-empty-hint">Nu există alt folder. Creează mai întâi un folder nou.</p>
+          )}
+          <div className="qb-modal-actions">
+            <button type="button" className="lms-btn-secondary" onClick={() => setMoveOpen(false)} disabled={moveLoading}>
+              Anulează
+            </button>
+            <button type="button" className="lms-btn-primary" onClick={runMove} disabled={!moveTargetId || moveLoading}>
+              {moveLoading ? 'Se mută...' : 'Mută'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmModal
+        open={deleteFolderOpen}
+        onClose={() => !deleteFolderLoading && setDeleteFolderOpen(false)}
+        onConfirm={confirmDeleteFolder}
+        title="Șterge folderul"
+        message={`Folderul „${folder?.title || ''}” și cele ${questions.length} întrebări din el nu vor mai apărea în aplicație. Un folder folosit într-un test nu poate fi șters.`}
+        confirmLabel="Șterge folderul"
+        cancelLabel="Anulare"
+        variant="danger"
+        loading={deleteFolderLoading}
       />
 
       <AIGenerateQuestionsModal
