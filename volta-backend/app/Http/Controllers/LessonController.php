@@ -18,7 +18,7 @@ class LessonController extends Controller
     // We use modules now, which are managed through ModuleAdminController
 
     // Note: complete method removed - lessons table no longer exists
-    // Course completion is now handled through quiz passing in QuizController
+    // Course completion is computed by CourseProgressService (lessons + required tests)
 
     public function getProgress($courseId, $userId = null)
     {

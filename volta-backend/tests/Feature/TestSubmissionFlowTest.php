@@ -42,29 +42,6 @@ class TestSubmissionFlowTest extends TestCase
         $this->assertDatabaseCount('test_results', 1);
     }
 
-    public function test_legacy_quiz_respects_configured_passing_score(): void
-    {
-        $student = User::factory()->create(['role' => 'student']);
-        $course = \App\Models\Course::factory()->published()->create();
-        $exam = \App\Models\Exam::create([
-            'course_id' => $course->id, 'title' => 'Quiz', 'status' => 'published',
-            'passing_score' => 80, 'max_attempts' => 2,
-        ]);
-        $answers = [];
-        foreach ([0, 1] as $index) {
-            $question = $exam->questions()->create([
-                'question_text' => 'Întrebare', 'question_type' => 'single_choice', 'points' => 1, 'order' => $index,
-            ]);
-            $question->answers()->create(['answer_text' => 'Corect', 'is_correct' => true, 'order' => 0]);
-            $question->answers()->create(['answer_text' => 'Greșit', 'is_correct' => false, 'order' => 1]);
-            $answers[$question->id] = $index;
-        }
-        $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/enroll")->assertOk();
-        $this->actingAs($student, 'sanctum')->postJson("/api/courses/{$course->id}/quiz/submit", [
-            'answers' => $answers,
-        ])->assertOk()->assertJsonPath('percentage', 50)->assertJsonPath('passed', false);
-    }
-
     public function test_written_answers_wait_for_manual_review(): void
     {
         $student = User::factory()->create(['role' => 'student']);

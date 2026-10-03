@@ -9,7 +9,6 @@ use App\Http\Controllers\Api\RegistrationInvitationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TelemetryController;
-use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\Admin\CourseAdminController;
 use App\Http\Controllers\Api\Admin\CourseBuilderController;
 use App\Http\Controllers\Api\Admin\QuestionAdminController;
@@ -157,10 +156,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     Route::post('/lessons/{lessonId}/study-tools', [\App\Http\Controllers\AIController::class, 'generateLessonStudyTool']);
     Route::get('/exams/{examId}/access', [\App\Http\Controllers\Api\CourseProgressController::class, 'checkExamAccess']);
 
-    // Quiz curs (legacy Exam per course): autentificat — nu expune chei fără control în API public
-    Route::get('/courses/{courseId}/quiz', [QuizController::class, 'show']);
-    Route::post('/courses/{courseId}/quiz/submit', [QuizController::class, 'submit']);
-    
     // Course maps (student: list and show map with published courses)
     Route::get('/course-maps', [\App\Http\Controllers\Api\CourseMapController::class, 'index']);
     Route::get('/course-maps/{id}', [\App\Http\Controllers\Api\CourseMapController::class, 'show']);
