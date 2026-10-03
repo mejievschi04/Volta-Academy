@@ -971,6 +971,17 @@ class CourseBuilderService
             return;
         }
 
+        // Cursanții învață pe ultima versiune publicată cât timp cursul e în editare. Un curs publicat
+        // fără versiune salvată (ex. publicat înainte de versiuni) nu ar avea ce să le arate: testele
+        // dispăreau. Starea lui actuală, încă neatinsă, devine întâi versiunea publicată.
+        $hasPublishedVersion = CourseVersion::query()
+            ->where('course_id', $course->id)
+            ->where('status', 'published')
+            ->exists();
+        if (! $hasPublishedVersion) {
+            $this->createCourseVersionSnapshot((int) $course->id, null, 'published');
+        }
+
         $course->forceFill(['workflow_status' => 'editing'])->save();
     }
 
