@@ -55,6 +55,7 @@ const LessonPage = () => {
 	const [course, setCourse] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [errorLocked, setErrorLocked] = useState(false);
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [showCourseCongrats, setShowCourseCongrats] = useState(false);
 	const [finalizingCourse, setFinalizingCourse] = useState(false);
@@ -108,6 +109,7 @@ const LessonPage = () => {
 		try {
 			if (!silent) setLoading(true);
 			setError(null);
+			setErrorLocked(false);
 			
 			// Fetch lesson
 			const lessonData = normalizeLessonFromApi(await lessonsService.getById(lessonId));
@@ -142,8 +144,9 @@ const LessonPage = () => {
 			const message = locked
 				? (err.response.data.message || 'Lecția este blocată. Completează lecțiile anterioare.')
 				: (err?.response?.data?.message || 'Nu s-a putut încărca lecția');
+			// mesajul apare pe pagină; o notificare în plus doar l-ar repeta
 			setError(message);
-			showToast(message, 'error');
+			setErrorLocked(Boolean(locked));
 		} finally {
 			if (!silent) setLoading(false);
 		}
@@ -332,8 +335,8 @@ const LessonPage = () => {
 					<div className="lesson-page-error-icon">
 						<WarningCircle size={24} weight="duotone" aria-hidden />
 					</div>
-					<h2>Eroare</h2>
-					<p>{error || 'Lecția nu a fost găsită'}</p>
+					<h2>{errorLocked ? 'Lecție blocată' : error ? 'Lecția nu s-a putut încărca' : 'Lecție negăsită'}</h2>
+					<p>{error || 'Lecția nu a fost găsită.'}</p>
 					<button
 						className="lesson-page-btn lms-btn-primary lesson-page-btn-primary"
 						onClick={() => navigate(`/courses/${courseId}`)}

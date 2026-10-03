@@ -55,3 +55,11 @@ test('rezultatul apare în istoricul testelor', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Rezultate teste' })).toBeVisible();
 	await expect(page.getByText('Test final E2E').first()).toBeVisible();
 });
+
+test('o lecție blocată arată motivul o singură dată, fără notificare în plus', async ({ page }) => {
+	// deblocare secvențială: lecția 3 cere lecțiile anterioare
+	await page.goto('/courses/1/lessons/3');
+	await expect(page.getByRole('heading', { name: 'Lecție blocată' })).toBeVisible();
+	await expect(page.getByText('Lecția este blocată. Completează lecțiile anterioare.')).toHaveCount(1);
+	await expect(page.getByRole('button', { name: 'Înapoi la curs' })).toBeVisible();
+});

@@ -259,8 +259,8 @@ const CourseMapPage = () => {
 		return (
 			<div className="course-map-page">
 				<div className="course-map-page-error">
-					<p>{error || 'Eroare'}</p>
-					<button type="button" className="course-map-page-btn" onClick={() => navigate(mapsListPath)}>
+					<p>{error || 'Nu s-a putut încărca mapa.'}</p>
+					<button type="button" className="lms-btn-primary course-map-page-btn" onClick={() => navigate(mapsListPath)}>
 						<ArrowLeft size={18} weight="bold" aria-hidden="true" />
 						{mapsListShortLabel}
 					</button>
