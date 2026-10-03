@@ -125,7 +125,7 @@
 .va-profile-avatar-btn:hover:not(:disabled) {
 	background: var(--bg-tertiary);
 	border-color: var(--color-primary);
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .va-profile-avatar-btn:disabled {
@@ -897,7 +897,7 @@
 	padding: 0.15rem 0.5rem;
 	border-radius: var(--radius-full);
 	background: color-mix(in srgb, var(--color-primary) 18%, transparent);
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .va-student-activity-time {
@@ -914,7 +914,7 @@
 .va-student-activity-link {
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--color-primary);
+	color: var(--text-accent);
 	text-decoration: none;
 }
 

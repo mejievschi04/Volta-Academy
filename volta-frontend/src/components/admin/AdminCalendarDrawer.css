@@ -116,7 +116,7 @@
 .va-cal-drawer-link-all {
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--color-primary);
+	color: var(--text-accent);
 	text-decoration: none;
 	white-space: nowrap;
 }

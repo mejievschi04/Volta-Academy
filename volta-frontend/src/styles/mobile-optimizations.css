@@ -562,7 +562,7 @@
 	.student-sidebar .va-nav-btn.active,
 	.student-sidebar .va-nav-btn.is-active {
 		background: var(--color-primary-alpha-15);
-		color: var(--color-primary);
+		color: var(--text-accent);
 		font-weight: var(--font-weight-semibold);
 	}
 
@@ -3981,7 +3981,7 @@
 	}
 
 	.modern-auth-link {
-		color: var(--color-primary);
+		color: var(--text-accent);
 		text-decoration: none;
 		font-weight: var(--font-weight-semibold);
 		transition: all var(--transition-base);

@@ -907,7 +907,7 @@
 }
 
 .qb-folder-stats svg {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .qb-folder-open {

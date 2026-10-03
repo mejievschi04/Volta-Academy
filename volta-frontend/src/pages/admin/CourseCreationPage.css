@@ -42,7 +42,7 @@
 }
 
 .course-creation-simple-back:hover {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .course-creation-simple-title {

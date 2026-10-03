@@ -77,7 +77,7 @@
 
 .rte-toolbar-btn.active {
 	background: rgba(var(--color-primary-rgb, 255, 238, 0), 0.2);
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .rte-toolbar-btn strong,
@@ -493,7 +493,7 @@
 }
 
 .rte-editor a {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	text-decoration: underline;
 }
 
@@ -816,7 +816,7 @@
 .rte-callout-type-btn.is-selected {
 	background: rgba(var(--color-primary-rgb), 0.12);
 	border-color: rgba(var(--color-primary-rgb), 0.5);
-	color: var(--color-brand-primary);
+	color: var(--text-accent);
 }
 
 .rte-callout-type-btn-name {

@@ -26,6 +26,8 @@ html[data-theme="dark"] {
 	--border-secondary: rgb(71, 85, 105);
 	--btn-outline-border: rgb(135, 148, 168);
 	--btn-outline-border-hover: var(--color-brand-primary);
+	--text-accent: var(--color-brand-primary);
+	--text-success: rgb(74, 222, 128);
 
 	--color-primary-alpha-10: rgba(var(--color-primary-rgb), 0.12);
 	--color-primary-alpha-15: rgba(var(--color-primary-rgb), 0.18);

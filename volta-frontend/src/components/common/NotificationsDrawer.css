@@ -128,7 +128,7 @@
 }
 
 .va-notif-drawer-tab.is-active {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	border-bottom-color: var(--color-primary);
 }
 
@@ -171,7 +171,7 @@
 .va-notif-drawer-toolbar-btn {
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-semibold);
-	color: var(--color-primary);
+	color: var(--text-accent);
 	background: var(--bg-secondary);
 	border: 1px solid var(--border-primary);
 	border-radius: var(--radius-md);
@@ -305,7 +305,7 @@
 .va-notif-drawer-link {
 	font-size: var(--font-size-xs);
 	font-weight: var(--font-weight-semibold);
-	color: var(--color-primary);
+	color: var(--text-accent);
 	text-decoration: none;
 }
 

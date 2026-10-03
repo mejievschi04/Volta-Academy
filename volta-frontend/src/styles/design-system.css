@@ -74,6 +74,12 @@
 	--btn-outline-border: rgb(100, 116, 139);
 	--btn-outline-border-hover: var(--text-primary);
 
+	/* Text de accent (linkuri-acțiune, file active, iconițe de evidențiere): galben doar unde se citește.
+	   Pe fundal deschis galbenul are ~1,2:1; aici galben-maro închis, ≥ 4,7:1 pe toate fundalurile deschise. */
+	--text-accent: rgb(122, 98, 0);
+	/* Text de succes (ex. „Publicat”): verdele de fundal are doar ~2,3:1 ca text pe alb */
+	--text-success: rgb(21, 128, 61);
+
 	/* Button Dimensions - compacte, rotunjite */
 	--btn-desktop-padding-y: var(--space-3);
 	--btn-desktop-padding-x: var(--space-5);

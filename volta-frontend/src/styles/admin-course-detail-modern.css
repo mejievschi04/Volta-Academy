@@ -229,7 +229,7 @@ html[data-theme="dark"] .admin-course-status-badge.is-draft {
 }
 
 .admin-course-overview-value-highlight {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	font-size: var(--font-size-base);
 }
 

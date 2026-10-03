@@ -422,7 +422,7 @@
 }
 
 .library-dropzone__icon {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	margin-bottom: 0.65rem;
 }
 

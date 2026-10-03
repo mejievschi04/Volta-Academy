@@ -60,7 +60,7 @@
 }
 
 .admin-view-mode-btn.is-admin-view .admin-view-mode-btn__icon {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-view-mode-btn.is-student-view .admin-view-mode-btn__icon {
@@ -86,7 +86,7 @@
 }
 
 .admin-view-mode-btn:hover .admin-view-mode-btn__swap {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	opacity: 1;
 }
 

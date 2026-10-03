@@ -79,3 +79,44 @@ test('butonul X închide fereastra și are aspectul comun', async ({ page }) => 
 	await close.click();
 	await expect(heading).toHaveCount(0);
 });
+
+// contrast text / fundal efectiv (culorile cu transparență sunt compuse peste părinți)
+async function contrastOf(locator) {
+	return locator.evaluate((el) => {
+		const parse = (c) => { const p = c.match(/[\d.]+/g).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+		const over = (t, b) => ({ r: t.r * t.a + b.r * (1 - t.a), g: t.g * t.a + b.g * (1 - t.a), b: t.b * t.a + b.b * (1 - t.a), a: 1 });
+		const lum = (c) => [c.r, c.g, c.b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+			.reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+		const chain = [];
+		for (let n = el; n; n = n.parentElement) chain.unshift(n);
+		let bg = { r: 255, g: 255, b: 255, a: 1 };
+		for (const n of chain) {
+			const b = parse(getComputedStyle(n).backgroundColor);
+			if (b.a > 0) bg = over(b, bg);
+		}
+		const fg = over(parse(getComputedStyle(el).color), bg);
+		const [x, y] = [lum(fg), lum(bg)];
+		return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+	});
+}
+
+test('în tema deschisă textul de accent din notificări se citește (nu e galben pe alb)', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('volta-ui-theme', 'light'));
+	await page.goto('/admin');
+	await page.getByRole('button', { name: 'Deschide notificările' }).click();
+	const drawer = page.locator('.va-notif-drawer-panel');
+	for (const target of [drawer.getByRole('tab', { name: /Primite/ }), drawer.getByRole('button', { name: 'Marchează toate ca citite' })]) {
+		await expect(target).toBeVisible();
+		expect(await contrastOf(target)).toBeGreaterThanOrEqual(4.5);
+	}
+});
+
+test('pagina Ghiduri deschisă direct are meniul de admin stilizat', async ({ page }) => {
+	await page.goto('/guides');
+	await expect(page.getByRole('heading', { name: 'Ghiduri', exact: true })).toBeVisible();
+	// fără stilurile de admin, meniul lateral apărea ca o listă de linkuri în fluxul paginii
+	const nav = page.getByRole('link', { name: 'Panou' }).first();
+	await expect(nav).toBeAttached();
+	const position = await page.locator('aside.modern-sidebar').first().evaluate((el) => getComputedStyle(el).position);
+	expect(['fixed', 'sticky']).toContain(position);
+});

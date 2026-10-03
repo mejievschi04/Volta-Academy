@@ -132,7 +132,7 @@ body.admin-view .va-main {
 
 .admin-btn-secondary {
 	background-color: transparent;
-	color: var(--color-primary);
+	color: var(--text-accent);
 	border: 1px solid var(--color-primary);
 }
 
@@ -1019,7 +1019,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 
 .admin-team-modal-list-item-label.selected {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-team-modal-list-item-sublabel {
@@ -1099,7 +1099,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	padding: 0;
 	border: 0;
 	background: none;
-	color: var(--color-primary);
+	color: var(--text-accent);
 	font: inherit;
 	font-weight: 600;
 	text-decoration: underline;
@@ -1365,7 +1365,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 
 .admin-event-btn-secondary {
 	background-color: transparent;
-	color: var(--color-primary);
+	color: var(--text-accent);
 	border: 1px solid var(--color-primary);
 }
 
@@ -2127,7 +2127,7 @@ body.admin-view .admin-lesson-creator-page {
 
 .admin-form-progress-value {
 	font-size: var(--font-size-sm);
-	color: var(--color-primary);
+	color: var(--text-accent);
 	font-weight: var(--font-weight-semibold);
 }
 

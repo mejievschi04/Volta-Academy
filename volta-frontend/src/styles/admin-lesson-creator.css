@@ -101,7 +101,7 @@
 .admin-lesson-creator-page .admin-form-progress-value {
 	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-bold);
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-lesson-creator-page .admin-form-progress-bar {

@@ -155,7 +155,7 @@
 }
 
 .admin-users-table th.sortable:hover {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-users-table th.sortable::after {
@@ -176,13 +176,13 @@
 .admin-users-table th.sort-asc::after {
 	content: '↑';
 	opacity: 1;
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-users-table th.sort-desc::after {
 	content: '↓';
 	opacity: 1;
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-users-table tbody tr {
@@ -280,7 +280,7 @@
 
 .admin-users-role-badge.admin {
 	background-color: rgba(var(--color-primary-rgb), 0.15);
-	color: var(--color-primary);
+	color: var(--text-accent);
 	border: 1px solid rgba(var(--color-primary-rgb), 0.3);
 }
 
@@ -393,7 +393,7 @@
 }
 
 .admin-users-progress-text.high {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 /* ============================================

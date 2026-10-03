@@ -461,7 +461,7 @@ html body .va-publish-label {
 }
 
 html body .va-publish.is-published .va-publish-label {
-	color: var(--color-success) !important;
+	color: var(--text-success) !important;
 }
 
 html body .va-publish-switch.va-publish-switch {

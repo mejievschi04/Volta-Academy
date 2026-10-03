@@ -1225,7 +1225,7 @@
 
 .admin-course-action-btn.edit:hover {
 	border-color: var(--color-primary);
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-course-action-btn.delete:hover {
@@ -2110,7 +2110,7 @@
 }
 
 .admin-course-card-title:hover {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .admin-course-card-actions {
@@ -2348,7 +2348,7 @@
 }
 
 [data-theme="light"] .admin-course-card-title:hover {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 [data-theme="light"] .admin-course-card-meta {

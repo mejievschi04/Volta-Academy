@@ -246,7 +246,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 }
 
 .modern-form-input-wrapper:focus-within .modern-form-icon {
-	color: var(--color-primary);
+	color: var(--text-accent);
 }
 
 .modern-form-input::placeholder {
@@ -368,7 +368,7 @@ button[type="submit"].modern-auth-submit:hover:not(:disabled) span,
 }
 
 .modern-auth-link {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	text-decoration: none;
 	font-weight: var(--font-weight-semibold);
 	transition: all var(--transition-base);

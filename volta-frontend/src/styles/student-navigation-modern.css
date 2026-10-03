@@ -182,7 +182,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 .va-shell-topnav .modern-topnav-item.is-active,
 .va-shell-topnav .va-topnav-btn.active,
 .va-shell-topnav .va-topnav-btn.is-active {
-	color: var(--color-primary);
+	color: var(--text-accent);
 	font-weight: var(--font-weight-semibold);
 	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.25) 0%, rgba(230, 214, 0, 0.15) 100%);
 	box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
@@ -367,7 +367,7 @@ html[data-theme='dark'] .student-more-menu-item.active {
 .va-shell-topnav .admin-topnav-notification-btn:hover {
 	background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%);
 	border-color: var(--color-primary);
-	color: var(--color-primary);
+	color: var(--text-accent);
 	box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.2);
 	transform: translateY(-1px);
 }

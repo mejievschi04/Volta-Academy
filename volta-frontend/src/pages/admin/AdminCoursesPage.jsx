@@ -16,6 +16,7 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Plus } from '@phosphor-icons/react';
 import { DragHandle } from '../../components/common/DragHandle';
 import {
 	CourseShowcaseEditButton,
@@ -293,13 +294,14 @@ const AdminCoursesPage = () => {
 				</div>
 				<div className="admin-courses-clean-right">
 					{canMutateInAdminArea && (
-						<button type="button" className="admin-courses-create-btn" onClick={() => navigate('/admin/courses/new')}>
-							+ Creează curs
+						<button type="button" className="lms-btn-primary admin-courses-create-btn" onClick={() => navigate('/admin/courses/new')}>
+							<Plus size={18} weight="bold" aria-hidden="true" />
+							Creează curs
 						</button>
 					)}
 					<div className="admin-courses-top-links">
 					{canMutateInAdminArea && (
-						<button type="button" onClick={() => navigate('/admin/content?tab=courses&view=maps&new=1')}>
+						<button type="button" className="lms-btn-secondary" onClick={() => navigate('/admin/content?tab=courses&view=maps&new=1')}>
 							Creează mapă
 						</button>
 						)}

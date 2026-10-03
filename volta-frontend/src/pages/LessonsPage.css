@@ -295,7 +295,7 @@
 /* Tests in sidebar */
 .lessons-page-sidebar-test .lessons-page-sidebar-lesson-icon {
 	background: rgba(99, 102, 241, 0.15);
-	color: var(--color-brand-primary);
+	color: var(--text-accent);
 }
 
 .lessons-page-sidebar-nested-test {
@@ -589,7 +589,7 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 }
 
 .lessons-page-lesson-content-text a {
-	color: var(--color-brand-primary);
+	color: var(--text-accent);
 	text-decoration: none;
 	border-bottom: 1px solid transparent;
 	transition: border-color 0.2s ease;
@@ -605,7 +605,7 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 	border-radius: var(--radius-sm);
 	font-family: 'Courier New', monospace;
 	font-size: 0.9em;
-	color: var(--color-brand-primary);
+	color: var(--text-accent);
 }
 
 .lessons-page-lesson-content-text pre {
@@ -846,7 +846,7 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 	.lessons-page-sidebar-toggle:hover {
 		background: var(--bg-secondary);
 		border-color: var(--color-brand-primary);
-		color: var(--color-brand-primary);
+		color: var(--text-accent);
 	}
 
 	.lessons-page-main-content {
