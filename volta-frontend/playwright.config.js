@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const backendDir = path.resolve(root, '../volta-backend');
 const dbPath = path.join(backendDir, 'storage/framework/testing/e2e.sqlite');
+// fișierele încărcate în teste (ex. imagini din editorul de lecții), golit la fiecare rulare
+const publicRoot = path.join(backendDir, 'storage/framework/testing/e2e-public');
 const BACKEND_PORT = 8011;
 const FRONTEND_PORT = 5175;
 const frontendUrl = `http://localhost:${FRONTEND_PORT}`;
@@ -21,6 +23,7 @@ const backendEnv = {
 	SESSION_DRIVER: 'database',
 	DB_CONNECTION: 'sqlite',
 	DB_DATABASE: dbPath,
+	PUBLIC_STORAGE_ROOT: publicRoot,
 	CACHE_STORE: 'array',
 	QUEUE_CONNECTION: 'sync',
 	MAIL_MAILER: 'array',
@@ -52,7 +55,7 @@ export default defineConfig({
 	],
 	webServer: [
 		{
-			command: `rm -f "${dbPath}" && touch "${dbPath}" && php artisan migrate:fresh --seed --seeder=E2eSeeder --force && php artisan serve --port=${BACKEND_PORT}`,
+			command: `rm -f "${dbPath}" && touch "${dbPath}" && rm -rf "${publicRoot}" && mkdir -p "${publicRoot}" && php artisan migrate:fresh --seed --seeder=E2eSeeder --force && php artisan serve --port=${BACKEND_PORT}`,
 			cwd: backendDir,
 			env: backendEnv,
 			url: `http://localhost:${BACKEND_PORT}/up`,

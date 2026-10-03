@@ -3,13 +3,14 @@
 // Serve storage files (fallback when symlink doesn't work, e.g. on Windows)
 Route::get('/storage/{path}', function (string $path) {
     $path = str_replace('\\', '/', $path);
-    $fullPath = storage_path('app/public/' . $path);
+    $root = config('filesystems.disks.public.root');
+    $fullPath = $root . '/' . $path;
     if (!file_exists($fullPath) || !is_file($fullPath)) {
         abort(404);
     }
     // Security: ensure path is within storage/app/public (no directory traversal)
     $realPath = realpath($fullPath);
-    $storagePath = realpath(storage_path('app/public'));
+    $storagePath = realpath($root);
     if (!$realPath || !$storagePath) {
         abort(404);
     }

@@ -167,6 +167,31 @@ class E2eSeeder extends Seeder
             }
         }
 
+        // Câte un curs pe proiect pentru editorul de lecții (testul îi schimbă conținutul).
+        foreach (['desktop', 'mobile'] as $project) {
+            $editorCourse = Course::withoutEvents(fn () => Course::factory()->create([
+                'title' => "Curs editor {$project}",
+                'description' => 'Curs modificat de testul editorului de lecții.',
+                'teacher_id' => $admin->id,
+                'status' => 'draft',
+            ]));
+            $editorModule = Module::withoutEvents(fn () => Module::create([
+                'course_id' => $editorCourse->id,
+                'title' => 'Modul editor',
+                'order' => 1,
+                'status' => 'draft',
+            ]));
+            Lesson::withoutEvents(fn () => Lesson::create([
+                'course_id' => $editorCourse->id,
+                'module_id' => $editorModule->id,
+                'title' => 'Lecție de editat',
+                'content' => '<p>Text inițial.</p>',
+                'type' => 'text',
+                'status' => 'draft',
+                'order' => 1,
+            ]));
+        }
+
         // Cursanții văd doar cursurile atribuite.
         foreach ($students as $student) {
             DB::table('course_user')->insert([

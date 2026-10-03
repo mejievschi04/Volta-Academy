@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { NodeSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import LessonImage from './image/LessonImageExtension.js';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -95,21 +93,22 @@ const LessonTipTapEditor = ({
 				heading: { levels: [2, 3] },
 				blockquote: false,
 				dropcursor: { color: 'var(--text-primary)', width: 2 },
+				link: {
+					openOnClick: false,
+					autolink: true,
+					HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+				},
 			}),
-			Underline,
 			TextStyle,
 			Color,
-			Link.configure({
-				openOnClick: false,
-				autolink: true,
-				HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
-			}),
 			TextAlign.configure({ types: ['heading', 'paragraph'] }),
 			LessonImage.configure({ inline: false, allowBase64: true }),
 			LessonCallout,
 			Placeholder.configure({ placeholder }),
 		],
 		content: value || '',
+		// bara de unelte citește starea activă la fiecare randare (TipTap 3 nu mai re-randează implicit)
+		shouldRerenderOnTransaction: true,
 		editorProps: {
 			attributes: {
 				class: 'lesson-tiptap-surface',
@@ -141,7 +140,7 @@ const LessonTipTapEditor = ({
 		const next = value || '';
 		if (next === lastHtmlRef.current) return;
 		lastHtmlRef.current = next;
-		editor.commands.setContent(next, false);
+		editor.commands.setContent(next, { emitUpdate: false });
 	}, [editor, value]);
 
 	const alignBlock = (alignment) => {
