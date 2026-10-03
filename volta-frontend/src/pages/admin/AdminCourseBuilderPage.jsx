@@ -2009,7 +2009,7 @@ const AdminCourseBuilderPage = () => {
 											onClick={handleDeleteCourse}
 											disabled={courseActionLoading}
 										>
-											<Trash aria-hidden="true" size={16} weight="bold" color="#dc2626" />
+											<Trash aria-hidden="true" size={16} weight="bold" color="currentColor" />
 											Șterge curs
 										</button>
 									</>

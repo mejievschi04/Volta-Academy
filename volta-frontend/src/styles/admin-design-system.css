@@ -52,7 +52,7 @@ html body .test-stats__nav-btn.test-stats__nav-btn {
 	height: var(--btn-desktop-min-height);
 	min-height: var(--btn-desktop-min-height);
 	padding: 0 var(--space-4);
-	border: 1px solid var(--border-secondary) !important;
+	border: 1px solid var(--btn-outline-border) !important;
 	border-radius: var(--btn-desktop-radius) !important;
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
@@ -86,7 +86,7 @@ html body .admin-settings-tab.admin-settings-tab:hover:not(.active),
 html body .admin-test-builder-section-tab.admin-test-builder-section-tab:hover:not(.is-active),
 html body .admin-statistics-tests-tab.admin-statistics-tests-tab:hover:not(.is-active),
 html body .test-stats__nav-btn.test-stats__nav-btn:hover:not(.is-active) {
-	border-color: var(--border-accent) !important;
+	border-color: var(--btn-outline-border-hover) !important;
 	background: var(--bg-secondary) !important;
 	color: var(--text-primary) !important;
 }
@@ -117,7 +117,7 @@ html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statisti
 	align-items: flex-start;
 	gap: 4px;
 	padding: var(--space-3) var(--space-4);
-	border: 1px solid var(--border-secondary) !important;
+	border: 1px solid var(--btn-outline-border) !important;
 	border-radius: var(--btn-desktop-radius) !important;
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
@@ -131,7 +131,7 @@ html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn .admin-statist
 }
 
 html body .admin-statistics-hub-nav .admin-statistics-hub-nav-btn.admin-statistics-hub-nav-btn:hover:not(.is-active) {
-	border-color: var(--border-accent) !important;
+	border-color: var(--btn-outline-border-hover) !important;
 	background: var(--bg-secondary) !important;
 	box-shadow: none !important;
 }
@@ -175,7 +175,7 @@ html body .admin-btn-secondary.admin-btn-secondary {
 	gap: var(--btn-desktop-gap);
 	min-height: var(--btn-desktop-min-height);
 	padding: 0 var(--space-4);
-	border: 1px solid var(--border-secondary) !important;
+	border: 1px solid var(--btn-outline-border) !important;
 	border-radius: var(--btn-desktop-radius) !important;
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
@@ -201,7 +201,7 @@ html body .test-stats__refresh.test-stats__refresh:hover:not(:disabled),
 html body .admin-excel-export-btn.admin-excel-export-btn:hover:not(:disabled),
 html body .admin-container .lms-btn-secondary.lms-btn-secondary:not(.va-btn-danger):hover,
 html body .admin-btn-secondary.admin-btn-secondary:hover:not(:disabled) {
-	border-color: var(--border-accent) !important;
+	border-color: var(--btn-outline-border-hover) !important;
 	background: var(--bg-secondary) !important;
 	color: var(--text-primary) !important;
 	transform: none;

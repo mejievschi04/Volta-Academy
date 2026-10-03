@@ -1363,16 +1363,7 @@ body.admin-course-builder-lesson-drag-active .admin-course-builder-outline-lesso
 }
 
 .admin-course-builder-actions-delete svg {
-	color: var(--color-error);
 	flex-shrink: 0;
-}
-
-.admin-course-builder-actions-delete:hover:not(:disabled),
-.admin-course-builder-actions-delete:focus-visible {
-	background: #fee2e2;
-	border-color: #f87171;
-	color: var(--color-error) !important;
-	outline: none;
 }
 
 .admin-course-builder-actions-delete:disabled {

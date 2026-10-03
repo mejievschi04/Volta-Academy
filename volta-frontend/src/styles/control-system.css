@@ -74,7 +74,7 @@ html body :is(
 	.lessons-page-nav-btn--prev
 ):not(.va-btn-danger):not(.btn-danger) {
 	min-height: var(--btn-desktop-min-height) !important;
-	border: 1px solid var(--border-secondary) !important;
+	border: 1px solid var(--btn-outline-border) !important;
 	border-radius: var(--btn-desktop-radius) !important;
 	background: var(--bg-elevated) !important;
 	background-color: var(--bg-elevated) !important;
@@ -93,7 +93,7 @@ html body :is(
 ):not(.va-btn-danger):not(.btn-danger):hover:not(:disabled) {
 	background: var(--bg-secondary) !important;
 	background-color: var(--bg-secondary) !important;
-	border-color: var(--border-accent) !important;
+	border-color: var(--btn-outline-border-hover) !important;
 	color: var(--text-primary) !important;
 	box-shadow: none !important;
 	transform: none !important;
@@ -103,7 +103,7 @@ html body :is(
 	.courses-page-filter-chip,
 	.courses-page-student-filter
 ) {
-	border: 1px solid var(--border-secondary) !important;
+	border: 1px solid var(--btn-outline-border) !important;
 	border-radius: var(--btn-desktop-radius) !important;
 	background: var(--bg-elevated) !important;
 	background-color: var(--bg-elevated) !important;
@@ -142,6 +142,65 @@ html body :is(
 ) :is(svg, span, .courses-page-student-filter-label, .courses-page-student-filter-count, .modern-nav-item-label, .modern-nav-item-icon, .student-mobile-tab-label, .student-mobile-tab-icon) {
 	color: var(--btn-primary-text) !important;
 	background: transparent !important;
+}
+
+/*
+ * Butoanele cu contur (iconițele din bara de sus, Înapoi, filtre și file neselectate, butoanele
+ * secundare ale paginilor): aceeași margine, vizibilă pe fundal în ambele teme. Starea activă
+ * (galbenă) și butoanele de ștergere își păstrează culorile.
+ */
+html body :is(
+	.admin-topnav-notification-btn,
+	.admin-topnav-calendar-btn,
+	.admin-topnav-logout,
+	.admin-view-mode-btn,
+	.messages-new-conversation-btn,
+	.va-profile-avatar-btn,
+	.admin-course-builder-quick-add-btn,
+	.admin-course-builder-sidebar-toggle,
+	.admin-statistics-hub-nav-btn,
+	.admin-manual-review-kind-btn,
+	.admin-tests-pending-refresh,
+	.admin-users-view-tab,
+	.admin-settings-tab,
+	.library-btn--secondary,
+	.exam-results-filter-btn,
+	.courses-page-filter-chip,
+	.courses-page-student-filter,
+	.va-btn-back,
+	.sidebar-mobile-logout-btn,
+	.admin-course-builder-sidebar-show-btn,
+	.lessons-page-sidebar-close-btn,
+	.lessons-page-sidebar-toggle
+):not(.active):not(.is-active):not(.va-btn-danger):not(.va-btn-delete) {
+	border-color: var(--btn-outline-border) !important;
+}
+
+html body :is(
+	.admin-topnav-notification-btn,
+	.admin-topnav-calendar-btn,
+	.admin-topnav-logout,
+	.admin-view-mode-btn,
+	.messages-new-conversation-btn,
+	.va-profile-avatar-btn,
+	.admin-course-builder-quick-add-btn,
+	.admin-course-builder-sidebar-toggle,
+	.admin-statistics-hub-nav-btn,
+	.admin-manual-review-kind-btn,
+	.admin-tests-pending-refresh,
+	.admin-users-view-tab,
+	.admin-settings-tab,
+	.library-btn--secondary,
+	.exam-results-filter-btn,
+	.courses-page-filter-chip,
+	.courses-page-student-filter,
+	.va-btn-back,
+	.sidebar-mobile-logout-btn,
+	.admin-course-builder-sidebar-show-btn,
+	.lessons-page-sidebar-close-btn,
+	.lessons-page-sidebar-toggle
+):not(.active):not(.is-active):not(.va-btn-danger):not(.va-btn-delete):hover:not(:disabled) {
+	border-color: var(--btn-outline-border-hover) !important;
 }
 
 /* One Save, one Back, one Delete. */
@@ -275,6 +334,21 @@ html body .admin-course-builder-actions-delete.admin-course-builder-actions-dele
 	font-weight: var(--font-weight-semibold) !important;
 	transform: none !important;
 	text-decoration: none !important;
+}
+
+/* iconița are aceeași culoare ca textul (albă), nu roșul vechi al butonului cu contur */
+html body :is(
+	.va-btn-delete,
+	.va-btn-danger,
+	.btn-danger,
+	.admin-btn-danger,
+	.library-btn--danger,
+	.admin-manual-review-clear-danger,
+	.exam-picker-clear-danger,
+	.admin-exams-list-btn-danger-solid,
+	.admin-course-builder-actions-delete
+) svg {
+	color: inherit !important;
 }
 
 html body .va-btn-delete.va-btn-delete.va-btn-delete:hover:not(:disabled),

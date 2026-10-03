@@ -70,6 +70,10 @@
 	--btn-secondary-border: var(--color-brand-primary);
 	--btn-secondary-hover: var(--color-primary-alpha-10);
 
+	/* Marginea butoanelor cu contur: cel puțin 3:1 față de fundal (WCAG 1.4.11) */
+	--btn-outline-border: rgb(100, 116, 139);
+	--btn-outline-border-hover: var(--text-primary);
+
 	/* Button Dimensions - compacte, rotunjite */
 	--btn-desktop-padding-y: var(--space-3);
 	--btn-desktop-padding-x: var(--space-5);
@@ -284,6 +288,14 @@ body {
 	min-height: -webkit-fill-available;
 	overflow-x: hidden;
 	overscroll-behavior: none;
+}
+
+/* Butoanele și câmpurile nu moștenesc fontul implicit în browser (apăreau cu fontul sistemului) */
+button,
+input,
+select,
+textarea {
+	font-family: inherit;
 }
 
 /* Ascunde scrollbar-urile peste tot (păstrează scroll-ul funcțional) */
