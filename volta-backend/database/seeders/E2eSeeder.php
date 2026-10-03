@@ -46,6 +46,18 @@ class E2eSeeder extends Seeder
             'must_change_password' => false,
         ]));
 
+        // Conturi pe care testele le suspendă și le reactivează (câte unul pe proiect).
+        foreach (['desktop', 'mobile'] as $project) {
+            User::create([
+                'name' => "Angajat acces {$project}",
+                'email' => "access-{$project}@e2e.test",
+                'password' => $password,
+                'role' => 'student',
+                'status' => 'active',
+                'must_change_password' => false,
+            ]);
+        }
+
         // Fără evenimente de model: nu pornim reindexarea Volt și recalculările de progres.
         $course = Course::withoutEvents(fn () => Course::factory()->published()->create([
             'title' => 'Curs E2E',

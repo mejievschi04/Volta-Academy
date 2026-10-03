@@ -305,6 +305,49 @@
 	border: 1px solid rgba(251, 191, 36, 0.4);
 }
 
+.admin-users-status-suspended {
+	background-color: color-mix(in srgb, var(--color-error) 12%, transparent);
+	color: color-mix(in srgb, var(--color-error) 70%, var(--text-primary));
+	border: 1px solid color-mix(in srgb, var(--color-error) 40%, transparent);
+}
+
+/* Fereastra de editare: secțiunea „Acces cont” (suspendare, reactivare, schimbarea parolei) */
+.admin-users-access {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	/* explicit: regula generală pentru section de pe telefon adaugă padding pe toate laturile */
+	margin: var(--space-2) 0 0;
+	padding: var(--space-4) 0 0;
+	border-top: 1px solid var(--border-primary);
+}
+
+.admin-users-access-title {
+	margin: 0;
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.admin-users-access-status {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+.admin-users-access-confirm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.admin-users-access-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
 /* ============================================
    5. PROGRESS BAR
    ============================================ */
@@ -469,6 +512,13 @@
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
+}
+
+/* Pe telefon câmpurile stau unul sub altul (în două coloane „Parolă” era prea îngustă) */
+@media (max-width: 600px) {
+	.admin-users-modal-form {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Câmpuri care ocupă toată lățimea (cu textarea sau div-uri separate pentru hint-uri) */

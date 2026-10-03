@@ -15,7 +15,6 @@ class InstructorContentScopeMiddleware
 {
     private const BLOCKED_PREFIXES = [
         'api/admin/users',
-        'api/admin/team-members',
         'api/admin/teams',
         'api/admin/settings',
         'api/admin/activity-logs',

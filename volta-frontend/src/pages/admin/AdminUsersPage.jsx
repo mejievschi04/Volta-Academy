@@ -35,6 +35,10 @@ const AdminUsersPage = () => {
 	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' | 'invitations'
 	const [confirmAction, setConfirmAction] = useState(null); // { type: 'trash'|'reject', userId }
 	const [confirmLoading, setConfirmLoading] = useState(false);
+	// Acces cont (în fereastra de editare): 'suspend' = se cere confirmarea suspendării
+	const [accessStep, setAccessStep] = useState(null);
+	const [accessBusy, setAccessBusy] = useState(false);
+	const [suspendReason, setSuspendReason] = useState('');
 	const [inviteModalOpen, setInviteModalOpen] = useState(false);
 	const [formData, setFormData] = useState({
 		name: '',
@@ -193,7 +197,30 @@ const AdminUsersPage = () => {
 		return r;
 	};
 
+	const runAccessAction = async (action) => {
+		if (!editingUser) return;
+		setAccessBusy(true);
+		try {
+			const result = action === 'suspend'
+				? await adminService.suspendUser(editingUser.id, suspendReason.trim() || null)
+				: action === 'activate'
+					? await adminService.activateUser(editingUser.id)
+					: await adminService.resetUserAccess(editingUser.id);
+			if (result?.user) setEditingUser((prev) => ({ ...prev, ...result.user }));
+			showSuccess(result?.message || 'Acces actualizat.');
+			setAccessStep(null);
+			setSuspendReason('');
+			fetchUsers();
+		} catch (err) {
+			showError(err.response?.data?.message || 'Nu am putut actualiza accesul contului.');
+		} finally {
+			setAccessBusy(false);
+		}
+	};
+
 	const handleEdit = (user) => {
+		setAccessStep(null);
+		setSuspendReason('');
 		setEditingUser(user);
 		setFormData({
 			name: user.name,
@@ -411,6 +438,7 @@ const AdminUsersPage = () => {
 						<option value="all">Toți utilizatorii</option>
 						<option value="pending">Cereri în așteptare</option>
 						<option value="active">Aprobați</option>
+						<option value="suspended">Suspendați</option>
 					</select>
 				</div>
 				<div className="admin-users-filter-group">
@@ -495,6 +523,11 @@ const AdminUsersPage = () => {
 											{(user.status || 'active') === 'pending' && (
 												<span className="admin-users-status-badge admin-users-status-pending" title="Cerere în așteptare">
 													În așteptare
+												</span>
+											)}
+											{user.status === 'suspended' && (
+												<span className="admin-users-status-badge admin-users-status-suspended" title={user.suspended_reason || 'Cont suspendat'}>
+													Suspendat
 												</span>
 											)}
 										</td>
@@ -804,6 +837,63 @@ const AdminUsersPage = () => {
 											Dacă nu specifici o parolă, utilizatorul va primi automat parola: <strong>volta2026</strong> și va trebui să o schimbe la prima autentificare.
 										</p>
 									</div>
+								)}
+								{editingUser && currentUser?.role === 'admin' && editingUser.id !== currentUser?.id && (
+									<section className="admin-users-access" aria-labelledby="admin-users-access-title">
+										<h3 id="admin-users-access-title" className="admin-users-access-title">Acces cont</h3>
+										<p className="admin-users-access-status">
+											Status:{' '}
+											<strong>{editingUser.status === 'suspended' ? 'Suspendat' : editingUser.status === 'pending' ? 'În așteptare' : 'Activ'}</strong>
+											{editingUser.status === 'suspended' && editingUser.suspended_reason ? ` — ${editingUser.suspended_reason}` : ''}
+										</p>
+										{editingUser.must_change_password ? (
+											<p className="admin-form-hint">Va trebui să-și schimbe parola la următoarea autentificare.</p>
+										) : null}
+
+										{accessStep === 'suspend' ? (
+											<div className="admin-users-access-confirm">
+												<label className="admin-form-label" htmlFor="admin-users-suspend-reason">
+													Motiv <span className="admin-form-label-hint">(opțional, vizibil doar adminilor)</span>
+												</label>
+												<input
+													id="admin-users-suspend-reason"
+													className="admin-form-input"
+													value={suspendReason}
+													onChange={(e) => setSuspendReason(e.target.value)}
+													maxLength={1000}
+												/>
+												<p className="admin-form-hint">Contul nu se va mai putea autentifica până la reactivare. Progresul rămâne.</p>
+												<div className="admin-users-access-actions">
+													<button type="button" className="lms-btn-secondary" onClick={() => setAccessStep(null)} disabled={accessBusy}>
+														Renunță
+													</button>
+													<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => runAccessAction('suspend')} disabled={accessBusy}>
+														{accessBusy ? 'Se suspendă…' : 'Confirmă suspendarea'}
+													</button>
+												</div>
+											</div>
+										) : (
+											<div className="admin-users-access-actions">
+												{editingUser.status === 'suspended' ? (
+													<button type="button" className="lms-btn-secondary" onClick={() => runAccessAction('activate')} disabled={accessBusy}>
+														Reactivează contul
+													</button>
+												) : (
+													<button type="button" className="lms-btn-secondary va-btn-delete va-btn-danger" onClick={() => setAccessStep('suspend')} disabled={accessBusy}>
+														Suspendă contul
+													</button>
+												)}
+												<button
+													type="button"
+													className="lms-btn-secondary"
+													onClick={() => runAccessAction('reset')}
+													disabled={accessBusy || Boolean(editingUser.must_change_password)}
+												>
+													Cere schimbarea parolei
+												</button>
+											</div>
+										)}
+									</section>
 								)}
 								<div className="admin-users-modal-footer">
 									<button

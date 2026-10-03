@@ -360,10 +360,10 @@ Route::middleware([
     Route::post('/users/{id}/tests/{testId}/extra-attempt', [UserAdminController::class, 'grantTestExtraAttempt']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     
-    // Team Members Management
-    Route::post('/team-members/{id}/activate', [UserAdminController::class, 'activate']);
-    Route::post('/team-members/{id}/suspend', [UserAdminController::class, 'suspend']);
-    Route::post('/team-members/{id}/reset-access', [UserAdminController::class, 'resetAccess']);
+    // Suspendare, reactivare și resetare acces (orice utilizator; doar admin)
+    Route::post('/users/{id}/activate', [UserAdminController::class, 'activate']);
+    Route::post('/users/{id}/suspend', [UserAdminController::class, 'suspend']);
+    Route::post('/users/{id}/reset-access', [UserAdminController::class, 'resetAccess']);
     
     
     // Statistici (doar admin)
