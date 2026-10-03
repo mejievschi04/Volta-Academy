@@ -4,14 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Question;
 use App\Models\QuestionBank;
-use App\Models\Test;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Un instructor lucrează doar cu conținutul lui: întrebările din folderele altui instructor și
- * încercările suplimentare la testele altuia îi sunt interzise.
+ * Un instructor lucrează doar cu întrebările din folderele lui.
  */
 class InstructorOwnershipTest extends TestCase
 {
@@ -41,20 +39,4 @@ class InstructorOwnershipTest extends TestCase
             ->assertOk();
     }
 
-    public function test_instructor_grants_extra_attempts_only_on_own_tests(): void
-    {
-        $owner = User::factory()->create(['role' => 'instructor', 'status' => 'active']);
-        $other = User::factory()->create(['role' => 'instructor', 'status' => 'active']);
-        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
-        $test = Test::factory()->published()->create(['created_by' => $owner->id, 'max_attempts' => 1]);
-
-        $this->actingAs($other, 'sanctum')
-            ->postJson("/api/admin/users/{$student->id}/tests/{$test->id}/extra-attempt")
-            ->assertForbidden();
-
-        $this->app['auth']->forgetGuards();
-        $this->actingAs($owner, 'sanctum')
-            ->postJson("/api/admin/users/{$student->id}/tests/{$test->id}/extra-attempt")
-            ->assertOk();
-    }
 }

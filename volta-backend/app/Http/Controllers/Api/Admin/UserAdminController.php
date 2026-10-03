@@ -442,10 +442,6 @@ class UserAdminController extends Controller
 
         $user = User::findOrFail($id);
         $test = Test::findOrFail($testId);
-        // Instructorul acordă încercări doar la testele lui (ca la verificarea și modificarea scorurilor).
-        if ($actor->isInstructor() && (int) $test->created_by !== (int) $actor->id) {
-            return response()->json(['message' => 'Acces interzis. Poți acorda încercări doar la testele tale.'], 403);
-        }
         if (! $test->max_attempts) {
             return response()->json([
                 'message' => 'Testul are deja încercări nelimitate.',
