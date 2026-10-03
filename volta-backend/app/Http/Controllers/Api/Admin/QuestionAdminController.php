@@ -500,6 +500,10 @@ class QuestionAdminController extends Controller
             $prompt .= "\nInstrucțiune suplimentară: {$instruction}";
         }
 
+        if (! $this->aiKeyAvailable()) {
+            return response()->json(['error' => 'Volt nu este configurat: lipsește cheia AI.'], 503);
+        }
+
         $raw = $this->callAi($prompt);
         $data = $this->decodeJsonObject($raw);
         if (!$data) {
@@ -534,6 +538,15 @@ class QuestionAdminController extends Controller
         }
 
         return null;
+    }
+
+    /** Aceeași regulă ca în callAi(): Groq (cu rezervă OpenAI) sau OpenAI. */
+    private function aiKeyAvailable(): bool
+    {
+        $groq = (string) config('ai.groq.api_key', '') !== '';
+        $openai = (string) config('ai.openai.api_key', '') !== '';
+
+        return (string) config('ai.provider', 'groq') === 'groq' ? ($groq || $openai) : $openai;
     }
 
     private function callAi(string $prompt): string

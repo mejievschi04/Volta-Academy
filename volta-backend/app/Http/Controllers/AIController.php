@@ -182,7 +182,8 @@ class AIController extends Controller
         }
 
         if (!$this->apiKey) {
-            return response()->json(['error' => 'AI API key not configured'], 500);
+            // 503: serviciul AI nu e disponibil (configurare), nu o eroare a serverului
+            return response()->json(['error' => 'Volt nu este configurat: lipsește cheia AI.'], 503);
         }
 
         $validated = $request->validate([
@@ -1974,13 +1975,8 @@ class AIController extends Controller
     private function streamResponse(Request $request, $type)
     {
         if (!$this->apiKey) {
-            $providerName = ucfirst($this->provider);
-            if ($this->provider === 'groq') {
-                $providerName = 'Groq';
-            }
-            return response()->json([
-                'error' => $providerName . ' API key not configured'
-            ], 500);
+            // 503: serviciul AI nu e disponibil (configurare), nu o eroare a serverului
+            return response()->json(['error' => 'Volt nu este configurat: lipsește cheia AI.'], 503);
         }
 
         $prompt = $request->input('prompt');

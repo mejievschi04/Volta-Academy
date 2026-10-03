@@ -63,10 +63,16 @@ return Application::configure(basePath: dirname(__DIR__))
             if (! $request->is('api/*')) {
                 return null;
             }
-            if (! filter_var(env('VOLTA_EXPOSE_API_ERRORS', false), FILTER_VALIDATE_BOOLEAN)) {
+            // config(), nu env(): în producție rulează `config:cache`, iar env() ar întoarce null.
+            if (! config('app.expose_api_errors')) {
                 return null;
             }
-            if ($e instanceof \Illuminate\Validation\ValidationException) {
+            // Doar erorile neprevăzute devin 500 cu detalii; 401/403/404/422 rămân cum sunt.
+            if ($e instanceof \Illuminate\Validation\ValidationException
+                || $e instanceof \Illuminate\Auth\AuthenticationException
+                || $e instanceof \Illuminate\Auth\Access\AuthorizationException
+                || $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException
+                || $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
                 return null;
             }
 

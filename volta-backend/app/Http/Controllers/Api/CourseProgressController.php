@@ -14,10 +14,12 @@ use App\Services\PublishedCourseView;
 use App\Support\LearningVisibility;
 use App\Support\StudentActivityLogger;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class CourseProgressController extends Controller
 {
@@ -215,6 +217,9 @@ class CourseProgressController extends Controller
             }
 
             return response()->json($accessStatus);
+        } catch (ModelNotFoundException|HttpExceptionInterface $e) {
+            // Curs inexistent sau interzis: 404/403, nu eroare de server.
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error in CourseProgressController::getCourseProgress', [
                 'course_id' => $courseId,
@@ -224,7 +229,7 @@ class CourseProgressController extends Controller
             
             return response()->json([
                 'error' => 'Nu s-a putut încărca progresul cursului',
-                'message' => $e->getMessage(),
+                'message' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -312,6 +317,9 @@ class CourseProgressController extends Controller
                 'enrolled' => true,
                 'progress' => $accessStatus,
             ]);
+        } catch (ModelNotFoundException|HttpExceptionInterface $e) {
+            // Curs inexistent sau interzis: 404/403, nu eroare de server.
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error in CourseProgressController::enrollCourse', [
                 'course_id' => $courseId,
@@ -320,7 +328,7 @@ class CourseProgressController extends Controller
 
             return response()->json([
                 'error' => 'Nu s-a putut inscrie in curs',
-                'message' => $e->getMessage(),
+                'message' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -415,6 +423,9 @@ class CourseProgressController extends Controller
                 'message' => 'Cursul a fost marcat ca finalizat.',
                 'completed_at' => $completedAtOut,
             ]);
+        } catch (ModelNotFoundException|HttpExceptionInterface $e) {
+            // Curs inexistent sau interzis: 404/403, nu eroare de server.
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error in CourseProgressController::finishCourse', [
                 'course_id' => $courseId,
@@ -423,7 +434,7 @@ class CourseProgressController extends Controller
 
             return response()->json([
                 'error' => 'Nu s-a putut finaliza cursul',
-                'message' => $e->getMessage(),
+                'message' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
