@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ListNumbers, Target, Timer, UsersThree, X } from '@phosphor-icons/react';
-import { ChevronRight } from 'lucide-react';
+import { X } from '@phosphor-icons/react';
+import { ArrowLeft, BarChart3, ChevronRight, Eye, ListChecks, Save, Settings, Users } from 'lucide-react';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -8,6 +8,7 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { useAuth } from '../../contexts/AuthContextShared.js';
 
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
+import { PublishSwitch } from '../../components/ui/PublishSwitch';
 import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import ExamContentPicker from '../../components/admin/exams/ExamContentPicker';
 import PassingScoreByQuestions from '../../components/admin/tests/PassingScoreByQuestions';
@@ -15,8 +16,6 @@ import Modal from '../../components/common/Modal';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
-import '../../styles/test-settings.css';
-import '../../styles/builder-page.css';
 import {
   TEST_RESULTS_DISPLAY_OPTIONS,
   getExamResultsDisplayMode,
@@ -174,9 +173,18 @@ export default function AdminExamsPage() {
     return rows;
   }, [contentBanks, contentOnlyWithQuestions, contentSearch, contentSort]);
   const builderHeroTitle = examSettings.title?.trim() || activeExamDraft.title || 'Examen nou';
+  const builderHeroAccent = published ? 'var(--color-success)' : 'var(--color-warning)';
 
   const deleteConfirmTitle = deleteConfirmExam?.title || 'Examen';
   const previewQuestionCount = Array.isArray(previewData?.questions) ? previewData.questions.length : 0;
+  const activeBuilderSection = EXAM_BUILDER_SECTIONS.find((section) => section.id === activeSection) || EXAM_BUILDER_SECTIONS[0];
+  const renderBuilderSectionIcon = (sectionId) => {
+    const props = { size: 17, 'aria-hidden': true };
+    if (sectionId === 'questions') return <ListChecks {...props} />;
+    if (sectionId === 'access') return <Users {...props} />;
+    if (sectionId === 'statistics') return <BarChart3 {...props} />;
+    return <Settings {...props} />;
+  };
 
   const loadExams = useCallback(async () => {
     try {
@@ -731,233 +739,177 @@ export default function AdminExamsPage() {
     </div>
   );
 
-  const patchExamSettings = (patch) => setExamSettings((prev) => ({ ...prev, ...patch }));
-  const unlimitedAttempts = examSettings.attempts === '' || examSettings.attempts == null;
   const sectionBody = activeSection === 'settings' ? (
     <div className="admin-exams-modern-section admin-exams-builder-form-root">
-      <div className="va-ts admin-exams-settings">
-        <section className="va-ts__section" aria-labelledby="exam-ts-info">
-          <h3 id="exam-ts-info" className="va-ts__title">Informații</h3>
-          <div className="va-ts__grid">
-            <div className="va-ts__field va-ts__field--full">
-              <label htmlFor="exam-title">Titlu examen</label>
-              <input
-                id="exam-title"
-                type="text"
-                className="va-ts__input"
-                value={examSettings.title}
-                onChange={(e) => patchExamSettings({ title: e.target.value })}
-                placeholder="Ex.: Examen final"
-              />
-            </div>
+      <div className="admin-exams-builder-panel">
+        <section className="admin-exams-builder-card va-card-shell va-card-shell--uniform">
+          <h3 className="admin-exams-builder-card-title">Identitate</h3>
+          <div className="admin-exams-builder-field-grid">
+            <label className="admin-exams-builder-field-span2">
+              Titlu examen
+              <input type="text" value={examSettings.title} onChange={(e) => setExamSettings((prev) => ({ ...prev, title: e.target.value }))} />
+            </label>
           </div>
         </section>
 
-        <section className="va-ts__section" aria-labelledby="exam-ts-run">
-          <h3 id="exam-ts-run" className="va-ts__title">Desfășurare</h3>
-          <div className="va-ts__grid va-ts__grid--three">
-            <div className="va-ts__field">
-              <label htmlFor="exam-time">Durată</label>
-              <div className="va-ts__suffix-input">
-                <input
-                  id="exam-time"
-                  type="number"
-                  min={1}
-                  max={300}
-                  className="va-ts__input"
-                  placeholder="Fără limită"
-                  value={examSettings.timeLimitMinutes}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    patchExamSettings({ timeLimitMinutes: next === '' ? '' : Math.max(1, Math.min(300, Number(next) || 1)) });
-                  }}
-                />
-                <span aria-hidden="true">min</span>
-              </div>
-              <p className="va-ts__hint">Din momentul în care elevul începe. Gol = fără limită.</p>
-            </div>
-            <div className="va-ts__field">
-              <label htmlFor="exam-attempts">Încercări</label>
-              <div className="va-ts__inline">
-                <input
-                  id="exam-attempts"
-                  type="number"
-                  min={1}
-                  max={20}
-                  className="va-ts__input"
-                  placeholder="∞"
-                  value={unlimitedAttempts ? '' : examSettings.attempts}
-                  disabled={unlimitedAttempts}
-                  onChange={(e) => patchExamSettings({ attempts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })}
-                />
-                <label className="va-ts__switch">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={unlimitedAttempts}
-                    onChange={(e) => patchExamSettings({ attempts: e.target.checked ? '' : 1 })}
-                  />
-                  <span className="va-ts__switch-track" aria-hidden="true" />
-                  <span>Nelimitate</span>
-                </label>
-              </div>
-            </div>
-            <div className="va-ts__field">
+        <section className="admin-exams-builder-card va-card-shell va-card-shell--uniform">
+          <h3 className="admin-exams-builder-card-title">Notare și încercări</h3>
+          <div className="admin-exams-builder-field-grid">
+            <div className="admin-exams-builder-field-span2">
               <PassingScoreByQuestions
                 questionCount={Math.min(
                   Math.max(1, Number(examSettings.questionCount || 1)),
                   Math.max(1, isQuestionMode ? selectedQuestionCount || 1 : Number(examSettings.questionCount || 1)),
                 )}
                 passingScore={examSettings.passingScore}
-                onPassingScoreChange={(next) => patchExamSettings({ passingScore: next })}
+                onPassingScoreChange={(next) => setExamSettings((prev) => ({ ...prev, passingScore: next }))}
               />
             </div>
+            <label className="admin-exams-builder-field-span2">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={examSettings.attempts === '' || examSettings.attempts == null}
+                  onChange={(e) => setExamSettings((prev) => ({ ...prev, attempts: e.target.checked ? '' : 1 }))}
+                />
+                {' '}Încercări nelimitate
+              </span>
+            </label>
+            {examSettings.attempts !== '' && examSettings.attempts != null && (
+              <label>
+                Număr maxim de încercări
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={examSettings.attempts}
+                  onChange={(e) => setExamSettings((prev) => ({
+                    ...prev,
+                    attempts: Math.max(1, Math.min(20, Number(e.target.value) || 1)),
+                  }))}
+                />
+              </label>
+            )}
           </div>
         </section>
 
-        <section className="va-ts__section" aria-labelledby="exam-ts-deadline">
-          <h3 id="exam-ts-deadline" className="va-ts__title">Termen limită</h3>
-          <p className="va-ts__hint">Până când poate fi deschis examenul. Nu depinde de durată.</p>
-          <div className="va-ts__grid">
-            <div className="va-ts__field">
-              <label htmlFor="exam-deadline-type">Tip termen</label>
-              <select
-                id="exam-deadline-type"
-                className="va-ts__input"
-                value={examSettings.deadlineType}
-                onChange={(e) => patchExamSettings({ deadlineType: e.target.value })}
-              >
+        <section className="admin-exams-builder-card va-card-shell va-card-shell--uniform">
+          <h3 className="admin-exams-builder-card-title">Durată</h3>
+          <p className="admin-exams-access-lead">Cât timp are elevul din momentul în care începe testul. Lasă gol dacă nu vrei limită de minute.</p>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Minute
+              <input
+                type="number"
+                min={1}
+                max={300}
+                placeholder="Nelimitat"
+                value={examSettings.timeLimitMinutes}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setExamSettings((prev) => ({
+                    ...prev,
+                    timeLimitMinutes: next === '' ? '' : Math.max(1, Math.min(300, Number(next) || 1)),
+                  }));
+                }}
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="admin-exams-builder-card va-card-shell va-card-shell--uniform">
+          <h3 className="admin-exams-builder-card-title">Termen limită</h3>
+          <p className="admin-exams-access-lead">Până când poate fi deschis examenul. Nu depinde de durată și poate rămâne fără termen.</p>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Tip termen
+              <select value={examSettings.deadlineType} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineType: e.target.value }))}>
                 <option value="none">Fără termen</option>
                 <option value="fixed">Dată fixă</option>
                 <option value="relative">Zile de la începere</option>
               </select>
-            </div>
+            </label>
             {examSettings.deadlineType === 'fixed' ? (
-              <div className="va-ts__field">
-                <label htmlFor="exam-deadline-at">Dată și oră limită</label>
-                <input
-                  id="exam-deadline-at"
-                  type="datetime-local"
-                  className="va-ts__input"
-                  value={examSettings.deadlineAt}
-                  onChange={(e) => patchExamSettings({ deadlineAt: e.target.value })}
-                />
-              </div>
+              <label>
+                Dată și oră limită
+                <input type="datetime-local" value={examSettings.deadlineAt} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineAt: e.target.value }))} />
+              </label>
             ) : null}
             {examSettings.deadlineType === 'relative' ? (
-              <div className="va-ts__field">
-                <label htmlFor="exam-deadline-days">Zile disponibile</label>
-                <div className="va-ts__suffix-input">
-                  <input
-                    id="exam-deadline-days"
-                    type="number"
-                    min={1}
-                    max={365}
-                    className="va-ts__input"
-                    value={examSettings.deadlineDays}
-                    onChange={(e) => patchExamSettings({ deadlineDays: Math.max(1, Number(e.target.value || 1)) })}
-                  />
-                  <span aria-hidden="true">zile</span>
-                </div>
-              </div>
-            ) : null}
-          </div>
-          {examSettings.deadlineType !== 'none' ? (
-            <div className="va-ts__toggles">
-              <label className={`va-ts__toggle${examSettings.deadlineFlexible ? ' is-on' : ''}`}>
-                <span className="va-ts__toggle-text">
-                  <strong>Termen flexibil</strong>
-                  <small>Elevul poate trece examenul și după expirarea termenului.</small>
-                </span>
-                <span className="va-ts__switch">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={Boolean(examSettings.deadlineFlexible)}
-                    onChange={(e) => patchExamSettings({ deadlineFlexible: e.target.checked })}
-                  />
-                  <span className="va-ts__switch-track" aria-hidden="true" />
-                </span>
+              <label>
+                Zile disponibile
+                <input type="number" min={1} max={365} value={examSettings.deadlineDays} onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineDays: Math.max(1, Number(e.target.value || 1)) }))} />
               </label>
-            </div>
-          ) : null}
+            ) : null}
+            <label className="admin-exams-builder-field-span2">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(examSettings.deadlineFlexible)}
+                  onChange={(e) => setExamSettings((prev) => ({ ...prev, deadlineFlexible: e.target.checked }))}
+                />
+                {' '}Deadline flexibil — permite trecerea și după expirarea termenului
+              </span>
+            </label>
+          </div>
         </section>
 
-        <section className="va-ts__section" aria-labelledby="exam-ts-behaviour">
-          <h3 id="exam-ts-behaviour" className="va-ts__title">Comportament</h3>
-          <div className="va-ts__grid">
-            <div className="va-ts__field">
-              <label htmlFor="exam-navigation">Navigare între întrebări</label>
-              <select
-                id="exam-navigation"
-                className="va-ts__input"
-                value={examSettings.navigationMode}
-                onChange={(e) => patchExamSettings({ navigationMode: e.target.value })}
-              >
+        <section className="admin-exams-builder-card va-card-shell va-card-shell--uniform">
+          <h3 className="admin-exams-builder-card-title">Comportament în timpul examenului</h3>
+          <div className="admin-exams-builder-field-grid">
+            <label>
+              Navigare între întrebări
+              <select value={examSettings.navigationMode} onChange={(e) => setExamSettings((prev) => ({ ...prev, navigationMode: e.target.value }))}>
                 <option value="sequential">Secvențială</option>
                 <option value="free">Liberă</option>
               </select>
-            </div>
-            <div className="va-ts__field">
-              <label htmlFor="exam-review-mode">Revizuire manuală</label>
-              <select
-                id="exam-review-mode"
-                className="va-ts__input"
-                value={manualReviewState.reviewMode}
-                onChange={(e) => setManualReviewState((prev) => ({ ...prev, reviewMode: e.target.value }))}
-              >
+            </label>
+            <label>
+              Revizuire manuală
+              <select value={manualReviewState.reviewMode} onChange={(e) => setManualReviewState((prev) => ({ ...prev, reviewMode: e.target.value }))}>
                 <option value="after_complete">După finalizare</option>
                 <option value="partial">Parțial</option>
               </select>
+            </label>
+          </div>
+          <div className="admin-exams-builder-checks">
+            <label>
+              <input type="checkbox" checked={examSettings.shuffleQuestions} onChange={(e) => setExamSettings((prev) => ({ ...prev, shuffleQuestions: e.target.checked }))} />
+              Amestecă întrebările la fiecare încercare
+            </label>
+            <label>
+              <input type="checkbox" checked={examSettings.manualReview} onChange={(e) => setExamSettings((prev) => ({ ...prev, manualReview: e.target.checked }))} />
+              Necesită verificare manuală
+            </label>
+            <label>
+              <input type="checkbox" checked={examSettings.showFeedbackInstant} onChange={(e) => setExamSettings((prev) => ({ ...prev, showFeedbackInstant: e.target.checked }))} />
+              Afișează rezultatul imediat după trimitere
+            </label>
+          </div>
+          <div className="admin-exams-results-display-mode">
+            <div className="admin-exams-results-display-mode-head">
+              <strong>Afișare răspunsuri după examen</strong>
             </div>
-          </div>
-          <div className="va-ts__toggles">
-            {[
-              ['shuffleQuestions', 'Amestecă întrebările', 'Ordinea întrebărilor diferă la fiecare încercare.'],
-              ['manualReview', 'Necesită verificare manuală', 'Rezultatul rămâne în așteptare până la corectare.'],
-              ['showFeedbackInstant', 'Arată rezultatul imediat', 'Elevul vede scorul imediat după trimitere.'],
-            ].map(([key, label, hint]) => (
-              <label key={key} className={`va-ts__toggle${examSettings[key] ? ' is-on' : ''}`}>
-                <span className="va-ts__toggle-text">
-                  <strong>{label}</strong>
-                  <small>{hint}</small>
-                </span>
-                <span className="va-ts__switch">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={Boolean(examSettings[key])}
-                    onChange={(e) => patchExamSettings({ [key]: e.target.checked })}
-                  />
-                  <span className="va-ts__switch-track" aria-hidden="true" />
-                </span>
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="va-ts__section" aria-labelledby="exam-ts-results">
-          <h3 id="exam-ts-results" className="va-ts__title">Afișarea răspunsurilor după examen</h3>
-          <p className="va-ts__hint">O singură opțiune: răspunsurile corecte și cele date de elev nu se afișează împreună.</p>
-          <div className="va-ts__choices" role="radiogroup" aria-labelledby="exam-ts-results">
-            {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => {
-              const active = getExamResultsDisplayMode(examSettings) === option.id;
-              return (
-                <label key={option.id} className={`va-ts__choice${active ? ' is-active' : ''}`}>
+            <div className="admin-exams-results-display-mode-options" role="radiogroup" aria-label="Afișare răspunsuri după examen">
+              {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => (
+                <label
+                  key={option.id}
+                  className={`admin-exams-results-display-mode-option ${getExamResultsDisplayMode(examSettings) === option.id ? 'is-active' : ''}`}
+                >
                   <input
                     type="radio"
                     name="exam-results-display"
                     value={option.id}
-                    checked={active}
-                    onChange={() => patchExamSettings(patchExamResultsDisplayMode(option.id))}
+                    checked={getExamResultsDisplayMode(examSettings) === option.id}
+                    onChange={() => setExamSettings((prev) => ({ ...prev, ...patchExamResultsDisplayMode(option.id) }))}
                   />
                   <span>
                     <strong>{option.label}</strong>
                     {option.hint ? <small>{option.hint}</small> : null}
                   </span>
                 </label>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </section>
       </div>
@@ -1185,97 +1137,128 @@ export default function AdminExamsPage() {
     </div>
   ) : null;
 
-  const builderBusy = saveState.loading || publishToggleLoading;
-  const builderStats = [
-    ['questions', ListNumbers, 'Întrebări per elev', String(Number(examSettings.questionCount || 0))],
-    ['passing', Target, 'Prag de promovare', `${Number(examSettings.passingScore ?? 0)}%`],
-    ['time', Timer, 'Durată', examSettings.timeLimitMinutes ? `${examSettings.timeLimitMinutes} min` : 'Nelimitat'],
-    ['attempts', UsersThree, 'Acces', accessSummaryLabel],
-  ];
   const createView = (
-    <div className="admin-container admin-tests-page admin-exams-page va-test-builder admin-exams-builder">
-      <header className="va-test-builder__head">
-        <button type="button" className="va-test-builder__back" onClick={() => setViewMode('list')}>
-          <ArrowLeft size={16} weight="bold" aria-hidden="true" />
-          Examene
-        </button>
-
-        <div className="va-test-builder__title-row">
-          <div className="va-test-builder__title">
-            <h1>{builderHeroTitle}</h1>
-            <span className={`va-test-builder__status ${published ? 'is-published' : 'is-draft'}`}>
-              {published ? 'Publicat' : 'Ciornă'}
-            </span>
-            {saveState.loading ? <span className="va-test-builder__saving">Se salvează…</span> : null}
-          </div>
-          <div className="va-test-builder__actions">
+    <div className="admin-tests-page admin-exams-modern-page admin-exams-page admin-exams-builder-redesign admin-exams-builder-refined">
+      <div className="admin-exams-builder-shell">
+        <header
+          className="admin-exams-builder-top"
+          style={{
+            '--admin-exams-builder-accent': builderHeroAccent,
+          }}
+        >
+          <div className="admin-exams-builder-top-left">
             <button
               type="button"
-              className="lms-btn-secondary"
+              className="admin-exams-builder-back-btn va-btn-back admin-back-btn"
+              onClick={() => setViewMode('list')}
+            >
+              <ArrowLeft size={18} aria-hidden />
+              Înapoi
+            </button>
+            <div className="admin-exams-builder-title-wrap">
+              <p className="admin-exams-builder-kicker">Builder examen</p>
+              <h1 className="admin-exams-builder-title">{builderHeroTitle}</h1>
+            </div>
+          </div>
+
+          <div className="admin-exams-builder-actions">
+            <PublishSwitch
+              published={published}
+              disabled={publishToggleLoading || saveState.loading}
+              onToggle={handleTogglePublishedNow}
+            />
+            <button
+              type="button"
+              className="admin-exams-builder-ghost-btn"
               onClick={handleOpenPreview}
               disabled={!activeExamDraft.id || previewLoading}
             >
+              <Eye size={17} aria-hidden />
               Previzualizare
             </button>
             {canMutateInAdminArea ? (
-              <>
-                <button
-                  type="button"
-                  className={published ? 'va-btn-save lms-btn-primary' : 'lms-btn-secondary'}
-                  onClick={() => handleSaveExam()}
-                  disabled={builderBusy}
-                >
-                  {saveState.loading && !publishToggleLoading ? 'Se salvează…' : 'Salvează'}
-                </button>
-                <button
-                  type="button"
-                  className={published ? 'lms-btn-secondary' : 'lms-btn-primary'}
-                  onClick={handleTogglePublishedNow}
-                  disabled={builderBusy}
-                >
-                  {publishToggleLoading ? 'Se actualizează…' : published ? 'Retrage în ciornă' : 'Publică'}
-                </button>
-              </>
+              <button
+                type="button"
+                className="va-btn-save admin-exams-builder-save-btn"
+                onClick={() => handleSaveExam()}
+                disabled={saveState.loading || publishToggleLoading}
+              >
+                <Save size={17} aria-hidden />
+                {saveState.loading ? 'Se salvează...' : 'Salvează'}
+              </button>
             ) : null}
           </div>
-        </div>
+        </header>
 
-        <dl className="va-test-builder__stats" aria-label="Rezumat examen">
-          {builderStats.map(([key, Icon, label, value]) => (
-            <div key={key} className={`va-test-builder__stat is-${key}`}>
-              <span className="va-test-builder__stat-icon" aria-hidden="true">
-                <Icon size={18} weight="bold" />
-              </span>
-              <div>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
+        <nav className="admin-exams-builder-workflow" aria-label="Pași builder examen">
+          <div className="admin-exams-builder-rail-block">
+            <span className="admin-exams-builder-rail-label">Workflow</span>
+            <div className="admin-exams-builder-tabs-rail">
+              <div className="admin-exams-builder-tabs" role="tablist">
+                {EXAM_BUILDER_SECTIONS.map((section, idx) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSection === section.id}
+                    className={`admin-exams-builder-tab${activeSection === section.id ? ' is-active' : ''}`}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <span className="admin-exams-builder-tab-num" aria-hidden>
+                      {idx + 1}
+                    </span>
+                    <span className="admin-exams-builder-tab-icon" aria-hidden>
+                      {renderBuilderSectionIcon(section.id)}
+                    </span>
+                    <span className="admin-exams-builder-tab-text">
+                      <strong>{section.label}</strong>
+                      <small>{section.hint}</small>
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </dl>
+          </div>
+        </nav>
 
-        <div className="va-dialog__tabs va-test-builder__tabs" role="tablist" aria-label="Secțiuni examen">
-          {EXAM_BUILDER_SECTIONS.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              role="tab"
-              aria-selected={activeSection === section.id}
-              className={`va-dialog__tab${activeSection === section.id ? ' is-active' : ''}`}
-              onClick={() => setActiveSection(section.id)}
+        <main className="admin-exams-builder-main">
+          <div className={`admin-exams-builder-board ${activeSection === 'questions' ? 'is-question-picker' : ''}`}>
+            <aside className="admin-exams-builder-rail" aria-label="Rezumat builder examen">
+              <section className="admin-exams-builder-summary" aria-label="Rezumat rapid examen">
+                <div className="admin-exams-builder-summary-head">
+                  <span className="admin-exams-builder-rail-label">Rezumat</span>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Status</span>
+                  <strong>{published ? 'Publicat' : 'Ciornă'}</strong>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Întrebări</span>
+                  <strong>{Number(examSettings.questionCount || 0)}</strong>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Acces</span>
+                  <strong>{accessSummaryLabel}</strong>
+                </div>
+                <div className="admin-exams-builder-summary-card">
+                  <span>Review</span>
+                  <strong>{examSettings.manualReview ? 'Manual' : 'Auto'}</strong>
+                </div>
+              </section>
+            </aside>
+
+            <section
+              className="admin-exams-builder-workspace"
+              aria-label={activeBuilderSection?.label ? `Secțiune ${activeBuilderSection.label}` : 'Conținut builder examen'}
             >
-              {section.label}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      <main className="va-test-builder__body admin-exams-builder__body">
-        {saveState.message ? (
-          <p className={`admin-exams-save-message is-${saveState.type}`} role="status">{saveState.message}</p>
-        ) : null}
-        {sectionBody}
-      </main>
+              {saveState.message ? (
+                <p className={`admin-exams-save-message is-${saveState.type}`}>{saveState.message}</p>
+              ) : null}
+              <div className="admin-exams-builder-stage">{sectionBody}</div>
+            </section>
+          </div>
+        </main>
+      </div>
     </div>
   );
   return (

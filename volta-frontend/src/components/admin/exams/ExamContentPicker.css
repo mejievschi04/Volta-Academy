@@ -73,25 +73,19 @@
 	text-align: right;
 }
 
-html body .exam-picker-methods.va-dialog__tabs,
-html body .exam-picker-source.va-dialog__tabs {
-	flex-wrap: wrap;
-	order: 0;
-	margin-left: 0;
+.exam-picker-methods {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
 }
 
-html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
+.exam-picker-methods .lms-btn-primary,
+.exam-picker-methods .lms-btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	gap: 8px;
-	min-height: 40px;
-	white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-	html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
-		flex: 1 1 auto;
-		justify-content: center;
-		padding: 0 12px;
-	}
+	width: 100%;
 }
 
 .exam-picker-split {
@@ -139,6 +133,20 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 	font-weight: 700;
 }
 
+.exam-picker-source {
+	display: inline-flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.exam-picker-source .lms-btn-primary,
+.exam-picker-source .lms-btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 108px;
+}
+
 .exam-picker-browse-body {
 	min-height: 0;
 	overflow: auto;
@@ -152,7 +160,7 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 
 .exam-picker-browse-body .qb-catalog-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 	gap: 12px;
 	align-items: stretch;
 }
@@ -446,7 +454,7 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 
 .exam-picker-folder-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 	gap: 12px;
 }
 
@@ -664,6 +672,16 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 	color: var(--text-secondary);
 }
 
+.exam-picker-tray-list .lms-btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 36px;
+	padding: 0 10px;
+	white-space: nowrap;
+}
+
 .exam-picker-tray-index {
 	display: inline-flex;
 	align-items: center;
@@ -718,7 +736,8 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 }
 
 @media (max-width: 1100px) {
-	.exam-picker-split {
+	.exam-picker-split,
+	.exam-picker-methods {
 		grid-template-columns: 1fr;
 	}
 
@@ -748,8 +767,7 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 	}
 }
 
-/* pe ecrane înguste: lista aleasă crește cu conținutul (înălțimea fixă suprapunea butonul peste text),
-   iar cardurile de test pun „Adaugă toate” sub titlu */
+/* pe ecrane înguste lista aleasă avea înălțime fixă: conținutul ieșea peste catalog și nu se putea apăsa pe întrebări */
 @media (max-width: 1100px) {
 	.exam-picker-tray {
 		display: flex;
@@ -762,32 +780,4 @@ html body .exam-picker-methods .va-dialog__tab.va-dialog__tab {
 		max-height: 320px;
 		overflow-y: auto;
 	}
-}
-
-@media (max-width: 640px) {
-	.exam-picker-browse-body .qb-catalog-tile:has(.qb-catalog-tile-foot) {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.exam-picker-browse-body .qb-catalog-tile-foot {
-		padding: 0 16px 14px 16px;
-	}
-
-	.exam-picker-browse-body .qb-catalog-tile-foot .lms-btn-primary,
-	.exam-picker-browse-body .qb-catalog-tile-foot .lms-btn-secondary {
-		width: 100%;
-	}
-}
-
-/* butonul care deschide întrebarea e text simplu: stratul global de butoane îi punea padding și înălțime */
-html body .exam-picker-tray-list .exam-picker-tray-open.exam-picker-tray-open {
-	justify-content: stretch;
-	justify-items: start;
-	height: auto !important;
-	min-height: 0 !important;
-	padding: 0 !important;
-	border: 0 !important;
-	background: transparent !important;
-	box-shadow: none !important;
 }
