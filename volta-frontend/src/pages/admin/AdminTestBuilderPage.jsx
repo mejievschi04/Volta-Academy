@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, ListNumbers, Target, Timer } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -94,10 +94,10 @@ export default function AdminTestBuilderPage() {
   const isPublished = String(test.status || 'draft').toLowerCase() === 'published';
   const busy = editor.creatingTest || editor.inlineTestSaving || editor.inlinePublishLoading;
   const stats = [
-    ['Întrebări', String(editor.inlineQuestions.length)],
-    ['Prag de promovare', `${Number(test.passing_score ?? 70)}%`],
-    ['Timp', test.time_limit_minutes ? `${test.time_limit_minutes} min` : 'Nelimitat'],
-    ['Încercări', test.max_attempts ? String(test.max_attempts) : 'Fără limită'],
+    ['questions', ListNumbers, 'Întrebări', String(editor.inlineQuestions.length)],
+    ['passing', Target, 'Prag de promovare', `${Number(test.passing_score ?? 70)}%`],
+    ['time', Timer, 'Timp', test.time_limit_minutes ? `${test.time_limit_minutes} min` : 'Nelimitat'],
+    ['attempts', ArrowsClockwise, 'Încercări', test.max_attempts ? String(test.max_attempts) : 'Fără limită'],
   ];
 
   return (
@@ -143,10 +143,15 @@ export default function AdminTestBuilderPage() {
         </div>
 
         <dl className="va-test-builder__stats" aria-label="Rezumat test">
-          {stats.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
+          {stats.map(([key, Icon, label, value]) => (
+            <div key={key} className={`va-test-builder__stat is-${key}`}>
+              <span className="va-test-builder__stat-icon" aria-hidden="true">
+                <Icon size={18} weight="bold" />
+              </span>
+              <div>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
             </div>
           ))}
         </dl>

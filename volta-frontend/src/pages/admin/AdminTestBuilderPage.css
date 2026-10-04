@@ -932,3 +932,55 @@ html body .va-test-builder .admin-course-builder-test-layout {
 		justify-content: center;
 	}
 }
+
+/* ---------- Culoare și ierarhie ---------- */
+html body .va-test-builder__head {
+	border-top: 4px solid var(--btn-primary-bg);
+}
+
+html body .va-test-builder__stats > .va-test-builder__stat {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	--stat-accent: #2563eb;
+	--stat-ink: #1e40af;
+}
+html body .va-test-builder__stat.is-passing { --stat-accent: #16a34a; --stat-ink: #166534; }
+html body .va-test-builder__stat.is-time { --stat-accent: #d97706; --stat-ink: #92400e; }
+html body .va-test-builder__stat.is-attempts { --stat-accent: #7c3aed; --stat-ink: #5b21b6; }
+html[data-theme="dark"] body .va-test-builder__stat { --stat-ink: #93c5fd; }
+html[data-theme="dark"] body .va-test-builder__stat.is-passing { --stat-ink: #86efac; }
+html[data-theme="dark"] body .va-test-builder__stat.is-time { --stat-ink: #fcd34d; }
+html[data-theme="dark"] body .va-test-builder__stat.is-attempts { --stat-ink: #c4b5fd; }
+
+html body .va-test-builder__stat-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--stat-accent) 16%, var(--bg-elevated));
+	color: var(--stat-ink);
+}
+
+html body .va-test-builder .va-test-builder__stat .va-test-builder__stat-icon,
+html body .va-test-builder .va-test-builder__stat .va-test-builder__stat-icon svg {
+	color: var(--stat-ink) !important;
+	fill: currentColor;
+}
+
+/* secțiunea cu întrebări și cea cu setări: fundal nuanțat, ca rândurile albe să se desprindă */
+html body .va-test-builder .admin-course-builder-test-questions-card,
+html body .va-test-builder .admin-course-builder-test-settings {
+	border: 1px solid var(--border-primary) !important;
+	border-radius: 16px !important;
+	background: color-mix(in srgb, var(--text-primary) 4%, var(--bg-primary)) !important;
+	box-shadow: none !important;
+}
+
+html[data-theme="dark"] body .va-test-builder .admin-course-builder-test-questions-card,
+html[data-theme="dark"] body .va-test-builder .admin-course-builder-test-settings {
+	background: color-mix(in srgb, #000 22%, var(--bg-elevated)) !important;
+}

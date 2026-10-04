@@ -179,3 +179,88 @@ html body .va-tq-type-card.va-tq-type-card.is-current {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
+
+/* ---------- Culoare pe tipuri de întrebări: bară în stânga + etichetă (text ≥ 6:1 în ambele teme) ---------- */
+html body [data-qtype] {
+	--tq-accent: #2563eb;
+	--tq-ink: #1e40af;
+	--tq-ink-dark: #93c5fd;
+}
+html body [data-qtype="single_choice"] { --tq-accent: #7c3aed; --tq-ink: #5b21b6; --tq-ink-dark: #c4b5fd; }
+html body [data-qtype="true_false"] { --tq-accent: #0d9488; --tq-ink: #115e59; --tq-ink-dark: #5eead4; }
+html body [data-qtype="yes_no"] { --tq-accent: #16a34a; --tq-ink: #166534; --tq-ink-dark: #86efac; }
+html body [data-qtype="matching"] { --tq-accent: #ea580c; --tq-ink: #9a3412; --tq-ink-dark: #fdba74; }
+html body [data-qtype="ordering"] { --tq-accent: #db2777; --tq-ink: #9d174d; --tq-ink-dark: #f9a8d4; }
+
+html[data-theme="dark"] body [data-qtype] {
+	--tq-accent: var(--tq-ink-dark);
+	--tq-ink: var(--tq-ink-dark);
+}
+
+/* lista: rândurile albe se desprind de fundalul nuanțat al secțiunii */
+html body .admin-course-builder-test-question-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+html body .admin-course-builder-test-question-item[data-qtype] {
+	position: relative;
+	border: 1px solid var(--border-primary) !important;
+	border-left: 4px solid var(--tq-accent) !important;
+	border-radius: 12px !important;
+	background: var(--bg-elevated) !important;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.05);
+	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+html body .admin-course-builder-test-question-item[data-qtype]:hover {
+	box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08), 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+html body .admin-course-builder-test-question-item[data-qtype].is-expanded {
+	box-shadow: 0 0 0 1px var(--tq-accent), 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+html body [data-qtype] .va-tq-type.va-tq-type {
+	border-color: color-mix(in srgb, var(--tq-accent) 45%, transparent) !important;
+	background: color-mix(in srgb, var(--tq-accent) 12%, var(--bg-elevated)) !important;
+	color: var(--tq-ink) !important;
+}
+
+html[data-theme="dark"] body [data-qtype] .va-tq-type.va-tq-type {
+	background: color-mix(in srgb, var(--tq-accent) 22%, var(--bg-elevated)) !important;
+}
+
+html body [data-qtype] .va-tq-type.va-tq-type:hover:not(:disabled) {
+	border-color: var(--tq-accent) !important;
+}
+
+/* numărul întrebării: insigna galbenă Volta */
+html body .va-tq-num {
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+
+/* fereastra de tip: fiecare card cu culoarea tipului lui */
+html body .va-tq-type-card[data-qtype] .admin-course-builder-test-type-short {
+	background: color-mix(in srgb, var(--tq-accent) 16%, var(--bg-elevated)) !important;
+	color: var(--tq-ink) !important;
+}
+
+html body .va-tq-type-card[data-qtype].is-current {
+	border-color: var(--tq-accent) !important;
+	box-shadow: inset 0 0 0 1px var(--tq-accent) !important;
+}
+
+html body .va-tq-type-card[data-qtype]:hover:not(:disabled) {
+	border-color: var(--tq-accent) !important;
+}
+
+/* carduri mai scunde: pătratele lăsau mult spațiu gol */
+html body .va-tq-type-card.va-tq-type-card {
+	aspect-ratio: auto !important;
+	min-height: 92px !important;
+	height: auto !important;
+}

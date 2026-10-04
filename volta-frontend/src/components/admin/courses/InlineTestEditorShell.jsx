@@ -175,6 +175,7 @@ export default function InlineTestEditorShell({
                         key={question.id}
                         id={`test-question-${question.id}`}
                         className={`admin-course-builder-test-question-item ${questionExpanded ? 'is-expanded' : 'is-collapsed'}`}
+                        data-qtype={qType}
                       >
                         <div className="va-tq-row">
                           <span className="va-tq-num" aria-hidden="true">{idx + 1}</span>
@@ -542,6 +543,7 @@ export default function InlineTestEditorShell({
                       key={typeOpt.id}
                       type="button"
                       className={`admin-course-builder-test-type-card va-tq-type-card${isCurrent ? ' is-current' : ''}`}
+                      data-qtype={typeOpt.id}
                       aria-pressed={Boolean(isCurrent)}
                       onClick={() => openQuestionTypePickerId && handleInlineQuestionTypeChange(openQuestionTypePickerId, typeOpt.id)}
                       disabled={addingQuestion || !openQuestionTypePickerId || !canMutateInAdminArea}
