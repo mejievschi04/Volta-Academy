@@ -272,6 +272,14 @@ const AdminCourseBuilderPage = () => {
 				lastPersistedLessonUpdatedAtRef.current = lesson.updated_at;
 			}
 		};
+		// Serverul trece cursul publicat în „editing” la prima modificare (cursanții văd versiunea publicată
+		// până la „Publică modificările”). Salvarea conținutului nu reîncarcă structura, deci actualizăm aici
+		// starea, altfel builder-ul afișa „Cursanții văd această versiune” și nu oferea butonul de publicare.
+		const markUnpublishedEdits = () => setStructure((prev) => (
+			prev?.course?.status === 'published' && prev.course.workflow_status !== 'editing'
+				? { ...prev, course: { ...prev.course, workflow_status: 'editing' } }
+				: prev
+		));
 		const run = async () => {
 			const send = () => adminService.builderUpdateLesson(courseId, lessonId, {
 				content,
@@ -281,6 +289,7 @@ const AdminCourseBuilderPage = () => {
 				const response = await send();
 				lastPersistedLessonContentRef.current = content ?? '';
 				applyLessonTimestamp(response?.lesson);
+				markUnpublishedEdits();
 			} catch (e) {
 				const status = e?.response?.status;
 				const serverLesson = e?.response?.data?.lesson;
@@ -289,6 +298,7 @@ const AdminCourseBuilderPage = () => {
 					const retry = await send();
 					lastPersistedLessonContentRef.current = content ?? '';
 					applyLessonTimestamp(retry?.lesson);
+					markUnpublishedEdits();
 					return;
 				}
 				throw e;
