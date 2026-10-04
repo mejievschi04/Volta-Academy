@@ -220,3 +220,33 @@ test('setările testului: comutatoarele se salvează și rămân după reîncăr
 	await page.waitForLoadState('networkidle');
 	await page.waitForTimeout(600);
 });
+
+test('builder-ul de examen: antet cu file, iar încercările se setează cu comutator și se salvează', async ({ page }, info) => {
+	const title = `Examen setări ${info.project.name} ${Date.now()}`;
+	await page.goto('/admin/content?tab=exams');
+	await page.getByRole('button', { name: 'Creează examen' }).first().click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Titlu').fill(title);
+	await dialog.getByRole('button', { name: 'Creează' }).click();
+
+	await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+	for (const name of ['Setări', 'Întrebări', 'Acces', 'Statistici']) {
+		await expect(page.getByRole('tab', { name })).toBeVisible();
+	}
+	await expect(page.getByRole('tab', { name: 'Setări' })).toHaveAttribute('aria-selected', 'true');
+
+	const unlimited = page.getByRole('switch', { name: 'Nelimitate' });
+	const attempts = page.getByLabel('Încercări', { exact: true });
+	await expect(unlimited).toBeChecked();
+	await expect(attempts).toBeDisabled();
+	await page.locator('.va-ts__switch').filter({ hasText: 'Nelimitate' }).click();
+	await expect(attempts).toBeEnabled();
+	await attempts.fill('3');
+	await page.getByRole('button', { name: 'Salvează', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Examen salvat');
+
+	await page.getByRole('button', { name: 'Examene' }).click();
+	await page.getByRole('article').filter({ hasText: title }).getByRole('button', { name: 'Deschide builder-ul' }).click();
+	await expect(page.getByLabel('Încercări', { exact: true })).toHaveValue('3');
+	await expect(page.getByRole('switch', { name: 'Nelimitate' })).not.toBeChecked();
+});

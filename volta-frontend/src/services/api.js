@@ -186,31 +186,37 @@ export const examService = {
     return response.data?.data ?? response.data ?? [];
   },
 
-  /** @param {{ newAttempt?: boolean }} [options] — newAttempt: încercare nouă (seed întrebări = următoarea), nu reconstruirea ultimei încercări */
+  /**
+   * @param {{ newAttempt?: boolean, kind?: 'test'|'exam' }} [options] — newAttempt: încercare nouă (seed întrebări = următoarea), nu reconstruirea ultimei încercări;
+   * kind: testele și examenele au id-uri separate, deci un link care știe ce deschide o spune explicit
+   */
   getExam: async (examId, courseId = null, options = {}) => {
     const params = courseId ? { course_id: courseId } : {};
     if (options.newAttempt) {
       params.new_attempt = 1;
     }
+    if (options.kind) {
+      params.kind = options.kind;
+    }
     const response = await api.get(`/exams/${examId}`, { params });
     return response.data;
   },
 
-  submitExam: async (examId, answers, courseId = null, attemptMeta = null) => {
+  submitExam: async (examId, answers, courseId = null, attemptMeta = null, kind = null) => {
     const payload = { answers };
     if (courseId) payload.course_id = courseId;
     if (attemptMeta && typeof attemptMeta === 'object') {
       Object.assign(payload, attemptMeta);
     }
-    const response = await api.post(`/exams/${examId}/submit`, payload);
+    const response = await api.post(`/exams/${examId}/submit`, payload, { params: kind ? { kind } : {} });
     return response.data;
   },
 
-  saveProgress: async (examId, answers, courseId = null, attemptId = null) => {
+  saveProgress: async (examId, answers, courseId = null, attemptId = null, kind = null) => {
     const payload = { answers };
     if (courseId) payload.course_id = courseId;
     if (attemptId) payload.attempt_id = attemptId;
-    const response = await api.post(`/exams/${examId}/progress`, payload);
+    const response = await api.post(`/exams/${examId}/progress`, payload, { params: kind ? { kind } : {} });
     return response.data;
   },
 };

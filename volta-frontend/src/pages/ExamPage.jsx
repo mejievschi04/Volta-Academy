@@ -86,6 +86,7 @@ const ExamPage = () => {
 	const [searchParams] = useSearchParams();
 	// Admin și analist parcurg testul ca un cursant, dar serverul nu le salvează încercarea și rezultatul.
 	const isPreviewMode = ['admin', 'analyst'].includes(user?.actualRole ?? user?.role);
+	const examKind = ['test', 'exam'].includes(searchParams.get('kind')) ? searchParams.get('kind') : null;
 	const back = courseId
 		? { to: `/courses/${courseId}`, label: 'Înapoi la curs' }
 		: searchParams.get('preview') === '1'
@@ -156,7 +157,7 @@ const ExamPage = () => {
 					/* ignore */
 				}
 			}
-			const data = await examService.getExam(examId, courseId, { newAttempt: forceFreshAttempt });
+			const data = await examService.getExam(examId, courseId, { newAttempt: forceFreshAttempt, kind: examKind });
 			setExam(data);
 
 			const completedStatuses = ['completed', 'pending_review'];
@@ -250,6 +251,7 @@ const ExamPage = () => {
 				nextAnswers,
 				courseId || null,
 				exam?.active_attempt?.id ?? null,
+				examKind,
 			);
 		} catch {
 			/* sessionStorage remains the local fallback */
@@ -348,7 +350,7 @@ const ExamPage = () => {
 			const resultData = await examService.submitExam(examId, latestAnswers, courseId || null, {
 				attempt_id: exam?.active_attempt?.id ?? null,
 				started_at: exam?.active_attempt?.started_at ?? (startTime ? new Date(startTime).toISOString() : null),
-			});
+			}, examKind);
 			const submittedResult = resultData.result;
             if (submittedResult && 'remaining_attempts' in submittedResult) {
                 setExam((prev) => prev ? { ...prev,

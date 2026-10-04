@@ -733,7 +733,7 @@ class ExamController extends Controller
         try {
             $user = Auth::user();
             $courseId = $request->query('course_id') ? (int) $request->query('course_id') : null;
-            $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
+            $resolved = $this->resolveExamShowModel((int) $examId, $courseId, $request->query('kind'));
 
             if ($resolved['test']) {
                 return $this->handleTest($resolved['test'], $user, $courseId, $request);
@@ -760,8 +760,10 @@ class ExamController extends Controller
 
     /**
      * tests și exams au ID-uri independente — același număr poate exista în ambele tabele.
+     * $kind ('test' / 'exam') vine din linkuri care știu deja ce deschid (ex. „Încearcă testul” din admin)
+     * și are prioritate față de ghicirea după curs.
      */
-    protected function resolveExamShowModel(int $id, ?int $courseId): array
+    protected function resolveExamShowModel(int $id, ?int $courseId, mixed $kind = null): array
     {
         $exam = Exam::with([
             'course:id,title',
@@ -783,6 +785,13 @@ class ExamController extends Controller
                 $query->orderBy('order');
             },
         ])->find($id);
+
+        if ($kind === 'test' && $test) {
+            return ['test' => $test, 'exam' => null];
+        }
+        if ($kind === 'exam' && $exam) {
+            return ['test' => null, 'exam' => $exam];
+        }
 
         if ($test && $exam) {
             if ($courseId) {
@@ -1361,7 +1370,7 @@ class ExamController extends Controller
         }
         $courseId = $queryId ?? $bodyId;
 
-        $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
+        $resolved = $this->resolveExamShowModel((int) $examId, $courseId, $request->query('kind'));
 
         if ($resolved['test']) {
             return $this->submitTest($request, $resolved['test'], $user, $courseId);
@@ -1390,7 +1399,7 @@ class ExamController extends Controller
             ], 422);
         }
         $courseId = $queryId ?? $bodyId;
-        $resolved = $this->resolveExamShowModel((int) $examId, $courseId);
+        $resolved = $this->resolveExamShowModel((int) $examId, $courseId, $request->query('kind'));
 
         if (! $resolved['test']) {
             if ($resolved['exam']) {

@@ -376,7 +376,7 @@ export default function AdminTestsPage() {
 
             const secondaryActions = [
               ...(canTryTest
-                ? [{ label: 'Încearcă testul', onClick: () => navigate(`/exams/${item.id}?preview=1`), disabled: busy }]
+                ? [{ label: 'Încearcă testul', onClick: () => navigate(`/exams/${item.id}?preview=1&kind=test`), disabled: busy }]
                 : []),
               { label: 'Statistici', onClick: () => openStatistics(item), disabled: busy },
               ...(canMutateInAdminArea

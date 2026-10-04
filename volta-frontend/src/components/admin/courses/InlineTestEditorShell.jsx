@@ -28,6 +28,7 @@ import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
 import Modal from '../../common/Modal';
 import './InlineTestEditorShell.css';
+import '../../../styles/test-settings.css';
 
 const QUESTION_TYPE_ICONS = {
   multiple_choice: ListChecks,

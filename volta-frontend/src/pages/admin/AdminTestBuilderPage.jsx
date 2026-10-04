@@ -9,6 +9,7 @@ import InlineTestEditorShell from '../../components/admin/courses/InlineTestEdit
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { VOLT_TEST_REFRESH_EVENT } from '../../utils/voltCoursePlan';
 import './AdminTestBuilderPage.css';
+import '../../styles/builder-page.css';
 
 export default function AdminTestBuilderPage() {
   const { testId: testIdParam } = useParams();
@@ -118,7 +119,7 @@ export default function AdminTestBuilderPage() {
           </div>
           <div className="va-test-builder__actions">
             {canTryTest ? (
-              <button type="button" className="lms-btn-secondary" onClick={() => navigate(`/exams/${testId}?preview=1`)}>
+              <button type="button" className="lms-btn-secondary" onClick={() => navigate(`/exams/${testId}?preview=1&kind=test`)}>
                 Încearcă testul
               </button>
             ) : null}
