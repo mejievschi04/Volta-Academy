@@ -1,15 +1,32 @@
 import React, { useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  ArrowsLeftRight,
+  CaretDown,
+  CaretUp,
+  Check,
+  ListChecks,
+  ListNumbers,
+  Plus,
+  RadioButton,
+  Scales,
+  ThumbsUp,
+  Trash,
+} from '@phosphor-icons/react';
 import RichTextEditor from '../../RichTextEditor';
+import { INLINE_QUESTION_TYPES } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
+import '../courses/InlineTestEditorShell.css';
+import './QuestionBuilderEditor.css';
 
-const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B', hint: 'Mai multe corecte', bits: ['is-on', 'is-on', ''] },
-  { id: 'single_choice', label: 'Răspuns unic', short: '1', hint: 'O singură corectă', bits: ['is-on', '', ''] },
-  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F', hint: 'Două variante', bits: ['is-on', ''] },
-  { id: 'yes_no', label: 'Da / Nu', short: 'Da', hint: 'Da sau Nu', bits: ['is-on', ''] },
-  { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Leagă perechile', bits: ['is-on', 'is-on'] },
-  { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Pune în ordine', bits: ['is-on', 'is-on', ''] },
-];
+const QUESTION_TYPE_ICONS = {
+  multiple_choice: ListChecks,
+  single_choice: RadioButton,
+  true_false: Scales,
+  yes_no: ThumbsUp,
+  matching: ArrowsLeftRight,
+  ordering: ListNumbers,
+};
 
 const normalizeType = (type) => {
   return INLINE_QUESTION_TYPES.some((entry) => entry.id === type) ? type : 'multiple_choice';
@@ -101,22 +118,26 @@ const normalizeAnswers = (type, answers) => {
 };
 
 const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
-  const [typePickerOpen, setTypePickerOpen] = useState(true);
+  // întrebare nouă: alegerea tipului e deschisă; la una existentă tipul se schimbă doar la cerere
+  const [typePickerOpen, setTypePickerOpen] = useState(!question?.id);
   const currentType = normalizeType(question?.type);
   const answers = useMemo(
     () => normalizeAnswers(currentType, question?.answers?.length ? question.answers : getDefaultAnswersByType(currentType)),
     [question, currentType]
   );
-  const currentTypeLabel = INLINE_QUESTION_TYPES.find((entry) => entry.id === currentType)?.label || 'Intrebare';
+  const currentTypeLabel = INLINE_QUESTION_TYPES.find((entry) => entry.id === currentType)?.label || 'Întrebare';
+  const CurrentTypeIcon = QUESTION_TYPE_ICONS[currentType] || ListChecks;
 
   const update = (patch) => onChange({ ...question, ...patch });
 
   const setType = (type) => {
     const nextType = normalizeType(type);
-    update({
-      type: nextType,
-      answers: getDefaultAnswersByType(nextType),
-    });
+    if (nextType !== currentType) {
+      update({
+        type: nextType,
+        answers: getDefaultAnswersByType(nextType),
+      });
+    }
     setTypePickerOpen(false);
   };
 
@@ -178,185 +199,244 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   const radioGroupName = `answer-correct-${question?.id ?? questionNumber}`;
 
   return (
-    <div className="admin-course-builder-test-layout">
-      <div className="admin-course-builder-test-main">
-        <div className="admin-course-builder-test-questions admin-course-builder-test-questions-card">
-          <ul className="admin-course-builder-test-question-list">
-            <li className="admin-course-builder-test-question-item is-expanded">
-              <div className="admin-course-builder-test-question-topline">
-                <div className="admin-course-builder-test-question-type-picker">
+    <div className="va-qe" data-qtype={currentType}>
+      <section className="va-qe__type">
+        <div className="va-qe__type-head">
+          <span className="admin-course-builder-test-question-field-label">Tipul întrebării</span>
+          <button
+            type="button"
+            className="va-tq-type"
+            onClick={() => setTypePickerOpen((prev) => !prev)}
+            aria-expanded={typePickerOpen}
+            aria-label={`Tipul întrebării: ${currentTypeLabel}. ${typePickerOpen ? 'Ascunde opțiunile' : 'Schimbă tipul'}`}
+          >
+            <CurrentTypeIcon size={14} weight="bold" aria-hidden="true" />
+            {currentTypeLabel}
+            <CaretDown size={12} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+        {typePickerOpen ? (
+          <>
+            {question?.id ? (
+              <p className="va-field__hint va-tq-type-hint">Schimbarea tipului înlocuiește variantele de răspuns ale întrebării.</p>
+            ) : null}
+            <div className="va-tq-types va-qe__types" role="radiogroup" aria-label="Tipul întrebării">
+              {INLINE_QUESTION_TYPES.map((typeOpt) => {
+                const isCurrent = currentType === typeOpt.id;
+                const TypeIcon = QUESTION_TYPE_ICONS[typeOpt.id] || ListChecks;
+                return (
                   <button
+                    key={typeOpt.id}
                     type="button"
-                    className="admin-course-builder-test-question-badge admin-course-builder-test-question-badge-btn"
-                    onClick={() => setTypePickerOpen((prev) => !prev)}
+                    role="radio"
+                    aria-checked={isCurrent}
+                    className={`va-tq-option${isCurrent ? ' is-current' : ''}`}
+                    data-qtype={typeOpt.id}
+                    onClick={() => setType(typeOpt.id)}
                   >
-                    {`#${questionNumber}: ${currentTypeLabel}`}
+                    <span className="va-tq-option__icon" aria-hidden="true">
+                      <TypeIcon size={22} weight="bold" />
+                    </span>
+                    <span className="va-tq-option__text">
+                      <span className="va-tq-option__label">{typeOpt.label}</span>
+                      <span className="va-tq-option__hint">{typeOpt.hint}</span>
+                    </span>
+                    {isCurrent ? (
+                      <span className="va-tq-option__current">
+                        <Check size={14} weight="bold" aria-hidden="true" />
+                        Tipul curent
+                      </span>
+                    ) : null}
                   </button>
-                </div>
-              </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+      </section>
 
-              <div className="admin-course-builder-test-question-fields">
-                <div className="admin-course-builder-test-question-field">
-                  <span className="admin-course-builder-test-question-field-label">Text întrebare</span>
-                  <div className="admin-course-builder-test-question-rte">
-                    <RichTextEditor
-                      value={question?.content || ''}
-                      onChange={(html) => update({ content: html })}
-                      placeholder="Scrie întrebarea..."
-                      toolbarVariant="none"
-                      emphasis="strong"
-                      showSideTools={false}
-                      style={{ minHeight: '120px' }}
-                    />
-                  </div>
-                </div>
-                <div className="admin-course-builder-test-question-field">
-                  <span className="admin-course-builder-test-question-field-label">
-                    Sursă
-                    <span className="admin-course-builder-test-question-field-hint">opțional</span>
-                  </span>
-                  <div className="admin-course-builder-test-question-rte admin-course-builder-test-question-rte-desc">
-                    <RichTextEditor
-                      value={question?.explanation || ''}
-                      onChange={(html) => update({ explanation: html })}
-                      placeholder="De unde este materialul din curs..."
-                      toolbarVariant="none"
-                      emphasis="plain"
-                      showSideTools={false}
-                      style={{ minHeight: '88px' }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="admin-course-builder-test-field">
-                <label>Puncte</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={question?.points ?? 1}
-                  onChange={(e) => update({ points: Number(e.target.value) || 1 })}
-                />
-              </div>
-
-              {isChoiceType && (
-                <div className="admin-course-builder-test-question-answers">
-                  <p>Răspunsuri:</p>
-                  {answers.map((answer, idx) => (
-                    <div key={`ans-${idx}`} className="admin-course-builder-test-answer-row">
-                      <input
-                        type={currentType === 'multiple_choice' ? 'checkbox' : 'radio'}
-                        name={currentType !== 'multiple_choice' ? radioGroupName : undefined}
-                        checked={!!answer.is_correct}
-                        onChange={() => toggleCorrect(idx)}
-                      />
-                      <input
-                        type="text"
-                        value={answer.text || ''}
-                        onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
-                        placeholder="Introdu răspuns"
-                        disabled={isBinaryType}
-                      />
-                      {!isBinaryType && (
-                        <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                          x
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {!isBinaryType && (
-                    <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                      + Adauga raspuns
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {isMatchingType && (
-                <div className="admin-course-builder-test-question-answers">
-                  <p>Perechi:</p>
-                  {answers.map((answer, idx) => (
-                    <div key={`pair-${idx}`} className="admin-course-builder-test-answer-row">
-                      <input
-                        type="text"
-                        value={answer.left || ''}
-                        onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
-                        placeholder="Element stânga"
-                      />
-                      <input
-                        type="text"
-                        value={answer.right || ''}
-                        onChange={(e) => updateAnswer(idx, 'right', e.target.value)}
-                        placeholder="Element dreapta"
-                      />
-                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                        x
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                    + Adauga pereche
-                  </button>
-                </div>
-              )}
-
-              {isOrderingType && (
-                <div className="admin-course-builder-test-question-answers">
-                  <p>Elemente in ordinea corecta:</p>
-                  {answers.map((answer, idx) => (
-                    <div key={`order-${idx}`} className="admin-course-builder-test-answer-row">
-                      <span style={{ minWidth: '2rem', fontWeight: 700 }}>{idx + 1}.</span>
-                      <input
-                        type="text"
-                        value={answer.text || ''}
-                        onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
-                        placeholder="Element"
-                      />
-                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'up')} disabled={idx === 0}>
-                        Sus
-                      </button>
-                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => moveAnswer(idx, 'down')} disabled={idx === answers.length - 1}>
-                        Jos
-                      </button>
-                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => removeAnswer(idx)}>
-                        x
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" className="admin-btn admin-btn-secondary" onClick={addAnswer}>
-                    + Adauga element
-                  </button>
-                </div>
-              )}
-            </li>
-          </ul>
+      <div className="admin-course-builder-test-question-fields">
+        <div className="admin-course-builder-test-question-field">
+          <span className="admin-course-builder-test-question-field-label">Text întrebare</span>
+          <div className="admin-course-builder-test-question-rte">
+            <RichTextEditor
+              value={question?.content || ''}
+              onChange={(html) => update({ content: html })}
+              placeholder="Scrie întrebarea..."
+              toolbarVariant="none"
+              emphasis="strong"
+              showSideTools={false}
+              style={{ minHeight: '120px' }}
+            />
+          </div>
+        </div>
+        <div className="admin-course-builder-test-question-field">
+          <span className="admin-course-builder-test-question-field-label">
+            Sursă
+            <span className="admin-course-builder-test-question-field-hint">opțional</span>
+          </span>
+          <div className="admin-course-builder-test-question-rte admin-course-builder-test-question-rte-desc">
+            <RichTextEditor
+              value={question?.explanation || ''}
+              onChange={(html) => update({ explanation: html })}
+              placeholder="De unde este materialul din curs..."
+              toolbarVariant="none"
+              emphasis="plain"
+              showSideTools={false}
+              style={{ minHeight: '88px' }}
+            />
+          </div>
         </div>
       </div>
 
-      <aside className={`admin-course-builder-test-sidepanel ${typePickerOpen ? 'is-open' : ''}`}>
-        <div className="admin-course-builder-test-sidepanel-head">
-          <h3>Tipuri de întrebări</h3>
-        </div>
-        <div className="admin-course-builder-test-type-grid">
-          {INLINE_QUESTION_TYPES.map((typeOpt) => (
-            <button
-              key={typeOpt.id}
-              type="button"
-              className={`admin-course-builder-test-type-card ${currentType === typeOpt.id ? 'is-active' : ''}`}
-              onClick={() => setType(typeOpt.id)}
-            >
-              <span className={`qb-type-preview is-${typeOpt.id}`} aria-hidden="true">
-                {typeOpt.bits.map((state, index) => (
-                  <i key={`${typeOpt.id}-${index}`} className={state} />
-                ))}
-              </span>
-              <span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
-              <span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
-              <span className="qb-type-hint">{typeOpt.hint}</span>
+      <div className="va-qe__points">
+        <label htmlFor={`qe-points-${question?.id ?? questionNumber}`} className="admin-course-builder-test-question-field-label">Puncte</label>
+        <input
+          id={`qe-points-${question?.id ?? questionNumber}`}
+          type="number"
+          min="1"
+          className="va-qa__input"
+          value={question?.points ?? 1}
+          onChange={(e) => update({ points: Number(e.target.value) || 1 })}
+        />
+      </div>
+
+      {isChoiceType && (
+        <div className="va-qa">
+          <div className="va-qa__head">
+            <span className="va-qa__title">Variante de răspuns</span>
+            <span className="va-qa__hint">
+              {currentType === 'multiple_choice' ? 'Marchează toate variantele corecte.' : 'Marchează varianta corectă.'}
+            </span>
+          </div>
+          <ul className="va-qa__list">
+            {answers.map((answer, idx) => (
+              <li key={`ans-${idx}`} className={`va-qa__row${answer.is_correct ? ' is-correct' : ''}`}>
+                <label className="va-qa__correct">
+                  <input
+                    type={currentType === 'multiple_choice' ? 'checkbox' : 'radio'}
+                    name={currentType !== 'multiple_choice' ? radioGroupName : undefined}
+                    checked={!!answer.is_correct}
+                    onChange={() => toggleCorrect(idx)}
+                    aria-label={`Varianta ${idx + 1} este corectă`}
+                  />
+                  <span>{answer.is_correct ? 'Corect' : 'Greșit'}</span>
+                </label>
+                <input
+                  type="text"
+                  className="va-qa__input"
+                  value={answer.text || ''}
+                  onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
+                  placeholder={`Varianta ${idx + 1}`}
+                  aria-label={`Textul variantei ${idx + 1}`}
+                  disabled={isBinaryType}
+                />
+                {!isBinaryType ? (
+                  <button
+                    type="button"
+                    className="va-qa__icon-btn is-danger"
+                    onClick={() => removeAnswer(idx)}
+                    aria-label={`Șterge varianta ${idx + 1}`}
+                    title="Șterge varianta"
+                  >
+                    <Trash size={16} weight="bold" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {!isBinaryType ? (
+            <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={addAnswer}>
+              <Plus size={16} weight="bold" aria-hidden="true" />
+              Adaugă variantă
             </button>
-          ))}
+          ) : null}
         </div>
-      </aside>
+      )}
+
+      {isMatchingType && (
+        <div className="va-qa">
+          <div className="va-qa__head">
+            <span className="va-qa__title">Perechi</span>
+            <span className="va-qa__hint">Elevul potrivește fiecare element din stânga cu cel din dreapta.</span>
+          </div>
+          <ul className="va-qa__list">
+            {answers.map((answer, idx) => (
+              <li key={`pair-${idx}`} className="va-qa__row va-qa__row--pair">
+                <input
+                  type="text"
+                  className="va-qa__input"
+                  value={answer.left || ''}
+                  onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
+                  placeholder="Element"
+                  aria-label={`Perechea ${idx + 1}, stânga`}
+                />
+                <ArrowRight className="va-qa__pair-arrow" size={16} weight="bold" aria-hidden="true" />
+                <input
+                  type="text"
+                  className="va-qa__input"
+                  value={answer.right || ''}
+                  onChange={(e) => updateAnswer(idx, 'right', e.target.value)}
+                  placeholder="Potrivire"
+                  aria-label={`Perechea ${idx + 1}, dreapta`}
+                />
+                <button
+                  type="button"
+                  className="va-qa__icon-btn is-danger"
+                  onClick={() => removeAnswer(idx)}
+                  aria-label={`Șterge perechea ${idx + 1}`}
+                  title="Șterge perechea"
+                >
+                  <Trash size={16} weight="bold" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={addAnswer}>
+            <Plus size={16} weight="bold" aria-hidden="true" />
+            Adaugă pereche
+          </button>
+        </div>
+      )}
+
+      {isOrderingType && (
+        <div className="va-qa">
+          <div className="va-qa__head">
+            <span className="va-qa__title">Ordinea corectă</span>
+            <span className="va-qa__hint">Elevul primește elementele amestecate și le aranjează în această ordine.</span>
+          </div>
+          <ul className="va-qa__list">
+            {answers.map((answer, idx) => (
+              <li key={`order-${idx}`} className="va-qa__row va-qa__row--order">
+                <span className="va-qa__order-index" aria-hidden="true">{idx + 1}</span>
+                <input
+                  type="text"
+                  className="va-qa__input"
+                  value={answer.text || ''}
+                  onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
+                  placeholder={`Pasul ${idx + 1}`}
+                  aria-label={`Elementul ${idx + 1}`}
+                />
+                <div className="va-qa__order-actions">
+                  <button type="button" className="va-qa__icon-btn" aria-label={`Mută elementul ${idx + 1} în sus`} onClick={() => moveAnswer(idx, 'up')} disabled={idx === 0}>
+                    <CaretUp size={16} weight="bold" aria-hidden="true" />
+                  </button>
+                  <button type="button" className="va-qa__icon-btn" aria-label={`Mută elementul ${idx + 1} în jos`} onClick={() => moveAnswer(idx, 'down')} disabled={idx === answers.length - 1}>
+                    <CaretDown size={16} weight="bold" aria-hidden="true" />
+                  </button>
+                  <button type="button" className="va-qa__icon-btn is-danger" aria-label={`Șterge elementul ${idx + 1}`} onClick={() => removeAnswer(idx)}>
+                    <Trash size={16} weight="bold" aria-hidden="true" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={addAnswer}>
+            <Plus size={16} weight="bold" aria-hidden="true" />
+            Adaugă element
+          </button>
+        </div>
+      )}
     </div>
   );
 };

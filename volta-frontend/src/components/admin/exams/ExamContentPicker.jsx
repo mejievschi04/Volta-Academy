@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, FolderOpen, ListChecks, Search, Star, X } from 'lucide-react';
+import { X as PhX } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import QuestionCatalogByMap, { CatalogGroupCard } from '../question-banks/QuestionCatalogByMap';
@@ -7,6 +8,7 @@ import QuestionRow from '../question-banks/QuestionRow';
 import QuestionBuilderEditor from '../question-banks/QuestionBuilderEditor';
 import Drawer from '../question-banks/Drawer';
 import Modal from '../../common/Modal';
+import '../courses/InlineTestEditorShell.css';
 import '../../../pages/admin/AdminQuestionBanksPage.css';
 import './ExamContentPicker.css';
 
@@ -268,27 +270,23 @@ export default function ExamContentPicker({
         </div>
       </header>
 
-      <div className="exam-picker-methods" role="tablist" aria-label="Cum alegi întrebările">
-        <button
-          type="button"
-          role="tab"
-          className={selectionMode === 'questions' ? 'lms-btn-primary' : 'lms-btn-secondary'}
-          aria-selected={selectionMode === 'questions'}
-          onClick={() => setMode('questions')}
-        >
-          <ListChecks size={18} aria-hidden />
-          Alege întrebări
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={selectionMode === 'folders' ? 'lms-btn-primary' : 'lms-btn-secondary'}
-          aria-selected={selectionMode === 'folders'}
-          onClick={() => setMode('folders')}
-        >
-          <FolderOpen size={18} aria-hidden />
-          Din foldere
-        </button>
+      <div className="va-dialog__tabs exam-picker-methods" role="tablist" aria-label="Cum alegi întrebările">
+        {[
+          ['questions', ListChecks, 'Alege întrebări'],
+          ['folders', FolderOpen, 'Din foldere'],
+        ].map(([mode, Icon, label]) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            className={`va-dialog__tab${selectionMode === mode ? ' is-active' : ''}`}
+            aria-selected={selectionMode === mode}
+            onClick={() => setMode(mode)}
+          >
+            <Icon size={16} aria-hidden />
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="exam-picker-split">
@@ -297,21 +295,22 @@ export default function ExamContentPicker({
             <>
               <div className="exam-picker-browse-bar">
                 <p className="exam-picker-step">Intră în mapă sau folder, apoi bifează. Sau adaugă tot testul odată.</p>
-                <div className="exam-picker-source" role="tablist" aria-label="De unde iei întrebările">
-                  <button
-                    type="button"
-                    className={questionBrowse === 'catalog' ? 'lms-btn-primary' : 'lms-btn-secondary'}
-                    onClick={() => setQuestionBrowse('catalog')}
-                  >
-                    Mape
-                  </button>
-                  <button
-                    type="button"
-                    className={questionBrowse === 'folders' ? 'lms-btn-primary' : 'lms-btn-secondary'}
-                    onClick={() => setQuestionBrowse('folders')}
-                  >
-                    Foldere
-                  </button>
+                <div className="va-dialog__tabs exam-picker-source" role="tablist" aria-label="De unde iei întrebările">
+                  {[
+                    ['catalog', 'Mape'],
+                    ['folders', 'Foldere'],
+                  ].map(([browse, label]) => (
+                    <button
+                      key={browse}
+                      type="button"
+                      role="tab"
+                      className={`va-dialog__tab${questionBrowse === browse ? ' is-active' : ''}`}
+                      aria-selected={questionBrowse === browse}
+                      onClick={() => setQuestionBrowse(browse)}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -614,9 +613,14 @@ export default function ExamContentPicker({
                         <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'} · Editează</small>
                       </button>
                       {canMutate ? (
-                        <button type="button" className="lms-btn-secondary" onClick={() => onToggleQuestion(item, item.origin)}>
-                          <X size={14} aria-hidden />
-                          Scoate
+                        <button
+                          type="button"
+                          className="va-qa__icon-btn is-danger"
+                          onClick={() => onToggleQuestion(item, item.origin)}
+                          aria-label={`Scoate întrebarea ${index + 1} din examen`}
+                          title="Scoate din examen"
+                        >
+                          <X size={16} aria-hidden />
                         </button>
                       ) : null}
                     </li>
@@ -658,9 +662,14 @@ export default function ExamContentPicker({
                         <small>{bank.questions_count || 0} întrebări</small>
                       </span>
                       {canMutate ? (
-                        <button type="button" className="lms-btn-secondary" onClick={() => toggleFolder(bank)}>
-                          <X size={14} aria-hidden />
-                          Scoate
+                        <button
+                          type="button"
+                          className="va-qa__icon-btn is-danger"
+                          onClick={() => toggleFolder(bank)}
+                          aria-label={`Scoate folderul ${bank.title}`}
+                          title="Scoate folderul"
+                        >
+                          <X size={16} aria-hidden />
                         </button>
                       ) : null}
                     </li>
@@ -694,24 +703,31 @@ export default function ExamContentPicker({
       <Modal
         isOpen={Boolean(editorQuestion)}
         onClose={() => !editorSaving && setEditorQuestion(null)}
-        closeOnBackdropClick
         closeOnEscape
         ariaLabelledby="exam-question-editor-title"
-        contentClassName="exam-question-editor-modal"
+        className="va-dialog-overlay"
+        unstyledContent
       >
-        <div className="qb-modal qb-modal-question-editor">
-          <h3 id="exam-question-editor-title">Editează întrebarea</h3>
-          {editorQuestion ? (
-            <QuestionBuilderEditor question={editorQuestion} onChange={setEditorQuestion} />
-          ) : null}
-          <div className="qb-modal-actions">
+        <div className="va-dialog va-qe-dialog">
+          <header className="va-dialog__header">
+            <h2 id="exam-question-editor-title" className="va-dialog__title">Editează întrebarea</h2>
+            <button type="button" className="va-close-btn" onClick={() => setEditorQuestion(null)} disabled={editorSaving} aria-label="Închide">
+              <PhX size={18} weight="bold" aria-hidden="true" />
+            </button>
+          </header>
+          <div className="va-dialog__body">
+            {editorQuestion ? (
+              <QuestionBuilderEditor question={editorQuestion} onChange={setEditorQuestion} />
+            ) : null}
+          </div>
+          <footer className="va-dialog__footer">
             <button type="button" className="lms-btn-secondary" onClick={() => setEditorQuestion(null)} disabled={editorSaving}>
               Anulează
             </button>
             <button type="button" className="va-btn-save lms-btn-primary" onClick={saveEditorQuestion} disabled={editorSaving || !editorQuestion?.content}>
               {editorSaving ? 'Se salvează...' : 'Salvează'}
             </button>
-          </div>
+          </footer>
         </div>
       </Modal>
     </div>

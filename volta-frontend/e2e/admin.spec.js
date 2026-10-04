@@ -250,3 +250,33 @@ test('builder-ul de examen: antet cu file, iar încercările se setează cu comu
 	await expect(page.getByLabel('Încercări', { exact: true })).toHaveValue('3');
 	await expect(page.getByRole('switch', { name: 'Nelimitate' })).not.toBeChecked();
 });
+
+test('în examen, întrebarea se editează în fereastra aplicației: tipul cu opțiuni, variante Corect/Greșit', async ({ page }, info) => {
+	await page.goto('/admin/content?tab=exams');
+	await page.getByRole('button', { name: 'Creează examen' }).first().click();
+	await page.getByRole('dialog').getByLabel('Titlu').fill(`Examen editor ${info.project.name} ${Date.now()}`);
+	await page.getByRole('dialog').getByRole('button', { name: 'Creează' }).click();
+
+	await page.getByRole('tab', { name: 'Întrebări' }).click();
+	await expect(page.getByRole('tab', { name: /Alege întrebări/ })).toHaveAttribute('aria-selected', 'true');
+	await page.getByText('Mapă E2E').first().click();
+	await page.getByRole('button', { name: 'Adaugă toate' }).first().click();
+	await expect(page.getByRole('button', { name: 'Scoate întrebarea 1 din examen' })).toBeVisible();
+
+	await page.getByRole('button', { name: /Care este capitala României\?/ }).click();
+	const dialog = page.getByRole('dialog', { name: 'Editează întrebarea' });
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByRole('radiogroup', { name: 'Tipul întrebării' })).toHaveCount(0);
+	await dialog.getByRole('button', { name: /Tipul întrebării: Răspuns multiplu/ }).click();
+	await expect(dialog.getByRole('radio', { name: /Răspuns multiplu/ })).toHaveAttribute('aria-checked', 'true');
+
+	const correct = dialog.getByLabel('Varianta 1 este corectă');
+	await expect(correct).toBeChecked();
+	await expect(dialog.locator('.va-qa__row').first()).toContainText('Corect');
+	await expect(dialog.getByLabel('Varianta 2 este corectă')).not.toBeChecked();
+	await expect(dialog.locator('.va-qa__row').nth(1)).toContainText('Greșit');
+
+	// fără salvare: întrebarea aparține testului din curs
+	await dialog.getByRole('button', { name: 'Închide' }).click();
+	await expect(dialog).toHaveCount(0);
+});

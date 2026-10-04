@@ -14,6 +14,7 @@ import {
   Layers,
   Trash2,
 } from 'lucide-react';
+import { X } from '@phosphor-icons/react';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
@@ -679,18 +680,32 @@ const AdminQuestionBankFolderDetailsPage = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={questionEditorOpen && !readOnly} onClose={() => !questionEditorSaving && setQuestionEditorOpen(false)}>
-        <div className="qb-modal qb-modal-question-editor">
-          <h3>{questionDraft.id ? 'Editează întrebare' : 'Întrebare nouă'}</h3>
-          <QuestionBuilderEditor question={questionDraft} onChange={setQuestionDraft} questionNumber={questionEditorNumber} />
-          <div className="qb-modal-actions">
+      <Modal
+        isOpen={questionEditorOpen && !readOnly}
+        onClose={() => !questionEditorSaving && setQuestionEditorOpen(false)}
+        closeOnEscape
+        ariaLabelledby="qb-question-editor-title"
+        className="va-dialog-overlay"
+        unstyledContent
+      >
+        <div className="va-dialog va-qe-dialog">
+          <header className="va-dialog__header">
+            <h2 id="qb-question-editor-title" className="va-dialog__title">{questionDraft.id ? 'Editează întrebarea' : 'Întrebare nouă'}</h2>
+            <button type="button" className="va-close-btn" onClick={() => setQuestionEditorOpen(false)} disabled={questionEditorSaving} aria-label="Închide">
+              <X size={18} weight="bold" aria-hidden="true" />
+            </button>
+          </header>
+          <div className="va-dialog__body">
+            <QuestionBuilderEditor question={questionDraft} onChange={setQuestionDraft} questionNumber={questionEditorNumber} />
+          </div>
+          <footer className="va-dialog__footer">
             <button type="button" className="lms-btn-secondary" onClick={() => setQuestionEditorOpen(false)} disabled={questionEditorSaving}>
               Anulează
             </button>
             <button type="button" className="va-btn-save lms-btn-primary" onClick={saveQuestionFromEditor} disabled={questionEditorSaving}>
               {questionEditorSaving ? 'Se salvează...' : 'Salvează'}
             </button>
-          </div>
+          </footer>
         </div>
       </Modal>
 
