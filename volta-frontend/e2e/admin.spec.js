@@ -136,3 +136,22 @@ test('Biblioteca și Ghidurile au margine față de meniu, iar antetul e aliniat
 		expect((await header.boundingBox()).x - mainLeft, url).toBeGreaterThanOrEqual(16);
 	}
 });
+
+test('adminul parcurge un test ca un cursant, fără să i se salveze încercarea', async ({ page }) => {
+	await page.goto('/admin/content?tab=tests');
+	await page.getByRole('button', { name: 'Încearcă testul' }).first().click();
+	await expect(page).toHaveURL(/\/exams\/\d+\?preview=1/);
+	await expect(page.getByRole('note')).toContainText('nu se salvează');
+
+	await page.getByLabel('București').check();
+	await page.getByRole('button', { name: 'Întrebarea următoare' }).click();
+	await page.getByLabel('4', { exact: true }).check();
+	const submit = page.getByRole('button', { name: /Trimite/ }).first();
+	await submit.click();
+	const confirm = page.getByRole('dialog').getByRole('button', { name: /Trimite/ });
+	if (await confirm.isVisible().catch(() => false)) await confirm.click();
+	await expect(page.getByText('Promovat').first()).toBeVisible();
+
+	await page.getByRole('link', { name: /Înapoi la teste/ }).first().click();
+	await expect(page).toHaveURL(/\/admin\/content\?tab=tests/);
+});

@@ -42,7 +42,10 @@ export default function AdminTestsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { success: showSuccess, error: showError } = useToast();
-  const { canMutateInAdminArea } = useAuth();
+  const { canMutateInAdminArea, user } = useAuth();
+  // Admin și analist pot parcurge testul ca un cursant: încercarea nu se salvează (pentru ei serverul
+  // nu înregistrează activitate). La instructor încercarea ar deveni un rezultat real.
+  const canTryTest = ['admin', 'analyst'].includes(user?.actualRole ?? user?.role);
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -372,6 +375,9 @@ export default function AdminTestsPage() {
             const busy = busyId === item.id;
 
             const secondaryActions = [
+              ...(canTryTest
+                ? [{ label: 'Încearcă testul', onClick: () => navigate(`/exams/${item.id}?preview=1`), disabled: busy }]
+                : []),
               { label: 'Statistici', onClick: () => openStatistics(item), disabled: busy },
               ...(canMutateInAdminArea
                 ? [

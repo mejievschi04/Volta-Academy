@@ -1,6 +1,6 @@
 import TestAttemptFooter from '../components/student/TestAttemptFooter';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { examService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
@@ -83,6 +83,14 @@ const ExamPage = () => {
 	const courseId = params.courseId ?? null;
 	const examId = params.examId;
 	const { user } = useAuth();
+	const [searchParams] = useSearchParams();
+	// Admin și analist parcurg testul ca un cursant, dar serverul nu le salvează încercarea și rezultatul.
+	const isPreviewMode = ['admin', 'analyst'].includes(user?.actualRole ?? user?.role);
+	const back = courseId
+		? { to: `/courses/${courseId}`, label: 'Înapoi la curs' }
+		: searchParams.get('preview') === '1'
+			? { to: '/admin/content?tab=tests', label: 'Înapoi la teste' }
+			: { to: '/monthly-tests', label: 'Înapoi la teste lunare' };
 	const { warning: showWarning } = useToast();
 	const [exam, setExam] = useState(null);
 	const [answers, setAnswers] = useState({});
@@ -585,15 +593,9 @@ const ExamPage = () => {
 			<div className="student-exam-page">
 				<div className="student-exam-error">
 					<p>{error || 'Testul nu a fost găsit'}</p>
-					{courseId ? (
-						<Link to={`/courses/${courseId}`} className="student-exam-btn student-exam-btn-secondary">
-							Înapoi la curs
-						</Link>
-					) : (
-						<Link to="/monthly-tests" className="student-exam-btn student-exam-btn-secondary">
-							Înapoi la teste lunare
-						</Link>
-					)}
+					<Link to={back.to} className="student-exam-btn student-exam-btn-secondary">
+						{back.label}
+					</Link>
 				</div>
 			</div>
 		);
@@ -723,16 +725,15 @@ const ExamPage = () => {
                 if (index >= 0) setCurrentQuestionIndex(index);
             }}>
                 {error && <p role="alert" className="student-exam-error">{error}</p>}
+			{isPreviewMode ? (
+				<p className="student-exam-preview-note" role="note">
+					Previzualizare: parcurgi testul ca un cursant, dar răspunsurile și rezultatul nu se salvează.
+				</p>
+			) : null}
 			{submitted ? (
-				courseId ? (
-					<Link to={`/courses/${courseId}`} className="student-exam-back-link student-exam-back-link--accent">
-						← Înapoi la curs
-					</Link>
-				) : (
-					<Link to="/monthly-tests" className="student-exam-back-link student-exam-back-link--accent">
-						← Înapoi la teste lunare
-					</Link>
-				)
+				<Link to={back.to} className="student-exam-back-link student-exam-back-link--accent">
+					← {back.label}
+				</Link>
 			) : null}
 
 			{!(isMobile && submitted && result) && (
@@ -917,8 +918,8 @@ const ExamPage = () => {
 
             <TestAttemptFooter currentIndex={currentQuestionIndex} total={exam.questions.length}
                 onNavigate={scrollToQuestion} onSubmit={handleSubmit} submitting={submitting}
-                submitted={submitted} backTo={courseId ? `/courses/${courseId}` : '/monthly-tests'}
-                backLabel={courseId ? 'Înapoi la curs' : 'Înapoi la teste lunare'}
+                submitted={submitted} backTo={back.to}
+                backLabel={back.label}
                 canSubmit={timeRemaining === 0 || exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}
                 canGoBack={canGoBack}
                 canGoNext={canGoNext}>
