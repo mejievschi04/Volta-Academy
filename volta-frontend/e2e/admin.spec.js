@@ -139,7 +139,7 @@ test('Biblioteca și Ghidurile au margine față de meniu, iar antetul e aliniat
 
 test('adminul parcurge un test ca un cursant, fără să i se salveze încercarea', async ({ page }) => {
 	await page.goto('/admin/content?tab=tests');
-	await page.getByRole('button', { name: 'Încearcă testul' }).first().click();
+	await page.locator('.admin-content-card').filter({ hasText: 'Test final E2E' }).getByRole('button', { name: 'Încearcă testul' }).click();
 	await expect(page).toHaveURL(/\/exams\/\d+\?preview=1/);
 	await expect(page.getByRole('note')).toContainText('nu se salvează');
 
@@ -175,4 +175,27 @@ test('builder-ul de test: antet cu acțiuni, file și alegerea tipului întrebă
 
 	await page.getByRole('button', { name: 'Încearcă testul' }).click();
 	await expect(page).toHaveURL(/\/exams\/1\?preview=1/);
+});
+
+test('în editorul întrebării, varianta corectă se marchează clar și rămâne salvată', async ({ page }) => {
+	// „Test cu toate tipurile” din E2eSeeder; testul revine la starea inițială, ca rularea pe celălalt proiect să înceapă la fel
+	await page.goto('/admin/tests/2/builder');
+	const question = page.locator('[data-qtype="multiple_choice"]');
+	await question.getByRole('button', { name: 'Editează' }).click();
+
+	const green = question.getByLabel('Varianta 2 este corectă');
+	await expect(green).not.toBeChecked();
+	await expect(question.locator('.va-qa__row').nth(1)).toContainText('Greșit');
+	await green.check();
+	await expect(question.locator('.va-qa__row').nth(1)).toContainText('Corect');
+	await page.waitForLoadState('networkidle');
+
+	await page.reload();
+	await page.locator('[data-qtype="multiple_choice"]').getByRole('button', { name: 'Editează' }).click();
+	const reloaded = page.locator('[data-qtype="multiple_choice"]').getByLabel('Varianta 2 este corectă');
+	await expect(reloaded).toBeChecked();
+
+	await reloaded.uncheck();
+	await expect(page.locator('[data-qtype="multiple_choice"] .va-qa__row').nth(1)).toContainText('Greșit');
+	await page.waitForLoadState('networkidle');
 });

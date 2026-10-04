@@ -209,6 +209,36 @@ class E2eSeeder extends Seeder
         Team::create(['name' => 'Echipa E2E', 'description' => 'Echipă de test', 'owner_id' => $admin->id, 'sort_order' => 0]);
         Team::create(['name' => 'Echipa E2E 2', 'description' => 'A doua echipă de test', 'owner_id' => $admin->id, 'sort_order' => 1]);
 
+        // Un test cu câte o întrebare din fiecare tip (editoarele de întrebări), nelegat de cursuri.
+        $allTypes = Test::factory()->create([
+            'title' => 'Test cu toate tipurile',
+            'status' => 'draft',
+            'created_by' => $admin->id,
+            'max_attempts' => null,
+            'passing_score' => 50,
+        ]);
+        $typed = [
+            ['multiple_choice', 'Care sunt culori primare?', [['text' => 'Roșu', 'is_correct' => true], ['text' => 'Verde', 'is_correct' => false], ['text' => 'Albastru', 'is_correct' => true]]],
+            ['single_choice', 'Care este cel mai mare ocean?', [['text' => 'Pacific', 'is_correct' => true], ['text' => 'Atlantic', 'is_correct' => false]]],
+            ['true_false', 'Pământul este rotund.', [['text' => 'Adevărat', 'is_correct' => true], ['text' => 'Fals', 'is_correct' => false]]],
+            ['yes_no', 'Ai citit regulamentul?', [['text' => 'Da', 'is_correct' => true], ['text' => 'Nu', 'is_correct' => false]]],
+            ['matching', 'Potrivește țara cu capitala.', [
+                ['left' => 'România', 'right' => 'București', 'text' => 'România', 'answer_text' => 'București', 'is_correct' => true, 'order' => 0],
+                ['left' => 'Franța', 'right' => 'Paris', 'text' => 'Franța', 'answer_text' => 'Paris', 'is_correct' => true, 'order' => 1],
+            ]],
+            ['ordering', 'Ordonează pașii.', [
+                ['text' => 'Pregătire', 'is_correct' => true, 'order' => 0],
+                ['text' => 'Execuție', 'is_correct' => true, 'order' => 1],
+                ['text' => 'Verificare', 'is_correct' => true, 'order' => 2],
+            ]],
+        ];
+        foreach ($typed as $order => [$type, $content, $answers]) {
+            Question::factory()->create([
+                'test_id' => $allTypes->id, 'type' => $type, 'content' => $content,
+                'answers' => $answers, 'points' => 1, 'order' => $order,
+            ]);
+        }
+
         // Cursanții văd doar cursurile atribuite.
         foreach ($students as $student) {
             DB::table('course_user')->insert([

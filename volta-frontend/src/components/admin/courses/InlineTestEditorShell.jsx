@@ -1,5 +1,5 @@
 import React from 'react';
-import { CaretDown, Trash, X } from '@phosphor-icons/react';
+import { ArrowRight, CaretDown, CaretUp, Plus, Trash, X } from '@phosphor-icons/react';
 import {
   INLINE_QUESTION_TYPES,
   isBinaryQuestionType,
@@ -278,102 +278,147 @@ export default function InlineTestEditorShell({
                               </div>
                             </div>
                             {(qType === 'multiple_choice' || qType === 'single_choice' || isBinaryQuestionType(qType)) && (
-                              <div className="admin-course-builder-test-question-answers">
-                                <p>Răspunsuri:</p>
-                                {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-                                  <div key={`${question.id}-answer-${answerIdx}`} className="admin-course-builder-test-answer-row">
-                                    <input
-                                      type={qType === 'multiple_choice' ? 'checkbox' : 'radio'}
-                                      name={qType !== 'multiple_choice' ? `inline-answer-correct-${question.id}` : undefined}
-                                      checked={!!answer.is_correct}
-                                      onChange={() => handleInlineAnswerCorrectToggle(question.id, answerIdx, qType !== 'multiple_choice')}
-                                      disabled={!canMutateInAdminArea}
-                                    />
-                                    <input
-                                      type="text"
-                                      value={answer.text ?? answer.answer_text ?? ''}
-                                      onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
-                                      placeholder="Introdu răspuns"
-                                      disabled={!canMutateInAdminArea || isBinaryQuestionType(qType)}
-                                    />
-                                    {!isBinaryQuestionType(qType) && canMutateInAdminArea ? (
-                                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-                                        ×
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ))}
+                              <div className="va-qa">
+                                <div className="va-qa__head">
+                                  <span className="va-qa__title">Variante de răspuns</span>
+                                  <span className="va-qa__hint">
+                                    {qType === 'multiple_choice' ? 'Marchează toate variantele corecte.' : 'Marchează varianta corectă.'}
+                                  </span>
+                                </div>
+                                <ul className="va-qa__list">
+                                  {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+                                    <li key={`${question.id}-answer-${answerIdx}`} className={`va-qa__row${answer.is_correct ? ' is-correct' : ''}`}>
+                                      <label className="va-qa__correct">
+                                        <input
+                                          type={qType === 'multiple_choice' ? 'checkbox' : 'radio'}
+                                          name={qType !== 'multiple_choice' ? `inline-answer-correct-${question.id}` : undefined}
+                                          checked={!!answer.is_correct}
+                                          onChange={() => handleInlineAnswerCorrectToggle(question.id, answerIdx, qType !== 'multiple_choice')}
+                                          disabled={!canMutateInAdminArea}
+                                          aria-label={`Varianta ${answerIdx + 1} este corectă`}
+                                        />
+                                        <span>{answer.is_correct ? 'Corect' : 'Greșit'}</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        className="va-qa__input"
+                                        value={answer.text ?? answer.answer_text ?? ''}
+                                        onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
+                                        placeholder={`Varianta ${answerIdx + 1}`}
+                                        aria-label={`Textul variantei ${answerIdx + 1}`}
+                                        disabled={!canMutateInAdminArea || isBinaryQuestionType(qType)}
+                                      />
+                                      {!isBinaryQuestionType(qType) && canMutateInAdminArea ? (
+                                        <button
+                                          type="button"
+                                          className="va-qa__icon-btn is-danger"
+                                          onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}
+                                          aria-label={`Șterge varianta ${answerIdx + 1}`}
+                                          title="Șterge varianta"
+                                        >
+                                          <Trash size={16} weight="bold" aria-hidden="true" />
+                                        </button>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
                                 {!isBinaryQuestionType(qType) && canMutateInAdminArea ? (
-                                  <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineAddAnswer(question.id)}>
-                                    + Adaugă răspuns
+                                  <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={() => handleInlineAddAnswer(question.id)}>
+                                    <Plus size={16} weight="bold" aria-hidden="true" />
+                                    Adaugă variantă
                                   </button>
                                 ) : null}
                               </div>
                             )}
                             {qType === 'matching' && (
-                              <div className="admin-course-builder-test-question-answers">
-                                <p>Perechi:</p>
-                                {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-                                  <div key={`${question.id}-pair-${answerIdx}`} className="admin-course-builder-test-answer-row">
-                                    <input
-                                      type="text"
-                                      value={answer.left ?? answer.text ?? ''}
-                                      onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
-                                      placeholder="Element stânga"
-                                      disabled={!canMutateInAdminArea}
-                                    />
-                                    <input
-                                      type="text"
-                                      value={answer.right ?? answer.answer_text ?? ''}
-                                      onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
-                                      placeholder="Element dreapta"
-                                      disabled={!canMutateInAdminArea}
-                                    />
-                                    {canMutateInAdminArea ? (
-                                      <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-                                        ×
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ))}
+                              <div className="va-qa">
+                                <div className="va-qa__head">
+                                  <span className="va-qa__title">Perechi</span>
+                                  <span className="va-qa__hint">Cursantul potrivește fiecare element din stânga cu cel din dreapta.</span>
+                                </div>
+                                <ul className="va-qa__list">
+                                  {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+                                    <li key={`${question.id}-pair-${answerIdx}`} className="va-qa__row va-qa__row--pair">
+                                      <input
+                                        type="text"
+                                        className="va-qa__input"
+                                        value={answer.left ?? answer.text ?? ''}
+                                        onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)}
+                                        placeholder="Element"
+                                        aria-label={`Perechea ${answerIdx + 1}, stânga`}
+                                        disabled={!canMutateInAdminArea}
+                                      />
+                                      <ArrowRight className="va-qa__pair-arrow" size={16} weight="bold" aria-hidden="true" />
+                                      <input
+                                        type="text"
+                                        className="va-qa__input"
+                                        value={answer.right ?? answer.answer_text ?? ''}
+                                        onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'right', e.target.value)}
+                                        placeholder="Potrivire"
+                                        aria-label={`Perechea ${answerIdx + 1}, dreapta`}
+                                        disabled={!canMutateInAdminArea}
+                                      />
+                                      {canMutateInAdminArea ? (
+                                        <button
+                                          type="button"
+                                          className="va-qa__icon-btn is-danger"
+                                          onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}
+                                          aria-label={`Șterge perechea ${answerIdx + 1}`}
+                                          title="Șterge perechea"
+                                        >
+                                          <Trash size={16} weight="bold" aria-hidden="true" />
+                                        </button>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
                                 {canMutateInAdminArea ? (
-                                  <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineAddAnswer(question.id)}>
-                                    + Adaugă pereche
+                                  <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={() => handleInlineAddAnswer(question.id)}>
+                                    <Plus size={16} weight="bold" aria-hidden="true" />
+                                    Adaugă pereche
                                   </button>
                                 ) : null}
                               </div>
                             )}
                             {qType === 'ordering' && (
-                              <div className="admin-course-builder-test-question-answers">
-                                <p>Elemente (ordinea corectă):</p>
-                                {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
-                                  <div key={`${question.id}-ord-${answerIdx}`} className="admin-course-builder-test-answer-row admin-course-builder-test-answer-row-ordering">
-                                    <span className="admin-course-builder-test-order-index">{answerIdx + 1}</span>
-                                    <input
-                                      type="text"
-                                      value={answer.text ?? answer.answer_text ?? ''}
-                                      onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
-                                      placeholder="Element"
-                                      disabled={!canMutateInAdminArea}
-                                    />
-                                    {canMutateInAdminArea ? (
-                                      <div className="admin-course-builder-test-order-actions">
-                                        <button type="button" className="admin-btn admin-btn-secondary admin-course-builder-test-order-btn is-move" aria-label="Mută elementul în sus" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'up')} disabled={answerIdx === 0}>
-                                          ↑
-                                        </button>
-                                        <button type="button" className="admin-btn admin-btn-secondary admin-course-builder-test-order-btn is-move" aria-label="Mută elementul în jos" onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'down')} disabled={answerIdx === (question.answers?.length || 0) - 1}>
-                                          ↓
-                                        </button>
-                                        <button type="button" className="admin-btn admin-btn-secondary admin-course-builder-test-order-btn is-delete" aria-label="Șterge elementul" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
-                                          ×
-                                        </button>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                ))}
+                              <div className="va-qa">
+                                <div className="va-qa__head">
+                                  <span className="va-qa__title">Ordinea corectă</span>
+                                  <span className="va-qa__hint">Cursantul primește elementele amestecate și le aranjează în această ordine.</span>
+                                </div>
+                                <ul className="va-qa__list">
+                                  {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+                                    <li key={`${question.id}-ord-${answerIdx}`} className="va-qa__row va-qa__row--order">
+                                      <span className="va-qa__order-index" aria-hidden="true">{answerIdx + 1}</span>
+                                      <input
+                                        type="text"
+                                        className="va-qa__input"
+                                        value={answer.text ?? answer.answer_text ?? ''}
+                                        onChange={(e) => handleInlineAnswerTextChange(question.id, answerIdx, e.target.value)}
+                                        placeholder={`Pasul ${answerIdx + 1}`}
+                                        aria-label={`Elementul ${answerIdx + 1}`}
+                                        disabled={!canMutateInAdminArea}
+                                      />
+                                      {canMutateInAdminArea ? (
+                                        <div className="va-qa__order-actions">
+                                          <button type="button" className="va-qa__icon-btn" aria-label={`Mută elementul ${answerIdx + 1} în sus`} onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'up')} disabled={answerIdx === 0}>
+                                            <CaretUp size={16} weight="bold" aria-hidden="true" />
+                                          </button>
+                                          <button type="button" className="va-qa__icon-btn" aria-label={`Mută elementul ${answerIdx + 1} în jos`} onClick={() => handleInlineOrderingMove(question.id, answerIdx, 'down')} disabled={answerIdx === (question.answers?.length || 0) - 1}>
+                                            <CaretDown size={16} weight="bold" aria-hidden="true" />
+                                          </button>
+                                          <button type="button" className="va-qa__icon-btn is-danger" aria-label={`Șterge elementul ${answerIdx + 1}`} onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)}>
+                                            <Trash size={16} weight="bold" aria-hidden="true" />
+                                          </button>
+                                        </div>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
                                 {canMutateInAdminArea ? (
-                                  <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleInlineAddAnswer(question.id)}>
-                                    + Adaugă element
+                                  <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={() => handleInlineAddAnswer(question.id)}>
+                                    <Plus size={16} weight="bold" aria-hidden="true" />
+                                    Adaugă element
                                   </button>
                                 ) : null}
                               </div>

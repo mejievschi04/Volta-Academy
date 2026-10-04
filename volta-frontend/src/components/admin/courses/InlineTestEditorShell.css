@@ -264,3 +264,264 @@ html body .va-tq-type-card.va-tq-type-card {
 	min-height: 92px !important;
 	height: auto !important;
 }
+
+/* ---------- Formularul întrebării: aceleași câmpuri ca în restul aplicației (dialog-system) ---------- */
+html body .admin-course-builder-test-question-field-label {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	margin-bottom: 6px;
+	font-size: 0.875rem !important;
+	font-weight: 600 !important;
+	color: var(--text-primary) !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
+}
+
+html body .admin-course-builder-test-question-field-hint {
+	font-weight: 400 !important;
+	color: var(--text-secondary) !important;
+}
+
+html body .admin-course-builder-test-question-rte {
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 10px !important;
+	background: var(--bg-elevated) !important;
+	overflow: hidden;
+}
+
+html body .admin-course-builder-test-question-rte:focus-within {
+	border-color: var(--text-primary) !important;
+	box-shadow: 0 0 0 3px var(--color-primary-alpha-30);
+}
+
+/* Variante, perechi, ordine */
+html body .va-qa {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 16px;
+	padding: 14px;
+	border: 1px solid var(--border-primary);
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--text-primary) 3%, var(--bg-elevated));
+}
+
+html body .va-qa__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 10px;
+}
+
+html body .va-qa__title {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+html body .va-qa__hint {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+}
+
+html body .va-qa__list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+html body .va-qa__row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+html body .va-qa__input.va-qa__input {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 44px !important;
+	min-height: 44px !important;
+	margin: 0 !important;
+	padding: 0 12px !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 10px !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
+	font: inherit !important;
+	font-size: 0.9375rem !important;
+}
+
+html body .va-qa__input.va-qa__input:hover:not(:disabled) {
+	border-color: var(--btn-outline-border-hover) !important;
+}
+
+html body .va-qa__input.va-qa__input:focus {
+	outline: none !important;
+	border-color: var(--text-primary) !important;
+	box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
+}
+
+html body .va-qa__input.va-qa__input:disabled {
+	background: color-mix(in srgb, var(--text-primary) 4%, var(--bg-elevated)) !important;
+	cursor: default;
+}
+
+/* „Corect / Greșit”: eticheta care ține bifa; verde când varianta e corectă */
+html body .va-qa__correct {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 8px;
+	min-width: 104px;
+	height: 44px;
+	padding: 0 12px;
+	border: 1px solid var(--btn-outline-border);
+	border-radius: 10px;
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	font-weight: 700;
+	cursor: pointer;
+	user-select: none;
+}
+
+html body .va-qa__correct input {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	accent-color: #15803d;
+	cursor: pointer;
+}
+
+html body .va-qa__row.is-correct .va-qa__correct {
+	border-color: color-mix(in srgb, var(--color-success) 70%, transparent);
+	background: color-mix(in srgb, var(--color-success) 14%, var(--bg-elevated));
+	color: var(--text-success);
+}
+
+html body .va-qa__row.is-correct .va-qa__input.va-qa__input {
+	border-color: color-mix(in srgb, var(--color-success) 70%, transparent) !important;
+}
+
+html body .va-qa__correct:has(input:focus-visible) {
+	outline: 2px solid var(--border-focus);
+	outline-offset: 2px;
+}
+
+/* butoane-iconiță: ca restul butoanelor cu contur */
+html body .va-qa__icon-btn.va-qa__icon-btn {
+	display: inline-flex !important;
+	flex: 0 0 auto;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 40px !important;
+	min-width: 40px !important;
+	height: 40px !important;
+	min-height: 40px !important;
+	padding: 0 !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 8px !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	box-shadow: none !important;
+	cursor: pointer;
+}
+
+html body .va-qa__icon-btn.va-qa__icon-btn:hover:not(:disabled) {
+	border-color: var(--btn-outline-border-hover) !important;
+	background: var(--bg-secondary) !important;
+}
+
+html body .va-qa__icon-btn.va-qa__icon-btn.is-danger {
+	color: var(--color-error) !important;
+}
+
+html body .va-qa__icon-btn.va-qa__icon-btn.is-danger:hover:not(:disabled) {
+	border-color: var(--color-error) !important;
+	background: color-mix(in srgb, var(--color-error) 12%, var(--bg-elevated)) !important;
+}
+
+html body .va-qa__icon-btn.va-qa__icon-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+html body .va-qa__icon-btn.va-qa__icon-btn svg {
+	color: inherit !important;
+	fill: currentColor !important;
+}
+
+html body .va-qa__pair-arrow {
+	flex: 0 0 auto;
+	color: var(--text-secondary);
+}
+
+html body .va-qa__order-index {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--tq-accent, var(--text-primary)) 16%, var(--bg-elevated));
+	color: var(--tq-ink, var(--text-primary));
+	font-size: 0.8125rem;
+	font-weight: 700;
+}
+
+html body .va-qa__order-actions {
+	display: flex;
+	gap: 6px;
+}
+
+html body .va-qa__add.va-qa__add {
+	display: inline-flex;
+	align-self: flex-start;
+	align-items: center;
+	gap: 6px;
+}
+
+@media (max-width: 640px) {
+	html body .va-qa {
+		padding: 12px;
+	}
+
+	html body .va-qa__row--pair {
+		flex-wrap: wrap;
+	}
+
+	html body .va-qa__row--pair .va-qa__input {
+		flex-basis: calc(50% - 40px);
+	}
+
+	html body .va-qa__row--pair .va-qa__pair-arrow {
+		display: none;
+	}
+
+	html body .va-qa__correct {
+		min-width: 0;
+	}
+
+	html body .va-qa__correct span {
+		display: none;
+	}
+
+	html body .va-qa__row--order {
+		flex-wrap: wrap;
+	}
+
+	html body .va-qa__row--order .va-qa__input {
+		flex-basis: calc(100% - 40px);
+	}
+
+	html body .va-qa__order-actions {
+		margin-left: 40px;
+	}
+}

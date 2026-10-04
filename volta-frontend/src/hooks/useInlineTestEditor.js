@@ -401,7 +401,8 @@ export function useInlineTestEditor({
         ...ans,
         is_correct: singleChoice ? idx === answerIndex : (idx === answerIndex ? !ans.is_correct : ans.is_correct),
       })),
-      'debounced'
+      // acțiune unică (nu tastare): se salvează imediat, altfel o plecare rapidă de pe pagină pierdea alegerea
+      'immediate'
     );
   }, [updateInlineAnswers]);
 
