@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import { useToast } from '../contexts/ToastContextShared.js';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { toImageUrl } from '../utils/imageUrl';
+import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 
 const AVATAR_EDITOR_SIZE = 280;
 const AVATAR_OUTPUT_SIZE = 512;
@@ -253,7 +254,7 @@ const ProfilePage = () => {
 							/>
 						</div>
 						<div className="va-course-card-meta">
-							<span>Progres: {course.progress ?? 0}%</span>
+							<span>{Number(course.progress) >= 100 ? 'Finalizat' : `Progres: ${courseProgressLabel(course.progress)}`}</span>
 							{course.totalModules ? (
 								<span>{course.completedModules ?? 0} / {course.totalModules} module</span>
 							) : null}

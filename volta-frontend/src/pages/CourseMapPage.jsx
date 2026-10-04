@@ -35,6 +35,7 @@ import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase
 import { hexToHslSpace } from '../lib/hexToHsl';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CourseMapPage.css';
+import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 
 /**
  * Pagina unei mape de cursuri (folder).
@@ -56,7 +57,8 @@ function courseMapCourseSubtitle(course, fmtDur) {
 	const prog = course.progress_percentage ?? 0;
 	const parts = [];
 	if (dur && dur !== '—') parts.push(dur);
-	if (Number(prog) > 0) parts.push(`Progres ${prog}%`);
+	if (Number(prog) >= 100) parts.push('Finalizat');
+	else if (Number(prog) > 0) parts.push(`Progres ${courseProgressLabel(prog)}`);
 	return parts.join(' · ') || 'Curs';
 }
 

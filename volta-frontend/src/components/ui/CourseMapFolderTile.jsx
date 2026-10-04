@@ -2,6 +2,7 @@ import React from 'react';
 import Folder from './Folder';
 import { toImageUrl } from '../../utils/imageUrl';
 import './CourseMapFolderTile.css';
+import { courseProgressLabel } from '../../utils/courseProgressLabel.js';
 
 const CourseMapFolderTile = ({
 	title,
@@ -27,7 +28,7 @@ const CourseMapFolderTile = ({
 	const tileStyle = { '--color-primary': color, ...style };
 	const itemNodes = [
 		normalizedProgress !== null ? (
-			<span className="course-map-folder-tile__paper-value">{normalizedProgress}%</span>
+			<span className="course-map-folder-tile__paper-value">{courseProgressLabel(normalizedProgress)}</span>
 		) : null,
 		<span className="course-map-folder-tile__paper-label">Mapa</span>,
 	];

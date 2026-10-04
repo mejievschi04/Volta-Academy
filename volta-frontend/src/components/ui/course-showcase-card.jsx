@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { toImageUrl } from '../../utils/imageUrl';
 import '../../assets/course-map-placeholder.svg';
 import './course-showcase-card.css';
+import { courseProgressLabel } from '../../utils/courseProgressLabel.js';
 
 /** Copertă implicită când lipsește URL-ul sau încărcarea eșuează. */
 
@@ -110,7 +111,7 @@ const CourseShowcaseCard = React.forwardRef(
 								<div className="course-showcase-card__progress-track va-card-progress-track">
 									<div className="course-showcase-card__progress-fill va-card-progress-fill" style={{ width: `${normalizedProgress}%` }} />
 								</div>
-								<span className="course-showcase-card__progress-value va-card-progress-value">{normalizedProgress}%</span>
+								<span className="course-showcase-card__progress-value va-card-progress-value">{courseProgressLabel(normalizedProgress)}</span>
 							</div>
 						) : null}
 						<div className="course-showcase-card__footer va-card-footer">

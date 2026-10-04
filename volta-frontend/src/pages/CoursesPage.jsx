@@ -13,6 +13,7 @@ import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import './CoursesPage.css';
 import '../styles/learning-experience.css';
+import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9',
@@ -20,13 +21,13 @@ const COURSE_MAP_ACCENT_COLORS = [
 
 const STUDENT_COURSE_FILTERS = [
 	{ id: 'maps', label: 'Cursuri indicate' },
-	{ id: 'unfinished', label: 'Cursuri neterminate' },
+	{ id: 'unfinished', label: 'Cursuri nepromovate' },
 	{ id: 'completed', label: 'Cursuri finalizate', statKey: 'completed' },
 ];
 
 const STUDENT_FILTER_TITLES = {
 	maps: 'Mape',
-	unfinished: 'Cursuri neterminate',
+	unfinished: 'Cursuri nepromovate',
 	completed: 'Cursuri finalizate',
 };
 
@@ -218,8 +219,8 @@ const CoursesPage = () => {
 		const progress = course.progress_percentage ?? course.progress ?? 0;
 		const subtitleParts = [];
 		if (course.short_description?.trim()) subtitleParts.push(String(course.short_description).trim());
-		if (status === 'completed') subtitleParts.push('Finalizat');
-		else if (status === 'in_progress') subtitleParts.push(`Progres ${progress}%`);
+		if (status === 'completed' || Number(progress) >= 100) subtitleParts.push('Finalizat');
+		else if (status === 'in_progress') subtitleParts.push(`Progres ${courseProgressLabel(progress)}`);
 		else subtitleParts.push('Neaccesat');
 		const subtitle = subtitleParts.join(' · ');
 		const ctaLabel = status === 'not_accessed'
@@ -319,14 +320,14 @@ const CoursesPage = () => {
 									studentFilter === 'completed'
 										? 'Caută cursuri finalizate'
 										: studentFilter === 'unfinished'
-											? 'Caută cursuri neterminate'
+											? 'Caută cursuri nepromovate'
 											: 'Caută mape'
 								}
 								placeholder={
 									!isAdmin && studentFilter === 'completed'
 										? 'Caută un curs finalizat...'
 										: !isAdmin && studentFilter === 'unfinished'
-											? 'Caută un curs neterminat...'
+											? 'Caută un curs nepromovat...'
 											: 'Caută după titlu sau descriere...'
 								}
 								value={searchQuery}

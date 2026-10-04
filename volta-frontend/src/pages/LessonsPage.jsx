@@ -31,6 +31,7 @@ import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent
 import './LessonsPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
 import { logger } from '../utils/logger';
+import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 
 const renderTestStatusIcon = (passed) => (
 	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
@@ -553,7 +554,7 @@ const LessonsPage = () => {
 								></div>
 							</div>
 							<span className="lessons-page-sidebar-progress-text">
-								{progress.progress_percentage || 0}% completat
+								{Number(progress.progress_percentage) >= 100 ? 'Finalizat' : `${courseProgressLabel(progress.progress_percentage)} completat`}
 							</span>
 						</div>
 					)}
