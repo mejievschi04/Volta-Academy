@@ -200,3 +200,23 @@ test('în editorul întrebării, varianta corectă se marchează clar și rămâ
 	await expect(page.locator('[data-qtype="multiple_choice"] .va-qa__row').nth(1)).toContainText('Greșit');
 	await page.waitForLoadState('networkidle');
 });
+
+test('setările testului: comutatoarele se salvează și rămân după reîncărcare', async ({ page }) => {
+	// „Test cu toate tipurile”; comutatorul revine la starea inițială pentru rularea pe celălalt proiect
+	await page.goto('/admin/tests/2/builder?section=settings');
+	await expect(page.getByRole('heading', { name: 'Comportament' })).toBeVisible();
+	const shuffle = page.getByRole('switch', { name: /Amestecă întrebările/ });
+	await expect(shuffle).not.toBeChecked();
+	await page.locator('.va-ts__toggle').filter({ hasText: 'Amestecă întrebările' }).click();
+	await expect(shuffle).toBeChecked();
+	await page.waitForLoadState('networkidle');
+	await page.waitForTimeout(600);
+
+	await page.reload();
+	const reloaded = page.getByRole('switch', { name: /Amestecă întrebările/ });
+	await expect(reloaded).toBeChecked();
+	await page.locator('.va-ts__toggle').filter({ hasText: 'Amestecă întrebările' }).click();
+	await expect(reloaded).not.toBeChecked();
+	await page.waitForLoadState('networkidle');
+	await page.waitForTimeout(600);
+});

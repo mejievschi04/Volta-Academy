@@ -464,109 +464,139 @@ export default function InlineTestEditorShell({
           )}
 
           {inlineTestTab === 'settings' && (
-            <div className="admin-course-builder-test-settings">
-              <div className="admin-course-builder-test-field">
-                <label htmlFor="inline-test-title">Titlu test</label>
-                <input
-                  id="inline-test-title"
-                  type="text"
-                  value={inlineTest.title || ''}
-                  onChange={(e) => saveInlineTestPatch({ title: e.target.value })}
-                  placeholder="Ex.: Evaluare modul 1"
-                  disabled={!canMutateInAdminArea}
-                />
-              </div>
-              <div className="admin-course-builder-test-field">
-                <label htmlFor="inline-test-description">Descriere</label>
-                <textarea
-                  id="inline-test-description"
-                  value={inlineTest.description || ''}
-                  onChange={(e) => saveInlineTestPatch({ description: e.target.value })}
-                  placeholder="Instrucțiuni pentru test (opțional)"
-                  rows={4}
-                  disabled={!canMutateInAdminArea}
-                />
-              </div>
-              <div className="admin-course-builder-test-field">
-                <label>Timp limită (minute)</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={inlineTest.time_limit_minutes ?? ''}
-                  onChange={(e) => saveInlineTestPatch({ time_limit_minutes: e.target.value ? Number(e.target.value) : null })}
-                  disabled={!canMutateInAdminArea}
-                />
-              </div>
-              <div className="admin-course-builder-test-field">
-                <label>Încercări maxime</label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={inlineTest.max_attempts == null}
-                    onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.checked ? null : 1 })}
-                    disabled={!canMutateInAdminArea}
-                  />
-                  {' '}Nelimitate
-                </label>
-                {inlineTest.max_attempts != null && (
-                  <input
-                    type="number"
-                    min="1"
-                    value={inlineTest.max_attempts}
-                    onChange={(e) => saveInlineTestPatch({ max_attempts: Math.max(1, Number(e.target.value) || 1) })}
-                    disabled={!canMutateInAdminArea}
-                  />
-                )}
-              </div>
-              <div className="admin-course-builder-test-field">
-                <PassingScoreByQuestions
-                  questionCount={inlineQuestions.length}
-                  passingScore={inlineTest.passing_score ?? 70}
-                  onPassingScoreChange={(next) => saveInlineTestPatch({ passing_score: next })}
-                  disabled={!canMutateInAdminArea}
-                />
-              </div>
-              <div className="admin-course-builder-test-settings-section">
-                <h3>Comportament test</h3>
-                <div className="admin-course-builder-test-toggle-list">
-                  {[
-                    ['randomize_questions', 'Amestecă întrebările', 'Ordinea întrebărilor va fi randomizată pentru fiecare parcurgere.'],
-                    ['randomize_answers', 'Amestecă răspunsurile', 'Opțiunile grilă se afișează în ordine diferită.'],
-                    ['show_results_immediately', 'Arată rezultatul imediat', 'Cursantul vede scorul imediat după trimitere.'],
-                    ['allow_review', 'Permite revizuirea', 'Cursantul poate reveni să revadă testul după completare.'],
-                    ['requires_manual_verification', 'Necesită verificare manuală', 'Rezultatul final rămâne în așteptare până la corectare.'],
-                  ].map(([key, label, hint]) => (
-                    <label key={key} className="admin-course-builder-test-toggle">
+            <div className="admin-course-builder-test-settings va-ts">
+              <section className="va-ts__section" aria-labelledby="va-ts-info">
+                <h3 id="va-ts-info" className="va-ts__title">Informații</h3>
+                <div className="va-ts__grid">
+                  <div className="va-ts__field va-ts__field--full">
+                    <label htmlFor="inline-test-title">Titlu test</label>
+                    <input
+                      id="inline-test-title"
+                      type="text"
+                      className="va-ts__input"
+                      value={inlineTest.title || ''}
+                      onChange={(e) => saveInlineTestPatch({ title: e.target.value })}
+                      placeholder="Ex.: Evaluare modul 1"
+                      disabled={!canMutateInAdminArea}
+                    />
+                  </div>
+                  <div className="va-ts__field va-ts__field--full">
+                    <label htmlFor="inline-test-description">
+                      Descriere <span className="va-ts__optional">(instrucțiuni pentru cursant, opțional)</span>
+                    </label>
+                    <textarea
+                      id="inline-test-description"
+                      className="va-ts__input va-ts__textarea"
+                      value={inlineTest.description || ''}
+                      onChange={(e) => saveInlineTestPatch({ description: e.target.value })}
+                      placeholder="Ce trebuie să știe cursantul înainte să înceapă"
+                      rows={3}
+                      disabled={!canMutateInAdminArea}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="va-ts__section" aria-labelledby="va-ts-run">
+                <h3 id="va-ts-run" className="va-ts__title">Desfășurare</h3>
+                <div className="va-ts__grid va-ts__grid--three">
+                  <div className="va-ts__field">
+                    <label htmlFor="inline-test-time">Timp limită</label>
+                    <div className="va-ts__suffix-input">
                       <input
-                        type="checkbox"
-                        checked={Boolean(inlineTest[key])}
-                        onChange={(e) => saveInlineTestPatch({ [key]: e.target.checked })}
+                        id="inline-test-time"
+                        type="number"
+                        min="1"
+                        className="va-ts__input"
+                        value={inlineTest.time_limit_minutes ?? ''}
+                        onChange={(e) => saveInlineTestPatch({ time_limit_minutes: e.target.value ? Number(e.target.value) : null })}
+                        placeholder="Fără limită"
                         disabled={!canMutateInAdminArea}
                       />
-                      <span>
+                      <span aria-hidden="true">min</span>
+                    </div>
+                    <p className="va-ts__hint">Lasă gol pentru timp nelimitat.</p>
+                  </div>
+                  <div className="va-ts__field">
+                    <label htmlFor="inline-test-attempts">Încercări</label>
+                    <div className="va-ts__inline">
+                      <input
+                        id="inline-test-attempts"
+                        type="number"
+                        min="1"
+                        className="va-ts__input"
+                        value={inlineTest.max_attempts ?? ''}
+                        onChange={(e) => saveInlineTestPatch({ max_attempts: Math.max(1, Number(e.target.value) || 1) })}
+                        placeholder="∞"
+                        disabled={!canMutateInAdminArea || inlineTest.max_attempts == null}
+                      />
+                      <label className="va-ts__switch">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={inlineTest.max_attempts == null}
+                          onChange={(e) => saveInlineTestPatch({ max_attempts: e.target.checked ? null : 1 })}
+                          disabled={!canMutateInAdminArea}
+                        />
+                        <span className="va-ts__switch-track" aria-hidden="true" />
+                        <span>Nelimitate</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="va-ts__field">
+                    <PassingScoreByQuestions
+                      questionCount={inlineQuestions.length}
+                      passingScore={inlineTest.passing_score ?? 70}
+                      onPassingScoreChange={(next) => saveInlineTestPatch({ passing_score: next })}
+                      disabled={!canMutateInAdminArea}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="va-ts__section" aria-labelledby="va-ts-behaviour">
+                <h3 id="va-ts-behaviour" className="va-ts__title">Comportament</h3>
+                <div className="va-ts__toggles">
+                  {[
+                    ['randomize_questions', 'Amestecă întrebările', 'Ordinea întrebărilor diferă la fiecare parcurgere.'],
+                    ['randomize_answers', 'Amestecă răspunsurile', 'Variantele apar în altă ordine pentru fiecare cursant.'],
+                    ['show_results_immediately', 'Arată rezultatul imediat', 'Cursantul vede scorul imediat după trimitere.'],
+                    ['allow_review', 'Permite revizuirea', 'Cursantul poate revedea testul după ce l-a terminat.'],
+                    ['requires_manual_verification', 'Necesită verificare manuală', 'Rezultatul rămâne în așteptare până la corectare.'],
+                  ].map(([key, label, hint]) => (
+                    <label key={key} className={`va-ts__toggle${inlineTest[key] ? ' is-on' : ''}`}>
+                      <span className="va-ts__toggle-text">
                         <strong>{label}</strong>
                         <small>{hint}</small>
+                      </span>
+                      <span className="va-ts__switch">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={Boolean(inlineTest[key])}
+                          onChange={(e) => saveInlineTestPatch({ [key]: e.target.checked })}
+                          disabled={!canMutateInAdminArea}
+                        />
+                        <span className="va-ts__switch-track" aria-hidden="true" />
                       </span>
                     </label>
                   ))}
                 </div>
+              </section>
 
-                <div className="admin-course-builder-test-results-mode">
-                  <div className="admin-course-builder-test-results-mode-head">
-                    <strong>Afișare răspunsuri după test</strong>
-                    <small>Alege una dintre opțiuni — răspunsurile corecte și cele oferite de student nu pot fi active simultan.</small>
-                  </div>
-                  <div className="admin-course-builder-test-results-mode-options" role="radiogroup" aria-label="Afișare răspunsuri după test">
-                    {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => (
-                      <label
-                        key={option.id}
-                        className={`admin-course-builder-test-results-mode-option ${getTestResultsDisplayMode(inlineTest) === option.id ? 'is-active' : ''}`}
-                      >
+              <section className="va-ts__section" aria-labelledby="va-ts-results">
+                <h3 id="va-ts-results" className="va-ts__title">Afișarea răspunsurilor după test</h3>
+                <p className="va-ts__hint">O singură opțiune: răspunsurile corecte și cele date de cursant nu se afișează împreună.</p>
+                <div className="va-ts__choices" role="radiogroup" aria-labelledby="va-ts-results">
+                  {TEST_RESULTS_DISPLAY_OPTIONS.map((option) => {
+                    const active = getTestResultsDisplayMode(inlineTest) === option.id;
+                    return (
+                      <label key={option.id} className={`va-ts__choice${active ? ' is-active' : ''}`}>
                         <input
                           type="radio"
                           name="inline-test-results-display"
                           value={option.id}
-                          checked={getTestResultsDisplayMode(inlineTest) === option.id}
+                          checked={active}
                           onChange={() => saveInlineTestPatch(patchTestResultsDisplayMode(option.id))}
                           disabled={!canMutateInAdminArea}
                         />
@@ -575,10 +605,10 @@ export default function InlineTestEditorShell({
                           <small>{option.hint}</small>
                         </span>
                       </label>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              </div>
+              </section>
             </div>
           )}
         </div>
