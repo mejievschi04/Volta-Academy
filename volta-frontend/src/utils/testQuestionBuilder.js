@@ -18,12 +18,12 @@ export const TEST_EDITOR_DEFAULT = {
 };
 
 export const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
-  { id: 'single_choice', label: 'Răspuns unic', short: '1' },
-  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
-  { id: 'yes_no', label: 'Da / Nu', short: 'Da' },
-  { id: 'matching', label: 'Potrivire', short: '<->' },
-  { id: 'ordering', label: 'Ordonare', short: '1-4' },
+  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B', hint: 'Cursantul bifează toate variantele corecte.' },
+  { id: 'single_choice', label: 'Răspuns unic', short: '1', hint: 'Cursantul alege o singură variantă corectă.' },
+  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F', hint: 'Cursantul spune dacă afirmația e adevărată.' },
+  { id: 'yes_no', label: 'Da / Nu', short: 'Da', hint: 'Cursantul răspunde cu da sau nu.' },
+  { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Cursantul leagă fiecare element de perechea lui.' },
+  { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Cursantul aranjează pașii în ordinea corectă.' },
 ];
 
 export const isBinaryQuestionType = (type) => type === 'true_false' || type === 'yes_no';

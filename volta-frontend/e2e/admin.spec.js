@@ -166,7 +166,8 @@ test('builder-ul de test: antet cu acțiuni, file și alegerea tipului întrebă
 	await page.getByRole('button', { name: 'Întrebarea 1: Răspuns multiplu. Schimbă tipul' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Tipul întrebării' });
 	await expect(dialog).toBeVisible();
-	await expect(dialog.getByRole('button', { name: /Răspuns multiplu/ })).toHaveAttribute('aria-pressed', 'true');
+	await expect(dialog.getByRole('radio', { name: /Răspuns multiplu/ })).toHaveAttribute('aria-checked', 'true');
+	await expect(dialog.getByRole('radio', { name: /Potrivire/ })).toHaveAttribute('aria-checked', 'false');
 	await page.keyboard.press('Escape');
 	await expect(dialog).toHaveCount(0);
 

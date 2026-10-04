@@ -1,5 +1,19 @@
 import React from 'react';
-import { ArrowRight, CaretDown, CaretUp, Plus, Trash, X } from '@phosphor-icons/react';
+import {
+  ArrowRight,
+  ArrowsLeftRight,
+  CaretDown,
+  CaretUp,
+  Check,
+  ListChecks,
+  ListNumbers,
+  Plus,
+  RadioButton,
+  Scales,
+  ThumbsUp,
+  Trash,
+  X,
+} from '@phosphor-icons/react';
 import {
   INLINE_QUESTION_TYPES,
   isBinaryQuestionType,
@@ -14,6 +28,15 @@ import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
 import Modal from '../../common/Modal';
 import './InlineTestEditorShell.css';
+
+const QUESTION_TYPE_ICONS = {
+  multiple_choice: ListChecks,
+  single_choice: RadioButton,
+  true_false: Scales,
+  yes_no: ThumbsUp,
+  matching: ArrowsLeftRight,
+  ordering: ListNumbers,
+};
 
 export default function InlineTestEditorShell({
   editor,
@@ -579,22 +602,35 @@ export default function InlineTestEditorShell({
             </header>
             <div className="va-dialog__body">
               <p className="va-field__hint va-tq-type-hint">Schimbarea tipului înlocuiește variantele de răspuns ale întrebării.</p>
-              <div className="admin-course-builder-test-type-grid va-tq-type-grid">
+              <div className="va-tq-types" role="radiogroup" aria-label="Tipul întrebării">
                 {INLINE_QUESTION_TYPES.map((typeOpt) => {
                   const current = inlineQuestions.find((q) => Number(q.id) === Number(openQuestionTypePickerId));
-                  const isCurrent = current && normalizeInlineQuestionType(current.type || 'multiple_choice') === typeOpt.id;
+                  const isCurrent = Boolean(current) && normalizeInlineQuestionType(current.type || 'multiple_choice') === typeOpt.id;
+                  const TypeIcon = QUESTION_TYPE_ICONS[typeOpt.id] || ListChecks;
                   return (
                     <button
                       key={typeOpt.id}
                       type="button"
-                      className={`admin-course-builder-test-type-card va-tq-type-card${isCurrent ? ' is-current' : ''}`}
+                      role="radio"
+                      aria-checked={isCurrent}
+                      className={`va-tq-option${isCurrent ? ' is-current' : ''}`}
                       data-qtype={typeOpt.id}
-                      aria-pressed={Boolean(isCurrent)}
                       onClick={() => openQuestionTypePickerId && handleInlineQuestionTypeChange(openQuestionTypePickerId, typeOpt.id)}
                       disabled={addingQuestion || !openQuestionTypePickerId || !canMutateInAdminArea}
                     >
-                      <span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
-                      <span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
+                      <span className="va-tq-option__icon" aria-hidden="true">
+                        <TypeIcon size={22} weight="bold" />
+                      </span>
+                      <span className="va-tq-option__text">
+                        <span className="va-tq-option__label">{typeOpt.label}</span>
+                        <span className="va-tq-option__hint">{typeOpt.hint}</span>
+                      </span>
+                      {isCurrent ? (
+                        <span className="va-tq-option__current">
+                          <Check size={14} weight="bold" aria-hidden="true" />
+                          Tipul curent
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
