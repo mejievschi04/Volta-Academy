@@ -18,9 +18,9 @@ export const TEST_EDITOR_DEFAULT = {
 };
 
 export const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B' },
-  { id: 'single_choice', label: 'Raspuns unic', short: '1' },
-  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F' },
+  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B' },
+  { id: 'single_choice', label: 'Răspuns unic', short: '1' },
+  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F' },
   { id: 'yes_no', label: 'Da / Nu', short: 'Da' },
   { id: 'matching', label: 'Potrivire', short: '<->' },
   { id: 'ordering', label: 'Ordonare', short: '1-4' },
@@ -46,18 +46,18 @@ export const normalizeInlineQuestionType = (type) => {
 export const getDefaultAnswersByType = (rawType) => {
   const type = normalizeInlineQuestionType(rawType);
   if (type === 'multiple_choice' || type === 'single_choice') {
-    return [{ text: 'Raspuns A', is_correct: true }, { text: 'Raspuns B', is_correct: false }];
+    return [{ text: 'Răspuns A', is_correct: true }, { text: 'Răspuns B', is_correct: false }];
   }
   if (type === 'true_false') {
-    return [{ text: 'Adevarat', is_correct: true }, { text: 'Fals', is_correct: false }];
+    return [{ text: 'Adevărat', is_correct: true }, { text: 'Fals', is_correct: false }];
   }
   if (type === 'yes_no') {
     return yesNoAnswers([]);
   }
   if (type === 'matching') {
     return [
-      { left: 'Element A', right: 'Raspuns A', text: 'Element A', answer_text: 'Raspuns A', is_correct: true, order: 0 },
-      { left: 'Element B', right: 'Raspuns B', text: 'Element B', answer_text: 'Raspuns B', is_correct: true, order: 1 },
+      { left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true, order: 0 },
+      { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true, order: 1 },
     ];
   }
   if (type === 'ordering') {

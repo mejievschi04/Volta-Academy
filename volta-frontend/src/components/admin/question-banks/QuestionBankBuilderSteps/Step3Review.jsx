@@ -4,7 +4,7 @@ const getQuestionTypeLabel = (type) => {
 	const labels = {
 		multiple_choice: 'Răspuns multiplu',
 		single_choice: 'Răspuns unic',
-		true_false: 'Adevarat/Fals',
+		true_false: 'Adevărat/Fals',
 		yes_no: 'Da / Nu',
 		matching: 'Potrivire',
 		ordering: 'Ordonare',

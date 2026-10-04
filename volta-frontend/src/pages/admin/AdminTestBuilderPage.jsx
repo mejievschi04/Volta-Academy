@@ -15,7 +15,9 @@ export default function AdminTestBuilderPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { canMutateInAdminArea } = useAuth();
+  const { canMutateInAdminArea, user } = useAuth();
+  // ca în lista de teste: adminul și analistul pot parcurge testul fără ca încercarea să se salveze
+  const canTryTest = ['admin', 'analyst'].includes(user?.actualRole ?? user?.role);
 
   const testId = Number(testIdParam);
   const sectionParam = searchParams.get('section');
@@ -27,11 +29,6 @@ export default function AdminTestBuilderPage() {
     initialTestId: Number.isFinite(testId) && testId > 0 ? testId : null,
     initialTab: section === 'settings' ? 'settings' : 'questions',
   });
-
-  useEffect(() => {
-    document.body.classList.add('admin-course-builder-scroll-lock');
-    return () => document.body.classList.remove('admin-course-builder-scroll-lock');
-  }, []);
 
   useEffect(() => {
     const onVoltRefresh = (event) => {
@@ -93,53 +90,96 @@ export default function AdminTestBuilderPage() {
     );
   }
 
+  const test = editor.inlineTest || {};
+  const isPublished = String(test.status || 'draft').toLowerCase() === 'published';
+  const busy = editor.creatingTest || editor.inlineTestSaving || editor.inlinePublishLoading;
+  const stats = [
+    ['Întrebări', String(editor.inlineQuestions.length)],
+    ['Prag de promovare', `${Number(test.passing_score ?? 70)}%`],
+    ['Timp', test.time_limit_minutes ? `${test.time_limit_minutes} min` : 'Nelimitat'],
+    ['Încercări', test.max_attempts ? String(test.max_attempts) : 'Fără limită'],
+  ];
+
   return (
-    <div
-      className={`admin-container admin-test-builder-page admin-course-builder-page ${
-        editor.openQuestionTypePickerId ? 'has-right-panel-expanded' : ''
-      }`}
-    >
-      <div className="admin-test-builder-topbar">
-        <button type="button" className="admin-test-builder-back va-btn-back admin-back-btn" onClick={handleBack}>
-          <ArrowLeft size={18} weight="bold" aria-hidden />
-          Înapoi la Teste
+    <div className="admin-container admin-test-builder-page va-test-builder">
+      <header className="va-test-builder__head">
+        <button type="button" className="va-test-builder__back" onClick={handleBack}>
+          <ArrowLeft size={16} weight="bold" aria-hidden="true" />
+          Teste
         </button>
-      </div>
 
-      <div className="admin-test-builder-section-nav" role="tablist" aria-label="Secțiuni test">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={section === 'questions'}
-          className={`admin-test-builder-section-tab ${section === 'questions' ? 'is-active' : ''}`}
-          onClick={() => handleSectionChange('questions')}
-        >
-          Întrebări
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={section === 'settings'}
-          className={`admin-test-builder-section-tab ${section === 'settings' ? 'is-active' : ''}`}
-          onClick={() => handleSectionChange('settings')}
-        >
-          Setări
-        </button>
-      </div>
-
-      <div className="admin-course-builder-workspace admin-course-builder-workspace-clean admin-test-builder-workspace">
-        <div className="admin-course-builder-workspace-content">
-          <InlineTestEditorShell
-            editor={{
-              ...editor,
-              setInlineTestTab: (tab) => handleSectionChange(tab),
-            }}
-            subtitle="Configurezi întrebările și setările testului într-un workspace clar."
-            showBuilderSummary
-            showSectionTabs={false}
-          />
+        <div className="va-test-builder__title-row">
+          <div className="va-test-builder__title">
+            <h1>{(test.title || '').trim() || 'Test fără titlu'}</h1>
+            <span className={`va-test-builder__status ${isPublished ? 'is-published' : 'is-draft'}`}>
+              {isPublished ? 'Publicat' : 'Ciornă'}
+            </span>
+            {editor.inlineTestSaving ? <span className="va-test-builder__saving">Se salvează…</span> : null}
+          </div>
+          <div className="va-test-builder__actions">
+            {canTryTest ? (
+              <button type="button" className="lms-btn-secondary" onClick={() => navigate(`/exams/${testId}?preview=1`)}>
+                Încearcă testul
+              </button>
+            ) : null}
+            {canMutateInAdminArea ? (
+              <>
+                <button
+                  type="button"
+                  className={isPublished ? 'va-btn-save lms-btn-primary' : 'lms-btn-secondary'}
+                  onClick={editor.handleSaveInlineTestNow}
+                  disabled={busy}
+                >
+                  {editor.inlineTestSaving ? 'Se salvează…' : 'Salvează'}
+                </button>
+                {!isPublished ? (
+                  <button type="button" className="lms-btn-primary" onClick={() => editor.handlePublishInlineTest()} disabled={busy}>
+                    {editor.inlinePublishLoading ? 'Se publică…' : 'Publică'}
+                  </button>
+                ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
-      </div>
+
+        <dl className="va-test-builder__stats" aria-label="Rezumat test">
+          {stats.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="va-dialog__tabs va-test-builder__tabs" role="tablist" aria-label="Secțiuni test">
+          {[
+            ['questions', `Întrebări (${editor.inlineQuestions.length})`],
+            ['settings', 'Setări'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={section === id}
+              className={`va-dialog__tab${section === id ? ' is-active' : ''}`}
+              onClick={() => handleSectionChange(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main className="va-test-builder__body">
+        <InlineTestEditorShell
+          editor={{
+            ...editor,
+            setInlineTestTab: (tab) => handleSectionChange(tab),
+          }}
+          showOverview={false}
+          showSectionTabs={false}
+        />
+      </main>
     </div>
   );
 }

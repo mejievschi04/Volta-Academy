@@ -1,4 +1,5 @@
 import React from 'react';
+import { CaretDown, Trash, X } from '@phosphor-icons/react';
 import {
   INLINE_QUESTION_TYPES,
   isBinaryQuestionType,
@@ -11,13 +12,16 @@ import RichTextEditor from '../../RichTextEditor';
 import RichTextHtml from '../../RichTextHtml';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
+import Modal from '../../common/Modal';
+import './InlineTestEditorShell.css';
 
 export default function InlineTestEditorShell({
   editor,
   subtitle = 'Configurezi testul în același editor ca în constructorul de curs.',
-  showImportButton = true,
   showBuilderSummary = false,
   showSectionTabs = true,
+  // pagina builder-ului de test își desenează propriul antet (titlu, stare, acțiuni, file)
+  showOverview = true,
   courseId = null,
 }) {
   const {
@@ -61,6 +65,7 @@ export default function InlineTestEditorShell({
 
   return (
     <div className="admin-course-builder-test-creator admin-course-builder-test-shell">
+      {showOverview ? (
       <div className="admin-course-builder-test-overview-card">
         <div className="admin-course-builder-test-shell-header">
           <div>
@@ -136,6 +141,7 @@ export default function InlineTestEditorShell({
         </div>
         ) : null}
       </div>
+      ) : null}
 
       <div className="admin-course-builder-test-layout">
         <div className="admin-course-builder-test-main">
@@ -170,43 +176,52 @@ export default function InlineTestEditorShell({
                         id={`test-question-${question.id}`}
                         className={`admin-course-builder-test-question-item ${questionExpanded ? 'is-expanded' : 'is-collapsed'}`}
                       >
-                        <div className="admin-course-builder-test-question-topline">
-                          <div className="admin-course-builder-test-question-type-picker">
+                        <div className="va-tq-row">
+                          <span className="va-tq-num" aria-hidden="true">{idx + 1}</span>
+                          <div className="va-tq-main">
                             <button
                               type="button"
-                              className="admin-course-builder-test-question-badge admin-course-builder-test-question-badge-btn"
+                              className="va-tq-type"
                               onClick={() => handleToggleQuestionTypePicker(question.id)}
+                              disabled={!canMutateInAdminArea}
+                              aria-label={`Întrebarea ${idx + 1}: ${typeLabel}. Schimbă tipul`}
                             >
-                              {`Întrebarea ${idx + 1}: ${typeLabel}`}
+                              {typeLabel}
+                              {canMutateInAdminArea ? <CaretDown size={12} weight="bold" aria-hidden="true" /> : null}
                             </button>
-                          </div>
-                          {canMutateInAdminArea ? (
-                            <div className="admin-course-builder-test-question-top-actions">
-                              <button
-                                type="button"
-                                className="admin-btn admin-btn-secondary"
-                                onClick={() => toggleQuestionExpanded(question.id)}
-                              >
-                                {questionExpanded ? 'Strânge' : 'Deschide'}
-                              </button>
-                              <button type="button" className="admin-btn admin-btn-secondary" onClick={() => handleDeleteInlineQuestion(question.id)}>
-                                Șterge
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                        {!questionExpanded && (
-                          <div className="admin-course-builder-test-question-collapsed-preview">
-                            <p className="admin-course-builder-test-question-collapsed-text">
-                              {stripRichTextToPlain(question.content) || 'Întrebare fără conținut'}
-                            </p>
-                            {stripRichTextToPlain(question.explanation) ? (
-                              <p className="admin-course-builder-test-question-collapsed-desc">
-                                {stripRichTextToPlain(question.explanation)}
-                              </p>
+                            {!questionExpanded ? (
+                              <>
+                                <p className="va-tq-preview">
+                                  {stripRichTextToPlain(question.content) || 'Întrebare fără conținut'}
+                                </p>
+                                {stripRichTextToPlain(question.explanation) ? (
+                                  <p className="va-tq-preview-desc">{stripRichTextToPlain(question.explanation)}</p>
+                                ) : null}
+                              </>
                             ) : null}
                           </div>
-                        )}
+                          <div className="va-tq-actions">
+                            <button
+                              type="button"
+                              className="lms-btn-secondary lms-btn-sm"
+                              onClick={() => toggleQuestionExpanded(question.id)}
+                              aria-expanded={questionExpanded}
+                            >
+                              {questionExpanded ? 'Strânge' : canMutateInAdminArea ? 'Editează' : 'Vezi'}
+                            </button>
+                            {canMutateInAdminArea ? (
+                              <button
+                                type="button"
+                                className="va-tq-delete"
+                                onClick={() => handleDeleteInlineQuestion(question.id)}
+                                aria-label={`Șterge întrebarea ${idx + 1}`}
+                                title="Șterge întrebarea"
+                              >
+                                <Trash size={16} weight="bold" aria-hidden="true" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
                         {questionExpanded && (
                           <>
                             <div className="admin-course-builder-test-question-fields">
@@ -374,16 +389,6 @@ export default function InlineTestEditorShell({
                   <button type="button" className="admin-btn lms-btn-primary" onClick={handleAddDefaultInlineQuestion} disabled={addingQuestion}>
                     {addingQuestion ? 'Se adaugă...' : 'Adaugă întrebare'}
                   </button>
-                  {showImportButton ? (
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn-secondary"
-                      disabled
-                      title="Vom reveni ulterior cu importul de întrebări"
-                    >
-                      Importă întrebări
-                    </button>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -509,28 +514,47 @@ export default function InlineTestEditorShell({
           )}
         </div>
 
-        <aside className={`admin-course-builder-test-sidepanel ${openQuestionTypePickerId ? 'is-open' : ''}`} ref={questionTypeMenuRef}>
-          <div className="admin-course-builder-test-sidepanel-head">
-            <h3>Tipuri întrebări</h3>
-            <button type="button" onClick={() => setOpenQuestionTypePickerId(null)} aria-label="Închide panou">
-              ×
-            </button>
-          </div>
-          <div className="admin-course-builder-test-type-grid">
-            {INLINE_QUESTION_TYPES.map((typeOpt) => (
-              <button
-                key={typeOpt.id}
-                type="button"
-                className="admin-course-builder-test-type-card"
-                onClick={() => openQuestionTypePickerId && handleInlineQuestionTypeChange(openQuestionTypePickerId, typeOpt.id)}
-                disabled={addingQuestion || !openQuestionTypePickerId || !canMutateInAdminArea}
-              >
-                <span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
-                <span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
+        {/* Tipul întrebării: fereastră deschisă doar la schimbarea tipului (înainte un panou mereu vizibil) */}
+        <Modal
+          isOpen={Boolean(openQuestionTypePickerId)}
+          onClose={() => setOpenQuestionTypePickerId(null)}
+          closeOnBackdropClick
+          closeOnEscape
+          ariaLabelledby="va-tq-type-title"
+          className="va-dialog-overlay"
+          unstyledContent
+        >
+          <div className="va-dialog va-tq-type-dialog" ref={questionTypeMenuRef}>
+            <header className="va-dialog__header">
+              <h2 id="va-tq-type-title" className="va-dialog__title">Tipul întrebării</h2>
+              <button type="button" className="va-close-btn" onClick={() => setOpenQuestionTypePickerId(null)} aria-label="Închide">
+                <X size={18} weight="bold" aria-hidden="true" />
               </button>
-            ))}
+            </header>
+            <div className="va-dialog__body">
+              <p className="va-field__hint va-tq-type-hint">Schimbarea tipului înlocuiește variantele de răspuns ale întrebării.</p>
+              <div className="admin-course-builder-test-type-grid va-tq-type-grid">
+                {INLINE_QUESTION_TYPES.map((typeOpt) => {
+                  const current = inlineQuestions.find((q) => Number(q.id) === Number(openQuestionTypePickerId));
+                  const isCurrent = current && normalizeInlineQuestionType(current.type || 'multiple_choice') === typeOpt.id;
+                  return (
+                    <button
+                      key={typeOpt.id}
+                      type="button"
+                      className={`admin-course-builder-test-type-card va-tq-type-card${isCurrent ? ' is-current' : ''}`}
+                      aria-pressed={Boolean(isCurrent)}
+                      onClick={() => openQuestionTypePickerId && handleInlineQuestionTypeChange(openQuestionTypePickerId, typeOpt.id)}
+                      disabled={addingQuestion || !openQuestionTypePickerId || !canMutateInAdminArea}
+                    >
+                      <span className="admin-course-builder-test-type-short">{typeOpt.short}</span>
+                      <span className="admin-course-builder-test-type-label">{typeOpt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </aside>
+        </Modal>
       </div>
     </div>
   );

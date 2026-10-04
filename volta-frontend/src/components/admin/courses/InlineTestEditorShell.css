@@ -1,0 +1,181 @@
+/*
+ * Editorul de test (pagina builder-ului de test și testul din builder-ul de curs):
+ * rândul fiecărei întrebări și fereastra de alegere a tipului.
+ * Formularele întrebării (text, variante, perechi, ordine) rămân cu stilurile lor.
+ */
+
+html body .admin-course-builder-test-question-item {
+	padding: 12px 14px;
+}
+
+html body .va-tq-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: start;
+	gap: 12px;
+}
+
+html body .va-tq-num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	margin-top: 2px;
+	border-radius: 999px;
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: 0.8125rem;
+	font-weight: 700;
+}
+
+html body .va-tq-main {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	min-width: 0;
+}
+
+html body .va-tq-type.va-tq-type {
+	height: 28px !important;
+	max-height: 28px !important;
+	min-width: 0 !important;
+	display: inline-flex !important;
+	align-items: center;
+	gap: 6px;
+	min-height: 26px !important;
+	padding: 0 10px !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 999px !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	font-size: 0.75rem !important;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+}
+
+html body .va-tq-type.va-tq-type:hover:not(:disabled) {
+	border-color: var(--btn-outline-border-hover) !important;
+}
+
+html body .va-tq-type.va-tq-type:disabled {
+	cursor: default;
+	opacity: 1;
+}
+
+html body .va-tq-preview {
+	margin: 0;
+	overflow: hidden;
+	color: var(--text-primary);
+	font-size: 0.9375rem;
+	font-weight: 600;
+	line-height: 1.4;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
+}
+
+html body .va-tq-preview-desc {
+	margin: 0;
+	overflow: hidden;
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
+}
+
+html body .va-tq-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+html body .va-tq-delete.va-tq-delete {
+	min-width: 36px !important;
+	min-height: 36px !important;
+	max-width: 36px !important;
+	max-height: 36px !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	width: 36px !important;
+	height: 36px !important;
+	padding: 0 !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 8px !important;
+	background: var(--bg-elevated) !important;
+	color: var(--color-error) !important;
+	cursor: pointer;
+}
+
+html body .va-tq-delete.va-tq-delete:hover {
+	border-color: var(--color-error) !important;
+	background: color-mix(in srgb, var(--color-error) 12%, var(--bg-elevated)) !important;
+}
+
+html body .va-tq-delete.va-tq-delete svg,
+html body .va-tq-type.va-tq-type svg {
+	display: block !important;
+	flex: 0 0 auto;
+	color: inherit !important;
+	fill: currentColor !important;
+}
+
+html body .va-tq-delete.va-tq-delete svg {
+	width: 16px !important;
+	height: 16px !important;
+}
+
+/* formularul deschis începe sub rând, aliniat cu textul întrebării */
+html body .admin-course-builder-test-question-item.is-expanded .va-tq-row {
+	margin-bottom: 12px;
+}
+
+/* Fereastra „Tipul întrebării” */
+html body .va-dialog.va-tq-type-dialog {
+	width: min(560px, calc(100vw - 32px));
+}
+
+html body .va-tq-type-hint {
+	margin-bottom: 12px;
+}
+
+html body .va-tq-type-grid.va-tq-type-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+}
+
+html body .va-tq-type-card.va-tq-type-card {
+	opacity: 1;
+	border: 1px solid var(--btn-outline-border);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+}
+
+html body .va-tq-type-card.va-tq-type-card:hover:not(:disabled) {
+	border-color: var(--btn-outline-border-hover);
+}
+
+html body .va-tq-type-card.va-tq-type-card.is-current {
+	border-color: var(--btn-primary-border);
+	box-shadow: inset 0 0 0 1px var(--btn-primary-border);
+}
+
+@media (max-width: 640px) {
+	html body .va-tq-row {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	html body .va-tq-actions {
+		grid-column: 1 / -1;
+		justify-content: flex-end;
+	}
+
+	html body .va-tq-type-grid.va-tq-type-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}

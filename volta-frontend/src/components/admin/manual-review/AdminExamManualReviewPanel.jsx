@@ -41,7 +41,7 @@ const typeLabel = (type) =>
 	({
 		multiple_choice: 'Grila',
 		single_choice: 'Alegere unica',
-		true_false: 'Adevarat / fals',
+		true_false: 'Adevărat / fals',
 		yes_no: 'Da / Nu',
 		matching: 'Asocieri',
 		ordering: 'Ordonare',

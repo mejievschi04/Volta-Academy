@@ -155,3 +155,24 @@ test('adminul parcurge un test ca un cursant, fără să i se salveze încercare
 	await page.getByRole('link', { name: /Înapoi la teste/ }).first().click();
 	await expect(page).toHaveURL(/\/admin\/content\?tab=tests/);
 });
+
+test('builder-ul de test: antet cu acțiuni, file și alegerea tipului întrebării într-o fereastră', async ({ page }) => {
+	await page.goto('/admin/tests/1/builder');
+	await expect(page.getByRole('heading', { level: 1, name: 'Test final E2E' })).toBeVisible();
+	await expect(page.getByRole('tab', { name: /Întrebări \(2\)/ })).toHaveAttribute('aria-selected', 'true');
+	// panoul cu tipuri nu mai stă deschis peste pagină
+	await expect(page.getByRole('heading', { name: 'Tipul întrebării' })).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Întrebarea 1: Răspuns multiplu. Schimbă tipul' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Tipul întrebării' });
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByRole('button', { name: /Răspuns multiplu/ })).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Escape');
+	await expect(dialog).toHaveCount(0);
+
+	await page.getByRole('tab', { name: 'Setări' }).click();
+	await expect(page.getByLabel('Titlu test')).toHaveValue('Test final E2E');
+
+	await page.getByRole('button', { name: 'Încearcă testul' }).click();
+	await expect(page).toHaveURL(/\/exams\/1\?preview=1/);
+});

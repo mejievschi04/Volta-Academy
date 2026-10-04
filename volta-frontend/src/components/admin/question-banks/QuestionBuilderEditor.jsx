@@ -3,9 +3,9 @@ import RichTextEditor from '../../RichTextEditor';
 import '../../../styles/admin-course-builder.css';
 
 const INLINE_QUESTION_TYPES = [
-  { id: 'multiple_choice', label: 'Raspuns multiplu', short: 'A/B', hint: 'Mai multe corecte', bits: ['is-on', 'is-on', ''] },
-  { id: 'single_choice', label: 'Raspuns unic', short: '1', hint: 'O singură corectă', bits: ['is-on', '', ''] },
-  { id: 'true_false', label: 'Adevarat / Fals', short: 'T/F', hint: 'Două variante', bits: ['is-on', ''] },
+  { id: 'multiple_choice', label: 'Răspuns multiplu', short: 'A/B', hint: 'Mai multe corecte', bits: ['is-on', 'is-on', ''] },
+  { id: 'single_choice', label: 'Răspuns unic', short: '1', hint: 'O singură corectă', bits: ['is-on', '', ''] },
+  { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F', hint: 'Două variante', bits: ['is-on', ''] },
   { id: 'yes_no', label: 'Da / Nu', short: 'Da', hint: 'Da sau Nu', bits: ['is-on', ''] },
   { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Leagă perechile', bits: ['is-on', 'is-on'] },
   { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Pune în ordine', bits: ['is-on', 'is-on', ''] },
@@ -18,7 +18,7 @@ const normalizeType = (type) => {
 const getDefaultAnswersByType = (type) => {
   if (type === 'true_false') {
     return [
-      { text: 'Adevarat', is_correct: true },
+      { text: 'Adevărat', is_correct: true },
       { text: 'Fals', is_correct: false },
     ];
   }
@@ -32,8 +32,8 @@ const getDefaultAnswersByType = (type) => {
 
   if (type === 'matching') {
     return [
-      { left: 'Element A', right: 'Raspuns A', text: 'Element A', answer_text: 'Raspuns A', is_correct: true },
-      { left: 'Element B', right: 'Raspuns B', text: 'Element B', answer_text: 'Raspuns B', is_correct: true },
+      { left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true },
+      { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true },
     ];
   }
 
@@ -45,8 +45,8 @@ const getDefaultAnswersByType = (type) => {
   }
 
   return [
-    { text: 'Raspuns A', is_correct: true },
-    { text: 'Raspuns B', is_correct: false },
+    { text: 'Răspuns A', is_correct: true },
+    { text: 'Răspuns B', is_correct: false },
   ];
 };
 

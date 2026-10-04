@@ -764,3 +764,171 @@ html[data-theme='dark'] .admin-test-builder-page .admin-course-builder-test-orde
 	color: var(--text-secondary);
 	font-size: 0.88rem;
 }
+
+/* ---------- Antetul paginii (titlu, stare, acțiuni, cifre, file) ---------- */
+html body .va-test-builder {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	width: 100%;
+	max-width: 1120px;
+	margin: 0 auto;
+	padding: 24px 32px 48px;
+	background: transparent;
+}
+
+html body .va-test-builder__head {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 20px 24px;
+	border: 1px solid var(--border-primary);
+	border-radius: 16px;
+	background: var(--bg-elevated);
+	box-shadow: var(--shadow-sm);
+}
+
+html body .va-test-builder__back.va-test-builder__back {
+	display: inline-flex !important;
+	align-self: flex-start;
+	align-items: center;
+	gap: 6px;
+	height: 32px !important;
+	min-height: 32px !important;
+	padding: 0 12px !important;
+	border: 1px solid var(--btn-outline-border) !important;
+	border-radius: 999px !important;
+	background: var(--bg-elevated) !important;
+	color: var(--text-primary) !important;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+html body .va-test-builder__back.va-test-builder__back:hover {
+	border-color: var(--btn-outline-border-hover);
+}
+
+html body .va-test-builder__title-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 16px;
+}
+
+html body .va-test-builder__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	min-width: 0;
+}
+
+html body .va-test-builder__title h1 {
+	margin: 0;
+	color: var(--text-primary);
+	font-size: 1.5rem;
+	font-weight: 800;
+	line-height: 1.2;
+}
+
+html body .va-test-builder__status {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 0 10px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+html body .va-test-builder__status.is-published {
+	background: color-mix(in srgb, var(--color-success) 14%, var(--bg-elevated));
+	color: var(--text-success);
+}
+
+html body .va-test-builder__status.is-draft {
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+}
+
+html body .va-test-builder__saving {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+}
+
+html body .va-test-builder__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+html body .va-test-builder__stats {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+	margin: 0;
+}
+
+html body .va-test-builder__stats > div {
+	padding: 10px 12px;
+	border-radius: 10px;
+	/* în tema închisă bg-secondary e aceeași culoare ca panoul: un ton derivat din text se vede în ambele teme */
+	background: color-mix(in srgb, var(--text-primary) 6%, var(--bg-elevated));
+}
+
+html body .va-test-builder__stats dt {
+	margin: 0;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+html body .va-test-builder__stats dd {
+	margin: 2px 0 0;
+	font-size: 1rem;
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+html body .va-test-builder__tabs.va-dialog__tabs {
+	margin-left: 0;
+	padding-top: 14px;
+	border-top: 1px solid var(--border-primary);
+}
+
+/* conținutul filei: fără chenarul gri în plus din jurul listei */
+html body .va-test-builder .admin-course-builder-test-layout {
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+@media (max-width: 768px) {
+	html body .va-test-builder {
+		padding: 16px 12px 32px;
+	}
+
+	html body .va-test-builder__head {
+		padding: 16px;
+	}
+
+	html body .va-test-builder__title h1 {
+		font-size: 1.25rem;
+	}
+
+	html body .va-test-builder__stats {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	html body .va-test-builder__actions,
+	html body .va-test-builder__actions > * {
+		flex: 1 1 auto;
+	}
+
+	html body .va-test-builder__tabs .va-dialog__tab {
+		flex: 1 1 0;
+		justify-content: center;
+	}
+}
