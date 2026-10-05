@@ -53,20 +53,6 @@ function typeLabel(type) {
 	return TYPE_LABELS[type] || type || 'Întrebare';
 }
 
-function discriminationLabel(index) {
-	if (index == null) return '—';
-	if (index >= 0.2) return 'Bună';
-	if (index >= 0.1) return 'Acceptabilă';
-	return 'Slabă';
-}
-
-function discriminationTone(index) {
-	if (index == null) return 'neutral';
-	if (index >= 0.2) return 'good';
-	if (index >= 0.1) return 'medium';
-	return 'poor';
-}
-
 function plainQuestionPreview(html, maxLen = 72) {
 	const plain = stripRichTextToPlain(html);
 	if (!plain) return '';
@@ -213,7 +199,6 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 			q.skipped_count ?? 0,
 			q.correct_rate != null ? `${Math.round(q.correct_rate)}%` : '—',
 			q.difficulty_index != null ? Number(q.difficulty_index).toFixed(2) : '—',
-			q.discrimination_index != null ? Number(q.discrimination_index).toFixed(2) : '—',
 		]);
 
 		const rows = buildStructuredExcelRows({
@@ -225,7 +210,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 			tableRows: studentRows,
 			extraSections: questionExportRows.length ? [{
 				title: 'Analiză pe întrebări',
-				headers: ['#', 'Întrebare', 'Tip', 'Prezentări', 'Răspunsuri', 'Omise', 'Rată corect', 'Dificultate', 'Discriminare'],
+				headers: ['#', 'Întrebare', 'Tip', 'Prezentări', 'Răspunsuri', 'Omise', 'Rată corect', 'Dificultate'],
 				rows: questionExportRows,
 			}] : null,
 			extraMeta: [['Test', testTitle]],
@@ -477,28 +462,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 										{question.average_points_earned != null ? (
 											<span>Puncte medii: {Number(question.average_points_earned).toFixed(2)} / {question.points ?? 1}</span>
 										) : null}
-										{question.discrimination_index != null ? (
-											<span>
-												Discriminare: {Number(question.discrimination_index).toFixed(2)}
-												{' '}({discriminationLabel(question.discrimination_index)})
-											</span>
-										) : null}
 									</div>
-
-									{question.discrimination_index != null ? (
-										<div className={`test-stats__discrimination is-${discriminationTone(question.discrimination_index)}`}>
-											<div className="test-stats__difficulty-top">
-												<span>Indice de discriminare (grup superior 27% − grup inferior 27%)</span>
-												<strong>{Number(question.discrimination_index).toFixed(2)} · {discriminationLabel(question.discrimination_index)}</strong>
-											</div>
-											<div className="test-stats__difficulty-track" aria-hidden>
-												<div
-													className="test-stats__discrimination-fill"
-													style={{ width: `${Math.max(0, Math.min(100, (Number(question.discrimination_index) + 1) * 50))}%` }}
-												/>
-											</div>
-										</div>
-									) : null}
 
 									{Array.isArray(question.option_stats) && question.option_stats.length > 0 ? (
 										<div className="test-stats__options">

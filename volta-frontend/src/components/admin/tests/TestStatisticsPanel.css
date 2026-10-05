@@ -85,33 +85,6 @@
 	font-weight: 700;
 }
 
-.test-stats__discrimination {
-	display: grid;
-	gap: 6px;
-	padding: 10px 12px;
-	border-radius: var(--ts-radius-sm);
-	border: 1px solid var(--border-primary);
-	background: var(--bg-primary);
-}
-
-.test-stats__discrimination.is-good {
-	border-color: color-mix(in srgb, var(--ts-success) 40%, var(--border-primary));
-}
-
-.test-stats__discrimination.is-medium {
-	border-color: color-mix(in srgb, var(--ts-warning) 40%, var(--border-primary));
-}
-
-.test-stats__discrimination.is-poor {
-	border-color: color-mix(in srgb, var(--ts-danger) 35%, var(--border-primary));
-}
-
-.test-stats__discrimination-fill {
-	height: 100%;
-	border-radius: inherit;
-	background: linear-gradient(90deg, var(--ts-danger), var(--ts-warning), var(--ts-success));
-}
-
 .test-stats__refresh:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
