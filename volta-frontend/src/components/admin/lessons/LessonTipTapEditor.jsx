@@ -34,13 +34,17 @@ import LessonCalloutPanel from './callout/LessonCalloutPanel.jsx';
 import './LessonTipTapEditor.css';
 import './callout/LessonCallout.css';
 
+const CALLOUT_PANEL_HEIGHT = 260;
+
 function calloutAnchor(editor) {
 	const { from, to } = editor.state.selection;
 	const start = editor.view.coordsAtPos(from);
 	const end = editor.view.coordsAtPos(Math.max(from, to - 1));
 	const top = Math.min(start.top, end.top);
 	const left = Math.max(12, Math.min(Math.min(start.left, end.left), window.innerWidth - 352));
-	const placeBelow = top < 280;
+	// Panoul are ~260px; deasupra selecției trebuie să încapă sub bara fixă a aplicației.
+	const headerHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')) || 64;
+	const placeBelow = top < headerHeight + CALLOUT_PANEL_HEIGHT + 16;
 	return {
 		x: left,
 		y: placeBelow ? Math.max(start.bottom, end.bottom) : top,
@@ -72,6 +76,8 @@ const LessonTipTapEditor = ({
 	placeholder = 'Scrie lecția aici...',
 	style,
 	courseId = null,
+	/** async (file) => url; are prioritate față de încărcarea în curs (ex. bibliotecă) */
+	uploadImage = null,
 	toolbarEnd = null,
 	header = null,
 }) => {
@@ -177,8 +183,10 @@ const LessonTipTapEditor = ({
 		if (!editor) return;
 		const current = editor.getAttributes('lessonCallout');
 		editor.chain().focus().setLessonCallout({
-			type: patch.type || current.type || 'soft',
-			accent: patch.accent || current.accent || '#ffee00',
+			type: current.type || 'soft',
+			accent: current.accent || '#ffee00',
+			variant: patch.variant || current.variant || 'info',
+			fill: patch.fill || current.fill || 'mono',
 		}).run();
 		setCalloutPanel({ pinned: true, ...calloutAnchor(editor) });
 	};
@@ -198,7 +206,10 @@ const LessonTipTapEditor = ({
 		}
 		try {
 			let src = '';
-			if (courseId) {
+			if (uploadImage) {
+				const url = await uploadImage(file);
+				src = toImageUrl(url || '') || url || '';
+			} else if (courseId) {
 				const formData = new FormData();
 				formData.append('file', file);
 				formData.append('type', 'image');
@@ -297,13 +308,13 @@ const LessonTipTapEditor = ({
 			</div>
 			{calloutPanel && editor ? (
 				<LessonCalloutPanel
-					type={editor.getAttributes('lessonCallout').type || 'soft'}
-					accent={editor.getAttributes('lessonCallout').accent || '#ffee00'}
+					variant={editor.getAttributes('lessonCallout').variant || null}
+					fill={editor.getAttributes('lessonCallout').fill || 'mono'}
 					x={calloutPanel.x}
 					y={calloutPanel.y}
 					placeBelow={calloutPanel.placeBelow}
-					onType={(type) => applyCallout({ type })}
-					onAccent={(accent) => applyCallout({ accent })}
+					onVariant={(variant) => applyCallout({ variant })}
+					onFill={(fill) => applyCallout({ fill })}
 					onClose={() => setCalloutPanel(null)}
 				/>
 			) : null}

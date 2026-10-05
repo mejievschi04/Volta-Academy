@@ -873,6 +873,11 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 
 /* Hide sidebar toggle on desktop */
 @media (min-width: 769px) {
+	/* control-system.css afișează orice .va-close-btn cu !important; pe desktop meniul nu se închide */
+	html body .lessons-page-sidebar .lessons-page-sidebar-close-btn.va-close-btn {
+		display: none !important;
+	}
+
 	.lessons-page-sidebar-toggle {
 		display: none !important;
 	}
@@ -1149,5 +1154,107 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 
 	.lessons-page-sidebar-module-header {
 		min-height: 44px;
+	}
+}
+
+/* Numele modulului deasupra titlului lecției */
+.lessons-page-lesson-viewer .lessons-page-lesson-eyebrow {
+	margin: 0 0 var(--space-2);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: #4b5563;
+	text-align: center;
+}
+
+.lessons-page-context-bar {
+	display: none;
+}
+
+/* Pas 4 — Lecții mobile: bară de context lipită sus, foaie compactă, titlu aliniat la stânga */
+@media (max-width: 768px) {
+	.lessons-page-main-content {
+		padding-top: 0;
+		/* loc pentru bara fixă Anterioară / Următoarea */
+		padding-bottom: calc(88px + var(--space-4));
+	}
+
+	.lessons-page-context-bar {
+		position: sticky;
+		/* conținutul se derulează în containerul de sub bara aplicației */
+		top: 0;
+		z-index: 60;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: 6px var(--space-4);
+		background: var(--bg-primary);
+		border-bottom: 1px solid var(--border-primary);
+	}
+
+	.lessons-page-context-bar .lessons-page-sidebar-toggle {
+		position: static;
+		flex-shrink: 0;
+		min-height: 36px !important;
+		padding: var(--space-1) var(--space-3);
+		box-shadow: none;
+		font-size: var(--font-size-sm);
+	}
+
+	.lessons-page-context-progress {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.lessons-page-context-progress-label {
+		font-size: var(--font-size-xs);
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-secondary);
+		white-space: nowrap;
+	}
+
+	.lessons-page-context-progress-track {
+		height: 6px;
+		border-radius: 999px;
+		background: var(--bg-tertiary, rgba(0, 0, 0, 0.08));
+		overflow: hidden;
+	}
+
+	.lessons-page-context-progress-fill {
+		height: 100%;
+		border-radius: inherit;
+		background: var(--color-brand-primary);
+		transition: width 0.3s ease;
+	}
+
+	.lessons-page-player-layout .lessons-page-lesson-viewer {
+		width: auto;
+		margin: var(--space-3);
+		padding: var(--space-5) var(--space-4);
+		border-radius: var(--radius-lg);
+	}
+
+	.lessons-page-lesson-viewer .lessons-page-lesson-header {
+		margin-bottom: var(--space-4);
+		padding-bottom: 0;
+	}
+
+	.lessons-page-lesson-viewer .lessons-page-lesson-eyebrow,
+	.lessons-page-lesson-viewer .lessons-page-lesson-viewer-title {
+		text-align: left;
+	}
+
+	.lessons-page-lesson-viewer .lessons-page-lesson-viewer-title {
+		margin-bottom: 0;
+		font-size: 1.5rem;
+		line-height: 1.25;
+	}
+
+	.lessons-page-lesson-viewer .lessons-page-lesson-body {
+		margin-bottom: 0;
 	}
 }

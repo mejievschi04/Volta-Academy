@@ -39,6 +39,14 @@ function sortableMapId(mapId) {
 	return `admin-course-map-${mapId}`;
 }
 
+/** Descrierea de pe card; mapele de sistem (private) sunt marcate, fiind invizibile cursanților. */
+function adminMapSubtitle(map, courseCount) {
+	const text = map.description
+		? (map.description.length > 120 ? `${map.description.slice(0, 120)}…` : map.description)
+		: `${courseCount} cursuri`;
+	return map.visibility === 'private' ? `Mapă de sistem · ${text}` : text;
+}
+
 function isRealMapId(id) {
 	return id !== 'unassigned' && id != null;
 }
@@ -82,9 +90,7 @@ function SortableAdminMapShowcase({
 	};
 	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
-	const summary = map.description || `${courseCount} cursuri`;
-	const subtitle =
-		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
+	const subtitle = adminMapSubtitle(map, courseCount);
 
 	const dragHandle =
 		canMutate && isRealMapId(map.id) ? (
@@ -137,9 +143,7 @@ function SortableAdminMapShowcase({
 function StaticAdminMapShowcase({ map, index, canMutate, onOpenMap, onEdit, onDelete }) {
 	const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 	const courseCount = map.courses_count ?? map.courses?.length ?? 0;
-	const summary = map.description || `${courseCount} cursuri`;
-	const subtitle =
-		map.description && map.description.length > 120 ? `${map.description.slice(0, 120)}…` : summary;
+	const subtitle = adminMapSubtitle(map, courseCount);
 	return (
 		<div className="admin-course-map-showcase-wrap">
 			<CourseMapFolderTile
@@ -294,6 +298,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			setEditingMap(full);
 			setFormName(full.name || '');
 			setFormDescription(full.description || '');
+			setFormVisibility(full.visibility === 'private' ? 'private' : 'public');
 			setFormAccent(full.accent_color || COURSE_MAP_ACCENT_COLORS[0]);
 			setFormHeaderText(full.header_text_color || '');
 			setPendingMapCoverFile(null);
@@ -327,7 +332,7 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 			header_text_color: normalizedHeaderText,
 			cover_focus: normalizeCoverFocus(formCoverFocus),
 		};
-		if (!editingMap && isAdmin) {
+		if (isAdmin) {
 			payload.visibility = formVisibility === 'private' ? 'private' : 'public';
 		}
 		try {
@@ -657,32 +662,22 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 										rows={3}
 									/>
 								</div>
-							{!editingMap && isAdmin ? (
-								<fieldset className="va-field admin-course-map-visibility-fieldset">
-									<legend>Vizibilitate</legend>
-									<div className="admin-course-map-visibility-options">
-										<label className={`admin-course-map-visibility-option${formVisibility === 'public' ? ' is-selected' : ''}`}>
+							{isAdmin ? (
+								<div className="va-field va-field--full">
+									<div className="va-checks">
+										<label className="va-check">
 											<input
-												type="radio"
-												name="course-map-visibility"
-												value="public"
-												checked={formVisibility === 'public'}
-												onChange={() => setFormVisibility('public')}
-											/>
-											Publică
-										</label>
-										<label className={`admin-course-map-visibility-option${formVisibility === 'private' ? ' is-selected' : ''}`}>
-											<input
-												type="radio"
-												name="course-map-visibility"
-												value="private"
+												type="checkbox"
 												checked={formVisibility === 'private'}
-												onChange={() => setFormVisibility('private')}
+												onChange={(e) => setFormVisibility(e.target.checked ? 'private' : 'public')}
 											/>
-											Privată
+											<span>Mapă de sistem (invizibilă pentru cursanți)</span>
 										</label>
 									</div>
-								</fieldset>
+									<p className="va-field__hint">
+										Cursanții nu văd mapa; cursurile atribuite din ea le apar direct în pagina Cursuri.
+									</p>
+								</div>
 							) : null}
 								<MapColorRow
 									id="course-map-accent"

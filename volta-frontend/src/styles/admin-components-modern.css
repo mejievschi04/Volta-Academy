@@ -507,46 +507,6 @@
 	resize: vertical;
 }
 
-.admin-course-map-visibility-fieldset {
-	margin: 4px 0 0;
-	padding: 0;
-	border: 0;
-}
-
-.admin-course-map-visibility-options {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 6px;
-}
-
-.admin-course-map-visibility-option {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	min-height: 36px;
-	padding: 0 8px;
-	border: 1px solid var(--border-primary);
-	border-radius: 8px;
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	font-size: 0.84rem;
-	font-weight: 650;
-	cursor: pointer;
-}
-
-.admin-course-map-visibility-option input {
-	position: absolute;
-	opacity: 0;
-	pointer-events: none;
-}
-
-.admin-course-map-visibility-option.is-selected,
-.admin-course-map-visibility-option:has(input:checked) {
-	border-color: color-mix(in srgb, var(--color-brand-primary) 50%, var(--border-primary));
-	background: color-mix(in srgb, var(--color-brand-primary) 14%, var(--bg-secondary));
-}
-
 .admin-course-map-cover-compact {
 	display: flex;
 	gap: 10px;

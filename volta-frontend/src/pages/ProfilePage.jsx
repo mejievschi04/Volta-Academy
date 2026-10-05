@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContextShared.js';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { toImageUrl } from '../utils/imageUrl';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { nameInitials } from '../utils/initials';
 
 const AVATAR_EDITOR_SIZE = 280;
 const AVATAR_OUTPUT_SIZE = 512;
@@ -356,11 +357,7 @@ const ProfilePage = () => {
 								/>
 							) : (
 								<div className="va-profile-avatar-inner">
-									{profileData.user.name
-										.split(' ')
-										.map((n) => n[0])
-										.join('')
-										.toUpperCase()}
+									{nameInitials(profileData.user.name || profileData.user.email)}
 								</div>
 							)}
 						</div>

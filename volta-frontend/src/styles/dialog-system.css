@@ -505,11 +505,6 @@ html body .admin-course-map-dialog__cover .map-cover-focus-editor__zoom::before 
 	}
 }
 
-html body .admin-course-map-dialog .admin-course-map-visibility-options {
-	display: flex;
-	gap: 8px;
-}
-
 html body .admin-course-map-dialog .va-list .va-check {
 	width: 100%;
 }
@@ -528,36 +523,6 @@ html body .va-dialog select {
 	background-position: right 14px center !important;
 	background-size: 16px 16px !important;
 	cursor: pointer;
-}
-
-/* Vizibilitatea mapei: două opțiuni ca butoane, cea aleasă galbenă (ca filele active) */
-html body .admin-course-map-dialog .admin-course-map-visibility-option {
-	display: inline-flex;
-	align-items: center;
-	min-height: 40px;
-	padding: 0 16px;
-	border: 1px solid var(--btn-outline-border);
-	border-radius: 10px;
-	background: var(--bg-elevated);
-	color: var(--text-primary);
-	font-size: 0.875rem;
-	font-weight: 600;
-	cursor: pointer;
-}
-
-html body .admin-course-map-dialog .admin-course-map-visibility-option:hover {
-	border-color: var(--btn-outline-border-hover);
-}
-
-html body .admin-course-map-dialog .admin-course-map-visibility-option.is-selected {
-	border-color: var(--btn-primary-border);
-	background: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-}
-
-html body .admin-course-map-dialog .admin-course-map-visibility-option:has(input:focus-visible) {
-	outline: 2px solid var(--border-focus);
-	outline-offset: 2px;
 }
 
 html body .admin-course-map-dialog__cover .map-cover-focus-editor__zoom-ends {

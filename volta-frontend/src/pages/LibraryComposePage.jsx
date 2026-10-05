@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Image as ImageIcon } from '@phosphor-icons/react';
-import RichTextEditor from '../components/RichTextEditor';
+import LessonTipTapEditor from '../components/admin/lessons/LessonTipTapEditor';
 import { libraryService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
@@ -268,14 +268,15 @@ const LibraryComposePage = () => {
 				</div>
 
 				<div className="library-compose-field library-compose-field--editor">
-					<label htmlFor="library-compose-body">Conținut</label>
-					<RichTextEditor
-						value={body}
-						onChange={setBody}
-						placeholder="Scrie materialul aici..."
-						toolbarVariant="full"
-						showSideTools={false}
-					/>
+					<span className="library-compose-label">Conținut</span>
+					<div className="library-compose-editor">
+						<LessonTipTapEditor
+							value={body}
+							onChange={setBody}
+							uploadImage={libraryService.uploadImage}
+							placeholder="Scrie materialul aici..."
+						/>
+					</div>
 				</div>
 
 				<div className="library-compose-actions">

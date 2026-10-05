@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { profileService } from '../services/api';
+import { ArrowLeft } from '@phosphor-icons/react';
 
 
 
@@ -49,19 +50,15 @@ const CompletedCoursesPage = () => {
 			<div className="admin-page-header">
 				<div className="admin-page-header-content">
 					<button
+						type="button"
 						onClick={() => navigate('/profile')}
-						className="lms-btn-secondary"
-						style={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							gap: '0.5rem',
-							marginBottom: '1rem',
-						}}
+						className="va-btn-back"
+						style={{ alignSelf: 'flex-start', width: 'auto', marginBottom: '1rem' }}
 					>
-						<span>←</span>
+						<ArrowLeft size={18} weight="bold" aria-hidden />
 						<span>Înapoi la Profil</span>
 					</button>
-					<h1 className="admin-page-title">Cursuri Finalizate</h1>
+					<h1 className="admin-page-title">Cursuri finalizate</h1>
 					<p className="admin-page-subtitle">
 						{coursesCompleted.length} curs{coursesCompleted.length !== 1 ? 'uri' : ''} completat{coursesCompleted.length !== 1 ? 'e' : ''}
 					</p>

@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import { useToast } from '../contexts/ToastContextShared.js';
 import { toImageUrl } from '../utils/imageUrl';
 import '../styles/student-settings.css';
+import { nameInitials } from '../utils/initials';
 
 const emptyFieldErrors = { name: '', email: '', bio: '' };
 
@@ -33,13 +34,7 @@ const StudentSettingsPage = () => {
 	}, [user]);
 
 	const isStudent = user?.role === 'student';
-	const initials = (user?.name || user?.email || 'U')
-		.split(/\s+/)
-		.filter(Boolean)
-		.map((part) => part[0])
-		.join('')
-		.slice(0, 2)
-		.toUpperCase();
+	const initials = nameInitials(user?.name || user?.email);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();

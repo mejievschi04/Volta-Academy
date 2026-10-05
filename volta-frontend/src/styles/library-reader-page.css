@@ -281,3 +281,33 @@
 	height: auto;
 	border-radius: 8px;
 }
+
+/* Imagini din editorul de lecții: aliniere salvată în data-alignment */
+.library-reader-article-body img {
+	max-width: 100%;
+	height: auto;
+}
+
+.library-reader-article-body img[data-alignment='left'],
+.library-reader-article-body img[data-alignment='inline'] {
+	display: block;
+	margin-left: 0;
+	margin-right: auto;
+}
+
+.library-reader-article-body img[data-alignment='center'] {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.library-reader-article-body img[data-alignment='right'] {
+	display: block;
+	margin-left: auto;
+	margin-right: 0;
+}
+
+.library-reader-article-body img[data-alignment='full'] {
+	display: block;
+	width: 100%;
+}

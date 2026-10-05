@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookOpenText, Broadcast, FileText, Timer, VideoCamera } from '@phosphor-icons/react';
 
 function resumeMetaLine(nextLesson) {
 	const parts = [];
@@ -69,9 +70,10 @@ const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 					<div className="student-resume-module">{nextLesson.module_title}</div>
 					<div className="student-resume-lesson">
 						<span className="student-resume-lesson-icon">
-							{nextLesson.type === 'video' ? '🎥' :
-							 nextLesson.type === 'text' ? '📄' :
-							 nextLesson.type === 'live' ? '🔴' : '📚'}
+							{nextLesson.type === 'video' ? <VideoCamera size={18} weight="bold" aria-hidden />
+								: nextLesson.type === 'text' ? <FileText size={18} weight="bold" aria-hidden />
+									: nextLesson.type === 'live' ? <Broadcast size={18} weight="bold" aria-hidden />
+										: <BookOpenText size={18} weight="bold" aria-hidden />}
 						</span>
 						<span className="student-resume-lesson-title">{nextLesson.title}</span>
 					</div>
@@ -79,7 +81,7 @@ const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 						<div className="student-resume-duration">{meta}</div>
 					) : nextLesson.duration_minutes ? (
 						<div className="student-resume-duration">
-							⏱️ {nextLesson.duration_minutes} min
+							<Timer size={16} weight="bold" aria-hidden /> {nextLesson.duration_minutes} min
 						</div>
 					) : null}
 				</div>

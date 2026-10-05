@@ -170,6 +170,7 @@ class CourseMapAdminController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:5000',
+            'visibility' => 'nullable|in:public,private',
             'order' => 'nullable|integer|min:0',
             'accent_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'header_bg_color' => ['nullable', 'string', 'max:32', 'regex:/^#[0-9A-Fa-f]{6}$/'],
@@ -179,6 +180,11 @@ class CourseMapAdminController extends Controller
 
         if (array_key_exists('cover_focus', $validated) && ! SchemaCache::hasColumn('course_maps', 'cover_focus')) {
             unset($validated['cover_focus']);
+        }
+
+        // Doar adminul face o mapă „de sistem” (privată, invizibilă cursanților).
+        if (! auth()->user()->isAdmin()) {
+            unset($validated['visibility']);
         }
 
         $map->update($validated);

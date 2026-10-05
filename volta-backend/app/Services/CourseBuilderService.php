@@ -12,11 +12,13 @@ use App\Models\CourseTest;
 use App\Models\ActivityLog;
 use App\Models\CourseVersion;
 use App\Models\CourseVersionSnapshot;
+use App\Models\MediaAsset;
 use App\Services\UserAssignedCoursesService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * CourseBuilderService
@@ -264,60 +266,101 @@ class CourseBuilderService
     }
 
     /**
-     * Deep clone a course structure (course + modules + lessons + content blocks).
+     * Deep clone a course structure (course + modules + lessons + content blocks + attached tests).
+     * The copy is an independent draft: no learners, no statistics, its own cover image and media rows.
      */
     public function cloneCourse(int $courseId, ?User $actor = null, bool $includeTeams = true): Course
     {
-        $source = Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'teams'])->findOrFail($courseId);
+        $source = Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'teams', 'courseMaps'])->findOrFail($courseId);
 
         return DB::transaction(function () use ($source, $actor, $includeTeams) {
-            $newCourse = $source->replicate();
-            $newCourse->title = $source->title . ' (Copy)';
+            $newCourse = $source->replicate([
+                'total_enrollments', 'total_revenue', 'average_rating', 'rating_count', 'views_count',
+            ]);
+            $newCourse->title = $this->copyTitle((string) $source->title);
             $newCourse->status = 'draft';
+            $newCourse->workflow_status = 'draft';
+            $newCourse->image = $this->copyPublicFile($source->image, 'courses');
+            if (SchemaCache::hasColumn('courses', 'list_order')) {
+                $newCourse->list_order = ((int) Course::query()->max('list_order')) + 1;
+            }
             $newCourse->save();
 
             if ($includeTeams) {
                 $newCourse->teams()->sync($source->teams->pluck('id')->all());
             }
 
-            $moduleIdMap = [];
-            $lessonIdMap = [];
-            foreach ($source->modules as $module) {
-                $newModule = $module->replicate();
-                $newModule->course_id = $newCourse->id;
-                $newModule->save();
-                $moduleIdMap[$module->id] = $newModule->id;
-
-                foreach ($module->lessons as $lesson) {
-                    $newLesson = $lesson->replicate();
-                    $newLesson->course_id = $newCourse->id;
-                    $newLesson->module_id = $newModule->id;
-                    $newLesson->save();
-                    $lessonIdMap[$lesson->id] = $newLesson->id;
-
-                    foreach ($lesson->contentBlocks as $block) {
-                        $newBlock = $block->replicate();
-                        $newBlock->lesson_id = $newLesson->id;
-                        $newBlock->save();
-                    }
-                }
+            // Copia stă în aceleași mape ca originalul, la final.
+            foreach ($source->courseMaps as $map) {
+                $order = (int) DB::table('course_map_course')->where('course_map_id', $map->id)->max('order') + 1;
+                $newCourse->courseMaps()->attach($map->id, ['order' => $order]);
             }
 
-            foreach ($source->lessons->whereNull('module_id') as $lesson) {
-                $newLesson = $lesson->replicate();
+            $mediaUrlMap = $this->cloneCourseMedia($source->id, $newCourse->id);
+
+            $moduleIdMap = [];
+            $lessonIdMap = [];
+            $newModules = [];
+            $newLessons = [];
+            $cloneLesson = function (Lesson $lesson, ?int $newModuleId) use ($newCourse, $mediaUrlMap, &$lessonIdMap, &$newLessons) {
+                $newLesson = $lesson->replicate(['views_count', 'completions_count', 'average_completion_time_minutes']);
                 $newLesson->course_id = $newCourse->id;
-                $newLesson->module_id = null;
+                $newLesson->module_id = $newModuleId;
+                $newLesson->content = $this->rewriteMediaUrls($lesson->content, $mediaUrlMap);
+                $newLesson->video_url = $this->rewriteMediaUrls($lesson->video_url, $mediaUrlMap);
                 $newLesson->save();
                 $lessonIdMap[$lesson->id] = $newLesson->id;
+                $newLessons[] = $newLesson;
 
                 foreach ($lesson->contentBlocks as $block) {
                     $newBlock = $block->replicate();
                     $newBlock->lesson_id = $newLesson->id;
+                    $newBlock->source = $this->rewriteMediaUrls($block->source, $mediaUrlMap);
+                    $newBlock->payload = $this->rewriteMediaUrls($block->payload, $mediaUrlMap);
                     $newBlock->save();
+                }
+            };
+
+            foreach ($source->modules as $module) {
+                $newModule = $module->replicate(['completion_percentage']);
+                $newModule->course_id = $newCourse->id;
+                $newModule->save();
+                $moduleIdMap[$module->id] = $newModule->id;
+                $newModules[] = $newModule;
+
+                foreach ($module->lessons as $lesson) {
+                    $cloneLesson($lesson, $newModule->id);
+                }
+            }
+
+            foreach ($source->lessons->whereNull('module_id') as $lesson) {
+                $cloneLesson($lesson, null);
+            }
+
+            // Condițiile de deblocare trebuie să indice modulele/lecțiile copiei, nu ale originalului.
+            foreach ($newModules as $newModule) {
+                $dirty = false;
+                if ($newModule->unlock_after_module_id) {
+                    $newModule->unlock_after_module_id = $moduleIdMap[$newModule->unlock_after_module_id] ?? null;
+                    $dirty = true;
+                }
+                if ($newModule->unlock_after_lesson_id) {
+                    $newModule->unlock_after_lesson_id = $lessonIdMap[$newModule->unlock_after_lesson_id] ?? null;
+                    $dirty = true;
+                }
+                if ($dirty) {
+                    $newModule->saveQuietly();
+                }
+            }
+            foreach ($newLessons as $newLesson) {
+                if ($newLesson->unlock_after_lesson_id) {
+                    $newLesson->unlock_after_lesson_id = $lessonIdMap[$newLesson->unlock_after_lesson_id] ?? null;
+                    $newLesson->saveQuietly();
                 }
             }
 
             // Duplicate course_test rows onto cloned tests so edits do not mutate the source.
+            // Testele copiate își păstrează statusul: un test ciornă nu ar apărea cursanților după publicarea copiei.
             $pivotRows = CourseTest::where('course_id', $source->id)->get();
             $testIdMap = [];
             foreach ($pivotRows->pluck('test_id')->unique()->filter() as $oldTestId) {
@@ -325,8 +368,11 @@ class CourseBuilderService
                 if (! $sourceTest) {
                     continue;
                 }
-                $newTest = $sourceTest->replicate();
-                $newTest->status = 'draft';
+                $newTest = $sourceTest->replicate(['attempts_count', 'passes_count', 'average_score']);
+                $newTest->title = $this->copyTitle((string) $sourceTest->title);
+                if ($actor) {
+                    $newTest->created_by = $actor->id;
+                }
                 $newTest->save();
                 foreach ($sourceTest->questions as $question) {
                     $cloneQuestion = $question->replicate();
@@ -357,6 +403,79 @@ class CourseBuilderService
 
             return $newCourse->fresh();
         });
+    }
+
+    protected function copyTitle(string $title): string
+    {
+        $title = trim($title) . ' (copie)';
+
+        return mb_strlen($title) > 255 ? mb_substr($title, 0, 252) . '...' : $title;
+    }
+
+    /**
+     * Copiază un fișier de pe discul public (ex. coperta), ca ștergerea originalului să nu-l rupă pe al copiei.
+     */
+    protected function copyPublicFile(?string $path, string $directory): ?string
+    {
+        $path = trim((string) $path);
+        if ($path === '' || filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path === '' ? null : $path;
+        }
+
+        $relative = preg_replace('#^/?storage/#', '', ltrim($path, '/'));
+        $disk = Storage::disk('public');
+        if (! $disk->exists($relative)) {
+            return $path;
+        }
+
+        $extension = pathinfo($relative, PATHINFO_EXTENSION);
+        $target = $directory . '/' . Str::uuid() . ($extension !== '' ? ".{$extension}" : '');
+        $disk->copy($relative, $target);
+
+        return $target;
+    }
+
+    /**
+     * Fișierele încărcate în builder (PDF-uri) sunt servite prin /builder-media/{curs}/{id}. Copia primește
+     * propriile rânduri media pentru același fișier; întoarce [url vechi => url nou] pentru rescrierea conținutului.
+     *
+     * @return array<string, string>
+     */
+    protected function cloneCourseMedia(int $sourceCourseId, int $newCourseId): array
+    {
+        $map = [];
+        foreach (MediaAsset::where('course_id', $sourceCourseId)->get() as $asset) {
+            $newAsset = $asset->replicate();
+            $newAsset->course_id = $newCourseId;
+            $newAsset->save();
+
+            $oldId = (int) $asset->id;
+            $newId = (int) $newAsset->id;
+            $map["/builder-media/{$sourceCourseId}/{$oldId}?token=" . MediaAsset::previewToken($sourceCourseId, $oldId)]
+                = "/builder-media/{$newCourseId}/{$newId}?token=" . MediaAsset::previewToken($newCourseId, $newId);
+            $map["/courses/{$sourceCourseId}/builder/media/{$oldId}/file"]
+                = "/courses/{$newCourseId}/builder/media/{$newId}/file";
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  array<string, string>  $urlMap
+     */
+    protected function rewriteMediaUrls(mixed $value, array $urlMap): mixed
+    {
+        if ($urlMap === [] || $value === null) {
+            return $value;
+        }
+        if (is_string($value)) {
+            return strtr($value, $urlMap);
+        }
+        if (is_array($value)) {
+            return array_map(fn ($item) => $this->rewriteMediaUrls($item, $urlMap), $value);
+        }
+
+        return $value;
     }
 
     protected function logActivity(?User $actor, string $action, string $modelType, int $modelId, array $newValues = [], array $oldValues = []): void

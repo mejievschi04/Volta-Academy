@@ -434,6 +434,28 @@ const CoursesPage = () => {
 								</div>
 							) : null}
 							<div className="courses-page-maps-grid">
+							{filteredCourseMaps.map((map, index) => {
+								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+								const subtitle = map.description?.trim() ? String(map.description).trim() : null;
+
+								return (
+									<article key={map.id} className="course-map-showcase-tile">
+										<CourseMapFolderTile
+											className="courses-page-map-tile-showcase"
+											title={map.name || 'Mapa'}
+											subtitle={subtitle}
+											count={map.courses_count ?? 0}
+											color={accentColor}
+											imageUrl={mapFolderCardImageUrl(map)}
+											coverFocus={map.cover_focus}
+											progress={map.progress_percentage ?? map.progress ?? 0}
+											onOpen={() => navigate(`/courses/map/${map.id}`)}
+											ctaLabel="Deschide mapa"
+										/>
+									</article>
+								);
+							})}
+
 							{!isAdmin
 								? filteredStandaloneCourses.map((course, index) => {
 										const accentColor = COURSE_MAP_ACCENT_COLORS[(index + 1) % COURSE_MAP_ACCENT_COLORS.length];
@@ -460,28 +482,6 @@ const CoursesPage = () => {
 									})
 								: null}
 
-							{filteredCourseMaps.map((map, index) => {
-								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
-								const subtitle = map.description?.trim() ? String(map.description).trim() : null;
-
-								return (
-									<article key={map.id} className="course-map-showcase-tile">
-										<CourseMapFolderTile
-											className="courses-page-map-tile-showcase"
-											title={map.name || 'Mapa'}
-											subtitle={subtitle}
-											count={map.courses_count ?? 0}
-											color={accentColor}
-											imageUrl={mapFolderCardImageUrl(map)}
-											coverFocus={map.cover_focus}
-											progress={map.progress_percentage ?? map.progress ?? 0}
-											onOpen={() => navigate(`/courses/map/${map.id}`)}
-											ctaLabel="Deschide mapa"
-										/>
-									</article>
-								);
-							})}
-
 							{filteredCourseMaps.length === 0 && (isAdmin || filteredStandaloneCourses.length === 0) ? (
 								<div className="courses-page-empty">
 									<div className="courses-page-empty-icon">
@@ -493,7 +493,7 @@ const CoursesPage = () => {
 									<p className="courses-page-empty-text">
 										{searchQuery
 											? 'Incearca un alt termen de cautare.'
-											: 'Cursurile sunt afișate în mape sau direct în catalog, dacă sunt publicate fără mapă.'}
+											: 'Cursurile atribuite apar în mape; cele care nu sunt în nicio mapă apar direct aici.'}
 									</p>
 									{searchQuery ? (
 										<button

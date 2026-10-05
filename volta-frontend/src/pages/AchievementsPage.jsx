@@ -6,6 +6,7 @@ import { achievementsService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
+import { BookOpenText, GraduationCap, Timer } from '@phosphor-icons/react';
 
 const AchievementsPage = () => {
 
@@ -63,21 +64,21 @@ const AchievementsPage = () => {
 			{achievements && (
 				<div className="student-achievements-stats">
 					<div className="student-achievements-stat-card">
-						<div className="student-achievements-stat-icon">🎓</div>
+						<div className="student-achievements-stat-icon"><GraduationCap size={26} weight="bold" aria-hidden /></div>
 						<div className="student-achievements-stat-content">
 							<div className="student-achievements-stat-value">{achievements.completed_courses || 0}</div>
 							<div className="student-achievements-stat-label">Cursuri finalizate</div>
 						</div>
 					</div>
 					<div className="student-achievements-stat-card">
-						<div className="student-achievements-stat-icon">📚</div>
+						<div className="student-achievements-stat-icon"><BookOpenText size={26} weight="bold" aria-hidden /></div>
 						<div className="student-achievements-stat-content">
 							<div className="student-achievements-stat-value">{achievements.completed_lessons || 0}</div>
 							<div className="student-achievements-stat-label">Lecții finalizate</div>
 						</div>
 					</div>
 					<div className="student-achievements-stat-card">
-						<div className="student-achievements-stat-icon">⏱️</div>
+						<div className="student-achievements-stat-icon"><Timer size={26} weight="bold" aria-hidden /></div>
 						<div className="student-achievements-stat-content">
 							<div className="student-achievements-stat-value">{achievements.learning_hours || 0}h</div>
 							<div className="student-achievements-stat-label">Ore de învățare</div>

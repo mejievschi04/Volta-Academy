@@ -749,6 +749,20 @@ const ExamPage = () => {
 					)}
 				</div>
 
+				{mobileSingleQuestion && exam.questions.length > 0 ? (
+					<div className="student-exam-mobile-progress">
+						<span className="student-exam-mobile-progress-label">
+							Întrebarea {currentQuestionIndex + 1} din {exam.questions.length}
+						</span>
+						<div className="student-exam-mobile-progress-track" aria-hidden>
+							<div
+								className="student-exam-mobile-progress-fill"
+								style={{ width: `${Math.round(((currentQuestionIndex + 1) / exam.questions.length) * 100)}%` }}
+							/>
+						</div>
+					</div>
+				) : null}
+
 				{exam.current_attempt > 0 && (
 					<div className="student-exam-attempt-info">
 						<span>Încercare {exam.current_attempt}</span>

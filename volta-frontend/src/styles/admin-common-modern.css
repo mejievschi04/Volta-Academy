@@ -1067,6 +1067,13 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	color: var(--text-primary);
 }
 
+.publish-course-section-hint {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	line-height: 1.5;
+	color: var(--text-secondary);
+}
+
 .publish-course-choice {
 	display: flex;
 	align-items: flex-start;

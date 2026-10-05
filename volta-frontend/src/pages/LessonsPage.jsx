@@ -18,7 +18,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import { useToast } from '../contexts/ToastContextShared.js';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
 import CourseCongratulationsModal from '../components/student/CourseCongratulationsModal';
-import { getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
+import { getLessonPosition, getNextLessonIdAfter, getPreviousLessonIdBefore, getRootLessons } from '../utils/lessonOrder';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { useLessonReachedEnd } from '../hooks/useLessonReachedEnd';
@@ -49,6 +49,11 @@ const LessonsPage = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const { user } = useAuth();
+	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
+	// La previzualizare, staff-ul vede și testele ciornă atașate (marcate „Ciornă”), ca să le poată deschide.
+	const courseFetchParams = isPlayerStaff ? { include_draft_tests: 1 } : {};
+	const isTestVisibleInPlayer = (status) => isPlayerStaff || isPublishedTestStatus(status);
+	const testDraftSuffix = (status) => (isPublishedTestStatus(status) ? '' : ' · Ciornă');
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
 	const completedLessonIdsRef = useRef(new Set());
@@ -166,7 +171,7 @@ const LessonsPage = () => {
 			setLoading(true);
 			setError(null);
 			
-			const courseData = await coursesService.getById(courseId);
+			const courseData = await coursesService.getById(courseId, courseFetchParams);
 			setCourse(courseData);
 			
 			// Fetch progress if user is enrolled
@@ -208,7 +213,7 @@ const LessonsPage = () => {
 
 	const refreshOpenLesson = async () => {
 		try {
-			const courseData = await coursesService.getById(courseId);
+			const courseData = await coursesService.getById(courseId, courseFetchParams);
 			setCourse(courseData);
 			let progressData = progress;
 			if (user?.id) {
@@ -342,7 +347,6 @@ const LessonsPage = () => {
 		completedLessonIdsRef.current.has(Number(lessonId)) || isLessonMarkedComplete(progress, lessonId)
 	);
 
-	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
 	const isLessonUnlockedForPlayer = (lessonId, lesson = null) => {
 		if (isPlayerStaff) return true;
 		if (lesson?.is_preview) return true;
@@ -376,9 +380,9 @@ const LessonsPage = () => {
 
 
 
-	const getModuleCourseTests = (m) =>
-		filterPublishedCourseTests(m?.course_tests || m?.courseTests || m?.exams || []);
-	const getLessonCourseTests = (l) => filterPublishedCourseTests(l?.course_tests || l?.courseTests || []);
+	const visibleCourseTests = (items) => (isPlayerStaff ? (Array.isArray(items) ? items : []) : filterPublishedCourseTests(items));
+	const getModuleCourseTests = (m) => visibleCourseTests(m?.course_tests || m?.courseTests || m?.exams || []);
+	const getLessonCourseTests = (l) => visibleCourseTests(l?.course_tests || l?.courseTests || []);
 	const getProgressModule = (moduleId) =>
 		progress?.modules?.find((x) => Number(x.id) === Number(moduleId));
 	const getLessonTestProgress = (moduleId, lessonId, testId) => {
@@ -508,6 +512,7 @@ const LessonsPage = () => {
 	const isLastLessonInCourse = nextLessonTarget === null;
 	const hasPreviousLesson = previousLessonTarget != null && !Number.isNaN(previousLessonTarget);
 	const hasNextLesson = typeof nextLessonTarget === 'number' && !Number.isNaN(nextLessonTarget);
+	const lessonPosition = getLessonPosition(modules, selectedLessonId, rootLessons);
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
@@ -596,6 +601,7 @@ const LessonsPage = () => {
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
 																{' · Obligatoriu'}
+																{testDraftSuffix(ct.test?.status ?? ct.status)}
 															</span>
 														</button>
 													);
@@ -667,6 +673,7 @@ const LessonsPage = () => {
 																		<span className="lessons-page-sidebar-lesson-title">
 																			{ct.test?.title || 'Test'}
 																			{' · Obligatoriu'}
+																			{testDraftSuffix(ct.test?.status ?? ct.status)}
 																		</span>
 																	</button>
 																);
@@ -691,6 +698,7 @@ const LessonsPage = () => {
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
 																{' · Obligatoriu'}
+																{testDraftSuffix(ct.test?.status ?? ct.status)}
 															</span>
 														</button>
 													);
@@ -708,11 +716,11 @@ const LessonsPage = () => {
 					)}
 					{/* Course-level tests */}
 					{Array.isArray(course?.exams) &&
-						course.exams.filter((e) => !e.module_id && isPublishedTestStatus(e?.status)).length > 0 && (
+						course.exams.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status)).length > 0 && (
 						<div className="lessons-page-sidebar-tests-section">
 							<div className="lessons-page-sidebar-tests-header">Teste la nivel de curs</div>
 							<p className="lessons-page-sidebar-tests-hint">Legate de acest curs (nu examene independente)</p>
-							{course.exams.filter((e) => !e.module_id && isPublishedTestStatus(e?.status)).map((exam) => {
+							{course.exams.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status)).map((exam) => {
 								const tp = getCourseLevelTestProgress(exam.id);
 								const passed = Boolean(tp?.passed);
 								return (
@@ -726,6 +734,7 @@ const LessonsPage = () => {
 										<span className="lessons-page-sidebar-lesson-title">
 											{exam.title || 'Test'}
 											{' · Obligatoriu'}
+											{testDraftSuffix(exam.status)}
 										</span>
 									</button>
 								);
@@ -737,16 +746,38 @@ const LessonsPage = () => {
 
 			{/* Main Content - Lesson Viewer */}
 			<main className="lessons-page-main-content">
-				{/* Mobile: toggle sidebar button */}
-				<button
-					type="button"
-					className="lessons-page-sidebar-toggle"
-					onClick={() => setSidebarOpen(true)}
-					aria-label="Deschide meniul lecțiilor"
-				>
-					<List size={24} weight="bold" aria-hidden />
-					<span>Lecții</span>
-				</button>
+				{/* Mobil: cuprinsul + poziția în curs, lipite sub bara de sus */}
+				<div className="lessons-page-context-bar">
+					<button
+						type="button"
+						className="lessons-page-sidebar-toggle"
+						onClick={() => setSidebarOpen(true)}
+						aria-label="Deschide meniul lecțiilor"
+					>
+						<List size={20} weight="bold" aria-hidden />
+						<span>Lecții</span>
+					</button>
+					{lessonPosition ? (
+						<div className="lessons-page-context-progress">
+							<span className="lessons-page-context-progress-label">
+								Lecția {lessonPosition.index} din {lessonPosition.total}
+							</span>
+							<div
+								className="lessons-page-context-progress-track"
+								role="progressbar"
+								aria-label="Poziția în curs"
+								aria-valuemin={1}
+								aria-valuemax={lessonPosition.total}
+								aria-valuenow={lessonPosition.index}
+							>
+								<div
+									className="lessons-page-context-progress-fill"
+									style={{ width: `${Math.round((lessonPosition.index / lessonPosition.total) * 100)}%` }}
+								/>
+							</div>
+						</div>
+					) : null}
+				</div>
 				{currentLessonLoading ? (
 					<div className="lessons-page-lesson-loading">
 						<div className="lessons-page-spinner"></div>
@@ -756,6 +787,9 @@ const LessonsPage = () => {
 					<div className="lessons-page-lesson-viewer">
 						{/* Lesson Header */}
 						<div className="lessons-page-lesson-header">
+							{lessonPosition?.module?.title ? (
+								<p className="lessons-page-lesson-eyebrow">{lessonPosition.module.title}</p>
+							) : null}
 							<h1 className="lessons-page-lesson-viewer-title">{currentLesson.title}</h1>
 							{currentLesson.description && (
 								<p className="lessons-page-lesson-viewer-description">{currentLesson.description}</p>

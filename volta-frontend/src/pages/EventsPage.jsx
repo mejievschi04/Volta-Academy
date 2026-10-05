@@ -4,6 +4,7 @@ import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { CalendarBlank } from '@phosphor-icons/react';
 
 const parseEventDate = (dateString) => {
 	if (!dateString) return null;
@@ -204,7 +205,7 @@ const EventsPage = () => {
 				<div className="va-card">
 					<div className="va-card-body">
 						<div className="empty-state">
-							<div className="empty-state-icon">📅</div>
+							<div className="empty-state-icon"><CalendarBlank size={56} weight="duotone" aria-hidden /></div>
 							<div className="empty-state-title">Nu există evenimente</div>
 							<div className="empty-state-description">Nu sunt programate evenimente momentan.</div>
 						</div>

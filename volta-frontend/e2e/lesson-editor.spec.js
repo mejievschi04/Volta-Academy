@@ -77,8 +77,9 @@ test('editorul de lecții formatează, inserează și salvează conținutul', as
 	await closeCalloutPanel();
 	await toolbar.getByRole('button', { name: 'Chenar' }).click();
 	const panel = page.getByRole('dialog', { name: 'Chenar' });
-	await panel.getByRole('button', { name: 'Neon' }).click();
-	await expect(surface.locator('blockquote[data-callout-type="neon"]')).toHaveText('Atenție');
+	await panel.getByRole('button', { name: 'Atenție' }).click();
+	await panel.getByRole('button', { name: 'Gradient' }).click();
+	await expect(surface.locator('blockquote[data-callout-variant="warning"][data-callout-fill="gradient"]')).toHaveText('Atenție');
 	await panel.getByRole('button', { name: 'Închide' }).click();
 
 	// imagine încărcată pe server
@@ -93,7 +94,7 @@ test('editorul de lecții formatează, inserează și salvează conținutul', as
 	await expect(surface).toContainText('Text inițial.');
 	await expect(surface.locator('strong')).toHaveText('Aldin');
 	await expect(surface.locator('a[href="https://example.com/doc"]')).toHaveText('Documentație');
-	await expect(surface.locator('blockquote[data-callout-type="neon"]')).toHaveText('Atenție');
+	await expect(surface.locator('blockquote[data-callout-variant="warning"][data-callout-fill="gradient"]')).toHaveText('Atenție');
 	await expect(surface.locator('img')).toHaveCount(1);
 
 	// TipTap anunță în consolă extensiile duplicate sau opțiunile greșite

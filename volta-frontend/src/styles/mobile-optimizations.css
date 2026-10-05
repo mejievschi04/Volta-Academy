@@ -2753,8 +2753,9 @@
 		max-height: none;
 	}
 
+	/* Butonul „Lecții” stă în bara de context (în flux), nu mai plutește peste conținut */
 	.lessons-page-main-content {
-		padding-top: 56px !important;
+		padding-top: 0 !important;
 	}
 
 	.lessons-page-sidebar-toggle {
@@ -2878,7 +2879,7 @@
 
 @media (max-width: 480px) {
 	.lessons-page-main-content {
-		padding-top: 62px !important;
+		padding-top: 0 !important;
 	}
 
 	.lessons-page-sidebar-toggle {
@@ -4450,8 +4451,12 @@
 		overflow-y: auto !important;
 		-webkit-overflow-scrolling: touch;
 	}
-	.va-shell.va-shell-topnav:has(.student-mobile-tabs):not(:has(.messages-page)):not(:has(.student-exam-page)) .va-shell-main > .va-main {
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs):not(:has(.messages-page)):not(:has(.student-exam-page)):not(:has(.lessons-page-player-layout)) .va-shell-main > .va-main {
 		padding: 12px 16px 16px !important;
+	}
+	/* Lecția: bara de context stă lipită sub antet, pe toată lățimea; cardul are marginile lui */
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs) .va-shell-main > .va-main:has(.lessons-page-player-layout) {
+		padding: 0 !important;
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .courses-page-student .courses-page-hero-title,
@@ -4475,6 +4480,39 @@
 
 	.va-shell-topnav:has(.student-mobile-tabs) .student-settings-header {
 		display: none;
+	}
+
+	/* Shell-ul dă deja 16px pe lateral: paginile nu mai adaugă padding propriu, ca totul să fie aliniat */
+	.va-shell-topnav:has(.student-mobile-tabs) .courses-page-student .courses-page-filtered-section,
+	.va-shell-topnav:has(.student-mobile-tabs) .courses-page-resume-wrap,
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-page,
+	.va-shell-topnav:has(.student-mobile-tabs) .va-profile-container,
+	.va-shell-topnav:has(.student-mobile-tabs) .student-achievements-page,
+	.va-shell-topnav:has(.student-mobile-tabs) .va-main > .admin-container,
+	.va-shell-topnav:has(.student-mobile-tabs) .events-page,
+	.va-shell-topnav:has(.student-mobile-tabs) .monthly-tests-page {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .courses-page-student .courses-page-hero {
+		border-bottom: 0;
+	}
+
+	/* Antetul cu titlu ascuns (Rezultate teste) nu mai lasă spațiu gol deasupra filtrelor */
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-page-header--simple {
+		margin: 0;
+		padding: 0;
+	}
+
+	/* Titlul e în bara de sus; fără acțiuni, antetul ar rămâne o cutie albă goală */
+	.va-shell-topnav:has(.student-mobile-tabs) .library-page-header:not(:has(.library-page-header-actions)) {
+		margin: 0;
+		padding: 0;
+		min-height: 0;
+		background: none;
+		border: 0;
+		box-shadow: none;
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .messages-sidebar {

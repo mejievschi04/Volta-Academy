@@ -163,6 +163,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     Route::get('/library/items', [LibraryController::class, 'index']);
     Route::get('/library/items/{id}', [LibraryController::class, 'show']);
     Route::post('/library/items', [LibraryController::class, 'store']);
+    Route::post('/library/images', [LibraryController::class, 'uploadImage']);
     Route::put('/library/items/{id}', [LibraryController::class, 'update']);
     Route::post('/library/items/{id}', [LibraryController::class, 'update']);
     Route::delete('/library/items/{id}', [LibraryController::class, 'destroy']);

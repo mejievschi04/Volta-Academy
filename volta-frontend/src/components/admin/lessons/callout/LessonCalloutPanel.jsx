@@ -1,20 +1,37 @@
 import React, { useEffect } from 'react';
-import { X } from '@phosphor-icons/react';
+import {
+	CheckCircle,
+	Flask,
+	Info,
+	Lightbulb,
+	NotePencil,
+	Quotes,
+	Warning,
+	WarningOctagon,
+	X,
+} from '@phosphor-icons/react';
 import { createPortal } from 'react-dom';
-import { LESSON_CALLOUT_TYPES } from './lessonCallout.js';
+import { LESSON_CALLOUT_FILLS, LESSON_CALLOUT_VARIANTS } from './lessonCallout.js';
 
-const CALLOUT_COLORS = [
-	'#ffee00', '#111111', '#ffffff', '#dc2626', '#16a34a', '#2563eb', '#7c3aed', '#db2777',
-];
+const VARIANT_ICONS = {
+	info: Info,
+	tip: Lightbulb,
+	warning: Warning,
+	danger: WarningOctagon,
+	success: CheckCircle,
+	note: NotePencil,
+	example: Flask,
+	quote: Quotes,
+};
 
 export default function LessonCalloutPanel({
-	type,
-	accent,
+	variant,
+	fill,
 	x,
 	y,
 	placeBelow,
-	onType,
-	onAccent,
+	onVariant,
+	onFill,
 	onClose,
 }) {
 	useEffect(() => {
@@ -39,40 +56,37 @@ export default function LessonCalloutPanel({
 					<X size={18} weight="bold" aria-hidden="true" />
 				</button>
 			</div>
-			<div className="lesson-callout-types">
-				{LESSON_CALLOUT_TYPES.map((item) => (
+			<div className="lesson-callout-variants" role="group" aria-label="Stil">
+				{LESSON_CALLOUT_VARIANTS.map((item) => {
+					const Icon = VARIANT_ICONS[item.id];
+					return (
+						<button
+							key={item.id}
+							type="button"
+							className={`lesson-callout-variant${variant === item.id ? ' is-selected' : ''}`}
+							style={{ '--cv': item.color }}
+							aria-pressed={variant === item.id}
+							onClick={() => onVariant(item.id)}
+						>
+							<Icon size={18} weight="bold" aria-hidden />
+							<span>{item.label}</span>
+						</button>
+					);
+				})}
+			</div>
+			<div className="lesson-callout-fills" role="group" aria-label="Umplere">
+				{LESSON_CALLOUT_FILLS.map((item) => (
 					<button
 						key={item.id}
 						type="button"
-						className={`lesson-callout-type${type === item.id ? ' is-selected' : ''}`}
-						onClick={() => onType(item.id)}
+						className={`lesson-callout-fill${fill === item.id ? ' is-selected' : ''}`}
+						aria-pressed={fill === item.id}
+						onClick={() => onFill(item.id)}
 					>
 						{item.label}
 					</button>
 				))}
 			</div>
-			<div className="lesson-callout-colors">
-				{CALLOUT_COLORS.map((color) => (
-					<button
-						key={color}
-						type="button"
-						className={`lesson-callout-swatch${accent === color ? ' is-selected' : ''}`}
-						style={{ background: color }}
-						aria-label={`Culoare ${color}`}
-						onClick={() => onAccent(color)}
-					/>
-				))}
-			</div>
-			<blockquote
-				className="lesson-callout-preview"
-				data-callout-box="true"
-				data-callout-type={type}
-				style={{ '--rte-callout-accent': accent }}
-			>
-				<div className="rte-callout-content">
-					<p>Așa arată chenarul.</p>
-				</div>
-			</blockquote>
 		</div>,
 		document.body,
 	);

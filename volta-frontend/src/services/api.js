@@ -16,8 +16,8 @@ export const coursesService = {
     return list;
   },
   
-  getById: async (id) => {
-    const response = await api.get(`/courses/${id}`);
+  getById: async (id, params = {}) => {
+    const response = await api.get(`/courses/${id}`, { params });
     return response.data?.data ?? response.data;
   },
   
@@ -329,6 +329,16 @@ export const libraryService = {
     return response.data;
   },
 
+  // Imagine din editorul unui material scris; întoarce URL-ul de pus în conținut.
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/library/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.url;
+  },
+
   createTextItem: async ({ title, description, body, cover }) => {
     await ensureApiCsrfCookie();
     const formData = new FormData();
@@ -586,6 +596,12 @@ export const adminService = {
   
   deleteCourse: async (id) => {
     const response = await api.delete(`/admin/courses/${id}`);
+    return response.data;
+  },
+
+  // Copie ciornă a cursului (module, lecții, teste atașate), fără cursanți și fără echipe.
+  duplicateCourse: async (id) => {
+    const response = await api.post(`/admin/courses/${id}/builder/clone`, { include_teams: false });
     return response.data;
   },
 

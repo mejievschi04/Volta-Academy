@@ -37,11 +37,15 @@ export default function TestAttemptFooter({
 
     const showSubmit = !submitted && total > 0 && currentIndex === total - 1;
     const showLeaveAfterSubmit = Boolean(submitted && backTo);
+    const nextBlocked = !submitted && !submitting && total > 0 && currentIndex < total - 1 && !canGoNext;
 
     return (
         <footer ref={footerRef} className={`test-attempt-footer${showSubmit ? ' test-attempt-footer--submit' : ''}`}>
+            {nextBlocked && (
+                <p className="test-attempt-footer-hint" role="status">Alege un răspuns ca să continui.</p>
+            )}
             {!submitted && total > 0 && <nav className="test-attempt-footer-navigation" aria-label="Navigare întrebări">
-                <button type="button" className="test-attempt-nav-btn" aria-label="Întrebarea anterioară"
+                <button type="button" className="test-attempt-nav-btn test-attempt-nav-btn--prev" aria-label="Întrebarea anterioară"
                     disabled={submitting || currentIndex === 0 || !canGoBack} onClick={() => onNavigate(currentIndex - 1)}>
                     <CaretLeft size={28} weight="bold" aria-hidden />
                 </button>

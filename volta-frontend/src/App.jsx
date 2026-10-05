@@ -74,6 +74,7 @@ import './styles/mobile-optimizations.css';
 import './styles/control-system.css';
 import './styles/dialog-system.css';
 import logoShort from './assets/Volta Logo 2@300x 1.png';
+import { nameInitials } from './utils/initials';
 
 // Lazy load pages for code splitting
 const VoltAssistantWidget = lazy(() => import('./components/ai/VoltAssistantWidget'));
@@ -675,8 +676,9 @@ function AuthenticatedLayout({ children, authContext }) {
 		if (pathname.startsWith('/library')) return 'Bibliotecă';
 		if (pathname.startsWith('/guides')) return 'Ghiduri';
 		if (pathname.startsWith('/settings')) return 'Setări';
-		if (pathname.startsWith('/exams/')) return 'Test';
+		if (pathname.startsWith('/exams/') || /^\/courses\/[^/]+\/exams\//.test(pathname)) return 'Test';
 		if (pathname.startsWith('/achievements')) return 'Realizări';
+		if (pathname.startsWith('/completed-courses')) return 'Cursuri finalizate';
 		return 'Volta Academy';
 	}, [location.pathname]);
 
@@ -1186,11 +1188,7 @@ function AuthenticatedLayout({ children, authContext }) {
 										{user.avatar ? (
 											<img src={toImageUrl(user.avatar) || user.avatar} alt={user.name || ''} />
 										) : (
-											user.name
-												?.split(' ')
-												.map((n) => n[0])
-												.join('')
-												.toUpperCase() || 'A'
+											nameInitials(user.name, 'A')
 										)}
 									</div>
 									<div className="admin-topnav-user-info">
@@ -1357,11 +1355,7 @@ function AuthenticatedLayout({ children, authContext }) {
 											{user.avatar ? (
 												<img src={toImageUrl(user.avatar) || user.avatar} alt={user.name || ''} />
 											) : (
-												user.name
-													?.split(' ')
-													.map((n) => n[0])
-													.join('')
-													.toUpperCase() || 'U'
+												nameInitials(user.name, 'U')
 											)}
 										</div>
 										<div className="admin-topnav-user-info">

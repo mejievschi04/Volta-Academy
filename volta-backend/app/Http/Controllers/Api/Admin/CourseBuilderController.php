@@ -34,8 +34,7 @@ class CourseBuilderController extends Controller
 
     private function makeMediaPreviewToken(int $courseId, int $mediaId): string
     {
-        $key = (string) config('app.key');
-        return hash_hmac('sha256', "{$courseId}|{$mediaId}", $key);
+        return MediaAsset::previewToken($courseId, $mediaId);
     }
 
     /**

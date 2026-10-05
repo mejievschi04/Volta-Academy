@@ -25,6 +25,8 @@ const AdminCourseDetailPage = () => {
 	const [error, setError] = useState(null);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+	const [duplicateLoading, setDuplicateLoading] = useState(false);
 	const [showCourseSettingsModal, setShowCourseSettingsModal] = useState(false);
 	const [publishModalOpen, setPublishModalOpen] = useState(false);
 	const [publishValidationReport, setPublishValidationReport] = useState(null);
@@ -139,6 +141,21 @@ const AdminCourseDetailPage = () => {
 		}
 	};
 
+	const handleConfirmDuplicateCourse = async () => {
+		if (!course) return;
+		setDuplicateLoading(true);
+		try {
+			const data = await adminService.duplicateCourse(course.id);
+			showToast('Copia cursului a fost creată ca ciornă.', 'success');
+			setShowDuplicateConfirm(false);
+			navigate(`/admin/courses/${data.course.id}/builder`);
+		} catch (err) {
+			showToast(err?.response?.data?.message || 'Nu am putut duplica cursul.', 'error');
+		} finally {
+			setDuplicateLoading(false);
+		}
+	};
+
 	if (loading) {
 		return (
 			<div style={{ 
@@ -197,6 +214,13 @@ const AdminCourseDetailPage = () => {
 						<button
 							type="button"
 							className="lms-btn-secondary"
+							onClick={() => setShowDuplicateConfirm(true)}
+						>
+							Duplică
+						</button>
+						<button
+							type="button"
+							className="lms-btn-secondary"
 							onClick={() => setShowCourseSettingsModal(true)}
 						>
 							Editează curs
@@ -249,6 +273,18 @@ const AdminCourseDetailPage = () => {
 					setPublishModalOpen(false);
 					navigate(`/admin/courses/${course.id}/builder?${params.toString()}`);
 				}}
+			/>
+
+			<ConfirmModal
+				open={showDuplicateConfirm}
+				onClose={() => setShowDuplicateConfirm(false)}
+				onConfirm={handleConfirmDuplicateCourse}
+				title="Duplică cursul"
+				message={`Se creează „${course.title} (copie)” ca ciornă, cu aceleași module, lecții și teste. Cursanții și echipele nu se copiază.`}
+				confirmLabel="Duplică"
+				cancelLabel="Anulare"
+				variant="primary"
+				loading={duplicateLoading}
 			/>
 
 			<ConfirmModal

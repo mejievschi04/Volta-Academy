@@ -1339,6 +1339,23 @@ const AdminCourseBuilderPage = () => {
 		}
 	};
 
+	const handleDuplicateCourse = async () => {
+		if (!course?.id) return;
+		if (!window.confirm(`Creezi o copie ciornă a cursului „${course.title || 'fără titlu'}”? Cursanții și echipele nu se copiază.`)) return;
+		setCourseActionLoading(true);
+		try {
+			await flushPendingLessonContentSave();
+			const data = await adminService.duplicateCourse(course.id);
+			showToast('Copia cursului a fost creată ca ciornă.', 'success');
+			navigate(`/admin/courses/${data.course.id}/builder`);
+		} catch (e) {
+			console.error('Duplicate course failed:', e);
+			showToast(e?.response?.data?.message || 'Nu am putut duplica cursul.', 'error');
+		} finally {
+			setCourseActionLoading(false);
+		}
+	};
+
 	const handleDeleteCourse = async () => {
 		if (!course?.id) return;
 		if (!window.confirm(`Ștergi definitiv cursul „${course.title || 'fără titlu'}”?`)) return;
@@ -2003,6 +2020,14 @@ const AdminCourseBuilderPage = () => {
 										>
 											Previzualizează ca elev
 										</button>
+										<button
+											type="button"
+											className="admin-btn admin-btn-secondary"
+											onClick={handleDuplicateCourse}
+											disabled={courseActionLoading}
+										>
+											Duplică cursul
+										</button>
 										{isCoursePublished ? (
 											<button
 												type="button"
@@ -2235,4 +2260,10 @@ const AdminCourseBuilderPage = () => {
 	);
 };
 
-export default AdminCourseBuilderPage;
+// Starea builder-ului (lecția selectată, editorul) ține de un singur curs; alt id = instanță nouă.
+const AdminCourseBuilderRoute = () => {
+	const { id } = useParams();
+	return <AdminCourseBuilderPage key={id} />;
+};
+
+export default AdminCourseBuilderRoute;

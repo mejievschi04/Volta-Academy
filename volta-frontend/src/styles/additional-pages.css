@@ -2823,3 +2823,35 @@ body.sidebar-expanded .messages-page {
 	font-size: 0.9rem;
 	font-weight: 600;
 }
+
+/* Mobil, o întrebare pe ecran: unde ești în test */
+.student-exam-mobile-progress {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: var(--space-2);
+}
+
+.student-exam-mobile-progress-label {
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-secondary);
+}
+
+.student-exam-mobile-progress-track {
+	height: 6px;
+	border-radius: 999px;
+	background: var(--bg-tertiary, rgba(0, 0, 0, 0.08));
+	overflow: hidden;
+}
+
+.student-exam-mobile-progress-fill {
+	height: 100%;
+	border-radius: inherit;
+	background: var(--color-brand-primary);
+	transition: width 0.3s ease;
+}
+
+.empty-state-icon svg {
+	color: var(--text-tertiary);
+}

@@ -11,8 +11,10 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test('cursantul ajunge la cursurile lui după autentificare', async ({ page }) => {
 	await expect(page).toHaveURL(/\/courses$/);
-	await expect(page.getByRole('heading', { name: 'Curs E2E' })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Continuă lecția' })).toBeVisible();
+	// Cursul apare și în cardul „Continuă”, și în listă (nu e în nicio mapă, deci stă în afara mapelor).
+	const resume = page.getByRole('region', { name: 'Continuă învățarea' });
+	await expect(resume.getByRole('heading', { name: 'Curs E2E' })).toBeVisible();
+	await expect(resume.getByRole('button', { name: 'Continuă lecția' })).toBeVisible();
 });
 
 test('cursantul deschide cursul și trece la lecția următoare', async ({ page }) => {

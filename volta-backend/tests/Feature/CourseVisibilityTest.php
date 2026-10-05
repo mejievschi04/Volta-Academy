@@ -136,4 +136,32 @@ class CourseVisibilityTest extends TestCase
         $examIdsWithDrafts = collect($withDrafts->json('exams') ?? [])->pluck('id')->all();
         $this->assertContains($draftTest->id, $examIdsWithDrafts);
     }
+
+    public function test_admin_preview_lists_and_opens_draft_lesson_test(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = Course::factory()->create(['status' => 'draft']);
+        $lesson = Lesson::withoutEvents(fn () => Lesson::create([
+            'course_id' => $course->id, 'title' => 'Lecție', 'content' => 'x',
+            'type' => 'text', 'status' => 'published', 'order' => 0,
+        ]));
+        $draftTest = Test::factory()->create(['status' => 'draft', 'title' => 'Test ciornă']);
+        \App\Models\Question::factory()->create(['test_id' => $draftTest->id]);
+        CourseTest::create([
+            'course_id' => $course->id, 'test_id' => $draftTest->id,
+            'scope' => 'lesson', 'scope_id' => $lesson->id, 'order' => 0,
+        ]);
+
+        $lessons = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/courses/{$course->id}?include_draft_tests=1")
+            ->assertOk()
+            ->json('lessons');
+        $this->assertSame($draftTest->id, $lessons[0]['course_tests'][0]['test_id']);
+        $this->assertSame('draft', $lessons[0]['course_tests'][0]['test']['status']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/exams/{$draftTest->id}?course_id={$course->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'questions');
+    }
 }

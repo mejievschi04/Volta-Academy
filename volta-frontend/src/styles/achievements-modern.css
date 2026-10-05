@@ -231,3 +231,8 @@
 	font-size: var(--font-size-xs);
 	color: var(--text-tertiary);
 }
+
+.student-achievements-stat-icon,
+.student-achievements-stat-icon svg {
+	color: var(--btn-primary-text, #111);
+}

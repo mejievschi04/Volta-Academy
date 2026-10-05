@@ -333,18 +333,9 @@ const PublishCourseModal = ({
 
 					<fieldset className="publish-course-section">
 						<legend className="publish-course-section-title">Unde apare cursul?</legend>
-						<label className="publish-course-team-item publish-course-catalog-option__label">
-							<input
-								type="checkbox"
-								checked={catalogOutsideMap}
-								onChange={(e) => {
-									const next = e.target.checked;
-									setCatalogOutsideMap(next);
-									persistDraft({ audience, selectedTeamIds, catalogOutsideMap: next });
-								}}
-							/>
-							<span>Și în catalogul Cursuri</span>
-						</label>
+						<p className="publish-course-section-hint">
+							Cursanții îl văd în mapele în care e pus. Dacă nu e în nicio mapă, apare direct în pagina Cursuri.
+						</p>
 					</fieldset>
 
 					{blockedReason && (

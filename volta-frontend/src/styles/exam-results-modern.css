@@ -357,3 +357,49 @@
 		flex-wrap: wrap;
 	}
 }
+
+.exam-results-search input,
+.exam-results-search input:focus {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+}
+
+/* Mobil: fiecare grup de filtre pe un rând care se derulează, fără cutia gri din jur */
+@media (max-width: 768px) {
+	.exam-results-controls {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-2);
+	}
+
+	.exam-results-button-row {
+		display: flex;
+		flex-wrap: nowrap;
+		gap: var(--space-2);
+		padding: 0;
+		border: 0;
+		background: none;
+		overflow-x: auto;
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.exam-results-button-row::-webkit-scrollbar {
+		display: none;
+	}
+
+	.exam-results-filter-btn {
+		flex-shrink: 0;
+		min-height: 40px;
+		padding: 0.45rem 1rem;
+		border-radius: 999px;
+		box-shadow: none;
+	}
+
+	.exam-results-controls .exam-results-search {
+		flex: none;
+		width: 100%;
+		background: var(--bg-elevated);
+	}
+}

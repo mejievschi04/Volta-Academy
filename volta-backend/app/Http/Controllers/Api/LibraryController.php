@@ -198,6 +198,25 @@ class LibraryController extends Controller
         ], 201);
     }
 
+    /**
+     * Imagine inserată în conținutul unui material scris (editorul de lecții). Conținutul o referă prin URL;
+     * imaginile base64 nu trec de HtmlSanitizer.
+     */
+    public function uploadImage(Request $request)
+    {
+        $this->assertCanMutate($request);
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:jpeg,jpg,png,webp,gif|max:10240',
+        ]);
+
+        $path = $validated['file']->store('library/images', 'public');
+
+        return response()->json([
+            'url' => '/storage/' . ltrim($path, '/'),
+            'path' => $path,
+        ], 201);
+    }
+
     public function show(Request $request, int $id)
     {
         $item = LibraryItem::with('uploader:id,name')->findOrFail($id);

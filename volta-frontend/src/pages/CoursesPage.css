@@ -966,3 +966,16 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 		--course-map-tile-hit-height: auto;
 	}
 }
+
+/* Căutare: o singură casetă albă; câmpul rămâne transparent peste stilurile globale de input */
+.courses-page-search-wrapper {
+	background: var(--bg-elevated);
+	border-width: 1px;
+}
+
+.courses-page-search-wrapper .courses-page-search-input,
+.courses-page-search-wrapper .courses-page-search-input:focus {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+}

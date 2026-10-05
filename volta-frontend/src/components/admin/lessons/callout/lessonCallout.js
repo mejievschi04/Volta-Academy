@@ -18,6 +18,33 @@ export const LESSON_CALLOUT_TYPES = [
 
 const CALLOUT_TYPE_IDS = new Set(LESSON_CALLOUT_TYPES.map((type) => type.id));
 
+/** Stiluri prestabilite (iconiță + culoare din LessonCallout.css); `fill` alege monocolor sau gradient. */
+export const LESSON_CALLOUT_VARIANTS = [
+	{ id: 'info', label: 'Informație', color: '#2563eb' },
+	{ id: 'tip', label: 'Sfat', color: '#16a34a' },
+	{ id: 'warning', label: 'Atenție', color: '#d97706' },
+	{ id: 'danger', label: 'Important', color: '#dc2626' },
+	{ id: 'success', label: 'Reține', color: '#0d9488' },
+	{ id: 'note', label: 'Notă', color: '#7c3aed' },
+	{ id: 'example', label: 'Exemplu', color: '#0891b2' },
+	{ id: 'quote', label: 'Citat', color: '#475569' },
+];
+
+export const LESSON_CALLOUT_FILLS = [
+	{ id: 'mono', label: 'Monocolor' },
+	{ id: 'gradient', label: 'Gradient' },
+];
+
+const CALLOUT_VARIANT_IDS = new Set(LESSON_CALLOUT_VARIANTS.map((variant) => variant.id));
+
+export function cleanLessonCalloutVariant(value) {
+	return CALLOUT_VARIANT_IDS.has(value) ? value : null;
+}
+
+export function cleanLessonCalloutFill(value) {
+	return value === 'gradient' ? 'gradient' : 'mono';
+}
+
 export function cleanLessonCalloutAccent(value) {
 	const color = String(value || '').trim();
 	return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : '#ffee00';
@@ -43,10 +70,21 @@ export const LessonCallout = Node.create({
 
 	addAttributes() {
 		return {
+			// Stilurile noi (variant + fill) înlocuiesc forma și culoarea vechi; chenarele vechi rămân pe type/accent.
+			variant: {
+				default: null,
+				parseHTML: (element) => cleanLessonCalloutVariant(element.getAttribute('data-callout-variant')),
+				renderHTML: (attributes) => (attributes.variant ? { 'data-callout-variant': attributes.variant } : {}),
+			},
+			fill: {
+				default: 'mono',
+				parseHTML: (element) => cleanLessonCalloutFill(element.getAttribute('data-callout-fill')),
+				renderHTML: (attributes) => (attributes.variant ? { 'data-callout-fill': cleanLessonCalloutFill(attributes.fill) } : {}),
+			},
 			type: {
 				default: 'soft',
 				parseHTML: (element) => cleanLessonCalloutType(element.getAttribute('data-callout-type')),
-				renderHTML: (attributes) => ({
+				renderHTML: (attributes) => (attributes.variant ? {} : {
 					'data-callout-type': cleanLessonCalloutType(attributes.type),
 				}),
 			},
@@ -55,7 +93,7 @@ export const LessonCallout = Node.create({
 				parseHTML: (element) => cleanLessonCalloutAccent(
 					element.style.getPropertyValue('--rte-callout-accent'),
 				),
-				renderHTML: (attributes) => ({
+				renderHTML: (attributes) => (attributes.variant ? {} : {
 					style: `--rte-callout-accent: ${cleanLessonCalloutAccent(attributes.accent)}`,
 				}),
 			},
@@ -84,6 +122,8 @@ export const LessonCallout = Node.create({
 				const next = {
 					type: cleanLessonCalloutType(attributes?.type),
 					accent: cleanLessonCalloutAccent(attributes?.accent),
+					variant: cleanLessonCalloutVariant(attributes?.variant),
+					fill: cleanLessonCalloutFill(attributes?.fill),
 				};
 				const depth = calloutDepth(state.selection.$from);
 				if (depth) {
