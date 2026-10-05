@@ -1162,8 +1162,12 @@ export const adminService = {
   // Categories are no longer supported
 
   // Activity Logs
-  getActivityLogs: async (params = {}) => {
-    const response = await api.get('/admin/activity-logs', { params });
+  getActivityLogs: async (params = {}, { signal } = {}) => {
+    const response = await api.get('/admin/activity-logs', {
+      params,
+      signal,
+      timeout: parseInt(import.meta.env.VITE_ACTIVITY_LOGS_TIMEOUT || '30000', 10),
+    });
     return response.data;
   },
   

@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ActivityLogAdminController extends Controller
 {
+    protected const COUNT_CAP = 10000;
+
     public function __construct()
     {
         if (auth()->check() && auth()->user()->isInstructor()) {
@@ -41,7 +46,10 @@ class ActivityLogAdminController extends Controller
             $sortDir = $sortDir === 'asc' ? 'asc' : 'desc';
         }
 
-        $query = ActivityLog::with('user:id,name,email');
+        // Only the columns the journal list renders; old_values / user_agent can be large.
+        $query = ActivityLog::query()
+            ->select(['id', 'user_id', 'action', 'description', 'new_values', 'created_at'])
+            ->with('user:id,name,email');
 
         if ($excludeSelf && ($viewer = $request->user())) {
             $query->where(function ($q) use ($viewer) {
@@ -55,10 +63,10 @@ class ActivityLogAdminController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
                   ->orWhere('action', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                  });
+                  ->orWhereIn('user_id', User::query()
+                      ->select('id')
+                      ->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%"));
             });
         }
 
@@ -97,34 +105,40 @@ class ActivityLogAdminController extends Controller
             $query->where('user_id', $userId);
         }
 
-        if ($dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+        // Range on the raw column (not whereDate) so the created_at index is usable.
+        if ($dateFrom && ($from = $this->parseDate($dateFrom))) {
+            $query->where('created_at', '>=', $from->startOfDay());
         }
 
-        if ($dateTo) {
-            $query->whereDate('created_at', '<=', $dateTo);
+        if ($dateTo && ($to = $this->parseDate($dateTo))) {
+            $query->where('created_at', '<', $to->addDay()->startOfDay());
         }
 
         $query->orderBy($sortBy, $sortDir);
         // Stable order when many rows share the same timestamp
         $query->orderBy('id', $sortDir);
 
-        $logs = $query->paginate($perPage);
+        // An exact COUNT(*) over the whole journal is the slow part on a large table;
+        // count at most COUNT_CAP + 1 matching rows and report "10.000+" beyond that.
+        $cappedIds = (clone $query)->toBase()->reorder()->select('id')->limit(static::COUNT_CAP + 1);
+        $matched = DB::query()->fromSub($cappedIds, 'capped')->count();
+        $totalCapped = $matched > static::COUNT_CAP;
+        $total = min($matched, static::COUNT_CAP);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min($lastPage, max(1, (int) $request->get('page', 1)));
 
-        $actionsQuery = ActivityLog::query()->select('action')->distinct()->orderBy('action')->limit(400);
-        $modelTypesQuery = ActivityLog::query()->select('model_type')->whereNotNull('model_type')->where('model_type', '!=', '')->distinct()->orderBy('model_type')->limit(200);
+        $items = $query->forPage($page, $perPage)->get();
 
         return response()->json([
-            'data' => $logs->items(),
+            'data' => $items,
             'pagination' => [
-                'current_page' => $logs->currentPage(),
-                'last_page' => $logs->lastPage(),
-                'per_page' => $logs->perPage(),
-                'total' => $logs->total(),
+                'current_page' => $page,
+                'last_page' => $lastPage,
+                'per_page' => $perPage,
+                'total' => $total,
+                'total_capped' => $totalCapped,
             ],
             'filters' => [
-                'actions' => $actionsQuery->pluck('action')->values(),
-                'model_types' => $modelTypesQuery->pluck('model_type')->values(),
                 'action_scopes' => [
                     ['id' => 'elev_progres', 'label' => 'Progres elevi (cursuri și teste)'],
                     ['id' => 'all', 'label' => 'Tot jurnalul'],
@@ -138,4 +152,12 @@ class ActivityLogAdminController extends Controller
         ]);
     }
 
+    protected function parseDate(string $value): ?Carbon
+    {
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
 }

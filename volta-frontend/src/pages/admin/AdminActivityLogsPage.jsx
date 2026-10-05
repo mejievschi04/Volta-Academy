@@ -48,6 +48,7 @@ const AdminActivityLogsPage = () => {
 		last_page: 1,
 		per_page: 50,
 		total: 0,
+		total_capped: false,
 	});
 	const [filters, setFilters] = useState({
 		search: '',
@@ -62,12 +63,17 @@ const AdminActivityLogsPage = () => {
 	const [searchInput, setSearchInput] = useState('');
 	const searchDebounceRef = useRef(null);
 	const searchEffectBoot = useRef(true);
+	const fetchAbortRef = useRef(null);
 
 	const [availableFilters, setAvailableFilters] = useState({
 		action_scopes: [],
 	});
 
 	const fetchLogs = useCallback(async () => {
+		// A newer filter/page request supersedes the one in flight.
+		fetchAbortRef.current?.abort();
+		const controller = new AbortController();
+		fetchAbortRef.current = controller;
 		try {
 			setLoading(true);
 			setError(null);
@@ -91,7 +97,7 @@ const AdminActivityLogsPage = () => {
 				}
 			});
 
-			const data = await adminService.getActivityLogs(params);
+			const data = await adminService.getActivityLogs(params, { signal: controller.signal });
 			setLogs(data.data || []);
 			setPagination((prev) => ({
 				...prev,
@@ -99,6 +105,7 @@ const AdminActivityLogsPage = () => {
 				last_page: data.pagination?.last_page || prev.last_page,
 				per_page: data.pagination?.per_page || prev.per_page,
 				total: data.pagination?.total ?? 0,
+				total_capped: Boolean(data.pagination?.total_capped),
 			}));
 			if (data.filters?.action_scopes?.length) {
 				setAvailableFilters(() => ({
@@ -106,17 +113,20 @@ const AdminActivityLogsPage = () => {
 				}));
 			}
 		} catch (err) {
+			if (controller.signal.aborted) return;
 			console.error('Error fetching activity logs:', err);
 			setError('Nu s-a putut încărca jurnalul.');
 			setLogs([]);
 		} finally {
-			setLoading(false);
+			if (fetchAbortRef.current === controller) setLoading(false);
 		}
 	}, [pagination.current_page, pagination.per_page, filters, showMyActions]);
 
 	useEffect(() => {
 		fetchLogs();
 	}, [fetchLogs]);
+
+	useEffect(() => () => fetchAbortRef.current?.abort(), []);
 
 	useEffect(() => {
 		if (searchEffectBoot.current) {
@@ -385,7 +395,7 @@ const AdminActivityLogsPage = () => {
 							← Anterior
 						</button>
 						<span className="admin-activity-logs-pagination-info">
-							Pagina {pagination.current_page} din {pagination.last_page} ({pagination.total} înregistrări)
+							Pagina {pagination.current_page} din {pagination.last_page} ({pagination.total_capped ? `${pagination.total.toLocaleString('ro-RO')}+` : pagination.total} înregistrări)
 						</span>
 						<button
 							type="button"
