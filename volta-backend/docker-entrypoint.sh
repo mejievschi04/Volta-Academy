@@ -34,4 +34,7 @@ php artisan view:cache
 # Storage link (dacă nu există)
 php artisan storage:link 2>/dev/null || true
 
+# Comenzile de mai sus rulează ca root; PHP-FPM (www-data) trebuie să poată scrie în cache și loguri.
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
 exec "$@"

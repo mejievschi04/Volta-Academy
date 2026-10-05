@@ -31,7 +31,6 @@ RUN printf "upload_max_filesize=512M\npost_max_size=550M\nmax_execution_time=600
 WORKDIR /var/www/html
 # Dependency layers survive changes to application source.
 COPY composer.json composer.lock ./
-COPY patches ./patches
 RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --prefer-dist
 COPY package.json package-lock.json ./
 RUN npm ci

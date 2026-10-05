@@ -105,6 +105,8 @@ services:
   queue-worker:
     <<: *backend-service
     container_name: volta-queue-worker
+    # Ca PHP-FPM: fișierele de cache/log create în storage-ul comun rămân scriibile de www-data.
+    user: www-data
     entrypoint: ["php", "artisan"]
     command: ["queue:work", "database", "--sleep=2", "--tries=3", "--timeout=60", "--max-time=3600"]
     stop_grace_period: 200s
@@ -123,6 +125,7 @@ services:
   scheduler:
     <<: *backend-service
     container_name: volta-scheduler
+    user: www-data
     entrypoint: ["php", "artisan"]
     command: ["schedule:work"]
     volumes:
