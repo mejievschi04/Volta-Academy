@@ -2863,3 +2863,8 @@ html body button.admin-exams-team-modal-enable.admin-exams-team-modal-enable {
 	background: var(--bg-elevated) !important;
 	color: var(--text-primary) !important;
 }
+
+/* setările examenului folosesc secțiunile din builder-ul de test; aici stau direct în spațiul de lucru, fără margine în plus */
+html body .va-ts.va-ts.admin-exams-settings {
+	padding: 0 !important;
+}
