@@ -30,7 +30,7 @@ class DirectorySearch
             return;
         }
 
-        $expressions = array_map(fn (string $column) => self::sqlFold($column), $columns);
+        $expressions = array_map(fn (string $column) => self::sqlFold($query, $column), $columns);
 
         foreach ($tokens as $token) {
             $like = '%'.addcslashes($token, '%_\\').'%';
@@ -68,13 +68,44 @@ class DirectorySearch
         return mb_strtolower($value);
     }
 
-    private static function sqlFold(string $column): string
+    /**
+     * Expresia SQL care pliază coloana la fel ca fold(). Nu imbricăm câte un replace() pe literă:
+     * zeci de apeluri imbricate depășesc stiva parserului SQLite (CI, Ubuntu): „parser stack overflow”.
+     */
+    private static function sqlFold(Builder $query, string $column): string
     {
+        $connection = $query->getConnection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $from = implode('', array_keys(self::FOLDS));
+            $to = implode('', array_values(self::FOLDS));
+
+            return "lower(translate({$column}, '{$from}', '{$to}'))";
+        }
+
+        if ($driver === 'sqlite') {
+            self::registerSqliteFold($connection->getPdo());
+
+            return "va_directory_fold({$column})";
+        }
+
         $expression = $column;
         foreach (self::FOLDS as $from => $to) {
             $expression = "replace({$expression}, '{$from}', '{$to}')";
         }
 
         return 'lower('.$expression.')';
+    }
+
+    private static function registerSqliteFold(\PDO $pdo): void
+    {
+        // Înregistrare la fiecare interogare: e ieftină și o conexiune nouă (ex. reconectare) nu are funcția.
+        $fold = fn ($value) => $value === null ? null : self::fold((string) $value);
+        if ($pdo instanceof \Pdo\Sqlite) {
+            $pdo->createFunction('va_directory_fold', $fold, 1, \PDO::SQLITE_DETERMINISTIC);
+        } else {
+            $pdo->sqliteCreateFunction('va_directory_fold', $fold, 1, \PDO::SQLITE_DETERMINISTIC);
+        }
     }
 }
