@@ -10,6 +10,7 @@ import {
 	WarningCircle,
 } from '@phosphor-icons/react';
 import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
+import { isVoltEnabled } from '../utils/voltAvailability';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
@@ -27,6 +28,8 @@ import LessonReadTrackers from '../components/student/LessonReadTrackers';
 import LessonPullRefresh from '../components/student/LessonPullRefresh';
 import './LessonPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
+import '../components/admin/lessons/video/LessonVideo.css';
+import '../components/admin/lessons/image/LessonImageContent.css';
 import { logger } from '../utils/logger';
 
 const STUDY_TOOL_OPTIONS = [
@@ -432,7 +435,7 @@ const LessonPage = () => {
 						</LessonReadTrackers>
 					</div>
 
-					{user?.actualRole === 'admin' && user?.role === 'admin' && (
+					{isVoltEnabled() && user?.actualRole === 'admin' && user?.role === 'admin' && (
 					<section className="lesson-study-tools">
 						<div className="lesson-study-header">
 							<div>

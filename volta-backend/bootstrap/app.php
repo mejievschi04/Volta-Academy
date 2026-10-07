@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             : config('volta.frontend_url') . '/login');
         $middleware->alias([
             'account.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
+            'volt' => \App\Http\Middleware\EnsureVoltEnabled::class,
         ]);
 
         // În spatele Nginx / Docker, X-Forwarded-Proto și IP corect pentru HTTPS, rate limit, sesiuni.

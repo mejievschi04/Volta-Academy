@@ -609,13 +609,15 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 						<div className="admin-form-section" style={{ marginBottom: '1.5rem' }}>
 							<div className="admin-form-section-header">
 								<h3 className="admin-form-section-title">Adaugă Întrebări</h3>
-								<button
-									type="button"
-									className="lms-btn-primary"
-									onClick={handleOpenAIModal}
-								>
-									🤖 Generează cu Volt
-								</button>
+								{isVoltEnabled() ? (
+									<button
+										type="button"
+										className="lms-btn-primary"
+										onClick={handleOpenAIModal}
+									>
+										🤖 Generează cu Volt
+									</button>
+								) : null}
 							</div>
 						</div>
 

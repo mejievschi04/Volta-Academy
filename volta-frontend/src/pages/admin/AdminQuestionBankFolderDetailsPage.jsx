@@ -482,10 +482,12 @@ const AdminQuestionBankFolderDetailsPage = () => {
                 <Plus size={17} aria-hidden />
                 Întrebare
               </button>
-              <button type="button" className="lms-btn-primary qb-action-button" onClick={handleOpenAIModal}>
-                <Sparkles size={17} aria-hidden />
-                Generează cu Volt
-              </button>
+              {isVoltEnabled() ? (
+                <button type="button" className="lms-btn-primary qb-action-button" onClick={handleOpenAIModal}>
+                  <Sparkles size={17} aria-hidden />
+                  Generează cu Volt
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="lms-btn-secondary va-btn-delete va-btn-danger qb-action-button"
@@ -636,7 +638,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
                 <ListChecks size={30} aria-hidden />
                 <p className="qb-empty-title">{questions.length ? 'Nicio întrebare pentru filtrul curent' : 'Folder gol'}</p>
                 <p className="qb-empty-hint">
-                  {questions.length ? 'Schimbă căutarea sau filtrul de tip.' : 'Adaugă manual o întrebare sau generează cu Volt.'}
+                  {questions.length ? 'Schimbă căutarea sau filtrul de tip.' : (isVoltEnabled() ? 'Adaugă manual o întrebare sau generează cu Volt.' : 'Adaugă o întrebare.')}
                 </p>
               </div>
             )}
