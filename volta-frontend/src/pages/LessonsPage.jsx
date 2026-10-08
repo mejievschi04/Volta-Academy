@@ -14,6 +14,7 @@ import {
 import { coursesService, courseProgressService, lessonsService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
+import { isLearningExemptRole } from '../constants/staffRoles';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
@@ -52,6 +53,8 @@ const LessonsPage = () => {
 	const navigate = useNavigate();
 	const { user } = useAuth();
 	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
+	// Staff-ul (și în previzualizarea „cursant”): serverul nu le salvează progresul, deci nu le dă nici testul următor.
+	const isLearningExempt = isLearningExemptRole(user?.actualRole || user?.role);
 	// La previzualizare, staff-ul vede și testele ciornă atașate (marcate „Ciornă”), ca să le poată deschide.
 	const courseFetchParams = isPlayerStaff ? { include_draft_tests: 1 } : {};
 	const isTestVisibleInPlayer = (status) => isPlayerStaff || isPublishedTestStatus(status);
@@ -158,7 +161,7 @@ const LessonsPage = () => {
 	useLessonTimeTracking(selectedLessonId, {
 		userId: user?.id,
 		isCompleted,
-		enabled: lessonReadyForTracking && !['admin', 'analyst'].includes(user?.actualRole || user?.role || ''),
+		enabled: lessonReadyForTracking && !isLearningExempt,
 	});
 
 	const reachedEnd = useLessonReachedEnd({
@@ -425,6 +428,22 @@ const LessonsPage = () => {
 		}
 	};
 
+	// Previzualizare: testele de după lecția curentă, în ordinea din cuprins (ale lecției, ale modulului, apoi cele de curs).
+	const getPreviewNextTestId = () => {
+		const ownerModule = modules.find((m) => (m.lessons || []).some((l) => Number(l.id) === Number(selectedLessonId)));
+		const lesson = ownerModule
+			? ownerModule.lessons.find((l) => Number(l.id) === Number(selectedLessonId))
+			: rootLessons.find((l) => Number(l.id) === Number(selectedLessonId));
+		const linkedTestIds = [
+			...(lesson ? getLessonCourseTests(lesson) : []),
+			...(ownerModule ? getModuleCourseTests(ownerModule) : []),
+		].map((ct) => ct.test_id ?? ct.test?.id);
+		const courseTestIds = (Array.isArray(course?.exams) ? course.exams : [])
+			.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status))
+			.map((e) => e.id);
+		return [...linkedTestIds, ...courseTestIds].find((id) => id != null) ?? null;
+	};
+
 	const handleFinalizeCourse = async () => {
 		if (finalizingCourse) return;
 		setFinalizingCourse(true);
@@ -432,6 +451,13 @@ const LessonsPage = () => {
 			if (!user?.id) {
 				navigate(`/courses/${courseId}`);
 				return;
+			}
+			if (isLearningExempt) {
+				const previewTestId = getPreviewNextTestId();
+				if (previewTestId != null) {
+					navigate(`/courses/${courseId}/exams/${previewTestId}`);
+					return;
+				}
 			}
 			if (selectedLessonId && !isCompleted) {
 				const ok = await completeCurrentLesson();

@@ -14,6 +14,7 @@ import { isVoltEnabled } from '../utils/voltAvailability';
 import { lessonsService, coursesService, courseProgressService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
+import { isLearningExemptRole } from '../constants/staffRoles';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import LessonBlocksPreview from '../components/admin/content-blocks/LessonBlocksPreview';
@@ -69,7 +70,7 @@ const LessonPage = () => {
 	useLessonTimeTracking(lessonId, {
 		userId: user?.id,
 		isCompleted,
-		enabled: Boolean(user?.id && lessonId && !['admin', 'analyst'].includes(user?.actualRole || user?.role || '')),
+		enabled: Boolean(user?.id && lessonId && !isLearningExemptRole(user?.actualRole || user?.role)),
 	});
 
 	const reachedEnd = useLessonReachedEnd({

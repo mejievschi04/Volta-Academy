@@ -4,6 +4,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { examService } from '../services/api';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
+import { isLearningExemptRole } from '../constants/staffRoles';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 
@@ -84,8 +85,8 @@ const ExamPage = () => {
 	const examId = params.examId;
 	const { user } = useAuth();
 	const [searchParams] = useSearchParams();
-	// Admin și analist parcurg testul ca un cursant, dar serverul nu le salvează încercarea și rezultatul.
-	const isPreviewMode = ['admin', 'analyst'].includes(user?.actualRole ?? user?.role);
+	// Admin, analist și instructor parcurg testul ca un cursant, dar serverul nu le salvează încercarea și rezultatul.
+	const isPreviewMode = isLearningExemptRole(user?.actualRole ?? user?.role);
 	const examKind = ['test', 'exam'].includes(searchParams.get('kind')) ? searchParams.get('kind') : null;
 	const back = courseId
 		? { to: `/courses/${courseId}`, label: 'Înapoi la curs' }

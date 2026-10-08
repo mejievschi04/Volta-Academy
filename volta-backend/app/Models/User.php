@@ -97,11 +97,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Admin și analist nu intră în tracking-ul de învățare/statistică.
+     * Admin, analist și instructor nu intră în tracking-ul de învățare/statistică:
+     * pot parcurge cursuri și teste, dar nu li se salvează progresul și rezultatele.
      */
     public function isLearningActivityExempt(): bool
     {
-        return in_array($this->role ?? '', ['admin', 'analyst'], true);
+        return in_array($this->role ?? '', ['admin', 'analyst', 'instructor'], true);
     }
 
 }

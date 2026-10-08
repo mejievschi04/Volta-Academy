@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Adminul parcurge un test ca un cursant (din lista de teste, fără curs): îl vede, îl trimite și
+ * Adminul (și instructorul) parcurge un test ca un cursant (din lista de teste, fără curs): îl vede, îl trimite și
  * primește rezultatul, dar încercarea nu se salvează.
  */
 class AdminTestPreviewTest extends TestCase
@@ -20,8 +20,19 @@ class AdminTestPreviewTest extends TestCase
 
     public function test_admin_can_take_a_test_without_saving_the_attempt(): void
     {
-        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
-        foreach (['published', 'draft'] as $status) {
+        $this->assertStaffTakesTestWithoutSaving('admin', ['published', 'draft']);
+    }
+
+    public function test_instructor_can_take_a_test_without_saving_the_attempt(): void
+    {
+        // ciornele le vede doar pe cursurile lui, deci aici doar testul publicat
+        $this->assertStaffTakesTestWithoutSaving('instructor', ['published']);
+    }
+
+    private function assertStaffTakesTestWithoutSaving(string $role, array $statuses): void
+    {
+        $admin = User::factory()->create(['role' => $role, 'status' => 'active']);
+        foreach ($statuses as $status) {
             $test = Test::factory()->create(['status' => $status, 'created_by' => $admin->id, 'max_attempts' => 1, 'passing_score' => 50]);
             $question = Question::factory()->create([
                 'test_id' => $test->id, 'type' => 'single_choice', 'points' => 1,

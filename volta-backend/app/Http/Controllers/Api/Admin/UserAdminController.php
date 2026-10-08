@@ -97,7 +97,7 @@ class UserAdminController extends Controller
         // Calculate course statistics for each user (skip admins)
         $usersWithStats = collect($users)->map(function ($user) use ($moduleCounts, $allProgress) {
             // Skip statistics for admin users
-            if (in_array($user->role, ['admin', 'analyst'], true)) {
+            if ($user->isLearningActivityExempt()) {
                 $user->total_courses = null;
                 $user->completed_courses = null;
                 $user->completion_percentage = null;
@@ -420,7 +420,7 @@ class UserAdminController extends Controller
         $user = User::findOrFail($id);
         if ($user->isLearningActivityExempt()) {
             return response()->json([
-                'message' => 'Nu marcăm progres pentru rolurile administrator sau analist.',
+                'message' => 'Nu marcăm progres pentru rolurile administrator, analist sau instructor.',
             ], 422);
         }
         $course = Course::findOrFail($courseId);
