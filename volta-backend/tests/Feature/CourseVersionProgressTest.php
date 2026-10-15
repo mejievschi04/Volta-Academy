@@ -39,7 +39,7 @@ class CourseVersionProgressTest extends TestCase
         foreach ([1, 2, 3] as $i) {
             $this->lessons[] = Lesson::create([
                 'course_id' => $this->course->id, 'module_id' => $this->module->id, 'title' => "Lecția {$i}",
-                'content' => "<p>Conținutul lecției {$i}, suficient pentru publicare.</p>", 'type' => 'text', 'status' => 'draft', 'order' => $i,
+                'content' => "<p>Conținutul lecției {$i}, suficient pentru publicare.</p>", 'type' => 'text', 'status' => 'published', 'order' => $i,
             ]);
         }
         $this->asAdmin()->postJson("/api/admin/courses/{$this->course->id}/builder/publish")->assertOk();
@@ -87,8 +87,10 @@ class CourseVersionProgressTest extends TestCase
     private function addLessonAndPublish(): Lesson
     {
         $this->asAdmin()->postJson("/api/admin/courses/{$this->course->id}/builder/lessons", [
-            'module_id' => $this->module->id, 'title' => 'Lecție nouă', 'content' => '<p>Lecție adăugată după ce cursanții au început.</p>', 'order' => 4,
+            'module_id' => $this->module->id, 'title' => 'Lecție nouă', 'content' => '<p>Lecție adăugată după ce cursanții au început.</p>', 'order' => 4, 'status' => 'published',
         ])->assertSuccessful();
+        $newLesson = Lesson::where('title', 'Lecție nouă')->firstOrFail();
+        $this->asAdmin()->putJson("/api/admin/courses/{$this->course->id}/builder/lessons/{$newLesson->id}", ['status' => 'published'])->assertOk();
         $this->asAdmin()->postJson("/api/admin/courses/{$this->course->id}/builder/publish")->assertOk();
 
         return Lesson::where('title', 'Lecție nouă')->firstOrFail();

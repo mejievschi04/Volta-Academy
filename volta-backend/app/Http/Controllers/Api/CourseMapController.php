@@ -28,18 +28,17 @@ class CourseMapController extends Controller
 
         $defaultMapIds = $this->defaultMapIds();
         $assignedIds = LearningVisibility::assignedCourseIdsForLearner($request->user());
-        $completedIds = $assignedIds === null ? [] : $this->learnerCompletedCourseIds($request->user());
 
         $query = CourseMap::query()
             ->when(
                 SchemaCache::hasColumn('course_maps', 'visibility'),
                 fn ($q) => $q->where(fn ($inner) => $inner->where('visibility', 'public')->orWhereNull('visibility'))
             )
-            ->whereHas('courses', function ($q) use ($assignedIds, $completedIds) {
-                $this->publishedAssignedCourseScope($q, $assignedIds, $completedIds);
+            ->whereHas('courses', function ($q) use ($assignedIds) {
+                $this->publishedAssignedCourseScope($q, $assignedIds);
             })
-            ->withCount(['courses' => function ($q) use ($assignedIds, $completedIds) {
-                $this->publishedAssignedCourseScope($q, $assignedIds, $completedIds);
+            ->withCount(['courses' => function ($q) use ($assignedIds) {
+                $this->publishedAssignedCourseScope($q, $assignedIds);
             }])
             ->orderBy('order')
             ->orderBy('name');
@@ -296,35 +295,14 @@ class CourseMapController extends Controller
     }
 
     /**
-     * @return array<int>
-     */
-    private function learnerCompletedCourseIds($user): array
-    {
-        if (! $user || ! SchemaCache::hasTable('course_user')) {
-            return [];
-        }
-
-        return DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->whereNotNull('completed_at')
-            ->pluck('course_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
-
-    /**
      * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation  $query
      * @param  array<int>|null  $assignedIds
-     * @param  array<int>  $completedIds
      */
-    private function publishedAssignedCourseScope($query, ?array $assignedIds, array $completedIds = []): void
+    private function publishedAssignedCourseScope($query, ?array $assignedIds): void
     {
         $query->where('courses.status', 'published');
         if ($assignedIds !== null) {
             $query->whereIn('courses.id', $assignedIds);
-        }
-        if ($completedIds !== []) {
-            $query->whereNotIn('courses.id', $completedIds);
         }
     }
 

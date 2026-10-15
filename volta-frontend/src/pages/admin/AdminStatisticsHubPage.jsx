@@ -931,7 +931,7 @@ const AdminStatisticsHubPage = () => {
 				'Email',
 				'Prima activitate',
 				'Ultima activitate',
-				'Cursuri deschise',
+				'Cursuri atribuite',
 				'Cursuri finalizate',
 				'Teste (încercări înregistrate)',
 				'Scor mediu (%)',
@@ -1004,7 +1004,7 @@ const AdminStatisticsHubPage = () => {
 							<th>Email</th>
 							<th>Nume complet</th>
 							<th>Ultima activitate</th>
-							<th>Cursuri deschise</th>
+							<th>Cursuri atribuite</th>
 							<th>Cursuri finalizate</th>
 							<th>Teste finalizate</th>
 							<th>Scor mediu (%)</th>

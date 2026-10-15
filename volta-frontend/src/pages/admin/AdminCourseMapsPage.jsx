@@ -31,6 +31,20 @@ import MapCoverFocusEditor from '../../components/admin/course-maps/MapCoverFocu
 import { normalizeColorInputToHex } from '../../utils/color';
 import { DEFAULT_COVER_FOCUS, normalizeCoverFocus } from '../../utils/coverFocus';
 
+function normalizeCourseSearch(value) {
+	return String(value || '').normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('ro').trim();
+}
+
+function CourseListSearch({ value, onChange, label }) {
+	return (
+		<div className="admin-courses-search">
+			<MagnifyingGlass size={18} aria-hidden="true" />
+			<input type="search" className="admin-courses-search-input" value={value}
+				onChange={(event) => onChange(event.target.value)} placeholder={label} aria-label={label} />
+		</div>
+	);
+}
+
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9'
 ];
@@ -199,6 +213,8 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 	const [formName, setFormName] = useState('');
 	const [formDescription, setFormDescription] = useState('');
 	const [addCourseIds, setAddCourseIds] = useState([]);
+	const [currentCourseSearch, setCurrentCourseSearch] = useState('');
+	const [availableCourseSearch, setAvailableCourseSearch] = useState('');
 	const [deleteConfirmMap, setDeleteConfirmMap] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [formAccent, setFormAccent] = useState(COURSE_MAP_ACCENT_COLORS[0]);
@@ -463,10 +479,18 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 		}
 	};
 
+	useEffect(() => {
+		setCurrentCourseSearch('');
+		setAvailableCourseSearch('');
+	}, [editingMap?.id, managingMap?.id]);
+
+	const matchesCourseSearch = (course, query) => normalizeCourseSearch(course.title).includes(normalizeCourseSearch(query));
+	const currentCourses = (managingMap?.courses || []).filter((course) => matchesCourseSearch(course, currentCourseSearch));
+	const currentCoursesForEdit = (editingMap?.courses || []).filter((course) => matchesCourseSearch(course, currentCourseSearch));
 	const inMapIds = (managingMap?.courses || []).map((c) => c.id);
-	const availableCourses = allCourses.filter((c) => !inMapIds.includes(c.id));
+	const availableCourses = allCourses.filter((c) => !inMapIds.includes(c.id) && matchesCourseSearch(c, availableCourseSearch));
 	const editMapCourseIds = (editingMap?.courses || []).map((c) => c.id);
-	const availableCoursesForEdit = allCourses.filter((c) => !editMapCourseIds.includes(c.id));
+	const availableCoursesForEdit = allCourses.filter((c) => !editMapCourseIds.includes(c.id) && matchesCourseSearch(c, availableCourseSearch));
 
 	const handleOpenMapCourses = (map) => {
 		if (onOpenMap) {
@@ -758,11 +782,12 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 								<div className="admin-course-map-dialog__courses-grid">
 									<div className="va-field">
 										<h3 className="va-dialog__section-title">În mapă</h3>
-										{(editingMap.courses || []).length === 0 ? (
-											<p className="va-list__empty">Niciun curs.</p>
+										<CourseListSearch value={currentCourseSearch} onChange={setCurrentCourseSearch} label="Caută cursuri în mapă" />
+										{currentCoursesForEdit.length === 0 ? (
+											<p className="va-list__empty">{currentCourseSearch.trim() ? 'Niciun curs găsit.' : 'Niciun curs.'}</p>
 										) : (
 											<ul className="va-list va-list--scroll">
-												{(editingMap.courses || []).map((c) => (
+												{currentCoursesForEdit.map((c) => (
 													<li key={c.id}>
 														<span>{c.title}</span>
 														<button
@@ -780,8 +805,9 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 									</div>
 									<div className="va-field">
 										<h3 className="va-dialog__section-title">Adaugă cursuri</h3>
+										<CourseListSearch value={availableCourseSearch} onChange={setAvailableCourseSearch} label="Caută cursuri de adăugat" />
 										{availableCoursesForEdit.length === 0 ? (
-											<p className="va-list__empty">Nu mai sunt cursuri disponibile.</p>
+											<p className="va-list__empty">{availableCourseSearch.trim() ? 'Niciun curs găsit.' : 'Nu mai sunt cursuri disponibile.'}</p>
 										) : (
 											<ul className="va-list va-list--scroll" role="group" aria-label="Selectează cursuri de adăugat">
 												{availableCoursesForEdit.map((c) => (
@@ -838,12 +864,13 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 						<div className="admin-modal-body">
 							<section className="admin-form-section" aria-label="Cursuri în mapă">
 								<h3 className="admin-form-section-title">Cursuri curente</h3>
+										<CourseListSearch value={currentCourseSearch} onChange={setCurrentCourseSearch} label="Caută cursuri în mapă" />
 								<div className="admin-course-map-courses-list">
-									{(managingMap.courses || []).length === 0 ? (
-										<p className="admin-text-muted">Niciun curs în această mapă. Selectează cursuri mai jos și apasă Adaugă.</p>
+									{currentCourses.length === 0 ? (
+										<p className="admin-text-muted">{currentCourseSearch.trim() ? 'Niciun curs găsit.' : 'Niciun curs în această mapă. Selectează cursuri mai jos și apasă Adaugă.'}</p>
 									) : (
 										<ul className="admin-course-map-current-list">
-											{(managingMap.courses || []).map((c) => (
+											{currentCourses.map((c) => (
 												<li key={c.id} className="admin-course-map-current-item">
 													<span>{c.title}</span>
 													<button
@@ -860,9 +887,10 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 									)}
 								</div>
 								<label className="admin-form-label">Adaugă cursuri</label>
+										<CourseListSearch value={availableCourseSearch} onChange={setAvailableCourseSearch} label="Caută cursuri de adăugat" />
 								<div className="admin-course-map-picker" role="group" aria-label="Selectează cursuri de adăugat">
 									{availableCourses.length === 0 ? (
-										<p className="admin-text-muted">Toate cursurile sunt deja în mapă.</p>
+										<p className="admin-text-muted">{availableCourseSearch.trim() ? 'Niciun curs găsit.' : 'Toate cursurile sunt deja în mapă.'}</p>
 									) : (
 										<ul className="admin-course-map-checkbox-list">
 											{availableCourses.map((c) => (

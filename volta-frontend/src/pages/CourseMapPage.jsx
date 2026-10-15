@@ -272,10 +272,7 @@ const CourseMapPage = () => {
 	}
 
 	const { name, description, courses } = map;
-	const courseIsFinished = (course) => Boolean(course?.completed_at) || Number(course?.progress_percentage) >= 100;
-	const studentCourses = (courses || []).filter((course) => !courseIsFinished(course));
-	const displayCourses = isAdmin ? orderedCourses : studentCourses;
-	const completedMovedAside = !isAdmin && (courses || []).length > 0 && studentCourses.length === 0;
+	const displayCourses = isAdmin ? orderedCourses : (courses || []);
 	const isVirtualMap = Boolean(map?.is_virtual) || String(map?.id || '') === 'unassigned';
 	const accent = map.accent_color || '#059669';
 	const mapThemeHsl = hexToHslSpace(accent);
@@ -368,11 +365,7 @@ const CourseMapPage = () => {
 					)
 				) : (
 					<div className="course-map-page-empty">
-						<p>
-							{completedMovedAside
-								? 'Cursurile din această mapă sunt finalizate. Le găsești la Cursuri finalizate.'
-								: 'Nu există cursuri în această mapă.'}
-						</p>
+						<p>Nu există cursuri în această mapă.</p>
 						<button type="button" className="course-map-page-btn" onClick={() => navigate(mapsListPath)}>
 							<ArrowLeft size={18} weight="bold" aria-hidden="true" />
 							{mapsListShortLabel}

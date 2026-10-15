@@ -701,7 +701,7 @@ class CourseBuilderService
             $course->update(['status' => 'published', 'workflow_status' => 'published']);
             \App\Support\CourseCatalog::applyOutsideMapFlag($course, $catalogOutsideMap);
             Module::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
-            Lesson::where('course_id', $course->id)->where('status', '!=', 'published')->update(['status' => 'published']);
+            // Lesson publication is controlled individually, including on course republication.
             if (SchemaCache::hasTable('course_team') && $teamIds !== []) {
                 app(UserAssignedCoursesService::class)->syncCourseTeams($course, $teamIds);
             }

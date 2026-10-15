@@ -42,6 +42,7 @@ class CourseMapProgressTest extends TestCase
 
         $row = collect($list)->firstWhere('id', $map->id);
         $this->assertNotNull($row);
+        $this->assertSame(2, (int) $row['courses_count']);
         $this->assertSame(50, (int) $row['progress_percentage']);
 
         $show = $this->actingAs($student, 'sanctum')
@@ -106,7 +107,7 @@ class CourseMapProgressTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_finished_course_is_not_listed_again_as_unfinished(): void
+    public function test_finished_course_remains_in_its_map_and_the_map_stays_visible(): void
     {
         $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
         $course = Course::factory()->published()->create(['title' => 'De trecut']);
@@ -127,10 +128,14 @@ class CourseMapProgressTest extends TestCase
         $this->assertSame(100, (int) $show['progress_percentage']);
         $this->assertNotEmpty($show['completed_at']);
 
-        $this->actingAs($student, 'sanctum')
+        $list = $this->actingAs($student, 'sanctum')
             ->getJson('/api/course-maps')
             ->assertOk()
-            ->assertJsonMissing(['name' => 'Mapa unica']);
+            ->json('data');
+        $row = collect($list)->firstWhere('id', $map->id);
+        $this->assertNotNull($row);
+        $this->assertSame(1, (int) $row['courses_count']);
+        $this->assertSame(100, (int) $row['progress_percentage']);
     }
 
     private function enroll(User $student, Course $course): void
