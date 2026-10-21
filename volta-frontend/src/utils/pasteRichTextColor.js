@@ -179,3 +179,30 @@ export function normalizePastedHtmlForRichText(html) {
 	doc.querySelectorAll('style').forEach((styleTag) => styleTag.remove());
 	return doc.body.innerHTML || html;
 }
+
+/**
+ * Test-question editors use a contenteditable surface instead of TipTap's schema.
+ * Keep semantic markup and the same text colors as the lesson builder, but drop
+ * pasted font, sizing, spacing, classes, and other presentation overrides.
+ */
+export function normalizePastedHtmlForTestBuilder(html) {
+	const normalized = normalizePastedHtmlForRichText(html);
+	if (!normalized || typeof DOMParser === 'undefined') return normalized;
+
+	const doc = new DOMParser().parseFromString(normalized, 'text/html');
+	const allowedStyles = ['color', 'background-color', 'text-align'];
+
+	doc.body.querySelectorAll('*').forEach((node) => {
+		const retained = allowedStyles
+			.map((property) => [property, node.style.getPropertyValue(property).trim()])
+			.filter(([, value]) => value);
+
+		node.removeAttribute('style');
+		node.removeAttribute('class');
+		node.removeAttribute('face');
+		node.removeAttribute('size');
+		retained.forEach(([property, value]) => node.style.setProperty(property, value));
+	});
+
+	return doc.body.innerHTML || normalized;
+}

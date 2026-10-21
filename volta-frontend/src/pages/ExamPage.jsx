@@ -463,6 +463,11 @@ const ExamPage = () => {
 			const correctSeq = normalizeSequenceAnswer(question.matching.correctMap);
 			return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
 		}
+		if (question.type === 'image_matching' && question.imageMatching?.correctMap) {
+			const userSeq = normalizeSequenceAnswer(answerValue);
+			const correctSeq = normalizeSequenceAnswer(question.imageMatching.correctMap);
+			return Boolean(userSeq && correctSeq && userSeq.length === correctSeq.length && userSeq.every((v, i) => v === correctSeq[i]));
+		}
 		if (question.type === 'ordering' && question.ordering?.correctOrder) {
 			const userSeq = normalizeSequenceAnswer(answerValue);
 			const correctSeq = normalizeSequenceAnswer(question.ordering.correctOrder);
@@ -568,7 +573,7 @@ const ExamPage = () => {
 				return isAnswered ? 'answered' : 'not-started';
 			}
 			if (!Array.isArray(question?.options) || question.options.length === 0) {
-				return (question?.type === 'matching' || question?.type === 'ordering') ? (isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect') : 'pending';
+				return (question?.type === 'matching' || question?.type === 'image_matching' || question?.type === 'ordering') ? (isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect') : 'pending';
 			}
 			return isQuestionCorrect(question, visibleAnswers[questionId]) ? 'completed' : 'incorrect';
 		}
@@ -615,8 +620,9 @@ const ExamPage = () => {
 		const correctIndices = getCorrectChoiceIndices(q);
 		const hasOptions = Array.isArray(q.options) && q.options.length > 0;
 		const hasMatching = q.type === 'matching' && q.matching;
+		const hasImageMatching = q.type === 'image_matching' && q.imageMatching;
 		const hasOrdering = q.type === 'ordering' && q.ordering;
-		const isStructured = Boolean(hasMatching || hasOrdering);
+		const isStructured = Boolean(hasMatching || hasImageMatching || hasOrdering);
 		const isCorrect = typeof q.is_correct === 'boolean'
 			? q.is_correct
 			: (showOnlySubmittedAnswers ? null : isQuestionCorrect(q, userAnswer));
@@ -648,6 +654,17 @@ const ExamPage = () => {
 									{canShowCorrectAnswers && !isCorrect && <div>Răspuns corect: {correctItem?.text || '—'}</div>}
 								</div>
 							);
+						})}
+					</div>
+				)}
+				{hasImageMatching && q.imageMatching && (
+					<div className="student-exam-feedback-item-answers">
+						{q.imageMatching.leftItems?.map((left, pairIndex) => {
+							const userChoice = matchingUserValues[pairIndex] ?? null;
+							const correctChoice = q.imageMatching.correctMap?.[pairIndex];
+							const selectedItem = q.imageMatching.rightItems?.find((option) => String(option.id) === String(userChoice));
+							const correctItem = q.imageMatching.rightItems?.find((option) => String(option.id) === String(correctChoice));
+							return <div key={left.id} className="student-exam-feedback-item-answer"><div><strong>{left.text}</strong></div><div>Imaginea ta: {selectedItem ? <img src={selectedItem.image_url} alt={selectedItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>{canShowCorrectAnswers && !isCorrect && <div>Imaginea corectă: {correctItem ? <img src={correctItem.image_url} alt={correctItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>}</div>;
 						})}
 					</div>
 				)}
@@ -810,6 +827,7 @@ const ExamPage = () => {
 								: idx;
 							const hasOptions = Array.isArray(q.options) && q.options.length > 0;
 							const hasMatching = q.type === 'matching' && q.matching;
+							const hasImageMatching = q.type === 'image_matching' && q.imageMatching;
 							const hasOrdering = q.type === 'ordering' && q.ordering;
 
 						return (
@@ -839,7 +857,7 @@ const ExamPage = () => {
 									</div>
 								</div>
 
-								{hasMatching || hasOrdering ? (
+								{hasMatching || hasImageMatching || hasOrdering ? (
 									<StructuredQuestionRenderer
 										question={q}
 										value={answers[q.id]}

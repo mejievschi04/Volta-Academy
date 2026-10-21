@@ -109,7 +109,7 @@ function OrderingQuestion({ question, value, onChange, disabled }) {
 	);
 }
 
-function MatchingChip({ id, text, disabled }) {
+function MatchingChip({ id, text, imageUrl, disabled }) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 	return (
 		<button
@@ -121,12 +121,12 @@ function MatchingChip({ id, text, disabled }) {
 			className={`student-exam-matching-chip${isDragging ? ' is-dragging' : ''}`}
 			style={{ transform: CSS.Transform.toString(transform) }}
 		>
-			{text}
+			{imageUrl ? <img src={imageUrl} alt={text || 'Imagine de asociat'} className="student-exam-image-matching-image" draggable="false" /> : text}
 		</button>
 	);
 }
 
-function MatchingSlot({ slotId, assignedId, assignedText, placeholder, disabled }) {
+function MatchingSlot({ slotId, assignedId, assignedText, assignedImageUrl, placeholder, disabled }) {
 	const { isOver, setNodeRef } = useDroppable({ id: slotId });
 	return (
 		<div
@@ -134,7 +134,7 @@ function MatchingSlot({ slotId, assignedId, assignedText, placeholder, disabled 
 			className={`student-exam-matching-slot${assignedText ? ' is-filled' : ''}${isOver ? ' is-over' : ''}`}
 		>
 			{assignedText ? (
-				<MatchingChip id={`matching-chip-${assignedId}`} text={assignedText} disabled={disabled} />
+				<MatchingChip id={`matching-chip-${assignedId}`} text={assignedText} imageUrl={assignedImageUrl} disabled={disabled} />
 			) : (
 				<span className="student-exam-matching-placeholder">{placeholder}</span>
 			)}
@@ -241,9 +241,65 @@ function MatchingQuestion({ question, value, onChange, disabled }) {
 	);
 }
 
+function ImageMatchingQuestion({ question, value, onChange, disabled }) {
+	const data = question.imageMatching || {};
+	const leftItems = data.leftItems || [];
+	const rightItems = data.rightItems || [];
+	const poolId = `image-matching-pool-${question.id}`;
+	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+	const current = useMemo(() => {
+		const next = Array.isArray(value) ? value.slice(0, leftItems.length) : [];
+		while (next.length < leftItems.length) next.push(null);
+		return next;
+	}, [value, leftItems.length]);
+	const { setNodeRef: setPoolNodeRef, isOver: isPoolOver } = useDroppable({ id: poolId });
+	const assigned = new Set(current.filter((item) => item !== null && item !== undefined).map(String));
+	const poolItems = rightItems.filter((item) => !assigned.has(String(item.id)));
+	const handleDragEnd = ({ active, over }) => {
+		if (!over) return;
+		const draggedId = String(active.id).replace(/^image-matching-chip-/, '');
+		const currentIndex = current.findIndex((item) => String(item) === draggedId);
+		if (over.id === poolId) {
+			if (currentIndex < 0) return;
+			const next = current.slice(); next[currentIndex] = null; onChange(next); return;
+		}
+		if (String(over.id).startsWith('image-matching-slot-')) {
+			const slotIndex = Number(String(over.id).replace('image-matching-slot-', ''));
+			if (!Number.isInteger(slotIndex)) return;
+			const next = current.slice();
+			next.forEach((item, index) => { if (String(item) === draggedId) next[index] = null; });
+			next[slotIndex] = draggedId; onChange(next);
+		}
+	};
+	if (!leftItems.length || !rightItems.length) return <div className="student-exam-structured-empty">Nu există suficiente perechi denumire–imagine.</div>;
+	return (
+		<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+			<div className="student-exam-structured-hint">Trage imaginile din dreapta lângă denumirea potrivită.</div>
+			<div className="student-exam-matching">
+				<div className="student-exam-matching-left">
+					{leftItems.map((item, index) => {
+						const selected = rightItems.find((option) => String(option.id) === String(current[index]));
+						return <div key={item.id} className="student-exam-matching-row"><div className="student-exam-matching-prompt">{item.text}</div><MatchingSlot slotId={`image-matching-slot-${index}`} assignedId={selected?.id} assignedText={selected?.alt || ''} assignedImageUrl={selected?.image_url} placeholder="Trage imaginea aici" disabled={disabled} /></div>;
+					})}
+				</div>
+				<div className={`student-exam-matching-pool${isPoolOver ? ' is-over' : ''}`} ref={setPoolNodeRef}>
+					<div className="student-exam-matching-pool-title">Imagini disponibile</div>
+					<div className="student-exam-matching-pool-list student-exam-image-matching-pool">
+						{poolItems.length === 0 ? <span className="student-exam-matching-pool-empty">Toate imaginile sunt plasate.</span> : null}
+						{poolItems.map((item) => <MatchingChip key={item.id} id={`image-matching-chip-${item.id}`} imageUrl={item.image_url} text={item.alt} disabled={disabled} />)}
+					</div>
+				</div>
+			</div>
+		</DndContext>
+	);
+}
+
 const StructuredQuestionRenderer = ({ question, value, onChange, disabled = false }) => {
 	if (question?.type === 'matching' && question?.matching) {
 		return <MatchingQuestion question={question} value={value} onChange={onChange} disabled={disabled} />;
+	}
+	if (question?.type === 'image_matching' && question?.imageMatching) {
+		return <ImageMatchingQuestion question={question} value={value} onChange={onChange} disabled={disabled} />;
 	}
 
 	if (question?.type === 'ordering' && question?.ordering) {

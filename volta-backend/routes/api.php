@@ -358,6 +358,7 @@ Route::middleware([
     Route::post('/users/{id}/approve', [UserAdminController::class, 'approve']);
     Route::post('/users/{id}/reject', [UserAdminController::class, 'reject']);
     Route::post('/users/{id}/courses/{courseId}/complete', [UserAdminController::class, 'markCourseCompleted']);
+    Route::delete('/users/{id}/courses/{courseId}/complete', [UserAdminController::class, 'unmarkCourseCompleted']);
     Route::post('/users/{id}/tests/{testId}/extra-attempt', [UserAdminController::class, 'grantTestExtraAttempt']);
     Route::delete('/users/{id}/courses/{courseId}', [UserAdminController::class, 'removeCourse']);
     

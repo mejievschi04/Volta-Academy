@@ -454,6 +454,11 @@ html body .va-qa__add.va-qa__add {
 		flex-basis: calc(50% - 40px);
 	}
 
+	html body .va-qa__row--pair img {
+		max-width: 64px;
+		object-fit: cover;
+	}
+
 	html body .va-qa__row--pair .va-qa__pair-arrow {
 		display: none;
 	}

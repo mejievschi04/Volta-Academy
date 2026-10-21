@@ -76,6 +76,7 @@ const typeLabel = (type) => ({
   true_false: 'Adevărat / fals',
   yes_no: 'Da / Nu',
   matching: 'Asocieri',
+  image_matching: 'Denumire – imagine',
   ordering: 'Ordonare',
 }[type] || type);
 

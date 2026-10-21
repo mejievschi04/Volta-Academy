@@ -7,6 +7,7 @@ import {
   Check,
   ListChecks,
   ListNumbers,
+  Image,
   Plus,
   RadioButton,
   Scales,
@@ -26,6 +27,7 @@ import RichTextEditor from '../../RichTextEditor';
 import RichTextHtml from '../../RichTextHtml';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
+import { normalizePastedHtmlForTestBuilder } from '../../../utils/pasteRichTextColor';
 import Modal from '../../common/Modal';
 import './InlineTestEditorShell.css';
 import '../../../styles/test-settings.css';
@@ -37,6 +39,7 @@ const QUESTION_TYPE_ICONS = {
   yes_no: ThumbsUp,
   matching: ArrowsLeftRight,
   ordering: ListNumbers,
+  image_matching: Image,
 };
 
 export default function InlineTestEditorShell({
@@ -263,6 +266,7 @@ export default function InlineTestEditorShell({
                                       toolbarVariant="none"
                                       emphasis="strong"
                                       showSideTools={false}
+                                      pasteNormalizer={normalizePastedHtmlForTestBuilder}
                                       style={{ minHeight: '120px' }}
                                     />
                                   </div>
@@ -290,6 +294,7 @@ export default function InlineTestEditorShell({
                                       toolbarVariant="none"
                                       emphasis="plain"
                                       showSideTools={false}
+                                      pasteNormalizer={normalizePastedHtmlForTestBuilder}
                                       style={{ minHeight: '88px' }}
                                     />
                                   </div>
@@ -402,6 +407,22 @@ export default function InlineTestEditorShell({
                                     Adaugă pereche
                                   </button>
                                 ) : null}
+                              </div>
+                            )}
+                            {qType === 'image_matching' && (
+                              <div className="va-qa">
+                                <div className="va-qa__head"><span className="va-qa__title">Denumiri și imagini</span><span className="va-qa__hint">Cursantul asociază fiecare denumire cu imaginea corectă.</span></div>
+                                <ul className="va-qa__list">
+                                  {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
+                                    <li key={`${question.id}-image-pair-${answerIdx}`} className="va-qa__row va-qa__row--pair">
+                                      <input type="text" className="va-qa__input" value={answer.left ?? answer.text ?? ''} onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)} placeholder="Denumire" aria-label={`Denumirea ${answerIdx + 1}`} disabled={!canMutateInAdminArea} />
+                                      <input type="url" className="va-qa__input" value={answer.image_url ?? answer.imageUrl ?? ''} onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" aria-label={`Adresa imaginii ${answerIdx + 1}`} disabled={!canMutateInAdminArea} />
+                                      {answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || answerIdx + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}
+                                      {canMutateInAdminArea ? <button type="button" className="va-qa__icon-btn is-danger" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)} aria-label={`Șterge perechea ${answerIdx + 1}`}><Trash size={16} weight="bold" aria-hidden="true" /></button> : null}
+                                    </li>
+                                  ))}
+                                </ul>
+                                {canMutateInAdminArea ? <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={() => handleInlineAddAnswer(question.id)}><Plus size={16} weight="bold" aria-hidden="true" />Adaugă pereche</button> : null}
                               </div>
                             )}
                             {qType === 'ordering' && (

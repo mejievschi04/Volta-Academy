@@ -189,12 +189,17 @@ class CourseProgressService
             return $this->courseProgressMemo[$memoKey] = 0;
         }
 
-        $lessonPct = $totalLessons === 0 ? 100.0 : ($completedLessons / $totalLessons) * 100;
-        if ($hasTests) {
+        // A course with tests but no required lessons has no lesson progress to
+        // contribute the usual 90%. Do not treat the empty lesson set as 100%:
+        // that made untouched, test-only courses appear 90% complete.
+        if ($totalLessons === 0) {
+            $progress = $hasTests ? ($testsPassed ? 100.0 : 0.0) : 0.0;
+        } elseif ($hasTests) {
+            $lessonPct = ($completedLessons / $totalLessons) * 100;
             $progress = ($lessonPct * ((100 - self::COURSE_TEST_PROGRESS_SHARE) / 100))
                 + ($testsPassed ? self::COURSE_TEST_PROGRESS_SHARE : 0);
         } else {
-            $progress = $lessonPct;
+            $progress = ($completedLessons / $totalLessons) * 100;
         }
 
         $isComplete = ($totalLessons > 0 || $hasTests)
@@ -587,101 +592,55 @@ class CourseProgressService
         }
     }
 
-    /**
-     * Admin migration: mark a course completed for a learner without them retaking content.
-     */
+    /** Mark a course complete without fabricating lesson or test activity. */
     public function markCourseCompletedByAdmin(User $user, Course $course): void
     {
-        $lessonIds = Lesson::query()
-            ->where('status', 'published')
-            ->where(function ($query) use ($course) {
-                $query->where(function ($root) use ($course) {
-                    $root->where('course_id', $course->id)->whereNull('module_id');
-                })->orWhereHas('module', function ($module) use ($course) {
-                    $module->where('course_id', $course->id)->where('status', 'published');
-                });
-            })
-            ->pluck('id');
-
-        foreach ($lessonIds as $lessonId) {
-            DB::table('lesson_progress')->updateOrInsert(
-                [
-                    'user_id' => $user->id,
-                    'lesson_id' => $lessonId,
-                ],
-                [
-                    'completed' => true,
-                    'progress_percentage' => 100,
-                    'completed_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                    'created_at' => Carbon::now(),
-                ]
-            );
-        }
-
-        foreach ($this->publishedAttachedTests($course) as $courseTest) {
-            $testId = (int) ($courseTest->test_id ?? $courseTest->test?->id);
-            if ($testId <= 0) {
-                continue;
-            }
-            $existing = DB::table('test_results')
-                ->where('user_id', $user->id)
-                ->where('test_id', $testId)
-                ->where('course_id', $course->id)
-                ->orderByDesc('attempt_number')
-                ->first();
-            $payload = [
-                'percentage' => self::COURSE_COMPLETION_TEST_PERCENT,
-                'passed' => true,
-                'status' => 'completed',
-                'needs_manual_review' => false,
-                'score' => self::COURSE_COMPLETION_TEST_PERCENT,
-                'max_score' => 100,
-                'completed_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ];
-            if ($existing) {
-                DB::table('test_results')->where('id', $existing->id)->update($payload);
-            } else {
-                DB::table('test_results')->insert(array_merge($payload, [
-                    'user_id' => $user->id,
-                    'test_id' => $testId,
-                    'course_id' => $course->id,
-                    'attempt_number' => 1,
-                    'answers' => json_encode([]),
-                    'created_at' => Carbon::now(),
-                ]));
-            }
-        }
-
-        $courseUser = [
+        $now = Carbon::now();
+        $courseUser = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id);
+        $existing = $courseUser->first();
+        $values = [
             'enrolled' => true,
             'progress_percentage' => 100,
-            'completed_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
+            'completed_at' => $existing->completed_at ?? $now,
+            'manually_completed' => true,
+            'updated_at' => $now,
         ];
-        if (SchemaCache::hasColumn('course_user', 'manually_completed')) {
-            $courseUser['manually_completed'] = true;
-        }
-
-        $exists = DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->where('course_id', $course->id)
-            ->exists();
-        if ($exists) {
-            DB::table('course_user')
-                ->where('user_id', $user->id)
-                ->where('course_id', $course->id)
-                ->update($courseUser);
+        if ($existing) {
+            $courseUser->update($values);
         } else {
-            DB::table('course_user')->insert(array_merge($courseUser, [
+            DB::table('course_user')->insert($values + [
                 'user_id' => $user->id,
                 'course_id' => $course->id,
-                'created_at' => Carbon::now(),
-            ]));
+                'created_at' => $now,
+            ]);
+        }
+        $this->forgetUserProgressCache($user, $course->id);
+    }
+
+    /** Remove an admin completion and restore progress from the learner's actual activity. */
+    public function unmarkCourseCompletedByAdmin(User $user, Course $course): bool
+    {
+        $courseUser = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id);
+        $existing = $courseUser->first();
+        if (! $existing || ! (bool) ($existing->manually_completed ?? false)) {
+            return false;
         }
 
+        // Keep the previous completion timestamp until recalculation decides
+        // whether the learner had independently completed the course.
+        $courseUser->update([
+            'manually_completed' => false,
+            'updated_at' => Carbon::now(),
+        ]);
+
         $this->forgetUserProgressCache($user, $course->id);
+        $this->calculateCourseProgress($user, $course);
+
+        return true;
     }
 
     /**
@@ -1347,15 +1306,24 @@ class CourseProgressService
         $rows = DB::table('course_user')
             ->where('course_id', $course->id)
             ->where('enrolled', true)
-            ->get(['user_id', 'progress_floor']);
+            ->get(array_merge(
+                ['user_id', 'progress_floor'],
+                SchemaCache::hasColumn('course_user', 'manually_completed') ? ['manually_completed'] : []
+            ));
 
         foreach (User::whereIn('id', $rows->pluck('user_id'))->get() as $user) {
             if ($user->isLearningActivityExempt()) {
                 continue;
             }
+            $row = $rows->firstWhere('user_id', $user->id);
+            // An admin override is reversible, so it must never become a
+            // permanent version floor when the course is republished.
+            if ((bool) ($row->manually_completed ?? false)) {
+                continue;
+            }
             $complete = $this->isCourseComplete($user, $course);
             $current = $complete ? 100 : (int) round($this->calculateCourseProgress($user, $course));
-            $previous = (int) ($rows->firstWhere('user_id', $user->id)->progress_floor ?? 0);
+            $previous = (int) ($row->progress_floor ?? 0);
             $floor = max($previous, $current);
             if ($floor > 0) {
                 DB::table('course_user')

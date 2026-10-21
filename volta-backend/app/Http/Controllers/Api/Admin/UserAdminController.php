@@ -433,6 +433,27 @@ class UserAdminController extends Controller
         ]);
     }
 
+    public function unmarkCourseCompleted(Request $request, $id, $courseId)
+    {
+        $user = User::findOrFail($id);
+        if ($user->isLearningActivityExempt()) {
+            return response()->json([
+                'message' => 'Nu modificăm progresul pentru rolurile administrator, analist sau instructor.',
+            ], 422);
+        }
+        $course = Course::findOrFail($courseId);
+        $unmarked = app(\App\Services\CourseProgressService::class)->unmarkCourseCompletedByAdmin($user, $course);
+        if (! $unmarked) {
+            return response()->json(['message' => 'Cursul nu are o finalizare manuală de anulat.'], 409);
+        }
+        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
+        \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+
+        return response()->json([
+            'message' => 'Finalizarea manuală a cursului a fost anulată',
+        ]);
+    }
+
     public function grantTestExtraAttempt(Request $request, $id, $testId)
     {
         $actor = Auth::user();

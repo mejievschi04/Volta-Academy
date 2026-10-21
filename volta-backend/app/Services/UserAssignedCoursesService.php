@@ -183,6 +183,7 @@ class UserAssignedCoursesService
                 'image_url' => $course->image_url ?? $course->image ?? null,
                 'progress' => round($courseProgressPercentage, 1),
                 'progress_percentage' => round($courseProgressPercentage, 1),
+                'manually_completed' => (bool) ($progress->manually_completed ?? false),
                 'completedModules' => $isCompleted
                     ? $moduleCount
                     : round(($courseProgressPercentage / 100) * $moduleCount),

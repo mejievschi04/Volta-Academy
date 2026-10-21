@@ -422,7 +422,7 @@ PROMPT;
      */
     public static function normalizeQuestionTypeList(array $questionTypes): array
     {
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
         $typeList = array_values(array_intersect(
             array_values(array_filter(array_map('strval', $questionTypes))),
             $allowed
@@ -485,6 +485,9 @@ PROMPT;
         if (in_array('matching', $typeList, true)) {
             $rules[] = '- matching: potriveste 3-4 perechi termen-definitie din material; fiecare pereche are left (termen) si right (definitie/raspuns corect); perechile trebuie sa fie distincte';
         }
+        if (in_array('image_matching', $typeList, true)) {
+            $rules[] = '- image_matching: asociază o denumire cu o imagine relevantă; fiecare pereche are left (denumirea) și image_url (URL-ul imaginii)';
+        }
         if (in_array('ordering', $typeList, true)) {
             $rules[] = '- ordering: 3-5 pasi/etape in ordinea corecta din material; answers sunt elementele in ordinea corecta (primul = primul pas)';
         }
@@ -514,6 +517,9 @@ PROMPT;
         }
         if (in_array('matching', $typeList, true)) {
             $prompt .= "- matching: [{\"left\":\"Termen\",\"right\":\"Definitie\"},{\"left\":\"Termen 2\",\"right\":\"Definitie 2\"}]\n";
+        }
+        if (in_array('image_matching', $typeList, true)) {
+            $prompt .= "- image_matching: [{\"left\":\"Denumirea\",\"image_url\":\"https://...\"}] (folosește doar URL-uri valide din materialul disponibil; dacă nu există URL de imagine, alege alt tip)\n";
         }
         if (in_array('ordering', $typeList, true)) {
             $prompt .= "- ordering: [{\"text\":\"Pasul 1\"},{\"text\":\"Pasul 2\"},{\"text\":\"Pasul 3\"}]\n";

@@ -394,7 +394,7 @@ export function useInlineTestEditor({
   const handleInlineAnswerCorrectToggle = useCallback((questionId, answerIndex, singleChoice = false) => {
     const qid = Number(questionId);
     const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-    if (qType === 'matching' || qType === 'ordering') return;
+    if (qType === 'matching' || qType === 'image_matching' || qType === 'ordering') return;
     updateInlineAnswers(
       questionId,
       (answers) => answers.map((ans, idx) => ({
@@ -409,7 +409,7 @@ export function useInlineTestEditor({
   const handleInlineAddAnswer = useCallback((questionId) => {
     const qid = Number(questionId);
     const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-    if (qType === 'matching') {
+    if (qType === 'matching' || qType === 'image_matching') {
       updateInlineAnswers(questionId, (answers) => {
         const next = Array.isArray(answers) ? [...answers] : [];
         const idx = next.length;
@@ -421,6 +421,7 @@ export function useInlineTestEditor({
           is_correct: true,
           order: idx,
         });
+        if (qType === 'image_matching') next[next.length - 1] = { left: `Denumire ${idx + 1}`, text: `Denumire ${idx + 1}`, image_url: '', is_correct: true, order: idx };
         return next.map((a, i) => ({ ...a, order: i }));
       }, 'immediate');
       return;
@@ -439,10 +440,10 @@ export function useInlineTestEditor({
   const handleInlineRemoveAnswer = useCallback((questionId, answerIndex) => {
     const qid = Number(questionId);
     const qType = normalizeInlineQuestionType(inlineQuestionsByIdRef.current.get(qid)?.type);
-    if (qType === 'matching' || qType === 'ordering') {
+    if (qType === 'matching' || qType === 'image_matching' || qType === 'ordering') {
       updateInlineAnswers(questionId, (answers) => {
         const next = (Array.isArray(answers) ? answers : []).filter((_, idx) => idx !== answerIndex);
-        return next.map((a, i) => ({ ...a, order: i, is_correct: qType === 'ordering' ? true : (a.is_correct ?? true) }));
+        return next.map((a, i) => ({ ...a, order: i, is_correct: qType === 'ordering' || qType === 'image_matching' ? true : (a.is_correct ?? true) }));
       }, 'immediate');
       return;
     }
@@ -455,6 +456,7 @@ export function useInlineTestEditor({
       (answers) => (answers || []).map((ans, idx) => {
         if (idx !== answerIndex) return ans;
         if (side === 'left') return { ...ans, left: value, text: value };
+        if (side === 'image_url') return { ...ans, image_url: value };
         return { ...ans, right: value, answer_text: value };
       }),
       'debounced'

@@ -57,7 +57,7 @@ export function coerceChoiceAnswerForQuestion(question, value) {
 
 export function isChoiceAnswered(question, value) {
 	const type = getQuestionType(question);
-	if (type === 'matching' || type === 'ordering') {
+	if (type === 'matching' || type === 'image_matching' || type === 'ordering') {
 		return Array.isArray(value) && value.length > 0;
 	}
 	if (isMultiSelectChoiceQuestion(question)) {

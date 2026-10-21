@@ -126,6 +126,7 @@ class ExamAdminController extends Controller
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
                 'matching' => $questionType === 'matching' ? $this->buildPreviewMatchingData($question) : null,
+                'imageMatching' => $questionType === 'image_matching' ? $this->buildPreviewImageMatchingData($question) : null,
                 'ordering' => $questionType === 'ordering' ? $this->buildPreviewOrderingData($question) : null,
             ];
         });
@@ -162,12 +163,12 @@ class ExamAdminController extends Controller
             'settings' => 'nullable|array',
             'questions' => 'nullable|array',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,ordering',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,image_matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
             'questions.*.answers' => 'nullable|array',
-            'questions.*.answers.*.answer_text' => 'required|string',
+            'questions.*.answers.*.answer_text' => 'sometimes|required|string',
             'questions.*.answers.*.is_correct' => 'nullable|boolean',
             'questions.*.answers.*.order' => 'nullable|integer|min:0',
         ]);
@@ -377,13 +378,13 @@ class ExamAdminController extends Controller
             'questions' => 'nullable|array',
             'questions.*.id' => 'nullable|exists:exam_questions,id',
             'questions.*.question_text' => 'required|string',
-            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,ordering',
+            'questions.*.question_type' => 'nullable|string|in:single_choice,multiple_choice,true_false,yes_no,matching,image_matching,ordering',
             'questions.*.points' => 'nullable|integer|min:1',
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.payload' => 'nullable|array',
             'questions.*.answers' => 'nullable|array',
             'questions.*.answers.*.id' => 'nullable|exists:exam_answers,id',
-            'questions.*.answers.*.answer_text' => 'required|string',
+            'questions.*.answers.*.answer_text' => 'sometimes|required|string',
             'questions.*.answers.*.is_correct' => 'nullable|boolean',
             'questions.*.answers.*.order' => 'nullable|integer|min:0',
         ]);
@@ -807,7 +808,7 @@ class ExamAdminController extends Controller
     protected function validateQuestionPayload(?string $questionType, $payload): ?array
     {
         if (!is_array($payload)) {
-            return $questionType === 'matching' ? ['pairs' => []] : ($questionType === 'ordering' ? ['items' => []] : null);
+            return $questionType === 'matching' || $questionType === 'image_matching' ? ['pairs' => []] : ($questionType === 'ordering' ? ['items' => []] : null);
         }
         if ($questionType === 'matching') {
             $pairs = $payload['pairs'] ?? [];
@@ -823,11 +824,36 @@ class ExamAdminController extends Controller
                 }, $pairs)),
             ];
         }
+        if ($questionType === 'image_matching') {
+            $pairs = $payload['pairs'] ?? [];
+            return ['pairs' => is_array($pairs) ? array_values(array_map(function ($pair) {
+                return ['left' => is_array($pair) ? ($pair['left'] ?? '') : '', 'image_url' => is_array($pair) ? ($pair['image_url'] ?? $pair['imageUrl'] ?? '') : ''];
+            }, $pairs)) : []];
+        }
         if ($questionType === 'ordering') {
             $items = $payload['items'] ?? [];
             return ['items' => is_array($items) ? array_values($items) : []];
         }
         return $payload;
+    }
+
+    protected function buildPreviewImageMatchingData(ExamQuestion $question): array
+    {
+        $payload = is_array($question->payload) ? $question->payload : [];
+        $pairs = is_array($payload['pairs'] ?? null) ? array_values($payload['pairs']) : [];
+        $leftItems = [];
+        $rightItems = [];
+        foreach ($pairs as $index => $pair) {
+            if (! is_array($pair)) continue;
+            $label = trim((string) ($pair['left'] ?? $pair['text'] ?? ''));
+            $url = trim((string) ($pair['image_url'] ?? $pair['imageUrl'] ?? ''));
+            if (preg_match('/^https?:\/\//i', $url) !== 1) $url = '';
+            if ($label === '' || $url === '') continue;
+            $id = (string) $index;
+            $leftItems[] = ['id' => $id, 'text' => $label];
+            $rightItems[] = ['id' => $id, 'image_url' => $url, 'alt' => $label];
+        }
+        return ['leftItems' => $leftItems, 'rightItems' => $rightItems, 'correctMap' => array_column($rightItems, 'id')];
     }
 
     protected function buildPreviewMatchingData(ExamQuestion $question): array

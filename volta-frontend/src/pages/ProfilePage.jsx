@@ -120,11 +120,17 @@ const ProfilePage = () => {
 		if (!userId || !courseId) return;
 		setCompletingCourseId(courseId);
 		try {
-			await adminService.markCourseCompleted(userId, courseId);
-			showToast('Curs marcat ca finalizat', 'success');
+			const course = profileData?.coursesAssigned?.find((item) => Number(item.id) === Number(courseId));
+			if (course?.manually_completed) {
+				await adminService.unmarkCourseCompleted(userId, courseId);
+				showToast('Finalizarea manuală a fost anulată', 'success');
+			} else {
+				await adminService.markCourseCompleted(userId, courseId);
+				showToast('Curs marcat ca finalizat', 'success');
+			}
 			await fetchData();
 		} catch (err) {
-			showToast(err?.response?.data?.message || 'Nu s-a putut marca cursul ca finalizat', 'error');
+			showToast(err?.response?.data?.message || 'Nu s-a putut modifica finalizarea cursului', 'error');
 		} finally {
 			setCompletingCourseId(null);
 		}
@@ -323,14 +329,16 @@ const ProfilePage = () => {
 					<Link to={courseLink} className={isViewingOtherUser ? 'lms-btn-secondary lms-btn-sm' : 'lms-btn-primary lms-btn-sm'}>
 						{actionLabel}
 					</Link>
-					{isViewingOtherUser && status !== 'completed' ? (
+					{viewerRole === 'admin' && (status !== 'completed' || course.manually_completed) ? (
 						<button
 							type="button"
 							className="lms-btn-primary lms-btn-sm"
 							disabled={completingCourseId === course.id}
 							onClick={() => handleMarkCourseCompleted(course.id)}
 						>
-							{completingCourseId === course.id ? 'Se marchează…' : 'Marchează finalizat'}
+							{completingCourseId === course.id
+								? 'Se procesează…'
+								: course.manually_completed ? 'Anulează finalizarea' : 'Marchează finalizat'}
 						</button>
 					) : null}
 				</div>

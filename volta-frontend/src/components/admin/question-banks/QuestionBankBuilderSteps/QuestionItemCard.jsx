@@ -6,6 +6,7 @@ const QUESTION_TYPE_LABELS = {
 	true_false: 'Adevărat/Fals',
 	yes_no: 'Da / Nu',
 	matching: 'Potrivire',
+	image_matching: 'Denumire – imagine',
 	ordering: 'Ordonare',
 };
 

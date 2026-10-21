@@ -200,6 +200,28 @@
 	cursor: default;
 }
 
+.student-exam-image-matching-pool {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.student-exam-image-matching-image {
+	display: block;
+	width: 100%;
+	height: 112px;
+	object-fit: cover;
+	border-radius: calc(var(--radius-md) - 4px);
+	pointer-events: none;
+}
+
+.student-exam-matching-slot .student-exam-matching-chip {
+	max-width: 100%;
+}
+
+.student-exam-matching-slot .student-exam-image-matching-image {
+	height: 104px;
+}
+
 /* Telefon: zona de răspunsuri sus, perechile dedesubt, fiecare pe o coloană */
 @media (max-width: 768px) {
 	.student-exam-matching {

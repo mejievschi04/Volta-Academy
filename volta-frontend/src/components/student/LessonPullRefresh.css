@@ -1,9 +1,9 @@
 .lesson-pull-refresh {
 	position: fixed;
-	top: var(--app-header-height, 56px);
+	top: calc(var(--app-header-height, 56px) + env(safe-area-inset-top, 0px));
 	left: 0;
 	right: 0;
-	z-index: 120;
+	z-index: 1000;
 	display: flex;
 	justify-content: center;
 	height: 0;
@@ -25,7 +25,7 @@
 	line-height: 1;
 	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
 	opacity: 0;
-	transform: translateY(calc(var(--lesson-pull, 0px) - 28px));
+	transform: translateY(calc(var(--lesson-pull, 0px) - 4px));
 	transition: opacity 0.15s ease;
 }
 

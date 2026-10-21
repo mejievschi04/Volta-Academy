@@ -318,6 +318,11 @@ class TestAnalyticsService
             $isCorrect = $hasAnswer && $this->isSequenceAnswerCorrect($userAnswer, $matching['correctMap'] ?? []);
             $pointsEarned = $isCorrect ? $points : 0;
             $userAnswerSummary = $hasAnswer ? 'Potrivire trimisă' : null;
+        } elseif ($type === 'image_matching') {
+            $imageMatching = $this->buildImageMatchingQuestionData($question, $test, (int) $result->user_id, $attemptNumber);
+            $isCorrect = $hasAnswer && $this->isSequenceAnswerCorrect($userAnswer, $imageMatching['correctMap'] ?? []);
+            $pointsEarned = $isCorrect ? $points : 0;
+            $userAnswerSummary = $hasAnswer ? 'Asociere denumire–imagine trimisă' : null;
         } elseif ($type === 'ordering') {
             $ordering = $this->buildOrderingQuestionData($question, $test, (int) $result->user_id, $attemptNumber);
             $isCorrect = $hasAnswer && $this->isSequenceAnswerCorrect($userAnswer, $ordering['correctOrder'] ?? []);
@@ -426,5 +431,18 @@ class TestAnalyticsService
         return [
             'correctOrder' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $normalized)),
         ];
+    }
+
+    protected function buildImageMatchingQuestionData(Question $question, Test $test, int $userId, int $attemptNumber): array
+    {
+        $answers = is_array($question->answers) ? array_values($question->answers) : [];
+        $ids = [];
+        foreach ($answers as $index => $answer) {
+            if (!is_array($answer)) continue;
+            $left = trim((string) ($answer['left'] ?? $answer['text'] ?? ''));
+            $url = trim((string) ($answer['image_url'] ?? $answer['imageUrl'] ?? ''));
+            if ($left !== '' && $url !== '') $ids[] = (string) $index;
+        }
+        return ['correctMap' => $ids];
     }
 }

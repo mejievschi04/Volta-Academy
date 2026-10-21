@@ -18,6 +18,7 @@ final class CourseUserPivot
             'started_at',
             'completed_at',
             'progress_percentage',
+            'manually_completed',
         ];
 
         if (SchemaCache::hasTable('course_user') && SchemaCache::hasColumn('course_user', 'assignment_source')) {

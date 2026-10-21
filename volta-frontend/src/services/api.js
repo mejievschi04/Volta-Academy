@@ -1054,6 +1054,11 @@ export const adminService = {
     return response.data;
   },
 
+  unmarkCourseCompleted: async (userId, courseId) => {
+    const response = await api.delete(`/admin/users/${userId}/courses/${courseId}/complete`);
+    return response.data;
+  },
+
   grantTestExtraAttempt: async (userId, testId, courseId) => {
     const response = await api.post(`/admin/users/${userId}/tests/${testId}/extra-attempt`, {
       course_id: courseId || null,

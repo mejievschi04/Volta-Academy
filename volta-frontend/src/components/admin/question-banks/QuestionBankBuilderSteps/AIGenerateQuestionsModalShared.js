@@ -4,6 +4,7 @@ export const AI_QUESTION_TYPE_OPTIONS = [
   { id: 'true_false', label: 'Adevărat/Fals' },
   { id: 'yes_no', label: 'Da / Nu' },
   { id: 'matching', label: 'Potrivire' },
+  { id: 'image_matching', label: 'Denumire – imagine' },
   { id: 'ordering', label: 'Ordonare' },
 ];
 

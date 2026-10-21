@@ -360,7 +360,7 @@ class TestBuilderService
     protected function normalizeQuestionType(?string $type): string
     {
         $type = strtolower(trim((string) $type));
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
 
         return in_array($type, $allowed, true) ? $type : 'multiple_choice';
     }
@@ -389,6 +389,24 @@ class TestBuilderService
                     'right' => $right,
                     'text' => $left,
                     'answer_text' => $right,
+                    'is_correct' => true,
+                    'order' => $idx,
+                ];
+                continue;
+            }
+
+            if ($type === 'image_matching') {
+                $left = $row['left'] ?? $row['text'] ?? $row['question'] ?? '';
+                $imageUrl = $row['image_url'] ?? $row['imageUrl'] ?? $row['image'] ?? '';
+                $left = is_string($left) ? $left : (string) $left;
+                $imageUrl = is_string($imageUrl) ? $imageUrl : (string) $imageUrl;
+                if (preg_match('/^https?:\/\//i', $imageUrl) !== 1) {
+                    $imageUrl = '';
+                }
+                $normalized[] = [
+                    'left' => $left,
+                    'text' => $left,
+                    'image_url' => $imageUrl,
                     'is_correct' => true,
                     'order' => $idx,
                 ];

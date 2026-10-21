@@ -129,11 +129,12 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 			is_correct: correctIndices.includes(answerIndex),
 			is_selected: userAnswerIndices.includes(answerIndex),
 		}));
-	const hasOptions = options.length > 0 && !['matching', 'ordering'].includes(type);
+	const hasOptions = options.length > 0 && !['matching', 'image_matching', 'ordering'].includes(type);
 	const correctness = typeof question.is_correct === 'boolean' ? question.is_correct : null;
 	const hasAutoStatus = typeof correctness === 'boolean';
 	const statusClass = hasAutoStatus ? (correctness ? 'correct' : 'incorrect') : 'submitted';
 	const matching = question.matching;
+	const imageMatching = question.imageMatching;
 	const ordering = question.ordering;
 	const rightLookup = useMemo(
 		() => new Map(asArray(matching?.rightItems).map((item) => [String(item.id), item])),
@@ -143,6 +144,7 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 		() => new Map(asArray(ordering?.items).map((item) => [String(item.id), item])),
 		[ordering]
 	);
+	const imageLookup = useMemo(() => new Map(asArray(imageMatching?.rightItems).map((item) => [String(item.id), item])), [imageMatching]);
 
 	return (
 		<article className={`student-exam-feedback-item exam-result-question ${statusClass}`}>
@@ -211,6 +213,18 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 				</div>
 			)}
 
+			{type === 'image_matching' && imageMatching && (
+				<div className="exam-result-structured">
+					{asArray(imageMatching.leftItems).map((left, pairIndex) => {
+						const userChoice = Array.isArray(userAnswer) ? userAnswer[pairIndex] : null;
+						const correctChoice = imageMatching.correctMap?.[pairIndex];
+						const selected = imageLookup.get(String(userChoice));
+						const correct = imageLookup.get(String(correctChoice));
+						return <div key={left.id ?? pairIndex} className="exam-result-structured-row"><strong>{left.text}</strong><span>Imaginea ta: {selected ? <img src={selected.image_url} alt={selected.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Fără răspuns'}</span>{!submittedOnly && !correctness && <span>Imagine corectă: {correct ? <img src={correct.image_url} alt={correct.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Indisponibil'}</span>}</div>;
+					})}
+				</div>
+			)}
+
 			{type === 'ordering' && ordering && (
 				<div className="exam-result-structured">
 					<div className="exam-result-structured-row">
@@ -226,7 +240,7 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 				</div>
 			)}
 
-			{!hasOptions && type !== 'matching' && type !== 'ordering' && (
+			{!hasOptions && type !== 'matching' && type !== 'image_matching' && type !== 'ordering' && (
 				<div className="exam-result-open-text-answer">
 					{typeof userAnswer === 'string' && userAnswer.trim()
 						? userAnswer

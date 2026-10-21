@@ -227,7 +227,7 @@ class ExamBankQuestionSyncService
     protected function mapQuestionType(?string $type): string
     {
         $t = strtolower((string) $type);
-        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $allowed = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
         if (in_array($t, $allowed, true)) {
             return $t;
         }
@@ -247,10 +247,11 @@ class ExamBankQuestionSyncService
         ];
         if ($questionType === 'matching') {
             $payload['pairs'] = $this->extractMatchingPairs($q);
+        } elseif ($questionType === 'image_matching') {
+            $payload['pairs'] = $this->extractImageMatchingPairs($q);
         } elseif ($questionType === 'ordering') {
             $payload['items'] = $this->extractOrderingItems($q);
         }
-
         return ExamQuestion::create([
             'exam_id' => $exam->id,
             'question_text' => $q->content ?? '',
@@ -273,6 +274,8 @@ class ExamBankQuestionSyncService
         ];
         if ($questionType === 'matching') {
             $payload['pairs'] = $this->extractMatchingPairs($q);
+        } elseif ($questionType === 'image_matching') {
+            $payload['pairs'] = $this->extractImageMatchingPairs($q);
         } elseif ($questionType === 'ordering') {
             $payload['items'] = $this->extractOrderingItems($q);
         }
@@ -292,7 +295,7 @@ class ExamBankQuestionSyncService
     protected function createAnswersFromBank(ExamQuestion $examQ, Question $q): void
     {
         $questionType = $this->mapQuestionType($q->type);
-        if (in_array($questionType, ['matching', 'ordering'], true)) {
+        if (in_array($questionType, ['matching', 'image_matching', 'ordering'], true)) {
             return;
         }
 
@@ -336,6 +339,18 @@ class ExamBankQuestionSyncService
         }
 
         return $pairs;
+    }
+
+    protected function extractImageMatchingPairs(Question $q): array
+    {
+        return collect(is_array($q->answers) ? $q->answers : [])->map(function ($answer) {
+            $imageUrl = (string) ($answer['image_url'] ?? $answer['imageUrl'] ?? $answer['image'] ?? '');
+            if (preg_match('/^https?:\/\//i', $imageUrl) !== 1) $imageUrl = '';
+            return [
+                'left' => (string) ($answer['left'] ?? $answer['text'] ?? ''),
+                'image_url' => $imageUrl,
+            ];
+        })->values()->all();
     }
 
     protected function extractOrderingItems(Question $q): array

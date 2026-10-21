@@ -7,6 +7,7 @@ import {
   Check,
   ListChecks,
   ListNumbers,
+  Image,
   Plus,
   RadioButton,
   Scales,
@@ -14,6 +15,7 @@ import {
   Trash,
 } from '@phosphor-icons/react';
 import RichTextEditor from '../../RichTextEditor';
+import { normalizePastedHtmlForTestBuilder } from '../../../utils/pasteRichTextColor';
 import { INLINE_QUESTION_TYPES } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
 import '../courses/InlineTestEditorShell.css';
@@ -26,6 +28,7 @@ const QUESTION_TYPE_ICONS = {
   yes_no: ThumbsUp,
   matching: ArrowsLeftRight,
   ordering: ListNumbers,
+  image_matching: Image,
 };
 
 const normalizeType = (type) => {
@@ -51,6 +54,13 @@ const getDefaultAnswersByType = (type) => {
     return [
       { left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true },
       { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true },
+    ];
+  }
+
+  if (type === 'image_matching') {
+    return [
+      { left: 'Denumire A', text: 'Denumire A', image_url: '', is_correct: true, order: 0 },
+      { left: 'Denumire B', text: 'Denumire B', image_url: '', is_correct: true, order: 1 },
     ];
   }
 
@@ -82,6 +92,16 @@ const normalizeAnswers = (type, answers) => {
       right: answer?.right ?? answer?.answer_text ?? answer?.content ?? '',
       text: answer?.left ?? answer?.text ?? answer?.question ?? '',
       answer_text: answer?.right ?? answer?.answer_text ?? answer?.content ?? '',
+      is_correct: true,
+      order: typeof answer?.order === 'number' ? answer.order : index,
+    }));
+  }
+
+  if (type === 'image_matching') {
+    return list.map((answer, index) => ({
+      left: answer?.left ?? answer?.text ?? answer?.question ?? '',
+      text: answer?.left ?? answer?.text ?? answer?.question ?? '',
+      image_url: answer?.image_url ?? answer?.imageUrl ?? answer?.image ?? '',
       is_correct: true,
       order: typeof answer?.order === 'number' ? answer.order : index,
     }));
@@ -167,9 +187,11 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
 
   const addAnswer = () => {
     const defaults = getDefaultAnswersByType(currentType);
-    const nextAnswer = defaults[answers.length] || defaults[0] || { text: '', is_correct: false };
-    const next = [...answers, { ...nextAnswer, is_correct: false }];
-    if (currentType === 'ordering') {
+    const nextAnswer = defaults[answers.length] || (currentType === 'image_matching'
+      ? { left: `Denumire ${answers.length + 1}`, text: `Denumire ${answers.length + 1}`, image_url: '', is_correct: true, order: answers.length }
+      : (defaults[0] || { text: '', is_correct: false }));
+    const next = [...answers, { ...nextAnswer, is_correct: currentType === 'image_matching' ? true : false }];
+    if (currentType === 'ordering' || currentType === 'image_matching') {
       next[next.length - 1] = { ...next[next.length - 1], order: next.length - 1, is_correct: true };
     }
     update({ answers: next });
@@ -195,6 +217,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
   const isBinaryType = currentType === 'true_false' || currentType === 'yes_no';
   const isChoiceType = currentType === 'multiple_choice' || currentType === 'single_choice' || isBinaryType;
   const isMatchingType = currentType === 'matching';
+  const isImageMatchingType = currentType === 'image_matching';
   const isOrderingType = currentType === 'ordering';
   const radioGroupName = `answer-correct-${question?.id ?? questionNumber}`;
 
@@ -266,6 +289,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
               toolbarVariant="none"
               emphasis="strong"
               showSideTools={false}
+              pasteNormalizer={normalizePastedHtmlForTestBuilder}
               style={{ minHeight: '120px' }}
             />
           </div>
@@ -283,6 +307,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
               toolbarVariant="none"
               emphasis="plain"
               showSideTools={false}
+              pasteNormalizer={normalizePastedHtmlForTestBuilder}
               style={{ minHeight: '88px' }}
             />
           </div>
@@ -396,6 +421,33 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
             <Plus size={16} weight="bold" aria-hidden="true" />
             Adaugă pereche
           </button>
+        </div>
+      )}
+
+      {isImageMatchingType && (
+        <div className="va-qa">
+          <div className="va-qa__head">
+            <span className="va-qa__title">Denumiri și imagini</span>
+            <span className="va-qa__hint">Adaugă o denumire și adresa imaginii corecte pentru fiecare pereche.</span>
+          </div>
+          <ul className="va-qa__list">
+            {answers.map((answer, idx) => (
+              <li key={`image-pair-${idx}`} className="va-qa__row va-qa__row--pair">
+                <input
+                  type="text"
+                  className="va-qa__input"
+                  value={answer.left || ''}
+                  onChange={(e) => updateAnswer(idx, 'left', e.target.value)}
+                  placeholder="Denumire"
+                  aria-label={`Denumirea ${idx + 1}`}
+                />
+                <input type="url" className="va-qa__input" value={answer.image_url || ''} onChange={(e) => updateAnswer(idx, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" aria-label={`Adresa imaginii ${idx + 1}`} />
+                {answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || idx + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}
+                <button type="button" className="va-qa__icon-btn is-danger" onClick={() => removeAnswer(idx)} aria-label={`Șterge perechea ${idx + 1}`}><Trash size={16} weight="bold" aria-hidden="true" /></button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="lms-btn-secondary lms-btn-sm va-qa__add" onClick={addAnswer}><Plus size={16} weight="bold" aria-hidden="true" />Adaugă pereche</button>
         </div>
       )}
 

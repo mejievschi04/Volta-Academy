@@ -1,4 +1,5 @@
 import { useLessonPullRefresh } from '../../hooks/useLessonPullRefresh';
+import { createPortal } from 'react-dom';
 import './LessonPullRefresh.css';
 
 export default function LessonPullRefresh({ onRefresh }) {
@@ -10,7 +11,7 @@ export default function LessonPullRefresh({ onRefresh }) {
 			? 'Eliberează pentru actualizare'
 			: 'Trage pentru actualizare';
 
-	return (
+	return createPortal((
 		<div
 			className={`lesson-pull-refresh${visible ? ' is-visible' : ''}${refreshing ? ' is-refreshing' : ''}`}
 			style={{ '--lesson-pull': `${pull}px` }}
@@ -21,5 +22,5 @@ export default function LessonPullRefresh({ onRefresh }) {
 				<span>{label}</span>
 			</div>
 		</div>
-	);
+	), document.body);
 }

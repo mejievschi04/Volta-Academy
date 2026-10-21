@@ -610,6 +610,35 @@ class ExamController extends Controller
         ];
     }
 
+    protected function buildImageMatchingQuestionData($question, ?Test $test, $user, int $attemptNumber): array
+    {
+        $payload = $this->normalizeArrayLike($question->payload ?? null) ?? [];
+        $answers = is_array($payload['pairs'] ?? null)
+            ? array_values($payload['pairs'])
+            : ($this->normalizeArrayLike($question->answers ?? null) ?? []);
+        $leftItems = [];
+        $rightItems = [];
+        foreach ($answers as $index => $answer) {
+            if (! is_array($answer)) continue;
+            $label = trim((string) ($answer['left'] ?? $answer['text'] ?? $answer['question'] ?? ''));
+            $imageUrl = trim((string) ($answer['image_url'] ?? $answer['imageUrl'] ?? $answer['image'] ?? ''));
+            if ($label === '' || $imageUrl === '') continue;
+            $id = (string) $index;
+            $leftItems[] = ['id' => $id, 'text' => $label];
+            $rightItems[] = ['id' => $id, 'image_url' => $imageUrl, 'alt' => $label];
+        }
+
+        $seedBase = $test
+            ? $this->buildSelectionSeedBase($test, (int) $user->id, $attemptNumber) . ":q{$question->id}:image_matching"
+            : "exam:{$question->id}:{$attemptNumber}:image_matching";
+
+        return [
+            'leftItems' => $leftItems,
+            'rightItems' => $this->shuffleBySeed($rightItems, $seedBase),
+            'correctMap' => array_values(array_map(static fn ($item) => (string) $item['id'], $rightItems)),
+        ];
+    }
+
     protected function buildOrderingQuestionData($question, ?Test $test, $user, int $attemptNumber): array
     {
         $payload = $this->normalizeArrayLike($question->payload ?? null) ?? [];
@@ -1047,6 +1076,11 @@ class ExamController extends Controller
             unset($m['correctMap']);
             $q['matching'] = $m;
         }
+        if (isset($q['imageMatching']) && is_array($q['imageMatching'])) {
+            $m = $q['imageMatching'];
+            unset($m['correctMap']);
+            $q['imageMatching'] = $m;
+        }
         if (isset($q['ordering']) && is_array($q['ordering'])) {
             $o = $q['ordering'];
             unset($o['correctOrder']);
@@ -1103,10 +1137,11 @@ class ExamController extends Controller
             return $wire;
         }
 
-        if ($questionType === 'matching' && is_array($wire['matching'] ?? null)) {
+        if (($questionType === 'matching' && is_array($wire['matching'] ?? null)) || ($questionType === 'image_matching' && is_array($wire['imageMatching'] ?? null))) {
+            $structured = $questionType === 'image_matching' ? $wire['imageMatching'] : $wire['matching'];
             $wire['is_correct'] = $this->isSequenceAnswerCorrect(
                 $userAnswer,
-                $wire['matching']['correctMap'] ?? []
+                $structured['correctMap'] ?? []
             );
 
             return $wire;
@@ -1124,10 +1159,13 @@ class ExamController extends Controller
         $correctIndices = $resolved['correct_indices'] ?? [];
         $correctAnswerIndex = $resolved['correct_index'];
         $matching = null;
+        $imageMatching = null;
         $ordering = null;
 
         if ($questionType === 'matching') {
             $matching = $this->buildMatchingQuestionData($question, $test, $user, $attemptNumber);
+        } elseif ($questionType === 'image_matching') {
+            $imageMatching = $this->buildImageMatchingQuestionData($question, $test, $user, $attemptNumber);
         } elseif ($questionType === 'ordering') {
             $ordering = $this->buildOrderingQuestionData($question, $test, $user, $attemptNumber);
         }
@@ -1152,6 +1190,7 @@ class ExamController extends Controller
             'comment' => $question->explanation ?? null,
             'explanation' => $question->explanation ?? null,
             'matching' => $matching,
+            'imageMatching' => $imageMatching,
             'ordering' => $ordering,
         ];
     }
@@ -1196,12 +1235,15 @@ class ExamController extends Controller
             }
             $correctAnswerIndex = $correctIndices[0] ?? null;
             $matching = null;
+            $imageMatching = null;
             $ordering = null;
             $payload = is_array($question->payload) ? $question->payload : [];
             $explanation = $payload['explanation'] ?? ($question->explanation ?? null);
 
             if ($questionType === 'matching') {
                 $matching = $this->buildMatchingQuestionData($question, null, $user, $attemptNumber);
+            } elseif ($questionType === 'image_matching') {
+                $imageMatching = $this->buildImageMatchingQuestionData($question, null, $user, $attemptNumber);
             } elseif ($questionType === 'ordering') {
                 $ordering = $this->buildOrderingQuestionData($question, null, $user, $attemptNumber);
             }
@@ -1219,6 +1261,7 @@ class ExamController extends Controller
                 'comment' => $explanation,
                 'explanation' => $explanation,
                 'matching' => $matching,
+                'imageMatching' => $imageMatching,
                 'ordering' => $ordering,
             ];
         });
@@ -1610,7 +1653,7 @@ class ExamController extends Controller
         $score = 0;
         $totalPoints = 0;
         $correctAnswersCount = 0;
-        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
         $hasManualQuestions = $questions->contains(function ($question) use ($autoGradableTypes) {
             return !in_array((string) ($question->type ?? 'multiple_choice'), $autoGradableTypes, true);
         });
@@ -1625,6 +1668,16 @@ class ExamController extends Controller
 
             if ($questionType === 'matching') {
                 $structured = $this->buildMatchingQuestionData($question, $test, $user, $nextAttempt);
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
+                    $score += $points;
+                    $correctAnswersCount++;
+                }
+                continue;
+            }
+
+            if ($questionType === 'image_matching') {
+                $structured = $this->buildImageMatchingQuestionData($question, $test, $user, $nextAttempt);
                 $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
                 if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
                     $score += $points;
@@ -1913,7 +1966,7 @@ class ExamController extends Controller
             return $blocked;
         }
 
-        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
         $session = $openSession ?: $this->examAttemptSessionService->ensure($exam, $user, $nextAttempt);
         $attemptQuestions = $this->examAttemptSessionService->questions($session);
         $hasManualQuestions = $attemptQuestions->contains(function ($q) use ($autoGradableTypes) {
@@ -1925,7 +1978,7 @@ class ExamController extends Controller
         $totalPoints = 0;
         $correctAnswersCount = 0;
         $needsManualReview = false;
-        $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'];
+        $gradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
 
         foreach ($attemptQuestions as $question) {
             $totalPoints += $question->points ?? 1;
@@ -1935,6 +1988,16 @@ class ExamController extends Controller
             if ($questionType === 'matching') {
                 $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
                 $structured = $this->buildMatchingQuestionData($question, null, $user, $nextAttempt);
+                if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
+                    $score += $question->points ?? 1;
+                    $correctAnswersCount++;
+                }
+                continue;
+            }
+
+            if ($questionType === 'image_matching') {
+                $userAns = $this->answerValueForQuestion($answers, (int) $question->id);
+                $structured = $this->buildImageMatchingQuestionData($question, null, $user, $nextAttempt);
                 if ($this->isSequenceAnswerCorrect($userAns, $structured['correctMap'] ?? [])) {
                     $score += $question->points ?? 1;
                     $correctAnswersCount++;

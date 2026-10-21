@@ -80,3 +80,7 @@ coverage/
 *.swp
 *~
 .replacements.txt
+
+# Graphify local artifacts (graph.json and the report are the shared map)
+graphify-out/cost.json
+graphify-out/cache/

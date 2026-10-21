@@ -23,6 +23,7 @@ export const INLINE_QUESTION_TYPES = [
   { id: 'true_false', label: 'Adevărat / Fals', short: 'T/F', hint: 'Cursantul spune dacă afirmația e adevărată.' },
   { id: 'yes_no', label: 'Da / Nu', short: 'Da', hint: 'Cursantul răspunde cu da sau nu.' },
   { id: 'matching', label: 'Potrivire', short: '<->', hint: 'Cursantul leagă fiecare element de perechea lui.' },
+  { id: 'image_matching', label: 'Denumire – imagine', short: 'Aa', hint: 'Cursantul asociază denumirile cu imaginile corespunzătoare.' },
   { id: 'ordering', label: 'Ordonare', short: '1-4', hint: 'Cursantul aranjează pașii în ordinea corectă.' },
 ];
 
@@ -60,6 +61,12 @@ export const getDefaultAnswersByType = (rawType) => {
       { left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true, order: 1 },
     ];
   }
+  if (type === 'image_matching') {
+    return [
+      { left: 'Denumire A', image_url: '', text: 'Denumire A', is_correct: true, order: 0 },
+      { left: 'Denumire B', image_url: '', text: 'Denumire B', is_correct: true, order: 1 },
+    ];
+  }
   if (type === 'ordering') {
     return [
       { text: 'Pasul 1', is_correct: true, order: 0 },
@@ -85,6 +92,12 @@ export const normalizeBuilderAnswer = (a, rawType = 'multiple_choice', index = 0
       is_correct: true,
       order: typeof obj.order === 'number' ? obj.order : index,
     };
+  }
+
+  if (type === 'image_matching') {
+    const left = obj.left ?? obj.text ?? obj.question ?? '';
+    const imageUrl = obj.image_url ?? obj.imageUrl ?? obj.image ?? '';
+    return { ...obj, left: String(left ?? ''), text: String(left ?? ''), image_url: String(imageUrl ?? ''), is_correct: true, order: typeof obj.order === 'number' ? obj.order : index };
   }
 
   if (type === 'ordering') {
@@ -155,6 +168,12 @@ export const serializeAnswersForQuestionApi = (rawType, answers) => {
         is_correct: true,
         order: idx,
       };
+    }
+
+    if (type === 'image_matching') {
+      const left = raw.left ?? raw.text ?? raw.question ?? '';
+      const imageUrl = raw.image_url ?? raw.imageUrl ?? raw.image ?? '';
+      return { left: String(left ?? ''), text: String(left ?? ''), image_url: String(imageUrl ?? ''), is_correct: true, order: idx };
     }
 
     if (type === 'ordering') {

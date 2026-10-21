@@ -428,7 +428,7 @@ function getBasicFontAtSelection(editor) {
 	return matchBasicFontOption(window.getComputedStyle(base || editor).fontFamily);
 }
 
-const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVariant = 'full', courseId = null, showSideTools = true, emphasis = null }) => {
+const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVariant = 'full', courseId = null, showSideTools = true, emphasis = null, pasteNormalizer = normalizePastedHtmlForRichText }) => {
 	const { warning: showWarning, error: showError } = useToast();
 	const editorRef = useRef(null);
 	const savedSelectionRef = useRef(null);
@@ -850,7 +850,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 		e.preventDefault();
 		const html = clipboardData.getData('text/html');
 		const text = clipboardData.getData('text/plain');
-		const normalizedHtml = html ? normalizePastedHtmlForRichText(html) : '';
+		const normalizedHtml = html ? pasteNormalizer(html) : '';
 		const contentToInsert = normalizedHtml || text;
 		if (!contentToInsert) return;
 
@@ -1244,7 +1244,7 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 					if (!item.types?.includes('text/html')) continue;
 					const blob = await item.getType('text/html');
 					const html = await blob.text();
-					const normalizedHtml = normalizePastedHtmlForRichText(html);
+					const normalizedHtml = pasteNormalizer(html);
 					if (insertClipboardContent(normalizedHtml, true)) {
 						return;
 					}

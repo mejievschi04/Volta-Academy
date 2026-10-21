@@ -16,6 +16,7 @@ const QUESTION_TYPE_OPTIONS = [
 	{ value: 'true_false', label: 'Adevărat/Fals' },
 	{ value: 'yes_no', label: 'Da / Nu' },
 	{ value: 'matching', label: 'Potrivire' },
+	{ value: 'image_matching', label: 'Denumire – imagine' },
 	{ value: 'ordering', label: 'Ordonare' },
 ];
 
@@ -38,6 +39,12 @@ const getQuestionTypeDefaults = (type) => {
 		return [
 			{ left: 'Element A', right: 'Răspuns A', text: 'Element A', answer_text: 'Răspuns A', is_correct: true },
 			{ left: 'Element B', right: 'Răspuns B', text: 'Element B', answer_text: 'Răspuns B', is_correct: true },
+		];
+	}
+	if (type === 'image_matching') {
+		return [
+			{ left: 'Denumire A', text: 'Denumire A', image_url: '', is_correct: true, order: 0 },
+			{ left: 'Denumire B', text: 'Denumire B', image_url: '', is_correct: true, order: 1 },
 		];
 	}
 
@@ -65,6 +72,13 @@ const normalizeQuestionAnswers = (type, answers) => {
 			answer_text: answer?.right ?? answer?.answer_text ?? '',
 			is_correct: true,
 			order: typeof answer?.order === 'number' ? answer.order : index,
+		}));
+	}
+	if (type === 'image_matching') {
+		return list.map((answer, index) => ({
+			left: answer?.left ?? answer?.text ?? '', text: answer?.left ?? answer?.text ?? '',
+			image_url: answer?.image_url ?? answer?.imageUrl ?? answer?.image ?? '',
+			is_correct: true, order: typeof answer?.order === 'number' ? answer.order : index,
 		}));
 	}
 
@@ -239,7 +253,9 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 		setQuestionFormErrors((prev) => ({ ...prev, answers: '', correct: '' }));
 		const currentType = questionForm.type;
 		const defaults = getQuestionTypeDefaults(currentType);
-		const nextDefault = defaults[questionForm.answers.length] || defaults[0] || { text: '', is_correct: false };
+		const nextDefault = defaults[questionForm.answers.length] || (questionForm.type === 'image_matching'
+			? { left: `Denumire ${questionForm.answers.length + 1}`, text: `Denumire ${questionForm.answers.length + 1}`, image_url: '', is_correct: true, order: questionForm.answers.length }
+			: (defaults[0] || { text: '', is_correct: false }));
 		setQuestionForm(prev => ({
 			...prev,
 			answers: [...prev.answers, { ...nextDefault, order: prev.answers.length }],
@@ -248,7 +264,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 	const updateAnswer = (index, field, value) => {
 		if (field === 'is_correct' && value) setQuestionFormErrors((prev) => ({ ...prev, correct: '' }));
-		if (field === 'text' || field === 'left' || field === 'right') {
+		if (field === 'text' || field === 'left' || field === 'right' || field === 'image_url') {
 			setQuestionFormErrors((prev) => ({ ...prev, answers: '' }));
 		}
 		setQuestionForm(prev => ({
@@ -295,6 +311,13 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 			const hasEmptyPair = questionForm.answers.some((answer) => !String(answer.left || '').trim() || !String(answer.right || '').trim());
 			if (hasEmptyPair) {
 				setQuestionFormErrors((prev) => ({ ...prev, answers: 'Completează toate perechile' }));
+				return;
+			}
+		}
+		if (questionForm.type === 'image_matching') {
+			const invalid = questionForm.answers.some((answer) => !String(answer.left || '').trim() || !String(answer.image_url || '').trim());
+			if (invalid) {
+				setQuestionFormErrors((prev) => ({ ...prev, answers: 'Completează denumirea și adresa fiecărei imagini' }));
 				return;
 			}
 		}
@@ -646,9 +669,10 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 							<option value="true_false">Adevărat/Fals</option>
 							<option value="yes_no">Da / Nu</option>
 							<option value="matching">Potrivire</option>
+										<option value="image_matching">Denumire – imagine</option>
 							<option value="ordering">Ordonare</option>
 						</select>
-						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Răspuns unic = o singură variantă corectă; Adevărat/Fals = două opțiuni; Potrivire = perechi; Ordonare = elemente mutate în ordine.</p>
+						<p className="admin-form-hint">Răspuns multiplu = una sau mai multe variante corecte; Răspuns unic = o singură variantă corectă; Adevărat/Fals = două opțiuni; Potrivire = perechi; Denumire – imagine = asocieri vizuale; Ordonare = elemente mutate în ordine.</p>
 					</div>
 
 					<div className="admin-form-group">
@@ -682,10 +706,14 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 					{questionForm.type !== 'short_answer' && (
 						<div className="admin-form-group">
 							<label className="admin-form-label">
-								{questionForm.type === 'matching' ? 'Perechi' : questionForm.type === 'ordering' ? 'Elemente' : 'Răspunsuri'}
+								{questionForm.type === 'matching' || questionForm.type === 'image_matching' ? 'Perechi' : questionForm.type === 'ordering' ? 'Elemente' : 'Răspunsuri'}
 							</label>
 
-							{questionForm.type === 'matching' ? (
+							{questionForm.type === 'image_matching' ? (
+								<div className="admin-answer-list">
+									{questionForm.answers.map((answer, index) => <div key={index} className="admin-answer-item"><input type="text" className="admin-form-input" value={answer.left || ''} onChange={(e) => updateAnswer(index, 'left', e.target.value)} placeholder={`Denumire ${index + 1}`} /><input type="url" className="admin-form-input" value={answer.image_url || ''} onChange={(e) => updateAnswer(index, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" />{answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || index + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={() => removeAnswer(index)}>🗑️</button></div>)}
+								</div>
+							) : questionForm.type === 'matching' ? (
 								<div className="admin-answer-list">
 									{questionForm.answers.map((answer, index) => (
 										<div key={index} className="admin-answer-item">
@@ -813,7 +841,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									className="lms-btn-secondary lms-btn-sm"
 									onClick={addAnswer}
 								>
-									+ Adaugă {questionForm.type === 'matching' ? 'Pereche' : 'Răspuns'}
+										+ Adaugă {questionForm.type === 'matching' || questionForm.type === 'image_matching' ? 'Pereche' : 'Răspuns'}
 								</button>
 							)}
 							{(questionFormErrors.answers || questionFormErrors.correct) && (
@@ -1004,6 +1032,8 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									<span className="qb-student-preview-short-label">Răspuns scurt (elevul scrie aici)</span>
 									<div className="qb-student-preview-short-placeholder" />
 								</div>
+							) : previewQuestion.type === 'image_matching' ? (
+								<div className="qb-student-preview-matching">{(previewQuestion.answers || []).map((ans, i) => <div key={i} className="qb-student-preview-matching-row"><span className="qb-student-preview-matching-left">{ans.left || ans.text || '—'}</span><span className="qb-student-preview-matching-arrow">→</span>{ans.image_url ? <img src={ans.image_url} alt={ans.left || ''} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 6 }} /> : <span>Imagine neconfigurată</span>}</div>)}</div>
 							) : previewQuestion.type === 'matching' ? (
 								<div className="qb-student-preview-matching">
 									{(previewQuestion.answers || []).map((ans, i) => (

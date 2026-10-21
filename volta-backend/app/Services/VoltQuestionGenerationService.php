@@ -781,7 +781,7 @@ private function getAiQuestionRejectionReasons(array $question): array
     }
 
     $type = (string) ($question['type'] ?? 'multiple_choice');
-    if (!in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'], true)) {
+    if (!in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'], true)) {
         $reasons[] = 'unsupported_type';
     }
 
@@ -817,6 +817,13 @@ private function getAiQuestionRejectionReasons(array $question): array
             if ($rightNorm !== '') {
                 $rights[] = $rightNorm;
             }
+        }
+    } elseif ($type === 'image_matching') {
+        if (count($answers) < 2) $reasons[] = 'not_enough_image_matching_pairs';
+        foreach ($answers as $answer) {
+            $label = trim((string) (is_array($answer) ? ($answer['left'] ?? $answer['text'] ?? '') : ''));
+            $url = trim((string) (is_array($answer) ? ($answer['image_url'] ?? $answer['imageUrl'] ?? '') : ''));
+            if (mb_strlen($label) < 3 || ! filter_var($url, FILTER_VALIDATE_URL)) $reasons[] = 'invalid_image_matching_pair';
         }
     } elseif ($type === 'ordering') {
         if (count($answers) < 3) {
@@ -1372,7 +1379,7 @@ private function formatQuestionsForDatabase(array $questions): array
     foreach ($questions as $index => $question) {
         $answers = [];
         $qType = (string) ($question['type'] ?? 'multiple_choice');
-        if (!in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'ordering'], true)) {
+        if (!in_array($qType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'], true)) {
             $qType = 'multiple_choice';
         }
         
@@ -1401,6 +1408,12 @@ private function formatQuestionsForDatabase(array $questions): array
                         'is_correct' => true,
                         'order' => $idx,
                     ];
+                    continue;
+                }
+
+                if ($qType === 'image_matching') {
+                    $left = trim((string) ($answer['left'] ?? $answer['text'] ?? ''));
+                    $answers[] = ['left' => $left, 'text' => $left, 'image_url' => trim((string) ($answer['image_url'] ?? $answer['imageUrl'] ?? '')), 'is_correct' => true, 'order' => $idx];
                     continue;
                 }
 

@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminService } from '../../../services/api';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
+import { useAuth } from '../../../contexts/AuthContextShared.js';
 
 /**
  * Atribuire curs ↔ echipe (sincronizare) și elevi (atașare fără a șterge alte cursuri).
  */
 const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 	const { showToast } = useToast();
+	const { user: currentUser } = useAuth();
+	const canManageCompletion = (currentUser?.actualRole ?? currentUser?.role) === 'admin';
 	const [allTeams, setAllTeams] = useState([]);
 	const [selectedTeamIds, setSelectedTeamIds] = useState([]);
 	const [learnerSearch, setLearnerSearch] = useState('');
@@ -134,11 +137,17 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 		if (readOnly || !course?.id) return;
 		setCompleteBusy(userId);
 		try {
-			await adminService.markCourseCompleted(userId, course.id);
-			showToast('Curs marcat ca finalizat', 'success');
+			const isManuallyCompleted = assignedUsers.find((user) => user.id === userId)?.pivot?.manually_completed;
+			if (isManuallyCompleted) {
+				await adminService.unmarkCourseCompleted(userId, course.id);
+				showToast('Finalizarea manuală a fost anulată', 'success');
+			} else {
+				await adminService.markCourseCompleted(userId, course.id);
+				showToast('Curs marcat ca finalizat', 'success');
+			}
 			await onUpdated?.();
 		} catch (e) {
-			showToast(e?.response?.data?.message || 'Nu s-a putut marca cursul ca finalizat', 'error');
+			showToast(e?.response?.data?.message || 'Nu s-a putut modifica finalizarea cursului', 'error');
 		} finally {
 			setCompleteBusy(null);
 		}
@@ -208,16 +217,16 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 										<div className="course-distribution-name">{u.name}</div>
 										<div className="course-distribution-email">{u.email}</div>
 									</div>
-									{!readOnly && (
+										{!readOnly && (
 										<div className="course-distribution-row-actions">
-											<button
+											{canManageCompletion ? <button
 												type="button"
 												className="course-distribution-btn-complete"
 												disabled={completeBusy === u.id || detachBusy === u.id}
 												onClick={() => markLearnerCompleted(u.id)}
 											>
-												{completeBusy === u.id ? '…' : 'Marchează finalizat'}
-											</button>
+												{completeBusy === u.id ? '…' : (u.pivot?.manually_completed ? 'Anulează finalizarea' : 'Marchează finalizat')}
+											</button> : null}
 											<button
 												type="button"
 												className="course-distribution-btn-remove"
