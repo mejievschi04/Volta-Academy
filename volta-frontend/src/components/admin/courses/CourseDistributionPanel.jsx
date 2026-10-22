@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminService } from '../../../services/api';
+import ConfirmModal from '../../common/ConfirmModal';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import { useAuth } from '../../../contexts/AuthContextShared.js';
@@ -21,6 +22,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 	const [attachBusy, setAttachBusy] = useState(false);
 	const [detachBusy, setDetachBusy] = useState(null);
 	const [completeBusy, setCompleteBusy] = useState(null);
+	const [resetUserId, setResetUserId] = useState(null);
 	const [mandatory, setMandatory] = useState(true);
 	const teamSaveTimer = useRef(null);
 
@@ -133,14 +135,18 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 		}
 	};
 
-	const markLearnerCompleted = async (userId) => {
+	const markLearnerCompleted = async (userId, { confirmed = false } = {}) => {
 		if (readOnly || !course?.id) return;
+		const isManuallyCompleted = assignedUsers.find((user) => user.id === userId)?.pivot?.manually_completed;
+		if (isManuallyCompleted && !confirmed) {
+			setResetUserId(userId);
+			return;
+		}
 		setCompleteBusy(userId);
 		try {
-			const isManuallyCompleted = assignedUsers.find((user) => user.id === userId)?.pivot?.manually_completed;
 			if (isManuallyCompleted) {
 				await adminService.unmarkCourseCompleted(userId, course.id);
-				showToast('Finalizarea manuală a fost anulată', 'success');
+				showToast('Cursul a fost resetat la 0%', 'success');
 			} else {
 				await adminService.markCourseCompleted(userId, course.id);
 				showToast('Curs marcat ca finalizat', 'success');
@@ -150,6 +156,7 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 			showToast(e?.response?.data?.message || 'Nu s-a putut modifica finalizarea cursului', 'error');
 		} finally {
 			setCompleteBusy(null);
+			setResetUserId(null);
 		}
 	};
 
@@ -291,6 +298,17 @@ const CourseDistributionPanel = ({ course, readOnly, onUpdated }) => {
 					)}
 				</div>
 			</div>
+			<ConfirmModal
+				open={resetUserId !== null}
+				onClose={() => setResetUserId(null)}
+				onConfirm={() => markLearnerCompleted(resetUserId, { confirmed: true })}
+				title="Anulează finalizarea"
+				message="Cursul revine la 0%: se șterg lecțiile parcurse și rezultatele la testele cursului, iar cursantul îl ia de la capăt."
+				confirmLabel="Resetează la 0%"
+				cancelLabel="Renunță"
+				variant="danger"
+				loading={completeBusy !== null}
+			/>
 		</section>
 	);
 };

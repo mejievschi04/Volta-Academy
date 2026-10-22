@@ -467,7 +467,7 @@ class UserAdminController extends Controller
         \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
 
         return response()->json([
-            'message' => 'Finalizarea manuală a cursului a fost anulată',
+            'message' => 'Cursul a fost resetat la 0%',
         ]);
     }
 

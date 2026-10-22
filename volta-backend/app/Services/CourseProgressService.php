@@ -619,7 +619,10 @@ class CourseProgressService
         $this->forgetUserProgressCache($user, $course->id);
     }
 
-    /** Remove an admin completion and restore progress from the learner's actual activity. */
+    /**
+     * Anularea finalizării resetează cursul pentru cursant la 0%: se șterg lecțiile parcurse și
+     * rezultatele la testele cursului (încercările pornesc de la zero), iar cursul o ia de la capăt.
+     */
     public function unmarkCourseCompletedByAdmin(User $user, Course $course): bool
     {
         $courseUser = DB::table('course_user')
@@ -630,12 +633,36 @@ class CourseProgressService
             return false;
         }
 
-        // Keep the previous completion timestamp until recalculation decides
-        // whether the learner had independently completed the course.
-        $courseUser->update([
-            'manually_completed' => false,
-            'updated_at' => Carbon::now(),
-        ]);
+        DB::transaction(function () use ($user, $course, $courseUser) {
+            $lessonIds = Lesson::query()
+                ->where('course_id', $course->id)
+                ->orWhereIn('module_id', Module::where('course_id', $course->id)->select('id'))
+                ->pluck('id');
+            DB::table('lesson_progress')
+                ->where('user_id', $user->id)
+                ->whereIn('lesson_id', $lessonIds)
+                ->delete();
+
+            // Doar rezultatele date în acest curs; același test dat în alt curs rămâne acolo.
+            $testIds = CourseTest::where('course_id', $course->id)->pluck('test_id');
+            DB::table('test_results')
+                ->where('user_id', $user->id)
+                ->whereIn('test_id', $testIds)
+                ->where(fn ($q) => $q->where('course_id', $course->id)->orWhereNull('course_id'))
+                ->delete();
+
+            $values = [
+                'manually_completed' => false,
+                'progress_percentage' => 0,
+                'completed_at' => null,
+                'started_at' => null,
+                'updated_at' => Carbon::now(),
+            ];
+            if (SchemaCache::hasColumn('course_user', 'progress_floor')) {
+                $values['progress_floor'] = null;
+            }
+            $courseUser->update($values);
+        });
 
         $this->forgetUserProgressCache($user, $course->id);
         $this->calculateCourseProgress($user, $course);

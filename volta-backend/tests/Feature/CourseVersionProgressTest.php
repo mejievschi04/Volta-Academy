@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\CourseTest;
 use App\Models\Lesson;
 use App\Models\Module;
+use App\Models\Test;
+use App\Models\TestResult;
 use App\Models\User;
 use App\Services\CourseProgressService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -137,6 +140,45 @@ class CourseVersionProgressTest extends TestCase
         $state = $this->progress($student);
         $this->assertSame(100, $state['pct']);
         $this->assertTrue($state['complete']);
+    }
+
+    public function test_marking_complete_forces_100_and_undoing_resets_the_course_to_0(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $this->enroll($student);
+        $this->complete($student, $this->lessons[0]);
+        $test = Test::factory()->published()->create();
+        CourseTest::create(['course_id' => $this->course->id, 'test_id' => $test->id, 'scope' => 'course', 'required' => true, 'passing_score' => 70, 'order' => 0]);
+        $otherCourse = Course::factory()->create(['teacher_id' => $this->admin->id]);
+        foreach ([$this->course->id, $otherCourse->id] as $courseId) {
+            TestResult::create([
+                'test_id' => $test->id, 'course_id' => $courseId, 'user_id' => $student->id,
+                'score' => 50, 'max_score' => 100, 'percentage' => 50, 'passed' => false,
+                'attempt_number' => 1, 'answers' => [], 'completed_at' => now(), 'status' => 'completed',
+            ]);
+        }
+
+        $this->asAdmin()->postJson("/api/admin/users/{$student->id}/courses/{$this->course->id}/complete")->assertOk();
+        $state = $this->progress($student);
+        $this->assertSame(100, $state['pct']);
+        $this->assertTrue($state['complete']);
+
+        // și floor-ul de 100 lăsat de republicările dinainte de 3bda7b4 dispare
+        DB::table('course_user')->where('user_id', $student->id)->where('course_id', $this->course->id)
+            ->update(['progress_floor' => 100]);
+        $this->asAdmin()->deleteJson("/api/admin/users/{$student->id}/courses/{$this->course->id}/complete")->assertOk();
+
+        $state = $this->progress($student);
+        $this->assertSame(0, $state['pct']);
+        $this->assertFalse($state['complete']);
+        $this->assertNull($state['completed_at']);
+        $this->assertSame(0, DB::table('lesson_progress')->where('user_id', $student->id)->count());
+        $this->assertSame(
+            [$otherCourse->id],
+            DB::table('test_results')->where('user_id', $student->id)->pluck('course_id')->map(fn ($id) => (int) $id)->all(),
+            'rezultatul dat în alt curs rămâne'
+        );
+        $this->assertTrue((bool) DB::table('course_user')->where('user_id', $student->id)->where('course_id', $this->course->id)->value('enrolled'), 'rămâne înscris');
     }
 
     public function test_completing_a_lesson_deleted_after_publishing_does_not_fail(): void

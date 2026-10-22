@@ -1083,7 +1083,7 @@ const AdminStatisticsHubPage = () => {
 				'Neînceput',
 				'În progres',
 				'Finalizat',
-				'Nefinalizat',
+				'Nepromovat',
 				'Re-deschis',
 				'Timp mediu / elev',
 				'Timp total studiu',
@@ -1159,7 +1159,7 @@ const AdminStatisticsHubPage = () => {
 							<th>Neinceput</th>
 							<th>In progres</th>
 							<th>Finalizat</th>
-							<th>Nefinalizat</th>
+							<th>Nepromovat</th>
 							<th>Re-deschis</th>
 							<th>Timp mediu / elev</th>
 							<th>Timp total studiu</th>
@@ -1394,7 +1394,7 @@ const AdminStatisticsHubPage = () => {
 								<th>Email</th>
 								<th>Încercări</th>
 								<th>Finalizate</th>
-								<th>Nefinalizate</th>
+								<th>Nepromovate</th>
 							</tr>
 						)}
 					</thead>

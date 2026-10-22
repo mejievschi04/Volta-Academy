@@ -19,7 +19,7 @@ const AVATAR_OUTPUT_SIZE = 512;
 const COURSE_FILTERS = [
 	{ id: 'all', label: 'Total atribuite', statKey: 'total_assigned' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	{ id: 'in_progress', label: 'Nefinalizate', statKey: 'in_progress' },
+	{ id: 'in_progress', label: 'Nepromovate', statKey: 'in_progress' },
 	{ id: 'not_accessed', label: 'Neaccesate', statKey: 'not_accessed' },
 ];
 
@@ -86,6 +86,7 @@ const ProfilePage = () => {
 	const [courseFilter, setCourseFilter] = useState('all');
 	const [courseQuery, setCourseQuery] = useState('');
 	const [completingCourseId, setCompletingCourseId] = useState(null);
+	const [resetCourseId, setResetCourseId] = useState(null);
 	const [grantingAttemptKey, setGrantingAttemptKey] = useState(null);
 	const viewerRole = currentUser?.actualRole ?? currentUser?.role;
 	const isViewingOtherUser = Boolean(userId) && ['admin', 'instructor'].includes(viewerRole);
@@ -116,14 +117,18 @@ const ProfilePage = () => {
 		fetchData();
 	}, [userId, isViewingOtherUser]);
 
-	const handleMarkCourseCompleted = async (courseId) => {
+	const handleMarkCourseCompleted = async (courseId, { confirmed = false } = {}) => {
 		if (!userId || !courseId) return;
+		const course = profileData?.coursesAssigned?.find((item) => Number(item.id) === Number(courseId));
+		if (course?.manually_completed && !confirmed) {
+			setResetCourseId(courseId);
+			return;
+		}
 		setCompletingCourseId(courseId);
 		try {
-			const course = profileData?.coursesAssigned?.find((item) => Number(item.id) === Number(courseId));
 			if (course?.manually_completed) {
 				await adminService.unmarkCourseCompleted(userId, courseId);
-				showToast('Finalizarea manuală a fost anulată', 'success');
+				showToast('Cursul a fost resetat la 0%', 'success');
 			} else {
 				await adminService.markCourseCompleted(userId, courseId);
 				showToast('Curs marcat ca finalizat', 'success');
@@ -133,6 +138,7 @@ const ProfilePage = () => {
 			showToast(err?.response?.data?.message || 'Nu s-a putut modifica finalizarea cursului', 'error');
 		} finally {
 			setCompletingCourseId(null);
+			setResetCourseId(null);
 		}
 	};
 
@@ -272,7 +278,7 @@ const ProfilePage = () => {
 				<div className="va-up-card-head">
 					<h3 className="va-up-card-title" title={course.title}>{course.title}</h3>
 					<span className={`va-up-status is-${status}`}>
-						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'Nefinalizat' : 'Neaccesat'}
+						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'Nepromovat' : 'Neaccesat'}
 					</span>
 				</div>
 				{course.description ? <p className="va-up-card-desc">{course.description}</p> : null}
@@ -470,6 +476,17 @@ const ProfilePage = () => {
 				cancelLabel="Anulare"
 				variant="danger"
 				loading={uploadingAvatar}
+			/>
+			<ConfirmModal
+				open={resetCourseId !== null}
+				onClose={() => setResetCourseId(null)}
+				onConfirm={() => handleMarkCourseCompleted(resetCourseId, { confirmed: true })}
+				title="Anulează finalizarea"
+				message="Cursul revine la 0%: se șterg lecțiile parcurse și rezultatele la testele cursului, iar cursantul îl ia de la capăt."
+				confirmLabel="Resetează la 0%"
+				cancelLabel="Renunță"
+				variant="danger"
+				loading={completingCourseId !== null}
 			/>
 			<AvatarEditorModal
 				open={Boolean(avatarEditorState)}
