@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesCoverThumbnail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GuideItem extends Model
 {
+    use GeneratesCoverThumbnail;
+
+    /** Coloana copertei pentru miniatura din liste (GeneratesCoverThumbnail). */
+    public const COVER_COLUMN = 'cover_image_path';
     protected $fillable = [
         'user_id',
         'title',

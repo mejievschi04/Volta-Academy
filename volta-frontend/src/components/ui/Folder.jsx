@@ -23,7 +23,7 @@ const darkenColor = (hex, percent) => {
 	return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 };
 
-const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, coverFocus = null, className = '', interactive = true }) => {
+const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, onFrontImageError, coverFocus = null, className = '', interactive = true }) => {
 	const maxItems = 3;
 	const papers = items.slice(0, maxItems);
 	while (papers.length < maxItems) {
@@ -114,6 +114,9 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], frontImage = null, co
 							<img
 								src={frontImage}
 								alt=""
+								loading="lazy"
+								decoding="async"
+								onError={onFrontImageError}
 								className="rb-folder__cover-img"
 								style={coverFocusImgStyle(coverFocus)}
 							/>

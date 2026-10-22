@@ -34,7 +34,7 @@ class UserAdminController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = min(200, max(1, (int) $request->get('per_page', 15)));
         $trashedOnly = $request->boolean('trashed');
 
         // Build query: normal users sau doar cei din coș (șterși soft)
@@ -72,11 +72,24 @@ class UserAdminController extends Controller
         $query->with(self::TEAMS_ADMIN_EAGER);
 
         // Sort
-        $sortBy = in_array($request->get('sort_by'), ['name', 'email', 'role', 'status', 'created_at', 'updated_at'], true)
+        $sortBy = in_array($request->get('sort_by'), ['name', 'email', 'role', 'status', 'team', 'created_at', 'updated_at'], true)
             ? $request->get('sort_by')
             : 'updated_at';
         $sortDirection = $request->get('sort_direction') === 'asc' ? 'asc' : 'desc';
-        $query->orderBy($sortBy, $sortDirection);
+        if ($sortBy === 'team') {
+            // primul nume de echipă în ordine alfabetică (fără echipă = gol), ca în tabelul de admin
+            $query->orderBy(
+                DB::table('team_user')
+                    ->join('teams', 'teams.id', '=', 'team_user.team_id')
+                    ->whereColumn('team_user.user_id', 'users.id')
+                    ->selectRaw("COALESCE(MIN(LOWER(teams.name)), '')"),
+                $sortDirection
+            );
+        } else {
+            $query->orderBy($sortBy, $sortDirection);
+        }
+        // ordine stabilă între pagini
+        $query->orderBy('users.id');
         
         $moduleCounts = \App\Models\Module::query()
             ->selectRaw('course_id, COUNT(*) as aggregate')

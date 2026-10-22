@@ -45,3 +45,18 @@ test('șterge un folder după confirmare', async ({ page }, testInfo) => {
 	await expect(page.getByText(folder('țintă', testInfo), { exact: true })).toBeVisible();
 	await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 });
+
+test('folderul mare se încarcă pe pagini, iar căutarea merge pe server', async ({ page }) => {
+	await openFolder(page, 'Folder mare');
+	await expect(page.getByText('Pagina 1 din 2 (60 întrebări)')).toBeVisible();
+	await expect(page.getByText('Întrebare din folderul mare nr. 1', { exact: true })).toBeVisible();
+	await expect(page.getByText('Întrebare din folderul mare nr. 51', { exact: true })).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Următor →' }).click();
+	await expect(page.getByText('Întrebare din folderul mare nr. 51', { exact: true })).toBeVisible();
+
+	await page.getByLabel('Caută întrebări').fill('nr. 57');
+	await expect(page.getByText('Întrebare din folderul mare nr. 57', { exact: true })).toBeVisible();
+	await expect(page.getByText('Întrebare din folderul mare nr. 51', { exact: true })).toHaveCount(0);
+	await expect(page.getByText(/Pagina \d+ din/)).toHaveCount(0);
+});

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -42,9 +42,8 @@ const QUESTION_TYPE_LABELS = {
   open: 'Deschis',
 };
 
-const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-
-const normalizeSearch = (value = '') => stripHtml(value).toLowerCase();
+const PAGE_SIZE = 50;
+const EMPTY_STATS = { total: 0, starred: 0, points: 0, types: [] };
 
 const AdminQuestionBankFolderDetailsPage = () => {
   const { id } = useParams();
@@ -58,7 +57,13 @@ const AdminQuestionBankFolderDetailsPage = () => {
   const [drawerQuestion, setDrawerQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  // Întrebările vin paginat de pe server (un folder poate avea zeci de mii); `stats` = tot folderul.
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ last_page: 1, total: 0 });
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const questionsRequestRef = useRef(0);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [questionEditorOpen, setQuestionEditorOpen] = useState(false);
@@ -98,29 +103,64 @@ const AdminQuestionBankFolderDetailsPage = () => {
     ],
   });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadFolder = useCallback(async () => {
     try {
-      const [folderData, questionData] = await Promise.all([
-        adminService.getQuestionBank(id),
-        adminService.getQuestionBankQuestions(id),
-      ]);
+      const folderData = await adminService.getQuestionBank(id);
       setFolder(folderData);
-      setQuestions(Array.isArray(questionData) ? questionData : []);
       setEditForm({
         title: folderData?.title || '',
         description: folderData?.description || '',
       });
     } catch {
       error('Nu am putut încărca folderul.');
-    } finally {
-      setLoading(false);
     }
   }, [error, id]);
 
+  const loadQuestions = useCallback(async () => {
+    const requestId = ++questionsRequestRef.current;
+    setLoading(true);
+    try {
+      const data = await adminService.getQuestionBankQuestionsPage(id, {
+        page,
+        per_page: PAGE_SIZE,
+        search: debouncedSearch || undefined,
+        type: typeFilter !== 'all' ? typeFilter : undefined,
+      });
+      if (requestId !== questionsRequestRef.current) return;
+      // după o ștergere, pagina curentă poate să nu mai existe
+      if (data?.last_page && page > data.last_page) {
+        setPage(data.last_page);
+        return;
+      }
+      setQuestions(Array.isArray(data?.data) ? data.data : []);
+      setPageInfo({ last_page: data?.last_page || 1, total: data?.total || 0 });
+      setStats({ ...EMPTY_STATS, ...(data?.stats || {}) });
+    } catch {
+      if (requestId === questionsRequestRef.current) error('Nu am putut încărca întrebările.');
+    } finally {
+      if (requestId === questionsRequestRef.current) setLoading(false);
+    }
+  }, [debouncedSearch, error, id, page, typeFilter]);
+
+  const loadData = useCallback(async () => {
+    await Promise.all([loadFolder(), loadQuestions()]);
+  }, [loadFolder, loadQuestions]);
+
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadFolder();
+  }, [loadFolder]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,27 +190,12 @@ const AdminQuestionBankFolderDetailsPage = () => {
     setAiSelectedCourseId(String(aiCourses[0].id));
   }, [showAIModal, aiSelectedCourseId, aiCourses]);
 
-  useEffect(() => {
-    setSelectedIds((prev) => prev.filter((questionId) => questions.some((q) => q.id === questionId)));
-  }, [questions]);
-
   const aiTargetCount = Math.max(1, Number(aiOptions.numberOfQuestions) || 1);
-  const starredCount = questions.filter((q) => q?.is_starred).length;
-  const totalPoints = questions.reduce((sum, q) => sum + (Number(q?.points) || 0), 0);
-  const uniqueTypes = useMemo(
-    () => Array.from(new Set(questions.map((q) => q?.type).filter(Boolean))),
-    [questions]
-  );
-
-  const filteredQuestions = useMemo(() => {
-    const query = normalizeSearch(search);
-    return questions.filter((question) => {
-      const matchesType = typeFilter === 'all' || question?.type === typeFilter;
-      if (!matchesType) return false;
-      if (!query) return true;
-      return stripHtml(question?.content || '').toLowerCase().includes(query);
-    });
-  }, [questions, search, typeFilter]);
+  const starredCount = stats.starred;
+  const totalPoints = stats.points;
+  const uniqueTypes = stats.types;
+  const filteredQuestions = questions;
+  const questionNumberOffset = (page - 1) * PAGE_SIZE;
 
   const resolveValidCourseId = (candidateId = aiSelectedCourseId) => {
     const parsed = Number.parseInt(String(candidateId), 10);
@@ -197,10 +222,13 @@ const AdminQuestionBankFolderDetailsPage = () => {
     try {
       const response = await adminService.toggleQuestionStar(questionId);
       const updated = response?.question;
-      setQuestions((prev) =>
-        prev.map((q) => (q.id === questionId ? { ...q, is_starred: Boolean(updated?.is_starred) } : q))
-      );
-      await loadData();
+      const starred = Boolean(updated?.is_starred);
+      const wasStarred = Boolean(questions.find((q) => q.id === questionId)?.is_starred);
+      // doar rândul și contorul se schimbă: fără reîncărcarea paginii
+      setQuestions((prev) => prev.map((q) => (q.id === questionId ? { ...q, is_starred: starred } : q)));
+      if (starred !== wasStarred) {
+        setStats((prev) => ({ ...prev, starred: Math.max(0, prev.starred + (starred ? 1 : -1)) }));
+      }
     } catch {
       error('Nu am putut modifica steaua.');
     }
@@ -218,7 +246,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
       if (drawerQuestion && selectedIds.includes(drawerQuestion.id)) {
         setDrawerQuestion(null);
       }
-      await loadData();
+      await loadQuestions();
     } catch {
       error('Nu am putut șterge selecția.');
     }
@@ -239,7 +267,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
         setDrawerQuestion(null);
       }
       setDeleteConfirmQuestionId(null);
-      await loadData();
+      await loadQuestions();
     } catch {
       error('Nu am putut șterge întrebarea.');
     } finally {
@@ -275,7 +303,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
       }
       setSelectedIds([]);
       setMoveOpen(false);
-      await loadData();
+      await loadQuestions();
     } catch (e) {
       error(e?.response?.data?.error || e?.response?.data?.message || 'Nu am putut muta întrebările.');
     } finally {
@@ -306,7 +334,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
       });
       success('Folder actualizat.');
       setEditOpen(false);
-      await loadData();
+      await loadFolder();
     } catch {
       error('Nu am putut salva folderul.');
     }
@@ -373,7 +401,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
       setAiGeneratedCount(0);
       setAiGeneratedPreviews([]);
       setAiError(null);
-      await loadData();
+      await loadQuestions();
     } catch (err) {
       console.error('Error generating questions:', err);
       const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Eroare la generarea întrebărilor cu Volt';
@@ -385,7 +413,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
   };
 
   const openCreateQuestionEditor = () => {
-    setQuestionEditorNumber((questions?.length || 0) + 1);
+    setQuestionEditorNumber(stats.total + 1);
     setQuestionDraft({
       id: null,
       type: 'single_choice',
@@ -402,7 +430,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
 
   const openEditQuestionEditor = (question) => {
     const indexInList = questions.findIndex((q) => q.id === question?.id);
-    setQuestionEditorNumber(indexInList >= 0 ? indexInList + 1 : 1);
+    setQuestionEditorNumber(indexInList >= 0 ? questionNumberOffset + indexInList + 1 : 1);
     const mappedAnswers = Array.isArray(question?.answers)
       ? question.answers.map((a) => ({
           text: typeof a === 'string' ? a : a?.text || '',
@@ -447,7 +475,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
         success('Întrebarea a fost adăugată.');
       }
       setQuestionEditorOpen(false);
-      await loadData();
+      await loadQuestions();
     } catch (e) {
       error(e?.response?.data?.error || 'Nu am putut salva întrebarea.');
     } finally {
@@ -505,28 +533,28 @@ const AdminQuestionBankFolderDetailsPage = () => {
           <div className="qb-overview-item">
             <ListChecks size={18} aria-hidden />
             <div>
-              <strong>{loading ? '...' : questions.length}</strong>
+              <strong>{loading && !stats.total ? '...' : stats.total}</strong>
               <span>întrebări</span>
             </div>
           </div>
           <div className="qb-overview-item">
             <Star size={18} aria-hidden />
             <div>
-              <strong>{loading ? '...' : starredCount}</strong>
+              <strong>{loading && !stats.total ? '...' : starredCount}</strong>
               <span>marcate cu stea</span>
             </div>
           </div>
           <div className="qb-overview-item">
             <Layers size={18} aria-hidden />
             <div>
-              <strong>{loading ? '...' : uniqueTypes.length}</strong>
+              <strong>{loading && !stats.total ? '...' : uniqueTypes.length}</strong>
               <span>tipuri de întrebări</span>
             </div>
           </div>
           <div className="qb-overview-item">
             <CheckSquare size={18} aria-hidden />
             <div>
-              <strong>{loading ? '...' : totalPoints}</strong>
+              <strong>{loading && !stats.total ? '...' : totalPoints}</strong>
               <span>puncte totale</span>
             </div>
           </div>
@@ -551,7 +579,10 @@ const AdminQuestionBankFolderDetailsPage = () => {
             <select
               className="admin-form-input qb-type-filter"
               value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
+              onChange={(event) => {
+                setTypeFilter(event.target.value);
+                setPage(1);
+              }}
               aria-label="Filtru tip întrebare"
             >
               <option value="all">Toate tipurile</option>
@@ -637,13 +668,27 @@ const AdminQuestionBankFolderDetailsPage = () => {
             ) : (
               <div className="qb-empty">
                 <ListChecks size={30} aria-hidden />
-                <p className="qb-empty-title">{questions.length ? 'Nicio întrebare pentru filtrul curent' : 'Folder gol'}</p>
+                <p className="qb-empty-title">{stats.total ? 'Nicio întrebare pentru filtrul curent' : 'Folder gol'}</p>
                 <p className="qb-empty-hint">
-                  {questions.length ? 'Schimbă căutarea sau filtrul de tip.' : (isVoltEnabled() ? 'Adaugă manual o întrebare sau generează cu Volt.' : 'Adaugă o întrebare.')}
+                  {stats.total ? 'Schimbă căutarea sau filtrul de tip.' : (isVoltEnabled() ? 'Adaugă manual o întrebare sau generează cu Volt.' : 'Adaugă o întrebare.')}
                 </p>
               </div>
             )}
           </section>
+
+          {pageInfo.last_page > 1 ? (
+            <nav className="admin-activity-logs-pagination" aria-label="Pagini întrebări">
+              <button type="button" className="lms-btn-secondary lms-btn-sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                ← Anterior
+              </button>
+              <span className="admin-activity-logs-pagination-info">
+                Pagina {page} din {pageInfo.last_page} ({pageInfo.total} întrebări)
+              </span>
+              <button type="button" className="lms-btn-secondary lms-btn-sm" disabled={page >= pageInfo.last_page || loading} onClick={() => setPage((p) => p + 1)}>
+                Următor →
+              </button>
+            </nav>
+          ) : null}
         </main>
       </div>
 
@@ -763,7 +808,7 @@ const AdminQuestionBankFolderDetailsPage = () => {
         onClose={() => !deleteFolderLoading && setDeleteFolderOpen(false)}
         onConfirm={confirmDeleteFolder}
         title="Șterge folderul"
-        message={`Folderul „${folder?.title || ''}” și cele ${questions.length} întrebări din el nu vor mai apărea în aplicație. Un folder folosit într-un test nu poate fi șters.`}
+        message={`Folderul „${folder?.title || ''}” și cele ${stats.total} întrebări din el nu vor mai apărea în aplicație. Un folder folosit într-un test nu poate fi șters.`}
         confirmLabel="Șterge folderul"
         cancelLabel="Anulare"
         variant="danger"

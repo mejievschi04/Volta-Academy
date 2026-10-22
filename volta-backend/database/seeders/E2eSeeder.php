@@ -155,6 +155,17 @@ class E2eSeeder extends Seeder
             }
         }
 
+        // Folder cu mai multe întrebări decât o pagină (50), pentru paginarea și căutarea pe server.
+        $large = QuestionBank::create(['title' => 'Folder mare', 'status' => 'published', 'created_by' => $admin->id]);
+        foreach (range(1, 60) as $n) {
+            Question::factory()->create([
+                'test_id' => null,
+                'question_bank_id' => $large->id,
+                'content' => "Întrebare din folderul mare nr. {$n}",
+                'order' => $n,
+            ]);
+        }
+
         // Fișiere media pentru fiecare proiect: unul nefolosit (se poate șterge) și unul inserat în
         // lecția 3 ca PDF (adresă cu id-ul fișierului), deci ștergerea lui trebuie refuzată.
         $lessonWithPdf = Lesson::where('course_id', $course->id)->where('order', 3)->first();

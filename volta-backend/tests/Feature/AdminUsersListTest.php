@@ -99,4 +99,30 @@ class AdminUsersListTest extends TestCase
         $response->assertJsonPath('0.email', 'ioana.georgescu@example.test');
         $response->assertJsonMissingPath('0.teams');
     }
+
+    public function test_users_are_paged_filtered_and_sorted_by_team_on_the_server(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Admin Root']);
+        $alpha = \App\Models\Team::create(['name' => 'Alfa', 'owner_id' => $admin->id]);
+        $zulu = \App\Models\Team::create(['name' => 'Zulu', 'owner_id' => $admin->id]);
+        $inZulu = User::factory()->create(['role' => 'student', 'name' => 'Ana Markerescu']);
+        $inAlpha = User::factory()->create(['role' => 'student', 'name' => 'Bogdan Markerescu']);
+        $inBoth = User::factory()->create(['role' => 'student', 'name' => 'Cristi Markerescu']);
+        $noTeam = User::factory()->create(['role' => 'student', 'name' => 'Dan Markerescu']);
+        $zulu->users()->attach([$inZulu->id, $inBoth->id]);
+        $alpha->users()->attach([$inAlpha->id, $inBoth->id]);
+        User::factory()->count(60)->create(['role' => 'student']);
+
+        $this->actingAs($admin, 'sanctum');
+
+        $page = $this->getJson('/api/admin/users?per_page=50&page=2&role=student&sort_by=name&sort_direction=asc')->assertOk();
+        $page->assertJsonPath('total', 64)->assertJsonPath('last_page', 2)->assertJsonCount(14, 'data');
+
+        $byTeam = collect($this->getJson('/api/admin/users?per_page=50&role=student&search=markerescu&sort_by=team&sort_direction=asc')->json('data'))
+            ->pluck('id')->all();
+        $this->assertCount(4, $byTeam);
+        $this->assertSame($noTeam->id, $byTeam[0]);
+        $this->assertSame($inZulu->id, $byTeam[3]);
+        $this->assertEqualsCanonicalizing([$inAlpha->id, $inBoth->id], [$byTeam[1], $byTeam[2]]);
+    }
 }

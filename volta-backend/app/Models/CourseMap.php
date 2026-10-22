@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesCoverThumbnail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CourseMap extends Model
 {
+    use GeneratesCoverThumbnail;
     use HasFactory;
+
+    /** Coloana copertei pentru miniatura din liste (GeneratesCoverThumbnail). */
+    public const COVER_COLUMN = 'cover_image_path';
 
     protected $fillable = [
         'name',

@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
 import { UploadSimple, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
+import CoverPhoto from '../components/ui/CoverPhoto';
 
 function formatBytes(n) {
 	if (n == null || Number.isNaN(Number(n))) return '—';
@@ -337,13 +338,7 @@ const LibraryPage = () => {
 												}}
 											>
 												{coverSrc ? (
-													<img
-														src={coverSrc}
-														alt=""
-														className="library-book-cover-photo"
-														loading="lazy"
-														decoding="async"
-													/>
+													<CoverPhoto url={coverSrc} className="library-book-cover-photo" />
 												) : null}
 												<div className="library-book-cover-shine" aria-hidden />
 												<div className="library-book-cover-grain" aria-hidden />

@@ -875,8 +875,9 @@ export const adminService = {
     return Array.isArray(data) ? data : (data?.data || []);
   },
   
-  getQuestionBank: async (id) => {
-    const response = await api.get(`/admin/question-banks/${id}`);
+  /** Detaliile folderului; întrebările doar cu `{ with_questions: 1 }` (builder-ul). */
+  getQuestionBank: async (id, params = {}) => {
+    const response = await api.get(`/admin/question-banks/${id}`, { params });
     return response.data;
   },
   
@@ -915,6 +916,12 @@ export const adminService = {
   
   getQuestionBankQuestions: async (bankId) => {
     const response = await api.get(`/admin/question-banks/${bankId}/questions`);
+    return response.data;
+  },
+
+  /** O pagină de întrebări (căutare și tip pe server) + rezumatul folderului în `stats`. */
+  getQuestionBankQuestionsPage: async (bankId, params = {}) => {
+    const response = await api.get(`/admin/question-banks/${bankId}/questions`, { params: { page: 1, per_page: 50, ...params } });
     return response.data;
   },
 
@@ -1043,6 +1050,12 @@ export const adminService = {
     // or plain array response
     const data = response.data;
     return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  /** O pagină de utilizatori (căutare, filtre și sortare pe server) cu `total` și `last_page`. */
+  getUsersPage: async (params = {}) => {
+    const response = await api.get('/admin/users', { params: { page: 1, per_page: 50, ...params } });
+    return response.data;
   },
   
   getUser: async (id) => {
@@ -1332,6 +1345,14 @@ export const adminService = {
 
   builderUpdateLesson: async (courseId, lessonId, lessonData) => {
     const response = await api.put(`/admin/courses/${courseId}/builder/lessons/${lessonId}`, lessonData);
+    return response.data;
+  },
+
+  /** Imagine din conținut fără curs (întrebări, lecții separate); se salvează ca fișier, nu base64. */
+  uploadContentImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/admin/content-images', formData);
     return response.data;
   },
 

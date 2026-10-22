@@ -252,12 +252,9 @@ const LessonTipTapEditor = ({
 				const result = await adminService.builderUploadContentFile(courseId, formData);
 				src = toImageUrl(result?.url || '') || result?.url || '';
 			} else {
-				src = await new Promise((resolve, reject) => {
-					const reader = new FileReader();
-					reader.onload = () => resolve(String(reader.result || ''));
-					reader.onerror = reject;
-					reader.readAsDataURL(file);
-				});
+				// fișier pe server, nu base64 în text (base64 umfla fiecare răspuns care include lecția)
+				const result = await adminService.uploadContentImage(file);
+				src = toImageUrl(result?.url || '') || result?.url || '';
 			}
 			if (src) {
 				editor.chain().focus().setImage({ src, alignment: 'center' }).run();

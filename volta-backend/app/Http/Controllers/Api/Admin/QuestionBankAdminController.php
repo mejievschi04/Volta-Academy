@@ -37,7 +37,8 @@ class QuestionBankAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = QuestionBank::with(['creator', 'questions'])
+        // Lista folosește doar contoarele: întrebările complete (până la zeci de mii) nu se mai trimit aici.
+        $query = QuestionBank::with(['creator:id,name'])
             ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count']);
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());
@@ -86,9 +87,14 @@ class QuestionBankAdminController extends Controller
     /**
      * Show question bank details
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $bank = QuestionBank::with(['creator', 'questions', 'tests'])
+        // Întrebările vin doar la cerere (builder-ul); pagina folderului le ia paginat din /questions.
+        $relations = ['creator:id,name', 'tests'];
+        if ($request->boolean('with_questions')) {
+            $relations[] = 'questions';
+        }
+        $bank = QuestionBank::with($relations)
             ->withCount(['questions', 'tests', 'starredQuestions as starred_questions_count'])
             ->findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
@@ -203,13 +209,47 @@ class QuestionBankAdminController extends Controller
     /**
      * Get questions from a question bank
      */
-    public function getQuestions($id)
+    public function getQuestions(Request $request, $id)
     {
-        $bank = QuestionBank::with('questions')->findOrFail($id);
+        $bank = QuestionBank::findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $bank->created_by !== (int) auth()->id()) {
             abort(403, 'Acces interzis.');
         }
-        return response()->json($bank->questions);
+
+        // Fără `page`: lista completă (builder, selectorul din examene), ca înainte.
+        if (! $request->filled('page')) {
+            return response()->json($bank->questions()->get());
+        }
+
+        $validated = $request->validate([
+            'page' => 'integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:200',
+            'search' => 'nullable|string|max:200',
+            'type' => 'nullable|string|max:50',
+        ]);
+
+        $query = $bank->questions();
+        if (! empty($validated['search'])) {
+            $query->whereRaw('LOWER(content) LIKE ?', ['%' . mb_strtolower(trim($validated['search'])) . '%']);
+        }
+        if (! empty($validated['type']) && $validated['type'] !== 'all') {
+            $query->where('type', $validated['type']);
+        }
+        $page = $query->paginate((int) ($validated['per_page'] ?? 50));
+
+        // Rezumatul folderului (toate întrebările, fără filtre) calculat în baza de date.
+        $totals = Question::where('question_bank_id', $bank->id)
+            ->selectRaw('COUNT(*) as total, COALESCE(SUM(points), 0) as points, SUM(CASE WHEN is_starred THEN 1 ELSE 0 END) as starred')
+            ->first();
+
+        return response()->json(array_merge($page->toArray(), [
+            'stats' => [
+                'total' => (int) $totals->total,
+                'starred' => (int) $totals->starred,
+                'points' => (float) $totals->points,
+                'types' => Question::where('question_bank_id', $bank->id)->distinct()->orderBy('type')->pluck('type')->filter()->values(),
+            ],
+        ]));
     }
 
     /**

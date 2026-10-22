@@ -150,7 +150,7 @@ const QuestionBankBuilder = () => {
 	const fetchBank = async () => {
 		try {
 			setLoading(true);
-			const bank = await adminService.getQuestionBank(id);
+			const bank = await adminService.getQuestionBank(id, { with_questions: 1 });
 			const data = bank.data || bank;
 			setBankData({
 				title: data.title || '',

@@ -10,6 +10,7 @@ import { toImageUrl } from '../utils/imageUrl';
 import { ImageSquare, LinkSimple, Plus, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import '../styles/guides-page.css';
+import CoverPhoto from '../components/ui/CoverPhoto';
 
 const COVER_PALETTES = [
 	{ a: '#0c4a6e', b: '#0d9488', accent: '#fcd34d', glow: 'rgba(250, 204, 21, 0.35)' },
@@ -250,13 +251,7 @@ const GuidesPage = () => {
 												}}
 											>
 												{coverSrc ? (
-													<img
-														src={coverSrc}
-														alt=""
-														className="library-book-cover-photo"
-														loading="lazy"
-														decoding="async"
-													/>
+													<CoverPhoto url={coverSrc} className="library-book-cover-photo" />
 												) : (
 													<span className="guides-cover-icon" aria-hidden>
 														<LinkSimple size={42} weight="duotone" />

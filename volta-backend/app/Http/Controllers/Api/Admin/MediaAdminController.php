@@ -6,11 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Lesson;
 use App\Models\MediaAsset;
+use App\Support\ImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class MediaAdminController extends Controller
 {
+    /**
+     * Imagine inserată în conținut fără curs (întrebări, lecții create separat). Conținutul o referă prin
+     * URL; înainte editoarele o salvau base64 în text și fiecare răspuns care îl includea creștea cu sute de KB.
+     */
+    public function uploadContentImage(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:jpeg,jpg,png,webp,gif|max:10240',
+        ]);
+
+        $path = ImageOptimizer::optimize($validated['file'])->store('content/images', 'public');
+
+        return response()->json([
+            'url' => '/storage/' . ltrim($path, '/'),
+            'path' => $path,
+        ], 201);
+    }
+
     public function index(Request $request)
     {
         $validated = $request->validate([

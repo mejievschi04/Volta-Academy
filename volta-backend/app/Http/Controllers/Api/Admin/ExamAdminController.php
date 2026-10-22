@@ -46,7 +46,7 @@ class ExamAdminController extends Controller
 
     public function index(Request $request)
     {
-        $query = Exam::with(['course'])->withCount('questions');
+        $query = Exam::with(['course:id,title'])->withCount('questions');
         if (auth()->user()->isInstructor()) {
             $uid = (int) auth()->id();
             $query->where(function ($q) use ($uid) {

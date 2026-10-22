@@ -3,6 +3,7 @@ import * as React from 'react';
 import { ArrowRight } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 import { toImageUrl } from '../../utils/imageUrl';
+import { useCoverImage } from '../../hooks/useCoverImage';
 import '../../assets/course-map-placeholder.svg';
 import './course-showcase-card.css';
 import { courseProgressLabel } from '../../utils/courseProgressLabel.js';
@@ -45,13 +46,10 @@ const CourseShowcaseCard = React.forwardRef(
 		ref
 	) => {
 		const resolved = React.useMemo(() => resolveCardImageUrl(imageUrl), [imageUrl]);
-		const [coverBroken, setCoverBroken] = React.useState(false);
+		// miniatura de 640 px, cu revenire la original și apoi la imaginea implicită
+		const cover = useCoverImage(resolved);
 
-		React.useEffect(() => {
-			setCoverBroken(false);
-		}, [resolved]);
-
-		const showUrl = resolved && !coverBroken ? resolved : COURSE_SHOWCASE_FALLBACK_IMAGE;
+		const showUrl = cover.src && !cover.failed ? cover.src : COURSE_SHOWCASE_FALLBACK_IMAGE;
 		const normalizedProgress = Number.isFinite(Number(progress))
 			? Math.min(100, Math.max(0, Number(progress)))
 			: null;
@@ -92,13 +90,14 @@ const CourseShowcaseCard = React.forwardRef(
 							style={{ backgroundImage: cssUrl(showUrl) }}
 							aria-hidden
 						/>
-						{resolved ? (
+						{cover.src ? (
 							<img
 								className="course-showcase-card__cover-probe"
-								src={resolved}
+								src={cover.src}
 								alt=""
+								loading="lazy"
 								decoding="async"
-								onError={() => setCoverBroken(true)}
+								onError={cover.onError}
 							/>
 						) : null}
 						<div className="course-showcase-card__shade" aria-hidden />

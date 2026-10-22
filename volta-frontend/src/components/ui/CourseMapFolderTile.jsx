@@ -1,6 +1,7 @@
 import React from 'react';
 import Folder from './Folder';
 import { toImageUrl } from '../../utils/imageUrl';
+import { useCoverImage } from '../../hooks/useCoverImage';
 import './CourseMapFolderTile.css';
 import { courseProgressLabel } from '../../utils/courseProgressLabel.js';
 
@@ -23,7 +24,8 @@ const CourseMapFolderTile = ({
 		? Math.min(100, Math.max(0, Number(progress)))
 		: null;
 	const courseCount = Number.isFinite(Number(count)) ? Number(count) : 0;
-	const folderImage = imageUrl ? toImageUrl(imageUrl) || imageUrl : null;
+	const cover = useCoverImage(imageUrl ? toImageUrl(imageUrl) || imageUrl : null);
+	const folderImage = cover.failed ? null : cover.src;
 	const classes = ['course-map-folder-tile', className].filter(Boolean).join(' ');
 	const tileStyle = { '--color-primary': color, ...style };
 	const itemNodes = [
@@ -59,7 +61,7 @@ const CourseMapFolderTile = ({
 						{courseCount} {courseCount === 1 ? 'curs' : 'cursuri'}
 					</span>
 					<div className="course-map-folder-tile__visual" aria-hidden>
-						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} coverFocus={coverFocus} interactive={false} />
+						<Folder size={2.72} color={color} items={itemNodes} frontImage={folderImage} onFrontImageError={cover.onError} coverFocus={coverFocus} interactive={false} />
 					</div>
 				</div>
 

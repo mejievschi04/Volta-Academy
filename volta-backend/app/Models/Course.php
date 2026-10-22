@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesCoverThumbnail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model; // <--- trebuie adăugat
 use App\Models\User; // pentru relația teacher
@@ -12,8 +13,12 @@ use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
+    use GeneratesCoverThumbnail;
     use HasFactory;
     use InvalidatesTutorKnowledgeCache;
+
+    /** Coloana copertei pentru miniatura din liste (GeneratesCoverThumbnail). */
+    public const COVER_COLUMN = 'image';
 
     protected $fillable = [
         'list_order',

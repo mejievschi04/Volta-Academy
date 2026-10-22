@@ -237,6 +237,7 @@ Route::middleware([
     // Media Library (Admin)
     Route::get('/media', [MediaAdminController::class, 'index']);
     Route::delete('/media/{id}', [MediaAdminController::class, 'destroy']);
+    Route::post('/content-images', [MediaAdminController::class, 'uploadContentImage']);
 
     // Course Builder (Admin) - orchestration endpoints for autosave & drag&drop
     Route::prefix('/courses/{courseId}/builder')->group(function () {

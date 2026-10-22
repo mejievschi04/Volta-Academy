@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('volta:backup')->hourly();
         $schedule->command('volta:remind-invitation-expiry')->hourly();
         $schedule->command('volta:compact-activity')->weeklyOn(0, '03:30');
+        $schedule->command('volta:generate-thumbnails')->dailyAt('03:00');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         // Nu există pagini web de login pe backend: vizitatorul neautentificat care deschide o rută

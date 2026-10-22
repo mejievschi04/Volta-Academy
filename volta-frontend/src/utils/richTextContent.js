@@ -102,7 +102,9 @@ export function normalizeRichTextMediaHtml(html) {
 		/(<img\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi,
 		(match, prefix, src, suffix) => {
 			const normalizedSrc = toImageUrl(src) || src;
-			return `${prefix}${normalizedSrc}${suffix}`;
+			const tag = `${prefix}${normalizedSrc}${suffix}`;
+			// imaginile din conținut se încarcă doar când ajung în ecran (doar la afișare, nu se salvează)
+			return /\bloading=/i.test(tag) ? tag : tag.replace(/^<img\b/i, '<img loading="lazy" decoding="async"');
 		},
 	);
 }

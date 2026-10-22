@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check } from '@phosphor-icons/react';
 import AdminUserInvitationsPanel from '../../components/admin/users/AdminUserInvitationsPanel';
@@ -12,7 +12,8 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import { teamAccent } from '../../utils/teamAccent';
-import { matchesDirectorySearch } from '../../utils/directorySearch';
+
+const USERS_PAGE_SIZE = 50;
 
 const AdminUsersPage = () => {
 	const navigate = useNavigate();
@@ -32,6 +33,10 @@ const AdminUsersPage = () => {
 	const [roleFilter, setRoleFilter] = useState('all');
 	const [statusFilter, setStatusFilter] = useState('all');
 	const [searchQuery, setSearchQuery] = useState('');
+	// Utilizatorii vin paginat: căutarea, filtrele și sortarea se fac pe server.
+	const [debouncedSearch, setDebouncedSearch] = useState('');
+	const [page, setPage] = useState(1);
+	const [pageInfo, setPageInfo] = useState({ last_page: 1, total: 0 });
 	const [usersView, setUsersView] = useState('active'); // 'active' | 'trash' | 'invitations'
 	const [confirmAction, setConfirmAction] = useState(null); // { type: 'trash'|'reject', userId }
 	const [confirmLoading, setConfirmLoading] = useState(false);
@@ -54,11 +59,19 @@ const AdminUsersPage = () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const params = { all: true };
+			const params = { page, per_page: USERS_PAGE_SIZE, sort_by: sortBy, sort_direction: sortOrder };
 			if (statusFilter !== 'all') params.status = statusFilter;
+			if (roleFilter !== 'all') params.role = roleFilter;
+			if (debouncedSearch) params.search = debouncedSearch;
 			if (usersView === 'trash') params.trashed = 1;
-			const data = await adminService.getUsers(params);
-			if (version === requestVersion.current) setUsers(Array.isArray(data) ? data : []);
+			const data = await adminService.getUsersPage(params);
+			if (version !== requestVersion.current) return;
+			if (data?.last_page && page > data.last_page) {
+				setPage(data.last_page);
+				return;
+			}
+			setUsers(Array.isArray(data?.data) ? data.data : []);
+			setPageInfo({ last_page: data?.last_page || 1, total: data?.total || 0 });
 		} catch (err) {
 			console.error('Error fetching users:', err);
 			if (version === requestVersion.current) setError('Nu s-au putut încărca utilizatorii');
@@ -68,7 +81,15 @@ const AdminUsersPage = () => {
                 setHasLoadedUsers(true);
             }
 		}
-	}, [statusFilter, usersView]);
+	}, [debouncedSearch, page, roleFilter, sortBy, sortOrder, statusFilter, usersView]);
+
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			setDebouncedSearch(searchQuery.trim());
+			setPage(1);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [searchQuery]);
 
 	const fetchTeams = useCallback(async () => {
 		try {
@@ -85,65 +106,10 @@ const AdminUsersPage = () => {
         fetchUsers();
     }, [fetchUsers, usersView]);
 
-	const filteredUsers = useMemo(() => {
-		let filtered = [...users];
-
-		// Filter by role
-		if (roleFilter !== 'all') {
-			filtered = filtered.filter(user => user.role === roleFilter);
-		}
-
-		// Filter by status (pending = cereri în așteptare)
-		if (statusFilter !== 'all') {
-			filtered = filtered.filter(user => (user.status || 'active') === statusFilter);
-		}
-
-		const query = searchQuery.trim();
-		if (query) {
-			filtered = filtered.filter((user) => matchesDirectorySearch(user, query));
-		}
-
-		// Sort
-		filtered.sort((a, b) => {
-			let aValue, bValue;
-
-			switch (sortBy) {
-				case 'team':
-					// Use first team name alphabetically or empty string if none
-					aValue = Array.isArray(a.teams) && a.teams.length > 0
-						? [...a.teams].map(t => (t?.name || '').toLowerCase()).sort()[0] || ''
-						: '';
-					bValue = Array.isArray(b.teams) && b.teams.length > 0
-						? [...b.teams].map(t => (t?.name || '').toLowerCase()).sort()[0] || ''
-						: '';
-					break;
-				case 'role':
-					aValue = a.role;
-					bValue = b.role;
-					break;
-				case 'name':
-					aValue = (a.name || '').toLowerCase();
-					bValue = (b.name || '').toLowerCase();
-					break;
-				case 'email':
-					aValue = (a.email || '').toLowerCase();
-					bValue = (b.email || '').toLowerCase();
-					break;
-				default:
-					return 0;
-			}
-
-			if (sortOrder === 'asc') {
-				return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-			} else {
-				return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-			}
-		});
-
-		return filtered;
-	}, [users, sortBy, sortOrder, roleFilter, statusFilter, searchQuery]);
+	const filteredUsers = users;
 
 	const handleSort = (field) => {
+		setPage(1);
 		if (sortBy === field) {
 			setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
 		} else {
@@ -384,7 +350,7 @@ const AdminUsersPage = () => {
 				<button
 					type="button"
 					className={`admin-users-view-tab ${usersView === 'active' ? 'active' : ''}`}
-					onClick={() => setUsersView('active')}
+					onClick={() => { setUsersView('active'); setPage(1); }}
 				>
 					Utilizatori
 				</button>
@@ -392,7 +358,7 @@ const AdminUsersPage = () => {
 					<button
 						type="button"
 						className={`admin-users-view-tab ${usersView === 'invitations' ? 'active' : ''}`}
-						onClick={() => setUsersView('invitations')}
+						onClick={() => { setUsersView('invitations'); setPage(1); }}
 					>
 						<EnvelopeSimple size={16} weight="duotone" aria-hidden />
 						Invitații
@@ -402,7 +368,7 @@ const AdminUsersPage = () => {
 					<button
 						type="button"
 						className={`admin-users-view-tab ${usersView === 'trash' ? 'active' : ''}`}
-						onClick={() => setUsersView('trash')}
+						onClick={() => { setUsersView('trash'); setPage(1); }}
 					>
 						Coș
 					</button>
@@ -434,7 +400,7 @@ const AdminUsersPage = () => {
 					<select
 						className="admin-users-filter-select"
 						value={statusFilter}
-						onChange={(e) => setStatusFilter(e.target.value)}
+						onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
 					>
 						<option value="all">Toți utilizatorii</option>
 						<option value="pending">Cereri în așteptare</option>
@@ -447,7 +413,7 @@ const AdminUsersPage = () => {
 					<select
 						className="admin-users-filter-select"
 						value={roleFilter}
-						onChange={(e) => setRoleFilter(e.target.value)}
+						onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
 					>
 						<option value="all">Toate</option>
 						<option value="student">Utilizatori</option>
@@ -685,6 +651,19 @@ const AdminUsersPage = () => {
 					</tbody>
 				</table>
 			</div>
+			{pageInfo.last_page > 1 ? (
+				<nav className="admin-activity-logs-pagination" aria-label="Pagini utilizatori">
+					<button type="button" className="lms-btn-secondary lms-btn-sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+						← Anterior
+					</button>
+					<span className="admin-activity-logs-pagination-info">
+						Pagina {page} din {pageInfo.last_page} ({pageInfo.total} utilizatori)
+					</span>
+					<button type="button" className="lms-btn-secondary lms-btn-sm" disabled={page >= pageInfo.last_page || loading} onClick={() => setPage((p) => p + 1)}>
+						Următor →
+					</button>
+				</nav>
+			) : null}
 
 			{/* Modal – componentă accesibilă (focus trap, Escape, ARIA) */}
 			<Modal

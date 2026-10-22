@@ -820,14 +820,10 @@ const RichTextEditor = ({ value, onChange, onBlur, placeholder, style, toolbarVa
 				restoreSelection();
 				insertImageByUrl(result?.url || '');
 			} else {
-				const dataUrl = await new Promise((resolve, reject) => {
-					const reader = new FileReader();
-					reader.onload = () => resolve(reader.result);
-					reader.onerror = reject;
-					reader.readAsDataURL(file);
-				});
+				// fișier pe server, nu base64 în text (base64 umfla fiecare răspuns care include întrebarea)
+				const result = await adminService.uploadContentImage(file);
 				restoreSelection();
-				insertImageByUrl(String(dataUrl || ''));
+				insertImageByUrl(result?.url || '');
 			}
 		} catch (error) {
 			logger.error('Error uploading image for editor:', error);

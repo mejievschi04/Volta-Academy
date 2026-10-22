@@ -51,7 +51,8 @@ class TestAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Test::with(['creator', 'questionBank'])->withCount(['questions', 'results']);
+        // în listă se afișează doar numele: fără rândurile complete ale autorului și ale folderului
+        $query = Test::with(['creator:id,name', 'questionBank:id,title'])->withCount(['questions', 'results']);
 
         if (auth()->user()->isInstructor()) {
             $query->where('created_by', auth()->id());

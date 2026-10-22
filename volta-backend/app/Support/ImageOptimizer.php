@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -19,6 +20,9 @@ class ImageOptimizer
     public const COVER_MAX = 1600;
 
     public const AVATAR_MAX = 512;
+
+    /** Miniatura copertelor din liste și carduri (`<nume>.thumb.webp` lângă original). */
+    public const THUMB_MAX = 640;
 
     private const QUALITY = 82;
 
@@ -112,6 +116,34 @@ class ImageOptimizer
         $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) ?: 'imagine';
 
         return new UploadedFile($output, $name . '.webp', 'image/webp', null, true);
+    }
+
+    /** Calea miniaturii pentru o copertă din discul public: `courses/a.webp` → `courses/a.thumb.webp`. */
+    public static function thumbnailPath(string $path): string
+    {
+        return preg_replace('/\.[A-Za-z0-9]+$/', '', $path) . '.thumb.webp';
+    }
+
+    /**
+     * Creează (sau recreează) miniatura unei coperte din discul public. Frontend-ul o cere după aceeași
+     * convenție de nume și revine la original dacă lipsește.
+     */
+    public static function makeThumbnail(?string $path): ?string
+    {
+        $path = ltrim(preg_replace('#^/?storage/#', '', (string) $path), '/');
+        $disk = Storage::disk('public');
+        if ($path === '' || str_contains($path, '://') || str_ends_with($path, '.thumb.webp')
+            || ! preg_match('/\.(jpe?g|png|webp)$/i', $path) || ! $disk->exists($path)) {
+            return null;
+        }
+
+        $source = new UploadedFile($disk->path($path), basename($path), $disk->mimeType($path) ?: null, null, true);
+        $thumb = self::optimize($source, self::THUMB_MAX);
+        $target = self::thumbnailPath($path);
+        // imaginea e deja mică: miniatura e o copie, ca frontend-ul să nu primească 404
+        $disk->put($target, file_get_contents($thumb->getRealPath()));
+
+        return $target;
     }
 
     /** Pozele de pe telefon sunt adesea salvate rotite, cu orientarea în EXIF; o aplicăm înainte de WebP. */
