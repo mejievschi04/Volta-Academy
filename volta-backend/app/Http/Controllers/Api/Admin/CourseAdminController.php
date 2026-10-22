@@ -631,7 +631,6 @@ class CourseAdminController extends Controller
                 return response()->json($published, 422);
             }
             $course = $published['course'] ?? $course->fresh();
-            $this->notifyStudentsCoursePublished($course, $previousStatus);
         }
 
         return response()->json([
@@ -879,24 +878,4 @@ class CourseAdminController extends Controller
 
     // Preview course (for admin / instructor)
     // Insights
-    private function notifyStudentsCoursePublished(Course $course, ?string $previousStatus): void
-    {
-        if (($previousStatus ?? '') === 'published' || ($course->status ?? '') !== 'published') {
-            return;
-        }
-
-        try {
-            $teamIds = $course->teams()->pluck('teams.id')->map(fn ($id) => (int) $id)->all();
-            app(\App\Services\NotificationService::class)->notifyCoursePublished(
-                $course,
-                $teamIds,
-                broadcastAllStudentsIfNoTargets: count($teamIds) === 0
-            );
-        } catch (\Throwable $e) {
-            \Log::warning('CourseAdminController: notifyCoursePublished failed', [
-                'course_id' => $course->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 }

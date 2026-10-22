@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Services\CourseProgressService;
@@ -568,6 +569,22 @@ class CourseProgressController extends Controller
             $existingProgress,
             $payload
         );
+
+        // Timpul de învățare intră și în statistici (ore pe perioadă, grafic pe ore) din aceeași cerere;
+        // înainte frontend-ul trimitea separat /telemetry/events la fiecare tick.
+        $addedSeconds = (int) ($validated['add_time_spent_seconds'] ?? 0);
+        if ($addedSeconds > 0) {
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'telemetry.learner_focus_seconds',
+                'model_type' => 'lesson',
+                'model_id' => (int) $lessonId,
+                'description' => 'Telemetry event: learner_focus_seconds',
+                'new_values' => ['seconds' => $addedSeconds, 'lesson_id' => (int) $lessonId],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
 
         return response()->json([
             'message' => 'Progres actualizat',

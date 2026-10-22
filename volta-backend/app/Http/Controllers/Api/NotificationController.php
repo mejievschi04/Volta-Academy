@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Admin\DashboardAdminController;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -29,15 +28,11 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         $user = $request->user();
+        // Doar notificările salvate: alertele calculate din dashboard (rată scăzută etc.) nu mai intră
+        // în clopoțel, iar recalcularea lor la fiecare poll încetinea zona de admin.
         $count = (int) Notification::where('user_id', $user->id)
             ->whereNull('read_at')
             ->count();
-
-        // Admin/analyst: include computed dashboard alerts not yet dismissed
-        if (in_array($user->role ?? '', ['admin', 'instructor', 'analyst'], true)) {
-            $alerts = app(DashboardAdminController::class)->filteredAlertsForUser($user);
-            $count += count($alerts);
-        }
 
         return response()->json(['count' => $count]);
     }

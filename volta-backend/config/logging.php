@@ -73,6 +73,15 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Separat de LOG_LEVEL (error în producție), ca cererile lente să ajungă în log.
+        'slow_requests' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/slow-requests.log'),
+            'level' => 'info',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

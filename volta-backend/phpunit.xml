@@ -28,5 +28,6 @@
         <env name="HUGGINGFACE_API_KEY" value="" force="true"/>
         <!-- Logurile din teste nu ajung în storage/logs/laravel.log al aplicației -->
         <env name="LOG_CHANNEL" value="null" force="true"/>
+        <env name="VOLTA_SLOW_REQUEST_MS" value="0" force="true"/>
     </php>
 </phpunit>

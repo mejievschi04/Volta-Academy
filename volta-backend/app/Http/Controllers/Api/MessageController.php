@@ -334,19 +334,6 @@ class MessageController extends Controller
             'last_message_at' => now(),
         ]);
 
-        try {
-            app(\App\Services\NotificationService::class)->notifyNewMessage(
-                $user,
-                $conversation->fresh(['participants']),
-                (string) $request->content
-            );
-        } catch (\Throwable $e) {
-            \Log::warning('MessageController::sendMessage notifyNewMessage failed', [
-                'conversation_id' => $conversationId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         return response()->json([
             'data' => [
                 'id' => $message->id,

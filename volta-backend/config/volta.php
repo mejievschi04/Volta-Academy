@@ -10,4 +10,7 @@ return [
     // Folderul backup-urilor LMS (baza de date + storage/app/public)
     'backup_root' => storage_path('app/lms-backups'),
 
+    // Cererile API mai lente de atât (ms) se scriu în storage/logs/slow-requests-*.log. 0 = oprit.
+    'slow_request_ms' => (int) env('VOLTA_SLOW_REQUEST_MS', 1000),
+
 ];

@@ -382,20 +382,6 @@ class CourseBuilderController extends Controller
         }
         $course = $published['course'] ?? $course->fresh();
 
-        $notifiedCount = 0;
-        try {
-            $notifiedCount = app(\App\Services\NotificationService::class)->notifyCoursePublished(
-                $course,
-                $teamIds,
-                broadcastAllStudentsIfNoTargets: count($teamIds) === 0
-            );
-        } catch (\Throwable $e) {
-            \Log::warning('CourseBuilderController::publish - notifyCoursePublished failed', [
-                'course_id' => $courseId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         ActivityLog::create([
             'user_id' => $request->user()?->id,
             'action' => 'builder.publish_course',
@@ -432,7 +418,6 @@ class CourseBuilderController extends Controller
         return response()->json([
             'ok' => true,
             'course' => $course->fresh(),
-            'notified_count' => $notifiedCount,
         ]);
     }
 

@@ -22,7 +22,7 @@ import { prefetchRoute } from './utils/prefetch';
 import { toImageUrl } from './utils/imageUrl';
 import { isStaffAdminRole } from './constants/staffRoles';
 import { BackButton } from './components/ui/ActionButtons';
-import { messagesService, adminService } from './services/api';
+import { useBadges, decrementBadge, refreshBadges } from './utils/badges';
 import {
 	BookOpenText,
 	Books,
@@ -267,11 +267,10 @@ function AuthenticatedLayout({ children, authContext }) {
 		return saved !== null ? saved === 'true' : false;
 	});
 	const [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
-	const [messagesUnreadCount, setMessagesUnreadCount] = React.useState(0);
-	const [pendingReviewCount, setPendingReviewCount] = React.useState(0);
-	const unreadPollingInFlightRef = React.useRef(false);
-	const unreadPollingFailuresRef = React.useRef(0);
-	const unreadPollingCooldownUntilRef = React.useRef(0);
+	// Contoarele vin din polling-ul comun /badges (un singur apel la 30 s pentru tot tab-ul).
+	const badges = useBadges(Boolean(user));
+	const messagesUnreadCount = badges.messages;
+	const pendingReviewCount = isStaffAdminRole(user?.actualRole) ? badges.pending_reviews : 0;
 
 	const prevShowUserLayoutRef = React.useRef(null);
 	React.useEffect(() => {
@@ -401,104 +400,15 @@ function AuthenticatedLayout({ children, authContext }) {
 		}
 	}, [location.pathname]);
 
-	const loadMessagesUnreadCount = React.useCallback(async () => {
-		if (!user) {
-			setMessagesUnreadCount(0);
-			return;
-		}
-
-		if (Date.now() < unreadPollingCooldownUntilRef.current) {
-			return;
-		}
-
-		// Avoid overlapping polls when backend is slow.
-		if (unreadPollingInFlightRef.current) {
-			return;
-		}
-		unreadPollingInFlightRef.current = true;
-
-		try {
-			const total = await messagesService.getUnreadCount();
-			setMessagesUnreadCount(Number.isFinite(Number(total)) ? Math.max(0, Number(total)) : 0);
-			unreadPollingFailuresRef.current = 0;
-		} catch (err) {
-			const status = err?.response?.status;
-			unreadPollingFailuresRef.current += 1;
-			if (status === 429 || unreadPollingFailuresRef.current >= 3) {
-				unreadPollingCooldownUntilRef.current = Date.now() + (status === 429 ? 120000 : 60000);
-				unreadPollingFailuresRef.current = 0;
-			}
-		} finally {
-			unreadPollingInFlightRef.current = false;
-		}
-	}, [user]);
-
-	React.useEffect(() => {
-		if (!user) {
-			setMessagesUnreadCount(0);
-			return;
-		}
-
-		let intervalId = null;
-		const syncUnreadPolling = () => {
-			if (intervalId) {
-				clearInterval(intervalId);
-				intervalId = null;
-			}
-
-			if (!document.hidden) {
-				loadMessagesUnreadCount();
-				intervalId = window.setInterval(loadMessagesUnreadCount, 30000);
-			}
-		};
-
-		syncUnreadPolling();
-		const handleVisibilityChange = () => syncUnreadPolling();
-		document.addEventListener('visibilitychange', handleVisibilityChange);
-
-		return () => {
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			if (intervalId) clearInterval(intervalId);
-		};
-	}, [loadMessagesUnreadCount, user]);
-
-	const loadPendingReviewCount = React.useCallback(async () => {
-		if (!user || !isStaffAdminRole(user?.actualRole)) {
-			setPendingReviewCount(0);
-			return;
-		}
-		try {
-			const [testCount, examCount] = await Promise.all([
-				adminService.getPendingTestReviewsCount(),
-				adminService.getPendingExamReviewsCount(),
-			]);
-			setPendingReviewCount(testCount + examCount);
-		} catch {
-			/* keep last count */
-		}
-	}, [user]);
-
-	React.useEffect(() => {
-		if (!user || !isStaffAdminRole(user?.actualRole)) {
-			setPendingReviewCount(0);
-			return;
-		}
-		loadPendingReviewCount();
-		const intervalId = window.setInterval(loadPendingReviewCount, 60000);
-		return () => clearInterval(intervalId);
-	}, [loadPendingReviewCount, user]);
-
 	React.useEffect(() => {
 		const handleConversationRead = () => {
-			setMessagesUnreadCount((current) => Math.max(0, current - 1));
-			window.setTimeout(() => {
-				loadMessagesUnreadCount();
-			}, 120);
+			decrementBadge('messages');
+			window.setTimeout(refreshBadges, 120);
 		};
 
 		window.addEventListener('volta:conversation-read', handleConversationRead);
 		return () => window.removeEventListener('volta:conversation-read', handleConversationRead);
-	}, [loadMessagesUnreadCount]);
+	}, []);
 	
 	// Track navigation context for messages page
 	React.useEffect(() => {

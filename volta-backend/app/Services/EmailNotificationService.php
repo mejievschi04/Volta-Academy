@@ -87,6 +87,11 @@ class EmailNotificationService
             return;
         }
 
+        $this->queueForUser($user, $subject, $body, $actionPath, $actionLabel);
+    }
+
+    private function queueForUser(User $user, string $subject, string $body, ?string $actionPath, string $actionLabel): void
+    {
         $email = trim((string) ($user->email ?? ''));
         if ($email === '' || ! $this->isActiveUser($user)) {
             return;
@@ -131,8 +136,9 @@ class EmailNotificationService
         }
         $users = $users->unique('id');
 
+        // Setarea e citită o singură dată (sendToUser ar interoga `settings` pentru fiecare destinatar).
         foreach ($users as $user) {
-            $this->sendToUser($user, $subject, $body, $actionPath, $actionLabel);
+            $this->queueForUser($user, $subject, $body, $actionPath, $actionLabel);
         }
     }
 }

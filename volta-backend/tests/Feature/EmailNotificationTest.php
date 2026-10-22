@@ -23,30 +23,23 @@ class EmailNotificationTest extends TestCase
         Setting::set('email_notifications', '1', 'boolean', 'Notificări email active');
     }
 
-    public function test_course_enrolled_does_not_notify_without_deadline(): void
+    public function test_course_assignment_notifies_student_even_without_deadline(): void
     {
-        if (! Schema::hasTable('notifications')) {
-            $this->markTestSkipped('notifications table missing');
-        }
-
         $student = User::factory()->create(['role' => 'student', 'email' => 'student@test.local']);
         $course = Course::factory()->published()->create(['title' => 'Laravel Basics']);
 
         app(NotificationService::class)->notifyCourseEnrolled($student, $course);
+        app(NotificationService::class)->notifyCourseEnrolled($student, $course);
 
-        Mail::assertNothingOutgoing();
-        $this->assertDatabaseMissing('notifications', [
-            'user_id' => $student->id,
-            'type' => 'course_deadline',
-        ]);
+        Mail::assertQueued(VoltaUserNotificationMail::class, 1);
+        $notification = \App\Models\Notification::where('user_id', $student->id)->sole();
+        $this->assertSame('course_assigned', $notification->type);
+        $this->assertSame('Curs nou atribuit', $notification->title);
+        $this->assertStringContainsString('Laravel Basics', $notification->description);
     }
 
-    public function test_course_deadline_reminder_sends_email_when_enabled(): void
+    public function test_course_assignment_mentions_the_deadline(): void
     {
-        if (! Schema::hasTable('notifications')) {
-            $this->markTestSkipped('notifications table missing');
-        }
-
         $student = User::factory()->create(['role' => 'student', 'email' => 'student@test.local']);
         $course = Course::factory()->published()->create(['title' => 'Laravel Basics']);
         $settings = is_array($course->settings) ? $course->settings : [];
@@ -58,7 +51,7 @@ class EmailNotificationTest extends TestCase
 
         Mail::assertQueued(VoltaUserNotificationMail::class, function (VoltaUserNotificationMail $mail) use ($student) {
             return $mail->hasTo($student->email)
-                && str_contains($mail->heading, 'Termenul');
+                && str_contains($mail->body, 'de finalizat până la');
         });
     }
 

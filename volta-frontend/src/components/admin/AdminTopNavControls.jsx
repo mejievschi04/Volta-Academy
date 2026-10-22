@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { adminService, notificationsService } from '../../services/api';
+import { notificationsService } from '../../services/api';
+import { useBadges } from '../../utils/badges';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminCalendarDrawer from './AdminCalendarDrawer';
@@ -17,18 +18,16 @@ const AdminTopNavControls = () => {
 	const [loading, setLoading] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [inboxTick, setInboxTick] = useState(0);
-	const [serverUnread, setServerUnread] = useState(0);
 	const location = useLocation();
-	const pollInFlightRef = useRef(false);
-	const pollCooldownUntilRef = useRef(0);
-	const pollFailuresRef = useRef(0);
 	const isAdminArea = location.pathname.startsWith('/admin');
+	const serverUnread = useBadges(isAdminArea).notifications;
 
 	const loadNotifications = useCallback(async () => {
 		try {
 			setLoading(true);
-			const data = await adminService.getDashboard({ period: 'month' });
-			setApiItems(Array.isArray(data?.notifications) ? data.notifications : []);
+			// Doar lista de notificări; înainte se încărca tot dashboard-ul (statistici grele) pentru ea.
+			const items = await notificationsService.list({ unread_only: 1, limit: 20 });
+			setApiItems(Array.isArray(items) ? items : []);
 		} catch (err) {
 			console.error('Error loading notifications:', err);
 			setApiItems([]);
@@ -36,45 +35,6 @@ const AdminTopNavControls = () => {
 			setLoading(false);
 		}
 	}, []);
-
-	const pollBadge = useCallback(async () => {
-		if (Date.now() < pollCooldownUntilRef.current) return;
-		if (pollInFlightRef.current) return;
-		pollInFlightRef.current = true;
-
-		try {
-			const count = await notificationsService.getUnreadCount();
-			setServerUnread(count);
-			pollFailuresRef.current = 0;
-		} catch (err) {
-			const status = err?.response?.status;
-			pollFailuresRef.current += 1;
-			if (status === 429 || pollFailuresRef.current >= 3) {
-				pollCooldownUntilRef.current = Date.now() + (status === 429 ? 120000 : 60000);
-				pollFailuresRef.current = 0;
-			}
-		} finally {
-			pollInFlightRef.current = false;
-		}
-	}, []);
-
-	useEffect(() => {
-		if (!isAdminArea) return;
-		pollBadge();
-	}, [isAdminArea, pollBadge]);
-
-	useEffect(() => {
-		if (!isAdminArea) return undefined;
-		const intervalId = window.setInterval(pollBadge, 30000);
-		const onVisibilityChange = () => {
-			if (!document.hidden) pollBadge();
-		};
-		document.addEventListener('visibilitychange', onVisibilityChange);
-		return () => {
-			window.clearInterval(intervalId);
-			document.removeEventListener('visibilitychange', onVisibilityChange);
-		};
-	}, [isAdminArea, pollBadge]);
 
 	useEffect(() => {
 		if (drawerOpen && isAdminArea) loadNotifications();

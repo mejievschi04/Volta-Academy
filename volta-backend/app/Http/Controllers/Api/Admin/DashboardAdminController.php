@@ -91,9 +91,8 @@ class DashboardAdminController extends Controller
                     ->all();
             }
 
-            // Notifications = stored + dashboard alerts (warning/info)
-            $notifications = array_merge($storedNotifications, $alerts);
-            usort($notifications, fn($a, $b) => strtotime($b['created_at'] ?? 0) - strtotime($a['created_at'] ?? 0));
+            // Clopoțelul primește doar notificările salvate; alertele rămân în secțiunea lor din dashboard.
+            $notifications = $storedNotifications;
 
             // Average test completion percentage across all students
             $avgTestCompletionPercentage = $shared['avg_test_completion_percentage'];
@@ -439,7 +438,8 @@ class DashboardAdminController extends Controller
                 ->get(['new_values']);
         }
 
-        $learningSessionsPeriod = $focusLogsPeriod->count();
+        // rândurile comprimate pe oră (volta:compact-activity) păstrează numărul de evenimente în `count`
+        $learningSessionsPeriod = $focusLogsPeriod->sum(fn ($log) => (int) (($log->new_values ?? [])['count'] ?? 1));
         $learningSecondsPeriod = $focusLogsPeriod->sum(
             fn ($log) => (int) (($log->new_values ?? [])['seconds'] ?? 0)
         );
@@ -664,11 +664,11 @@ class DashboardAdminController extends Controller
             ->whereBetween('created_at', [$start, $end])
             ->whereIn('user_id', $studentIds)
             ->where('action', StudentSessionLogger::ACTION)
-            ->get(['created_at', 'user_id']);
+            ->get(['created_at', 'user_id', 'new_values']);
 
         foreach ($logs as $log) {
             $h = (int) $log->created_at->format('G');
-            $sessionsByHour[$h]++;
+            $sessionsByHour[$h] += (int) (($log->new_values ?? [])['count'] ?? 1);
             if ($log->user_id) {
                 $usersByHour[$h][$log->user_id] = true;
             }
@@ -1304,18 +1304,6 @@ class DashboardAdminController extends Controller
             ->count();
 
         return round(($completed / $total) * 100, 1);
-    }
-
-    /**
-     * Computed dashboard alerts, minus those dismissed by this user.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function filteredAlertsForUser($user): array
-    {
-        $userId = is_object($user) ? (int) $user->id : (int) $user;
-
-        return AdminAlertController::filterDismissed($this->cachedAlerts(), $userId);
     }
 
     /**

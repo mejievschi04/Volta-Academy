@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('volta:backup')->hourly();
         $schedule->command('volta:remind-invitation-expiry')->hourly();
+        $schedule->command('volta:compact-activity')->weeklyOn(0, '03:30');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         // Nu există pagini web de login pe backend: vizitatorul neautentificat care deschide o rută
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Sanctum SPA: sesiune + CSRF doar pentru request-uri stateful (fără StartSession duplicat).
         $middleware->api(prepend: [
+            \App\Http\Middleware\LogSlowRequests::class,
             \App\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\EnsureFrontendRequestsAreStateful::class,

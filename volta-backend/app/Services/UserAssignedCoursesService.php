@@ -295,6 +295,9 @@ class UserAssignedCoursesService
         } else {
             $user->assignedCourses()->attach($course->id, $payload);
         }
+        if (! $existing || ! $existing->enrolled) {
+            app(NotificationService::class)->notifyCourseEnrolled($user, $course);
+        }
         $this->forgetUserCourseCaches($user);
     }
 

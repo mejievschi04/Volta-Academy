@@ -1,5 +1,6 @@
 import axios from "axios";
 import { logger } from "./utils/logger";
+import { withResponseCache, clearApiCache } from "./utils/apiResponseCache.js";
 
 // Get API URL from environment variable, fallback to proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
@@ -22,6 +23,9 @@ const api = axios.create({
     'Accept': 'application/json',
   },
 });
+
+api.defaults.adapter = withResponseCache(axios.getAdapter(axios.defaults.adapter));
+export { clearApiCache };
 
 /** Ultimul XSRF-TOKEN din document (dacă există duplicate, cel mai recent e de obicei ultimul). */
 export function readXsrfToken() {

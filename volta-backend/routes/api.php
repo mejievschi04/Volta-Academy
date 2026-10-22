@@ -131,6 +131,9 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     Route::get('/student/dashboard', [\App\Http\Controllers\Api\StudentDashboardController::class, 'index']);
     Route::get('/student/activity', [\App\Http\Controllers\Api\StudentActivityController::class, 'index']);
 
+    // Contoarele din bara de sus (notificări, mesaje, corectări) într-o singură cerere
+    Route::get('/badges', [\App\Http\Controllers\Api\BadgeController::class, 'index']);
+
     // In-app notifications (persisted)
     Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);

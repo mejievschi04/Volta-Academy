@@ -67,11 +67,15 @@ class UserAdminController extends Controller
             );
         }
 
-        $query->with($this->eagerLoadTeamsCoursesAssigned());
+        // Lista afișează doar echipele; cursurile complete per utilizator făceau răspunsul
+        // uriaș (timeout la `all=1`). Statisticile de mai jos vin din course_user.
+        $query->with(self::TEAMS_ADMIN_EAGER);
 
         // Sort
-        $sortBy = $request->get('sort_by', 'updated_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
+        $sortBy = in_array($request->get('sort_by'), ['name', 'email', 'role', 'status', 'created_at', 'updated_at'], true)
+            ? $request->get('sort_by')
+            : 'updated_at';
+        $sortDirection = $request->get('sort_direction') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortDirection);
         
         $moduleCounts = \App\Models\Module::query()

@@ -21,7 +21,13 @@ class TeamAdminController extends Controller
 
     public function index()
     {
-        $teams = Team::with(['owner', 'users', 'courses'])
+        // Listele (echipe, utilizatori, examene, publicare) folosesc doar aceste câmpuri;
+        // modelele complete făceau răspunsul de ordinul MB.
+        $teams = Team::with([
+            'owner:id,name',
+            'users:id,name,email,role,status',
+            'courses:id,title',
+        ])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

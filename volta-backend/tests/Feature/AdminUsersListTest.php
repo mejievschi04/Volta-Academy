@@ -24,6 +24,23 @@ class AdminUsersListTest extends TestCase
         $this->getJson('/api/admin/users')->assertOk()->assertJsonCount(15, 'data')->assertJsonPath('total', 21);
     }
 
+    public function test_list_returns_course_stats_without_full_course_relations(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = \App\Models\Course::factory()->create(['teacher_id' => $admin->id]);
+        $student->assignedCourses()->attach($course->id, ['enrolled' => true]);
+
+        $this->actingAs($admin, 'sanctum');
+        $row = collect($this->getJson('/api/admin/users?all=1')->assertOk()->json())
+            ->firstWhere('id', $student->id);
+
+        $this->assertSame(1, $row['total_courses']);
+        $this->assertArrayHasKey('teams', $row);
+        $this->assertArrayNotHasKey('assigned_courses', $row);
+        $this->assertArrayNotHasKey('courses', $row);
+    }
+
     public function test_search_finds_users_without_a_team_by_given_name_surname_or_email(): void
     {
         $admin = User::factory()->create([

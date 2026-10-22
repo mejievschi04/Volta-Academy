@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\Conversation;
 use App\Models\Course;
 use App\Models\Notification;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
 
+/**
+ * Notificările păstrate intenționat: curs atribuit (elev), curs finalizat (staff) și cerere de
+ * înregistrare (admin). Publicarea unui curs și mesajele din chat nu mai creează notificări.
+ */
 class NotificationService
 {
     public function __construct(
@@ -16,63 +18,7 @@ class NotificationService
     ) {}
 
     /**
-     * Notify students when a course is published.
-     *
-     * @param  bool  $broadcastAllStudentsIfNoTargets  When true (builder publish fără echipe), notifică toți studenții.
-     */
-    public function notifyCoursePublished(Course $course, array $teamIds = [], bool $broadcastAllStudentsIfNoTargets = false): int
-    {
-        if (! SchemaCache::hasTable('notifications')) {
-            return 0;
-        }
-
-        $userIds = $this->getTargetStudentIds($course, $teamIds, $broadcastAllStudentsIfNoTargets);
-        $count = 0;
-        $description = 'Cursul "' . $course->title . '" este acum disponibil.';
-        $title = 'Curs nou disponibil';
-        $actionUrl = '/courses/' . $course->id;
-        $notifiedUserIds = [];
-
-        foreach ($userIds as $userId) {
-            if ($this->hasRecentCoursePublishedNotification((int) $userId, (int) $course->id)) {
-                continue;
-            }
-
-            try {
-                Notification::create([
-                    'user_id' => $userId,
-                    'type' => 'course_published',
-                    'title' => $title,
-                    'description' => $description,
-                    'data' => ['course_id' => $course->id],
-                    'action_url' => $actionUrl,
-                    'severity' => 'info',
-                ]);
-                $count++;
-                $notifiedUserIds[] = (int) $userId;
-            } catch (\Throwable $e) {
-                \Log::warning('NotificationService::notifyCoursePublished failed for user ' . $userId, [
-                    'error' => $e->getMessage(),
-                    'course_id' => $course->id,
-                ]);
-            }
-        }
-
-        if ($notifiedUserIds !== []) {
-            $this->emailNotificationService->sendToMany(
-                User::whereIn('id', $notifiedUserIds)->get(),
-                $title,
-                $description,
-                $actionUrl,
-                'Vezi cursul'
-            );
-        }
-
-        return $count;
-    }
-
-    /**
-     * Notify a student when an assigned test/course deadline is approaching.
+     * Anunță elevul că i s-a atribuit un curs; termenul limită, dacă există, apare în text.
      */
     public function notifyCourseEnrolled(User $student, Course $course): void
     {
@@ -80,27 +26,24 @@ class NotificationService
             return;
         }
 
+        if ($this->hasRecentNotification($student->id, 'course_assigned', ['course_id' => $course->id])) {
+            return;
+        }
+
         $deadline = $this->resolveCourseDeadline($student, $course);
-        if (! $deadline) {
-            return;
-        }
-
-        if ($this->hasRecentNotification($student->id, 'course_deadline', ['course_id' => $course->id])) {
-            return;
-        }
-
-        $title = 'Termenul expiră';
-        $description = 'Cursul "' . $course->title . '" trebuie finalizat până la ' . $deadline . '.';
+        $title = 'Curs nou atribuit';
+        $description = 'Ți-a fost atribuit cursul "' . $course->title . '"'
+            . ($deadline ? ', de finalizat până la ' . $deadline . '.' : '.');
         $actionUrl = '/courses/' . $course->id;
 
         Notification::create([
             'user_id' => $student->id,
-            'type' => 'course_deadline',
+            'type' => 'course_assigned',
             'title' => $title,
             'description' => $description,
             'data' => ['course_id' => $course->id],
             'action_url' => $actionUrl,
-            'severity' => 'warning',
+            'severity' => $deadline ? 'warning' : 'info',
         ]);
 
         $this->emailNotificationService->sendToUser($student, $title, $description, $actionUrl, 'Deschide cursul');
@@ -117,62 +60,6 @@ class NotificationService
             return \Carbon\Carbon::parse($raw)->timezone(config('app.timezone'))->format('d.m.Y H:i');
         } catch (\Throwable) {
             return is_string($raw) ? $raw : null;
-        }
-    }
-
-    /**
-     * Notify conversation participants about a new message (except sender).
-     */
-    public function notifyNewMessage(User $sender, Conversation $conversation, string $preview): void
-    {
-        if (! SchemaCache::hasTable('notifications')) {
-            return;
-        }
-
-        $recipientIds = $conversation->participants()
-            ->where('users.id', '!=', $sender->id)
-            ->pluck('users.id')
-            ->all();
-
-        $title = $conversation->name
-            ? 'Mesaj nou în ' . $conversation->name
-            : 'Mesaj nou de la ' . $sender->name;
-
-        $previewText = mb_strlen($preview) > 120 ? mb_substr($preview, 0, 117) . '...' : $preview;
-        $actionUrl = '/messages?conversation=' . $conversation->id;
-        $emailRecipientIds = [];
-
-        foreach ($recipientIds as $recipientId) {
-            try {
-                Notification::create([
-                    'user_id' => $recipientId,
-                    'type' => 'new_message',
-                    'title' => $title,
-                    'description' => $previewText,
-                    'data' => [
-                        'conversation_id' => $conversation->id,
-                        'sender_id' => $sender->id,
-                    ],
-                    'action_url' => $actionUrl,
-                    'severity' => 'info',
-                ]);
-                $emailRecipientIds[] = (int) $recipientId;
-            } catch (\Throwable $e) {
-                \Log::warning('NotificationService::notifyNewMessage failed', [
-                    'recipient_id' => $recipientId,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        if ($emailRecipientIds !== []) {
-            $this->emailNotificationService->sendToMany(
-                User::whereIn('id', $emailRecipientIds)->get(),
-                $title,
-                $previewText,
-                $actionUrl,
-                'Citește mesajul'
-            );
         }
     }
 
@@ -253,70 +140,6 @@ class NotificationService
             $actionUrl,
             'Revizuiește cererea'
         );
-    }
-
-    /**
-     * @return array<int>
-     */
-    private function getTargetStudentIds(Course $course, array $teamIds, bool $broadcastAllStudentsIfNoTargets): array
-    {
-        $ids = [];
-
-        if (count($teamIds) > 0 && SchemaCache::hasTable('team_user')) {
-            $ids = array_merge($ids, DB::table('team_user')
-                ->whereIn('team_id', $teamIds)
-                ->join('users', 'team_user.user_id', '=', 'users.id')
-                ->where('users.role', 'student')
-                ->distinct()
-                ->pluck('team_user.user_id')
-                ->all());
-        }
-
-        if (SchemaCache::hasTable('course_user')) {
-            $enrolled = DB::table('course_user')
-                ->where('course_id', $course->id)
-                ->where('enrolled', true)
-                ->join('users', 'course_user.user_id', '=', 'users.id')
-                ->where('users.role', 'student')
-                ->pluck('course_user.user_id')
-                ->all();
-            $ids = array_merge($ids, $enrolled);
-        }
-
-        if (SchemaCache::hasTable('course_team') && SchemaCache::hasTable('team_user')) {
-            $courseTeamIds = DB::table('course_team')
-                ->where('course_id', $course->id)
-                ->pluck('team_id')
-                ->all();
-
-            if ($courseTeamIds !== []) {
-                $fromCourseTeams = DB::table('team_user')
-                    ->whereIn('team_id', $courseTeamIds)
-                    ->join('users', 'team_user.user_id', '=', 'users.id')
-                    ->where('users.role', 'student')
-                    ->distinct()
-                    ->pluck('team_user.user_id')
-                    ->all();
-                $ids = array_merge($ids, $fromCourseTeams);
-            }
-        }
-
-        $ids = array_values(array_unique(array_map('intval', $ids)));
-
-        if ($ids !== []) {
-            return $ids;
-        }
-
-        if ($broadcastAllStudentsIfNoTargets) {
-            return User::where('role', 'student')->pluck('id')->all();
-        }
-
-        return [];
-    }
-
-    private function hasRecentCoursePublishedNotification(int $userId, int $courseId): bool
-    {
-        return $this->hasRecentNotification($userId, 'course_published', ['course_id' => $courseId], days: 7);
     }
 
     private function hasRecentNotification(int $userId, string $type, array $dataMatch, int $days = 1): bool

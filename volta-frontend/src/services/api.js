@@ -152,7 +152,7 @@ export const telemetryService = {
         payload: payload || {},
         model_type: modelType,
         model_id: modelId,
-      });
+      }, { keepCache: true });
     } catch (e) {
       logger.debug('telemetry.track', e?.message || e);
     }
@@ -170,9 +170,9 @@ export const courseProgressService = {
     return response.data;
   },
   
-  updateLessonProgress: async (lessonId, progressData) => {
+  updateLessonProgress: async (lessonId, progressData, options = {}) => {
     // Update progress without marking as completed
-    const response = await api.put(`/lessons/${lessonId}/progress`, progressData);
+    const response = await api.put(`/lessons/${lessonId}/progress`, progressData, options);
     return response.data;
   },
   
@@ -216,7 +216,8 @@ export const examService = {
     const payload = { answers };
     if (courseId) payload.course_id = courseId;
     if (attemptId) payload.attempt_id = attemptId;
-    const response = await api.post(`/exams/${examId}/progress`, payload, { params: kind ? { kind } : {} });
+    // salvare automată în timpul examenului: nu golește cache-ul de citire
+    const response = await api.post(`/exams/${examId}/progress`, payload, { params: kind ? { kind } : {}, keepCache: true });
     return response.data;
   },
 };

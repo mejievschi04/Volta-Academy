@@ -8,6 +8,7 @@ use App\Models\CourseTest;
 use App\Models\Lesson;
 use App\Models\MediaAsset;
 use App\Models\Module;
+use App\Models\Notification;
 use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\Team;
@@ -36,6 +37,15 @@ class E2eSeeder extends Seeder
             'role' => 'admin',
             'status' => 'active',
             'must_change_password' => false,
+        ]);
+
+        // Clopoțelul adminului arată doar notificări salvate; una necitită pentru testele de notificări.
+        Notification::create([
+            'user_id' => $admin->id,
+            'type' => 'course_completed',
+            'title' => 'Curs finalizat',
+            'description' => 'Un cursant a finalizat un curs.',
+            'severity' => 'info',
         ]);
 
         // Câte un cursant pentru fiecare proiect Playwright (desktop, mobile): testele rulează pe aceeași

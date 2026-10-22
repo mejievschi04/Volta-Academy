@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { courseProgressService, telemetryService } from '../services/api';
+import { courseProgressService } from '../services/api';
+import { clearApiCache } from '../api';
 import { logger } from '../utils/logger';
 
-const FLUSH_INTERVAL_MS = 30000;
+const FLUSH_INTERVAL_MS = 60000;
 const MAX_DELTA_SEC = 120;
 
 /**
- * Trimite periodic timpul petrecut pe lecție la API:
- * - `lesson_progress.time_spent_seconds` (sursă pentru statistici / total ore)
- * - telemetrie `learner_focus_seconds` → ActivityLog (ore în perioadă, grafic pe ore)
+ * Trimite periodic (o cerere pe minut, plus la ieșire) timpul petrecut pe lecție. Serverul îl adaugă
+ * la `lesson_progress.time_spent_seconds` și îl înregistrează ca `learner_focus_seconds` pentru statistici.
  */
 export function useLessonTimeTracking(lessonId, { userId, isCompleted, enabled = true }) {
 	const lessonTickLastRef = useRef(null);
@@ -33,15 +33,12 @@ export function useLessonTimeTracking(lessonId, { userId, isCompleted, enabled =
 			const delta = Math.min(MAX_DELTA_SEC, Math.max(0, Math.round((now - last) / 1000)));
 			if (delta < 1) return;
 			try {
-				await courseProgressService.updateLessonProgress(lid, {
+				// fără golirea cache-ului de citire: e o scriere de fundal, nu o modificare făcută de utilizator
+				const result = await courseProgressService.updateLessonProgress(lid, {
 					add_time_spent_seconds: delta,
-				});
-				await telemetryService.track(
-					'learner_focus_seconds',
-					{ seconds: delta, lesson_id: lid },
-					'lesson',
-					lid
-				);
+				}, { keepCache: true });
+				// lecția s-a finalizat automat: progresul afișat din cache nu mai e valabil
+				if (result?.auto_completed) clearApiCache();
 			} catch (err) {
 				logger.debug('lesson time sync', err?.message || err);
 			}
