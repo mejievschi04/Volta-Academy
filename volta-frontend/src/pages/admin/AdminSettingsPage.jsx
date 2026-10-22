@@ -10,7 +10,8 @@ import ThemePreferenceControl from '../../components/ThemePreferenceControl';
 const AdminSettingsPage = () => {
 	const { canMutateInAdminArea } = useAuth();
 	const readOnly = !canMutateInAdminArea;
-	const { success, error: showError } = useToast();
+	const { success, error: showError, info: showInfo } = useToast();
+	const [exporting, setExporting] = useState(false);
 	const [settings, setSettings] = useState({
 		maintenance_mode: false,
 		registration_enabled: true,
@@ -79,9 +80,11 @@ const AdminSettingsPage = () => {
 	};
 
 	const handleExportData = async () => {
+		if (exporting) return;
+		setExporting(true);
 		try {
-			const data = await adminService.exportData();
-			const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+			showInfo('Exportul se pregătește pe server. Descărcarea pornește automat.');
+			const blob = await adminService.exportData();
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
@@ -94,6 +97,8 @@ const AdminSettingsPage = () => {
 		} catch (err) {
 			console.error('Error exporting data:', err);
 			showError('Eroare la exportarea datelor');
+		} finally {
+			setExporting(false);
 		}
 	};
 
@@ -364,6 +369,8 @@ const AdminSettingsPage = () => {
 								<button
 									className="admin-settings-action-btn"
 									onClick={handleExportData}
+									disabled={exporting}
+									aria-busy={exporting}
 								>
 									<span className="admin-settings-action-icon">📥</span>
 									<div className="admin-settings-action-content">

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { login, ADMIN_EMAIL } from './helpers.js';
 
@@ -277,4 +278,16 @@ test('setările examenului au secțiunile din builder-ul de test, iar încercăr
 	await expect(page.getByLabel('Încercări', { exact: true })).toHaveValue('3');
 	await expect(page.getByRole('switch', { name: 'Nelimitate' })).not.toBeChecked();
 	await expect(page.getByRole('switch', { name: /Amestecă întrebările/ })).toBeChecked();
+});
+
+test('exportul de date se generează pe server și se descarcă', async ({ page }) => {
+	await page.goto('/admin/settings');
+	await page.getByRole('button', { name: /Backup/ }).click();
+	const downloadPromise = page.waitForEvent('download');
+	await page.getByRole('button', { name: /Exportă Date/ }).click();
+	const download = await downloadPromise;
+	expect(download.suggestedFilename()).toMatch(/^volta-backup-\d{4}-\d{2}-\d{2}\.json$/);
+	const data = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+	expect(data.format_version).toBe(2);
+	expect(data.users.some((user) => user.email === 'admin@e2e.test')).toBe(true);
 });

@@ -1413,11 +1413,22 @@ export const adminService = {
   },
 
   // Export & Backup
-  exportData: async () => {
-    const response = await api.get('/admin/export', {
-      responseType: 'json',
-    });
-    return response.data;
+  /**
+   * Exportul se generează în coadă pe server: pornește, verifică statusul la 2 s și întoarce fișierul (Blob).
+   */
+  exportData: async ({ pollMs = 2000, timeoutMs = 10 * 60_000 } = {}) => {
+    const started = await api.post('/admin/export');
+    const exportId = started.data?.id;
+    const deadline = Date.now() + timeoutMs;
+    let status = started.data?.status;
+    while (status !== 'ready') {
+      if (status === 'failed') throw new Error('Exportul nu a putut fi generat.');
+      if (Date.now() > deadline) throw new Error('Exportul durează prea mult. Încearcă din nou mai târziu.');
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+      status = (await api.get(`/admin/export/${exportId}`)).data?.status;
+    }
+    const file = await api.get(`/admin/export/${exportId}/download`, { responseType: 'blob', timeout: 5 * 60_000 });
+    return file.data;
   },
   
   // System

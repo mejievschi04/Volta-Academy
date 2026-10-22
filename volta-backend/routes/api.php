@@ -394,7 +394,10 @@ Route::middleware([
     Route::put('/settings', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'update']);
     
     // Admin System
-    Route::get('/export', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'export']);
+    // Exportul JSON se generează în coadă: start → status → descărcare
+    Route::post('/export', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'startExport']);
+    Route::get('/export/{exportId}', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'exportStatus']);
+    Route::get('/export/{exportId}/download', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'downloadExport']);
     Route::post('/system/clear-cache', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'clearCache']);
     Route::post('/import', [\App\Http\Controllers\Api\Admin\SettingsController::class, 'importBackup']);
     

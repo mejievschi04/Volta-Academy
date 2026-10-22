@@ -17,6 +17,10 @@ use App\Models\ContentBlock;
 use App\Models\Question;
 use App\Models\CourseTest;
 use Illuminate\Http\Request;
+use App\Support\SchemaCache;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use App\Jobs\GenerateDataExportJob;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
@@ -107,31 +111,45 @@ class SettingsController extends Controller
     /**
      * Export all data
      */
-    public function export()
+    /** Pornește exportul JSON în coadă; pagina urmărește statusul și descarcă fișierul când e gata. */
+    public function startExport(Request $request)
     {
-        $data = [
-            'format_version' => 2,
-            'backup_complete' => false,
-            'backup_scope' => 'partial_settings_export',
-            'missing' => [
-                'storage_files',
-                'media_binaries',
-                'full_test_results',
-                'message_threads',
-            ],
-            'warning' => 'Acest export nu este un backup LMS complet. Pentru recuperare folosiți dump-ul bazei de date și copia storage.',
-            'export_date' => now()->toISOString(),
-            'users' => User::with(['teams', 'courses'])->get(),
-            'courses' => Course::with(['modules.lessons.contentBlocks', 'lessons.contentBlocks', 'teacher', 'courseTests.test.questions'])->get(),
-            'teams' => Team::with(['users', 'courses', 'owner'])->get(),
-            'events' => Event::with(['instructor'])->get(),
-            'exams' => Exam::with(['course', 'questions.answers'])->get(),
-            'tests' => Test::with(['questions'])->get(),
-            'activity_logs' => ActivityLog::with(['user'])->latest()->limit(1000)->get(),
-            'settings' => Setting::all(),
-        ];
+        $exportId = (string) Str::uuid();
+        $userId = (int) $request->user()->id;
+        GenerateDataExportJob::writeStatus($exportId, 'pending', $userId);
+        GenerateDataExportJob::dispatch($exportId, $userId);
 
-        return response()->json($data);
+        return response()->json(['id' => $exportId, 'status' => $this->exportStatusFor($exportId, $userId)], 202);
+    }
+
+    public function exportStatus(Request $request, string $exportId)
+    {
+        $status = $this->exportStatusFor($exportId, (int) $request->user()->id);
+        abort_if($status === null, 404);
+
+        return response()->json(['id' => $exportId, 'status' => $status]);
+    }
+
+    public function downloadExport(Request $request, string $exportId)
+    {
+        abort_unless($this->exportStatusFor($exportId, (int) $request->user()->id) === 'ready', 404);
+
+        return Storage::disk('local')->download(
+            GenerateDataExportJob::path($exportId),
+            'volta-backup-' . now()->format('Y-m-d') . '.json',
+            ['Content-Type' => 'application/json']
+        );
+    }
+
+    /** Statusul unui export, doar pentru cel care l-a pornit. */
+    private function exportStatusFor(string $exportId, int $userId): ?string
+    {
+        if (! Str::isUuid($exportId)) {
+            return null;
+        }
+        $entry = GenerateDataExportJob::readStatus($exportId);
+
+        return is_array($entry) && (int) ($entry['user_id'] ?? 0) === $userId ? (string) $entry['status'] : null;
     }
 
     /**
@@ -381,6 +399,10 @@ class SettingsController extends Controller
 
     private function persistById(string $class, $id, array $attrs)
     {
+        // Exportul include relații goale (ex. `instructor: null`) și atribute calculate (`image_url`):
+        // doar coloanele reale ale tabelului ajung în insert.
+        $table = (new $class)->getTable();
+        $attrs = array_filter($attrs, fn ($key) => SchemaCache::hasColumn($table, (string) $key), ARRAY_FILTER_USE_KEY);
         $attrs['id'] = $id;
 
         return $class::updateOrCreate(['id' => $id], $attrs);
