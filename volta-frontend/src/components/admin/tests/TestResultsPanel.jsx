@@ -388,13 +388,31 @@ export default function TestResultsPanel({
 				</div>
 			</Modal>
 
-			<Modal isOpen={Boolean(breakdownTarget)} onClose={closeBreakdown} ariaLabelledby="admin-test-breakdown-modal-title">
+			<Modal
+				isOpen={Boolean(breakdownTarget)}
+				onClose={closeBreakdown}
+				ariaLabelledby="admin-test-breakdown-modal-title"
+				closeOnBackdropClick
+				closeOnEscape
+				className="admin-test-breakdown-overlay"
+				contentClassName="admin-test-breakdown-dialog"
+			>
 				<div className="admin-test-results-modal admin-test-breakdown-modal">
-					<h3 id="admin-test-breakdown-modal-title">Detalii încercare</h3>
-					<p className="admin-test-results-modal-sub">
-						{breakdownTarget?.user?.name || breakdownTarget?.user?.email || 'Utilizator'} · încercarea #{breakdownTarget?.attempt_number ?? '—'}
-						{breakdownTarget?.percentage != null ? ` · ${breakdownTarget.percentage}%` : ''}
-					</p>
+					<header className="admin-test-breakdown-head">
+						<div>
+							<span className="admin-test-breakdown-kicker">Rezultatul evaluării</span>
+							<h3 id="admin-test-breakdown-modal-title">Detalii încercare</h3>
+							<p className="admin-test-results-modal-sub">
+								{breakdownTarget?.user?.name || breakdownTarget?.user?.email || 'Utilizator'} · încercarea #{breakdownTarget?.attempt_number ?? '—'}
+							</p>
+						</div>
+						{breakdownTarget?.percentage != null ? (
+							<div className="admin-test-breakdown-score">
+								<span>Scor total</span>
+								<strong>{breakdownTarget.percentage}%</strong>
+							</div>
+						) : null}
+					</header>
 					{breakdownLoading ? (
 						<div className="admin-test-results-empty">Se încarcă răspunsurile…</div>
 					) : (

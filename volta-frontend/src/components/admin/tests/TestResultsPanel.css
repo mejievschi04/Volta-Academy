@@ -294,3 +294,144 @@
 	font-weight: 800;
 	font-size: 0.82rem;
 }
+
+/* Shared attempt-details modal used by both test results and statistics. */
+.admin-test-breakdown-overlay {
+	background: rgba(9, 15, 28, 0.72) !important;
+	backdrop-filter: blur(10px);
+	padding: clamp(10px, 3vh, 28px) clamp(10px, 3vw, 32px) !important;
+}
+
+.va-modal-content.admin-test-breakdown-dialog {
+	width: min(1080px, calc(100vw - 32px));
+	max-width: none !important;
+	max-height: min(90vh, 900px) !important;
+	padding: clamp(16px, 2.4vw, 28px);
+	border: 1px solid var(--border-primary);
+	border-radius: 22px;
+	background: linear-gradient(145deg, color-mix(in srgb, var(--bg-elevated) 94%, var(--color-brand-primary)), var(--bg-elevated) 42%);
+	box-shadow: 0 28px 90px rgba(8, 13, 26, 0.34);
+	overflow: hidden;
+}
+
+.admin-test-breakdown-modal {
+	width: 100%;
+	min-width: 0;
+	max-height: calc(min(90vh, 900px) - 56px);
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	gap: 16px;
+}
+
+.admin-test-breakdown-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-test-breakdown-kicker {
+	color: var(--text-tertiary);
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.admin-test-breakdown-head h3 {
+	margin: 4px 0 5px;
+	font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+	letter-spacing: -0.035em;
+}
+
+.admin-test-breakdown-score {
+	display: grid;
+	gap: 2px;
+	min-width: 112px;
+	padding: 10px 15px;
+	border: 1px solid color-mix(in srgb, var(--color-success) 28%, var(--border-primary));
+	border-radius: 16px;
+	background: color-mix(in srgb, var(--color-success) 9%, var(--bg-elevated));
+	text-align: center;
+}
+
+.admin-test-breakdown-score span {
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-weight: 700;
+}
+
+.admin-test-breakdown-score strong {
+	color: var(--color-success);
+	font-size: 1.45rem;
+	line-height: 1.1;
+}
+
+.admin-test-breakdown-modal > .admin-test-breakdown-list {
+	min-height: 0;
+	max-height: none;
+	padding: 2px 8px 4px 2px;
+	overscroll-behavior: contain;
+}
+
+.admin-test-breakdown-modal .admin-test-breakdown-row {
+	padding: 15px 17px;
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--bg-primary) 50%, var(--bg-elevated));
+	box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+}
+
+.admin-test-breakdown-modal .admin-test-breakdown-question {
+	font-size: 0.98rem;
+	line-height: 1.5;
+}
+
+.admin-test-breakdown-modal .admin-test-breakdown-answer {
+	margin: 8px 0 0 22px;
+	padding: 9px 11px;
+	border-radius: 10px;
+	background: var(--bg-secondary);
+	line-height: 1.5;
+	word-break: break-word;
+}
+
+.admin-test-breakdown-modal .admin-test-results-modal-actions {
+	padding-top: 12px;
+	border-top: 1px solid var(--border-primary);
+}
+
+.admin-test-breakdown-modal .admin-test-results-modal-actions button {
+	min-width: 112px;
+	min-height: 40px;
+	border-radius: 11px;
+	font-weight: 750;
+}
+
+@media (max-width: 640px) {
+	.va-modal-content.admin-test-breakdown-dialog {
+		width: calc(100vw - 20px);
+		max-height: calc(100dvh - 20px) !important;
+		padding: 14px;
+		border-radius: 17px;
+	}
+
+	.admin-test-breakdown-modal {
+		max-height: calc(100dvh - 48px);
+		gap: 12px;
+	}
+
+	.admin-test-breakdown-head {
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.admin-test-breakdown-score {
+		min-width: 82px;
+		padding: 8px 10px;
+	}
+
+	.admin-test-breakdown-modal .admin-test-breakdown-row {
+		padding: 12px;
+	}
+}

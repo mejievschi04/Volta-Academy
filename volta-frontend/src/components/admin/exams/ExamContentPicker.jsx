@@ -552,7 +552,7 @@ export default function ExamContentPicker({
                       className="admin-form-input"
                       type="number"
                       min={1}
-                      max={Math.max(1, selectedIds.length || 1)}
+                      max={200}
                       value={examSettings.questionCount}
                       onChange={(e) => setExamSettings((prev) => ({
                         ...prev,

@@ -142,6 +142,7 @@ class ExamAdminController extends Controller
             'passing_score' => $exam->passing_score ?? 70,
             'time_limit_minutes' => $exam->time_limit_minutes,
             'max_attempts' => $exam->max_attempts,
+            'question_count' => (int) ($settings['question_count'] ?? $questions->count()),
             'is_required' => (bool) $exam->is_required,
             'questions' => $questions,
         ]);

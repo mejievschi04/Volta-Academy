@@ -127,7 +127,7 @@ export default function AdminExamsPage() {
   const [accessTeamsLoading, setAccessTeamsLoading] = useState(false);
   const [accessTeamsError, setAccessTeamsError] = useState('');
   const [openTeamId, setOpenTeamId] = useState(null);
-  const [manualReviewState, setManualReviewState] = useState({ reviewMode: 'after_complete' });
+  const [manualReviewState, setManualReviewState] = useState({ reviewMode: '' });
   const [statisticsQuestionRows, setStatisticsQuestionRows] = useState([]);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
   const [statisticsTab, setStatisticsTab] = useState('students');
@@ -179,6 +179,10 @@ export default function AdminExamsPage() {
 
   const deleteConfirmTitle = deleteConfirmExam?.title || 'Examen';
   const previewQuestionCount = Array.isArray(previewData?.questions) ? previewData.questions.length : 0;
+  const previewStudentQuestionCount = Math.min(
+    previewQuestionCount,
+    Math.max(0, Number(previewData?.question_count || 0)),
+  );
   const activeBuilderSection = EXAM_BUILDER_SECTIONS.find((section) => section.id === activeSection) || EXAM_BUILDER_SECTIONS[0];
   const renderBuilderSectionIcon = (sectionId) => {
     const props = { size: 17, 'aria-hidden': true };
@@ -323,7 +327,7 @@ export default function AdminExamsPage() {
       selectedStudents: Array.isArray(settings.selected_students) ? settings.selected_students.map((id) => Number(id)).filter(Boolean) : [],
     });
     setSelectedQuestionItems([]);
-    setManualReviewState({ reviewMode: item?.settings?.manual_review_mode || 'after_complete' });
+    setManualReviewState({ reviewMode: item?.settings?.manual_review ? (item?.settings?.manual_review_mode || 'after_complete') : '' });
     setPublished(String(item?.status || 'draft').toLowerCase() === 'published');
     setSaveState({ loading: false, message: '', type: '' });
     setViewMode('create');
@@ -416,7 +420,7 @@ export default function AdminExamsPage() {
           shuffle_questions: Boolean(examSettings.shuffleQuestions), manual_review: Boolean(examSettings.manualReview),
           show_feedback_instant: Boolean(examSettings.showFeedbackInstant), show_correct_answers: Boolean(examSettings.showCorrectAnswers),
           show_only_submitted_answers: Boolean(examSettings.showOnlySubmittedAnswers),
-          manual_review_mode: manualReviewState.reviewMode, navigation_mode: examSettings.navigationMode,
+          manual_review_mode: examSettings.manualReview ? (manualReviewState.reviewMode || 'after_complete') : null, navigation_mode: examSettings.navigationMode,
           deadline_flexible: Boolean(examSettings.deadlineFlexible),
           deadline_type: examSettings.deadlineType,
           deadline_at: examSettings.deadlineType === 'fixed' && examSettings.deadlineAt ? new Date(examSettings.deadlineAt).toISOString() : null,
@@ -914,8 +918,10 @@ export default function AdminExamsPage() {
                 id="exam-review-mode"
                 className="va-ts__input"
                 value={manualReviewState.reviewMode}
+                disabled={!examSettings.manualReview}
                 onChange={(e) => setManualReviewState((prev) => ({ ...prev, reviewMode: e.target.value }))}
               >
+                <option value="">Alege modul de verificare</option>
                 <option value="after_complete">După finalizare</option>
                 <option value="partial">Parțial</option>
               </select>
@@ -937,7 +943,14 @@ export default function AdminExamsPage() {
                     type="checkbox"
                     role="switch"
                     checked={Boolean(examSettings[key])}
-                    onChange={(e) => patchExamSettings({ [key]: e.target.checked })}
+                    onChange={(e) => {
+                      patchExamSettings({ [key]: e.target.checked });
+                      if (key === 'manualReview' && !e.target.checked) {
+                        setManualReviewState((prev) => ({ ...prev, reviewMode: '' }));
+                      } else if (key === 'manualReview' && e.target.checked) {
+                        setManualReviewState((prev) => ({ ...prev, reviewMode: prev.reviewMode || 'after_complete' }));
+                      }
+                    }}
                   />
                   <span className="va-ts__switch-track" aria-hidden="true" />
                 </span>
@@ -1415,17 +1428,24 @@ export default function AdminExamsPage() {
         </form>
       </Modal>
       {showPreviewModal ? (
-        <div className="admin-exams-create-modal-overlay">
-          <div className="admin-exams-content-modal admin-exams-preview-modal" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          isOpen
+          onClose={() => setShowPreviewModal(false)}
+          closeOnBackdropClick
+          closeOnEscape
+          ariaLabelledby="admin-exams-preview-title"
+          contentClassName="admin-exams-content-modal admin-exams-preview-modal"
+          className="admin-exams-preview-overlay"
+        >
             <div className="admin-exams-content-modal-head">
               <div>
-                <span className="admin-exams-content-subtitle">Verifici exact cum se vede pentru elev.</span>
-                <h3>Previzualizare examen</h3>
+                <span className="admin-exams-content-subtitle">Banca examenului și selecția pentru elev</span>
+                <h3 id="admin-exams-preview-title">Previzualizare examen</h3>
               </div>
               {previewData ? (
-                <div className="admin-exams-content-mode-option">
-                  <span>Întrebări</span>
-                  <strong>{previewQuestionCount}</strong>
+                <div className="admin-exams-preview-counts">
+                  <div><span>În banca examenului</span><strong>{previewQuestionCount}</strong></div>
+                  <div><span>Primește fiecare elev</span><strong>{previewStudentQuestionCount}</strong></div>
                 </div>
               ) : null}
             </div>
@@ -1469,8 +1489,7 @@ export default function AdminExamsPage() {
             <div className="admin-exams-create-modal-actions admin-exams-content-modal-actions">
               <button type="button" className="cancel" onClick={() => setShowPreviewModal(false)}>Închide</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       ) : null}
     </>
   );
