@@ -1187,6 +1187,9 @@ class ExamAdminController extends Controller
         if (array_key_exists('deadline_flexible', $settings)) {
             $settings['deadline_flexible'] = (bool) $settings['deadline_flexible'];
         }
+        if (array_key_exists('shuffle_answers', $settings)) {
+            $settings['shuffle_answers'] = (bool) $settings['shuffle_answers'];
+        }
 
         if ($mode === 'questions') {
             $poolSize = count($settings['question_ids']);

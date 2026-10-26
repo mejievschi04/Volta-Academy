@@ -1336,8 +1336,9 @@ class ExamController extends Controller
         $session = $viewingCompleted
             ? $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed)
             : $this->examAttemptSessionService->ensure($exam, $user, $attemptNumberForSeed);
+        // Încercarea în curs arată variantele amestecate; rezultatul salvat folosește ordinea originală.
         $attemptQuestions = $session
-            ? $this->examAttemptSessionService->questions($session)
+            ? $this->examAttemptSessionService->questions($session, ! $viewingCompleted)
             : null;
 
         $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed, $attemptQuestions);
@@ -1969,6 +1970,9 @@ class ExamController extends Controller
         $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
         $session = $openSession ?: $this->examAttemptSessionService->ensure($exam, $user, $nextAttempt);
         $attemptQuestions = $this->examAttemptSessionService->questions($session);
+        if (is_array($answers)) {
+            $answers = $this->examAttemptSessionService->toStoredAnswerIndices($session, $answers);
+        }
         $hasManualQuestions = $attemptQuestions->contains(function ($q) use ($autoGradableTypes) {
             return ! in_array((string) ($q->question_type ?? 'multiple_choice'), $autoGradableTypes, true);
         });

@@ -43,6 +43,7 @@ const DEFAULT_SETTINGS = {
   description: '',
   instructions: '',
   shuffleQuestions: false,
+  shuffleAnswers: false,
   manualReview: false,
   showFeedbackInstant: false,
   showCorrectAnswers: false,
@@ -298,7 +299,7 @@ export default function AdminExamsPage() {
       title: item?.title || '', description: item?.description || '', instructions: item?.settings?.instructions || '',
       attempts: item?.max_attempts == null ? '' : Number(item.max_attempts), passingScore: Number(item?.passing_score ?? 0) || 0,
       timeLimitMinutes: item?.time_limit_minutes ? Number(item.time_limit_minutes) : '',
-      shuffleQuestions: Boolean(item?.settings?.shuffle_questions), manualReview: Boolean(item?.settings?.manual_review),
+      shuffleQuestions: Boolean(item?.settings?.shuffle_questions), shuffleAnswers: Boolean(item?.settings?.shuffle_answers), manualReview: Boolean(item?.settings?.manual_review),
       showFeedbackInstant: Boolean(item?.settings?.show_feedback_instant), showCorrectAnswers: Boolean(item?.settings?.show_correct_answers),
       showOnlySubmittedAnswers: Boolean(item?.settings?.show_only_submitted_answers),
       navigationMode: item?.settings?.navigation_mode || 'sequential',
@@ -417,7 +418,7 @@ export default function AdminExamsPage() {
         is_required: Boolean(effectivePublished),
         status: effectivePublished ? 'published' : 'draft',
         settings: {
-          shuffle_questions: Boolean(examSettings.shuffleQuestions), manual_review: Boolean(examSettings.manualReview),
+          shuffle_questions: Boolean(examSettings.shuffleQuestions), shuffle_answers: Boolean(examSettings.shuffleAnswers), manual_review: Boolean(examSettings.manualReview),
           show_feedback_instant: Boolean(examSettings.showFeedbackInstant), show_correct_answers: Boolean(examSettings.showCorrectAnswers),
           show_only_submitted_answers: Boolean(examSettings.showOnlySubmittedAnswers),
           manual_review_mode: examSettings.manualReview ? (manualReviewState.reviewMode || 'after_complete') : null, navigation_mode: examSettings.navigationMode,
@@ -930,6 +931,7 @@ export default function AdminExamsPage() {
           <div className="va-ts__toggles">
             {[
               ['shuffleQuestions', 'Amestecă întrebările', 'Ordinea întrebărilor diferă la fiecare încercare.'],
+              ['shuffleAnswers', 'Amestecă răspunsurile', 'Variantele apar în altă ordine la fiecare încercare.'],
               ['manualReview', 'Necesită verificare manuală', 'Rezultatul rămâne în așteptare până la corectare.'],
               ['showFeedbackInstant', 'Arată rezultatul imediat', 'Elevul vede scorul imediat după trimitere.'],
             ].map(([key, label, hint]) => (

@@ -242,6 +242,69 @@ class ExamQuestionFlowTest extends TestCase
         $this->assertEqualsCanonicalizing($firstIds, $secondIds);
     }
 
+    public function test_shuffle_answers_changes_option_order_but_grades_and_stores_original_indices(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $exam = Exam::create([
+            'title' => 'Examen cu variante amestecate',
+            'status' => 'published',
+            'course_id' => null,
+            'passing_score' => 50,
+            'max_attempts' => 2,
+            'settings' => [
+                'shuffle_answers' => true,
+                'access_mode' => 'all_students',
+                'manual_review' => false,
+            ],
+        ]);
+
+        $options = ['Corect', 'Unu', 'Doi', 'Trei', 'Patru', 'Cinci'];
+        foreach (range(1, 4) as $qIndex) {
+            $question = ExamQuestion::create([
+                'exam_id' => $exam->id,
+                'question_text' => "Intrebare {$qIndex}",
+                'question_type' => 'single_choice',
+                'points' => 1,
+                'order' => $qIndex,
+            ]);
+            foreach ($options as $order => $text) {
+                ExamAnswer::create([
+                    'exam_question_id' => $question->id,
+                    'answer_text' => $text,
+                    'is_correct' => $order === 0,
+                    'order' => $order,
+                ]);
+            }
+        }
+
+        $shown = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertOk()->json('questions');
+        $this->assertCount(4, $shown);
+        $this->assertTrue(
+            collect($shown)->contains(fn ($q) => $q['options'] !== $options),
+            'Amestecarea trebuie să schimbe ordinea variantelor.'
+        );
+        foreach ($shown as $q) {
+            $this->assertEqualsCanonicalizing($options, $q['options']);
+        }
+
+        $again = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertOk()->json('questions');
+        $this->assertSame(array_column($shown, 'options'), array_column($again, 'options'));
+
+        $answers = [];
+        foreach ($shown as $q) {
+            $answers[(string) $q['id']] = array_search('Corect', $q['options'], true);
+        }
+
+        $submit = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$exam->id}/submit", [
+            'answers' => $answers,
+        ]);
+        $submit->assertOk();
+        $this->assertSame(100.0, (float) $submit->json('result.percentage'));
+        foreach ($submit->json('result.answers') as $stored) {
+            $this->assertSame(0, (int) $stored, 'Rezultatul păstrează indicii din ordinea originală.');
+        }
+    }
+
     public function test_unshuffled_exam_keeps_saved_question_order(): void
     {
         $student = User::factory()->create(['role' => 'student']);

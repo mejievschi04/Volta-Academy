@@ -56,7 +56,7 @@ class ExamAttemptSessionService
                     'exam_id' => $exam->id,
                     'user_id' => $user->id,
                     'attempt_number' => $attemptNumber,
-                    'question_snapshot' => $this->snapshot($picked),
+                    'question_snapshot' => $this->snapshot($picked, $this->answerSeed($exam, (int) $user->id, $attemptNumber)),
                     'answers' => [],
                     'started_at' => $startedAt,
                     'expires_at' => $minutes > 0 ? $startedAt->copy()->addMinutes($minutes) : null,
@@ -90,9 +90,13 @@ class ExamAttemptSessionService
         return $started ? Carbon::parse($started) : null;
     }
 
-    public function questions(ExamAttemptSession $session): Collection
+    /**
+     * Întrebările încercării. Variantele vin în ordinea salvată a examenului; cu $displayOrder
+     * vin în ordinea amestecată pe care o vede elevul (indicii trimiși de el se raportează la ea).
+     */
+    public function questions(ExamAttemptSession $session, bool $displayOrder = false): Collection
     {
-        return collect($session->question_snapshot ?? [])->map(function (array $row) {
+        return collect($session->question_snapshot ?? [])->map(function (array $row) use ($displayOrder) {
             $question = new ExamQuestion();
             $question->forceFill([
                 'id' => (int) ($row['id'] ?? 0),
@@ -118,18 +122,84 @@ class ExamAttemptSessionService
 
                 return $model;
             })->values();
+            if ($displayOrder) {
+                $answers = $this->applyAnswerOrder($answers, $row['answer_order'] ?? null);
+            }
             $question->setRelation('answers', $answers);
 
             return $question;
         })->filter(fn (ExamQuestion $question) => (int) $question->id > 0)->values();
     }
 
-    protected function snapshot(Collection $questions): array
+    /**
+     * Traduce indicii variantelor din ordinea afișată în ordinea salvată a examenului,
+     * ca rezultatul, corectarea manuală și revizuirea să rămână pe ordinea originală.
+     */
+    public function toStoredAnswerIndices(ExamAttemptSession $session, array $answers): array
     {
-        return $questions->map(function (ExamQuestion $question) {
+        foreach ($session->question_snapshot ?? [] as $row) {
+            $order = $row['answer_order'] ?? null;
+            if (! is_array($order) || $order === []) {
+                continue;
+            }
+            $key = array_key_exists((int) ($row['id'] ?? 0), $answers) ? (int) $row['id'] : (string) ($row['id'] ?? '');
+            if (! array_key_exists($key, $answers)) {
+                continue;
+            }
+
+            $storedIndexById = [];
+            foreach (array_values($row['answers'] ?? []) as $index => $answer) {
+                $storedIndexById[(int) ($answer['id'] ?? 0)] = $index;
+            }
+            $map = static function ($displayIndex) use ($order, $storedIndexById) {
+                if (! is_numeric($displayIndex) || ! isset($order[(int) $displayIndex])) {
+                    return $displayIndex;
+                }
+
+                return $storedIndexById[(int) $order[(int) $displayIndex]] ?? $displayIndex;
+            };
+
+            $value = $answers[$key];
+            if (is_array($value) && array_is_list($value)) {
+                $answers[$key] = array_map($map, $value);
+            } elseif (is_int($value) || (is_string($value) && ctype_digit($value))) {
+                $answers[$key] = $map($value);
+            }
+        }
+
+        return $answers;
+    }
+
+    protected function applyAnswerOrder(Collection $answers, mixed $order): Collection
+    {
+        if (! is_array($order) || $order === []) {
+            return $answers;
+        }
+        $position = array_flip(array_map('intval', $order));
+
+        return $answers
+            ->sortBy(fn (ExamAnswer $answer) => $position[(int) $answer->id] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    protected function answerSeed(Exam $exam, int $userId, int $attemptNumber): ?string
+    {
+        $settings = is_array($exam->settings) ? $exam->settings : [];
+
+        return (bool) ($settings['shuffle_answers'] ?? false)
+            ? 'exam-a:' . $exam->id . ':u' . $userId . ':a' . max(1, $attemptNumber)
+            : null;
+    }
+
+    protected function snapshot(Collection $questions, ?string $answerSeed = null): array
+    {
+        return $questions->map(function (ExamQuestion $question) use ($answerSeed) {
             $answers = $question->relationLoaded('answers')
                 ? $question->answers
                 : $question->answers()->get();
+            $shuffle = $answerSeed !== null
+                && in_array((string) $question->question_type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
+                && count($answers) > 1;
 
             return [
                 'id' => (int) $question->id,
@@ -145,6 +215,13 @@ class ExamAttemptSessionService
                     'is_correct' => (bool) $answer->is_correct,
                     'order' => (int) $answer->order,
                 ])->values()->all(),
+                'answer_order' => $shuffle
+                    ? collect($answers)
+                        ->sortBy(fn ($answer) => hash('sha1', $answerSeed . ':q' . $question->id . ':a' . $answer->id))
+                        ->map(fn ($answer) => (int) $answer->id)
+                        ->values()
+                        ->all()
+                    : null,
             ];
         })->values()->all();
     }
