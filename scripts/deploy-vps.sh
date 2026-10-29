@@ -58,6 +58,9 @@ sleep 8
 echo ">>> migrații"
 "${COMPOSE[@]}" exec -T backend php artisan migrate --force
 
+echo ">>> pozele deja salvate devin WebP comprimat"
+"${COMPOSE[@]}" exec -T backend php artisan volta:recompress-images
+
 echo ">>> cache Laravel (după deploy)"
 "${COMPOSE[@]}" exec -T backend php artisan optimize:clear
 "${COMPOSE[@]}" exec -T backend php artisan config:cache

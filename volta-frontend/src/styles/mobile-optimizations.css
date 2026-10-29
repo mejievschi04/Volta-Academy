@@ -2889,9 +2889,9 @@
 	}
 
 	.lessons-page-sidebar-back-btn {
-		min-height: 34px;
-		padding: var(--space-1) var(--space-2);
-		font-size: 0.75rem !important;
+		min-height: 44px !important;
+		padding: var(--space-2) var(--space-3);
+		font-size: 0.875rem !important;
 	}
 
 	.lessons-page-sidebar-close-btn {
@@ -2903,29 +2903,29 @@
 
 	/* Sidebar - și mai mic pe ecrane foarte mici */
 	.lessons-page-sidebar-module-header {
-		padding: var(--space-1) var(--space-2) !important;
-		min-height: 34px;
+		padding: var(--space-2) var(--space-3) !important;
+		min-height: 44px !important;
 	}
 
 	.lessons-page-sidebar-module-number {
-		width: 18px !important;
-		height: 18px !important;
-		font-size: 0.65rem !important;
+		width: 22px !important;
+		height: 22px !important;
+		font-size: 0.75rem !important;
 	}
 
 	.lessons-page-sidebar-module-title {
-		font-size: 0.7rem !important;
+		font-size: 0.875rem !important;
 	}
 
 	.lessons-page-sidebar-lesson {
-		padding: var(--space-1) var(--space-2) !important;
-		min-height: 32px;
-		font-size: 0.7rem !important;
+		padding: var(--space-2) var(--space-3) !important;
+		min-height: 44px !important;
+		font-size: 0.875rem !important;
 	}
 
 	.lessons-page-sidebar-lesson-title {
-		font-size: 0.7rem;
-		line-height: 1.3 !important;
+		font-size: 0.875rem;
+		line-height: 1.35 !important;
 	}
 
 	.lessons-page-sidebar-lesson-icon {
@@ -2952,15 +2952,20 @@
 
 	.lessons-page-sidebar-tests-section .lessons-page-sidebar-lesson,
 	.lessons-page-sidebar-test {
-		padding: var(--space-1) var(--space-2) !important;
-		min-height: 32px;
-		font-size: 0.7rem !important;
+		padding: var(--space-2) var(--space-3) !important;
+		min-height: 44px !important;
+		font-size: 0.875rem !important;
 	}
 
 	.lessons-page-sidebar-tests-header {
-		font-size: 0.6rem !important;
+		font-size: 0.75rem !important;
 		margin-bottom: var(--space-1);
 		padding: 0 var(--space-2) !important;
+	}
+
+	.lessons-page-sidebar-tests-hint {
+		font-size: 0.8125rem !important;
+		line-height: 1.4;
 	}
 
 	.lessons-page-sidebar-content {
@@ -4387,13 +4392,14 @@
 		min-width: 0;
 		min-height: 64px;
 		padding: 10px 6px !important;
-		font-size: 11px !important;
+		font-size: 13px !important;
 	}
 
 	.va-shell .courses-page-student .courses-page-student-filter-label {
-		font-size: 10px;
-		white-space: normal;
-		text-wrap: balance;
+		font-size: 13px;
+		line-height: 1.2;
+		white-space: nowrap;
+		text-wrap: unset;
 	}
 
 	.va-shell .courses-page-student .courses-page-empty {
@@ -4428,6 +4434,11 @@
 
 /* Thumb-friendly primary navigation with space reserved for the home indicator. */
 @media (max-width: 768px) {
+	html:has(.student-mobile-tabs),
+	body:has(.student-mobile-tabs) {
+		height: 100%;
+		overflow: hidden;
+	}
 	html:has(.student-mobile-tabs) {
 		--student-tab-height: calc(68px + env(safe-area-inset-bottom, 0px));
 	}
@@ -4546,6 +4557,25 @@
 
 	.va-shell-topnav:has(.student-mobile-tabs) .events-page-header {
 		margin-bottom: var(--space-3);
+	}
+
+	.student-more-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 980;
+		border: 0;
+		padding: 0;
+		background: rgba(15, 23, 42, 0.4);
+		cursor: pointer;
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .admin-topnav-notification-btn {
+		width: 44px;
+		height: 44px;
+	}
+
+	html body .student-settings-save-btn.student-settings-save-btn {
+		min-height: 44px !important;
 	}
 
 	.student-mobile-tabs {
@@ -4763,7 +4793,15 @@
 	.va-shell .lessons-page-lesson-viewer {
 		padding-bottom: 72px;
 	}
-	.va-shell .lesson-page-actions .lesson-page-btn { padding: 10px 8px; font-size: 14px; }
+	.va-shell .lesson-page-actions .lesson-page-btn,
+	.va-shell .lessons-page-lesson-actions .lessons-page-nav-btn,
+	.va-shell .lessons-page-lesson-actions .lessons-page-lesson-cta {
+		padding: 10px 8px;
+		font-size: 13px;
+		white-space: nowrap;
+		min-height: 48px;
+		max-height: 48px;
+	}
 
 	.lesson-block-pdf-embed {
 		height: min(360px, 50dvh) !important;

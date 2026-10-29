@@ -580,7 +580,7 @@ function AuthenticatedLayout({ children, authContext }) {
 			return pathname === item.path || pathname.startsWith(`${item.path}/`);
 		});
 		if (navMatch) return navMatch.label;
-		if (pathname.startsWith('/lessons') || /\/lesson(s)?(\/|$)/.test(pathname)) return 'Lecții';
+		if (pathname.startsWith('/lessons') || /\/lesson(s)?(\/|$)/.test(pathname) || /^\/courses\/[^/]+$/.test(pathname)) return 'Lecții';
 		if (pathname.startsWith('/monthly-tests')) return 'Teste lunare';
 		if (pathname.startsWith('/exam-results')) return 'Rezultate teste';
 		if (pathname.startsWith('/library')) return 'Bibliotecă';
@@ -1286,6 +1286,14 @@ function AuthenticatedLayout({ children, authContext }) {
 						</div>
 					</header>
 
+					{isMobile && moreMenuOpen ? (
+						<button
+							type="button"
+							className="student-more-menu-backdrop"
+							aria-label="Închide meniul"
+							onClick={() => setMoreMenuOpen(false)}
+						/>
+					) : null}
 					{isMobile && (
 						<nav className="student-mobile-tabs" aria-label="Navigare principală">
 							{navItems.filter((item) => item.path !== '/profile').map((item) => (

@@ -1632,21 +1632,19 @@ html body .va-profile-section-admin-courses .va-course-card-actions > a + button
 		flex-basis: 100%;
 	}
 
-	/* pe telefon filtrele stau pe un rând și se derulează lateral */
 	.va-up-tabs {
-		flex-wrap: nowrap;
-		margin-right: -16px;
-		padding-right: 16px;
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-
-	.va-up-tabs::-webkit-scrollbar {
-		display: none;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		margin-right: 0;
+		padding-right: 0;
+		overflow: visible;
 	}
 
 	.va-up-tab {
-		flex-shrink: 0;
+		min-width: 0;
+		width: 100%;
+		min-height: 44px !important;
+		justify-content: space-between;
 	}
 
 	.va-up-grid {
@@ -1678,7 +1676,7 @@ html body .va-profile-section-admin-courses .va-course-card-actions > a + button
 	display: inline-flex !important;
 	align-items: center;
 	justify-content: center;
-	min-height: 36px !important;
+	min-height: 44px !important;
 	height: auto !important;
 	padding: 0 14px !important;
 	font-size: 0.85rem !important;

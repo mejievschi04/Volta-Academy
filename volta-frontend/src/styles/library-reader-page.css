@@ -274,6 +274,7 @@
 	color: var(--text-primary);
 	line-height: 1.7;
 	font-size: 1rem;
+	overflow-wrap: anywhere;
 }
 
 .library-reader-article-body img {

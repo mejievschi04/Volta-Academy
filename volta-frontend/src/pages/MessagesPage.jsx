@@ -38,6 +38,7 @@ const MessagesPage = () => {
 	const [newConversationUserIds, setNewConversationUserIds] = useState([]);
 	const [newConversationSearch, setNewConversationSearch] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
+	const [pickedUsers, setPickedUsers] = useState([]);
 	const [loadingUsers, setLoadingUsers] = useState(false);
 	const [showParticipantsModal, setShowParticipantsModal] = useState(false);
 	const [groupParticipants, setGroupParticipants] = useState([]);
@@ -617,6 +618,7 @@ const MessagesPage = () => {
 			setNewGroupName('');
 			setNewConversationUserId('');
 			setNewConversationUserIds([]);
+			setPickedUsers([]);
 			setNewConversationSearch('');
 			setAvailableUsers([]);
 			showToast('Conversație creată', 'success');
@@ -647,17 +649,32 @@ const MessagesPage = () => {
 	};
 
 	const handleSelectUser = (userId) => {
+		const sameId = (id) => String(id) === String(userId);
+		const picked = availableUsers.find((item) => sameId(item.id));
 		if (newConversationType === 'group') {
 			setNewConversationUserIds((prev) => (
-				prev.includes(userId)
-					? prev.filter((id) => id !== userId)
+				prev.some(sameId)
+					? prev.filter((id) => !sameId(id))
 					: [...prev, userId]
+			));
+			setPickedUsers((prev) => (
+				prev.some((item) => sameId(item.id))
+					? prev.filter((item) => !sameId(item.id))
+					: (picked ? [...prev, picked] : prev)
 			));
 		} else {
 			setNewConversationUserId(userId);
+			if (picked) setPickedUsers([picked]);
 		}
 		setNewConversationSearch('');
 		setAvailableUsers([]);
+	};
+
+	const removePickedUser = (userId) => {
+		const sameId = (id) => String(id) === String(userId);
+		setNewConversationUserIds((prev) => prev.filter((id) => !sameId(id)));
+		setPickedUsers((prev) => prev.filter((item) => !sameId(item.id)));
+		if (sameId(newConversationUserId)) setNewConversationUserId('');
 	};
 
 
@@ -1077,6 +1094,7 @@ const MessagesPage = () => {
 								<button
 									type="submit"
 									className="messages-chat-send-btn"
+									aria-label={sending ? 'Se trimite mesajul' : 'Trimite mesajul'}
 									disabled={!newMessage.trim() || sending}
 								>
 									{sending ? <CircleNotch size={16} weight="bold" aria-hidden /> : <PaperPlaneTilt size={16} weight="fill" aria-hidden />}
@@ -1109,6 +1127,7 @@ const MessagesPage = () => {
 									setNewGroupName('');
 									setNewConversationUserId('');
 									setNewConversationUserIds([]);
+									setPickedUsers([]);
 									setNewConversationSearch('');
 									setAvailableUsers([]);
 								}}
@@ -1125,6 +1144,7 @@ const MessagesPage = () => {
 									onClick={() => {
 										setNewConversationType('direct');
 										setNewConversationUserIds([]);
+										setPickedUsers([]);
 										setNewGroupName('');
 									}}
 								>
@@ -1136,6 +1156,7 @@ const MessagesPage = () => {
 									onClick={() => {
 										setNewConversationType('group');
 										setNewConversationUserId('');
+										setPickedUsers([]);
 									}}
 								>
 									Grup
@@ -1154,9 +1175,10 @@ const MessagesPage = () => {
 							<div style={{ position: 'relative' }}>
 								<input
 									type="text"
-									placeholder={newConversationType === 'group'
-										? 'Caută participanți pentru grup...'
-										: 'Caută utilizator după nume sau email...'}
+									placeholder="Nume sau email"
+									aria-label={newConversationType === 'group'
+										? 'Caută participanți pentru grup, după nume sau email'
+										: 'Caută utilizator după nume sau email'}
 									className="messages-modal-input"
 									value={newConversationSearch}
 									onChange={(e) => handleSearchUsers(e.target.value)}
@@ -1178,13 +1200,15 @@ const MessagesPage = () => {
 							{availableUsers.length > 0 && (
 								<div className="messages-users-list">
 									{availableUsers.map((user) => (
-										<div
+										<button
+											type="button"
 											key={user.id}
 											className={`messages-user-item ${
 												newConversationType === 'group'
 													? (newConversationUserIds.includes(user.id) ? 'selected' : '')
 													: (newConversationUserId == user.id ? 'selected' : '')
 											}`}
+											aria-label={`${user.name}, ${user.email}`}
 											onClick={() => handleSelectUser(user.id)}
 										>
 											<div className="messages-user-avatar">
@@ -1210,7 +1234,7 @@ const MessagesPage = () => {
 													<Check size={14} weight="bold" aria-hidden />
 												</div>
 											)}
-										</div>
+										</button>
 									))}
 								</div>
 							)}
@@ -1235,19 +1259,23 @@ const MessagesPage = () => {
 									fontSize: 'var(--font-size-sm)',
 									color: 'var(--text-secondary)'
 								}}>
-									Utilizator selectat: {availableUsers.find(u => u.id == newConversationUserId)?.name || 'ID: ' + newConversationUserId}
+									Utilizator selectat: {pickedUsers.find((item) => String(item.id) === String(newConversationUserId))?.name || 'Utilizator'}
 								</div>
 							)}
-							{newConversationType === 'group' && newConversationUserIds.length > 0 && (
-								<div style={{ 
-									marginTop: 'var(--space-3)',
-									padding: 'var(--space-2)',
-									background: 'var(--bg-tertiary)',
-									borderRadius: 'var(--radius-md)',
-									fontSize: 'var(--font-size-sm)',
-									color: 'var(--text-secondary)'
-								}}>
-									Participanți selectați: {newConversationUserIds.length}
+							{newConversationType === 'group' && pickedUsers.length > 0 && (
+								<div className="messages-picked-users">
+									{pickedUsers.map((person) => (
+										<button
+											type="button"
+											key={person.id}
+											className="messages-picked-user"
+											onClick={() => removePickedUser(person.id)}
+											aria-label={`Elimină ${person.name}`}
+										>
+											<span>{person.name}</span>
+											<X size={14} weight="bold" aria-hidden />
+										</button>
+									))}
 								</div>
 							)}
 						</div>
@@ -1260,6 +1288,7 @@ const MessagesPage = () => {
 									setNewGroupName('');
 									setNewConversationUserId('');
 									setNewConversationUserIds([]);
+									setPickedUsers([]);
 									setNewConversationSearch('');
 									setAvailableUsers([]);
 								}}

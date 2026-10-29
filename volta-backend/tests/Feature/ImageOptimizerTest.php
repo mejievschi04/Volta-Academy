@@ -92,4 +92,30 @@ class ImageOptimizerTest extends TestCase
         [$width] = getimagesize(Storage::disk('public')->path($asset->path));
         $this->assertSame(2000, $width);
     }
+
+    public function test_a_stored_png_is_replaced_by_a_smaller_webp(): void
+    {
+        Storage::fake('public');
+        $png = $this->photo(1400, 900, 'png');
+        $path = 'course-map-covers/veche.png';
+        Storage::disk('public')->put($path, file_get_contents($png->getRealPath()));
+
+        $result = ImageOptimizer::recompressStored($path, ImageOptimizer::COVER_MAX);
+
+        $this->assertNotNull($result);
+        $this->assertTrue($result['changed']);
+        $this->assertSame('course-map-covers/veche.webp', $result['to']);
+        $this->assertLessThan($result['before'], $result['after']);
+        Storage::disk('public')->assertMissing($path);
+        Storage::disk('public')->assertExists($result['to']);
+        $this->assertSame('image/webp', mime_content_type(Storage::disk('public')->path($result['to'])));
+    }
+
+    public function test_a_small_png_upload_is_still_saved_as_webp(): void
+    {
+        $optimized = ImageOptimizer::optimize($this->photo(80, 60, 'png'));
+
+        $this->assertSame('image/webp', $optimized->getMimeType());
+        $this->assertSame('poza.webp', $optimized->getClientOriginalName());
+    }
 }

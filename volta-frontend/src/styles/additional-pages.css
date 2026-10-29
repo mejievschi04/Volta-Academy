@@ -2158,6 +2158,36 @@ body.sidebar-expanded .messages-page {
 	color: var(--text-tertiary);
 }
 
+.messages-picked-users {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: var(--space-3);
+}
+
+.messages-modal .messages-picked-user {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 100%;
+	min-height: 44px !important;
+	padding: 6px 12px;
+	border: 1px solid var(--border-primary);
+	border-radius: 999px;
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+	font: inherit;
+	font-size: 0.875rem;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.messages-picked-user span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .messages-users-list {
 	margin-top: var(--space-4);
 	display: flex;
@@ -2171,11 +2201,16 @@ body.sidebar-expanded .messages-page {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
+	width: 100%;
 	padding: var(--space-3) var(--space-4);
 	border-radius: var(--radius-lg);
 	cursor: pointer;
 	transition: all var(--transition-base);
 	border: 1px solid transparent;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
 }
 
 .messages-user-item:hover {

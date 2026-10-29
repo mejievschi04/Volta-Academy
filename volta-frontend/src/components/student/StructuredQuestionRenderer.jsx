@@ -15,6 +15,7 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import { DragGripIcon } from '../common/DragGripIcon';
 import './StructuredQuestionRenderer.css';
 
@@ -23,8 +24,9 @@ const sequenceToStrings = (value) => {
 	return value.map((item) => String(item));
 };
 
-function SortableOrderItem({ id, text, disabled }) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function SortableOrderItem({ id, text, disabled, onMoveUp, onMoveDown, canMoveUp, canMoveDown }) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+	const stopDrag = (event) => event.stopPropagation();
 	return (
 		<div
 			ref={setNodeRef}
@@ -36,12 +38,34 @@ function SortableOrderItem({ id, text, disabled }) {
 				{...attributes}
 				{...listeners}
 				disabled={disabled}
-				aria-label="Mută elementul"
+				aria-label={`Trage „${text}”`}
 				className="student-exam-order-handle"
 			>
 				<DragGripIcon size={16} />
 			</button>
-			<span className="student-exam-order-text">{text}</span>
+			<span className="student-exam-order-text" {...(disabled ? {} : listeners)}>{text}</span>
+			<div className="student-exam-order-moves">
+				<button
+					type="button"
+					className="student-exam-order-move"
+					aria-label={`Mută „${text}” în sus`}
+					disabled={disabled || !canMoveUp}
+					onPointerDown={stopDrag}
+					onClick={onMoveUp}
+				>
+					<CaretUp size={18} weight="bold" aria-hidden />
+				</button>
+				<button
+					type="button"
+					className="student-exam-order-move"
+					aria-label={`Mută „${text}” în jos`}
+					disabled={disabled || !canMoveDown}
+					onPointerDown={stopDrag}
+					onClick={onMoveDown}
+				>
+					<CaretDown size={18} weight="bold" aria-hidden />
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -87,17 +111,27 @@ function OrderingQuestion({ question, value, onChange, disabled }) {
 	return (
 		<div className="student-exam-ordering">
 			<div className="student-exam-structured-hint">
-				Trage elementele în ordinea corectă.
+				Trage elementul sau folosește săgețile ca să schimbi ordinea.
 			</div>
 			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
 				<SortableContext items={currentOrder} strategy={verticalListSortingStrategy}>
 					<div className="student-exam-ordering-list">
-						{orderedItems.map((item) => (
+						{orderedItems.map((item, index) => (
 							<SortableOrderItem
 								key={item.id}
 								id={String(item.id)}
 								text={item.text}
 								disabled={disabled}
+								canMoveUp={index > 0}
+								canMoveDown={index < orderedItems.length - 1}
+								onMoveUp={() => {
+									if (index === 0) return;
+									onChange(arrayMove(currentOrder, index, index - 1));
+								}}
+								onMoveDown={() => {
+									if (index >= orderedItems.length - 1) return;
+									onChange(arrayMove(currentOrder, index, index + 1));
+								}}
 							/>
 						))}
 					</div>

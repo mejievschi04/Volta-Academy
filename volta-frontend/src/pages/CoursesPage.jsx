@@ -20,9 +20,9 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Cursuri totale' },
-	{ id: 'unfinished', label: 'Cursuri nepromovate' },
-	{ id: 'completed', label: 'Cursuri finalizate', statKey: 'completed' },
+	{ id: 'maps', label: 'Toate', ariaLabel: 'Cursuri totale' },
+	{ id: 'unfinished', label: 'Nepromovate', ariaLabel: 'Cursuri nepromovate' },
+	{ id: 'completed', label: 'Finalizate', ariaLabel: 'Cursuri finalizate', statKey: 'completed' },
 ];
 
 const STUDENT_FILTER_TITLES = {
@@ -295,6 +295,7 @@ const CoursesPage = () => {
 												key={filter.id}
 												type="button"
 												aria-pressed={active}
+												aria-label={count != null ? `${filter.ariaLabel}: ${count}` : filter.ariaLabel}
 												className={`courses-page-student-filter${active ? ' is-active' : ''}`}
 												onClick={() => setStudentFilter(filter.id)}
 											>
@@ -403,7 +404,7 @@ const CoursesPage = () => {
 										</h3>
 										<p className="courses-page-empty-text">
 											{searchQuery
-												? 'Incearca un alt termen de cautare.'
+												? 'Încearcă un alt termen de căutare.'
 												: studentFilter === 'unfinished'
 													? 'Cursurile începute sau încă neaccesate vor apărea aici.'
 													: 'Cursurile pe care le finalizezi vor apărea aici.'}
@@ -413,7 +414,7 @@ const CoursesPage = () => {
 												className="courses-page-btn courses-page-btn-secondary"
 												onClick={() => setSearchQuery('')}
 											>
-												Goleste cautarea
+												Golește căutarea
 											</button>
 										) : null}
 									</div>
@@ -489,7 +490,7 @@ const CoursesPage = () => {
 									</h3>
 									<p className="courses-page-empty-text">
 										{searchQuery
-											? 'Incearca un alt termen de cautare.'
+											? 'Încearcă un alt termen de căutare.'
 											: 'Cursurile atribuite apar în mape; cele care nu sunt în nicio mapă apar direct aici.'}
 									</p>
 									{searchQuery ? (
@@ -497,7 +498,7 @@ const CoursesPage = () => {
 											className="courses-page-btn courses-page-btn-secondary"
 											onClick={() => setSearchQuery('')}
 										>
-											Goleste cautarea
+											Golește căutarea
 										</button>
 									) : (
 										isAdmin && (

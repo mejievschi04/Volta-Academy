@@ -714,6 +714,12 @@ html[data-theme='dark'] .lesson-page-main .lesson-page-body {
 		top: var(--app-header-height, 56px);
 	}
 
+	/* Zona de scroll începe deja sub bara fixă, deci lipirea la 56px lasă un gol
+	   prin care textul lecției trece deasupra butonului „Înapoi”. */
+	.va-shell-topnav:has(.student-mobile-tabs) .lesson-page-header {
+		top: 0;
+	}
+
 	.lesson-page-header {
 		padding: var(--space-3) var(--space-4);
 	}

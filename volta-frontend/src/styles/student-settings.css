@@ -387,6 +387,11 @@
 		font-size: 16px;
 	}
 
+	/* .va-btn-save.va-btn-save.va-btn-save in control-system.css forces 40px */
+	html body .va-btn-save.student-settings-save-btn.student-settings-save-btn {
+		min-height: 44px !important;
+	}
+
 	.student-settings-actions,
 	.student-settings-save-btn,
 	.student-settings-actions .lms-btn-primary {

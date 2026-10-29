@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\LibraryItem;
 use App\Services\LibraryPdfCoverGenerator;
 use App\Support\HtmlSanitizer;
+use App\Support\ImageOptimizer;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Support\ImageOptimizer;
 
 class LibraryController extends Controller
 {
@@ -379,7 +380,19 @@ class LibraryController extends Controller
 
         $generator = app(LibraryPdfCoverGenerator::class);
         if ($generator->generateFirstPageToJpg($absPdf, $absOut)) {
-            $item->forceFill(['cover_image_path' => $coverRelative])->save();
+            $stored = $coverRelative;
+            $optimized = ImageOptimizer::optimize(
+                new UploadedFile($absOut, basename($absOut), 'image/jpeg', null, true),
+                ImageOptimizer::COVER_MAX
+            );
+            if (str_ends_with(strtolower($optimized->getClientOriginalName()), '.webp')) {
+                $stored = preg_replace('/\.jpe?g$/', '.webp', $coverRelative) ?? $coverRelative;
+                Storage::disk($disk)->put($stored, (string) file_get_contents($optimized->getRealPath()));
+                if ($stored !== $coverRelative) {
+                    Storage::disk($disk)->delete($coverRelative);
+                }
+            }
+            $item->forceFill(['cover_image_path' => $stored])->save();
         } elseif (is_file($absOut)) {
             @unlink($absOut);
         }

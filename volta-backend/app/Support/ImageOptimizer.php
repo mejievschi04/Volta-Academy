@@ -8,8 +8,8 @@ use Throwable;
 
 /**
  * Comprimă imaginile încărcate ca paginile să se încarce repede: le micșorează până la latura maximă
- * cerută și le salvează WebP (păstrează transparența PNG). Dacă rezultatul nu e mai mic sau imaginea
- * nu poate fi citită, se păstrează fișierul original. GIF și SVG rămân neatinse (animație / vector).
+ * cerută și le salvează WebP comprimat (păstrează transparența PNG). JPEG și PNG încărcate
+ * ies WebP; un WebP care nu se mai micșorează rămâne neschimbat. GIF și SVG rămân neatinse.
  */
 class ImageOptimizer
 {
@@ -24,7 +24,8 @@ class ImageOptimizer
     /** Miniatura copertelor din liste și carduri (`<nume>.thumb.webp` lângă original). */
     public const THUMB_MAX = 640;
 
-    private const QUALITY = 82;
+    /** Suficient de clar pe telefon, vizibil mai mic decât un PNG de poză. */
+    private const QUALITY = 74;
 
     /** Peste atâția pixeli GD ar avea nevoie de prea multă memorie; fișierul rămâne cum e. */
     private const MAX_PIXELS = 50_000_000;
@@ -104,8 +105,9 @@ class ImageOptimizer
 
         clearstatcache(true, $output);
         $newSize = (int) filesize($output);
-        // Fără micșorare, conversia merită doar dacă fișierul chiar devine mai mic.
-        if ($newSize <= 0 || (! $resized && $newSize >= (int) $file->getSize())) {
+        $alreadyWebp = $mime === 'image/webp';
+        // JPEG și PNG devin mereu WebP. Un WebP deja salvat se păstrează doar dacă recomprimarea nu îl micșorează.
+        if ($newSize <= 0 || ($alreadyWebp && ! $resized && $newSize >= (int) $file->getSize())) {
             @unlink($output);
 
             return null;
@@ -144,6 +146,51 @@ class ImageOptimizer
         $disk->put($target, file_get_contents($thumb->getRealPath()));
 
         return $target;
+    }
+
+    /**
+     * Înlocuiește o imagine deja salvată cu un WebP mai mic, dacă rezultatul chiar cântărește mai puțin.
+     * Întoarce căile relativ la discul public. `changed` e fals când fișierul rămâne pe loc.
+     *
+     * @return array{from: string, to: string, before: int, after: int, changed: bool}|null
+     */
+    public static function recompressStored(string $path, int $maxDimension = self::CONTENT_MAX): ?array
+    {
+        $path = ltrim(preg_replace('#^/?storage/#', '', $path) ?? '', '/');
+        $disk = Storage::disk('public');
+        if ($path === '' || str_contains($path, '://') || str_ends_with($path, '.thumb.webp')
+            || ! preg_match('/\.(jpe?g|png|webp)$/i', $path) || ! $disk->exists($path)) {
+            return null;
+        }
+
+        $before = (int) $disk->size($path);
+        $source = new UploadedFile($disk->path($path), basename($path), $disk->mimeType($path) ?: null, null, true);
+        $optimized = self::optimize($source, $maxDimension);
+        $shrunk = $optimized->getRealPath() !== $source->getRealPath();
+        if (! $shrunk) {
+            return [
+                'from' => $path,
+                'to' => $path,
+                'before' => $before,
+                'after' => $before,
+                'changed' => false,
+            ];
+        }
+
+        $target = preg_replace('/\.[A-Za-z0-9]+$/', '.webp', $path) ?? $path;
+        $disk->put($target, (string) file_get_contents($optimized->getRealPath()));
+        if ($target !== $path) {
+            $disk->delete($path);
+        }
+        clearstatcache(true, $disk->path($target));
+
+        return [
+            'from' => $path,
+            'to' => $target,
+            'before' => $before,
+            'after' => (int) $disk->size($target),
+            'changed' => true,
+        ];
     }
 
     /** Pozele de pe telefon sunt adesea salvate rotite, cu orientarea în EXIF; o aplicăm înainte de WebP. */

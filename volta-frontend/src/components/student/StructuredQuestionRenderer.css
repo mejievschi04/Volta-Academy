@@ -78,6 +78,43 @@
 	flex: 1;
 	min-width: 0;
 	overflow-wrap: anywhere;
+	touch-action: none;
+}
+
+.student-exam-order-moves {
+	display: flex;
+	flex-shrink: 0;
+	gap: 4px;
+}
+
+.va-shell-main .student-exam-order-move,
+.student-exam-order-move {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0;
+	border: 1px solid var(--border-primary);
+	border-radius: 10px;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	cursor: pointer;
+}
+
+.student-exam-order-move:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+@media (max-width: 768px) {
+	.va-shell-main .student-exam-order-handle {
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0;
+	}
 }
 
 /* Potrivire: fiecare element are alături răspunsul ales (listă la text, atingere la imagini) */

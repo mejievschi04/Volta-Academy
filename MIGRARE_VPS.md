@@ -389,6 +389,12 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+Pozele deja salvate (coperte, imagini din lecții) trec în WebP comprimat. Comanda e sigură de rulat din nou: un fișier care e deja WebP și nu se mai micșorează rămâne pe loc.
+
+```bash
+docker compose exec backend php artisan volta:recompress-images
+```
+
 Pentru schimbări doar în frontend (ex. `VITE_API_URL`), poți rebuild-ui doar frontendul:
 
 ```bash

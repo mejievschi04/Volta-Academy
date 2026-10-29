@@ -33,6 +33,9 @@ npm run build
 Write-Host "🗄️  Running migrations..." -ForegroundColor Yellow
 php artisan migrate --force
 
+Write-Host "🖼️  Existing images → compressed WebP..." -ForegroundColor Yellow
+php artisan volta:recompress-images
+
 # Cache optimizări
 Write-Host "⚡ Optimizing Laravel..." -ForegroundColor Yellow
 php artisan config:cache

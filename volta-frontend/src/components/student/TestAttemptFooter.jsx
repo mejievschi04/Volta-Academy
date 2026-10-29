@@ -46,7 +46,8 @@ export default function TestAttemptFooter({
                 <p className="test-attempt-footer-hint" role="status">{submitHint}</p>
             )}
             {!submitted && total > 0 && <nav className="test-attempt-footer-navigation" aria-label="Navigare întrebări">
-                <button type="button" className="test-attempt-nav-btn test-attempt-nav-btn--prev" aria-label="Întrebarea anterioară"
+				<button type="button" className="test-attempt-nav-btn test-attempt-nav-btn--prev" aria-label="Întrebarea anterioară"
+                    title={!submitted && currentIndex > 0 && !canGoBack ? 'Nu poți reveni la o întrebare deja răspunsă.' : undefined}
                     disabled={submitting || currentIndex === 0 || !canGoBack} onClick={() => onNavigate(currentIndex - 1)}>
                     <CaretLeft size={28} weight="bold" aria-hidden />
                 </button>

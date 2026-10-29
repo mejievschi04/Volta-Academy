@@ -874,9 +874,9 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	}
 
 	.courses-page-student-filter-label {
-		font-size: 10px;
-		white-space: normal;
-		text-wrap: balance;
+		font-size: 13px;
+		line-height: 1.2;
+		white-space: nowrap;
 	}
 
 	.courses-page-student .courses-page-hero-search {
