@@ -2,6 +2,7 @@ import '../styles/exam-results-modern.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+	CalendarBlank,
 	CaretDown,
 	CheckCircle,
 	Eye,
@@ -52,6 +53,28 @@ function groupByCourse(list) {
 	list.forEach((result) => {
 		const key = getCourseKey(result);
 		if (!groups.has(key)) groups.set(key, { key, title: getCourseTitle(result), results: [] });
+		groups.get(key).results.push(result);
+	});
+	return [...groups.values()];
+}
+
+/** Testele lunare = examenele independente (fără curs), ca în pagina „Teste lunare”. */
+function isMonthlyTest(result) {
+	return result?.type === 'exam' && !(result?.exam?.course?.id ?? result?.exam?.course_id);
+}
+
+const MONTH_LABEL = new Intl.DateTimeFormat('ro-RO', { month: 'long', year: 'numeric' });
+
+function groupByMonth(list) {
+	const groups = new Map();
+	list.forEach((result) => {
+		const date = result?.completed_at ? new Date(result.completed_at) : null;
+		const valid = date && !Number.isNaN(date.getTime());
+		const key = valid ? `month:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : 'month:unknown';
+		const label = valid ? MONTH_LABEL.format(date) : 'Fără dată';
+		if (!groups.has(key)) {
+			groups.set(key, { key, title: label.charAt(0).toUpperCase() + label.slice(1), results: [], icon: 'month' });
+		}
 		groups.get(key).results.push(result);
 	});
 	return [...groups.values()];
@@ -327,7 +350,14 @@ const ExamResultsPage = () => {
 			});
 	}, [results, query, filterStatus, sortBy]);
 
-	const courseGroups = useMemo(() => groupByCourse(filteredResults), [filteredResults]);
+	const resultSections = useMemo(() => {
+		const monthly = filteredResults.filter(isMonthlyTest);
+		const courseTests = filteredResults.filter((result) => !isMonthlyTest(result));
+		return [
+			{ id: 'monthly', title: 'Teste lunare', groups: groupByMonth(monthly) },
+			{ id: 'courses', title: 'Teste din cursuri', groups: groupByCourse(courseTests) },
+		].filter((section) => section.groups.length > 0);
+	}, [filteredResults]);
 	const searching = query.trim() !== '';
 
 	if (loading) {
@@ -394,8 +424,12 @@ const ExamResultsPage = () => {
 			</div>
 
 			{filteredResults.length > 0 ? (
+				<div className="exam-results-sections">
+					{resultSections.map((section) => (
+				<section key={section.id} className="exam-results-section" aria-labelledby={`exam-results-section-${section.id}`}>
+					<h2 id={`exam-results-section-${section.id}`} className="exam-results-section-title">{section.title}</h2>
 				<div className="exam-results-stack">
-					{courseGroups.map((group) => {
+					{section.groups.map((group) => {
 						// La căutare mapele se deschid singure, ca rezultatele găsite să fie vizibile.
 						const isOpen = searching || openCourses.has(group.key);
 						const passedCount = group.results.filter((result) => getResultState(result).key === 'passed').length;
@@ -410,7 +444,11 @@ const ExamResultsPage = () => {
 									onClick={() => toggleCourse(group.key)}
 									disabled={searching}
 								>
-									<Folder size={22} weight="duotone" aria-hidden className="exam-results-course-icon" />
+									{group.icon === 'month' ? (
+										<CalendarBlank size={22} weight="duotone" aria-hidden className="exam-results-course-icon" />
+									) : (
+										<Folder size={22} weight="duotone" aria-hidden className="exam-results-course-icon" />
+									)}
 									<span className="exam-results-course-name">{group.title}</span>
 									<span className="exam-results-course-count">
 										{group.results.length === 1 ? '1 test' : `${group.results.length} teste`} · {passedCount} promovate
@@ -426,7 +464,7 @@ const ExamResultsPage = () => {
 											const submittedOnly = Boolean(result?.show_only_submitted_answers);
 											return (
 												<article key={`${result.type || 'exam'}:${result.id}`} className="student-exam-results exam-results-test-card">
-													<h2 className="exam-results-test-title">{getResultTitle(result)}</h2>
+													<h3 className="exam-results-test-title">{getResultTitle(result)}</h3>
 													<div className={`student-exam-result-header ${state.key}`}>
 														<div className="student-exam-result-icon">{state.key === 'passed' ? '✓' : state.key === 'pending' ? '⏳' : '✗'}</div>
 														<div className="student-exam-result-title">
@@ -464,6 +502,9 @@ const ExamResultsPage = () => {
 							</section>
 						);
 					})}
+				</div>
+				</section>
+					))}
 				</div>
 			) : (
 				<div className="exam-results-empty">

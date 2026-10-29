@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminService } from '../../services/api';
 import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
+import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import { BackButton } from '../../components/ui/ActionButtons';
 import {
 	buildStructuredExcelRows,
@@ -16,8 +17,11 @@ const MENU_ITEMS = [
 	{ id: 'students', label: 'Utilizatori', detail: 'Lista elevilor și activitatea lor' },
 	{ id: 'courses', label: 'Cursuri', detail: 'Înscrieri și finalizări pe curs' },
 	{ id: 'tests', label: 'Teste', detail: 'Încercări, pe teste sau pe elevi' },
+	{ id: 'exams', label: 'Examene', detail: 'Susțineri, promovări și scoruri la examene' },
 	{ id: 'top-students', label: 'Top 10 studenți', detail: 'Cei mai activi și cei care au nevoie de atenție' },
 ];
+
+const isPendingReview = (row) => Boolean(row.needs_manual_review) && !row.passed;
 
 const formatLearningDuration = (totalSeconds) => {
 	const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -39,6 +43,9 @@ const AdminStatisticsHubPage = () => {
 	const [testsViewMode, setTestsViewMode] = useState('tests');
 	const [testsSearch, setTestsSearch] = useState('');
 	const [openedTest, setOpenedTest] = useState(null);
+	const [examsViewMode, setExamsViewMode] = useState('exams');
+	const [examsSearch, setExamsSearch] = useState('');
+	const [openedExam, setOpenedExam] = useState(null);
 	const openTestRowProps = (row) => ({
 		className: 'admin-statistics-row-clickable',
 		role: 'button',
@@ -61,7 +68,7 @@ const AdminStatisticsHubPage = () => {
 	const activeItem = MENU_ITEMS.find((item) => item.id === active);
 
 	useEffect(() => {
-		const sectionsUsingStatistics = new Set(['student-progress', 'course-progress', 'test-progress', 'top-students', 'students', 'courses', 'tests']);
+		const sectionsUsingStatistics = new Set(['student-progress', 'course-progress', 'test-progress', 'top-students', 'students', 'courses', 'tests', 'exams']);
 		if (!sectionsUsingStatistics.has(active)) return;
 		const load = async () => {
 			try {
@@ -84,17 +91,26 @@ const AdminStatisticsHubPage = () => {
 	}, [active, dateFrom, dateTo]);
 
 	const statsData = useMemo(() => {
-		if (!statsPayload || !teamId) return statsPayload;
+		if (!statsPayload) return statsPayload;
+		// Examenele au id-uri separate de teste: le ținem în exam_results ca să nu se amestece în rapoartele de teste.
+		const allResults = statsPayload.test_results || [];
+		const base = {
+			...statsPayload,
+			test_results: allResults.filter((row) => row.kind !== 'exam'),
+			exam_results: allResults.filter((row) => row.kind === 'exam'),
+		};
+		if (!teamId) return base;
 		const selected = Number(teamId);
-		const students = (statsPayload.students || []).filter((student) =>
+		const students = (base.students || []).filter((student) =>
 			(student.teams || []).some((team) => Number(team.id) === selected)
 		);
 		const ids = new Set(students.map((student) => student.id));
 		return {
-			...statsPayload,
+			...base,
 			students,
-			enrollments: (statsPayload.enrollments || []).filter((row) => ids.has(row.user_id)),
-			test_results: (statsPayload.test_results || []).filter((row) => ids.has(row.user_id)),
+			enrollments: (base.enrollments || []).filter((row) => ids.has(row.user_id)),
+			test_results: base.test_results.filter((row) => ids.has(row.user_id)),
+			exam_results: base.exam_results.filter((row) => ids.has(row.user_id)),
 		};
 	}, [statsPayload, teamId]);
 
@@ -131,8 +147,11 @@ const AdminStatisticsHubPage = () => {
 					learningSeconds: 0,
 				});
 			}
+			// un test susținut de mai multe ori contează o singură dată
 			const row = byUser.get(t.user_id);
-			row.testsCompleted += 1;
+			row.testIds = row.testIds || new Set();
+			row.testIds.add(t.test_id);
+			row.testsCompleted = row.testIds.size;
 		});
 
 		return Array.from(byUser.values()).map((row) => {
@@ -912,7 +931,7 @@ const AdminStatisticsHubPage = () => {
 				lastActivity,
 				openedCourses,
 				completedCourses,
-				completedTests: studentTests.length,
+				completedTests: new Set(studentTests.map((t) => t.test_id)).size,
 				avgScore,
 				learningTime: formatLearningDuration(learningSec),
 			};
@@ -1213,7 +1232,7 @@ const AdminStatisticsHubPage = () => {
 		return Array.from(byTest.values()).map((item) => {
 			const attemptedUserIds = new Set(item.attempts.map((a) => a.user_id));
 			const attempted = attemptedUserIds.size;
-			const passed = item.attempts.filter((a) => a.passed).length;
+			const passed = new Set(item.attempts.filter((a) => a.passed).map((a) => a.user_id)).size;
 			const failed = Math.max(attempted - passed, 0);
 			const notStarted = Math.max(totalStudents - attempted, 0);
 			return {
@@ -1432,6 +1451,325 @@ const AdminStatisticsHubPage = () => {
 		</div>
 	);
 
+	const examsRows = useMemo(() => {
+		const results = statsData?.exam_results || [];
+		const byExam = new Map();
+		results.forEach((row) => {
+			if (!byExam.has(row.test_id)) {
+				byExam.set(row.test_id, {
+					id: row.test_id,
+					title: row.test_title || `Examen #${row.test_id}`,
+					attempts: [],
+				});
+			}
+			byExam.get(row.test_id).attempts.push(row);
+		});
+		return Array.from(byExam.values()).map((item) => {
+			const userIds = new Set(item.attempts.map((a) => a.user_id));
+			const passedIds = new Set(item.attempts.filter((a) => a.passed).map((a) => a.user_id));
+			const pendingIds = new Set(
+				item.attempts.filter(isPendingReview).map((a) => a.user_id).filter((id) => !passedIds.has(id))
+			);
+			const graded = item.attempts.filter((a) => !isPendingReview(a));
+			const avgScore = graded.length
+				? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
+				: null;
+			const lastAt = item.attempts.reduce(
+				(latest, a) => (a.completed_at && (!latest || new Date(a.completed_at) > new Date(latest)) ? a.completed_at : latest),
+				null
+			);
+			return {
+				id: item.id,
+				title: item.title,
+				students: userIds.size,
+				attempts: item.attempts.length,
+				passed: passedIds.size,
+				pending: pendingIds.size,
+				failed: Math.max(userIds.size - passedIds.size - pendingIds.size, 0),
+				passRate: userIds.size ? Math.round((passedIds.size / userIds.size) * 100) : 0,
+				avgScore,
+				lastAt,
+			};
+		}).sort((a, b) => new Date(b.lastAt || 0) - new Date(a.lastAt || 0));
+	}, [statsData]);
+
+	const examsStudentRows = useMemo(() => {
+		const results = statsData?.exam_results || [];
+		const studentsMap = new Map((statsData?.students || []).map((s) => [s.id, s]));
+		const byStudent = new Map();
+		results.forEach((row) => {
+			if (!byStudent.has(row.user_id)) {
+				byStudent.set(row.user_id, { user_id: row.user_id, attempts: [] });
+			}
+			byStudent.get(row.user_id).attempts.push(row);
+		});
+		return Array.from(byStudent.values()).map(({ user_id: userId, attempts }) => {
+			const student = studentsMap.get(userId) || {};
+			const examIds = new Set(attempts.map((a) => a.test_id));
+			const passedIds = new Set(attempts.filter((a) => a.passed).map((a) => a.test_id));
+			const pendingIds = new Set(
+				attempts.filter(isPendingReview).map((a) => a.test_id).filter((id) => !passedIds.has(id))
+			);
+			const graded = attempts.filter((a) => !isPendingReview(a));
+			return {
+				id: userId,
+				name: student.name || `Utilizator #${userId}`,
+				email: student.email || '—',
+				exams: examIds.size,
+				attempts: attempts.length,
+				passed: passedIds.size,
+				pending: pendingIds.size,
+				failed: Math.max(examIds.size - passedIds.size - pendingIds.size, 0),
+				avgScore: graded.length
+					? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
+					: null,
+			};
+		});
+	}, [statsData]);
+
+	const examKpis = useMemo(() => {
+		const results = statsData?.exam_results || [];
+		const graded = results.filter((a) => !isPendingReview(a));
+		return {
+			exams: examsRows.length,
+			attempts: results.length,
+			pending: results.filter(isPendingReview).length,
+			passRate: graded.length ? Math.round((graded.filter((a) => a.passed).length / graded.length) * 100) : 0,
+			avgScore: graded.length
+				? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
+				: 0,
+		};
+	}, [statsData, examsRows.length]);
+
+	const normalizedExamsSearch = examsSearch.trim().toLowerCase();
+	const filteredExamsRows = useMemo(() => {
+		if (!normalizedExamsSearch) return examsRows;
+		return examsRows.filter((row) => (row.title || '').toLowerCase().includes(normalizedExamsSearch));
+	}, [examsRows, normalizedExamsSearch]);
+
+	const filteredExamsStudentRows = useMemo(() => {
+		if (!normalizedExamsSearch) return examsStudentRows;
+		return examsStudentRows.filter((row) =>
+			`${row.name} ${row.email}`.toLowerCase().includes(normalizedExamsSearch)
+		);
+	}, [examsStudentRows, normalizedExamsSearch]);
+
+	const formatScore = (value) => (value === null || value === undefined ? '—' : `${value}%`);
+
+	const exportExamsCsv = useCallback(() => {
+		const rows = buildStructuredExcelRows({
+			sheetLabel: 'Examene',
+			periodFrom: dateFrom,
+			periodTo: dateTo,
+			kpiEntries: [
+				['Examene cu activitate', examKpis.exams],
+				['Total încercări', examKpis.attempts],
+				['Rată promovare încercări (%)', examKpis.passRate],
+				['Scor mediu (%)', examKpis.avgScore],
+				['În verificare', examKpis.pending],
+			],
+			tableHeaders: [
+				'ID examen',
+				'Examen',
+				'Elevi',
+				'Încercări',
+				'Promovați',
+				'Nepromovați',
+				'În verificare',
+				'Rată promovare (%)',
+				'Scor mediu (%)',
+				'Ultima susținere',
+			],
+			tableRows: filteredExamsRows.map((r) => [
+				r.id,
+				r.title,
+				r.students,
+				r.attempts,
+				r.passed,
+				r.failed,
+				r.pending,
+				r.passRate,
+				r.avgScore ?? '',
+				r.lastAt ? new Date(r.lastAt).toLocaleString('ro-RO') : '',
+			]),
+			extraSections: [
+				{
+					title: 'Elevi — activitate la examene',
+					headers: ['ID utilizator', 'Nume', 'Email', 'Examene', 'Încercări', 'Promovate', 'Nepromovate', 'În verificare', 'Scor mediu (%)'],
+					rows: filteredExamsStudentRows.map((r) => [
+						r.id,
+						r.name,
+						r.email,
+						r.exams,
+						r.attempts,
+						r.passed,
+						r.failed,
+						r.pending,
+						r.avgScore ?? '',
+					]),
+				},
+			],
+		});
+		downloadStructuredExcel(statisticsExcelFilename('examene'), 'Examene', rows);
+	}, [dateFrom, dateTo, examKpis, filteredExamsRows, filteredExamsStudentRows]);
+
+	const openExamRowProps = (row) => ({
+		className: 'admin-statistics-row-clickable',
+		role: 'button',
+		tabIndex: 0,
+		title: 'Deschide rezultatele examenului',
+		onClick: () => setOpenedExam({ id: row.id, title: row.title }),
+		onKeyDown: (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				setOpenedExam({ id: row.id, title: row.title });
+			}
+		},
+	});
+
+	const renderExamsOverview = () => (
+		<div className="admin-statistics-student-progress">
+			<header className="admin-statistics-student-head">
+				<div>
+					<h2 className="admin-statistics-section-heading">Statistică examene</h2>
+					<p className="admin-statistics-section-desc">
+						Rezultatele examenelor, separat de teste: câți elevi au promovat, scorul mediu și încercările în verificare.
+					</p>
+				</div>
+				<div className="admin-statistics-top-actions admin-statistics-top-actions--wrap">
+					<button
+						type="button"
+						className="lms-btn-secondary lms-btn-sm admin-excel-export-btn"
+						onClick={exportExamsCsv}
+						disabled={loading || Boolean(error)}
+					>
+						Export Excel
+					</button>
+					<input
+						type="search"
+						placeholder={examsViewMode === 'exams' ? 'Caută examen…' : 'Caută elev…'}
+						value={examsSearch}
+						onChange={(e) => setExamsSearch(e.target.value)}
+						className="va-input admin-statistics-tests-search"
+						aria-label={examsViewMode === 'exams' ? 'Caută după nume examen' : 'Caută după nume sau email elev'}
+					/>
+				</div>
+			</header>
+
+			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
+				<label className="admin-statistics-filter">
+					<span className="va-input-label">Dată început</span>
+					<input type="date" className="va-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+				</label>
+				<label className="admin-statistics-filter">
+					<span className="va-input-label">Dată sfârșit</span>
+					<input type="date" className="va-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+				</label>
+			</div>
+
+			<div className="admin-statistics-student-kpis">
+				<article>
+					<span>Examene cu activitate</span>
+					<strong>{examKpis.exams}</strong>
+				</article>
+				<article>
+					<span>Total încercări</span>
+					<strong>{examKpis.attempts}</strong>
+				</article>
+				<article>
+					<span>Promovare încercări (%)</span>
+					<strong>{examKpis.passRate}%</strong>
+				</article>
+				<article>
+					<span>Scor mediu (%)</span>
+					<strong>{examKpis.avgScore}%</strong>
+				</article>
+			</div>
+
+			<div className="admin-statistics-tests-tabs">
+				<button
+					type="button"
+					className={`admin-statistics-tests-tab${examsViewMode === 'exams' ? ' is-active' : ''}`}
+					onClick={() => setExamsViewMode('exams')}
+				>
+					Vizualizare examene
+				</button>
+				<button
+					type="button"
+					className={`admin-statistics-tests-tab${examsViewMode === 'students' ? ' is-active' : ''}`}
+					onClick={() => setExamsViewMode('students')}
+				>
+					Vizualizare elevi
+				</button>
+			</div>
+
+			<div className="admin-users-table-wrapper admin-statistics-table-clip">
+				<table className="admin-users-table admin-statistics-student-table">
+					<thead>
+						{examsViewMode === 'exams' ? (
+							<tr>
+								<th>Examen</th>
+								<th>Elevi</th>
+								<th>Încercări</th>
+								<th>Promovați</th>
+								<th>Nepromovați</th>
+								<th>În verificare</th>
+								<th>Scor mediu</th>
+								<th>Ultima susținere</th>
+							</tr>
+						) : (
+							<tr>
+								<th>Elev</th>
+								<th>Email</th>
+								<th>Examene</th>
+								<th>Încercări</th>
+								<th>Promovate</th>
+								<th>Nepromovate</th>
+								<th>În verificare</th>
+								<th>Scor mediu</th>
+							</tr>
+						)}
+					</thead>
+					<tbody>
+						{examsViewMode === 'exams'
+							? filteredExamsRows.map((row) => (
+								<tr key={row.id} {...openExamRowProps(row)}>
+									<td><strong>{row.title}</strong></td>
+									<td>{row.students}</td>
+									<td>{row.attempts}</td>
+									<td>{row.passed}</td>
+									<td>{row.failed}</td>
+									<td>{row.pending}</td>
+									<td>{formatScore(row.avgScore)}</td>
+									<td>{row.lastAt ? new Date(row.lastAt).toLocaleString() : '—'}</td>
+								</tr>
+							))
+							: filteredExamsStudentRows.map((row) => (
+								<tr key={row.id}>
+									<td><strong>{row.name}</strong></td>
+									<td>{row.email}</td>
+									<td>{row.exams}</td>
+									<td>{row.attempts}</td>
+									<td>{row.passed}</td>
+									<td>{row.failed}</td>
+									<td>{row.pending}</td>
+									<td>{formatScore(row.avgScore)}</td>
+								</tr>
+							))}
+					</tbody>
+				</table>
+				{loading ? <div className="admin-statistics-student-empty">Se încarcă datele...</div> : null}
+				{!loading && !error && examsViewMode === 'exams' && filteredExamsRows.length === 0 ? (
+					<div className="admin-statistics-student-empty">Nu există examene cu activitate.</div>
+				) : null}
+				{!loading && !error && examsViewMode === 'students' && filteredExamsStudentRows.length === 0 ? (
+					<div className="admin-statistics-student-empty">Nu există elevi cu activitate la examene.</div>
+				) : null}
+				{!loading && error ? <div className="admin-statistics-student-empty">{error}</div> : null}
+			</div>
+		</div>
+	);
+
 	return (
 		<div className="admin-container">
 			<header className="admin-page-header">
@@ -1469,6 +1807,7 @@ const AdminStatisticsHubPage = () => {
 								onClick={() => {
 									setActive(item.id);
 									setOpenedTest(null);
+									setOpenedExam(null);
 								}}
 								aria-pressed={active === item.id}
 							>
@@ -1485,6 +1824,17 @@ const AdminStatisticsHubPage = () => {
 						<BackButton onClick={() => setOpenedTest(null)}>Înapoi la teste</BackButton>
 						<TestStatisticsPanel testId={openedTest.id} testTitle={openedTest.title || 'Test'} />
 					</div>
+				) : openedExam && active === 'exams' ? (
+					<div className="admin-statistics-test-detail">
+						<BackButton onClick={() => setOpenedExam(null)}>Înapoi la examene</BackButton>
+						<TestResultsPanel
+							kind="exam"
+							entityId={openedExam.id}
+							entityTitle={openedExam.title || 'Examen'}
+							dateFrom={dateFrom}
+							dateTo={dateTo}
+						/>
+					</div>
 				) : active === 'student-progress' ? (
 					renderStudentProgress()
 				) : active === 'course-progress' ? (
@@ -1499,6 +1849,8 @@ const AdminStatisticsHubPage = () => {
 					renderCoursesOverview()
 				) : active === 'tests' ? (
 					renderTestsOverview()
+				) : active === 'exams' ? (
+					renderExamsOverview()
 				) : (
 					<div className="admin-statistics-placeholder">
 						<h2 className="admin-statistics-section-heading">{activeItem?.label || 'Statistică'}</h2>

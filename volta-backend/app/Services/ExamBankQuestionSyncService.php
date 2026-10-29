@@ -292,6 +292,11 @@ class ExamBankQuestionSyncService
         $this->createAnswersFromBank($examQ, $q);
     }
 
+    public function refreshExamQuestionFromSource(ExamQuestion $examQ, Question $q): void
+    {
+        $this->updateExamQuestionFromBank($examQ, $q, (int) $examQ->order);
+    }
+
     protected function createAnswersFromBank(ExamQuestion $examQ, Question $q): void
     {
         $questionType = $this->mapQuestionType($q->type);

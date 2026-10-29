@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\ExamResult;
 use App\Models\TestResult;
 use App\Models\ActivityLog;
+use App\Services\ExamAttemptLimitService;
 use App\Services\ExamAttemptSessionService;
 use App\Services\ExamBankQuestionSyncService;
 use App\Services\CourseProgressService;
@@ -39,7 +40,8 @@ class ExamController extends Controller
         TestAttemptAnswerOrderService $answerOrderService,
         TestAttemptService $attemptService,
         ExamBankQuestionSyncService $examBankQuestionSyncService,
-        ExamAttemptSessionService $examAttemptSessionService
+        ExamAttemptSessionService $examAttemptSessionService,
+        protected ExamAttemptLimitService $examAttemptLimits
     ) {
         $this->progressService = $progressService;
         $this->questionSelectionService = $questionSelectionService;
@@ -98,7 +100,7 @@ class ExamController extends Controller
 
         if (! app(\App\Services\ProgressionEngine::class)->isTestUnlocked($user, $test, $course)) {
             return response()->json([
-                'message' => 'Testul este blocat. Trebuie să promovezi testul anterior.',
+                'message' => 'Testul este blocat. Termină mai întâi lecțiile și testele dinaintea lui.',
                 'locked' => true,
             ], 403);
         }
@@ -870,6 +872,7 @@ class ExamController extends Controller
                 'passing_score' => $e->passing_score,
                 'time_limit_minutes' => $e->time_limit_minutes,
                 'max_attempts' => $e->max_attempts,
+                'cover_image_url' => $e->cover_image_url,
             ]),
         ]);
     }
@@ -1317,12 +1320,8 @@ class ExamController extends Controller
 
         $currentAttempt = $userAttempts->count();
         $latestResult = $userAttempts->first();
-        $remainingAttempts = $exam->max_attempts 
-            ? max(0, $exam->max_attempts - $currentAttempt)
-            : null;
-        $canRetake = $exam->max_attempts 
-            ? ($remainingAttempts > 0)
-            : true;
+        $remainingAttempts = $this->examAttemptLimits->remainingAttemptsFor($exam, (int) $user->id, $currentAttempt);
+        $canRetake = $remainingAttempts === null || $remainingAttempts > 0;
 
         // Check if user has passed
         $hasPassed = $latestResult && $latestResult->passed;
@@ -1369,6 +1368,7 @@ class ExamController extends Controller
             'passing_score' => $exam->passing_score ?? 70,
             'time_limit_minutes' => $exam->time_limit_minutes,
             'max_attempts' => $exam->max_attempts,
+            'allowed_attempts' => $this->examAttemptLimits->allowedAttemptCount($exam, (int) $user->id),
             'is_required' => $exam->is_required ?? false,
             'questions' => $questions,
             'active_attempt' => (! $viewingCompleted && $session) ? [
@@ -1942,9 +1942,10 @@ class ExamController extends Controller
         $currentAttempt = $trackLearning ? $userAttempts->count() : 0;
         $nextAttempt = $currentAttempt + 1;
 
-        if ($trackLearning && $exam->max_attempts && $nextAttempt > $exam->max_attempts) {
+        $allowedAttempts = $this->examAttemptLimits->allowedAttemptCount($exam, (int) $user->id);
+        if ($trackLearning && $allowedAttempts !== null && $nextAttempt > $allowedAttempts) {
             return response()->json([
-                'message' => "Ai atins limita de {$exam->max_attempts} încercări pentru acest test.",
+                'message' => "Ai atins limita de {$allowedAttempts} încercări pentru acest test.",
                 'max_attempts_reached' => true,
             ], 403);
         }
@@ -2120,9 +2121,7 @@ class ExamController extends Controller
                 'passed' => $passed,
                 'passing_score' => $passingScore,
                 'attempt_number' => $nextAttempt,
-                'remaining_attempts' => $exam->max_attempts 
-                    ? max(0, $exam->max_attempts - $nextAttempt)
-                    : null,
+                'remaining_attempts' => $allowedAttempts === null ? null : max(0, $allowedAttempts - $nextAttempt),
                 'needs_manual_review' => $needsManualReview,
                 'manual_review_mode' => $manualReviewMode,
                 'manual_review_enabled' => $manualReviewEnabled,

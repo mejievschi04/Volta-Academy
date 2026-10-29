@@ -288,6 +288,8 @@ Route::middleware([
     Route::put('/exams/{id}', [ExamAdminController::class, 'update']);
     Route::post('/exams/{id}/duplicate', [ExamAdminController::class, 'duplicate']);
     Route::delete('/exams/{id}', [ExamAdminController::class, 'destroy']);
+    Route::post('/exams/{id}/cover', [ExamAdminController::class, 'uploadCover']);
+    Route::delete('/exams/{id}/cover', [ExamAdminController::class, 'deleteCover']);
     
     // Tests Management (Standalone Test Builder)
     Route::get('/tests', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'index']);
@@ -382,6 +384,7 @@ Route::middleware([
     // Exam Manual Review (legacy Exam model)
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
     Route::patch('/exam-results/{id}/score', [ExamAdminController::class, 'updateResultScore']);
+    Route::post('/exam-results/{id}/extra-attempt', [ExamAdminController::class, 'grantExtraAttempt']);
 
     // Test Manual Review (Test model - standalone tests)
     Route::post('/test-results/{id}/feedback-with-volt', [\App\Http\Controllers\Api\Admin\TestAdminController::class, 'suggestManualReviewFeedback'])->middleware('volt');

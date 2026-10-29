@@ -244,6 +244,23 @@
 	border-color: var(--color-success);
 }
 
+/* Deblocare secvențială: lacătul arată ce urmează după lecțiile/testele dinainte */
+.lessons-page-sidebar-lesson.locked {
+	cursor: not-allowed;
+}
+
+.lessons-page-sidebar-lesson.locked:hover {
+	background: transparent;
+	border-color: transparent;
+	color: var(--text-secondary);
+}
+
+.lessons-page-sidebar-lesson.locked .lessons-page-sidebar-lesson-icon {
+	background: var(--bg-secondary);
+	border-style: dashed;
+	color: var(--text-secondary);
+}
+
 .lessons-page-sidebar-lesson-icon {
 	display: flex;
 	align-items: center;

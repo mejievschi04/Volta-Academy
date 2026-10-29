@@ -125,6 +125,7 @@ export default function TestResultsPanel({
 	const [breakdownTarget, setBreakdownTarget] = useState(null);
 	const [breakdownData, setBreakdownData] = useState(null);
 	const [breakdownLoading, setBreakdownLoading] = useState(false);
+	const [grantingUserId, setGrantingUserId] = useState(null);
 
 	const loadResults = useCallback(async () => {
 		if (!entityId) return;
@@ -156,6 +157,46 @@ export default function TestResultsPanel({
 			return hay.includes(needle);
 		});
 	}, [query, rows, statusFilter, dateFrom, dateTo]);
+
+	// „Adaugă încercare” apare o singură dată pe elev, pe ultima lui încercare la examen, cât timp nu a promovat
+	const extraAttemptRowIds = useMemo(() => {
+		if (kind !== 'exam') return new Set();
+		const latestByUser = new Map();
+		const passedUsers = new Set();
+		rows.forEach((row) => {
+			const userId = row.user?.id;
+			if (userId == null) return;
+			if (row.passed) passedUsers.add(userId);
+			const current = latestByUser.get(userId);
+			if (!current || Number(row.attempt_number ?? 0) > Number(current.attempt_number ?? 0)) {
+				latestByUser.set(userId, row);
+			}
+		});
+		const ids = new Set();
+		latestByUser.forEach((row, userId) => {
+			const pending = row.needs_manual_review || row.status === 'pending';
+			if (!passedUsers.has(userId) && !pending && row.allowed_attempts != null) ids.add(row.id);
+		});
+		return ids;
+	}, [kind, rows]);
+
+	const handleGrantAttempt = async (row) => {
+		const userId = row.user?.id;
+		if (userId == null || grantingUserId != null) return;
+		setGrantingUserId(userId);
+		try {
+			const response = await adminService.grantExamExtraAttempt(row.id);
+			setRows((prev) => prev.map((item) => (
+				item.user?.id === userId ? { ...item, allowed_attempts: response?.allowed_attempts ?? item.allowed_attempts } : item
+			)));
+			showSuccess(response?.message || 'Încercare adăugată.');
+		} catch (e) {
+			console.error('Failed to grant exam attempt:', e);
+			showError(e?.response?.data?.message || 'Nu s-a putut adăuga încercarea.');
+		} finally {
+			setGrantingUserId(null);
+		}
+	};
 
 	const openEdit = (row) => {
 		setEditTarget(row);
@@ -328,6 +369,9 @@ export default function TestResultsPanel({
 												<Link to={`/admin/users/${row.user.id}/profile`}>{row.user.email || 'Profil'}</Link>
 											) : (row.user?.email || '—')}
 											<span> · {formatDate(row.completed_at)}</span>
+											{kind === 'exam' && row.allowed_attempts != null ? (
+												<span> · încercări permise: {row.allowed_attempts}</span>
+											) : null}
 										</p>
 										<div className="admin-test-results-actions">
 											{showBreakdown && kind === 'test' ? (
@@ -338,6 +382,16 @@ export default function TestResultsPanel({
 											{canMutateInAdminArea ? (
 												<button type="button" className="admin-btn admin-btn-secondary admin-test-results-edit" onClick={() => openEdit(row)}>
 													Modifică punctaj
+												</button>
+											) : null}
+											{canMutateInAdminArea && extraAttemptRowIds.has(row.id) ? (
+												<button
+													type="button"
+													className="admin-btn admin-btn-secondary admin-test-results-edit"
+													onClick={() => handleGrantAttempt(row)}
+													disabled={grantingUserId != null}
+												>
+													{grantingUserId === row.user?.id ? 'Se adaugă…' : 'Adaugă încercare'}
 												</button>
 											) : null}
 										</div>

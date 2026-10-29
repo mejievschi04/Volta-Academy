@@ -57,7 +57,14 @@ export function coerceChoiceAnswerForQuestion(question, value) {
 
 export function isChoiceAnswered(question, value) {
 	const type = getQuestionType(question);
-	if (type === 'matching' || type === 'image_matching' || type === 'ordering') {
+	if (type === 'matching' || type === 'image_matching') {
+		// potrivirea are răspuns doar când fiecare element din stânga are o pereche aleasă
+		const rows = (type === 'matching' ? question?.matching : question?.imageMatching)?.leftItems?.length ?? 0;
+		if (!Array.isArray(value) || value.length === 0) return false;
+		const filled = value.filter((item) => item !== null && item !== undefined && item !== '').length;
+		return filled >= Math.max(rows, 1);
+	}
+	if (type === 'ordering') {
 		return Array.isArray(value) && value.length > 0;
 	}
 	if (isMultiSelectChoiceQuestion(question)) {

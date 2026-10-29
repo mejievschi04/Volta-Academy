@@ -112,16 +112,47 @@ class TestBuilderService
 
         // Handle questions update if provided and test uses direct questions
         if ($questions !== null && $test->question_source === 'direct') {
-            // Delete existing questions
-            $test->questions()->delete();
-            
-            // Add new questions
-            if (!empty($questions)) {
-                $this->addQuestionsToTest($test, $questions);
-            }
+            $this->syncDirectQuestions($test, $questions);
         }
 
         return $test->fresh();
+    }
+
+    /** Preserve question IDs when a builder submits its full question list. */
+    protected function syncDirectQuestions(Test $test, array $questions): void
+    {
+        $questions = $this->applyDefaultPointsIfNeeded($questions);
+        $existing = $test->questions()->get()->keyBy('id');
+        $keptIds = [];
+
+        DB::transaction(function () use ($test, $questions, $existing, &$keptIds) {
+            foreach ($questions as $index => $questionData) {
+                $id = (int) ($questionData['id'] ?? 0);
+                $attributes = [
+                    'test_id' => $test->id,
+                    'question_bank_id' => null,
+                    'type' => $this->normalizeQuestionType($questionData['type'] ?? 'multiple_choice'),
+                    'content' => $questionData['content'] ?? '',
+                    'answers' => $this->normalizeAnswersForType($questionData['type'] ?? 'multiple_choice', $questionData['answers'] ?? []),
+                    'points' => isset($questionData['points']) && $questionData['points'] !== '' ? (int) $questionData['points'] : 1,
+                    'order' => $questionData['order'] ?? $index,
+                    'explanation' => $questionData['explanation'] ?? null,
+                    'metadata' => $questionData['metadata'] ?? null,
+                ];
+
+                $question = $id > 0 ? $existing->get($id) : null;
+                if ($question) {
+                    unset($attributes['test_id'], $attributes['question_bank_id']);
+                    $question->update($attributes);
+                    $keptIds[] = $question->id;
+                } else {
+                    $question = Question::create($attributes);
+                    $keptIds[] = $question->id;
+                }
+            }
+
+            $test->questions()->whereNotIn('id', $keptIds ?: [0])->delete();
+        });
     }
 
     /**

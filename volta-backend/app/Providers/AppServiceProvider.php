@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Question;
+use App\Observers\QuestionObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Question::observe(QuestionObserver::class);
+
         $appUrl = (string) config('app.url', '');
         if (str_starts_with($appUrl, 'https://')) {
             URL::forceScheme('https');

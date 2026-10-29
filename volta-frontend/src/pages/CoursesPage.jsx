@@ -20,7 +20,7 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Cursuri indicate' },
+	{ id: 'maps', label: 'Cursuri totale' },
 	{ id: 'unfinished', label: 'Cursuri nepromovate' },
 	{ id: 'completed', label: 'Cursuri finalizate', statKey: 'completed' },
 ];
@@ -192,11 +192,8 @@ const CoursesPage = () => {
 
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
-			const mapCount = (Array.isArray(courseMaps) ? courseMaps.filter(isStudentVisibleMap) : []).length;
-			const standaloneCount = (Array.isArray(standaloneCourses) ? standaloneCourses : []).filter(
-				(course) => !courseIsCompleted(course)
-			).length;
-			return mapCount + standaloneCount;
+			// toate cursurile atribuite: nepromovate + finalizate (cele două liste nu se suprapun)
+			return getStudentFilterCount({ id: 'unfinished' }) + getStudentFilterCount({ id: 'completed' });
 		}
 		if (filter.id === 'unfinished') {
 			const seen = new Set();

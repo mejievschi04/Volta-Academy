@@ -3,12 +3,17 @@
 namespace App\Models;
 
 use App\Casts\SafeJsonArray;
+use App\Models\Concerns\GeneratesCoverThumbnail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Exam extends Model
 {
     use HasFactory;
+    use GeneratesCoverThumbnail;
+
+    /** Coloana copertei pentru miniatura din liste (GeneratesCoverThumbnail). */
+    public const COVER_COLUMN = 'cover_image_path';
 
     protected $fillable = [
         'course_id',
@@ -31,6 +36,11 @@ class Exam extends Model
         'attempts_count',
         'passes_count',
         'average_score',
+        'cover_image_path',
+    ];
+
+    protected $appends = [
+        'cover_image_url',
     ];
 
     protected $casts = [
@@ -40,6 +50,13 @@ class Exam extends Model
         'unlock_after_completion' => 'boolean',
         'average_score' => 'decimal:2',
     ];
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        $path = $this->cover_image_path ?? null;
+
+        return $path ? '/storage/' . ltrim($path, '/') : null;
+    }
 
     public function course()
     {

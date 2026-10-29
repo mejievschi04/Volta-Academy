@@ -689,16 +689,6 @@
 		height: auto;
 		display: block;
 	}
-
-	/* Lazy loading */
-	img[loading="lazy"] {
-		opacity: 0;
-		transition: opacity 0.3s;
-	}
-
-	img[loading="lazy"].loaded {
-		opacity: 1;
-	}
 }
 
 /* ============================================

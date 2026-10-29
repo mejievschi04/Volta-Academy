@@ -917,6 +917,32 @@
 	line-height: 1.5;
 }
 
+.admin-exams-preview-modal .admin-exams-preview-question li.is-correct-answer {
+	color: #166534;
+	font-weight: 700;
+}
+
+.admin-exams-preview-correct-label {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: #dcfce7;
+	color: #166534;
+	font-size: 0.72rem;
+	font-weight: 700;
+}
+
+.admin-exams-preview-correct-answer {
+	margin-top: 10px;
+	color: #166534;
+}
+
+.admin-exams-preview-correct-answer ol {
+	margin: 6px 0 0;
+	padding-left: 22px;
+}
+
 .admin-exams-preview-modal .admin-exams-content-modal-actions {
 	position: relative;
 	z-index: 1;

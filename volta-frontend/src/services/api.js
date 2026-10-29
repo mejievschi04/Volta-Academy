@@ -858,6 +858,20 @@ export const adminService = {
     return response.data;
   },
 
+  uploadExamCover: async (examId, file) => {
+    const formData = new FormData();
+    formData.append('cover', file);
+    const response = await api.post(`/admin/exams/${examId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteExamCover: async (examId) => {
+    const response = await api.delete(`/admin/exams/${examId}/cover`);
+    return response.data;
+  },
+
   // Question Banks
   getQuestionCatalogMaps: async (params = {}) => {
     const response = await api.get('/admin/question-catalog/maps', { params });
@@ -1295,6 +1309,10 @@ export const adminService = {
       score,
       note: note || undefined,
     });
+    return response.data;
+  },
+  grantExamExtraAttempt: async (resultId) => {
+    const response = await api.post(`/admin/exam-results/${resultId}/extra-attempt`);
     return response.data;
   },
 

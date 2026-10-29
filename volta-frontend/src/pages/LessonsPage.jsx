@@ -7,6 +7,7 @@ import {
 	Check,
 	FileText,
 	List,
+	LockSimple,
 	NotePencil,
 	WarningCircle,
 	X,
@@ -36,13 +37,15 @@ import '../components/admin/lessons/image/LessonImageContent.css';
 import { logger } from '../utils/logger';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 
-const renderTestStatusIcon = (passed) => (
-	passed ? <Check size={14} weight="bold" aria-hidden /> : <NotePencil size={14} weight="duotone" aria-hidden />
-);
+const renderTestStatusIcon = (passed, locked = false) => {
+	if (passed) return <Check size={14} weight="bold" aria-hidden />;
+	if (locked) return <LockSimple size={14} weight="bold" aria-label="Blocat" />;
+	return <NotePencil size={14} weight="duotone" aria-hidden />;
+};
 
-const renderLessonIndexIcon = (index, completed) => (
+const renderLessonIndexIcon = (index, completed, locked = false) => (
 	<div className={`lessons-page-sidebar-lesson-icon${completed ? ' has-check' : ''}`}>
-		<span>{index + 1}</span>
+		{locked && !completed ? <LockSimple size={12} weight="bold" aria-label="Blocată" /> : <span>{index + 1}</span>}
 		{completed ? <Check className="lessons-page-sidebar-lesson-check" size={11} weight="bold" aria-hidden /> : null}
 	</div>
 );
@@ -167,7 +170,8 @@ const LessonsPage = () => {
 	const reachedEnd = useLessonReachedEnd({
 		contentRef,
 		lessonId: selectedLessonId,
-		enabled: lessonReadyForTracking,
+		// cât timp se încarcă cursul pagina arată doar spinner-ul, deci conținutul lecției încă nu există
+		enabled: lessonReadyForTracking && !loading,
 	});
 	const canAdvanceLesson = reachedEnd;
 
@@ -405,6 +409,15 @@ const LessonsPage = () => {
 	};
 	const getCourseLevelTestProgress = (testId) =>
 		progress?.course_level_tests?.find((t) => Number(t.test_id) === Number(testId));
+	// progresul trimite `unlocked` pentru fiecare test; personalul vede totul deschis
+	const isTestLockedForPlayer = (testProgress) => !isPlayerStaff && !testProgress?.passed && testProgress?.unlocked === false;
+	const openCourseTest = (testId, testProgress) => {
+		if (isTestLockedForPlayer(testProgress)) {
+			showToast('Testul se deblochează după ce termini lecțiile dinaintea lui.', 'error');
+			return;
+		}
+		navigate(`/courses/${courseId}/exams/${testId}`);
+	};
 
 	const handleNextLesson = async () => {
 		if (!reachedEnd) return;
@@ -610,7 +623,7 @@ const LessonsPage = () => {
 													className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
 													onClick={() => handleLessonClick(lesson.id, lesson)}
 												>
-													{renderLessonIndexIcon(lessonIndex, isCompleted)}
+													{renderLessonIndexIcon(lessonIndex, isCompleted, !isLessonUnlockedForPlayer(lesson.id, lesson))}
 													<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
 												</button>
 												{lessonTests.map((ct) => {
@@ -618,14 +631,15 @@ const LessonsPage = () => {
 													if (!testId) return null;
 													const tp = getLessonTestProgress(null, lesson.id, testId);
 													const passed = Boolean(tp?.passed);
+													const locked = isTestLockedForPlayer(tp);
 													return (
 														<button
 															key={`lesson-${lesson.id}-test-${testId}`}
 															type="button"
-															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}`}
-															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}${locked ? ' locked' : ''}`}
+															onClick={() => openCourseTest(testId, tp)}
 														>
-															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
+															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed, locked)}</div>
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
 																{' · Obligatoriu'}
@@ -682,7 +696,7 @@ const LessonsPage = () => {
 																className={`lessons-page-sidebar-lesson ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isLessonUnlockedForPlayer(lesson.id, lesson) ? 'locked' : ''}`}
 																onClick={() => handleLessonClick(lesson.id, lesson)}
 															>
-																{renderLessonIndexIcon(lessonIndex, isCompleted)}
+																{renderLessonIndexIcon(lessonIndex, isCompleted, !isLessonUnlockedForPlayer(lesson.id, lesson))}
 																<span className="lessons-page-sidebar-lesson-title">{lesson.title}</span>
 															</button>
 															{lessonTests.map((ct) => {
@@ -690,14 +704,15 @@ const LessonsPage = () => {
 																if (!testId) return null;
 																const tp = getLessonTestProgress(module.id, lesson.id, testId);
 																const passed = Boolean(tp?.passed);
+																const locked = isTestLockedForPlayer(tp);
 																return (
 																	<button
 																		key={`lesson-${lesson.id}-test-${testId}`}
 																		type="button"
-																		className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}`}
-																		onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+																		className={`lessons-page-sidebar-lesson lessons-page-sidebar-test lessons-page-sidebar-nested-test ${passed ? 'completed' : ''}${locked ? ' locked' : ''}`}
+																		onClick={() => openCourseTest(testId, tp)}
 																	>
-																		<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
+																		<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed, locked)}</div>
 																		<span className="lessons-page-sidebar-lesson-title">
 																			{ct.test?.title || 'Test'}
 																			{' · Obligatoriu'}
@@ -715,14 +730,15 @@ const LessonsPage = () => {
 													if (!testId) return null;
 													const tp = getModuleTestProgress(module.id, testId);
 													const passed = Boolean(tp?.passed);
+													const locked = isTestLockedForPlayer(tp);
 													return (
 														<button
 															key={`mod-test-${testId}`}
 															type="button"
-															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
-															onClick={() => navigate(`/courses/${courseId}/exams/${testId}`)}
+															className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}${locked ? ' locked' : ''}`}
+															onClick={() => openCourseTest(testId, tp)}
 														>
-															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
+															<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed, locked)}</div>
 															<span className="lessons-page-sidebar-lesson-title">
 																{ct.test?.title || 'Test'}
 																{' · Obligatoriu'}
@@ -751,14 +767,15 @@ const LessonsPage = () => {
 							{course.exams.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status)).map((exam) => {
 								const tp = getCourseLevelTestProgress(exam.id);
 								const passed = Boolean(tp?.passed);
+								const locked = isTestLockedForPlayer(tp);
 								return (
 									<button
 										key={exam.id}
 										type="button"
-										className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}`}
-										onClick={() => navigate(`/courses/${courseId}/exams/${exam.id}`)}
+										className={`lessons-page-sidebar-lesson lessons-page-sidebar-test ${passed ? 'completed' : ''}${locked ? ' locked' : ''}`}
+										onClick={() => openCourseTest(exam.id, tp)}
 									>
-										<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed)}</div>
+										<div className="lessons-page-sidebar-lesson-icon">{renderTestStatusIcon(passed, locked)}</div>
 										<span className="lessons-page-sidebar-lesson-title">
 											{exam.title || 'Test'}
 											{' · Obligatoriu'}

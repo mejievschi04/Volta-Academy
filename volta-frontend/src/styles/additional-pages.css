@@ -681,6 +681,32 @@
 	text-align: left;
 }
 
+.student-exam-title--sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.student-exam-header-row--timer {
+	justify-content: flex-end;
+}
+
+/* Fără titlu: pe desktop rămâne doar cronometrul, fără cardul din jur */
+.student-exam-page--desktop .student-exam-header-compact.student-exam-header--timer-only,
+.student-exam-header-compact.student-exam-header--timer-only {
+	margin-bottom: var(--space-3);
+	padding: 0;
+	background: none;
+	border: 0;
+	box-shadow: none;
+}
+
 .student-exam-header-compact .student-exam-timer {
 	flex-shrink: 0;
 	margin-bottom: 0;

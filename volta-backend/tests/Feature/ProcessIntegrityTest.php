@@ -181,6 +181,41 @@ class ProcessIntegrityTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_course_level_test_waits_for_all_lessons_when_unlock_is_sequential(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $course = Course::factory()->published()->create(['sequential_unlock' => true]);
+        $lessons = collect([0, 1])->map(fn (int $order) => Lesson::withoutEvents(fn () => Lesson::create([
+            'course_id' => $course->id, 'module_id' => null, 'title' => "Lecția {$order}",
+            'content' => 'A', 'type' => 'text', 'status' => 'published', 'order' => $order,
+        ])));
+        $test = Test::factory()->published()->create();
+        CourseTest::create(['course_id' => $course->id, 'test_id' => $test->id, 'scope' => 'course', 'order' => 0]);
+        $q = Question::factory()->create(['test_id' => $test->id]);
+        \Illuminate\Support\Facades\DB::table('course_user')->insert([
+            'user_id' => $student->id, 'course_id' => $course->id, 'enrolled' => true,
+            'enrolled_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $engine = fn () => app()->make(\App\Services\ProgressionEngine::class);
+
+        $this->assertFalse($engine()->isTestUnlocked($student, $test, $course));
+        $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit?course_id={$course->id}", [
+            'answers' => [$q->id => 0],
+        ])->assertForbidden();
+
+        \Illuminate\Support\Facades\DB::table('lesson_progress')->insert($lessons->map(fn (Lesson $lesson) => [
+            'user_id' => $student->id, 'lesson_id' => $lesson->id, 'completed' => true,
+            'progress_percentage' => 100, 'created_at' => now(), 'updated_at' => now(),
+        ])->all());
+        $this->app->forgetInstance(\App\Services\ProgressionEngine::class);
+        $this->assertTrue($engine()->isTestUnlocked($student, $test, $course));
+
+        $course->update(['sequential_unlock' => false]);
+        \Illuminate\Support\Facades\DB::table('lesson_progress')->delete();
+        $this->app->forgetInstance(\App\Services\ProgressionEngine::class);
+        $this->assertTrue($engine()->isTestUnlocked($student, $test, $course->fresh()));
+    }
+
     public function test_draft_unassigned_lesson_rejects_progress_updates(): void
     {
         $student = User::factory()->create(['role' => 'student']);

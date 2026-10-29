@@ -10,6 +10,7 @@ export default function TestAttemptFooter({
     onSubmit,
     submitting = false,
     canSubmit = true,
+    submitHint = '',
     canGoBack = true,
     canGoNext = true,
     submitted = false,
@@ -40,6 +41,9 @@ export default function TestAttemptFooter({
         <footer ref={footerRef} className={`test-attempt-footer${showSubmit ? ' test-attempt-footer--submit' : ''}`}>
             {nextBlocked && (
                 <p className="test-attempt-footer-hint" role="status">Alege un răspuns ca să continui.</p>
+            )}
+            {showSubmit && !submitting && submitHint && (
+                <p className="test-attempt-footer-hint" role="status">{submitHint}</p>
             )}
             {!submitted && total > 0 && <nav className="test-attempt-footer-navigation" aria-label="Navigare întrebări">
                 <button type="button" className="test-attempt-nav-btn test-attempt-nav-btn--prev" aria-label="Întrebarea anterioară"

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "graphify": {
+      "command": "/Users/mejievski/.local/bin/graphify-mcp",
+      "args": [
+        "/Users/mejievski/Desktop/Projects/Volta-Academy/graphify-out/graph.json"
+      ]
+    }
+  }
+}

@@ -80,54 +80,91 @@
 	overflow-wrap: anywhere;
 }
 
-/* Potrivire: perechi în stânga, răspunsuri disponibile în dreapta */
+/* Potrivire: fiecare element are alături răspunsul ales (listă la text, atingere la imagini) */
 .student-exam-matching {
-	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-	gap: var(--space-4);
-	align-items: start;
-}
-
-.student-exam-matching-left {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
 .student-exam-matching-row {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	gap: var(--space-3);
-	align-items: center;
+	align-items: stretch;
 }
 
 .student-exam-matching-prompt {
+	display: flex;
+	align-items: center;
+	min-height: 52px;
 	padding: var(--space-3) var(--space-4);
 	background: var(--bg-secondary);
 	border: 2px solid var(--border-primary);
 	border-radius: var(--radius-md);
 	color: var(--text-primary);
+	font-weight: 600;
 	overflow-wrap: anywhere;
+}
+
+.student-exam-matching-select {
+	width: 100%;
+	min-height: 52px;
+	padding: var(--space-3) calc(var(--space-4) + 24px) var(--space-3) var(--space-4);
+	appearance: none;
+	background-color: var(--bg-elevated);
+	background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+	background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%;
+	background-size: 6px 6px;
+	background-repeat: no-repeat;
+	border: 2px dashed var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-tertiary);
+	font: inherit;
+	cursor: pointer;
+}
+
+.student-exam-matching-row.is-filled .student-exam-matching-select {
+	border-style: solid;
+	border-color: var(--color-brand-primary);
+	color: var(--text-primary);
+}
+
+.student-exam-matching-select:focus-visible,
+.student-exam-matching-slot:focus-visible,
+.student-exam-matching-chip:focus-visible {
+	outline: 3px solid var(--color-brand-primary);
+	outline-offset: 2px;
+}
+
+.student-exam-matching-select:disabled {
+	cursor: default;
+	opacity: 0.7;
 }
 
 .student-exam-matching-slot {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 56px;
+	min-height: 52px;
 	padding: var(--space-2);
 	border: 2px dashed var(--border-primary);
 	border-radius: var(--radius-md);
 	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
 }
 
 .student-exam-matching-slot.is-filled {
-	justify-content: stretch;
 	border-style: solid;
+	border-color: var(--color-brand-primary);
 }
 
-.student-exam-matching-slot.is-over,
-.student-exam-matching-pool.is-over {
+.student-exam-matching-slot.is-active {
 	border-color: var(--color-brand-primary);
 	background: rgba(var(--color-primary-rgb), 0.08);
 }
@@ -138,8 +175,7 @@
 }
 
 .student-exam-matching-pool {
-	position: sticky;
-	top: var(--space-4);
+	margin-top: var(--space-4);
 	padding: var(--space-3);
 	border: 2px solid var(--border-primary);
 	border-radius: var(--radius-md);
@@ -153,56 +189,32 @@
 	color: var(--text-secondary);
 }
 
-.student-exam-matching-pool-list {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-2);
-	min-height: 44px;
-}
-
 .student-exam-matching-pool-empty {
 	font-size: var(--font-size-sm);
 	color: var(--text-tertiary);
 }
 
 .student-exam-matching-chip {
-	width: 100%;
-	padding: var(--space-2) var(--space-3);
+	padding: var(--space-1);
 	background: var(--bg-secondary);
 	border: 2px solid var(--border-secondary);
 	border-radius: var(--radius-md);
-	color: var(--text-primary);
-	font: inherit;
-	text-align: left;
-	cursor: grab;
-	touch-action: none;
-	overflow-wrap: anywhere;
+	cursor: pointer;
 }
 
-.student-exam-matching-pool-list .student-exam-matching-chip {
-	width: auto;
-	max-width: 100%;
-}
-
-.student-exam-matching-chip:hover {
+.student-exam-matching-chip:hover:not(:disabled) {
 	border-color: var(--color-brand-primary);
-}
-
-.student-exam-matching-chip.is-dragging {
-	position: relative;
-	z-index: 2;
-	border-color: var(--color-brand-primary);
-	box-shadow: var(--shadow-sm);
-	cursor: grabbing;
 }
 
 .student-exam-matching-chip:disabled {
 	cursor: default;
+	opacity: 0.6;
 }
 
 .student-exam-image-matching-pool {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: var(--space-2);
 }
 
 .student-exam-image-matching-image {
@@ -211,30 +223,24 @@
 	height: 112px;
 	object-fit: cover;
 	border-radius: calc(var(--radius-md) - 4px);
-	pointer-events: none;
-}
-
-.student-exam-matching-slot .student-exam-matching-chip {
-	max-width: 100%;
 }
 
 .student-exam-matching-slot .student-exam-image-matching-image {
 	height: 104px;
 }
 
-/* Telefon: zona de răspunsuri sus, perechile dedesubt, fiecare pe o coloană */
+/* Telefon: elementul deasupra, răspunsul dedesubt */
 @media (max-width: 768px) {
 	.student-exam-matching {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.student-exam-matching-pool {
-		position: static;
-		order: -1;
+		gap: var(--space-4);
 	}
 
 	.student-exam-matching-row {
 		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-2);
+	}
+
+	.student-exam-matching-prompt {
+		min-height: 0;
 	}
 }

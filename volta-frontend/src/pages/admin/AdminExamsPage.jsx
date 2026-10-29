@@ -11,6 +11,7 @@ import AdminContentItemCard from '../../components/admin/content/AdminContentIte
 import { PublishSwitch } from '../../components/ui/PublishSwitch';
 import TestResultsPanel from '../../components/admin/tests/TestResultsPanel';
 import ExamContentPicker from '../../components/admin/exams/ExamContentPicker';
+import ExamCoverField from '../../components/admin/exams/ExamCoverField';
 import PassingScoreByQuestions from '../../components/admin/tests/PassingScoreByQuestions';
 import Modal from '../../components/common/Modal';
 import '../../styles/admin-content-list.css';
@@ -293,7 +294,7 @@ export default function AdminExamsPage() {
     } finally { setListActionId(null); }
   };
   const handleOpenExistingExam = (item, options = {}) => {
-    setActiveExamDraft({ id: item?.id || null, title: item?.title || '', description: item?.description || '', course_id: item?.course_id || null });
+    setActiveExamDraft({ id: item?.id || null, title: item?.title || '', description: item?.description || '', course_id: item?.course_id || null, cover_image_url: item?.cover_image_url || null });
     setExamSettings({
       ...DEFAULT_SETTINGS,
       title: item?.title || '', description: item?.description || '', instructions: item?.settings?.instructions || '',
@@ -765,6 +766,15 @@ export default function AdminExamsPage() {
                 placeholder="Ex.: Examen final"
               />
             </div>
+            <ExamCoverField
+              examId={activeExamDraft.id}
+              coverUrl={activeExamDraft.cover_image_url}
+              onChange={(url) => {
+                setActiveExamDraft((prev) => ({ ...prev, cover_image_url: url }));
+                setItems((prev) => prev.map((row) => (row.id === activeExamDraft.id ? { ...row, cover_image_url: url } : row)));
+              }}
+              disabled={!canMutateInAdminArea}
+            />
           </div>
         </section>
 
@@ -1476,11 +1486,35 @@ export default function AdminExamsPage() {
                       <h5>{index + 1}. {question.text}</h5>
                       {Array.isArray(question.options) && question.options.length > 0 ? (
                         <ul>
-                          {question.options.map((option, optionIndex) => <li key={`${question.id || index}-${optionIndex}`}>{option}</li>)}
+                          {question.options.map((option, optionIndex) => (
+                            <li
+                              key={`${question.id || index}-${optionIndex}`}
+                              className={optionIndex === question.answerIndex ? 'is-correct-answer' : undefined}
+                            >
+                              {option}
+                              {optionIndex === question.answerIndex ? <strong className="admin-exams-preview-correct-label">Răspuns corect</strong> : null}
+                            </li>
+                          ))}
                         </ul>
                       ) : (
                         <small>Răspuns deschis</small>
                       )}
+                      {['matching', 'image_matching'].includes(question.type) && Array.isArray(question.matching?.leftItems) ? (
+                        <div className="admin-exams-preview-correct-answer">
+                          <strong>Potriviri corecte:</strong>
+                          {question.matching.leftItems.map((item, pairIndex) => (
+                            <div key={`${question.id || index}-pair-${item.id}`}>
+                              {item.text} → {question.matching.rightItems?.[pairIndex]?.text || question.matching.rightItems?.[pairIndex]?.image_url || ''}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {question.type === 'ordering' && Array.isArray(question.ordering?.items) ? (
+                        <div className="admin-exams-preview-correct-answer">
+                          <strong>Ordinea corectă:</strong>
+                          <ol>{question.ordering.items.map((item) => <li key={`${question.id || index}-order-${item.id}`}>{item.text}</li>)}</ol>
+                        </div>
+                      ) : null}
                     </article>
                   ))}
                 </div>

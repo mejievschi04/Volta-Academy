@@ -200,6 +200,7 @@ class StatisticsAdminController extends Controller
                     $this->selectOrNull('test_results', 'total_questions'),
                     $testCompletedColumn ? 'test_results.' . $testCompletedColumn . ' as completed_at' : DB::raw('NULL as completed_at'),
                     $this->selectOrNull('test_results', 'attempt_number', null, '1'),
+                    $this->selectOrNull('test_results', 'needs_manual_review', null, '0'),
                     ($hasTestsTable && $hasTestIdColumn) ? 'tests.title as test_title' : DB::raw('NULL as test_title'),
                     ($hasCourseTestTable && $hasTestIdColumn) ? 'course_test.course_id as course_id' : DB::raw('NULL as course_id')
                 )
@@ -207,6 +208,7 @@ class StatisticsAdminController extends Controller
                 ->get()
                 ->map(function ($r) use ($testCourseMap) {
                     return [
+                        'kind' => 'test',
                         'user_id' => $r->user_id,
                         'test_id' => $r->test_id,
                         'course_id' => $r->course_id ?? $testCourseMap[(int) $r->test_id] ?? null,
@@ -219,12 +221,14 @@ class StatisticsAdminController extends Controller
                         'total_questions' => $r->total_questions ?? null,
                         'completed_at' => $r->completed_at ? Carbon::parse($r->completed_at)->toIso8601String() : null,
                         'attempt_number' => $r->attempt_number,
+                        'needs_manual_review' => (bool) $r->needs_manual_review,
                     ];
                 })->all();
 
             $testResults = array_merge($testResults, $results);
         }
 
+        // Examenele au id-uri proprii (exams.id), deci rândurile poartă `kind` ca să nu se amestece cu testele.
         if (SchemaCache::hasTable('exam_results')) {
             $hasExamsTable = SchemaCache::hasTable('exams');
             $hasExamIdColumn = $this->hasColumn('exam_results', 'exam_id');
@@ -269,6 +273,7 @@ class StatisticsAdminController extends Controller
                     DB::raw('NULL as total_questions'),
                     $examCompletedColumn ? 'exam_results.' . $examCompletedColumn . ' as completed_at' : DB::raw('NULL as completed_at'),
                     $this->selectOrNull('exam_results', 'attempt_number', null, '1'),
+                    $this->selectOrNull('exam_results', 'needs_manual_review', null, '0'),
                     ($hasExamsTable && $hasExamIdColumn) ? 'exams.title as test_title' : DB::raw('NULL as test_title'),
                     ($hasExamsTable && $hasExamIdColumn && $this->hasColumn('exams', 'course_id')) ? 'exams.course_id as course_id' : DB::raw('NULL as course_id')
                 )
@@ -276,6 +281,7 @@ class StatisticsAdminController extends Controller
                 ->get()
                 ->map(function ($r) {
                     return [
+                        'kind' => 'exam',
                         'user_id' => $r->user_id,
                         'test_id' => $r->test_id,
                         'course_id' => $r->course_id ?? null,
@@ -288,6 +294,7 @@ class StatisticsAdminController extends Controller
                         'total_questions' => null,
                         'completed_at' => $r->completed_at ? Carbon::parse($r->completed_at)->toIso8601String() : null,
                         'attempt_number' => $r->attempt_number,
+                        'needs_manual_review' => (bool) $r->needs_manual_review,
                     ];
                 })->all();
 
@@ -301,6 +308,7 @@ class StatisticsAdminController extends Controller
         $testResults = collect($testResults)
             ->unique(function (array $row) {
                 return implode('|', [
+                    $row['kind'] ?? '',
                     $row['user_id'] ?? '',
                     $row['test_id'] ?? '',
                     $row['attempt_number'] ?? '',

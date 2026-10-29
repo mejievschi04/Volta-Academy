@@ -535,6 +535,7 @@ const ExamPage = () => {
 	const canShowInstantResults = Boolean(submitted && result && (!needsManualReview || showsPartialManualReview));
 	const canShowCorrectAnswers = Boolean(canShowInstantResults && exam?.show_correct_answers && !showOnlySubmittedAnswers);
 	const mobileSingleQuestion = isMobile && !submitted;
+	const showExamTimer = timeRemaining !== null && !submitted;
 	const visibleQuestions = useMemo(() => {
 		if (!exam?.questions) return [];
 		if (submitted) return exam.questions;
@@ -552,6 +553,10 @@ const ExamPage = () => {
 		&& previousQuestion
 		&& !isChoiceAnswered(previousQuestion, answers[previousQuestion.id] ?? answers[String(previousQuestion.id)])
 	);
+	const unansweredCount = (exam?.questions || []).filter(
+		(q) => !isChoiceAnswered(q, answers[q.id] ?? answers[String(q.id)])
+	).length;
+
 	const canGoNext = Boolean(
 		!submitted
 		&& currentQuestion
@@ -756,16 +761,17 @@ const ExamPage = () => {
 				</Link>
 			) : null}
 
-			{!(isMobile && submitted && result) && (
-			<div className="student-exam-header student-exam-header-compact">
-				<div className="student-exam-header-row">
-					<h1 className="student-exam-title">{exam.title}</h1>
-					{timeRemaining !== null && !submitted && (
-						<div className={`student-exam-timer ${timeRemaining < 300 ? 'student-exam-timer-warning' : ''}`}>
-							<span className="student-exam-timer-value">{formatTime(timeRemaining)}</span>
-						</div>
-					)}
+			{/* Titlul nu se mai afișează pe pagina testului; rămâne doar pentru cititoarele de ecran */}
+			<h1 className="student-exam-title--sr">{exam.title}</h1>
+			{!(isMobile && submitted && result) && (showExamTimer || mobileSingleQuestion) && (
+			<div className={`student-exam-header student-exam-header-compact${mobileSingleQuestion ? '' : ' student-exam-header--timer-only'}`}>
+				{showExamTimer ? (
+				<div className="student-exam-header-row student-exam-header-row--timer">
+					<div className={`student-exam-timer ${timeRemaining < 300 ? 'student-exam-timer-warning' : ''}`}>
+						<span className="student-exam-timer-value">{formatTime(timeRemaining)}</span>
+					</div>
 				</div>
+				) : null}
 
 				{mobileSingleQuestion && exam.questions.length > 0 ? (
 					<div className="student-exam-mobile-progress">
@@ -943,7 +949,10 @@ const ExamPage = () => {
             <TestAttemptFooter currentIndex={currentQuestionIndex} total={exam.questions.length}
                 onNavigate={scrollToQuestion} onSubmit={handleSubmit} submitting={submitting}
                 submitted={submitted}
-                canSubmit={timeRemaining === 0 || exam.questions.some((q) => isChoiceAnswered(q, answers[q.id]))}
+                canSubmit={timeRemaining === 0 || unansweredCount === 0}
+                submitHint={unansweredCount > 0 && timeRemaining !== 0
+                    ? `Răspunde la toate întrebările ca să trimiți testul (${unansweredCount} fără răspuns).`
+                    : ''}
                 canGoBack={canGoBack}
                 canGoNext={canGoNext}>
                 {submitted && result && exam.can_retake && !result.passed && !needsManualReview && (

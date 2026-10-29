@@ -140,6 +140,11 @@ class TestAdminController extends Controller
             'questions.*.order' => 'nullable|integer|min:0',
             'questions.*.explanation' => 'nullable|string',
         ]);
+        // Accept stable question IDs from the inline builder when it submits a full list.
+        if ($request->has('questions')) {
+            $request->validate(['questions.*.id' => 'sometimes|integer|min:1']);
+            $validated['questions'] = $request->input('questions');
+        }
 
         $creator = Auth::user();
         if (!$creator) {

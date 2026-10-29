@@ -66,6 +66,20 @@
 	gap: var(--space-3);
 }
 
+/* Teste lunare (pe luni) deasupra, apoi testele din cursuri (pe cursuri) */
+.exam-results-sections {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+}
+
+.exam-results-section-title {
+	margin: 0 0 var(--space-3);
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
+	color: var(--text-primary);
+}
+
 .exam-results-test-card {
 	margin-bottom: 0;
 }

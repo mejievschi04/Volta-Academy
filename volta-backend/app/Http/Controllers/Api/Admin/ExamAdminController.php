@@ -8,8 +8,12 @@ use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ExamAnswer;
 use App\Models\ExamResult;
+use App\Services\ExamAttemptLimitService;
 use App\Services\ExamBankQuestionSyncService;
+use App\Support\ImageOptimizer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Support\SchemaCache;
@@ -18,7 +22,8 @@ use Illuminate\Database\QueryException;
 class ExamAdminController extends Controller
 {
     public function __construct(
-        protected ExamBankQuestionSyncService $examBankQuestionSyncService
+        protected ExamBankQuestionSyncService $examBankQuestionSyncService,
+        protected ExamAttemptLimitService $examAttemptLimits
     ) {
     }
 
@@ -81,6 +86,7 @@ class ExamAdminController extends Controller
                 'passing_score' => $exam->passing_score,
                 'settings' => $exam->settings,
                 'course_title' => $exam->course ? $exam->course->title : null,
+                'cover_image_url' => $exam->cover_image_url,
                 'questions_count' => (int) ($exam->questions_count ?? 0),
                 'created_at' => $exam->created_at,
                 'updated_at' => $exam->updated_at,
@@ -542,6 +548,56 @@ class ExamAdminController extends Controller
         ]);
     }
 
+    /**
+     * Coperta examenului (cardul din „Teste lunare”), ca la mape și cursuri.
+     */
+    public function uploadCover(Request $request, $id)
+    {
+        $request->validate([
+            'cover' => 'required|image|mimes:jpeg,png,gif,webp|max:4096',
+        ]);
+
+        $exam = Exam::with('course')->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        $file = ImageOptimizer::optimize($request->file('cover'), ImageOptimizer::COVER_MAX);
+        $ext = $file->getClientOriginalExtension() ?: 'jpg';
+        $path = $file->storeAs('exam-covers', $exam->id . '_' . time() . '.' . $ext, 'public');
+
+        $this->deleteStoredCover($exam->cover_image_path);
+        $exam->cover_image_path = $path;
+        $exam->save();
+
+        return response()->json(['cover_image_url' => $exam->cover_image_url]);
+    }
+
+    public function deleteCover($id)
+    {
+        $exam = Exam::with('course')->findOrFail($id);
+        $this->assertExamAccessibleByInstructor($exam);
+
+        if ($exam->cover_image_path) {
+            $this->deleteStoredCover($exam->cover_image_path);
+            $exam->cover_image_path = null;
+            $exam->save();
+        }
+
+        return response()->json(['cover_image_url' => null]);
+    }
+
+    private function deleteStoredCover(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+        try {
+            Storage::disk('public')->delete($path);
+            Storage::disk('public')->delete(ImageOptimizer::thumbnailPath($path));
+        } catch (\Exception $e) {
+            Log::warning('Could not delete exam cover: ' . $e->getMessage());
+        }
+    }
+
     public function destroy($id)
     {
         $exam = Exam::with('course')->find($id);
@@ -675,11 +731,15 @@ class ExamAdminController extends Controller
             return response()->json([]);
         }
 
+        $extraByUser = SchemaCache::hasTable('user_exam_attempt_grants')
+            ? DB::table('user_exam_attempt_grants')->where('exam_id', $exam->id)->pluck('extra_attempts', 'user_id')
+            : collect();
+
         $rows = ExamResult::with(['user:id,name,email'])
             ->where('exam_id', $exam->id)
             ->orderByDesc('completed_at')
             ->get()
-            ->map(function ($row) {
+            ->map(function ($row) use ($exam, $extraByUser) {
                 return [
                     'id' => $row->id,
                     'attempt_number' => $row->attempt_number,
@@ -691,6 +751,10 @@ class ExamAdminController extends Controller
                     'needs_manual_review' => $row->needs_manual_review,
                     'reviewed_at' => $row->reviewed_at,
                     'status' => $row->reviewed_at ? 'approved' : ($row->needs_manual_review ? 'pending' : 'completed'),
+                    // null = încercări nelimitate
+                    'allowed_attempts' => $exam->max_attempts
+                        ? (int) $exam->max_attempts + (int) ($extraByUser[$row->user_id] ?? 0)
+                        : null,
                     'user' => [
                         'id' => $row->user?->id,
                         'name' => $row->user?->name,
@@ -1090,6 +1154,37 @@ class ExamAdminController extends Controller
                 'status' => $result->reviewed_at ? 'approved' : 'completed',
                 'reviewed_at' => $result->reviewed_at,
             ],
+        ]);
+    }
+
+    /**
+     * Acordă elevului din acest rezultat încă o încercare la examen (ca la teste: limită per elev).
+     */
+    public function grantExtraAttempt(Request $request, $resultId)
+    {
+        $result = ExamResult::with('exam')->findOrFail($resultId);
+        $exam = $result->exam;
+        abort_unless($exam, 404, 'Examen negăsit.');
+        $this->assertExamAccessibleByInstructor($exam);
+
+        if (! $exam->max_attempts) {
+            return response()->json(['message' => 'Examenul are deja încercări nelimitate.'], 422);
+        }
+
+        $userId = (int) $result->user_id;
+        $hasPassed = ExamResult::where('exam_id', $exam->id)->where('user_id', $userId)->where('passed', true)->exists();
+        if ($hasPassed) {
+            return response()->json(['message' => 'Elevul a promovat deja examenul.'], 422);
+        }
+
+        $this->examAttemptLimits->grantExtraAttempt($userId, (int) $exam->id, (int) Auth::id());
+        $allowed = $this->examAttemptLimits->allowedAttemptCount($exam, $userId);
+        $used = ExamResult::where('exam_id', $exam->id)->where('user_id', $userId)->count();
+
+        return response()->json([
+            'message' => "A fost adăugată 1 încercare. Limita este acum {$allowed}.",
+            'allowed_attempts' => $allowed,
+            'remaining_attempts' => max(0, $allowed - $used),
         ]);
     }
 

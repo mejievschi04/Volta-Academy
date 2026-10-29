@@ -330,6 +330,11 @@ class DashboardMetricsTest extends TestCase
         $titles = collect($response->json('test_results'))->pluck('test_title');
         $this->assertTrue($titles->contains($test->title));
         $this->assertTrue($titles->contains($exam->title));
+
+        $byKind = collect($response->json('test_results'))->keyBy('kind');
+        $this->assertSame($test->id, $byKind['test']['test_id'] ?? null);
+        $this->assertSame($exam->id, $byKind['exam']['test_id'] ?? null);
+        $this->assertSame($exam->title, $byKind['exam']['test_title'] ?? null);
     }
 
     /**

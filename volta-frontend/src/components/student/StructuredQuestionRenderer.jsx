@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
 	DndContext,
 	KeyboardSensor,
 	PointerSensor,
 	closestCenter,
-	useDroppable,
-	useDraggable,
 	useSensor,
 	useSensors,
 } from '@dnd-kit/core';
@@ -109,81 +107,28 @@ function OrderingQuestion({ question, value, onChange, disabled }) {
 	);
 }
 
-function MatchingChip({ id, text, imageUrl, disabled }) {
-	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
-	return (
-		<button
-			ref={setNodeRef}
-			type="button"
-			{...attributes}
-			{...listeners}
-			disabled={disabled}
-			className={`student-exam-matching-chip${isDragging ? ' is-dragging' : ''}`}
-			style={{ transform: CSS.Transform.toString(transform) }}
-		>
-			{imageUrl ? <img src={imageUrl} alt={text || 'Imagine de asociat'} className="student-exam-image-matching-image" draggable="false" /> : text}
-		</button>
-	);
-}
+/** Răspunsurile alese pe rânduri (id-uri din dreapta), câte unul pentru fiecare element din stânga. */
+function useMatchingAnswers(value, rowCount, onChange) {
+	const current = useMemo(() => {
+		const next = Array.isArray(value) ? value.slice(0, rowCount) : [];
+		while (next.length < rowCount) next.push(null);
+		return next;
+	}, [value, rowCount]);
 
-function MatchingSlot({ slotId, assignedId, assignedText, assignedImageUrl, placeholder, disabled }) {
-	const { isOver, setNodeRef } = useDroppable({ id: slotId });
-	return (
-		<div
-			ref={setNodeRef}
-			className={`student-exam-matching-slot${assignedText ? ' is-filled' : ''}${isOver ? ' is-over' : ''}`}
-		>
-			{assignedText ? (
-				<MatchingChip id={`matching-chip-${assignedId}`} text={assignedText} imageUrl={assignedImageUrl} disabled={disabled} />
-			) : (
-				<span className="student-exam-matching-placeholder">{placeholder}</span>
-			)}
-		</div>
-	);
+	// un răspuns stă pe un singur rând: dacă e ales în alt rând, se mută aici
+	const assign = (rowIndex, optionId) => {
+		const next = current.map((item) => (optionId != null && String(item) === String(optionId) ? null : item));
+		next[rowIndex] = optionId == null || optionId === '' ? null : String(optionId);
+		onChange(next);
+	};
+
+	return { current, assign };
 }
 
 function MatchingQuestion({ question, value, onChange, disabled }) {
 	const leftItems = question.matching?.leftItems || [];
 	const rightItems = question.matching?.rightItems || [];
-	const poolId = `matching-pool-${question.id}`;
-	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-	);
-	const current = useMemo(() => {
-		const next = Array.isArray(value) ? value.slice(0, leftItems.length) : [];
-		while (next.length < leftItems.length) next.push(null);
-		return next;
-	}, [value, leftItems.length]);
-	const { setNodeRef: setPoolNodeRef, isOver: isPoolOver } = useDroppable({ id: poolId });
-
-	const assigned = new Set(current.filter((item) => item !== null && item !== undefined).map((item) => String(item)));
-	const poolItems = rightItems.filter((item) => !assigned.has(String(item.id)));
-
-	const handleDragEnd = ({ active, over }) => {
-		if (!over) return;
-		const draggedId = String(active.id).replace(/^matching-chip-/, '');
-		const currentIndex = current.findIndex((item) => String(item) === draggedId);
-
-		if (over.id === poolId) {
-			if (currentIndex === -1) return;
-			const next = current.slice();
-			next[currentIndex] = null;
-			onChange(next);
-			return;
-		}
-
-		if (String(over.id).startsWith('matching-slot-')) {
-			const slotIndex = Number(String(over.id).replace('matching-slot-', ''));
-			if (Number.isNaN(slotIndex)) return;
-			const next = current.slice();
-			next.forEach((item, idx) => {
-				if (String(item) === draggedId) next[idx] = null;
-			});
-			next[slotIndex] = draggedId;
-			onChange(next);
-		}
-	};
+	const { current, assign } = useMatchingAnswers(value, leftItems.length, onChange);
 
 	if (!leftItems.length || !rightItems.length) {
 		return (
@@ -193,51 +138,43 @@ function MatchingQuestion({ question, value, onChange, disabled }) {
 		);
 	}
 
+	const rowOf = (optionId) => current.findIndex((item) => String(item) === String(optionId));
+
 	return (
-		<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+		<>
 			<div className="student-exam-structured-hint">
-				Trage răspunsurile în slotul potrivit.
+				Alege pentru fiecare element răspunsul potrivit.
 			</div>
-			<div className="student-exam-matching">
-				<div className="student-exam-matching-left">
-					{leftItems.map((item, idx) => {
-						const assignedId = current[idx];
-						const assignedItem = rightItems.find((opt) => String(opt.id) === String(assignedId));
-						return (
-							<div key={item.id} className="student-exam-matching-row">
-								<div className="student-exam-matching-prompt">{item.text}</div>
-								<MatchingSlot
-									slotId={`matching-slot-${idx}`}
-									assignedId={assignedId}
-									assignedText={assignedItem?.text || ''}
-									placeholder="Trage răspunsul aici"
-									disabled={disabled}
-								/>
-							</div>
-						);
-					})}
-				</div>
-				<div
-					className={`student-exam-matching-pool${isPoolOver ? ' is-over' : ''}`}
-					ref={setPoolNodeRef}
-				>
-					<div className="student-exam-matching-pool-title">Răspunsuri disponibile</div>
-					<div className="student-exam-matching-pool-list">
-						{poolItems.length === 0 ? (
-							<span className="student-exam-matching-pool-empty">Toate răspunsurile sunt plasate.</span>
-						) : null}
-						{poolItems.map((item) => (
-							<MatchingChip
-								key={item.id}
-								id={`matching-chip-${item.id}`}
-								text={item.text}
+			<ol className="student-exam-matching">
+				{leftItems.map((item, idx) => {
+					const selectId = `matching-${question.id}-${idx}`;
+					const selected = current[idx] ?? '';
+					return (
+						<li key={item.id} className={`student-exam-matching-row${selected ? ' is-filled' : ''}`}>
+							<label className="student-exam-matching-prompt" htmlFor={selectId}>{item.text}</label>
+							<select
+								id={selectId}
+								className="student-exam-matching-select"
+								value={selected}
+								onChange={(e) => assign(idx, e.target.value)}
 								disabled={disabled}
-							/>
-						))}
-					</div>
-				</div>
-			</div>
-		</DndContext>
+							>
+								<option value="">Alege răspunsul…</option>
+								{rightItems.map((opt) => {
+									const usedAt = rowOf(opt.id);
+									const elsewhere = usedAt !== -1 && usedAt !== idx;
+									return (
+										<option key={opt.id} value={String(opt.id)}>
+											{elsewhere ? `${opt.text} (ales la „${leftItems[usedAt]?.text}”)` : opt.text}
+										</option>
+									);
+								})}
+							</select>
+						</li>
+					);
+				})}
+			</ol>
+		</>
 	);
 }
 
@@ -245,52 +182,69 @@ function ImageMatchingQuestion({ question, value, onChange, disabled }) {
 	const data = question.imageMatching || {};
 	const leftItems = data.leftItems || [];
 	const rightItems = data.rightItems || [];
-	const poolId = `image-matching-pool-${question.id}`;
-	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-	const current = useMemo(() => {
-		const next = Array.isArray(value) ? value.slice(0, leftItems.length) : [];
-		while (next.length < leftItems.length) next.push(null);
-		return next;
-	}, [value, leftItems.length]);
-	const { setNodeRef: setPoolNodeRef, isOver: isPoolOver } = useDroppable({ id: poolId });
-	const assigned = new Set(current.filter((item) => item !== null && item !== undefined).map(String));
-	const poolItems = rightItems.filter((item) => !assigned.has(String(item.id)));
-	const handleDragEnd = ({ active, over }) => {
-		if (!over) return;
-		const draggedId = String(active.id).replace(/^image-matching-chip-/, '');
-		const currentIndex = current.findIndex((item) => String(item) === draggedId);
-		if (over.id === poolId) {
-			if (currentIndex < 0) return;
-			const next = current.slice(); next[currentIndex] = null; onChange(next); return;
-		}
-		if (String(over.id).startsWith('image-matching-slot-')) {
-			const slotIndex = Number(String(over.id).replace('image-matching-slot-', ''));
-			if (!Number.isInteger(slotIndex)) return;
-			const next = current.slice();
-			next.forEach((item, index) => { if (String(item) === draggedId) next[index] = null; });
-			next[slotIndex] = draggedId; onChange(next);
-		}
-	};
+	const { current, assign } = useMatchingAnswers(value, leftItems.length, onChange);
+	const [activeRow, setActiveRow] = useState(null);
+
 	if (!leftItems.length || !rightItems.length) return <div className="student-exam-structured-empty">Nu există suficiente perechi denumire–imagine.</div>;
+
+	const firstEmptyRow = current.findIndex((item) => item == null);
+	const targetRow = activeRow ?? (firstEmptyRow === -1 ? null : firstEmptyRow);
+	const assigned = new Set(current.filter((item) => item != null).map(String));
+
+	const pickImage = (optionId) => {
+		if (targetRow == null) return;
+		assign(targetRow, optionId);
+		setActiveRow(null);
+	};
+
 	return (
-		<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-			<div className="student-exam-structured-hint">Trage imaginile din dreapta lângă denumirea potrivită.</div>
-			<div className="student-exam-matching">
-				<div className="student-exam-matching-left">
-					{leftItems.map((item, index) => {
-						const selected = rightItems.find((option) => String(option.id) === String(current[index]));
-						return <div key={item.id} className="student-exam-matching-row"><div className="student-exam-matching-prompt">{item.text}</div><MatchingSlot slotId={`image-matching-slot-${index}`} assignedId={selected?.id} assignedText={selected?.alt || ''} assignedImageUrl={selected?.image_url} placeholder="Trage imaginea aici" disabled={disabled} /></div>;
-					})}
-				</div>
-				<div className={`student-exam-matching-pool${isPoolOver ? ' is-over' : ''}`} ref={setPoolNodeRef}>
-					<div className="student-exam-matching-pool-title">Imagini disponibile</div>
-					<div className="student-exam-matching-pool-list student-exam-image-matching-pool">
-						{poolItems.length === 0 ? <span className="student-exam-matching-pool-empty">Toate imaginile sunt plasate.</span> : null}
-						{poolItems.map((item) => <MatchingChip key={item.id} id={`image-matching-chip-${item.id}`} imageUrl={item.image_url} text={item.alt} disabled={disabled} />)}
-					</div>
+		<>
+			<div className="student-exam-structured-hint">
+				Atinge o denumire, apoi imaginea potrivită. Atinge din nou o imagine aleasă ca s-o scoți.
+			</div>
+			<ol className="student-exam-matching">
+				{leftItems.map((item, index) => {
+					const selected = rightItems.find((option) => String(option.id) === String(current[index]));
+					const isTarget = targetRow === index;
+					return (
+						<li key={item.id} className={`student-exam-matching-row${selected ? ' is-filled' : ''}`}>
+							<div className="student-exam-matching-prompt">{item.text}</div>
+							<button
+								type="button"
+								className={`student-exam-matching-slot${selected ? ' is-filled' : ''}${isTarget ? ' is-active' : ''}`}
+								onClick={() => (selected ? assign(index, null) : setActiveRow(index))}
+								aria-pressed={isTarget}
+								aria-label={selected ? `Scoate imaginea de la ${item.text}` : `Alege imaginea pentru ${item.text}`}
+								disabled={disabled}
+							>
+								{selected ? (
+									<img src={selected.image_url} alt={selected.alt || item.text} className="student-exam-image-matching-image" />
+								) : (
+									<span className="student-exam-matching-placeholder">{isTarget ? 'Alege o imagine de mai jos' : 'Atinge pentru a alege'}</span>
+								)}
+							</button>
+						</li>
+					);
+				})}
+			</ol>
+			<div className="student-exam-matching-pool">
+				<div className="student-exam-matching-pool-title">Imagini disponibile</div>
+				<div className="student-exam-image-matching-pool">
+					{rightItems.filter((item) => !assigned.has(String(item.id))).map((item) => (
+						<button
+							key={item.id}
+							type="button"
+							className="student-exam-matching-chip"
+							onClick={() => pickImage(item.id)}
+							disabled={disabled || targetRow == null}
+						>
+							<img src={item.image_url} alt={item.alt || 'Imagine de asociat'} className="student-exam-image-matching-image" />
+						</button>
+					))}
+					{assigned.size >= rightItems.length ? <span className="student-exam-matching-pool-empty">Toate imaginile sunt alese.</span> : null}
 				</div>
 			</div>
-		</DndContext>
+		</>
 	);
 }
 

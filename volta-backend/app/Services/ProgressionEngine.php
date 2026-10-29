@@ -123,6 +123,25 @@ class ProgressionEngine
             if ($module) {
                 return $this->isModuleUnlocked($user, $module, $course);
             }
+        } elseif ($course->sequential_unlock) {
+            // Testul de la nivel de curs vine după toate lecțiile publicate (decizie 2026-10-29).
+            return $this->hasCompletedAllPublishedLessons($user, $course);
+        }
+
+        return true;
+    }
+
+    protected function hasCompletedAllPublishedLessons(User $user, Course $course): bool
+    {
+        $courseId = (int) $course->id;
+        $scopes = $this->modulesForCourse($courseId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $scopes[] = null;
+        foreach ($scopes as $moduleId) {
+            foreach ($this->publishedLessonsInScope($moduleId, $courseId) as $lesson) {
+                if (! $this->userHasCompletedLesson($user, (int) $lesson->id)) {
+                    return false;
+                }
+            }
         }
 
         return true;

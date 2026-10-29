@@ -27,9 +27,31 @@ test('cursantul deschide cursul și trece la lecția următoare', async ({ page 
 	await expect(page.getByText('Conținutul lecției 2')).toBeVisible();
 });
 
+test('o lecție blocată arată motivul o singură dată, fără notificare în plus', async ({ page }) => {
+	// deblocare secvențială: lecția 3 cere lecțiile anterioare
+	await page.goto('/courses/1/lessons/3');
+	await expect(page.getByRole('heading', { name: 'Lecție blocată' })).toBeVisible();
+	await expect(page.getByText('Lecția este blocată. Completează lecțiile anterioare.')).toHaveCount(1);
+	await expect(page.getByRole('button', { name: 'Înapoi la curs' })).toBeVisible();
+});
+
+test('testul final se deschide abia după toate lecțiile', async ({ page }) => {
+	// deblocare secvențială: testul de la nivel de curs cere toate lecțiile terminate
+	await page.goto('/courses/1/exams/1');
+	await expect(page.getByText('Testul este blocat. Termină mai întâi lecțiile și testele dinaintea lui.')).toBeVisible();
+
+	await page.goto('/courses/1?lesson=2');
+	await expect(page.getByRole('heading', { name: 'Lecția 2' })).toBeVisible();
+	await page.getByRole('button', { name: 'Lecția următoare' }).click();
+	await expect(page.getByRole('heading', { name: 'Lecția 3' })).toBeVisible();
+	await page.getByRole('button', { name: 'Urmează testul' }).click();
+	await expect(page).toHaveURL(/\/courses\/1\/exams\/1/);
+});
+
 test('cursantul susține testul final și vede rezultatul', async ({ page }) => {
 	await page.goto('/courses/1/exams/1');
-	await expect(page.getByRole('heading', { name: 'Test final E2E' })).toBeVisible();
+	// titlul testului nu se mai afișează pe pagina lui; prima întrebare arată că testul s-a deschis
+	await expect(page.getByText('Care este capitala României?').first()).toBeVisible();
 
 	// Verificăm varianta bifată, nu lista de întrebări: pe telefon lista nu apare (doar săgeți și „1 / 2”).
 	await page.getByLabel('București').check();
@@ -60,12 +82,4 @@ test('rezultatul apare în istoricul testelor', async ({ page }) => {
 	await expect(courseFolder).toHaveAttribute('aria-expanded', 'false');
 	await courseFolder.click();
 	await expect(page.getByText('Test final E2E').first()).toBeVisible();
-});
-
-test('o lecție blocată arată motivul o singură dată, fără notificare în plus', async ({ page }) => {
-	// deblocare secvențială: lecția 3 cere lecțiile anterioare
-	await page.goto('/courses/1/lessons/3');
-	await expect(page.getByRole('heading', { name: 'Lecție blocată' })).toBeVisible();
-	await expect(page.getByText('Lecția este blocată. Completează lecțiile anterioare.')).toHaveCount(1);
-	await expect(page.getByRole('button', { name: 'Înapoi la curs' })).toBeVisible();
 });

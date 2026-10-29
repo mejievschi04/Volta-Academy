@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Course;
 use App\Models\CourseMap;
+use App\Models\Exam;
 use App\Models\GuideItem;
 use App\Models\LibraryItem;
 use App\Support\ImageOptimizer;
@@ -23,7 +24,7 @@ class GenerateThumbnailsCommand extends Command
     public function handle(): int
     {
         $created = 0;
-        foreach ([Course::class, CourseMap::class, LibraryItem::class, GuideItem::class] as $model) {
+        foreach ([Course::class, CourseMap::class, Exam::class, LibraryItem::class, GuideItem::class] as $model) {
             $column = $model::COVER_COLUMN;
             $model::query()->whereNotNull($column)->where($column, '!=', '')
                 ->select(['id', $column])

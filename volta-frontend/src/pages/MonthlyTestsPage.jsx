@@ -2,7 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardText, Clock, ArrowRight, SealCheck, Repeat } from '@phosphor-icons/react';
 import { examService } from '../services/api';
+import { useCoverImage } from '../hooks/useCoverImage';
+import { toImageUrl } from '../utils/imageUrl';
 import './MonthlyTestsPage.css';
+
+/** Coperta testului lunar: miniatura, apoi originalul; fără copertă cardul rămâne ca înainte. */
+function MonthlyTestCover({ url }) {
+	const cover = useCoverImage(url ? toImageUrl(url) || url : null);
+	if (!cover.src || cover.failed) return null;
+	return (
+		<span className="monthly-tests-tile-cover" aria-hidden>
+			<img src={cover.src} alt="" loading="lazy" decoding="async" onError={cover.onError} />
+		</span>
+	);
+}
 
 const MonthlyTestsPage = () => {
 	const navigate = useNavigate();
@@ -68,9 +81,10 @@ const MonthlyTestsPage = () => {
 							<button
 								key={exam.id}
 								type="button"
-								className="monthly-tests-tile"
+								className={`monthly-tests-tile${exam.cover_image_url ? ' has-cover' : ''}`}
 								onClick={() => navigate(`/exams/${exam.id}`)}
 							>
+								<MonthlyTestCover url={exam.cover_image_url} />
 								<span className="monthly-tests-tile-top">
 									<span className="monthly-tests-tile-icon" aria-hidden>
 										<ClipboardText size={22} weight="duotone" />
