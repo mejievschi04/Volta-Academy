@@ -10,6 +10,5 @@ import './admin-navigation-modern.css';
 import './admin-view-switcher.css';
 import './admin-creator-split.css';
 import './admin-lesson-creator.css';
-import './admin-course-builder.css';
 import './admin-course-detail-modern.css';
 import './admin-design-system.css';

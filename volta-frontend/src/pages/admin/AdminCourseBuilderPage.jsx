@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CaretDoubleLeft, CaretDoubleRight, Plus, Trash, X } from '@phosphor-icons/react';
 import { adminService } from '../../services/api';
@@ -7,13 +7,12 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import AutoSaveIndicator from '../../components/common/AutoSaveIndicator';
 import Modal from '../../components/common/Modal';
 import { DragGripIcon } from '../../components/common/DragGripIcon';
-import LessonTipTapEditor from '../../components/admin/lessons/LessonTipTapEditor';
 import '../../styles/admin-course-builder.css';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
-import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
-import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+
 import OutlineItemMenu from '../../components/admin/courses/OutlineItemMenu';
+import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
 import {
@@ -22,6 +21,9 @@ import {
 	resolvePlacementFromFlowInsert,
 } from '../../utils/courseBuilderTestFlow';
 import { VOLT_BUILDER_REFRESH_EVENT } from '../../utils/voltCoursePlan';
+
+const LessonTipTapEditor = lazy(() => import('../../components/admin/lessons/LessonTipTapEditor'));
+const InlineTestEditorShell = lazy(() => import('../../components/admin/courses/InlineTestEditorShell'));
 
 const LESSON_DRAG_MIME = 'application/x-volta-course-lesson';
 const TEST_DRAG_MIME = 'application/x-volta-course-test';
@@ -2185,17 +2187,20 @@ const AdminCourseBuilderPage = () => {
 							</section>
 						)}
 						{showTestCreator ? (
-							<InlineTestEditorShell
-								editor={{
-									...testEditor,
-									handlePublishInlineTest,
-								}}
-								courseId={courseId}
-								subtitle="Configurezi testul fără să părăsești pagina de creare curs."
-							/>
+							<Suspense fallback={<p className="admin-content-list-empty">Se încarcă editorul...</p>}>
+								<InlineTestEditorShell
+									editor={{
+										...testEditor,
+										handlePublishInlineTest,
+									}}
+									courseId={courseId}
+									subtitle="Configurezi testul fără să părăsești pagina de creare curs."
+								/>
+							</Suspense>
 						) : selectedLesson ? (
 							<>
 								<div className="admin-course-builder-direct-editor-wrap admin-course-builder-direct-editor-wrap-full">
+									<Suspense fallback={<p className="admin-content-list-empty">Se încarcă editorul...</p>}>
 									<LessonTipTapEditor
 										key={`${selectedLesson.id}:${lessonEditorRefreshKey}`}
 										courseId={courseId}
@@ -2250,6 +2255,7 @@ const AdminCourseBuilderPage = () => {
 											</>
 										) : null}
 									/>
+									</Suspense>
 								</div>
 							</>
 						) : (

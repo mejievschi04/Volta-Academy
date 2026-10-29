@@ -1,15 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { ArrowLeft, FolderOpen, ListChecks, Search, Star, X } from 'lucide-react';
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import QuestionCatalogByMap, { CatalogGroupCard } from '../question-banks/QuestionCatalogByMap';
 import QuestionRow from '../question-banks/QuestionRow';
-import QuestionBuilderEditor from '../question-banks/QuestionBuilderEditor';
 import Drawer from '../question-banks/Drawer';
 import Modal from '../../common/Modal';
 import { X as PhX } from '@phosphor-icons/react';
 import '../../../pages/admin/AdminQuestionBanksPage.css';
 import './ExamContentPicker.css';
+
+const QuestionBuilderEditor = lazy(() => import('../question-banks/QuestionBuilderEditor'));
 
 function stripHtml(value = '') {
   return String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -710,7 +711,9 @@ export default function ExamContentPicker({
           </header>
           <div className="va-dialog__body">
             {editorQuestion ? (
-              <QuestionBuilderEditor question={editorQuestion} onChange={setEditorQuestion} />
+              <Suspense fallback={<p>Se încarcă editorul...</p>}>
+                <QuestionBuilderEditor question={editorQuestion} onChange={setEditorQuestion} />
+              </Suspense>
             ) : null}
           </div>
           <footer className="va-dialog__footer">

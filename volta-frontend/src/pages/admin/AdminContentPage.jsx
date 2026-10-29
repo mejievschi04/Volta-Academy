@@ -1,15 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus } from '@phosphor-icons/react';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
-import AdminCoursesPage from './AdminCoursesPage';
-import AdminCourseMapsPage from './AdminCourseMapsPage';
-import AdminQuestionBanksPage from './AdminQuestionBanksPage';
-import AdminExamsPage from './AdminExamsPage';
-import AdminTestsPage from './AdminTestsPage';
-import AdminManualReviewPage from './AdminManualReviewPage';
-import AdminMediaLibraryPage from './AdminMediaLibraryPage';
+
+const AdminCoursesPage = lazy(() => import('./AdminCoursesPage'));
+const AdminCourseMapsPage = lazy(() => import('./AdminCourseMapsPage'));
+const AdminQuestionBanksPage = lazy(() => import('./AdminQuestionBanksPage'));
+const AdminExamsPage = lazy(() => import('./AdminExamsPage'));
+const AdminTestsPage = lazy(() => import('./AdminTestsPage'));
+const AdminManualReviewPage = lazy(() => import('./AdminManualReviewPage'));
+const AdminMediaLibraryPage = lazy(() => import('./AdminMediaLibraryPage'));
+
+function ContentTabFallback() {
+	return <p className="admin-content-list-empty">Se încarcă...</p>;
+}
 
 const AdminContentPage = () => {
 	const { user, canMutateInAdminArea } = useAuth();
@@ -40,6 +45,7 @@ const AdminContentPage = () => {
 	return (
 		<div className="admin-container admin-content-page">
 			<div className="admin-content-tab-panel" role="tabpanel">
+				<Suspense fallback={<ContentTabFallback />}>
 				{activeTab === 'courses' && (
 					showCourseMaps
 						? (
@@ -65,6 +71,7 @@ const AdminContentPage = () => {
 				{activeTab === 'manual-review' && <AdminManualReviewPage />}
 				{activeTab === 'banks' && <AdminQuestionBanksPage embedded />}
 				{activeTab === 'media' && <AdminMediaLibraryPage />}
+				</Suspense>
 			</div>
 		</div>
 	);

@@ -34,6 +34,7 @@ const routePrefetchers = [
 	{ prefix: '/exam-results', fn: () => import('../pages/ExamResultsPage') },
 	{ prefix: '/completed-courses', fn: () => import('../pages/CompletedCoursesPage') },
 	{ prefix: '/admin', fn: () => import('../pages/admin/AdminDashboardPage') },
+	{ prefix: '/admin/content', fn: () => import('../pages/admin/AdminContentPage') },
 	{ prefix: '/admin/analytics', fn: () => import('../pages/admin/AdminAnalyticsPage') },
 	{ prefix: '/admin/courses', fn: () => import('../pages/admin/AdminCoursesPage') },
 	{ prefix: '/admin/events', fn: () => import('../pages/admin/AdminEventsPage') },

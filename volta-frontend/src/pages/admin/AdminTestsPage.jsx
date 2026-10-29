@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { X } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
@@ -7,11 +7,12 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
-import TestStatisticsPanel from '../../components/admin/tests/TestStatisticsPanel';
 import Modal from '../../components/common/Modal';
 import { TEST_EDITOR_DEFAULT } from '../../utils/testQuestionBuilder';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
+
+const TestStatisticsPanel = lazy(() => import('../../components/admin/tests/TestStatisticsPanel'));
 
 const normalizeTests = (raw) => (Array.isArray(raw) ? raw : []);
 const normalizeTestStatus = (status) => (String(status || 'draft').toLowerCase() === 'published' ? 'published' : 'draft');
@@ -324,10 +325,12 @@ export default function AdminTestsPage() {
             ) : !selectedTestId ? (
               <div className="admin-content-list-empty">Selectează un test din lista din stânga.</div>
             ) : (
-              <TestStatisticsPanel
-                testId={selectedTestId}
-                testTitle={(selectedTest?.title || '').trim() || 'Test'}
-              />
+              <Suspense fallback={<div className="admin-content-list-empty">Se încarcă statisticile...</div>}>
+                <TestStatisticsPanel
+                  testId={selectedTestId}
+                  testTitle={(selectedTest?.title || '').trim() || 'Test'}
+                />
+              </Suspense>
             )}
           </div>
         </div>

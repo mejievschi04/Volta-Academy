@@ -1,4 +1,11 @@
-import * as XLSX from 'xlsx';
+let xlsxModulePromise;
+
+function loadXlsx() {
+	if (!xlsxModulePromise) {
+		xlsxModulePromise = import('xlsx');
+	}
+	return xlsxModulePromise;
+}
 
 function normalizeCell(value) {
 	if (value === null || value === undefined) return '';
@@ -12,7 +19,7 @@ function safeSheetName(name) {
 		.slice(0, 31) || 'Raport';
 }
 
-function downloadWorkbook(filename, workbook) {
+function downloadWorkbook(XLSX, filename, workbook) {
 	const safeName = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
 	XLSX.writeFile(workbook, safeName, { compression: true });
 }
@@ -135,7 +142,8 @@ export function buildStructuredExcelRows({
 	return rows;
 }
 
-export function downloadStructuredExcel(filename, sheetLabel, rows) {
+export async function downloadStructuredExcel(filename, sheetLabel, rows) {
+	const XLSX = await loadXlsx();
 	const workbook = XLSX.utils.book_new();
 	const worksheet = XLSX.utils.aoa_to_sheet(rows);
 	worksheet['!cols'] = computeColumnWidths(rows);
@@ -146,7 +154,7 @@ export function downloadStructuredExcel(filename, sheetLabel, rows) {
 	}
 
 	XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName(sheetLabel));
-	downloadWorkbook(filename, workbook);
+	downloadWorkbook(XLSX, filename, workbook);
 }
 
 export function statisticsExcelFilename(slug) {
