@@ -722,6 +722,15 @@ class CourseProgressService
             ->values()
             ->all();
 
+        // Lecțiile dintr-un modul ascuns la publicare nu se văd, deci nu intră în progres.
+        $hiddenModules = array_fill_keys($modules
+            ->filter(fn ($row) => ($row['status'] ?? 'published') !== 'published')
+            ->map(fn ($row) => (int) $row['id'])
+            ->all(), true);
+        $lessons = $lessons
+            ->reject(fn ($row) => isset($hiddenModules[(int) ($row['module_id'] ?? 0)]))
+            ->values();
+
         $knownModules = array_fill_keys($modules->map(fn ($row) => (int) $row['id'])->all(), true);
         foreach ($lessons as $lesson) {
             $moduleId = (int) ($lesson['module_id'] ?? 0);
@@ -767,14 +776,52 @@ class CourseProgressService
         $tests = $this->publishedAttachedTests($course);
         $outline = $this->learnerPublishedOutline($user, $course);
         if ($outline === null) {
-            return $tests;
+            return $this->withoutHiddenScopes($user, $course, $tests);
         }
 
         $allowed = array_fill_keys($outline['test_ids'], true);
 
-        return $tests
+        return $this->withoutHiddenScopes($user, $course, $tests
             ->filter(fn ($row) => isset($allowed[(int) $row->test_id]))
+            ->values());
+    }
+
+    /**
+     * Un test atașat unei lecții sau unui modul ascuns (Ciornă) nu apare la cursant, deci nu i se poate cere:
+     * altfel cursul rămânea la 90% și „Finalizează” răspundea 409 fără niciun test vizibil.
+     */
+    private function withoutHiddenScopes(User $user, Course $course, $tests)
+    {
+        $lessonIds = array_fill_keys($this->requiredLessonIds($user, $course)->map(fn ($id) => (int) $id)->all(), true);
+        $moduleIds = array_fill_keys($this->visibleModuleIds($user, $course), true);
+
+        return $tests
+            ->filter(fn ($row) => match ($row->scope) {
+                'lesson' => isset($lessonIds[(int) $row->scope_id]),
+                'module' => isset($moduleIds[(int) $row->scope_id]),
+                default => true,
+            })
             ->values();
+    }
+
+    /** @return list<int> */
+    private function visibleModuleIds(User $user, Course $course): array
+    {
+        $outline = $this->learnerPublishedOutline($user, $course);
+        if ($outline !== null) {
+            return collect($outline['modules'])
+                ->filter(fn ($row) => ($row['status'] ?? 'published') === 'published')
+                ->map(fn ($row) => (int) $row['id'])
+                ->values()
+                ->all();
+        }
+
+        return Module::query()
+            ->where('course_id', $course->id)
+            ->where('status', 'published')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     public function lessonIsOnPublishedSnapshot(User $user, Course $course, int $lessonId): bool
