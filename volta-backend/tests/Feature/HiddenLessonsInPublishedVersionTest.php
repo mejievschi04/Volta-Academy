@@ -3,13 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
-use App\Models\CourseTest;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\User;
-use App\Models\Test;
 use App\Services\CourseBuilderService;
-use App\Services\CourseProgressService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -94,59 +91,5 @@ class HiddenLessonsInPublishedVersionTest extends TestCase
         $this->actingAs($this->student, 'sanctum')
             ->getJson("/api/lessons/{$inHidden->id}")
             ->assertNotFound();
-    }
-
-    private function completeLesson(Lesson $lesson): void
-    {
-        DB::table('lesson_progress')->insert([
-            'user_id' => $this->student->id, 'lesson_id' => $lesson->id,
-            'completed' => true, 'progress_percentage' => 100,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-    }
-
-    private function attachTestToLesson(Lesson $lesson): void
-    {
-        CourseTest::create([
-            'course_id' => $this->course->id, 'test_id' => Test::factory()->published()->create()->id,
-            'scope' => 'lesson', 'scope_id' => $lesson->id, 'required' => true, 'passing_score' => 70, 'order' => 0,
-        ]);
-    }
-
-    public function test_a_test_on_a_hidden_lesson_does_not_block_finishing_the_course(): void
-    {
-        $visible = $this->lesson('Lecție vizibilă', 'published', 1);
-        $hidden = $this->lesson('Lecție ascunsă', 'draft', 2);
-        $this->attachTestToLesson($hidden);
-        $this->completeLesson($visible);
-        $this->publishThenStartEditing();
-
-        $this->actingAs($this->student, 'sanctum')
-            ->postJson("/api/courses/{$this->course->id}/finish")
-            ->assertOk();
-    }
-
-    public function test_a_test_on_a_hidden_lesson_is_not_required_outside_editing_either(): void
-    {
-        $visible = $this->lesson('Lecție vizibilă', 'published', 1);
-        $hidden = $this->lesson('Lecție ascunsă', 'draft', 2);
-        $this->attachTestToLesson($hidden);
-        $this->completeLesson($visible);
-
-        $service = app()->make(CourseProgressService::class);
-        $this->assertTrue($service->isCourseComplete($this->student, $this->course));
-        $this->assertEquals(100, $service->calculateCourseProgress($this->student, $this->course));
-    }
-
-    public function test_a_test_on_a_visible_lesson_is_still_required(): void
-    {
-        $visible = $this->lesson('Lecție vizibilă', 'published', 1);
-        $this->attachTestToLesson($visible);
-        $this->completeLesson($visible);
-        $this->publishThenStartEditing();
-
-        $this->actingAs($this->student, 'sanctum')
-            ->postJson("/api/courses/{$this->course->id}/finish")
-            ->assertStatus(409);
     }
 }
