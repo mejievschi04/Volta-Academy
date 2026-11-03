@@ -719,7 +719,7 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 }
 
 .admin-team-card-compact__stat-label {
-	font-size: 0.62rem;
+	font-size: 0.75rem;
 	color: var(--text-secondary);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;

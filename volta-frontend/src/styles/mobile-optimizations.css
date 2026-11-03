@@ -4623,7 +4623,8 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		text-align: center;
-		font-size: 10px;
+		/* ~12px pe telefoanele obișnuite (390px); 10px doar la 320px, ca „Evenimente” să nu se taie */
+		font-size: clamp(10px, 3vw, 12px);
 		line-height: 1.15;
 	}
 	html:has(.student-mobile-tabs):has(.messages-page--thread),

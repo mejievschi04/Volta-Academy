@@ -914,6 +914,7 @@ const MessagesPage = () => {
 						<input
 							type="text"
 							placeholder="Caută conversații..."
+							aria-label="Caută conversații"
 							className="messages-search-input"
 							value={searchQuery}
 							onChange={(e) => handleSearch(e.target.value)}
@@ -1089,6 +1090,7 @@ const MessagesPage = () => {
 									value={newMessage}
 									onChange={(e) => setNewMessage(e.target.value)}
 									placeholder="Scrie un mesaj..."
+							aria-label="Scrie un mesaj"
 									disabled={sending}
 								/>
 								<button

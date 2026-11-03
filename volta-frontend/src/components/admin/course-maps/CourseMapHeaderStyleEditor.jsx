@@ -2,7 +2,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { PencilSimple, X } from '@phosphor-icons/react';
 import Modal from '../../common/Modal';
 import { adminService } from '../../../services/api';
-import { normalizeColorInputToHex } from '../../../utils/color';
+import { normalizeColorInputToHex, readableTextOn } from '../../../utils/color';
 
 import { useToast } from '../../../contexts/ToastContextShared.js';
 
@@ -22,6 +22,8 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 	const [formName, setFormName] = useState('');
 	const [formDescription, setFormDescription] = useState('');
 	const [formAccent, setFormAccent] = useState(MAP_ACCENT_FALLBACK);
+	// fără culoare aleasă, pagina mapei alege singură textul lizibil pe accent (la fel ca CourseMapPage)
+	const autoHeaderText = readableTextOn(normalizeColorInputToHex(formAccent, MAP_ACCENT_FALLBACK), { minRatio: 3 });
 	const [formHeaderText, setFormHeaderText] = useState('');
 
 	useEffect(() => {
@@ -146,7 +148,7 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 						<div className="course-map-page-header-edit-color-row">
 							<input
 								type="color"
-								value={normalizeColorInputToHex(formHeaderText || MAP_TEXT_FALLBACK, MAP_TEXT_FALLBACK)}
+								value={normalizeColorInputToHex(formHeaderText || autoHeaderText, MAP_TEXT_FALLBACK)}
 								onChange={(e) => setFormHeaderText(e.target.value)}
 								aria-label="Culoare text header"
 							/>
@@ -155,7 +157,7 @@ export default function CourseMapHeaderStyleEditor({ map, onSaved }) {
 								className="course-map-page-header-edit-input"
 								value={formHeaderText}
 								onChange={(e) => setFormHeaderText(e.target.value)}
-								placeholder={MAP_TEXT_FALLBACK}
+								placeholder={`automat (${autoHeaderText})`}
 							/>
 							{formHeaderText.trim() ? (
 								<button

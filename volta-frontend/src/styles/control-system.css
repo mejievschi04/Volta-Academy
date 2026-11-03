@@ -336,7 +336,8 @@ html body .admin-course-builder-actions-delete.admin-course-builder-actions-dele
 	text-decoration: none !important;
 }
 
-/* iconița are aceeași culoare ca textul (albă), nu roșul vechi al butonului cu contur */
+/* iconița și textul din interior au culoarea butonului (albă): un <span> moștenea textul închis de la
+   .lms-btn-secondary și „Șterge curs” ieșea negru pe roșu (contrast 3.77) */
 html body :is(
 	.va-btn-delete,
 	.va-btn-danger,
@@ -347,7 +348,7 @@ html body :is(
 	.exam-picker-clear-danger,
 	.admin-exams-list-btn-danger-solid,
 	.admin-course-builder-actions-delete
-) svg {
+) :is(svg, span, strong, small) {
 	color: inherit !important;
 }
 

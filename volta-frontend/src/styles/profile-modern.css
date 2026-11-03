@@ -1645,6 +1645,11 @@ html body .va-profile-section-admin-courses .va-course-card-actions > a + button
 		width: 100%;
 		min-height: 44px !important;
 		justify-content: space-between;
+		/* două coloane de ~158px: la 16px „Total atribuite” se rupea pe două rânduri */
+		gap: 6px;
+		padding: 0 6px 0 12px !important;
+		font-size: 0.875rem !important;
+		white-space: nowrap;
 	}
 
 	.va-up-grid {

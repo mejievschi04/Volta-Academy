@@ -33,6 +33,7 @@ import { useToast } from '../contexts/ToastContextShared.js';
 import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
 import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-cardShared.js';
 import { hexToHslSpace } from '../lib/hexToHsl';
+import { readableTextOn } from '../utils/color';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CourseMapPage.css';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
@@ -277,7 +278,8 @@ const CourseMapPage = () => {
 	const accent = map.accent_color || '#059669';
 	const mapThemeHsl = hexToHslSpace(accent);
 	const headerTextColor = map.header_text_color?.trim() || '';
-	const resolvedHeaderText = headerTextColor || '#f8fafc';
+	// fără culoare aleasă: alb doar dacă se citește pe fundal (titlul e text mare, deci pragul WCAG e 3)
+	const resolvedHeaderText = headerTextColor || readableTextOn(accent, { minRatio: 3 });
 	const headerStyle = {
 		background: accent,
 		color: resolvedHeaderText,

@@ -233,6 +233,7 @@ const AdminEventsPage = () => {
 						type="text"
 						className="admin-search-input"
 						placeholder="Caută evenimente..."
+							aria-label="Caută evenimente"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>

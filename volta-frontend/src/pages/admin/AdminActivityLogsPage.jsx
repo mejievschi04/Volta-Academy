@@ -217,7 +217,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Căutare</label>
-						<input
+						<input aria-label="Căutare"
 							type="text"
 							className="admin-activity-logs-filter-input"
 							placeholder="Nume elev, email, text…"
@@ -227,7 +227,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Ce vrei să vezi</label>
-						<select
+						<select aria-label="Ce vrei să vezi"
 							className="admin-activity-logs-filter-input"
 							value={filters.action_scope}
 							onChange={(e) => handleFilterChange('action_scope', e.target.value)}
@@ -241,7 +241,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Tip eveniment</label>
-						<select
+						<select aria-label="Tip eveniment"
 							className="admin-activity-logs-filter-input"
 							value={SIMPLE_EVENT_TYPES.some((o) => o.value === filters.action) ? filters.action : ''}
 							onChange={(e) => handleFilterChange('action', e.target.value)}
@@ -255,7 +255,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Ordine în listă</label>
-						<select
+						<select aria-label="Ordine în listă"
 							className="admin-activity-logs-filter-input"
 							value={filters.sort_dir}
 							onChange={(e) => handleFilterChange('sort_dir', e.target.value)}
@@ -266,7 +266,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">De la dată</label>
-						<input
+						<input aria-label="De la dată"
 							type="date"
 							className="admin-activity-logs-filter-input"
 							value={filters.date_from}
@@ -275,7 +275,7 @@ const AdminActivityLogsPage = () => {
 					</div>
 					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Până la dată</label>
-						<input
+						<input aria-label="Până la dată"
 							type="date"
 							className="admin-activity-logs-filter-input"
 							value={filters.date_to}

@@ -397,7 +397,7 @@ const AdminUsersPage = () => {
 				</div>
 				<div className="admin-users-filter-group">
 					<label className="admin-users-filter-label">Cereri / Status:</label>
-					<select
+					<select aria-label="Cereri / Status"
 						className="admin-users-filter-select"
 						value={statusFilter}
 						onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -410,7 +410,7 @@ const AdminUsersPage = () => {
 				</div>
 				<div className="admin-users-filter-group">
 					<label className="admin-users-filter-label">Filtrează după rol:</label>
-					<select
+					<select aria-label="Filtrează după rol"
 						className="admin-users-filter-select"
 						value={roleFilter}
 						onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}

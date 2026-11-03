@@ -228,6 +228,9 @@ const AdminSettingsPage = () => {
 										type="button"
 										className={`admin-settings-toggle-switch ${settings.registration_enabled ? 'active' : ''}`}
 										onClick={() => handleToggle('registration_enabled')}
+										role="switch"
+										aria-checked={Boolean(settings.registration_enabled)}
+										aria-label="Înregistrări active"
 										disabled={readOnly}
 										aria-disabled={readOnly}
 									>
@@ -248,6 +251,9 @@ const AdminSettingsPage = () => {
 										type="button"
 										className={`admin-settings-toggle-switch ${settings.email_notifications ? 'active' : ''}`}
 										onClick={() => handleToggle('email_notifications')}
+										role="switch"
+										aria-checked={Boolean(settings.email_notifications)}
+										aria-label="Notificări email"
 										disabled={readOnly}
 										aria-disabled={readOnly}
 									>
@@ -287,6 +293,9 @@ const AdminSettingsPage = () => {
 									type="button"
 									className={`admin-settings-toggle-switch ${settings.maintenance_mode ? 'active' : ''}`}
 									onClick={() => handleToggle('maintenance_mode')}
+										role="switch"
+										aria-checked={Boolean(settings.maintenance_mode)}
+										aria-label="Mod mentenanță"
 									disabled={readOnly}
 									aria-disabled={readOnly}
 								>
@@ -341,6 +350,9 @@ const AdminSettingsPage = () => {
 									type="button"
 									className={`admin-settings-toggle-switch ${settings.backup_enabled ? 'active' : ''}`}
 									onClick={() => handleToggle('backup_enabled')}
+										role="switch"
+										aria-checked={Boolean(settings.backup_enabled)}
+										aria-label="Backup automat"
 									disabled={readOnly}
 									aria-disabled={readOnly}
 								>
