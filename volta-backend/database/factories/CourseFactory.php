@@ -46,8 +46,7 @@ class CourseFactory extends Factory
                         'enabled' => false,
                         'schedule' => null,
                     ],
-                    'certificate' => [
-                        'enabled' => false,
+                    'assessment' => [
                         'min_score' => 70,
                         'allow_retake' => true,
                         'max_retakes' => 3,

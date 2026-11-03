@@ -427,8 +427,7 @@ class CourseAdminController extends Controller
             'meta_description' => 'nullable|string|max:160',
             'meta_keywords' => 'nullable|array',
             'marketing_tags' => 'nullable', // array or JSON string (FormData)
-            // Certificate
-            'has_certificate' => 'nullable|boolean',
+            // Pragul și reluările testelor
             'min_test_score' => 'nullable|integer|min:0|max:100',
             'min_exam_score' => 'nullable|integer|min:0|max:100', // Legacy support
             'allow_retake' => 'nullable|boolean',
@@ -469,8 +468,7 @@ class CourseAdminController extends Controller
             'meta_description' => $validated['meta_description'] ?? null,
             'meta_keywords' => $validated['meta_keywords'] ?? [],
             'marketing_tags' => $this->normalizeMarketingTags($validated['marketing_tags'] ?? null),
-            // Certificate
-            'has_certificate' => $validated['has_certificate'] ?? false,
+            // Pragul și reluările testelor
             'min_test_score' => $validated['min_test_score'] ?? $validated['min_exam_score'] ?? 70, // Support both old and new field names
             'allow_retake' => $validated['allow_retake'] ?? true,
             'max_retakes' => $validated['max_retakes'] ?? 3,
@@ -554,8 +552,7 @@ class CourseAdminController extends Controller
             'meta_description' => 'nullable|string|max:160',
             'meta_keywords' => 'nullable|array',
             'marketing_tags' => 'nullable', // array or JSON string (FormData)
-            // Certificate
-            'has_certificate' => 'nullable|boolean',
+            // Pragul și reluările testelor
             'min_test_score' => 'nullable|integer|min:0|max:100',
             'min_exam_score' => 'nullable|integer|min:0|max:100', // Legacy support
             'allow_retake' => 'nullable|boolean',
@@ -587,8 +584,8 @@ class CourseAdminController extends Controller
             'sequential_unlock', 'min_completion_percentage',
             // SEO & Marketing
             'meta_title', 'meta_description', 'meta_keywords', 'marketing_tags',
-            // Certificate
-            'has_certificate', 'min_test_score', 'min_exam_score', 'allow_retake', 'max_retakes', // min_exam_score for legacy support
+            // Pragul și reluările testelor
+            'min_test_score', 'min_exam_score', 'allow_retake', 'max_retakes', // min_exam_score for legacy support
             // Advanced
             'drip_content', 'drip_schedule', 'comments_enabled', 'visibility', 'permissions'
         ];

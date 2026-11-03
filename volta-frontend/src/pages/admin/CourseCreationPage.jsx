@@ -54,7 +54,6 @@ const CourseCreationPage = () => {
 				visibility: 'public',
 				sequential_unlock: true,
 				min_test_score: 70,
-				has_certificate: false,
 				access_type: 'free',
 				enrollment_type: 'open',
 			};

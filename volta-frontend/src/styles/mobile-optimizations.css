@@ -919,8 +919,6 @@
 		align-items: center !important;
 	}
 
-	/* Certificate wizard - reset to normal layout */
-
 	/* Settings tabs - reset to normal */
 	.admin-settings-tabs {
 		overflow-x: visible !important;
@@ -2149,8 +2147,6 @@
 	/* Completed Courses List - Clean design */
 
 	/* Profile Badges Container - Clean section */
-
-	/* Certificate wizard */
 
 	/* Settings tabs */
 	.admin-settings-tabs {

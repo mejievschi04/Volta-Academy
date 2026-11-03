@@ -11,7 +11,6 @@ function hydrateDraftFromCourse(course) {
 	const tags = Array.isArray(course?.marketing_tags) ? course.marketing_tags : [];
 	const colorTag = tags.find((tag) => String(tag).startsWith('card_color:'));
 	const courseSettings = course?.settings || {};
-	const certificateSettings = courseSettings?.certificate || {};
 	const accessSettings = courseSettings?.access || {};
 	const currentVisibility = course?.visibility || courseSettings?.visibility || 'public';
 	const currentLevel = course?.level || 'beginner';
@@ -27,7 +26,6 @@ function hydrateDraftFromCourse(course) {
 		visibility: currentVisibility,
 		estimated_duration_hours: currentDuration,
 		sequential_unlock: course?.sequential_unlock !== false,
-		has_certificate: course?.has_certificate === true || certificateSettings?.enabled === true,
 		access_type: accessSettings?.type || course?.access_type || 'free',
 		enrollment_type: accessSettings?.enrollment_type || course?.enrollment_type || 'open',
 	};
@@ -87,7 +85,6 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 			payload.append('status', courseEditDraft.status || 'draft');
 			payload.append('visibility', courseEditDraft.visibility || 'public');
 			payload.append('sequential_unlock', courseEditDraft.sequential_unlock !== false ? '1' : '0');
-			payload.append('has_certificate', courseEditDraft.has_certificate ? '1' : '0');
 			if (courseEditDraft.estimated_duration_hours !== '' && courseEditDraft.estimated_duration_hours != null) {
 				payload.append('estimated_duration_hours', String(courseEditDraft.estimated_duration_hours));
 			}
@@ -314,15 +311,6 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 										disabled={courseEditSaving}
 									/>
 									<span>Deblocare secvențială</span>
-								</label>
-								<label className="va-check">
-									<input
-										type="checkbox"
-										checked={courseEditDraft.has_certificate === true}
-										onChange={(e) => setCourseEditDraft((prev) => ({ ...prev, has_certificate: e.target.checked }))}
-										disabled={courseEditSaving}
-									/>
-									<span>Certificat la finalizare</span>
 								</label>
 							</div>
 							<p className="va-field__hint">

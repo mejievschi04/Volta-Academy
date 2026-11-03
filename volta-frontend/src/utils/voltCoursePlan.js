@@ -97,7 +97,6 @@ const ALLOWED_COURSE_KEYS = [
 	'estimated_duration_hours',
 	'sequential_unlock',
 	'min_test_score',
-	'has_certificate',
 	'marketing_tags',
 ];
 

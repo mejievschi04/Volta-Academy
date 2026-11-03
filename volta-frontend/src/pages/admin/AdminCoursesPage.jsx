@@ -191,7 +191,6 @@ const AdminCoursesPage = () => {
 				formData.append('visibility', 'public');
 				formData.append('sequential_unlock', '1');
 				formData.append('min_test_score', '70');
-				formData.append('has_certificate', '0');
 				formData.append('access_type', 'free');
 				formData.append('enrollment_type', 'open');
 				if (image) formData.append('image', image);
@@ -206,7 +205,6 @@ const AdminCoursesPage = () => {
 					visibility: 'public',
 					sequential_unlock: true,
 					min_test_score: 70,
-					has_certificate: false,
 					access_type: 'free',
 					enrollment_type: 'open',
 				};

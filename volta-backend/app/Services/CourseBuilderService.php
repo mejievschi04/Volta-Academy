@@ -590,19 +590,17 @@ class CourseBuilderService
         if (SchemaCache::hasColumn($table, 'currency')) {
             $createData['currency'] = $data['currency'] ?? 'RON';
         }
-        if (SchemaCache::hasColumn($table, 'has_certificate')) {
-            $createData['has_certificate'] = $settings['certificate']['enabled'] ?? false;
-        }
+        $assessment = $settings['assessment'] ?? $settings['certificate'] ?? [];
         if (SchemaCache::hasColumn($table, 'min_test_score')) {
-            $createData['min_test_score'] = $settings['certificate']['min_score'] ?? 70;
+            $createData['min_test_score'] = $assessment['min_score'] ?? 70;
         } elseif (SchemaCache::hasColumn($table, 'min_exam_score')) {
-            $createData['min_exam_score'] = $settings['certificate']['min_score'] ?? 70;
+            $createData['min_exam_score'] = $assessment['min_score'] ?? 70;
         }
         if (SchemaCache::hasColumn($table, 'allow_retake')) {
-            $createData['allow_retake'] = $settings['certificate']['allow_retake'] ?? true;
+            $createData['allow_retake'] = $assessment['allow_retake'] ?? true;
         }
         if (SchemaCache::hasColumn($table, 'max_retakes')) {
-            $createData['max_retakes'] = $settings['certificate']['max_retakes'] ?? 3;
+            $createData['max_retakes'] = $assessment['max_retakes'] ?? 3;
         }
         if (SchemaCache::hasColumn($table, 'drip_content')) {
             $createData['drip_content'] = $settings['drip']['enabled'] ?? false;
@@ -832,14 +830,18 @@ class CourseBuilderService
             ];
         }
 
-        // Certificate settings
-        if (isset($data['has_certificate']) || isset($data['min_test_score'])) {
-            $settings['certificate'] = [
-                'enabled' => $data['has_certificate'] ?? $settings['certificate']['enabled'] ?? false,
-                'min_score' => $data['min_test_score'] ?? $settings['certificate']['min_score'] ?? 70,
-                'allow_retake' => $data['allow_retake'] ?? $settings['certificate']['allow_retake'] ?? true,
-                'max_retakes' => $data['max_retakes'] ?? $settings['certificate']['max_retakes'] ?? 3,
+        // Pragul și reluările testelor
+        $previous = $settings['assessment'] ?? $settings['certificate'] ?? [];
+        unset($settings['certificate']);
+        if (isset($data['min_test_score']) || isset($data['allow_retake']) || isset($data['max_retakes'])) {
+            $settings['assessment'] = [
+                'min_score' => $data['min_test_score'] ?? $previous['min_score'] ?? 70,
+                'allow_retake' => $data['allow_retake'] ?? $previous['allow_retake'] ?? true,
+                'max_retakes' => $data['max_retakes'] ?? $previous['max_retakes'] ?? 3,
             ];
+        } elseif ($previous !== []) {
+            unset($previous['enabled']);
+            $settings['assessment'] = $previous;
         }
 
         return $settings;

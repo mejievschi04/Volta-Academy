@@ -49,7 +49,6 @@ class Course extends Model
         'meta_description',
         'meta_keywords',
         'marketing_tags',
-        'has_certificate',
         'min_test_score',
         'min_exam_score', // Legacy - some migrations use this name
         'allow_retake',
@@ -70,7 +69,6 @@ class Course extends Model
         'permissions' => 'array',
         'price' => 'decimal:2',
         'sequential_unlock' => 'boolean',
-        'has_certificate' => 'boolean',
         'allow_retake' => 'boolean',
         'drip_content' => 'boolean',
         'comments_enabled' => 'boolean',
@@ -138,7 +136,7 @@ class Course extends Model
     }
 
     /**
-     * Get course settings (access, drip, certificate)
+     * Get course settings (access, drip, assessment)
      */
     public function getSettingsAttribute($value)
     {
@@ -155,14 +153,21 @@ class Course extends Model
                 'enabled' => isset($this->attributes['drip_content']) ? (bool)$this->attributes['drip_content'] : false,
                 'schedule' => $this->attributes['drip_schedule'] ?? null,
             ],
-            'certificate' => [
-                'enabled' => isset($this->attributes['has_certificate']) ? (bool)$this->attributes['has_certificate'] : false,
+            // pragul și reluările testelor (stăteau sub „certificate”, funcție scoasă din platformă)
+            'assessment' => [
                 'min_score' => isset($this->attributes['min_test_score']) ? (int)$this->attributes['min_test_score'] : 70,
                 'allow_retake' => isset($this->attributes['allow_retake']) ? (bool)$this->attributes['allow_retake'] : true,
                 'max_retakes' => isset($this->attributes['max_retakes']) ? (int)$this->attributes['max_retakes'] : 3,
             ],
         ];
         
+        // cheia veche „certificate” (fără certificatul în sine) devine „assessment”
+        if (isset($settings['certificate']) && is_array($settings['certificate'])) {
+            $legacy = $settings['certificate'];
+            unset($settings['certificate'], $legacy['enabled']);
+            $settings['assessment'] = array_replace($legacy, $settings['assessment'] ?? []);
+        }
+
         // Merge settings, with user settings taking precedence
         return array_replace_recursive($defaults, $settings);
     }
