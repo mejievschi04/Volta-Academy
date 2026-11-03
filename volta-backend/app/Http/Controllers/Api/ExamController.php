@@ -872,6 +872,12 @@ class ExamController extends Controller
                 'passing_score' => $e->passing_score,
                 'time_limit_minutes' => $e->time_limit_minutes,
                 'max_attempts' => $e->max_attempts,
+                // ce îi rămâne cursantului (cu încercările acordate în plus), nu limita generală a examenului
+                'remaining_attempts' => $this->examAttemptLimits->remainingAttemptsFor(
+                    $e,
+                    (int) $user->id,
+                    ExamResult::where('exam_id', $e->id)->where('user_id', $user->id)->count()
+                ),
                 'cover_image_url' => $e->cover_image_url,
             ]),
         ]);

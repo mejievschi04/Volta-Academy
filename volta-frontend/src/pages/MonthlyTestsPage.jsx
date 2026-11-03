@@ -74,9 +74,13 @@ const MonthlyTestsPage = () => {
 					{exams.map((exam) => {
 						const minutes = Number(exam.time_limit_minutes) > 0 ? `${exam.time_limit_minutes} min` : null;
 						const passing = exam.passing_score != null ? `Promovare ${exam.passing_score}%` : null;
-						const attempts = Number(exam.max_attempts) > 0
-							? `${exam.max_attempts} ${Number(exam.max_attempts) === 1 ? 'încercare' : 'încercări'}`
-							: null;
+						// încercările rămase ale cursantului (include pe cele acordate în plus); altfel limita examenului
+						const left = exam.remaining_attempts ?? (Number(exam.max_attempts) > 0 ? Number(exam.max_attempts) : null);
+						const attempts = left == null
+							? null
+							: left === 0
+								? 'Nicio încercare rămasă'
+								: `${left} ${Number(left) === 1 ? 'încercare rămasă' : 'încercări rămase'}`;
 						return (
 							<button
 								key={exam.id}
