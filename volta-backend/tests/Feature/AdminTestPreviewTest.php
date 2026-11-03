@@ -39,7 +39,7 @@ class AdminTestPreviewTest extends TestCase
                 'answers' => [['text' => 'Da', 'is_correct' => true], ['text' => 'Nu', 'is_correct' => false]],
             ]);
 
-            $this->actingAs($admin, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk()->assertJsonPath('id', $test->id);
+            $this->actingAs($admin, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk()->assertJsonPath('id', $test->id);
 
             // de două ori: limita de o încercare nu se aplică, pentru că nimic nu se salvează
             foreach ([1, 2] as $_) {
@@ -67,9 +67,9 @@ class AdminTestPreviewTest extends TestCase
 
         $this->actingAs($admin, 'sanctum');
         // fără precizare, adresa ambiguă rămâne a examenului independent (comportamentul vechi)
-        $this->getJson("/api/exams/{$test->id}")->assertJsonMissing(['title' => 'Testul din listă']);
+        $this->getJson("/api/exams/{$test->id}?start=1")->assertJsonMissing(['title' => 'Testul din listă']);
 
-        $this->getJson("/api/exams/{$test->id}?kind=test")->assertOk()->assertJsonPath('title', 'Testul din listă');
+        $this->getJson("/api/exams/{$test->id}?kind=test&start=1")->assertOk()->assertJsonPath('title', 'Testul din listă');
         $this->postJson("/api/exams/{$test->id}/submit?kind=test", ['answers' => [$question->id => 0]])
             ->assertOk()
             ->assertJsonPath('result.passed', true);

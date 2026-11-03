@@ -94,7 +94,7 @@ class TestAnswerIdentityTest extends TestCase
         sort($actual);
         $this->assertSame($expected, $actual, 'Immediate result must show the selected text.');
 
-        $reopened = $this->getJson("/api/exams/{$test->id}")->assertOk()->json();
+        $reopened = $this->getJson("/api/exams/{$test->id}?start=1")->assertOk()->json();
         $actual = array_map(fn ($index) => $reopened['questions'][0]['options'][$index], $savedIndices);
         sort($actual);
         $this->assertSame($expected, $actual, 'Reopened exam must show the same selected text.');

@@ -105,3 +105,9 @@
 /* ============================================
    LIGHT THEME - IMPROVED CONTRAST & VISIBILITY
    ============================================ */
+/* Pe paginile de lecție și test bara de jos are butoanele principale („Următoarea”): notificările stau sus,
+   ca să nu le acopere. */
+html:has(.lessons-page, .lesson-page-modern, .student-exam-page) :is(.toast-container, .va-toast-container) {
+	top: calc(var(--topnav-height, 64px) + var(--space-4));
+	bottom: auto;
+}

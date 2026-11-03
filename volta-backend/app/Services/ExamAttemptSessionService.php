@@ -27,6 +27,14 @@ class ExamAttemptSessionService
             ->first();
     }
 
+    /** Câte întrebări ar avea încercarea, fără s-o creeze (ecranul de start al examenului). */
+    public function questionCountFor(Exam $exam, User $user, int $attemptNumber): int
+    {
+        $exam->loadMissing(['questions.answers']);
+
+        return $this->questionSync->selectForAttempt($exam, (int) $user->id, $attemptNumber)->count();
+    }
+
     public function ensure(Exam $exam, User $user, int $attemptNumber): ExamAttemptSession
     {
         $existing = $this->find($exam, $user, $attemptNumber);

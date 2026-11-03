@@ -24,7 +24,7 @@ class TestSubmissionFlowTest extends TestCase
         $first = Question::factory()->create(['test_id' => $test->id, 'points' => 3]);
         $second = Question::factory()->create(['test_id' => $test->id, 'points' => 1]);
         $this->actingAs($student, 'sanctum');
-        $this->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $response = $this->postJson("/api/exams/{$test->id}/submit", ['answers' => [
             $first->id => 0, $second->id => 1,
         ]])->assertOk()->assertJsonPath('result.score', 3)
@@ -47,7 +47,7 @@ class TestSubmissionFlowTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create();
         $question = Question::factory()->create(['test_id' => $test->id, 'type' => 'essay', 'answers' => []]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$question->id => 'Răspuns de verificat'],
         ])->assertOk()->assertJsonPath('result.status', 'pending_review')
@@ -79,7 +79,7 @@ class TestSubmissionFlowTest extends TestCase
         }
 
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$test->id}?course_id={$courseA->id}")
+            ->getJson("/api/exams/{$test->id}?course_id={$courseA->id}&start=1")
             ->assertOk();
         $this->actingAs($student, 'sanctum')
             ->postJson("/api/exams/{$test->id}/submit?course_id={$courseA->id}", [
@@ -89,7 +89,7 @@ class TestSubmissionFlowTest extends TestCase
             ->assertJsonPath('result.remaining_attempts', 0);
 
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$test->id}?course_id={$courseB->id}")
+            ->getJson("/api/exams/{$test->id}?course_id={$courseB->id}&start=1")
             ->assertOk()
             ->assertJsonPath('can_retake', false)
             ->assertJsonPath('remaining_attempts', 0);
@@ -109,7 +109,7 @@ class TestSubmissionFlowTest extends TestCase
         $test = Test::factory()->published()->create(['max_attempts' => null, 'randomize_answers' => false]);
         $question = Question::factory()->create(['test_id' => $test->id, 'points' => 1]);
 
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $this->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$question->id => 0],
         ])->assertOk()->assertJsonPath('result.remaining_attempts', null);
@@ -178,7 +178,7 @@ class TestSubmissionFlowTest extends TestCase
             ],
         ]);
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$blocked->id}")
+            ->getJson("/api/exams/{$blocked->id}?start=1")
             ->assertForbidden()
             ->assertJsonPath('deadline_passed', true);
 
@@ -204,7 +204,7 @@ class TestSubmissionFlowTest extends TestCase
         $question->answers()->create(['answer_text' => 'Da', 'is_correct' => true, 'order' => 0]);
         $question->answers()->create(['answer_text' => 'Nu', 'is_correct' => false, 'order' => 1]);
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$open->id}")
+            ->getJson("/api/exams/{$open->id}?start=1")
             ->assertOk()
             ->assertJsonPath('deadline_flexible', true)
             ->assertJsonPath('deadline_overdue', true)
@@ -251,7 +251,7 @@ class TestSubmissionFlowTest extends TestCase
         ]);
 
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$test->id}?course_id={$courseB->id}")
+            ->getJson("/api/exams/{$test->id}?course_id={$courseB->id}&start=1")
             ->assertOk()
             ->assertJsonPath('can_retake', false)
             ->assertJsonPath('remaining_attempts', 0);

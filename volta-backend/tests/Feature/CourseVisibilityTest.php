@@ -160,7 +160,7 @@ class CourseVisibilityTest extends TestCase
         $this->assertSame('draft', $lessons[0]['course_tests'][0]['test']['status']);
 
         $this->actingAs($admin, 'sanctum')
-            ->getJson("/api/exams/{$draftTest->id}?course_id={$course->id}")
+            ->getJson("/api/exams/{$draftTest->id}?course_id={$course->id}&start=1")
             ->assertOk()
             ->assertJsonCount(1, 'questions');
     }

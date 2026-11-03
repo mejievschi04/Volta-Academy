@@ -201,6 +201,10 @@ export const examService = {
     if (options.newAttempt) {
       params.new_attempt = 1;
     }
+    // încercarea (și cronometrul) pornește pe server doar cu start=1; fără el vine ecranul de start
+    if (options.start) {
+      params.start = 1;
+    }
     if (options.kind) {
       params.kind = options.kind;
     }

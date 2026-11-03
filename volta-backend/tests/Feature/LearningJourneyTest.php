@@ -131,7 +131,7 @@ class LearningJourneyTest extends TestCase
             ->assertForbidden();
 
         $questionId = $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$testId}?course_id={$courseId}")
+            ->getJson("/api/exams/{$testId}?course_id={$courseId}&start=1")
             ->assertOk()
             ->json('questions.0.id');
 

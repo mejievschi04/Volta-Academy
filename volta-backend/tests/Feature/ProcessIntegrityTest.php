@@ -69,7 +69,7 @@ class ProcessIntegrityTest extends TestCase
             'show_only_submitted_answers' => true, 'allow_review' => false,
         ]);
         $q = Question::factory()->create(['test_id' => $test->id]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $review = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$q->id => 1],
         ])->assertOk()->json('result.review_questions.0');
@@ -81,7 +81,7 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => 1]);
         $q = Question::factory()->create(['test_id' => $test->id]);
-        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->json('active_attempt.id');
         \App\Models\TestResult::where('id', $attemptId)->update([
@@ -117,7 +117,7 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['passing_score' => 90]);
         $q = Question::factory()->create(['test_id' => $test->id, 'type' => 'essay', 'points' => 10, 'answers' => []]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $result = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$q->id => 'Essay'],
         ])->assertOk()->json('result.id');
@@ -132,7 +132,7 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create();
         $q = Question::factory()->create(['test_id' => $test->id, 'type' => 'essay', 'points' => 10, 'answers' => []]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $result = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$q->id => 'Essay'],
         ])->assertOk()->json('result.id');
@@ -232,12 +232,12 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
         $q = Question::factory()->create(['test_id' => $test->id, 'content' => 'Original prompt']);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$q->id => 0],
         ])->assertOk();
         $q->update(['content' => 'Edited after submit']);
-        $questions = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk()->json('questions');
+        $questions = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk()->json('questions');
         $prompts = collect($questions)->pluck('text')->filter()->all();
         $this->assertContains('Original prompt', $prompts);
         $this->assertNotContains('Edited after submit', $prompts);
@@ -248,7 +248,7 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
         $q = Question::factory()->create(['test_id' => $test->id]);
-        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->json('active_attempt.id');
         $first = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
@@ -342,13 +342,13 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => 1, 'max_attempts' => 3]);
         Question::factory()->create(['test_id' => $test->id]);
-        $firstId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $firstId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->json('active_attempt.id');
         \App\Models\TestResult::where('id', $firstId)->update([
             'expires_at' => now()->subMinutes(10),
         ]);
-        $secondId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $secondId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->json('active_attempt.id');
         $this->assertNotSame($firstId, $secondId);
@@ -362,7 +362,7 @@ class ProcessIntegrityTest extends TestCase
         $test = Test::factory()->published()->create();
         CourseTest::create(['course_id' => $course->id, 'test_id' => $test->id, 'scope' => 'course']);
         Question::factory()->create(['test_id' => $test->id]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$course->id}")
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$course->id}&start=1")
             ->assertForbidden()
             ->assertJsonPath('not_enrolled', true);
     }
@@ -485,7 +485,7 @@ class ProcessIntegrityTest extends TestCase
         $this->assertTrue($examTitles->contains('Live exam'));
         $this->assertFalse($examTitles->contains('Secret exam'));
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$secretTest->id}?course_id={$course->id}")
+            ->getJson("/api/exams/{$secretTest->id}?course_id={$course->id}&start=1")
             ->assertForbidden();
     }
 
@@ -502,7 +502,7 @@ class ProcessIntegrityTest extends TestCase
             'time_limit_minutes' => null,
             'max_attempts' => 3,
         ]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $resultId = $this->actingAs($student, 'sanctum')->postJson("/api/exams/{$test->id}/submit", [
             'answers' => [$question->id => 0],
         ])->assertOk()->json('result.id');
@@ -521,8 +521,8 @@ class ProcessIntegrityTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
         Question::factory()->create(['test_id' => $test->id]);
-        $first = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk()->json('active_attempt.id');
-        $second = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk()->json('active_attempt.id');
+        $first = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk()->json('active_attempt.id');
+        $second = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk()->json('active_attempt.id');
         $this->assertSame($first, $second);
         $this->assertSame(1, \App\Models\TestResult::where('test_id', $test->id)->where('user_id', $student->id)->where('status', 'in_progress')->count());
     }

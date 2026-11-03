@@ -60,7 +60,7 @@ class ExamQuestionFlowTest extends TestCase
 
         $exam->update(['status' => 'published']);
         $student = User::factory()->create(['role' => 'student', 'email' => 'pool.student@example.com']);
-        $ids = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}")->assertOk()->json('questions'))
+        $ids = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}?start=1")->assertOk()->json('questions'))
             ->pluck('id')
             ->all();
         $this->assertCount(4, $ids);
@@ -163,7 +163,7 @@ class ExamQuestionFlowTest extends TestCase
         $this->assertSame(3, (int) ($exam->settings['question_count'] ?? 0));
 
         $student = User::factory()->create(['role' => 'student']);
-        $attemptIds = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}")->assertOk()->json('questions'))
+        $attemptIds = collect($this->actingAs($student, 'sanctum')->getJson("/api/exams/{$examId}?start=1")->assertOk()->json('questions'))
             ->pluck('id')
             ->all();
         $this->assertCount(3, $attemptIds);
@@ -213,13 +213,13 @@ class ExamQuestionFlowTest extends TestCase
             ]);
         }
 
-        $first = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}");
+        $first = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1");
         $first->assertOk();
         $firstIds = array_column($first->json('questions'), 'id');
         $storedOrder = $exam->questions()->orderBy('order')->pluck('id')->all();
         $this->assertNotSame($storedOrder, $firstIds, 'Amestecarea trebuie să schimbe ordinea față de snapshot.');
 
-        $again = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}");
+        $again = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1");
         $again->assertOk();
         $this->assertSame($firstIds, array_column($again->json('questions'), 'id'));
 
@@ -277,7 +277,7 @@ class ExamQuestionFlowTest extends TestCase
             }
         }
 
-        $shown = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertOk()->json('questions');
+        $shown = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1")->assertOk()->json('questions');
         $this->assertCount(4, $shown);
         $this->assertTrue(
             collect($shown)->contains(fn ($q) => $q['options'] !== $options),
@@ -287,7 +287,7 @@ class ExamQuestionFlowTest extends TestCase
             $this->assertEqualsCanonicalizing($options, $q['options']);
         }
 
-        $again = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertOk()->json('questions');
+        $again = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1")->assertOk()->json('questions');
         $this->assertSame(array_column($shown, 'options'), array_column($again, 'options'));
 
         $answers = [];
@@ -330,7 +330,7 @@ class ExamQuestionFlowTest extends TestCase
             ]);
         }
 
-        $response = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}");
+        $response = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1");
         $response->assertOk();
         $this->assertSame(['Una', 'Doua', 'Trei'], array_column($response->json('questions'), 'text'));
     }
@@ -365,7 +365,7 @@ class ExamQuestionFlowTest extends TestCase
 
         $excludedIds = collect($this->actingAs($excluded, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
         $this->assertNotContains($exam->id, $excludedIds);
-        $this->actingAs($excluded, 'sanctum')->getJson("/api/exams/{$exam->id}")->assertForbidden();
+        $this->actingAs($excluded, 'sanctum')->getJson("/api/exams/{$exam->id}?start=1")->assertForbidden();
 
         $outsiderIds = collect($this->actingAs($outsider, 'sanctum')->getJson('/api/exams')->assertOk()->json('data'))->pluck('id')->all();
         $this->assertNotContains($exam->id, $outsiderIds);

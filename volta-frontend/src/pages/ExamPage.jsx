@@ -142,9 +142,9 @@ const ExamPage = () => {
 	}, [submitted, result, exam?.questions]);
 	const visibleAnswers = reviewAnswers || answers;
 
-	const fetchExamData = useCallback(async ({ forceFreshAttempt = false } = {}) => {
+	const fetchExamData = useCallback(async ({ forceFreshAttempt = false, start = false } = {}) => {
 		const draftKey = buildExamDraftKey(userIdRef.current, courseId, examId);
-		const fetchKey = `${examId}:${courseId ?? ''}:${forceFreshAttempt ? '1' : '0'}`;
+		const fetchKey = `${examId}:${courseId ?? ''}:${forceFreshAttempt ? '1' : '0'}:${start ? 's' : ''}`;
 		if (examFetchInFlightRef.current && examFetchKeyRef.current === fetchKey) {
 			return;
 		}
@@ -159,8 +159,17 @@ const ExamPage = () => {
 					/* ignore */
 				}
 			}
-			const data = await examService.getExam(examId, courseId, { newAttempt: forceFreshAttempt, kind: examKind });
+			const data = await examService.getExam(examId, courseId, { newAttempt: forceFreshAttempt, start, kind: examKind });
 			setExam(data);
+			// Ecranul de start: încercarea n-a pornit încă, deci nici cronometrul, nici telemetria.
+			if (data.requires_start) {
+				setResult(null);
+				setSubmitted(false);
+				setTimeRemaining(null);
+				setStartTime(null);
+				setError(null);
+				return;
+			}
 
 			const completedStatuses = ['completed', 'pending_review'];
 			const viewingCompleted = data.latest_result
@@ -611,6 +620,44 @@ const ExamPage = () => {
 						{back.label}
 					</Link>
 				</div>
+			</div>
+		);
+	}
+
+	if (exam.requires_start) {
+		const minutes = Number(exam.time_limit_minutes) || 0;
+		const remaining = exam.remaining_attempts;
+		return (
+			<div className="student-exam-page">
+				<section className="student-exam-start" aria-labelledby="exam-start-title">
+					<h1 id="exam-start-title" className="student-exam-start-title">{exam.title}</h1>
+					{exam.description ? <p className="student-exam-start-description">{exam.description}</p> : null}
+					<dl className="student-exam-start-facts">
+						<div><dt>Întrebări</dt><dd>{exam.question_count ?? '—'}</dd></div>
+						<div><dt>Timp</dt><dd>{minutes > 0 ? `${minutes} min` : 'Fără limită'}</dd></div>
+						<div><dt>Încercări rămase</dt><dd>{remaining == null ? 'Nelimitate' : remaining}</dd></div>
+						<div><dt>Promovare</dt><dd>{exam.passing_score ?? 70}%</dd></div>
+					</dl>
+					{minutes > 0 ? (
+						<p className="student-exam-start-note">
+							Cronometrul pornește când apeși „Începe testul” și nu se oprește dacă ieși din pagină.
+						</p>
+					) : null}
+					{remaining === 1 ? (
+						<p className="student-exam-start-note student-exam-start-note--warn">Ai o singură încercare.</p>
+					) : null}
+					{error ? <p role="alert" className="student-exam-start-error">{error}</p> : null}
+					<div className="student-exam-start-actions">
+						<Link to={back.to} className="student-exam-btn student-exam-btn-secondary">{back.label}</Link>
+						<button
+							type="button"
+							className="student-exam-btn lms-btn-primary"
+							onClick={() => fetchExamData({ start: true })}
+						>
+							Începe testul
+						</button>
+					</div>
+				</section>
 			</div>
 		);
 	}

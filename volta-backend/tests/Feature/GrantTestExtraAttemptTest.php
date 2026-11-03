@@ -39,7 +39,7 @@ class GrantTestExtraAttemptTest extends TestCase
         ]);
 
         $this->actingAs($student, 'sanctum');
-        $this->getJson("/api/exams/{$test->id}?course_id={$course->id}")->assertOk();
+        $this->getJson("/api/exams/{$test->id}?course_id={$course->id}&start=1")->assertOk();
         $this->postJson("/api/exams/{$test->id}/submit", [
             'course_id' => $course->id,
             'answers' => [$question->id => 1],

@@ -69,7 +69,7 @@ class GeneralIntegrityTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $test = Test::factory()->published()->create();
         $q = Question::factory()->create(['test_id' => $test->id]);
-        $this->actingAs($admin, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($admin, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $this->postJson("/api/exams/{$test->id}/submit", ['answers' => [$q->id => 0]])
             ->assertOk()
             ->assertJsonPath('result.passed', true);
@@ -87,7 +87,7 @@ class GeneralIntegrityTest extends TestCase
             $course->assignedUsers()->attach($student->id, ['enrolled' => true]);
             CourseTest::create(['course_id' => $course->id, 'test_id' => $test->id, 'scope' => 'course']);
         }
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$first->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$first->id}&start=1")->assertOk();
         $attempt = TestResult::where('user_id', $student->id)->where('test_id', $test->id)->firstOrFail();
         // Încercările se numără pe test, nu pe curs: trimiterea din alt curs e acceptată,
         // dar rezultatul rămâne pe cursul în care a fost deschisă încercarea.
@@ -152,8 +152,8 @@ class GeneralIntegrityTest extends TestCase
         foreach ([$allowed, $forbidden] as $course) {
             CourseTest::create(['course_id' => $course->id, 'test_id' => $test->id, 'scope' => 'course']);
         }
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$forbidden->id}")->assertForbidden();
-        $this->getJson("/api/exams/{$test->id}?course_id={$allowed->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?course_id={$forbidden->id}&start=1")->assertForbidden();
+        $this->getJson("/api/exams/{$test->id}?course_id={$allowed->id}&start=1")->assertOk();
         $this->postJson("/api/exams/{$test->id}/submit?course_id={$allowed->id}", [
             'course_id' => $forbidden->id, 'answers' => [$q->id => 0],
         ])->assertStatus(422);
@@ -166,7 +166,7 @@ class GeneralIntegrityTest extends TestCase
         $test = Test::factory()->published()->create(['passing_score' => 90, 'time_limit_minutes' => null]);
         $first = Question::factory()->create(['test_id' => $test->id, 'points' => 8]);
         $second = Question::factory()->create(['test_id' => $test->id, 'points' => 2]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $attempt = TestResult::where('test_id', $test->id)->firstOrFail();
         $this->assertSame(90, (int) $attempt->passing_score_applied);
         $test->update(['passing_score' => 70]);

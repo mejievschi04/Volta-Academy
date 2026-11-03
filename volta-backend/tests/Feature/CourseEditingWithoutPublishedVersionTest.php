@@ -48,7 +48,7 @@ class CourseEditingWithoutPublishedVersionTest extends TestCase
 
         $this->app['auth']->forgetGuards();
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$test->id}?course_id={$course->id}")
+            ->getJson("/api/exams/{$test->id}?course_id={$course->id}&start=1")
             ->assertOk();
         $this->app['auth']->forgetGuards();
         $outline = $this->actingAs($student, 'sanctum')->getJson("/api/courses/{$course->id}")->assertOk()->json();

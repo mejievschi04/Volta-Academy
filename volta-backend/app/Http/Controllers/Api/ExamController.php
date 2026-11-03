@@ -954,6 +954,15 @@ class ExamController extends Controller
                 $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
                 $canStart = ! $user->isLearningActivityExempt()
                     && ! $this->attemptService->wouldExceedAttemptLimit($test, (int) $user->id, $currentAttempt + 1);
+                // Încercarea (și cronometrul) pornește doar la „Începe testul”: deschiderea paginii crea încercarea,
+                // iar cine doar se uita și pleca o pierdea la expirare (la testele cu o încercare, singura).
+                $wantsStart = $req->boolean('start') || $forNewAttempt;
+                if ($canStart && ! $wantsStart) {
+                    $requiresStart = true;
+                    $questionCount = $questions->count();
+                    $questions = collect();
+                    $canStart = false;
+                }
                 if ($canStart) {
                     $activeAttempt = $this->attemptService->ensureOpenAttempt(
                         $test,
@@ -1028,6 +1037,8 @@ class ExamController extends Controller
             'extra_attempts' => $this->attemptService->extraAttemptsFor((int) $user->id, (int) $test->id),
             'allowed_attempts' => $this->attemptService->allowedAttemptCount($test, (int) $user->id),
             'is_required' => (bool) $courseTest,
+            'requires_start' => $requiresStart ?? false,
+            'question_count' => $questionCount ?? $transformedQuestions->count(),
             'questions' => $transformedQuestions,
             'current_attempt' => $currentAttempt,
             'remaining_attempts' => $remainingAttempts,
@@ -1332,15 +1343,29 @@ class ExamController extends Controller
         $attemptNumberForSeed = $viewingCompleted
             ? max(1, (int) $latestResult->attempt_number)
             : max(1, $currentAttempt + 1);
-        $session = $viewingCompleted
-            ? $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed)
-            : $this->examAttemptSessionService->ensure($exam, $user, $attemptNumberForSeed);
+        // Sesiunea (și cronometrul) pornește doar la „Începe examenul”; una deja începută se reia direct.
+        $wantsStart = $req->boolean('start') || $forNewAttempt || $user->isAdmin() || $user->isInstructor();
+        $requiresStart = false;
+        $questionCount = null;
+        if ($viewingCompleted) {
+            $session = $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed);
+        } else {
+            $session = $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed);
+            if (! $session && $wantsStart) {
+                $session = $this->examAttemptSessionService->ensure($exam, $user, $attemptNumberForSeed);
+            } elseif (! $session) {
+                $requiresStart = true;
+                $questionCount = $this->examAttemptSessionService->questionCountFor($exam, $user, $attemptNumberForSeed);
+            }
+        }
         // Încercarea în curs arată variantele amestecate; rezultatul salvat folosește ordinea originală.
         $attemptQuestions = $session
             ? $this->examAttemptSessionService->questions($session, ! $viewingCompleted)
             : null;
 
-        $fullWire = $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed, $attemptQuestions);
+        $fullWire = $requiresStart
+            ? collect()
+            : $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed, $attemptQuestions);
         $showSolutions = $latestResult && ! $forNewAttempt && $this->shouldRevealExamSolutions($exam);
         $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
         $questions = ($showSolutions && ! $submittedOnly)
@@ -1370,6 +1395,8 @@ class ExamController extends Controller
             'max_attempts' => $exam->max_attempts,
             'allowed_attempts' => $this->examAttemptLimits->allowedAttemptCount($exam, (int) $user->id),
             'is_required' => $exam->is_required ?? false,
+            'requires_start' => $requiresStart,
+            'question_count' => $questionCount ?? $questions->count(),
             'questions' => $questions,
             'active_attempt' => (! $viewingCompleted && $session) ? [
                 'attempt_number' => (int) $session->attempt_number,

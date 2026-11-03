@@ -48,7 +48,7 @@ class ExamExtraAttemptTest extends TestCase
             ->assertJsonPath('0.allowed_attempts', 2);
 
         $this->actingAs($student, 'sanctum')
-            ->getJson("/api/exams/{$exam->id}")
+            ->getJson("/api/exams/{$exam->id}?start=1")
             ->assertOk()
             ->assertJsonPath('can_retake', true)
             ->assertJsonPath('remaining_attempts', 1);

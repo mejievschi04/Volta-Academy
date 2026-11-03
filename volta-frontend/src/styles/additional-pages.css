@@ -2897,3 +2897,96 @@ body.sidebar-expanded .messages-page {
 .empty-state-icon svg {
 	color: var(--text-tertiary);
 }
+
+/* Ecranul de start al testului: încercarea pornește doar la „Începe testul” */
+.student-exam-start {
+	box-sizing: border-box;
+	width: min(100%, 560px);
+	margin: var(--space-8) auto;
+	padding: var(--space-6);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-2xl);
+	background: var(--bg-elevated);
+	box-shadow: var(--shadow-sm);
+}
+
+.student-exam-start-title {
+	margin: 0 0 var(--space-2);
+	font-size: 1.5rem;
+	line-height: 1.25;
+	color: var(--text-primary);
+}
+
+.student-exam-start-description {
+	margin: 0 0 var(--space-4);
+	color: var(--text-secondary);
+}
+
+.student-exam-start-facts {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-3);
+	margin: var(--space-4) 0;
+}
+
+.student-exam-start-facts div {
+	padding: var(--space-3);
+	border-radius: var(--radius-lg);
+	background: var(--bg-secondary);
+}
+
+.student-exam-start-facts dt {
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.student-exam-start-facts dd {
+	margin: 2px 0 0;
+	font-size: 1.125rem;
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.student-exam-start-note {
+	margin: 0 0 var(--space-3);
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.student-exam-start-note--warn {
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.student-exam-start-error {
+	margin: 0 0 var(--space-3);
+	color: var(--color-error);
+}
+
+.student-exam-start-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-3);
+	margin-top: var(--space-4);
+}
+
+.student-exam-start-actions .student-exam-btn {
+	min-height: 44px;
+	justify-content: center;
+}
+
+@media (max-width: 480px) {
+	.student-exam-start {
+		margin: var(--space-4) auto;
+		padding: var(--space-4);
+	}
+
+	.student-exam-start-actions {
+		flex-direction: column-reverse;
+	}
+
+	.student-exam-start-actions .student-exam-btn {
+		width: 100%;
+	}
+}

@@ -18,8 +18,8 @@ class ConcurrentExamSubmitTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
         Question::factory()->create(['test_id' => $test->id]);
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
         $this->assertSame(1, TestResult::query()->where('test_id', $test->id)->where('user_id', $student->id)->count());
     }
 
@@ -30,7 +30,7 @@ class ConcurrentExamSubmitTest extends TestCase
         $first = Question::factory()->create(['test_id' => $test->id, 'order' => 0]);
         $second = Question::factory()->create(['test_id' => $test->id, 'order' => 1]);
 
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->assertJsonPath('active_attempt.status', 'in_progress');
 
@@ -49,7 +49,7 @@ class ConcurrentExamSubmitTest extends TestCase
             'answers' => [(string) $first->id => 1],
         ])->assertOk();
 
-        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->assertJsonPath('active_attempt.answers.'.$first->id, 0)
             ->assertJsonPath('active_attempt.answers.'.$second->id, 1);
@@ -60,7 +60,7 @@ class ConcurrentExamSubmitTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $test = Test::factory()->published()->create(['time_limit_minutes' => null, 'max_attempts' => 3]);
         $question = Question::factory()->create(['test_id' => $test->id]);
-        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}")
+        $attemptId = $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")
             ->assertOk()
             ->json('active_attempt.id');
 
