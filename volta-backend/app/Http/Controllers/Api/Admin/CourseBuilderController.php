@@ -347,7 +347,14 @@ class CourseBuilderController extends Controller
     {
         $this->ensureCourseAccess($courseId);
         $course = Course::with(['modules.lessons.contentBlocks'])->findOrFail($courseId);
-        $report = $this->courseBuilderValidator->validate($course);
+        $selected = $request->has('publish_lesson_ids') ? (array) $request->input('publish_lesson_ids', []) : null;
+        $lessonIds = $this->courseBuilderService->lessonIdsToPublish($course, $selected);
+        $report = $this->courseBuilderValidator->validate($course, $lessonIds);
+        // fereastra de publicare arată lecțiile din Ciornă care se publică odată cu cursul
+        $report['first_publish'] = ($course->status ?? '') !== 'published';
+        $report['draft_lessons'] = $this->courseBuilderService->draftLessonsOfferedOnPublish($course)
+            ->map(fn ($lesson) => ['id' => (int) $lesson->id, 'title' => $lesson->title])
+            ->values();
 
         return response()->json($report);
     }
@@ -372,11 +379,14 @@ class CourseBuilderController extends Controller
             'team_ids' => 'nullable|array',
             'team_ids.*' => 'exists:teams,id',
             'catalog_outside_map' => 'nullable|boolean',
+            'publish_lesson_ids' => 'nullable|array',
+            'publish_lesson_ids.*' => 'integer',
         ]);
         $teamIds = $validated['team_ids'] ?? [];
         $catalogOutsideMap = (bool) ($validated['catalog_outside_map'] ?? false);
+        $selectedLessonIds = $request->has('publish_lesson_ids') ? ($validated['publish_lesson_ids'] ?? []) : null;
 
-        $published = $this->courseBuilderService->publishLive($course, $request->user(), $teamIds, $catalogOutsideMap);
+        $published = $this->courseBuilderService->publishLive($course, $request->user(), $teamIds, $catalogOutsideMap, $selectedLessonIds);
         if (! ($published['ok'] ?? false)) {
             return response()->json($published, 422);
         }

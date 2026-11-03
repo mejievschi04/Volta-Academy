@@ -1403,6 +1403,8 @@ export const adminService = {
     const response = await api.post(`/admin/courses/${courseId}/builder/publish`, {
       team_ids: teamIds,
       catalog_outside_map: Boolean(options.catalogOutsideMap),
+      // la republicare: lecțiile noi bifate în fereastra de publicare (lipsă = toate cele noi)
+      ...(Array.isArray(options.publishLessonIds) ? { publish_lesson_ids: options.publishLessonIds } : {}),
     });
     return response.data;
   },

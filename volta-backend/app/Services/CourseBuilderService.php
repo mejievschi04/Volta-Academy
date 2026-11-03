@@ -685,15 +685,61 @@ class CourseBuilderService
      *
      * @return array{ok: bool, course?: Course, errors?: mixed}
      */
-    public function publishLive(Course $course, ?User $actor = null, array $teamIds = [], bool $catalogOutsideMap = false): array
+    /**
+     * Lecțiile în Ciornă pe care publicarea le poate publica odată cu cursul:
+     * - la prima publicare, toate (builder-ul creează lecțiile în Ciornă, iar cursul ieșea gol);
+     * - la republicare, doar cele adăugate de la ultima versiune publicată; cele ascunse intenționat,
+     *   care existau deja acolo, rămân ascunse.
+     *
+     * @return \Illuminate\Support\Collection<int, Lesson>
+     */
+    public function draftLessonsOfferedOnPublish(Course $course)
+    {
+        $drafts = Lesson::query()
+            ->where('course_id', $course->id)
+            ->where('status', '!=', 'published')
+            ->orderBy('order')
+            ->get(['id', 'title', 'module_id', 'order']);
+        if (($course->status ?? '') !== 'published') {
+            return $drafts;
+        }
+
+        $snapshot = app(PublishedCourseView::class)->latestPublishedSnapshot((int) $course->id);
+        $known = array_fill_keys(collect($snapshot['lessons'] ?? [])->pluck('id')->map(fn ($id) => (int) $id)->all(), true);
+
+        return $drafts->reject(fn (Lesson $lesson) => isset($known[(int) $lesson->id]))->values();
+    }
+
+    /**
+     * Id-urile lecțiilor care se publică acum. La prima publicare toate cele oferite; la republicare cele
+     * alese în fereastra de publicare ($selectedIds; null = toate lecțiile noi).
+     *
+     * @param  list<int>|null  $selectedIds
+     * @return list<int>
+     */
+    public function lessonIdsToPublish(Course $course, ?array $selectedIds): array
+    {
+        $offered = $this->draftLessonsOfferedOnPublish($course)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if (($course->status ?? '') !== 'published' || $selectedIds === null) {
+            return $offered;
+        }
+
+        return array_values(array_intersect($offered, array_map('intval', $selectedIds)));
+    }
+
+    public function publishLive(Course $course, ?User $actor = null, array $teamIds = [], bool $catalogOutsideMap = false, ?array $selectedLessonIds = null): array
     {
         $course->load(['modules.lessons.contentBlocks']);
-        $report = app(CourseBuilderValidator::class)->validate($course);
+        $lessonIds = $this->lessonIdsToPublish($course, $selectedLessonIds);
+        $report = app(CourseBuilderValidator::class)->validate($course, $lessonIds);
         if (! ($report['ok'] ?? false)) {
             return $report;
         }
 
-        DB::transaction(function () use ($course, $actor, $teamIds, $catalogOutsideMap) {
+        DB::transaction(function () use ($course, $actor, $teamIds, $catalogOutsideMap, $lessonIds) {
+            if ($lessonIds !== []) {
+                Lesson::query()->where('course_id', $course->id)->whereIn('id', $lessonIds)->update(['status' => 'published']);
+            }
             // progresul cursanților pe versiunea curentă devine minimul garantat după publicare
             if (($course->status ?? '') === 'published') {
                 app(CourseProgressService::class)->lockProgressBeforeNewVersion($course);

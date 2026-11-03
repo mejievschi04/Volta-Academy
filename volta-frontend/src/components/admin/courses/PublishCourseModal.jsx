@@ -77,6 +77,10 @@ const PublishCourseModal = ({
 	const [validating, setValidating] = useState(false);
 	const [error, setError] = useState(null);
 	const [publishErrorReport, setPublishErrorReport] = useState(null);
+	/** Lecțiile noi debifate în fereastră: rămân în Ciornă la această publicare. */
+	const [excludedLessonIds, setExcludedLessonIds] = useState(() => new Set());
+	const draftLessons = Array.isArray(validationReport?.draft_lessons) ? validationReport.draft_lessons : [];
+	const firstPublish = Boolean(validationReport?.first_publish);
 
 	const hasErrors = validationReport && !validationReport.ok;
 	const errors = Array.isArray(validationReport?.errors) ? validationReport.errors : [];
@@ -170,7 +174,10 @@ const PublishCourseModal = ({
 				}
 			}
 			const teamIds = audience === 'teams' ? selectedTeamIds : [];
-			const res = await adminService.builderPublishCourse(courseId, teamIds, { catalogOutsideMap });
+			const publishLessonIds = firstPublish || draftLessons.length === 0
+				? undefined
+				: draftLessons.map((lesson) => lesson.id).filter((id) => !excludedLessonIds.has(id));
+			const res = await adminService.builderPublishCourse(courseId, teamIds, { catalogOutsideMap, publishLessonIds });
 			clearPublishDraft(courseId);
 			onPublished?.(res, { catalogOutsideMap, teamIds, audience });
 			onClose?.();
@@ -248,6 +255,43 @@ const PublishCourseModal = ({
 							<p className="publish-course-ready" role="status">Pregătit de publicare.</p>
 						)}
 						<PublishIssueList errors={displayErrors} onFixIssue={onFixIssue} />
+						{draftLessons.length > 0 ? (
+							<div className="publish-course-draft-lessons">
+								{firstPublish ? (
+									<>
+										<p className="publish-course-draft-lessons-title">
+											Odată cu cursul se publică și lecțiile lui ({draftLessons.length}):
+										</p>
+										<ul className="publish-course-draft-lessons-list">
+											{draftLessons.map((lesson) => <li key={lesson.id}>{lesson.title}</li>)}
+										</ul>
+									</>
+								) : (
+									<fieldset>
+										<legend className="publish-course-draft-lessons-title">
+											Lecții noi, încă nepublicate: bifate se publică acum
+										</legend>
+										{draftLessons.map((lesson) => (
+											<label key={lesson.id} className="publish-course-draft-lesson">
+												<input
+													type="checkbox"
+													checked={!excludedLessonIds.has(lesson.id)}
+													onChange={(event) => {
+														setExcludedLessonIds((prev) => {
+															const next = new Set(prev);
+															if (event.target.checked) next.delete(lesson.id);
+															else next.add(lesson.id);
+															return next;
+														});
+													}}
+												/>
+												<span>{lesson.title}</span>
+											</label>
+										))}
+									</fieldset>
+								)}
+							</div>
+						) : null}
 						{validationReport && (
 							<button
 								type="button"

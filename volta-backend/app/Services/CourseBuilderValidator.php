@@ -14,8 +14,14 @@ class CourseBuilderValidator
      * - errors: [{ code, path, message }]
      * - warnings: [{ code, path, message }]
      */
-    public function validate(Course $course): array
+    /**
+     * @param  list<int>  $publishingLessonIds  lecții care devin publicate la această publicare
+     */
+    public function validate(Course $course, array $publishingLessonIds = []): array
     {
+        $publishing = array_fill_keys(array_map('intval', $publishingLessonIds), true);
+        $isPublished = fn ($lesson) => ($lesson->status ?? 'draft') === 'published' || isset($publishing[(int) $lesson->id]);
+
         $errors = [];
         $warnings = [];
 
@@ -67,7 +73,7 @@ class CourseBuilderValidator
         // Lecțiile în Ciornă nu ajung la cursanți: un curs publicat doar cu ele apărea gol, iar un test
         // obligatoriu pe o lecție ascunsă bloca finalizarea (409) fără ca cursantul să-l vadă.
         $allLessons = $rootLessons->concat($modules->flatMap(fn ($module) => $module->lessons ?? collect()));
-        if ($allLessons->isNotEmpty() && $allLessons->where('status', 'published')->isEmpty()) {
+        if ($allLessons->isNotEmpty() && ! $allLessons->contains($isPublished)) {
             $addError(
                 'course.lessons.published_required',
                 'course.structure',
@@ -84,7 +90,7 @@ class CourseBuilderValidator
             }
             if ($courseTest->scope === 'lesson' && (bool) ($courseTest->required ?? false)) {
                 $lesson = $lessonsById->get((int) $courseTest->scope_id);
-                if ($lesson && ($lesson->status ?? 'draft') !== 'published') {
+                if ($lesson && ! $isPublished($lesson)) {
                     $addError(
                         'test.lesson.unpublished',
                         "lessons.{$lesson->id}.status",

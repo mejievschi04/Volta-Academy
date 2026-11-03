@@ -2531,3 +2531,49 @@ html body .admin-team-card-compact .admin-team-card-compact__icon-btn--danger.ad
 	border-color: var(--color-error) !important;
 	background: color-mix(in srgb, var(--color-error) 12%, var(--bg-elevated));
 }
+
+/* Fereastra de publicare: lecțiile din Ciornă publicate odată cu cursul */
+.publish-course-draft-lessons {
+	margin: var(--space-3) 0;
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	background: var(--bg-secondary);
+}
+
+.publish-course-draft-lessons fieldset {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.publish-course-draft-lessons-title {
+	margin: 0 0 var(--space-2);
+	padding: 0;
+	font-size: 0.875rem;
+	font-weight: var(--font-weight-semibold);
+	color: var(--text-primary);
+}
+
+.publish-course-draft-lessons-list {
+	margin: 0;
+	padding-left: 1.25rem;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.publish-course-draft-lesson {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 44px;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	cursor: pointer;
+}
+
+.publish-course-draft-lesson input {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
