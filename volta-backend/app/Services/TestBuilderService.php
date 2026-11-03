@@ -431,9 +431,7 @@ class TestBuilderService
                 $imageUrl = $row['image_url'] ?? $row['imageUrl'] ?? $row['image'] ?? '';
                 $left = is_string($left) ? $left : (string) $left;
                 $imageUrl = is_string($imageUrl) ? $imageUrl : (string) $imageUrl;
-                if (preg_match('/^https?:\/\//i', $imageUrl) !== 1) {
-                    $imageUrl = '';
-                }
+                $imageUrl = \App\Support\QuestionImageUrl::sanitize($imageUrl);
                 $normalized[] = [
                     'left' => $left,
                     'text' => $left,

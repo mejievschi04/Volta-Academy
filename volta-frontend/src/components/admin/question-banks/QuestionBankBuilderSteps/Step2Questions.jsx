@@ -6,9 +6,11 @@ import { useToast } from '../../../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../../../components/common/ConfirmModal';
 import Modal from '../../../../components/common/Modal';
 import QuestionItemCard from './QuestionItemCard';
+import QuestionImageUpload from '../QuestionImageUpload';
 import AIGenerateQuestionsModal from './AIGenerateQuestionsModal';
 import { DEFAULT_AI_QUESTION_TYPES } from './AIGenerateQuestionsModalShared.js';
 import { isVoltEnabled, notifyVoltComingSoon } from '../../../../utils/voltAvailability';
+import { toImageUrl } from '../../../../utils/imageUrl';
 
 const QUESTION_TYPE_OPTIONS = [
 	{ value: 'multiple_choice', label: 'Răspuns multiplu' },
@@ -711,7 +713,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 
 							{questionForm.type === 'image_matching' ? (
 								<div className="admin-answer-list">
-									{questionForm.answers.map((answer, index) => <div key={index} className="admin-answer-item"><input type="text" className="admin-form-input" value={answer.left || ''} onChange={(e) => updateAnswer(index, 'left', e.target.value)} placeholder={`Denumire ${index + 1}`} /><input type="url" className="admin-form-input" value={answer.image_url || ''} onChange={(e) => updateAnswer(index, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" />{answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || index + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}<button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={() => removeAnswer(index)}>🗑️</button></div>)}
+									{questionForm.answers.map((answer, index) => <div key={index} className="admin-answer-item"><input type="text" className="admin-form-input" value={answer.left || ''} onChange={(e) => updateAnswer(index, 'left', e.target.value)} placeholder={`Denumire ${index + 1}`} /><QuestionImageUpload value={answer.image_url || ''} onChange={(url) => updateAnswer(index, 'image_url', url)} label={answer.left || `perechea ${index + 1}`} /><button type="button" className="lms-btn-secondary lms-btn-sm va-btn-delete va-btn-danger" onClick={() => removeAnswer(index)}>🗑️</button></div>)}
 								</div>
 							) : questionForm.type === 'matching' ? (
 								<div className="admin-answer-list">
@@ -1033,7 +1035,7 @@ const QuestionBankBuilderStep2 = ({ bankId, data, onUpdate, errors }) => {
 									<div className="qb-student-preview-short-placeholder" />
 								</div>
 							) : previewQuestion.type === 'image_matching' ? (
-								<div className="qb-student-preview-matching">{(previewQuestion.answers || []).map((ans, i) => <div key={i} className="qb-student-preview-matching-row"><span className="qb-student-preview-matching-left">{ans.left || ans.text || '—'}</span><span className="qb-student-preview-matching-arrow">→</span>{ans.image_url ? <img src={ans.image_url} alt={ans.left || ''} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 6 }} /> : <span>Imagine neconfigurată</span>}</div>)}</div>
+								<div className="qb-student-preview-matching">{(previewQuestion.answers || []).map((ans, i) => <div key={i} className="qb-student-preview-matching-row"><span className="qb-student-preview-matching-left">{ans.left || ans.text || '—'}</span><span className="qb-student-preview-matching-arrow">→</span>{ans.image_url ? <img src={toImageUrl(ans.image_url) || ans.image_url} alt={ans.left || ''} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 6 }} /> : <span>Imagine neconfigurată</span>}</div>)}</div>
 							) : previewQuestion.type === 'matching' ? (
 								<div className="qb-student-preview-matching">
 									{(previewQuestion.answers || []).map((ans, i) => (

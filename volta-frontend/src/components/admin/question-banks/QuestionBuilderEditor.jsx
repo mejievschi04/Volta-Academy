@@ -15,6 +15,7 @@ import {
   Trash,
 } from '@phosphor-icons/react';
 import RichTextEditor from '../../RichTextEditor';
+import QuestionImageUpload from './QuestionImageUpload';
 import { normalizePastedHtmlForTestBuilder } from '../../../utils/pasteRichTextColor';
 import { INLINE_QUESTION_TYPES } from '../../../utils/testQuestionBuilder';
 import '../../../styles/admin-course-builder.css';
@@ -428,7 +429,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
         <div className="va-qa">
           <div className="va-qa__head">
             <span className="va-qa__title">Denumiri și imagini</span>
-            <span className="va-qa__hint">Adaugă o denumire și adresa imaginii corecte pentru fiecare pereche.</span>
+            <span className="va-qa__hint">Adaugă o denumire și încarcă imaginea corectă pentru fiecare pereche.</span>
           </div>
           <ul className="va-qa__list">
             {answers.map((answer, idx) => (
@@ -441,8 +442,7 @@ const QuestionBuilderEditor = ({ question, onChange, questionNumber = 1 }) => {
                   placeholder="Denumire"
                   aria-label={`Denumirea ${idx + 1}`}
                 />
-                <input type="url" className="va-qa__input" value={answer.image_url || ''} onChange={(e) => updateAnswer(idx, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" aria-label={`Adresa imaginii ${idx + 1}`} />
-                {answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || idx + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}
+                <QuestionImageUpload value={answer.image_url || ''} onChange={(url) => updateAnswer(idx, 'image_url', url)} label={answer.left || `perechea ${idx + 1}`} />
                 <button type="button" className="va-qa__icon-btn is-danger" onClick={() => removeAnswer(idx)} aria-label={`Șterge perechea ${idx + 1}`}><Trash size={16} weight="bold" aria-hidden="true" /></button>
               </li>
             ))}

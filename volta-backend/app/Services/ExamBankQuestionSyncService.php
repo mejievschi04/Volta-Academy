@@ -350,7 +350,7 @@ class ExamBankQuestionSyncService
     {
         return collect(is_array($q->answers) ? $q->answers : [])->map(function ($answer) {
             $imageUrl = (string) ($answer['image_url'] ?? $answer['imageUrl'] ?? $answer['image'] ?? '');
-            if (preg_match('/^https?:\/\//i', $imageUrl) !== 1) $imageUrl = '';
+            $imageUrl = \App\Support\QuestionImageUrl::sanitize($imageUrl);
             return [
                 'left' => (string) ($answer['left'] ?? $answer['text'] ?? ''),
                 'image_url' => $imageUrl,

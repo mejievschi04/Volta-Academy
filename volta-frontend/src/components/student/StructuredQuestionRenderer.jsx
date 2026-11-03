@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import { DragGripIcon } from '../common/DragGripIcon';
 import './StructuredQuestionRenderer.css';
+import { toImageUrl } from '../../utils/imageUrl';
 
 const sequenceToStrings = (value) => {
 	if (!Array.isArray(value)) return null;
@@ -252,7 +253,7 @@ function ImageMatchingQuestion({ question, value, onChange, disabled }) {
 								disabled={disabled}
 							>
 								{selected ? (
-									<img src={selected.image_url} alt={selected.alt || item.text} className="student-exam-image-matching-image" />
+									<img src={toImageUrl(selected.image_url) || selected.image_url} alt={selected.alt || item.text} className="student-exam-image-matching-image" />
 								) : (
 									<span className="student-exam-matching-placeholder">{isTarget ? 'Alege o imagine de mai jos' : 'Atinge pentru a alege'}</span>
 								)}
@@ -272,7 +273,7 @@ function ImageMatchingQuestion({ question, value, onChange, disabled }) {
 							onClick={() => pickImage(item.id)}
 							disabled={disabled || targetRow == null}
 						>
-							<img src={item.image_url} alt={item.alt || 'Imagine de asociat'} className="student-exam-image-matching-image" />
+							<img src={toImageUrl(item.image_url) || item.image_url} alt={item.alt || 'Imagine de asociat'} className="student-exam-image-matching-image" />
 						</button>
 					))}
 					{assigned.size >= rightItems.length ? <span className="student-exam-matching-pool-empty">Toate imaginile sunt alese.</span> : null}

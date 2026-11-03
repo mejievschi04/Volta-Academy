@@ -19,6 +19,7 @@ import {
 	normalizeMultiChoiceIndices,
 } from '../utils/examChoiceQuestions';
 import RichTextHtml from '../components/RichTextHtml';
+import { toImageUrl } from '../utils/imageUrl';
 
 function asArray(value) {
 	return Array.isArray(value) ? value : [];
@@ -243,7 +244,7 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 						const correctChoice = imageMatching.correctMap?.[pairIndex];
 						const selected = imageLookup.get(String(userChoice));
 						const correct = imageLookup.get(String(correctChoice));
-						return <div key={left.id ?? pairIndex} className="exam-result-structured-row"><strong>{left.text}</strong><span>Imaginea ta: {selected ? <img src={selected.image_url} alt={selected.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Fără răspuns'}</span>{!submittedOnly && !correctness && <span>Imagine corectă: {correct ? <img src={correct.image_url} alt={correct.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Indisponibil'}</span>}</div>;
+						return <div key={left.id ?? pairIndex} className="exam-result-structured-row"><strong>{left.text}</strong><span>Imaginea ta: {selected ? <img src={toImageUrl(selected.image_url) || selected.image_url} alt={selected.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Fără răspuns'}</span>{!submittedOnly && !correctness && <span>Imagine corectă: {correct ? <img src={toImageUrl(correct.image_url) || correct.image_url} alt={correct.alt || ''} style={{ display: 'block', maxWidth: 180, maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} /> : 'Indisponibil'}</span>}</div>;
 					})}
 				</div>
 			)}

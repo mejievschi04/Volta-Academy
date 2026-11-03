@@ -912,7 +912,7 @@ class ExamAdminController extends Controller
             if (! is_array($pair)) continue;
             $label = trim((string) ($pair['left'] ?? $pair['text'] ?? ''));
             $url = trim((string) ($pair['image_url'] ?? $pair['imageUrl'] ?? ''));
-            if (preg_match('/^https?:\/\//i', $url) !== 1) $url = '';
+            $url = \App\Support\QuestionImageUrl::sanitize($url);
             if ($label === '' || $url === '') continue;
             $id = (string) $index;
             $leftItems[] = ['id' => $id, 'text' => $label];

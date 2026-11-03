@@ -24,6 +24,7 @@ import {
   patchTestResultsDisplayMode,
 } from '../../../utils/testQuestionBuilder';
 import RichTextEditor from '../../RichTextEditor';
+import QuestionImageUpload from '../question-banks/QuestionImageUpload';
 import RichTextHtml from '../../RichTextHtml';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
@@ -416,8 +417,7 @@ export default function InlineTestEditorShell({
                                   {(Array.isArray(question.answers) ? question.answers : []).map((answer, answerIdx) => (
                                     <li key={`${question.id}-image-pair-${answerIdx}`} className="va-qa__row va-qa__row--pair">
                                       <input type="text" className="va-qa__input" value={answer.left ?? answer.text ?? ''} onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'left', e.target.value)} placeholder="Denumire" aria-label={`Denumirea ${answerIdx + 1}`} disabled={!canMutateInAdminArea} />
-                                      <input type="url" className="va-qa__input" value={answer.image_url ?? answer.imageUrl ?? ''} onChange={(e) => handleInlineMatchingPairChange(question.id, answerIdx, 'image_url', e.target.value)} placeholder="https://…/imagine.jpg" aria-label={`Adresa imaginii ${answerIdx + 1}`} disabled={!canMutateInAdminArea} />
-                                      {answer.image_url ? <img src={answer.image_url} alt={`Previzualizare ${answer.left || answerIdx + 1}`} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 6 }} /> : null}
+                                      <QuestionImageUpload value={answer.image_url ?? answer.imageUrl ?? ''} onChange={(url) => handleInlineMatchingPairChange(question.id, answerIdx, 'image_url', url)} label={answer.left || `perechea ${answerIdx + 1}`} disabled={!canMutateInAdminArea} />
                                       {canMutateInAdminArea ? <button type="button" className="va-qa__icon-btn is-danger" onClick={() => handleInlineRemoveAnswer(question.id, answerIdx)} aria-label={`Șterge perechea ${answerIdx + 1}`}><Trash size={16} weight="bold" aria-hidden="true" /></button> : null}
                                     </li>
                                   ))}

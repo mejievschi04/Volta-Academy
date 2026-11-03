@@ -1,0 +1,35 @@
+.va-qimg {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+	min-width: 0;
+}
+
+.va-qimg__preview {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 64px;
+	height: 48px;
+	flex: 0 0 64px;
+	overflow: hidden;
+	border-radius: 6px;
+	border: 1px dashed var(--btn-outline-border, currentColor);
+	color: var(--text-secondary, inherit);
+}
+
+.va-qimg__preview img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.va-qimg__btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 44px;
+	white-space: nowrap;
+}

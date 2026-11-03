@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from '@phosphor-icons/react';
+import { toImageUrl } from '../../../utils/imageUrl';
 
 const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const normalizeAnswers = (answers) => {
@@ -90,7 +91,7 @@ const Drawer = ({ open, question, onClose, onEdit }) => {
             </ul>
           </div>
         ) : question?.type === 'image_matching' && Array.isArray(question?.answers) && question.answers.length > 0 ? (
-          <div className="qb-drawer-answers"><h4>Denumiri și imagini</h4><ul className="qb-drawer-answer-list">{question.answers.map((pair, index) => <li key={`${question.id}-image-pair-${index}`} className="qb-drawer-answer-item"><span className="qb-drawer-answer-marker">{index + 1}</span><span className="qb-drawer-answer-text">{pair.left || pair.text || '-'}{pair.image_url ? <img src={pair.image_url} alt={pair.left || ''} style={{ display: 'block', maxWidth: 150, maxHeight: 100, objectFit: 'cover', borderRadius: 6, marginTop: 6 }} /> : ' — imagine neconfigurată'}</span></li>)}</ul></div>
+          <div className="qb-drawer-answers"><h4>Denumiri și imagini</h4><ul className="qb-drawer-answer-list">{question.answers.map((pair, index) => <li key={`${question.id}-image-pair-${index}`} className="qb-drawer-answer-item"><span className="qb-drawer-answer-marker">{index + 1}</span><span className="qb-drawer-answer-text">{pair.left || pair.text || '-'}{pair.image_url ? <img src={toImageUrl(pair.image_url) || pair.image_url} alt={pair.left || ''} style={{ display: 'block', maxWidth: 150, maxHeight: 100, objectFit: 'cover', borderRadius: 6, marginTop: 6 }} /> : ' — imagine neconfigurată'}</span></li>)}</ul></div>
         ) : question?.type === 'ordering' && orderingItems.length > 0 ? (
           <div className="qb-drawer-answers">
             <h4>Ordine corectă</h4>

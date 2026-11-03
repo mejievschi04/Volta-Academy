@@ -1,3 +1,4 @@
+import { toImageUrl } from '../utils/imageUrl';
 import TestAttemptFooter from '../components/student/TestAttemptFooter';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
@@ -669,7 +670,7 @@ const ExamPage = () => {
 							const correctChoice = q.imageMatching.correctMap?.[pairIndex];
 							const selectedItem = q.imageMatching.rightItems?.find((option) => String(option.id) === String(userChoice));
 							const correctItem = q.imageMatching.rightItems?.find((option) => String(option.id) === String(correctChoice));
-							return <div key={left.id} className="student-exam-feedback-item-answer"><div><strong>{left.text}</strong></div><div>Imaginea ta: {selectedItem ? <img src={selectedItem.image_url} alt={selectedItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>{canShowCorrectAnswers && !isCorrect && <div>Imaginea corectă: {correctItem ? <img src={correctItem.image_url} alt={correctItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>}</div>;
+							return <div key={left.id} className="student-exam-feedback-item-answer"><div><strong>{left.text}</strong></div><div>Imaginea ta: {selectedItem ? <img src={toImageUrl(selectedItem.image_url) || selectedItem.image_url} alt={selectedItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>{canShowCorrectAnswers && !isCorrect && <div>Imaginea corectă: {correctItem ? <img src={toImageUrl(correctItem.image_url) || correctItem.image_url} alt={correctItem.alt || ''} style={{ display: 'block', maxWidth: 160, maxHeight: 110, objectFit: 'cover', borderRadius: 6 }} /> : '—'}</div>}</div>;
 						})}
 					</div>
 				)}
