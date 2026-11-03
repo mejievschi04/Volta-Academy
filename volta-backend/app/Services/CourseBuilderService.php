@@ -863,7 +863,8 @@ class CourseBuilderService
             ],
             [
                 'required' => array_key_exists('required', $options) ? (bool) $options['required'] : true,
-                'passing_score' => $options['passing_score'] ?? 70,
+                // fără prag dat: al testului (înainte 70, deci pragul setat de admin nu ajungea la cursant)
+                'passing_score' => $options['passing_score'] ?? $test->passing_score ?? 70,
                 'order' => $options['order'] ?? 0,
                 'unlock_after_previous' => $options['unlock_after_previous'] ?? false,
                 'unlock_after_test_id' => $options['unlock_after_test_id'] ?? null,

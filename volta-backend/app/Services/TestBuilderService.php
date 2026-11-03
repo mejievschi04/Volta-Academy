@@ -105,8 +105,18 @@ class TestBuilderService
             $updateData['question_set_id'] = (int) $updateData['question_set_id'];
         }
 
+        if (array_key_exists('passing_score', $updateData) && $updateData['passing_score'] !== null) {
+            $updateData['passing_score'] = round((float) $updateData['passing_score'], 2);
+        }
         $test->update($updateData);
-        
+
+        // Cursantul e corectat după pragul de pe legătura curs–test; o schimbare a pragului testului
+        // trebuie să ajungă și acolo (altfel adminul vedea pragul nou, iar cursantul pe cel vechi).
+        if (array_key_exists('passing_score', $updateData) && $updateData['passing_score'] !== null
+            && SchemaCache::hasColumn('course_test', 'passing_score')) {
+            DB::table('course_test')->where('test_id', $test->id)->update(['passing_score' => $updateData['passing_score']]);
+        }
+
         // Refresh to get updated question_source if it was changed
         $test->refresh();
 
