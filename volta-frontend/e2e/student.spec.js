@@ -50,6 +50,10 @@ test('testul final se deschide abia după toate lecțiile', async ({ page }) => 
 
 test('cursantul susține testul final și vede rezultatul', async ({ page }) => {
 	await page.goto('/courses/1/exams/1');
+	// ecranul de start: încercarea (și cronometrul) pornește doar la „Începe testul”
+	await expect(page.getByRole('heading', { name: 'Întrebări' })).toHaveCount(0);
+	await expect(page.getByText('Încercări rămase')).toBeVisible();
+	await page.getByRole('button', { name: 'Începe testul' }).click();
 	// titlul testului nu se mai afișează pe pagina lui; prima întrebare arată că testul s-a deschis
 	await expect(page.getByText('Care este capitala României?').first()).toBeVisible();
 
