@@ -32,6 +32,9 @@ class EventController extends Controller
         if (SchemaCache::hasTable('event_team')) {
             $query->with('teams:id,name');
         }
+        // Echipa se filtrează în interogare, înainte de paginare: filtrată după, o pagină de 20 plină cu
+        // evenimentele altor echipe ascundea evenimentele cursantului de pe paginile următoare.
+        $this->applyAudienceScope($query, Auth::user());
 
         // Type filter
         if ($request->has('type') && $request->type !== 'all') {
@@ -64,8 +67,10 @@ class EventController extends Controller
         }
 
         // Sort
-        $sortBy = $request->get('sort_by', 'start_date');
-        $sortDirection = $request->get('sort_direction', 'asc');
+        $sortBy = in_array($request->get('sort_by'), ['start_date', 'end_date', 'title', 'created_at'], true)
+            ? $request->get('sort_by')
+            : 'start_date';
+        $sortDirection = strtolower((string) $request->get('sort_direction')) === 'desc' ? 'desc' : 'asc';
 
         $query->orderBy($sortBy, $sortDirection);
 
@@ -164,6 +169,18 @@ class EventController extends Controller
                 $event = Event::where(function ($q) {
                     $q->where('status', 'published')->orWhere('status', 'upcoming');
                 })->lockForUpdate()->findOrFail($id);
+
+                // Aceleași reguli ca lista: doar evenimentele echipei lui și doar cele neterminate.
+                if (SchemaCache::hasTable('event_team')) {
+                    $event->load('teams:id');
+                }
+                $userTeamIds = $user->teams()->pluck('teams.id')->all();
+                if (! $this->eventVisibleToUser($event, $user, $userTeamIds)) {
+                    abort(404);
+                }
+                if ($event->end_date && \Carbon\Carbon::parse($event->end_date)->lt(now())) {
+                    abort(400, 'Evenimentul s-a încheiat');
+                }
 
                 $existing = DB::table('event_user')
                     ->where('event_id', $event->id)
@@ -343,6 +360,26 @@ class EventController extends Controller
         $event->makeHidden(['live_link', 'replay_url']);
 
         return $event;
+    }
+
+    /** Evenimentele „doar pentru echipe” rămân doar dacă utilizatorul e într-una din ele (adminul le vede pe toate). */
+    private function applyAudienceScope($query, $user): void
+    {
+        if (! SchemaCache::hasColumn('events', 'audience_type')) {
+            return;
+        }
+        if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return;
+        }
+        $teamIds = $user && SchemaCache::hasTable('event_team')
+            ? $user->teams()->pluck('teams.id')->all()
+            : [];
+        $query->where(function ($q) use ($teamIds) {
+            $q->whereNull('audience_type')->orWhere('audience_type', '!=', 'teams');
+            if ($teamIds !== []) {
+                $q->orWhereHas('teams', fn ($t) => $t->whereIn('teams.id', $teamIds));
+            }
+        });
     }
 
     private function eventVisibleToUser($event, $user, array $userTeamIds): bool

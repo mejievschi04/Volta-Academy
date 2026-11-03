@@ -209,6 +209,7 @@ class UserAdminController extends Controller
         if ($request->input('team_id') === '' || $request->input('team_id') === null) {
             $request->merge(['team_id' => null]);
         }
+        $this->normalizeEmailInput($request);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
@@ -284,6 +285,7 @@ class UserAdminController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->normalizeEmailInput($request);
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
@@ -599,4 +601,12 @@ class UserAdminController extends Controller
         ]);
     }
 
+
+    /** Emailul se compară cu litere mici: „Ion@x.com” trecea de unique și cădea în baza de date (500). */
+    private function normalizeEmailInput(Request $request): void
+    {
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => strtolower(trim($request->input('email')))]);
+        }
+    }
 }

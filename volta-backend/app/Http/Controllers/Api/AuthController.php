@@ -17,6 +17,10 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        // înainte de unique: „Ion@x.com” trecea de verificare când exista „ion@x.com” și cădea în baza de date
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => strtolower(trim($request->input('email')))]);
+        }
         $request->validate([
             'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
             'email' => 'required|string|email|max:255|unique:users',
@@ -72,10 +76,16 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $credentials = $request->only('email', 'password');
+        // Pe telefon tastatura pune majusculă la început („Ion@…”); emailurile se salvează cu litere mici,
+        // iar PostgreSQL compară exact, deci autentificarea eșua cu „date greșite”.
+        $email = strtolower(trim((string) $request->email));
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        $credentials = [
+            'email' => $user?->email ?? $email,
+            'password' => $request->password,
+        ];
 
         // Verifică dacă utilizatorul are status pending (așteaptă aprobare)
-        $user = User::where('email', $request->email)->first();
         if ($user && ($user->status ?? 'active') === 'pending') {
             throw ValidationException::withMessages([
                 'email' => ['Contul tău este în așteptarea aprobării. Un administrator va verifica cererea în curând.'],
