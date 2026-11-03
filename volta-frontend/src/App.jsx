@@ -105,7 +105,6 @@ const AdminStatisticsHubPage = lazy(() => import('./pages/admin/AdminStatisticsH
 const AdminTopCoursesPage = lazy(() => import('./pages/admin/AdminTopCoursesPage'));
 const AdminProblematicCoursesPage = lazy(() => import('./pages/admin/AdminProblematicCoursesPage'));
 const AdminAlertsPage = lazy(() => import('./pages/admin/AdminAlertsPage'));
-const AdminTasksPage = lazy(() => import('./pages/admin/AdminTasksPage'));
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
 const ModuleCreatorPage = lazy(() => import('./pages/admin/ModuleCreatorPage'));
 const LessonCreatorPage = lazy(() => import('./pages/admin/LessonCreatorPage'));
@@ -1938,13 +1937,7 @@ function App() {
 									/>
 									<Route
 										path="/admin/tasks"
-										element={
-											<AdminRoute>
-												<Suspense fallback={<PageLoader />}>
-													<AdminTasksPage />
-												</Suspense>
-											</AdminRoute>
-										}
+										element={<Navigate to="/admin/tests/pending-review" replace />}
 									/>
 									{/* Orice altă adresă: pagină 404 în loc de conținut gol */}
 									<Route

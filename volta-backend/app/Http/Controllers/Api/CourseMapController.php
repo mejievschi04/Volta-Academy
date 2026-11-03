@@ -229,6 +229,35 @@ class CourseMapController extends Controller
      * @param  \Illuminate\Support\Collection<int, Course>|iterable<Course>  $courses
      * @return array<int, array{progress_percentage: int, completed_at: mixed, assigned: bool}>
      */
+    /**
+     * Cursurile (din lista dată) în care utilizatorul are lecții parcurse sau rezultate la teste.
+     *
+     * @param  list<int>  $courseIds
+     * @return array<int, true>
+     */
+    private function coursesWithLearningActivity($user, array $courseIds): array
+    {
+        $ids = DB::table('lesson_progress')
+            ->join('lessons', 'lessons.id', '=', 'lesson_progress.lesson_id')
+            ->where('lesson_progress.user_id', $user->id)
+            ->whereIn('lessons.course_id', $courseIds)
+            ->distinct()
+            ->pluck('lessons.course_id');
+
+        if (SchemaCache::hasTable('test_results') && SchemaCache::hasTable('course_test')) {
+            $testIds = DB::table('test_results')->where('user_id', $user->id)->distinct()->pluck('test_id');
+            if ($testIds->isNotEmpty()) {
+                $ids = $ids->merge(DB::table('course_test')
+                    ->whereIn('course_id', $courseIds)
+                    ->whereIn('test_id', $testIds)
+                    ->distinct()
+                    ->pluck('course_id'));
+            }
+        }
+
+        return $ids->mapWithKeys(fn ($id) => [(int) $id => true])->all();
+    }
+
     private function liveProgressByCourses($user, $courses): array
     {
         $progress = [];
@@ -245,20 +274,34 @@ class CourseMapController extends Controller
         $assignedRows = DB::table('course_user')
             ->where('user_id', $user->id)
             ->whereIn('course_id', $courseIds)
-            ->get(['course_id', 'completed_at'])
+            ->get(array_merge(
+                ['course_id', 'completed_at', 'progress_percentage'],
+                SchemaCache::hasColumn('course_user', 'manually_completed') ? ['manually_completed'] : [],
+                SchemaCache::hasColumn('course_user', 'progress_floor') ? ['progress_floor'] : [],
+            ))
             ->keyBy('course_id');
+        $touched = $this->coursesWithLearningActivity($user, $courseIds);
 
         $progressService = app(CourseProgressService::class);
         foreach ($courseModels as $courseId => $course) {
             $assigned = $assignedRows->has($courseId);
-            $percent = $assigned
+            $row = $assignedRows->get($courseId);
+            // Un curs neînceput are 0%: fără recalcul complet pentru fiecare dintre zecile de cursuri atribuite
+            // (lista de mape dura 3–5 s). Orice urmă de activitate sau valoare salvată trece prin calculul complet.
+            $untouched = $row
+                && ! isset($touched[$courseId])
+                && empty($row->completed_at)
+                && (int) ($row->progress_percentage ?? 0) === 0
+                && empty($row->manually_completed)
+                && ($row->progress_floor ?? null) === null;
+            $percent = $assigned && ! $untouched
                 ? (int) round($progressService->calculateCourseProgress($user, $course))
                 : 0;
             $completedAt = $assigned
-                ? DB::table('course_user')
+                ? ($untouched ? null : DB::table('course_user')
                     ->where('user_id', $user->id)
                     ->where('course_id', $courseId)
-                    ->value('completed_at')
+                    ->value('completed_at'))
                 : null;
             $progress[$courseId] = [
                 'progress_percentage' => $percent,

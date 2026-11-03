@@ -16,7 +16,6 @@ const INSTRUCTOR_BLOCKED_PREFIXES = [
 	'/admin/problematic-courses',
 	'/admin/activity',
 	'/admin/alerts',
-	'/admin/tasks',
 	'/admin/analytics',
 ];
 
