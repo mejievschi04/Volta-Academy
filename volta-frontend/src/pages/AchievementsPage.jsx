@@ -6,6 +6,13 @@ import { achievementsService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
+
+/** Sub o oră, minutele („0h” la câteva minute de învățare părea că timpul nu se înregistrează). */
+function formatLearningTime(achievements) {
+	const minutes = Number(achievements?.learning_minutes);
+	if (Number.isFinite(minutes) && minutes < 60) return `${Math.max(0, minutes)} min`;
+	return `${achievements?.learning_hours || 0}h`;
+}
 import { BookOpenText, GraduationCap, Timer } from '@phosphor-icons/react';
 
 const AchievementsPage = () => {
@@ -80,8 +87,8 @@ const AchievementsPage = () => {
 					<div className="student-achievements-stat-card">
 						<div className="student-achievements-stat-icon"><Timer size={26} weight="bold" aria-hidden /></div>
 						<div className="student-achievements-stat-content">
-							<div className="student-achievements-stat-value">{achievements.learning_hours || 0}h</div>
-							<div className="student-achievements-stat-label">Ore de învățare</div>
+							<div className="student-achievements-stat-value">{formatLearningTime(achievements)}</div>
+							<div className="student-achievements-stat-label">Timp de învățare</div>
 						</div>
 					</div>
 				</div>

@@ -175,7 +175,6 @@ const LessonsPage = () => {
 
 	useLessonTimeTracking(selectedLessonId, {
 		userId: user?.id,
-		isCompleted,
 		enabled: lessonReadyForTracking && !isLearningExempt,
 	});
 

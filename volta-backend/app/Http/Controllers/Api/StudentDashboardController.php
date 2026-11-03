@@ -37,11 +37,68 @@ class StudentDashboardController extends Controller
     public function nextLesson()
     {
         $user = Auth::user();
-        $courses = $this->loadEnrolledCourses($user);
+        $enrolled = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('enrolled', true)
+            ->pluck('updated_at', 'course_id');
+        $this->lastAccessed = $enrolled->all();
+        $ids = Course::query()
+            ->whereIn('id', $enrolled->keys())
+            ->where('status', 'published')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        // Cursurile se încarcă pe rând, de la ultimul lucrat: de obicei răspunsul e chiar primul,
+        // iar încărcarea tuturor cursurilor cu lecțiile lor dura ~2 s la zeci de cursuri atribuite.
+        $ordered = $this->orderByLastWorked($user, $ids);
+        $courses = (function () use ($ordered) {
+            foreach ($ordered as $id) {
+                $course = Course::with($this->courseLessonRelations())->find($id);
+                if ($course) {
+                    yield $course;
+                }
+            }
+        })();
 
         return response()->json([
-            'next_lesson' => $this->getNextRecommendedLesson($user, $courses),
+            'next_lesson' => $this->getNextRecommendedLesson($user, $courses, false),
         ]);
+    }
+
+    /** @return array<string, \Closure> relațiile cu lecțiile publicate (din module și fără modul) */
+    private function courseLessonRelations(): array
+    {
+        return [
+            'modules' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
+            'modules.lessons' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
+            'lessons' => fn ($q) => $q->whereNull('module_id')->where('status', 'published')->orderBy('order'),
+        ];
+    }
+
+    /**
+     * Id-urile cursurilor ordonate după ultima lecție lucrată, apoi după ultima accesare.
+     *
+     * @param  list<int>  $courseIds
+     * @return list<int>
+     */
+    private function orderByLastWorked($user, array $courseIds): array
+    {
+        $lastWorked = DB::table('lesson_progress')
+            ->join('lessons', 'lessons.id', '=', 'lesson_progress.lesson_id')
+            ->where('lesson_progress.user_id', $user->id)
+            ->groupBy('lessons.course_id')
+            ->selectRaw('lessons.course_id as course_id, MAX(lesson_progress.updated_at) as last_at')
+            ->pluck('last_at', 'course_id')
+            ->all();
+
+        return collect($courseIds)
+            ->sortByDesc(fn ($id) => [
+                (string) ($lastWorked[$id] ?? ''),
+                (string) ($this->lastAccessed[$id] ?? ''),
+            ])
+            ->values()
+            ->all();
     }
 
     /** Cursurile la care e înscris, cu lecțiile publicate (din module și fără modul). */
@@ -58,12 +115,7 @@ class StudentDashboardController extends Controller
             ->pluck('updated_at', 'course_id');
         $this->lastAccessed = $enrolledCourses->all();
 
-        return Course::with([
-            'teacher',
-            'modules' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
-            'modules.lessons' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
-            'lessons' => fn ($q) => $q->whereNull('module_id')->where('status', 'published')->orderBy('order'),
-        ])
+        return Course::with(['teacher', ...$this->courseLessonRelations()])
             ->whereIn('id', $enrolledCourses->keys())
             ->where('status', 'published')
             ->get();
@@ -263,20 +315,15 @@ class StudentDashboardController extends Controller
     /**
      * Get next recommended lesson (resume functionality)
      */
-    private function getNextRecommendedLesson($user, $courses)
+    private function getNextRecommendedLesson($user, iterable $courses, bool $sort = true)
     {
         // Întâi cursul la care a lucrat ultima dată (nu primul din bază), apoi restul.
-        $lastWorked = DB::table('lesson_progress')
-            ->join('lessons', 'lessons.id', '=', 'lesson_progress.lesson_id')
-            ->where('lesson_progress.user_id', $user->id)
-            ->groupBy('lessons.course_id')
-            ->selectRaw('lessons.course_id as course_id, MAX(lesson_progress.updated_at) as last_at')
-            ->pluck('last_at', 'course_id')
-            ->all();
-        $courses = $courses->sortByDesc(fn ($course) => [
-            (string) ($lastWorked[$course->id] ?? ''),
-            (string) ($this->lastAccessed[$course->id] ?? ''),
-        ])->values();
+        if ($sort) {
+            $byId = collect($courses)->keyBy('id');
+            $courses = collect($this->orderByLastWorked($user, $byId->keys()->map(fn ($id) => (int) $id)->all()))
+                ->map(fn ($id) => $byId->get($id))
+                ->filter();
+        }
 
         foreach ($courses as $course) {
             $nextLesson = $this->progressService->getNextIncompleteLesson($user, $course);

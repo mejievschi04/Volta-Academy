@@ -99,4 +99,27 @@ class StudentNextLessonTest extends TestCase
             ->assertJsonPath('global_progress.total_lessons', 3)
             ->assertJsonPath('global_progress.completed_lessons', 2);
     }
+
+    public function test_next_lesson_does_not_load_every_assigned_course(): void
+    {
+        $recent = $this->course('Curs recent');
+        $this->complete($this->lesson($recent, 'Recent 1', 1), '2026-11-02 10:00:00');
+        $this->lesson($recent, 'Recent 2', 2);
+        $count = function () {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->actingAs($this->student, 'sanctum')->getJson('/api/student/next-lesson')
+                ->assertOk()->assertJsonPath('next_lesson.title', 'Recent 2');
+            $n = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $n;
+        };
+        $few = $count();
+        for ($i = 1; $i <= 15; $i++) {
+            $this->lesson($this->course("Neînceput {$i}"), "Lecția {$i}", 1);
+        }
+
+        $this->assertLessThanOrEqual($few + 2, $count());
+    }
 }

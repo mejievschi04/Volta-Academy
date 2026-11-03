@@ -35,12 +35,14 @@ class AchievementController extends Controller
 
         // Timp real petrecut (lesson_progress) sau, dacă lipsește, estimare din durata lecțiilor completate
         $learningHours = 0;
+        $learningMinutes = 0;
         if (SchemaCache::hasTable('lesson_progress')) {
             $totalSeconds = (int) DB::table('lesson_progress')
                 ->where('user_id', $user->id)
                 ->sum('time_spent_seconds');
             if ($totalSeconds > 0) {
                 $learningHours = round($totalSeconds / 3600, 1);
+                $learningMinutes = (int) round($totalSeconds / 60);
             } elseif (SchemaCache::hasTable('lessons')) {
                 $totalMinutes = DB::table('lesson_progress')
                     ->join('lessons', 'lesson_progress.lesson_id', '=', 'lessons.id')
@@ -50,6 +52,7 @@ class AchievementController extends Controller
                     ->sum('lessons.duration_minutes');
 
                 $learningHours = round((float) $totalMinutes / 60, 1);
+                $learningMinutes = (int) $totalMinutes;
             }
         }
 
@@ -60,6 +63,7 @@ class AchievementController extends Controller
             'completed_courses' => $completedCourses,
             'completed_lessons' => $completedLessons,
             'learning_hours' => $learningHours,
+            'learning_minutes' => $learningMinutes,
             'milestones' => $milestones,
         ]);
     }

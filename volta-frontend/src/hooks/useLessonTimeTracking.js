@@ -10,11 +10,13 @@ const MAX_DELTA_SEC = 120;
  * Trimite periodic (o cerere pe minut, plus la ieșire) timpul petrecut pe lecție. Serverul îl adaugă
  * la `lesson_progress.time_spent_seconds` și îl înregistrează ca `learner_focus_seconds` pentru statistici.
  */
-export function useLessonTimeTracking(lessonId, { userId, isCompleted, enabled = true }) {
+export function useLessonTimeTracking(lessonId, { userId, enabled = true }) {
 	const lessonTickLastRef = useRef(null);
 
+	// Timpul se măsoară și după ce lecția e terminată: lecțiile scurte se marchează terminate după câteva
+	// secunde, iar oprirea atunci lăsa „Ore de învățare” aproape de zero (și recitirea nu se număra).
 	useEffect(() => {
-		if (!enabled || !userId || lessonId == null || lessonId === '' || isCompleted) {
+		if (!enabled || !userId || lessonId == null || lessonId === '') {
 			lessonTickLastRef.current = null;
 			return undefined;
 		}
@@ -60,5 +62,5 @@ export function useLessonTimeTracking(lessonId, { userId, isCompleted, enabled =
 			window.removeEventListener('pagehide', onPageHide);
 			flushSeconds();
 		};
-	}, [enabled, userId, lessonId, isCompleted]);
+	}, [enabled, userId, lessonId]);
 }

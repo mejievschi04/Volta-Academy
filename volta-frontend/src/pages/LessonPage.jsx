@@ -69,7 +69,6 @@ const LessonPage = () => {
 
 	useLessonTimeTracking(lessonId, {
 		userId: user?.id,
-		isCompleted,
 		enabled: Boolean(user?.id && lessonId && !isLearningExemptRole(user?.actualRole || user?.role)),
 	});
 
