@@ -34,6 +34,12 @@ class User extends Authenticatable
         'suspended_until',
     ];
 
+    /** Nu ies niciodată în JSON: lista de utilizatori din admin trimitea hash-ul parolei tuturor. */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $casts = [
         'permissions' => 'array',
         'last_login_at' => 'datetime',

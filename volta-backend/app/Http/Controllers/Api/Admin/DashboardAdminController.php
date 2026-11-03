@@ -595,7 +595,8 @@ class DashboardAdminController extends Controller
             );
         }
 
-        for ($i = 0; $i <= $dataPoints; $i++) {
+        // `<` și nu `<=`: un punct în plus cădea pe ziua de mâine (ex. 14 zile afișau și 2026-11-04 pe 3 nov.).
+        for ($i = 0; $i < $dataPoints; $i++) {
             $date = $start->copy()->addDays($i * $interval);
             $dateEnd = $date->copy()->addDays($interval);
             if ($dateEnd->greaterThan($end)) {
@@ -853,7 +854,10 @@ class DashboardAdminController extends Controller
                 ->join('users', 'users.id', '=', 'course_user.user_id')
                 ->where('users.role', 'student')
                 ->where('course_user.enrolled', true)
-                ->whereNotNull('course_user.started_at')
+                // started_at se scrie rar (doar la finalizare directă); un curs cu progres sau finalizat e și început.
+                ->where(fn ($q) => $q->whereNotNull('course_user.started_at')
+                    ->orWhere('course_user.progress_percentage', '>', 0)
+                    ->orWhereNotNull('course_user.completed_at'))
                 ->count();
         } else {
             $started = $enrolled; // fallback: consider all enrolled as started

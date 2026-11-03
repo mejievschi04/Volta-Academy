@@ -323,7 +323,7 @@ const AdminDashboardPage = () => {
 					<div className="chart-modern-line">
 						<div className="chart-rechart-wrap">
 							<ResponsiveContainer width="100%" height={228} minWidth={280} minHeight={220}>
-								<AreaChart data={normalizedSeries} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+								<AreaChart data={normalizedSeries} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
 									<defs>
 										<linearGradient id="overviewAreaFill" x1="0" y1="0" x2="0" y2="1">
 											<stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.24} />
@@ -408,7 +408,7 @@ const AdminDashboardPage = () => {
 					<div className="chart-modern-line chart-modern-line-multi">
 						<div className="chart-rechart-wrap">
 							<ResponsiveContainer width="100%" height={228} minWidth={280} minHeight={220}>
-								<LineChart data={normalizedSeries} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+								<LineChart data={normalizedSeries} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
 									<CartesianGrid stroke="var(--border-primary)" strokeDasharray="3 3" vertical={false} />
 									<XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={28} />
 									<YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} tickLine={false} axisLine={false} width={38} />

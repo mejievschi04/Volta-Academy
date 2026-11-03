@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\LearningVisibility;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\UserAssignedCoursesService;
@@ -91,7 +92,10 @@ class ProfileController extends Controller
      */
     private function buildFreshProfileCoursesData(User $user): array
     {
+        // Cursantul nu vede cursurile în Ciornă: apăreau în profil („Neaccesate”), dar nu se puteau deschide.
+        $learner = ! LearningVisibility::isStaff($user);
         $userWithCourses = User::with([
+            'assignedCourses' => fn ($q) => $q->when($learner, fn ($q) => $q->where('courses.status', 'published')),
             'assignedCourses.modules:id,course_id,title,order',
             'assignedCourses.teacher:id,name',
         ])->findOrFail($user->id);
