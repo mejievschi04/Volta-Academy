@@ -94,7 +94,7 @@ test('editorul de lecții formatează, inserează și salvează conținutul', as
 	await closeCalloutPanel();
 	await toolbar.getByRole('button', { name: 'Culoare text' }).click();
 	await page.getByRole('dialog', { name: 'Culoare text' }).getByRole('button', { name: 'Roșu' }).click();
-	await expect(surface.locator('span[style*="color"]', { hasText: 'Colorat' })).toHaveCSS('color', 'rgb(220, 38, 38)');
+	await expect(surface.locator('span[style*="color"]', { hasText: 'Colorat' })).toHaveCSS('color', 'rgb(185, 28, 28)');
 	// cursorul după cuvânt: imaginea de mai jos s-ar insera peste textul încă selectat
 	await select('Colorat', { collapseToEnd: true });
 	await closeCalloutPanel();
@@ -116,6 +116,10 @@ test('editorul de lecții formatează, inserează și salvează conținutul', as
 	await imageLayout.getByRole('button', { name: 'Imagine în stânga, text în dreapta' }).click();
 	await expect(surface.locator('.lesson-image.is-wrap-left')).toHaveCount(1);
 
+	// descrierea imaginii (alt) pentru cititoarele de ecran, sub poza selectată
+	await page.getByLabel('Descriere imagine').fill('Schema unui UPS');
+	await expect(surface.locator('img')).toHaveAttribute('alt', 'Schema unui UPS');
+
 	await toolbar.getByRole('button', { name: 'Salvează' }).click();
 	await expect(toolbar.getByRole('button', { name: 'Salvează' })).toBeEnabled();
 
@@ -127,7 +131,8 @@ test('editorul de lecții formatează, inserează și salvează conținutul', as
 	await expect(surface.locator('blockquote[data-callout-variant="warning"][data-callout-fill="gradient"]')).toHaveText('Atenție');
 	await expect(surface.locator('img')).toHaveCount(1);
 	await expect(surface.locator('.lesson-image.is-wrap-left')).toHaveCount(1);
-	await expect(surface.locator('span[style*="color"]', { hasText: 'Colorat' })).toHaveCSS('color', 'rgb(220, 38, 38)');
+	await expect(surface.locator('img')).toHaveAttribute('alt', 'Schema unui UPS');
+	await expect(surface.locator('span[style*="color"]', { hasText: 'Colorat' })).toHaveCSS('color', 'rgb(185, 28, 28)');
 	await expect(surface.locator('figure[data-lesson-video="true"]')).toHaveAttribute('data-src', 'https://youtu.be/dQw4w9WgXcQ');
 	await expect(videoFrame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0');
 

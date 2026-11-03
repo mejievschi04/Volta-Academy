@@ -90,8 +90,8 @@
 
 	--btn-mobile-padding-y: var(--space-3);
 	--btn-mobile-padding-x: var(--space-4);
-	--btn-mobile-min-height: 40px;
-	--btn-mobile-min-width: 40px;
+	--btn-mobile-min-height: 44px; /* țintă de atingere minimă (.ai/rules/accessibility) */
+	--btn-mobile-min-width: 44px;
 	--btn-mobile-font-size: var(--font-size-base);
 	--btn-mobile-gap: var(--space-3);
 

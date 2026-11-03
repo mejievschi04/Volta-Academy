@@ -588,14 +588,26 @@ html body .va-close-btn.va-close-btn svg {
 	pointer-events: none;
 }
 
-@media (max-width: 768px) {
+/* Pe ecrane tactile, ținta de atingere are cel puțin 44px (.ai/rules/accessibility); cu mouse-ul rămâne compactă. */
+@media (max-width: 768px), (pointer: coarse) {
 	html body .va-close-btn.va-close-btn {
-		width: 40px !important;
-		min-width: 40px !important;
-		max-width: 40px !important;
-		height: 40px !important;
-		min-height: 40px !important;
-		max-height: 40px !important;
+		width: 44px !important;
+		min-width: 44px !important;
+		max-width: 44px !important;
+		height: 44px !important;
+		min-height: 44px !important;
+		max-height: 44px !important;
+	}
+
+	:root {
+		--btn-desktop-min-height: 44px;
+	}
+
+	.modern-topnav-item,
+	.va-topnav-btn,
+	.va-shell-topnav .admin-topnav-notification-btn {
+		min-height: 44px;
+		min-width: 44px;
 	}
 }
 

@@ -318,3 +318,10 @@
 	outline: 2px solid #0f172a !important;
 	outline-offset: 2px;
 }
+
+.lesson-text-color-warning {
+	margin: 8px 0 0;
+	font-size: 0.75rem;
+	line-height: 1.35;
+	color: var(--text-secondary);
+}

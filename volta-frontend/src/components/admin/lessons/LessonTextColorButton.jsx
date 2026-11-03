@@ -1,17 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { contrastRatio } from '../../../utils/color';
 
-/** Culori lizibile pe fundal deschis; „Implicită” scoate culoarea și textul revine la culoarea temei. */
+/**
+ * Culori lizibile pe fundal alb și pe chenarele colorate din lecții (contrast ≥ 4.5 și pe fundal nuanțat):
+ * nuanțele „600” de dinainte (portocaliu, galben, verde, turcoaz) aveau 2.9–3.7 pe alb.
+ * „Implicită” scoate culoarea și textul revine la culoarea temei.
+ */
 const LESSON_TEXT_COLORS = [
-	{ id: 'gray', label: 'Gri', color: '#64748b' },
-	{ id: 'red', label: 'Roșu', color: '#dc2626' },
-	{ id: 'orange', label: 'Portocaliu', color: '#ea580c' },
-	{ id: 'amber', label: 'Galben', color: '#ca8a04' },
-	{ id: 'green', label: 'Verde', color: '#16a34a' },
-	{ id: 'teal', label: 'Turcoaz', color: '#0d9488' },
-	{ id: 'blue', label: 'Albastru', color: '#2563eb' },
-	{ id: 'violet', label: 'Violet', color: '#7c3aed' },
-	{ id: 'pink', label: 'Roz', color: '#db2777' },
+	{ id: 'gray', label: 'Gri', color: '#475569' },
+	{ id: 'red', label: 'Roșu', color: '#b91c1c' },
+	{ id: 'orange', label: 'Portocaliu', color: '#c2410c' },
+	{ id: 'amber', label: 'Galben', color: '#854d0e' },
+	{ id: 'green', label: 'Verde', color: '#166534' },
+	{ id: 'teal', label: 'Turcoaz', color: '#0f766e' },
+	{ id: 'blue', label: 'Albastru', color: '#1d4ed8' },
+	{ id: 'violet', label: 'Violet', color: '#6d28d9' },
+	{ id: 'pink', label: 'Roz', color: '#be185d' },
 ];
 
 const PANEL_WIDTH = 236;
@@ -135,6 +140,11 @@ export default function LessonTextColorButton({ editor, onOpen }) {
 							Implicită
 						</button>
 					</div>
+					{current && contrastRatio(current, '#ffffff') < 4.5 ? (
+						<p className="lesson-text-color-warning" role="status">
+							Culoarea aleasă se citește greu pe fond deschis. Alege una mai închisă.
+						</p>
+					) : null}
 				</div>,
 				document.body,
 			) : null}

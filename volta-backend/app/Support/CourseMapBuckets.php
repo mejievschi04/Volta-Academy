@@ -84,16 +84,14 @@ class CourseMapBuckets
             return;
         }
 
-        $map = CourseMap::firstOrCreate(
-            [
-                'name' => self::DEFAULT_MAP_NAME,
-                'created_by' => $ownerUserId,
-            ],
-            [
-                'description' => 'Cursuri create recent, neorganizate inca intr-o mapa finala.',
-                'order' => 0,
-            ]
-        );
+        // O singură mapă implicită pentru toată platforma: căutată și după autor, fiecare admin care crea
+        // un curs își făcea propria „Cursuri fara mapa” (în admin apăreau două mape cu același nume).
+        $map = self::defaultMapRecord() ?? CourseMap::create([
+            'name' => self::DEFAULT_MAP_NAME,
+            'created_by' => $ownerUserId,
+            'description' => 'Cursuri create recent, neorganizate inca intr-o mapa finala.',
+            'order' => 0,
+        ]);
 
         if ($map->courses()->where('courses.id', $course->id)->exists()) {
             return;

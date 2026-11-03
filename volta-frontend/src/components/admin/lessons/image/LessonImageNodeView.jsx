@@ -139,6 +139,20 @@ export default function LessonImageNodeView({ node, updateAttributes, selected, 
 					/>
 				) : null}
 			</div>
+			{selected ? (
+				// Descrierea ajunge în alt: cititoarele de ecran o citesc, iar dacă poza nu se încarcă rămâne textul.
+				<label className="lesson-image-alt" contentEditable={false}>
+					<span className="lesson-image-alt-label">Descriere imagine</span>
+					<input
+						type="text"
+						className="lesson-image-alt-input"
+						value={node.attrs.alt || ''}
+						maxLength={250}
+						placeholder="Ce arată imaginea (pentru cititoarele de ecran)"
+						onChange={(event) => updateAttributes({ alt: event.target.value })}
+					/>
+				</label>
+			) : null}
 		</NodeViewWrapper>
 	);
 }

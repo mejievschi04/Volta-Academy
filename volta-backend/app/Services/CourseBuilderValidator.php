@@ -64,11 +64,33 @@ class CourseBuilderValidator
             $this->validateLesson($lesson, $addError, $addWarning);
         }
 
+        // Lecțiile în Ciornă nu ajung la cursanți: un curs publicat doar cu ele apărea gol, iar un test
+        // obligatoriu pe o lecție ascunsă bloca finalizarea (409) fără ca cursantul să-l vadă.
+        $allLessons = $rootLessons->concat($modules->flatMap(fn ($module) => $module->lessons ?? collect()));
+        if ($allLessons->isNotEmpty() && $allLessons->where('status', 'published')->isEmpty()) {
+            $addError(
+                'course.lessons.published_required',
+                'course.structure',
+                'Nicio lecție nu este publicată: cursanții ar vedea cursul gol. Publică cel puțin o lecție.'
+            );
+        }
+        $lessonsById = $allLessons->keyBy('id');
+
         $course->loadMissing(['courseTests.test.questions', 'courseTests.test.questionBank.questions']);
         foreach ($course->courseTests ?? [] as $courseTest) {
             $test = $courseTest->test;
             if (! $test) {
                 continue;
+            }
+            if ($courseTest->scope === 'lesson' && (bool) ($courseTest->required ?? false)) {
+                $lesson = $lessonsById->get((int) $courseTest->scope_id);
+                if ($lesson && ($lesson->status ?? 'draft') !== 'published') {
+                    $addError(
+                        'test.lesson.unpublished',
+                        "lessons.{$lesson->id}.status",
+                        "Testul „{$test->title}” este obligatoriu, dar lecția „{$lesson->title}” nu e publicată: cursanții nu-l pot da și nu pot finaliza cursul."
+                    );
+                }
             }
             $questionCount = $this->linkedTestQuestionCount($test);
             if ((bool) ($courseTest->required ?? false) && $questionCount === 0) {
