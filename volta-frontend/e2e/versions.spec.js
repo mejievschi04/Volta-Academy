@@ -41,6 +41,17 @@ test('o modificare a lecției ajunge la cursant după „Publică modificările�
 	await expect(student.getByText('Conținutul lecției 1')).toBeVisible();
 	await expect(student.getByText(marker)).toHaveCount(0);
 
+	// ieșirea din builder cu modificări nepublicate cere confirmare: butonul „Cursuri” și linkurile din meniu
+	const leave = admin.getByRole('dialog', { name: 'Modificările nu sunt publicate' });
+	await admin.locator('.admin-course-builder-back').click();
+	await expect(leave).toBeVisible();
+	await leave.getByRole('button', { name: 'Închide' }).click();
+	await expect(leave).toHaveCount(0);
+	await admin.locator('a[href="/admin"]').first().click();
+	await expect(leave).toBeVisible();
+	await leave.getByRole('button', { name: 'Închide' }).click();
+	await expect(admin).toHaveURL(/\/admin\/courses\/1\/builder/);
+
 	await publish.click();
 	const dialog = admin.getByRole('dialog');
 	await dialog.getByRole('button', { name: /Publică/ }).last().click();

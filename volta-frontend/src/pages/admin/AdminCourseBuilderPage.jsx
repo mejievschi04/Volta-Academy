@@ -13,6 +13,7 @@ import { useAuth } from '../../contexts/AuthContextShared.js';
 
 import OutlineItemMenu from '../../components/admin/courses/OutlineItemMenu';
 import PublishCourseModal from '../../components/admin/courses/PublishCourseModal';
+import useLeaveGuard from '../../components/admin/builders/useLeaveGuard';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { TEST_EDITOR_DEFAULT as INLINE_TEST_DEFAULT } from '../../utils/testQuestionBuilder';
 import {
@@ -102,6 +103,8 @@ const AdminCourseBuilderPage = () => {
 	const [lessonSaveStatus, setLessonSaveStatus] = useState(null);
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
 	const [publishModalOpen, setPublishModalOpen] = useState(false);
+	/** Adresa spre care voia să plece adminul cât cursul are modificări nepublicate. */
+	const [leaveTarget, setLeaveTarget] = useState(null);
 	const [publishValidationReport, setPublishValidationReport] = useState(null);
 	const [qualityAuditLoading, setQualityAuditLoading] = useState(false);
 	const [qualityAuditReport, setQualityAuditReport] = useState(null);
@@ -188,6 +191,12 @@ const AdminCourseBuilderPage = () => {
 	const course = structure?.course || null;
 	const isCoursePublished = course?.status === 'published';
 	const hasUnpublishedEdits = isCoursePublished && String(course?.workflow_status || '') === 'editing';
+	const leaveGuardEnabled = hasUnpublishedEdits && canMutateInAdminArea;
+	useLeaveGuard({
+		enabled: leaveGuardEnabled,
+		stayPrefix: `/admin/courses/${courseId}/builder`,
+		onAttempt: setLeaveTarget,
+	});
 	const coursePublishStatusLabel = hasUnpublishedEdits
 		? 'Publicat · Ai modificări nepublicate'
 		: isCoursePublished
@@ -1043,10 +1052,30 @@ const AdminCourseBuilderPage = () => {
 	};
 	handleManualLessonSaveRef.current = handleManualLessonSave;
 
-	const handleLeaveBuilder = async () => {
+	const leaveBuilderTo = async (target) => {
 		await flushPendingLessonContentSave();
 		await flushAllInlineQuestionSavesRef.current();
-		navigate('/admin/content?tab=courses&view=maps');
+		navigate(target);
+	};
+
+	const handleLeaveBuilder = async () => {
+		const target = '/admin/content?tab=courses&view=maps';
+		if (leaveGuardEnabled) {
+			setLeaveTarget(target);
+			return;
+		}
+		await leaveBuilderTo(target);
+	};
+
+	const handleLeaveWithoutPublishing = async () => {
+		const target = leaveTarget;
+		setLeaveTarget(null);
+		if (target) await leaveBuilderTo(target);
+	};
+
+	const handlePublishBeforeLeaving = () => {
+		setLeaveTarget(null);
+		handleCourseStatusAction('publish');
 	};
 
 	useEffect(() => {
@@ -2315,6 +2344,37 @@ const AdminCourseBuilderPage = () => {
 				onPublished={handleCoursePublished}
 				onFixIssue={handleFixPublishIssue}
 			/>
+
+			<Modal
+				isOpen={leaveTarget !== null}
+				onClose={() => setLeaveTarget(null)}
+				ariaLabelledby="builder-leave-title"
+				className="va-dialog-overlay"
+				unstyledContent
+			>
+				<div className="va-dialog">
+					<header className="va-dialog__header">
+						<h2 id="builder-leave-title" className="va-dialog__title">Modificările nu sunt publicate</h2>
+						<button type="button" className="va-close-btn" onClick={() => setLeaveTarget(null)} aria-label="Închide">
+							<X size={18} weight="bold" aria-hidden="true" />
+						</button>
+					</header>
+					<div className="va-dialog__body">
+						<p>
+							Modificările din „{course?.title || 'acest curs'}” sunt salvate, dar cursanții le vor vedea abia după
+							„Publică modificările”. Până atunci văd versiunea publicată anterior.
+						</p>
+					</div>
+					<footer className="va-dialog__footer">
+						<button type="button" className="lms-btn-secondary" onClick={handleLeaveWithoutPublishing}>
+							Ieși fără să publici
+						</button>
+						<button type="button" className="lms-btn-primary" onClick={handlePublishBeforeLeaving}>
+							Publică modificările
+						</button>
+					</footer>
+				</div>
+			</Modal>
 
 		</div>
 	);
