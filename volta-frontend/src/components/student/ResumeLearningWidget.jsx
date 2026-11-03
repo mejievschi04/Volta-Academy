@@ -36,7 +36,8 @@ const ResumeLearningWidget = ({ nextLesson, variant = 'dashboard' }) => {
 	}
 
 	const handleResume = () => {
-		navigate(`/courses/${nextLesson.course_id}/lessons/${nextLesson.id}`);
+		// pagina cursului (cu lista lecțiilor și progresul), ca din mape; nu pagina separată a lecției
+		navigate(`/courses/${nextLesson.course_id}?lesson=${nextLesson.id}`);
 	};
 
 	const meta = resumeMetaLine(nextLesson);

@@ -98,9 +98,21 @@ const LessonsPage = () => {
 		setIsCompleted(false);
 	}, [selectedLessonId]);
 
-	// Auto-open first lesson when course loads (no lesson in URL)
+	// Fără lecție în adresă: deschide unde a rămas cursantul (prima lecție neterminată), altfel prima lecție.
+	// Înainte pornea mereu de la prima, iar cine revenea din mapă căuta singur lecția la care rămăsese.
 	useEffect(() => {
 		if (!loading && !selectedLessonId) {
+			const resumeId = Number(progress?.next_lesson?.id ?? progress?.next_lesson);
+			if (resumeId) {
+				const inRoot = rootLessons.some((lesson) => Number(lesson.id) === resumeId);
+				const resumeModule = modules.find((module) => module.lessons?.some((lesson) => Number(lesson.id) === resumeId));
+				if (inRoot || resumeModule) {
+					setSelectedLessonId(resumeId);
+					loadLesson(resumeId);
+					if (resumeModule) setExpandedModules(new Set([resumeModule.id]));
+					return;
+				}
+			}
 			const firstRootLesson = rootLessons[0];
 			if (firstRootLesson) {
 				setSelectedLessonId(firstRootLesson.id);
@@ -118,7 +130,7 @@ const LessonsPage = () => {
 				}
 			}
 		}
-	}, [loading, modules, rootLessons, selectedLessonId]);
+	}, [loading, modules, rootLessons, selectedLessonId, progress?.next_lesson]);
 
 	// Expand module containing lesson when loading from URL (?lesson=1)
 	useEffect(() => {
@@ -952,8 +964,17 @@ const LessonsPage = () => {
 						<div className="lessons-page-empty-icon">
 							<FileText size={64} weight="duotone" aria-hidden />
 						</div>
-						<h3>Selectează o lecție</h3>
-						<p>Selectează o lecție din meniul din stânga pentru a începe.</p>
+						{rootLessons.length > 0 || modules.length > 0 ? (
+							<>
+								<h3>Selectează o lecție</h3>
+								<p>Selectează o lecție din meniul din stânga pentru a începe.</p>
+							</>
+						) : (
+							<>
+								<h3>Cursul nu are încă lecții</h3>
+								<p>Lecțiile vor apărea aici imediat ce sunt publicate.</p>
+							</>
+						)}
 					</div>
 				)}
 			</main>

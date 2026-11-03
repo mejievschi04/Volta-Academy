@@ -19,7 +19,8 @@ const AVATAR_OUTPUT_SIZE = 512;
 const COURSE_FILTERS = [
 	{ id: 'all', label: 'Total atribuite', statKey: 'total_assigned' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	{ id: 'in_progress', label: 'Nepromovate', statKey: 'in_progress' },
+	// „Nepromovat” sugera un test picat; aici sunt cursurile începute și neterminate
+	{ id: 'in_progress', label: 'În curs', statKey: 'in_progress' },
 	{ id: 'not_accessed', label: 'Neaccesate', statKey: 'not_accessed' },
 ];
 
@@ -278,7 +279,7 @@ const ProfilePage = () => {
 				<div className="va-up-card-head">
 					<h3 className="va-up-card-title" title={course.title}>{course.title}</h3>
 					<span className={`va-up-status is-${status}`}>
-						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'Nepromovat' : 'Neaccesat'}
+						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'În curs' : 'Neaccesat'}
 					</span>
 				</div>
 				{course.description ? <p className="va-up-card-desc">{course.description}</p> : null}
