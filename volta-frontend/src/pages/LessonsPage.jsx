@@ -381,15 +381,10 @@ const LessonsPage = () => {
 	};
 
 	const handleLessonClick = async (lessonId, lesson = null) => {
-		const nextId = getNextLessonIdAfter(modules, selectedLessonId, rootLessons);
-		const isImmediateNext = nextId != null && Number(nextId) === Number(lessonId);
-		const leavingIncomplete = selectedLessonId
-			&& Number(selectedLessonId) !== Number(lessonId)
-			&& !isLessonCompleted(selectedLessonId);
-		if (isImmediateNext && leavingIncomplete) {
-			const ok = await completeCurrentLesson();
-			if (!ok) return;
-		} else if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
+		// Din meniu, o lecție blocată rămâne blocată. Înainte, click pe lecția următoare (blocată) marca
+		// lecția curentă terminată fără s-o fi citit și o deschidea pe cea blocată; lecția curentă se
+		// termină doar cu „Următoarea”.
+		if (!isLessonUnlockedForPlayer(lessonId, lesson)) {
 			showToast('Lecția este blocată. Completează lecțiile anterioare.', 'error');
 			return;
 		}

@@ -365,9 +365,12 @@ class CourseProgressController extends Controller
             ], 403);
         }
 
-        if (! $this->learnerMayFinishOpenLesson($user, $lesson, $course)) {
+        // și deblocată: înainte se putea finaliza orice lecție publicată, inclusiv una blocată
+        if (! $this->learnerMayFinishOpenLesson($user, $lesson, $course)
+            || ! $this->learnerMayRecordLessonProgress($user, $lesson, $course)) {
             return response()->json([
                 'message' => 'Lecția este blocată. Completează lecțiile anterioare.',
+                'locked' => true,
             ], 403);
         }
 

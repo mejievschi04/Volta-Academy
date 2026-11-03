@@ -17,6 +17,18 @@ test('cursantul ajunge la cursurile lui după autentificare', async ({ page }) =
 	await expect(resume.getByRole('button', { name: 'Continuă lecția' })).toBeVisible();
 });
 
+test('din meniu, lecția blocată rămâne blocată și nu termină lecția curentă', async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'meniul lateral e vizibil direct doar pe desktop');
+	await page.goto('/courses/1');
+	await expect(page.getByRole('heading', { name: 'Lecția 1' })).toBeVisible();
+	await page.getByRole('complementary').getByRole('button', { name: /Lecția 2/ }).click();
+	await expect(page.getByText('Lecția este blocată. Completează lecțiile anterioare.').first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Lecția 1' })).toBeVisible();
+	// lecția 1 nu s-a marcat terminată: lecția 2 e tot blocată
+	await page.reload();
+	await expect(page.getByRole('complementary').getByRole('button', { name: /Blocat.*Lecția 2/ })).toBeVisible();
+});
+
 test('cursantul deschide cursul și trece la lecția următoare', async ({ page }) => {
 	await page.goto('/courses/1');
 	await expect(page.getByRole('heading', { name: 'Lecția 1' })).toBeVisible();
