@@ -81,8 +81,17 @@ class PublishedCourseView
         $row = collect($snapshot['lessons'] ?? [])->first(
             fn ($item) => is_array($item) && (int) ($item['id'] ?? 0) === (int) $lesson->id
         );
-        if (! is_array($row)) {
+        if (! is_array($row) || ! $this->isPublishedRow($row)) {
             return null;
+        }
+        $moduleId = (int) ($row['module_id'] ?? 0);
+        if ($moduleId > 0) {
+            $moduleRow = collect($snapshot['modules'] ?? [])->first(
+                fn ($item) => is_array($item) && (int) ($item['id'] ?? 0) === $moduleId
+            );
+            if (is_array($moduleRow) && ! $this->isPublishedRow($moduleRow)) {
+                return null;
+            }
         }
 
         $lesson->title = $row['title'] ?? $lesson->title;
@@ -120,7 +129,7 @@ class PublishedCourseView
             : collect();
 
         $modules = collect($snapshot['modules'] ?? [])
-            ->filter(fn ($item) => is_array($item))
+            ->filter(fn ($item) => is_array($item) && $this->isPublishedRow($item))
             ->sortBy(fn ($item) => (int) ($item['order'] ?? 0))
             ->map(function (array $row) use ($existingModules, $lessonsById, $snapshot) {
                 $id = (int) ($row['id'] ?? 0);
@@ -177,13 +186,15 @@ class PublishedCourseView
             if (! is_array($row)) {
                 continue;
             }
+            // Ultima versiune publicată decide: o lecție ascunsă acolo nu se ia dintr-o versiune mai veche.
             $lesson = $this->hydrateLesson($row);
             $overlaid = $this->overlayLesson($lesson, $snapshot);
-            if ($overlaid) {
-                $overlaid->setRelation('course', $course);
-
-                return $overlaid;
+            if (! $overlaid) {
+                return null;
             }
+            $overlaid->setRelation('course', $course);
+
+            return $overlaid;
         }
 
         return null;
@@ -203,6 +214,12 @@ class PublishedCourseView
         }
 
         return $course;
+    }
+
+    /** Lecțiile și modulele lăsate în Ciornă (ascunse) rămân în snapshot, dar cursanții nu le văd. */
+    private function isPublishedRow(array $row): bool
+    {
+        return ($row['status'] ?? 'published') === 'published';
     }
 
     private function resolveLesson(array $row, Collection $lessonsById, array $snapshot): ?Lesson
