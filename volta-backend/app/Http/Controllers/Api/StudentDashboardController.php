@@ -458,7 +458,7 @@ class StudentDashboardController extends Controller
                     
                     if ($isUnlocked) {
                         // Check if test has been passed
-                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (int) ($courseTest->passing_score ?? 70));
+                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (float) ($courseTest->passing_score ?? 70));
 
                         if (!$hasPassed) {
                             $pendingExams[] = [
@@ -502,7 +502,7 @@ class StudentDashboardController extends Controller
                     
                     if ($isUnlocked) {
                         // Check if test has been passed
-                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (int) ($courseTest->passing_score ?? 70));
+                        $hasPassed = $this->hasPassingTestResult($user->id, $test->id, (float) ($courseTest->passing_score ?? 70));
 
                         if (!$hasPassed) {
                             $pendingExams[] = [
@@ -656,7 +656,7 @@ class StudentDashboardController extends Controller
     /**
      * Check if the student has a passing result for a given test in either results table.
      */
-    private function hasPassingTestResult(int $userId, int $testId, int $passingScore): bool
+    private function hasPassingTestResult(int $userId, int $testId, float $passingScore): bool
     {
         return $this->getUnifiedResultRows($userId, $testId)
             ->contains(function (array $row) use ($passingScore) {

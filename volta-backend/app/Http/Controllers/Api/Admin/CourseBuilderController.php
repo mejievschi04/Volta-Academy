@@ -486,7 +486,7 @@ class CourseBuilderController extends Controller
             'scope' => 'required|in:lesson,module,course',
             'scope_id' => 'nullable|integer',
             'required' => 'nullable|boolean',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'order' => 'nullable|integer|min:0',
             'unlock_after_previous' => 'nullable|boolean',
             'unlock_after_test_id' => 'nullable|exists:tests,id',

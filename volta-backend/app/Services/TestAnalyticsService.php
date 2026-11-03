@@ -174,8 +174,8 @@ class TestAnalyticsService
         $courseTest = \App\Models\CourseTest::where('test_id', $test->id)->first();
 
         return $courseTest
-            ? (int) ($courseTest->passing_score ?? $test->passing_score ?? 70)
-            : (int) ($test->passing_score ?? 70);
+            ? (float) ($courseTest->passing_score ?? $test->passing_score ?? 70)
+            : (float) ($test->passing_score ?? 70);
     }
 
     /**

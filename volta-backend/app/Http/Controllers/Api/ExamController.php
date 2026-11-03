@@ -921,7 +921,7 @@ class ExamController extends Controller
         $req = $request ?? request();
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt') && $canRetake;
 
-        $basePassingScore = (int) ($test->passing_score ?? 70);
+        $basePassingScore = (float) ($test->passing_score ?? 70);
         $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
         if ($courseId) {
             $courseTestQuery->where('course_id', $courseId);
@@ -930,7 +930,7 @@ class ExamController extends Controller
         $resolvedCourseId = $courseTest ? $courseTest->course_id : $courseId;
         $moduleId = ($courseTest && $courseTest->scope === 'module') ? $courseTest->scope_id : null;
         $resolvedPassingScore = $courseTest
-            ? (int) ($courseTest->passing_score ?? $basePassingScore)
+            ? (float) ($courseTest->passing_score ?? $basePassingScore)
             : $basePassingScore;
 
         $viewingCompleted = $latestResult && ! $forNewAttempt && ! $openAttempt;
@@ -1762,7 +1762,7 @@ class ExamController extends Controller
                 $answers
             );
             
-            $percentage = $totalPoints > 0 ? (int) round(($score / $totalPoints) * 100) : 0;
+            $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
 
             $courseTestQuery = \App\Models\CourseTest::where('test_id', $test->id);
             if ($courseId) {
@@ -1770,10 +1770,10 @@ class ExamController extends Controller
             }
             $courseTest = $courseTestQuery->first();
             $livePassingScore = $courseTest
-                ? ($courseTest->passing_score ?? (int) ($test->passing_score ?? 70))
-                : (int) ($test->passing_score ?? 70);
+                ? (float) ($courseTest->passing_score ?? $test->passing_score ?? 70)
+                : (float) ($test->passing_score ?? 70);
             $passingScore = ($openAttempt && $openAttempt->passing_score_applied !== null)
-                ? (int) $openAttempt->passing_score_applied
+                ? (float) $openAttempt->passing_score_applied
                 : $livePassingScore;
             $passed = !$needsManualReview && $percentage >= $passingScore;
             
@@ -1798,7 +1798,7 @@ class ExamController extends Controller
                     'status' => $needsManualReview ? 'pending_review' : 'completed',
                     'needs_manual_review' => $needsManualReview,
                     'question_snapshot' => $openAttempt?->question_snapshot ?: $this->attemptService->snapshotQuestions($questions),
-                    'passing_score_applied' => (int) $passingScore,
+                    'passing_score_applied' => round((float) $passingScore, 2),
                     'attempt_token' => $openAttempt?->attempt_token ?: (string) \Illuminate\Support\Str::uuid(),
                     'attempt_scope' => null,
                 ];
@@ -2077,7 +2077,7 @@ class ExamController extends Controller
 
         $needsManualReview = $manualReviewEnabled && $hasManualQuestions;
 
-        $percentage = $totalPoints > 0 ? (int) round(($score / $totalPoints) * 100) : 0;
+        $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
         $passingScore = $exam->passing_score ?? 70;
         $passed = !$needsManualReview && $percentage >= $passingScore;
 

@@ -32,7 +32,7 @@ class TestBuilderService
             'max_attempts' => array_key_exists('max_attempts', $data)
                 ? ($data['max_attempts'] === null || $data['max_attempts'] === '' ? null : (int) $data['max_attempts'])
                 : null,
-            'passing_score' => isset($data['passing_score']) ? (int) $data['passing_score'] : 70,
+            'passing_score' => isset($data['passing_score']) ? round((float) $data['passing_score'], 2) : 70,
             'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),
             'show_results_immediately' => (bool)($data['show_results_immediately'] ?? true),

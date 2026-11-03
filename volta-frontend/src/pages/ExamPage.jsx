@@ -1,4 +1,5 @@
 import { toImageUrl } from '../utils/imageUrl';
+import { formatPercent } from '../utils/formatPercent';
 import TestAttemptFooter from '../components/student/TestAttemptFooter';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
@@ -636,7 +637,7 @@ const ExamPage = () => {
 						<div><dt>Întrebări</dt><dd>{exam.question_count ?? '—'}</dd></div>
 						<div><dt>Timp</dt><dd>{minutes > 0 ? `${minutes} min` : 'Fără limită'}</dd></div>
 						<div><dt>Încercări rămase</dt><dd>{remaining == null ? 'Nelimitate' : remaining}</dd></div>
-						<div><dt>Promovare</dt><dd>{exam.passing_score ?? 70}%</dd></div>
+						<div><dt>Promovare</dt><dd>{formatPercent(exam.passing_score ?? 70)}</dd></div>
 					</dl>
 					{minutes > 0 ? (
 						<p className="student-exam-start-note">

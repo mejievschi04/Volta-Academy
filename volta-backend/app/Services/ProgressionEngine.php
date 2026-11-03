@@ -89,7 +89,7 @@ class ProgressionEngine
                 $hasPassed = $this->hasUserPassedTest(
                     $user,
                     (int) $previousTest->test_id,
-                    (int) ($previousTest->passing_score ?? 70),
+                    (float) ($previousTest->passing_score ?? 70),
                     (int) $course->id
                 );
                 if (!$hasPassed) {
@@ -105,7 +105,7 @@ class ProgressionEngine
             $hasPassed = $this->hasUserPassedTest(
                 $user,
                 (int) $courseTest->unlock_after_test_id,
-                (int) ($prerequisite->passing_score ?? $courseTest->passing_score ?? 70),
+                (float) ($prerequisite->passing_score ?? $courseTest->passing_score ?? 70),
                 (int) $course->id
             );
             if (!$hasPassed) {
@@ -201,7 +201,7 @@ class ProgressionEngine
                     $hasPassed = $this->hasUserPassedTest(
                         $user,
                         (int) $test->id,
-                        (int) ($courseTest->passing_score ?? 70),
+                        (float) ($courseTest->passing_score ?? 70),
                         (int) $course->id
                     );
                     if (!$hasPassed) {
@@ -289,7 +289,7 @@ class ProgressionEngine
             ->get();
     }
 
-    protected function hasUserPassedTest(User $user, int $testId, int $passingScore = 70, ?int $courseId = null): bool
+    protected function hasUserPassedTest(User $user, int $testId, float $passingScore = 70, ?int $courseId = null): bool
     {
         return DB::table('test_results')
             ->where('user_id', $user->id)

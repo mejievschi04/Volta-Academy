@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import './PassingScoreByQuestions.css';
+import { formatPercent } from '../../../utils/formatPercent';
 
 function passingPercentFromCounts(required, total) {
   const t = Math.max(1, Number(total) || 1);
   const r = Math.min(t, Math.max(0, Number(required) || 0));
-  return Math.round((r / t) * 100);
+  // 2 zecimale, nu rotunjit la întreg: „7 din 9” e 77,78%, iar 78% făcea să pice cine avea exact 7
+  return Math.round((r / t) * 10000) / 100;
 }
 
 function requiredCountFromPercent(percent, total) {
@@ -60,7 +62,7 @@ export default function PassingScoreByQuestions({
         />
         <span className="passing-score-by-questions-hint">întrebări</span>
         <strong className="passing-score-by-questions-percent" aria-live="polite">
-          {percent}%
+          {formatPercent(percent)}
         </strong>
       </div>
     </div>

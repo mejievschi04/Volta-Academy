@@ -163,7 +163,7 @@ class ExamAdminController extends Controller
             'max_score' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
             'time_limit_minutes' => 'nullable|integer|min:0',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'is_required' => 'nullable|boolean',
             'status' => 'nullable|string|in:draft,published,archived',
             'description' => 'nullable|string',
@@ -241,7 +241,7 @@ class ExamAdminController extends Controller
         
         // Add optional fields if provided
         if (isset($validated['passing_score'])) {
-            $examData['passing_score'] = (int)$validated['passing_score'];
+            $examData['passing_score'] = round((float) $validated['passing_score'], 2);
         }
         if (isset($validated['time_limit_minutes'])) {
             $examData['time_limit_minutes'] = (int)$validated['time_limit_minutes'];
@@ -377,7 +377,7 @@ class ExamAdminController extends Controller
             'max_score' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
             'time_limit_minutes' => 'nullable|integer|min:0',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'is_required' => 'nullable|boolean',
             'status' => 'nullable|string|in:draft,published,archived',
             'description' => 'nullable|string',
@@ -434,7 +434,7 @@ class ExamAdminController extends Controller
         
         // Add optional fields if provided
         if (array_key_exists('passing_score', $validated)) {
-            $updateData['passing_score'] = (int)$validated['passing_score'];
+            $updateData['passing_score'] = round((float) $validated['passing_score'], 2);
         }
         if (array_key_exists('time_limit_minutes', $validated)) {
             $updateData['time_limit_minutes'] = $validated['time_limit_minutes'] !== null ? (int)$validated['time_limit_minutes'] : null;
@@ -1115,7 +1115,7 @@ class ExamAdminController extends Controller
 
         $newScore = min((float) $validated['score'], (float) $maxScore);
         $newPercentage = round(($newScore / $maxScore) * 100, 2);
-        $passingScore = (int) ($result->exam->passing_score ?? 70);
+        $passingScore = (float) ($result->exam->passing_score ?? 70);
         $newPassed = $newPercentage >= $passingScore;
 
         $manualScores = is_array($result->manual_review_scores) ? $result->manual_review_scores : [];
@@ -1232,7 +1232,7 @@ class ExamAdminController extends Controller
 
         $newTotalScore = $autoScore + $manualScore;
         $newPercentage = $result->total_points > 0 ? round(($newTotalScore / $result->total_points) * 100, 2) : 0;
-        $passingScore = (int) ($result->exam->passing_score ?? 70);
+        $passingScore = (float) ($result->exam->passing_score ?? 70);
         $newPassed = $newPercentage >= $passingScore;
 
         $result->update([

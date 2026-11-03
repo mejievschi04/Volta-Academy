@@ -28,6 +28,7 @@ class ExamResult extends Model
     protected $casts = [
         'answers' => 'array',
         'passed' => 'boolean',
+        'percentage' => 'float',
         'completed_at' => 'datetime',
         'needs_manual_review' => 'boolean',
         'manual_review_scores' => 'array',

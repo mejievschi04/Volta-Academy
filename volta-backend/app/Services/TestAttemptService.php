@@ -89,7 +89,7 @@ class TestAttemptService
         })->filter(fn ($q) => (int) $q->id > 0)->values();
     }
 
-    public function ensureOpenAttempt(Test $test, User $user, ?int $courseId, Collection $questions, int $attemptNumber, int $passingScore): ?TestResult
+    public function ensureOpenAttempt(Test $test, User $user, ?int $courseId, Collection $questions, int $attemptNumber, float $passingScore): ?TestResult
     {
         try {
             return DB::transaction(function () use ($test, $user, $courseId, $questions, $attemptNumber, $passingScore) {

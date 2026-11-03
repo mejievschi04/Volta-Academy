@@ -18,6 +18,7 @@ import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 import './AdminExamsPage.css';
 import '../../styles/test-settings.css';
+import { formatPercent } from '../../utils/formatPercent';
 import {
   TEST_RESULTS_DISPLAY_OPTIONS,
   getExamResultsDisplayMode,
@@ -626,7 +627,7 @@ export default function AdminExamsPage() {
     );
     const parts = [
       `${configuredQuestionCount} întrebări în examen`,
-      `${Number(item.passing_score ?? 0)}% prag`,
+      `${formatPercent(item.passing_score ?? 0)} prag`,
       item.max_attempts != null ? `${item.max_attempts} încercări` : 'Nelimitat',
     ].filter(Boolean);
     return parts.join(' · ');
@@ -1476,7 +1477,7 @@ export default function AdminExamsPage() {
                   </div>
                 ) : null}
                 <div className="admin-exams-preview-meta">
-                  <span>Prag: {previewData.passing_score ?? 70}%</span>
+                  <span>Prag: {formatPercent(previewData.passing_score ?? 70)}</span>
                   <span>Timp: {previewData.time_limit_minutes ? `${previewData.time_limit_minutes} min` : 'nelimitat'}</span>
                   <span>Incercari: {previewData.max_attempts ?? 'Nelimitat'}</span>
                 </div>

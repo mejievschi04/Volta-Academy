@@ -4,6 +4,7 @@ import { ClipboardText, Clock, ArrowRight, SealCheck, Repeat } from '@phosphor-i
 import { examService } from '../services/api';
 import { useCoverImage } from '../hooks/useCoverImage';
 import { toImageUrl } from '../utils/imageUrl';
+import { formatPercent } from '../utils/formatPercent';
 import './MonthlyTestsPage.css';
 
 /** Coperta testului lunar: miniatura, apoi originalul; fără copertă cardul rămâne ca înainte. */
@@ -73,7 +74,7 @@ const MonthlyTestsPage = () => {
 				<div className="monthly-tests-grid">
 					{exams.map((exam) => {
 						const minutes = Number(exam.time_limit_minutes) > 0 ? `${exam.time_limit_minutes} min` : null;
-						const passing = exam.passing_score != null ? `Promovare ${exam.passing_score}%` : null;
+						const passing = exam.passing_score != null ? `Promovare ${formatPercent(exam.passing_score)}` : null;
 						// încercările rămase ale cursantului (include pe cele acordate în plus); altfel limita examenului
 						const left = exam.remaining_attempts ?? (Number(exam.max_attempts) > 0 ? Number(exam.max_attempts) : null);
 						const attempts = left == null

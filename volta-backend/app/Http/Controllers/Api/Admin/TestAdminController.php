@@ -121,7 +121,7 @@ class TestAdminController extends Controller
             'status' => 'nullable|in:draft,published',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'randomize_questions' => 'nullable|boolean',
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
@@ -202,7 +202,7 @@ class TestAdminController extends Controller
             'status' => 'nullable|in:draft,published',
             'time_limit_minutes' => 'nullable|integer|min:1',
             'max_attempts' => 'nullable|integer|min:1',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'randomize_questions' => 'nullable|boolean',
             'randomize_answers' => 'nullable|boolean',
             'show_results_immediately' => 'nullable|boolean',
@@ -310,7 +310,7 @@ class TestAdminController extends Controller
             'scope' => 'required|in:lesson,module,course',
             'scope_id' => 'nullable|integer',
             'required' => 'nullable|boolean',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|numeric|min:0|max:100',
             'order' => 'nullable|integer|min:0',
             'unlock_after_previous' => 'nullable|boolean',
             'unlock_after_test_id' => 'nullable|exists:tests,id',
@@ -1065,16 +1065,16 @@ class TestAdminController extends Controller
     private function resolveResultPassingScore(TestResult $result): int
     {
         if ($result->passing_score_applied !== null && $result->passing_score_applied !== '') {
-            return (int) $result->passing_score_applied;
+            return (float) $result->passing_score_applied;
         }
-        $base = (int) ($result->test->passing_score ?? 70);
+        $base = (float) ($result->test->passing_score ?? 70);
         $query = \App\Models\CourseTest::where('test_id', $result->test_id);
         if ($result->course_id) {
             $query->where('course_id', $result->course_id);
         }
         $courseTest = $query->first();
         if ($courseTest && $courseTest->passing_score !== null) {
-            return (int) $courseTest->passing_score;
+            return (float) $courseTest->passing_score;
         }
 
         return $base;

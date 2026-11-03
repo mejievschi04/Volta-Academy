@@ -31,6 +31,7 @@ class CourseTest extends Model
     protected $casts = [
         'required' => 'boolean',
         'unlock_after_previous' => 'boolean',
+        'passing_score' => 'float',
     ];
 
     /**

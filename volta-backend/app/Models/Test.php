@@ -49,7 +49,7 @@ class Test extends Model
         'allow_review' => 'boolean',
         'requires_manual_verification' => 'boolean',
         'question_selection' => 'array',
-        'passing_score' => 'integer',
+        'passing_score' => 'float',
         'average_score' => 'decimal:2',
     ];
 

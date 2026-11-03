@@ -45,7 +45,8 @@ class TestResult extends Model
 
     protected $casts = [
         'passed' => 'boolean',
-        'percentage' => 'decimal:2',
+        'percentage' => 'float',
+        'passing_score_applied' => 'float',
         'answers' => 'array',
         'manual_review_scores' => 'array',
         'question_snapshot' => 'array',

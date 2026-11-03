@@ -47,6 +47,7 @@ class Exam extends Model
         'question_types' => SafeJsonArray::class,
         'settings' => SafeJsonArray::class,
         'is_required' => 'boolean',
+        'passing_score' => 'float',
         'unlock_after_completion' => 'boolean',
         'average_score' => 'decimal:2',
     ];
