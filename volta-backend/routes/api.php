@@ -129,6 +129,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     
     // Student Dashboard
     Route::get('/student/dashboard', [\App\Http\Controllers\Api\StudentDashboardController::class, 'index']);
+    Route::get('/student/next-lesson', [\App\Http\Controllers\Api\StudentDashboardController::class, 'nextLesson']);
     Route::get('/student/activity', [\App\Http\Controllers\Api\StudentActivityController::class, 'index']);
 
     // Contoarele din bara de sus (notificări, mesaje, corectări) într-o singură cerere

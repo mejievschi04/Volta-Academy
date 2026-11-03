@@ -31,29 +31,68 @@ class StudentDashboardController extends Controller
     }
 
     /**
-     * Get comprehensive student dashboard data
+     * Doar lecția de continuat (bannerul „Continuă” din pagina de cursuri). Dashboard-ul complet calcula
+     * progresul tuturor cursurilor și testelor (6 s+, uneori 503), deși pagina folosea doar acest câmp.
      */
-    public function index()
+    public function nextLesson()
     {
         $user = Auth::user();
+        $courses = $this->loadEnrolledCourses($user);
+
+        return response()->json([
+            'next_lesson' => $this->getNextRecommendedLesson($user, $courses),
+        ]);
+    }
+
+    /** Cursurile la care e înscris, cu lecțiile publicate (din module și fără modul). */
+    private function loadEnrolledCourses($user)
+    {
         $this->courseProgress = $this->courseAccess = $this->resultRows = [];
         $this->completedLessonIds = DB::table('lesson_progress')
             ->where('user_id', $user->id)->where('completed', true)
             ->pluck('lesson_id')->flip()->all();
 
-        // Get enrolled courses
         $enrolledCourses = DB::table('course_user')
             ->where('user_id', $user->id)
             ->where('enrolled', true)
             ->pluck('updated_at', 'course_id');
         $this->lastAccessed = $enrolledCourses->all();
 
-        $courses = Course::with(['teacher', 'modules' => function($q) {
-            $q->where('status', 'published')->orderBy('order');
-        }, 'modules.lessons' => fn ($q) => $q->where('status', 'published')])
-        ->whereIn('id', $enrolledCourses->keys())
-        ->where('status', 'published')
-        ->get();
+        return Course::with([
+            'teacher',
+            'modules' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
+            'modules.lessons' => fn ($q) => $q->where('status', 'published')->orderBy('order'),
+            'lessons' => fn ($q) => $q->whereNull('module_id')->where('status', 'published')->orderBy('order'),
+        ])
+            ->whereIn('id', $enrolledCourses->keys())
+            ->where('status', 'published')
+            ->get();
+    }
+
+    /**
+     * Lecțiile publicate ale cursului în ordinea din curs: întâi cele fără modul, apoi cele din module.
+     *
+     * @return list<int>
+     */
+    private function orderedLessonIds($course): array
+    {
+        $ids = $course->lessons->sortBy('order')->pluck('id')->map(fn ($id) => (int) $id)->all();
+        foreach ($course->modules as $module) {
+            foreach ($module->lessons->sortBy('order') as $lesson) {
+                $ids[] = (int) $lesson->id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Get comprehensive student dashboard data
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        $courses = $this->loadEnrolledCourses($user);
 
         // Calculate global progress
         $globalProgress = $this->calculateGlobalProgress($user, $courses);
@@ -146,18 +185,11 @@ class StudentDashboardController extends Controller
         foreach ($courses as $course) {
             $courseProgress = $this->getCourseProgress($user, $course);
             
-            // Count lessons
-            $modules = $course->modules;
-            foreach ($modules as $module) {
-                $moduleLessons = $module->lessons;
-                $totalLessons += $moduleLessons->count();
-
-                foreach ($moduleLessons as $lesson) {
-                    $isCompleted = isset($this->completedLessonIds[$lesson->id]);
-
-                    if ($isCompleted) {
-                        $completedLessons++;
-                    }
+            // Lecțiile fără modul contau zero: un curs doar cu ele (ex. UPS) lipsea din total.
+            foreach ($this->orderedLessonIds($course) as $lessonId) {
+                $totalLessons++;
+                if (isset($this->completedLessonIds[$lessonId])) {
+                    $completedLessons++;
                 }
             }
 
@@ -233,17 +265,24 @@ class StudentDashboardController extends Controller
      */
     private function getNextRecommendedLesson($user, $courses)
     {
-        // Use progress service to get next incomplete lesson
+        // Întâi cursul la care a lucrat ultima dată (nu primul din bază), apoi restul.
+        $lastWorked = DB::table('lesson_progress')
+            ->join('lessons', 'lessons.id', '=', 'lesson_progress.lesson_id')
+            ->where('lesson_progress.user_id', $user->id)
+            ->groupBy('lessons.course_id')
+            ->selectRaw('lessons.course_id as course_id, MAX(lesson_progress.updated_at) as last_at')
+            ->pluck('last_at', 'course_id')
+            ->all();
+        $courses = $courses->sortByDesc(fn ($course) => [
+            (string) ($lastWorked[$course->id] ?? ''),
+            (string) ($this->lastAccessed[$course->id] ?? ''),
+        ])->values();
+
         foreach ($courses as $course) {
             $nextLesson = $this->progressService->getNextIncompleteLesson($user, $course);
-            
+
             if ($nextLesson) {
-                $orderedLessonIds = [];
-                foreach ($course->modules as $module) {
-                    foreach ($module->lessons->sortBy('order')->values() as $lesson) {
-                        $orderedLessonIds[] = (int) $lesson->id;
-                    }
-                }
+                $orderedLessonIds = $this->orderedLessonIds($course);
                 $lessonIndex = array_search((int) $nextLesson->id, $orderedLessonIds, true);
 
                 return [

@@ -125,6 +125,12 @@ export const dashboardService = {
     }
   },
   
+  /** Doar lecția de continuat; dashboard-ul complet e prea lent pentru bannerul din pagina de cursuri. */
+  getStudentNextLesson: async () => {
+    const response = await api.get('/student/next-lesson');
+    return response.data?.next_lesson || null;
+  },
+
   getStudentDashboard: async () => {
     try {
       const response = await api.get('/student/dashboard');

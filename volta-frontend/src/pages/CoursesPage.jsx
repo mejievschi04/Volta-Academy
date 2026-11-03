@@ -21,13 +21,13 @@ const COURSE_MAP_ACCENT_COLORS = [
 
 const STUDENT_COURSE_FILTERS = [
 	{ id: 'maps', label: 'Toate', ariaLabel: 'Cursuri totale' },
-	{ id: 'unfinished', label: 'Nepromovate', ariaLabel: 'Cursuri nepromovate' },
+	{ id: 'unfinished', label: 'Nefinalizate', ariaLabel: 'Cursuri nefinalizate' },
 	{ id: 'completed', label: 'Finalizate', ariaLabel: 'Cursuri finalizate', statKey: 'completed' },
 ];
 
 const STUDENT_FILTER_TITLES = {
 	maps: 'Mape',
-	unfinished: 'Cursuri nepromovate',
+	unfinished: 'Cursuri nefinalizate',
 	completed: 'Cursuri finalizate',
 };
 
@@ -75,18 +75,18 @@ const CoursesPage = () => {
 					const list = mapsData?.data ?? (Array.isArray(mapsData) ? mapsData : []);
 					setCourseMaps(Array.isArray(list) ? list : []);
 				} else {
-					const [mapsData, profileData, dashboardData] = await Promise.all([
+					const [mapsData, profileData, resumeLesson] = await Promise.all([
 						courseMapsService.getMaps(),
 						profileService.getProfile().catch((profileErr) => {
 							console.error('Error fetching profile courses:', profileErr);
 							return null;
 						}),
-						dashboardService.getStudentDashboard().catch((dashErr) => {
+						dashboardService.getStudentNextLesson().catch((dashErr) => {
 							console.error('Error fetching resume lesson:', dashErr);
 							return null;
 						}),
 					]);
-					setNextLesson(dashboardData?.next_lesson || null);
+					setNextLesson(resumeLesson);
 
 					const rows = Array.isArray(mapsData) ? mapsData : [];
 					setCourseMaps(rows.filter(isStudentVisibleMap));
@@ -192,7 +192,7 @@ const CoursesPage = () => {
 
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
-			// toate cursurile atribuite: nepromovate + finalizate (cele două liste nu se suprapun)
+			// toate cursurile atribuite: nefinalizate + finalizate (cele două liste nu se suprapun)
 			return getStudentFilterCount({ id: 'unfinished' }) + getStudentFilterCount({ id: 'completed' });
 		}
 		if (filter.id === 'unfinished') {
@@ -318,7 +318,7 @@ const CoursesPage = () => {
 									studentFilter === 'completed'
 										? 'Caută cursuri finalizate'
 										: studentFilter === 'unfinished'
-											? 'Caută cursuri nepromovate'
+											? 'Caută cursuri nefinalizate'
 											: 'Caută mape'
 								}
 								placeholder={
