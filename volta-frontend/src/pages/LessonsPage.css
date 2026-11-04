@@ -1193,8 +1193,8 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
 @media (max-width: 768px) {
 	.lessons-page-main-content {
 		padding-top: 0;
-		/* loc pentru bara fixă Anterioară / Următoarea */
-		padding-bottom: calc(88px + var(--space-4));
+		/* loc pentru bara fixă Anterioară / Următoarea (60px + zona de gesturi) */
+		padding-bottom: calc(64px + var(--space-4) + env(safe-area-inset-bottom, 0px));
 	}
 
 	.lessons-page-context-bar {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { countLabel } from '../../../utils/plural';
 import { ArrowRight, FolderOpen, Star } from 'lucide-react';
 
 const FolderCard = ({ folder }) => {
@@ -18,7 +19,7 @@ const FolderCard = ({ folder }) => {
 			</div>
 
 			<div className="qb-folder-stats">
-				<span>{questionCount} întrebări</span>
+				<span>{countLabel(questionCount, 'întrebare', 'întrebări')}</span>
 				<span>
 					<Star size={14} aria-hidden />
 					{starredCount}

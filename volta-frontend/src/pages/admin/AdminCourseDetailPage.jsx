@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { adminService, coursesService } from '../../services/api';
+import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
@@ -42,24 +42,11 @@ const AdminCourseDetailPage = () => {
 			setLoading(true);
 			setError(null);
 			
-			// Try to get course from adminService first, fallback to coursesService
-			let courseData;
-			try {
-				// Try admin service getCourse method
-				courseData = await adminService.getCourse(id);
-				// Handle response format
-				if (courseData && courseData.data) {
-					courseData = courseData.data;
-				}
-			} catch (err) {
-				console.warn('Admin service failed, trying courses service:', err);
-				// Fallback to coursesService
-				try {
-					courseData = await coursesService.getById(id);
-				} catch (err2) {
-					console.error('Both services failed:', err2);
-					throw err2;
-				}
+			// Doar endpoint-ul de admin: cel de elev nu are cifrele (module, lecții, înscrieri) și
+			// pagina ar fi arătat zero-uri în loc de o eroare.
+			let courseData = await adminService.getCourse(id);
+			if (courseData && courseData.data) {
+				courseData = courseData.data;
 			}
 			
 			if (!courseData) {
@@ -69,7 +56,7 @@ const AdminCourseDetailPage = () => {
 			setCourse(courseData);
 		} catch (err) {
 			console.error('Error fetching course:', err);
-			setError(err.message || 'Nu s-a putut încărca cursul');
+			setError(err?.response?.data?.message || (err?.response ? 'Nu s-a putut încărca cursul. Încearcă din nou.' : err?.message) || 'Nu s-a putut încărca cursul');
 			showToast('Eroare la încărcarea cursului', 'error');
 		} finally {
 			setLoading(false);
@@ -187,9 +174,14 @@ const AdminCourseDetailPage = () => {
 				<p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-4)' }}>
 					{error || 'Cursul nu a fost găsit'}
 				</p>
-				<button className="lms-btn-primary" onClick={() => navigate('/admin/courses')}>
-					← Înapoi la Cursuri
-				</button>
+				<div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', justifyContent: 'center' }}>
+					<button type="button" className="lms-btn-primary" onClick={fetchCourseData}>
+						Reîncearcă
+					</button>
+					<button type="button" className="lms-btn-secondary" onClick={() => navigate('/admin/courses')}>
+						← Înapoi la Cursuri
+					</button>
+				</div>
 			</div>
 		);
 	}

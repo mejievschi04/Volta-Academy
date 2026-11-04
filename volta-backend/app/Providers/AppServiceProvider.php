@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Support\DirectorySearch;
 use App\Support\SchemaCache;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Http\Request;
@@ -37,6 +39,16 @@ class AppServiceProvider extends ServiceProvider
 
         // Structura tabelelor e ținută în cache (SchemaCache); orice migrare o invalidează.
         Event::listen(MigrationsEnded::class, fn () => SchemaCache::flush());
+
+        // Căutare text fără majuscule/diacritice (PostgreSQL: `like` simplu ține cont de majuscule).
+        EloquentBuilder::macro('whereContainsText', function (string $column, ?string $search) {
+            /** @var EloquentBuilder $this */
+            return DirectorySearch::whereContains($this, $column, $search);
+        });
+        EloquentBuilder::macro('orWhereContainsText', function (string $column, ?string $search) {
+            /** @var EloquentBuilder $this */
+            return DirectorySearch::orWhereContains($this, $column, $search);
+        });
 
         // Citiri mesagerie (polling): buget mare, separat de mutații ca să nu se „fure” între ele.
         RateLimiter::for('api-messages-read', function (Request $request) {

@@ -43,6 +43,23 @@ class DirectorySearch
         }
     }
 
+    /**
+     * Condiție „coloana conține textul”, fără majuscule și diacritice (pe PostgreSQL `like` simplu
+     * ține cont de majuscule: „prod” nu găsea „Produse”). Pentru căutări pe orice coloană text.
+     */
+    public static function whereContains(Builder $query, string $column, ?string $search, string $boolean = 'and'): Builder
+    {
+        $folded = self::fold(trim((string) $search));
+        $like = '%'.addcslashes($folded, '%_\\').'%';
+
+        return $query->whereRaw(self::sqlFold($query, $column).' like ?', [$like], $boolean);
+    }
+
+    public static function orWhereContains(Builder $query, string $column, ?string $search): Builder
+    {
+        return self::whereContains($query, $column, $search, 'or');
+    }
+
     /** @return list<string> */
     public static function tokens(?string $search): array
     {

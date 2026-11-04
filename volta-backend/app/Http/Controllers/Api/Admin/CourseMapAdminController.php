@@ -34,8 +34,8 @@ class CourseMapAdminController extends Controller
         if ($request->has('search') && $request->search) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->where('name', 'like', "%{$s}%")
-                    ->orWhere('description', 'like', "%{$s}%");
+                $q->whereContainsText('name', $s)
+                    ->orWhereContainsText('description', $s);
             });
         }
 

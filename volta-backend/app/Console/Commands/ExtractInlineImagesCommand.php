@@ -2,12 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Support\ImageOptimizer;
+use App\Support\InlineImageExtractor;
 use Illuminate\Console\Command;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Mută imaginile salvate base64 în conținut (HTML sau JSON) în fișiere comprimate din
@@ -35,21 +33,12 @@ class ExtractInlineImagesCommand extends Command
         'library_items' => ['body'],
     ];
 
-    // În JSON slash-urile pot fi scăpate (`data:image\/png`), iar base64 poate conține `\/`.
-    private const PATTERN = '#data:image(\\\\?/)(png|jpe?g|gif|webp);base64,((?:[A-Za-z0-9+/=]|\\\\/)+)#i';
-
-    /** @var array<string, string> sha1 → URL, ca aceeași imagine să fie salvată o dată */
-    private array $stored = [];
-
-    private int $images = 0;
-
     private int $bytesRemoved = 0;
 
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $this->stored = [];
-        $this->images = 0;
+        $extractor = new InlineImageExtractor($dryRun);
         $this->bytesRemoved = 0;
 
         foreach (self::COLUMNS as $table => $columns) {
@@ -63,10 +52,10 @@ class ExtractInlineImagesCommand extends Command
                 $rows = 0;
                 DB::table($table)->select(['id', $column])->where($column, 'like', '%data:image%')
                     ->orderBy('id')
-                    ->chunkById(50, function ($chunk) use ($table, $column, $dryRun, &$rows) {
+                    ->chunkById(50, function ($chunk) use ($table, $column, $dryRun, $extractor, &$rows) {
                         foreach ($chunk as $row) {
                             $value = (string) $row->{$column};
-                            $replaced = $this->replaceImages($value, $dryRun);
+                            $replaced = $extractor->replace($value);
                             if ($replaced !== $value) {
                                 $rows++;
                                 $this->bytesRemoved += strlen($value) - strlen($replaced);
@@ -83,39 +72,8 @@ class ExtractInlineImagesCommand extends Command
         }
 
         $mb = round($this->bytesRemoved / 1048576, 1);
-        $this->info(($dryRun ? '[dry-run] ' : '') . "{$this->images} imagini, " . count($this->stored) . " fișiere unice, {$mb} MB scoși din baza de date.");
+        $this->info(($dryRun ? '[dry-run] ' : '') . "{$extractor->images} imagini, " . $extractor->uniqueFiles() . " fișiere unice, {$mb} MB scoși din baza de date.");
 
         return self::SUCCESS;
-    }
-
-    private function replaceImages(string $value, bool $dryRun): string
-    {
-        return preg_replace_callback(self::PATTERN, function (array $m) use ($dryRun) {
-            $escaped = $m[1] === '\\/';
-            $bytes = base64_decode(str_replace('\\/', '/', $m[3]), true);
-            if ($bytes === false || $bytes === '') {
-                return $m[0];
-            }
-            $this->images++;
-            $url = $this->stored[sha1($bytes)] ??= $dryRun ? '/storage/content/images/dry-run' : $this->store($bytes, strtolower($m[2]));
-
-            return $escaped ? str_replace('/', '\\/', $url) : $url;
-        }, $value) ?? $value;
-    }
-
-    private function store(string $bytes, string $extension): string
-    {
-        $hash = sha1($bytes);
-        $tmp = tempnam(sys_get_temp_dir(), 'inline');
-        file_put_contents($tmp, $bytes);
-        try {
-            $mime = $extension === 'jpg' ? 'image/jpeg' : 'image/' . $extension;
-            $file = ImageOptimizer::optimize(new UploadedFile($tmp, "{$hash}.{$extension}", $mime, null, true));
-            $path = $file->storeAs('content/images', $hash . '.' . $file->getClientOriginalExtension(), 'public');
-        } finally {
-            @unlink($tmp);
-        }
-
-        return '/storage/' . $path;
     }
 }

@@ -21,11 +21,11 @@ class EventAdminController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('short_description', 'like', "%{$search}%")
+                $q->whereContainsText('title', $search)
+                  ->orWhereContainsText('description', $search)
+                  ->orWhereContainsText('short_description', $search)
                   ->orWhereHas('instructor', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->whereContainsText('name', $search);
                   });
             });
         }

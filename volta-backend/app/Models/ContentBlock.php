@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ExtractsInlineImages;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
@@ -14,6 +15,11 @@ use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
  */
 class ContentBlock extends Model
 {
+    use ExtractsInlineImages;
+
+    /** Coloane în care imaginile base64 devin fișiere la salvare (ExtractsInlineImages). */
+    public const INLINE_IMAGE_COLUMNS = ['payload'];
+
     use HasFactory;
     use InvalidatesTutorKnowledgeCache;
 

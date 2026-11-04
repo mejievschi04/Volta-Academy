@@ -115,7 +115,7 @@ class QuestionAdminController extends Controller
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
-            $query->where('content', 'like', '%' . $search . '%');
+            $query->whereContainsText('content', $search);
         }
 
         if ($request->filled('type')) {

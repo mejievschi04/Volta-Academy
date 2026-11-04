@@ -223,7 +223,7 @@ export default function TestManualReviewPanel({ embedded = false }) {
 							type="button"
 							className="va-btn-delete admin-manual-review-clear-danger"
 							onClick={handleClearPending}
-							disabled={pendingLoading || clearing}
+							disabled={pendingLoading || clearing || pendingReviews.length === 0}
 						>
 							{clearing ? 'Se golește…' : 'Golire'}
 						</button>

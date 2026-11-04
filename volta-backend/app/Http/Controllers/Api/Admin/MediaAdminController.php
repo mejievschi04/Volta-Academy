@@ -56,7 +56,7 @@ class MediaAdminController extends Controller
 
         if (!empty($validated['q'])) {
             $q = $validated['q'];
-            $query->where('filename', 'like', '%' . $q . '%');
+            $query->whereContainsText('filename', $q);
         }
 
         $paginator = $query->paginate($perPage);

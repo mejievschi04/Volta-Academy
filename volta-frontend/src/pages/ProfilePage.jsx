@@ -255,6 +255,17 @@ const ProfilePage = () => {
 		].filter(Boolean).join(' ')).includes(needle))
 		: filteredCourses;
 
+	// Rezumatul testelor unui curs finalizat, din rezultatele reale (înainte afișa mereu „nepromovat”,
+	// inclusiv la cursurile fără test). Cursurile fără teste nu primesc notă.
+	const courseTestsNote = (course) => {
+		const tests = Array.isArray(course.tests) ? course.tests : [];
+		if (tests.length === 0) return null;
+		if (tests.every((test) => test.status === 'passed')) return tests.length === 1 ? 'Test: promovat ✓' : 'Teste: promovate ✓';
+		if (tests.some((test) => test.status === 'pending')) return 'Test: în corectare';
+		if (tests.some((test) => test.status === 'failed')) return 'Test: nepromovat';
+		return 'Test: neînceput';
+	};
+
 	const renderTestResult = (test) => {
 		if (test.status === 'passed') return { label: `${test.percentage ?? 0}% · Promovat`, tone: 'passed' };
 		if (test.status === 'pending') return { label: 'În corectare', tone: 'pending' };
@@ -295,8 +306,8 @@ const ProfilePage = () => {
 						</span>
 					</div>
 				) : null}
-				{status === 'completed' ? (
-					<p className="va-up-card-note">Test: {course.quizPassed ? 'promovat ✓' : 'nepromovat'}</p>
+				{status === 'completed' && courseTestsNote(course) ? (
+					<p className="va-up-card-note">{courseTestsNote(course)}</p>
 				) : null}
 				{status === 'not_accessed' ? (
 					<p className="va-up-card-note">

@@ -86,6 +86,12 @@ class TestBuilderService
         $questions = $data['questions'] ?? null;
         unset($data['questions']);
 
+        // „Publică” din lista de teste trimite doar status=published; fără verificarea de la publishTest
+        // ajungeau publicate teste fără nicio întrebare.
+        if (($data['status'] ?? null) === 'published' && $test->status !== 'published') {
+            $this->assertCanPublish($test, $data, is_array($questions) ? count($questions) : null);
+        }
+
         // Filtrează doar coloanele care există în tabel (evită "Undefined column")
         $table = $test->getTable();
         $updateData = [];
@@ -237,6 +243,30 @@ class TestBuilderService
     /**
      * Publish a test
      */
+    /**
+     * Testul are întrebări de pus cursantului (direct sau din bancă). $data = câmpurile care urmează să se salveze.
+     */
+    private function assertCanPublish(Test $test, array $data, ?int $directQuestionCount): void
+    {
+        $source = $data['question_source'] ?? $test->question_source ?: 'direct';
+        if ($source === 'bank') {
+            $bankId = array_key_exists('question_set_id', $data) ? $data['question_set_id'] : $test->question_set_id;
+            $bank = $bankId ? QuestionBank::find($bankId) : null;
+            if (! $bank || $bank->questions()->count() === 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Testul nu poate fi publicat: banca de întrebări lipsește sau e goală.',
+                ]);
+            }
+
+            return;
+        }
+        if (($directQuestionCount ?? $test->questions()->count()) === 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'Testul nu poate fi publicat fără întrebări. Adaugă cel puțin o întrebare.',
+            ]);
+        }
+    }
+
     public function publishTest(Test $test): Test
     {
         $source = $test->question_source ?: 'direct';

@@ -1165,7 +1165,6 @@ function AuthenticatedLayout({ children, authContext }) {
 										to={item.path}
 										title={item.title || item.label}
 										className={({ isActive }) => ['modern-nav-item', 'va-nav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
-										end={item.path === '/courses'}
 										onMouseEnter={() => prefetchRoute(item.path)}
 										onClick={() => {
 											if (window.innerWidth <= 768) {
@@ -1233,7 +1232,6 @@ function AuthenticatedLayout({ children, authContext }) {
 									to={item.path}
 									title={item.title || item.label}
 									className={({ isActive }) => ['modern-topnav-item', 'va-topnav-btn', isActive ? 'active is-active' : ''].join(' ').trim()}
-									end={item.path === '/courses'}
 									onMouseEnter={() => prefetchRoute(item.path)}
 								>
 									<span className="modern-topnav-item-icon va-topnav-icon">{item.icon}</span>
@@ -1300,7 +1298,6 @@ function AuthenticatedLayout({ children, authContext }) {
 									key={item.path}
 									to={item.path}
 									className={({ isActive }) => `student-mobile-tab${isActive ? ' active' : ''}`}
-									end={item.path === '/courses'}
 								>
 									<span className="student-mobile-tab-icon">
 										{item.icon}

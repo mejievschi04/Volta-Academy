@@ -100,7 +100,8 @@ const AdminDashboardPage = () => {
 	const completionRate = kpis.completion_rate?.value || formatPercent(kpis.completion_rate);
 	const avgLearningMinutes = readMetricValue(kpis.avg_learning_minutes);
 	const avgLearningMinutesTotal = readMetricValue(kpis.avg_learning_minutes_total);
-	const learningSessionsPeriod = Number(kpis.avg_learning_minutes?.sessions_count ?? 0);
+	const learnersPeriod = Number(kpis.avg_learning_minutes?.learners_count ?? 0);
+	const learningMinutesPeriod = Number(kpis.avg_learning_minutes?.total_minutes ?? 0);
 	const totalCourses = readMetricValue(courseStats.total ?? kpis.total_courses);
 	const publishedCourses = readMetricValue(courseStats.published ?? kpis.total_courses);
 	const draftCourses = readMetricValue(courseStats.draft);
@@ -302,13 +303,13 @@ const AdminDashboardPage = () => {
 					<p className="hero-stat-meta">Calculată din înscrieri finalizate</p>
 				</article>
 				<article className="hero-stat hero-stat-blue">
-					<p className="hero-stat-label">Medie minute</p>
+					<p className="hero-stat-label">Minute studiu / elev</p>
 					<p className="hero-stat-value">
 						{avgLearningMinutes.toLocaleString('ro-RO', { maximumFractionDigits: 1 })}
 					</p>
 					<p className="hero-stat-meta">
-						{learningSessionsPeriod > 0
-							? `${formatNumber(learningSessionsPeriod)} sesiuni în ${periodLabel.toLowerCase()}`
+						{learnersPeriod > 0
+							? `${formatNumber(learnersPeriod)} ${learnersPeriod === 1 ? 'elev' : 'elevi'} · ${formatNumber(learningMinutesPeriod)} min în total`
 							: `Medie lecție (total): ${avgLearningMinutesTotal.toLocaleString('ro-RO', { maximumFractionDigits: 1 })} min`}
 					</p>
 				</article>

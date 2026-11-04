@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ClipboardList, FolderOpen, ListChecks, Map as Ma
 import { adminService } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContextShared.js';
 import Drawer from './Drawer';
+import { countLabel } from '../../../utils/plural';
 import QuestionRow from './QuestionRow';
 
 function stripHtml(value = '') {
@@ -251,9 +252,9 @@ export default function QuestionCatalogByMap({
 								description={map.description}
 								icon={<MapIcon size={22} />}
 								stats={[
-									`${map.courses_count || 0} cursuri`,
-									`${map.tests_count || 0} teste`,
-									`${map.questions_count || 0} întrebări`,
+									countLabel(map.courses_count || 0, 'curs', 'cursuri'),
+									countLabel(map.tests_count || 0, 'test', 'teste'),
+									countLabel(map.questions_count || 0, 'întrebare', 'întrebări'),
 								]}
 								onOpen={() => openMap(map)}
 							/>
@@ -275,7 +276,7 @@ export default function QuestionCatalogByMap({
 								title={test.title}
 								description={test.courses_label || 'Fără curs atașat'}
 								icon={<ClipboardList size={22} />}
-								stats={[`${test.questions_count || 0} întrebări`]}
+								stats={[countLabel(test.questions_count || 0, 'întrebare', 'întrebări')]}
 								onOpen={() => openTest(test)}
 								action={selectable && Number(test.questions_count || 0) > 0 ? (
 									<button

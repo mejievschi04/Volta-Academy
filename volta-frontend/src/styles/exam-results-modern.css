@@ -73,6 +73,18 @@
 	gap: var(--space-6);
 }
 
+/* Spațiul dintre secțiuni și carduri vine doar din gap: marginile/padding-urile moștenite se adunau
+   peste el (gol de ~100px între „Teste lunare” și „Teste din cursuri”). */
+.exam-results-sections > .exam-results-section {
+	margin: 0;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+.exam-results-stack > .exam-results-course {
+	margin-bottom: 0;
+}
+
 .exam-results-section-title {
 	margin: 0 0 var(--space-3);
 	font-size: var(--font-size-lg);

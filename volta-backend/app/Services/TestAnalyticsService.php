@@ -12,6 +12,9 @@ use Illuminate\Support\Collection;
  */
 class TestAnalyticsService
 {
+    /** @var array<int, Collection> */
+    private array $attemptQuestionsCache = [];
+
     public function __construct(
         protected TestQuestionSelectionService $questionSelection,
         protected TestAttemptAnswerOrderService $answerOrder,
@@ -84,18 +87,15 @@ class TestAnalyticsService
                     $result->setRelation('test', $test);
                 }
 
-                $attemptQuestions = $this->questionSelection->selectForAttempt(
-                    $test,
-                    (int) $result->user_id,
-                    (int) ($result->attempt_number ?? 1)
-                );
-
-                if (! $attemptQuestions->contains('id', $question->id)) {
+                // întrebarea așa cum a văzut-o cursantul (copia din încercare), nu forma ei de azi:
+                // după o editare, recorectarea pe forma nouă contrazicea punctajul real al încercării
+                $asAttempted = $this->attemptQuestions($result, $test)->firstWhere('id', $question->id);
+                if (! $asAttempted) {
                     continue;
                 }
 
                 $presentedCount++;
-                $graded = $this->gradeQuestion($result, $question);
+                $graded = $this->gradeQuestion($result, $asAttempted);
                 $hasAnswer = (bool) ($graded['has_answer'] ?? false);
 
                 if ($hasAnswer) {
@@ -126,10 +126,15 @@ class TestAnalyticsService
                     $pointsEarned[] = (float) $graded['points_earned'];
                 }
 
-                if ($isChoice && is_array($graded['selected_display_indices'] ?? null)) {
-                    foreach ($graded['selected_display_indices'] as $displayIndex) {
-                        if (array_key_exists($displayIndex, $optionStats)) {
-                            $optionStats[$displayIndex]['count']++;
+                // contoarele sunt pe variantele de azi (indice original); potrivim după text, nu după poziția
+                // afișată: cu variante amestecate poziția afișată numără alegerea la altă variantă
+                if ($isChoice) {
+                    $attemptedAnswers = is_array($asAttempted->answers) ? array_values($asAttempted->answers) : [];
+                    foreach ($graded['selected_original_indices'] ?? [] as $originalIndex) {
+                        $text = isset($attemptedAnswers[$originalIndex]) ? $this->answerOrder->answerText($attemptedAnswers[$originalIndex]) : null;
+                        $statIndex = $this->optionIndexByText($optionStats, $text) ?? (int) $originalIndex;
+                        if (array_key_exists($statIndex, $optionStats)) {
+                            $optionStats[$statIndex]['count']++;
                         }
                     }
                 }
@@ -220,11 +225,7 @@ class TestAnalyticsService
         }
         $result->setRelation('test', $test);
 
-        $questions = $this->questionSelection->selectForAttempt(
-            $test,
-            (int) $result->user_id,
-            (int) ($result->attempt_number ?? 1)
-        );
+        $questions = $this->attemptQuestions($result, $test);
 
         return $questions->sortBy('order')->values()->map(function (Question $question) use ($result) {
             $graded = $this->gradeQuestion($result, $question);
@@ -241,6 +242,35 @@ class TestAnalyticsService
                 'selected_option_indices' => $graded['selected_display_indices'] ?? [],
             ];
         })->all();
+    }
+
+    /** Întrebările încercării: copia salvată la start (ce a văzut și pe ce a fost notat cursantul), altfel selecția curentă. */
+    protected function attemptQuestions(TestResult $result, Test $test): Collection
+    {
+        $key = (int) $result->id;
+        if (! isset($this->attemptQuestionsCache[$key])) {
+            $snapshot = app(TestAttemptService::class)->hydrateQuestions(is_array($result->question_snapshot) ? $result->question_snapshot : null);
+            $this->attemptQuestionsCache[$key] = $snapshot->isNotEmpty()
+                ? $snapshot
+                : $this->questionSelection->selectForAttempt($test, (int) $result->user_id, (int) ($result->attempt_number ?? 1));
+        }
+
+        return $this->attemptQuestionsCache[$key];
+    }
+
+    protected function optionIndexByText(array $optionStats, ?string $text): ?int
+    {
+        if ($text === null) {
+            return null;
+        }
+        $needle = mb_strtolower(trim(strip_tags($text)));
+        foreach ($optionStats as $index => $stat) {
+            if (mb_strtolower(trim(strip_tags((string) $stat['text']))) === $needle) {
+                return (int) $index;
+            }
+        }
+
+        return null;
     }
 
     protected function collectQuestionsForAnalytics(Test $test, Collection $results): Collection
@@ -336,6 +366,7 @@ class TestAnalyticsService
             'points_earned' => $pointsEarned,
             'user_answer_summary' => $userAnswerSummary,
             'selected_display_indices' => $selectedDisplayIndices,
+            'selected_original_indices' => $originalSelected ?? [],
         ];
     }
 

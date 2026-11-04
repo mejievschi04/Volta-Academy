@@ -979,3 +979,43 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	border: 0 !important;
 	box-shadow: none !important;
 }
+
+/* Mobil: două mape pe rând (una singură ocupa jumătate din ecran și cerea derulare lungă).
+   Folderul are dimensiune fixă, așa că îl micșorăm proporțional cu zoom. */
+@media (max-width: 640px) {
+	.courses-page-student .courses-page-maps-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-5) var(--space-3);
+	}
+
+	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__stage {
+		width: 100%;
+		height: auto;
+	}
+
+	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__visual {
+		zoom: 0.6;
+	}
+
+	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__title {
+		font-size: 1rem;
+		line-height: 1.2;
+	}
+
+	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__subtitle {
+		display: none;
+	}
+
+	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__progress {
+		width: 70%;
+		height: 5px;
+		min-height: 5px;
+	}
+}
+
+/* Foarte îngust (≤340px): o mapă pe rând, ca titlurile să nu se strângă */
+@media (max-width: 340px) {
+	.courses-page-student .courses-page-maps-grid {
+		grid-template-columns: 1fr;
+	}
+}

@@ -32,17 +32,18 @@ class CourseAdminController extends Controller
     {
         try {
             $query = Course::with(['teacher:id,name,email'])
-                ->withCount('modules')
+                // lecțiile pot sta direct pe curs, fără modul: cardul arată lecțiile, nu doar modulele
+                ->withCount(['modules', 'lessons'])
                 ->withCount(['assignedUsers as enrollments_count' => fn ($q) => $q->where('enrolled', true)]);
 
         // Search
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
+                $q->whereContainsText('title', $search)
+                  ->orWhereContainsText('description', $search)
                   ->orWhereHas('teacher', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->whereContainsText('name', $search);
                   });
             });
         }
@@ -289,10 +290,15 @@ class CourseAdminController extends Controller
                     $query->select('users.id', 'users.name', 'users.email', 'users.role');
                     app(UserAssignedCoursesService::class)->constrainToDirectAssignedUsers($query, $course);
                 },
-                'courseTests.test' => function($query) {
-                    $query->with('questions');
-                }
+                'courseTests.test',
             ])->findOrFail($id);
+
+            // Pagina de detaliu și fereastra de publicare folosesc doar structura și cifrele; conținutul
+            // lecțiilor (uneori MB întregi) rămâne în builder, altfel răspunsul ajungea la 10 MB și expira.
+            foreach ($course->modules as $module) {
+                $module->makeHidden('content');
+                $module->lessons->each->makeHidden('content');
+            }
 
             // Add counts. Lecțiile pot sta direct pe curs, nu doar în module.
             $course->modules_count = $course->modules->count();
@@ -717,10 +723,9 @@ class CourseAdminController extends Controller
 
         if ($request->filled('search')) {
             $term = trim((string) $request->get('search'));
-            $like = '%'.addcslashes($term, '%_\\').'%';
-            $q->where(function ($w) use ($like) {
-                $w->where('name', 'like', $like)
-                    ->orWhere('email', 'like', $like);
+            $q->where(function ($w) use ($term) {
+                $w->whereContainsText('name', $term)
+                    ->orWhereContainsText('email', $term);
             });
         }
 

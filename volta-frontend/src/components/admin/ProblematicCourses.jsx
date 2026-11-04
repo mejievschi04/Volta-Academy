@@ -51,7 +51,7 @@ const ProblematicCourses = ({ courses, loading }) => {
 		<div className="admin-section-card">
 			<div className="admin-section-header">
 				<h2>Cursuri care necesită atenție</h2>
-				<p className="admin-section-subtitle">Finalizare sub 30% sau peste jumătate dintre cursanți au abandonat</p>
+				<p className="admin-section-subtitle">Finalizare sub 30% sau peste jumătate dintre cursanții care au început au abandonat</p>
 			</div>
 			<div className="admin-courses-list">
 				{courses.map((course) => {

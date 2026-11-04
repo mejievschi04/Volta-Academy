@@ -39,8 +39,8 @@ const AdminProblematicCoursesPage = () => {
 						<ArrowLeft size={18} aria-hidden />
 						Înapoi la Dashboard
 					</button>
-					<h1 className="admin-page-title">Cursuri Problemice</h1>
-					<p className="admin-page-subtitle">Cursuri care necesită atenție</p>
+					<h1 className="admin-page-title">Cursuri problematice</h1>
+					<p className="admin-page-subtitle">Cursuri cu cel puțin 6 cursanți, de la cea mai mică rată de finalizare</p>
 				</div>
 			</div>
 			{error && (

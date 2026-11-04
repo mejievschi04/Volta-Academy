@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 
 import { useToast } from '../../contexts/ToastContextShared.js';
@@ -39,7 +40,9 @@ const AdminEventsPage = () => {
 	const [editingEvent, setEditingEvent] = useState(null);
 	const [viewingEventId, setViewingEventId] = useState(null);
 
-	const [searchQuery, setSearchQuery] = useState('');
+	const [searchParams] = useSearchParams();
+	// căutarea globală din bara de sus deschide pagina cu evenimentul căutat (?search=)
+	const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
 	const [nowTick, setNowTick] = useState(() => Date.now());
 	useEffect(() => {
 		const id = window.setInterval(() => setNowTick(Date.now()), 60_000);

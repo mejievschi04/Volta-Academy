@@ -170,6 +170,57 @@ class DashboardMetricsTest extends TestCase
         $this->assertTrue($activities->contains(fn ($description) => str_contains($description, 'Lecție dashboard')));
     }
 
+    public function test_average_learning_minutes_is_per_active_learner_not_per_minute_tick(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $ana = User::factory()->create(['role' => 'student']);
+        $ion = User::factory()->create(['role' => 'student']);
+        // timpul vine în tranșe de ≤60 s: Ana 10 tranșe (10 min), Ion 20 de tranșe (20 min)
+        foreach ([[$ana, 10], [$ion, 20]] as [$student, $ticks]) {
+            for ($i = 0; $i < $ticks; $i++) {
+                ActivityLog::create([
+                    'user_id' => $student->id,
+                    'action' => 'telemetry.learner_focus_seconds',
+                    'model_type' => 'lesson',
+                    'model_id' => 1,
+                    'description' => 'focus',
+                    'new_values' => ['seconds' => 60, 'lesson_id' => 1],
+                ]);
+            }
+        }
+
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=7d')
+            ->assertOk()
+            ->assertJsonPath('kpis.avg_learning_minutes.value', '15')
+            ->assertJsonPath('kpis.avg_learning_minutes.learners_count', 2)
+            ->assertJsonPath('kpis.avg_learning_minutes.total_minutes', 30);
+    }
+
+    public function test_problematic_courses_skip_courses_without_learners_and_start_with_the_worst(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $empty = Course::factory()->published()->create(['title' => 'Fără cursanți']);
+        $low = Course::factory()->published()->create(['title' => 'Zece la sută']);
+        $zero = Course::factory()->published()->create(['title' => 'Zero la sută']);
+        foreach ([[$low, 10, 1], [$zero, 6, 0]] as [$course, $enrolled, $completed]) {
+            for ($i = 0; $i < $enrolled; $i++) {
+                $student = User::factory()->create(['role' => 'student']);
+                DB::table('course_user')->insert([
+                    'user_id' => $student->id, 'course_id' => $course->id, 'enrolled' => true,
+                    'progress_percentage' => $i < $completed ? 100 : 10,
+                    'completed_at' => $i < $completed ? now() : null,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        }
+
+        $titles = collect($this->actingAs($admin, 'sanctum')->getJson('/api/admin/dashboard?period=month')
+            ->assertOk()->json('problematic_courses'))->pluck('title')->all();
+
+        $this->assertSame(['Zero la sută', 'Zece la sută'], $titles);
+        $this->assertNotContains($empty->title, $titles);
+    }
+
     public function test_active_users_do_not_count_soft_deleted_students(): void
     {
         $admin = User::factory()->create([

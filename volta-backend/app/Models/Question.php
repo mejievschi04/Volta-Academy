@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ExtractsInlineImages;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Question extends Model
 {
+    use ExtractsInlineImages;
+
+    /** Coloane în care imaginile base64 devin fișiere la salvare (ExtractsInlineImages). */
+    public const INLINE_IMAGE_COLUMNS = ['content', 'answers', 'explanation'];
+
     use HasFactory;
 
     protected $fillable = [

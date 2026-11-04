@@ -30,8 +30,8 @@ class QuestionCatalogAdminController extends Controller
         }
         if ($search !== '') {
             $mapsQuery->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('description', 'like', '%'.$search.'%');
+                $q->whereContainsText('name', $search)
+                    ->orWhereContainsText('description', $search);
             });
         }
 

@@ -566,6 +566,13 @@ const AdminCourseMapsPage = ({  onOpenMap, autoOpenCreate = false, headerActions
 					<div className="va-spinner va-spinner-lg"></div>
 					<p>Se încarcă mapele...</p>
 				</div>
+			) : maps.length === 0 && searchQuery.trim() ? (
+				<div className="lms-empty-state">
+					<p>Nicio mapă găsită pentru „{searchQuery.trim()}”.</p>
+					<button type="button" className="lms-btn-secondary" onClick={() => setSearchQuery('')}>
+						Golește căutarea
+					</button>
+				</div>
 			) : maps.length === 0 ? (
 				<div className="lms-empty-state">
 					<p>Nu există mape de curs. Creează una pentru a grupa cursuri.</p>

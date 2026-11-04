@@ -2,12 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ExtractsInlineImages;
 use App\Models\Concerns\GeneratesCoverThumbnail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LibraryItem extends Model
 {
+    use ExtractsInlineImages;
+
+    /** Coloane în care imaginile base64 devin fișiere la salvare (ExtractsInlineImages). */
+    public const INLINE_IMAGE_COLUMNS = ['body'];
+
     use GeneratesCoverThumbnail;
 
     /** Coloana copertei pentru miniatura din liste (GeneratesCoverThumbnail). */

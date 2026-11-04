@@ -24,10 +24,12 @@ class ExtractInlineImagesTest extends TestCase
     {
         $course = Course::factory()->create();
         $png = $this->pngBase64();
-        $lesson = Lesson::create([
+        // date vechi, salvate înainte de extragerea la salvare: direct în tabel
+        $lesson = Lesson::find(DB::table('lessons')->insertGetId([
             'course_id' => $course->id, 'title' => 'L', 'order' => 1,
             'content' => '<p>a</p><img src="data:image/png;base64,' . $png . '"><img src="data:image/png;base64,' . $png . '">',
-        ]);
+            'created_at' => now(), 'updated_at' => now(),
+        ]));
         $questionId = DB::table('questions')->insertGetId([
             'type' => 'single_choice', 'content' => 'Q', 'points' => 1, 'order' => 1,
             'answers' => json_encode([['text' => '<img src="data:image/png;base64,' . $png . '">', 'is_correct' => true]]),
@@ -62,5 +64,28 @@ class ExtractInlineImagesTest extends TestCase
 
         $this->assertStringStartsWith('/storage/content/images/', $url);
         Storage::disk('public')->assertExists(substr($url, strlen('/storage/')));
+    }
+
+    public function test_saving_content_turns_pasted_base64_images_into_files(): void
+    {
+        $course = Course::factory()->create();
+        $png = $this->pngBase64();
+        $lesson = Lesson::create([
+            'course_id' => $course->id, 'title' => 'L', 'order' => 1,
+            'content' => '<p>lipit</p><img src="data:image/png;base64,' . $png . '">',
+        ]);
+
+        $content = $lesson->fresh()->content;
+        $this->assertStringNotContainsString('data:image', $content);
+        $this->assertMatchesRegularExpression('#<img src="/storage/content/images/[0-9a-f]{40}\.\w+">#', $content);
+
+        $question = \App\Models\Question::create([
+            'type' => 'single_choice', 'content' => 'Q', 'points' => 1, 'order' => 1,
+            'answers' => [['text' => '<img src="data:image/png;base64,' . $png . '">', 'is_correct' => true]],
+        ]);
+        $answers = $question->fresh()->answers;
+        $this->assertStringStartsWith('<img src="/storage/content/images/', $answers[0]['text']);
+        $this->assertTrue($answers[0]['is_correct']);
+        $this->assertCount(1, Storage::disk('public')->files('content/images'));
     }
 }

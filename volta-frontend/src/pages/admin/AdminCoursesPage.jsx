@@ -33,7 +33,15 @@ import { useToast } from '../../contexts/ToastContextShared.js';
 import { CourseShowcaseCard } from '../../components/ui/course-showcase-card';
 import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../../components/ui/course-showcase-cardShared.js';
 import { hexToHslSpace } from '../../lib/hexToHsl';
+import { countLabel } from '../../utils/plural';
 import './AdminCoursesPage.css';
+
+// Lecțiile pot sta direct pe curs (fără module), deci numărul de lecții spune mai mult decât modulele.
+const courseCardSubtitle = (course) => [
+	Number(course.modules_count) > 0 ? countLabel(course.modules_count, 'modul', 'module') : null,
+	countLabel(course.lessons_count || 0, 'lecție', 'lecții'),
+	countLabel(course.enrollments_count || 0, 'utilizator', 'utilizatori'),
+].filter(Boolean).join(' • ');
 
 function sortableAdminCourseId(courseId) {
 	return `admin-course-${courseId}`;
@@ -76,7 +84,7 @@ function SortableAdminCourseCard({
 			<CourseShowcaseCard
 				imageUrl={imageUrl}
 				title={course.title || 'Curs fără titlu'}
-				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} utilizatori`}
+				subtitle={courseCardSubtitle(course)}
 				themeHsl={accentHsl}
 				onOpen={onOpen}
 				ctaLabel="Deschide"
@@ -115,7 +123,7 @@ function StaticAdminCourseCard({
 			<CourseShowcaseCard
 				imageUrl={imageUrl}
 				title={course.title || 'Curs fără titlu'}
-				subtitle={`${course.modules_count || 0} module • ${course.enrollments_count || 0} utilizatori`}
+				subtitle={courseCardSubtitle(course)}
 				themeHsl={accentHsl}
 				onOpen={onOpen}
 				ctaLabel="Deschide"

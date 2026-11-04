@@ -5,6 +5,7 @@ import { useBadges } from '../../utils/badges';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminCalendarDrawer from './AdminCalendarDrawer';
+import AdminGlobalSearch from './AdminGlobalSearch';
 import NotificationsDrawer from '../common/NotificationsDrawer';
 import { countPrimite } from '../../utils/notificationInboxStorage';
 import { Bell, CalendarDots } from '@phosphor-icons/react';
@@ -13,7 +14,6 @@ const AdminTopNavControls = () => {
 	const { user } = useAuth();
 	const showEventsCalendar = user?.actualRole !== 'instructor';
 	const [calendarOpen, setCalendarOpen] = useState(false);
-	const [searchQuery, setSearchQuery] = useState('');
 	const [apiItems, setApiItems] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -47,16 +47,7 @@ const AdminTopNavControls = () => {
 
 	return (
 		<>
-			<div className="admin-topnav-search">
-				<input
-					type="text"
-					placeholder="Căută utilizatori, cursuri, evenimente..."
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					className="admin-topnav-search-input"
-					aria-label="Caută utilizatori, cursuri, evenimente"
-				/>
-			</div>
+			<AdminGlobalSearch canSearchUsers={showEventsCalendar} canSearchEvents={showEventsCalendar} />
 
 			<div className="admin-topnav-trailing-icons">
 				{showEventsCalendar && (

@@ -435,7 +435,7 @@ class DashboardAdminController extends Controller
             $focusLogsPeriod = ActivityLog::where('action', 'telemetry.learner_focus_seconds')
                 ->whereBetween('created_at', [$start, $end])
                 ->whereIn('user_id', $studentIds)
-                ->get(['new_values']);
+                ->get(['user_id', 'new_values']);
         }
 
         // rândurile comprimate pe oră (volta:compact-activity) păstrează numărul de evenimente în `count`
@@ -444,8 +444,11 @@ class DashboardAdminController extends Controller
             fn ($log) => (int) (($log->new_values ?? [])['seconds'] ?? 0)
         );
 
-        $avgMinutesPeriod = $learningSessionsPeriod > 0
-            ? round(($learningSecondsPeriod / 60) / $learningSessionsPeriod, 1)
+        // Media e pe elev activ: un eveniment de focus e doar o tranșă de ≤60 s (trimisă din minut în minut),
+        // deci media pe eveniment ieșea mereu sub un minut. Rândurile comprimate păstrează user_id.
+        $learnersPeriod = $focusLogsPeriod->pluck('user_id')->filter()->unique()->count();
+        $avgMinutesPeriod = $learnersPeriod > 0
+            ? round(($learningSecondsPeriod / 60) / $learnersPeriod, 1)
             : 0.0;
 
         $avgMinutesAllTime = 0.0;
@@ -503,8 +506,10 @@ class DashboardAdminController extends Controller
             ],
             'avg_learning_minutes' => [
                 'value' => (string) $avgMinutesPeriod,
-                'label' => 'Medie minute / sesiune (perioadă)',
+                'label' => 'Medie minute de studiu / elev activ (perioadă)',
                 'sessions_count' => $learningSessionsPeriod,
+                'learners_count' => $learnersPeriod,
+                'total_minutes' => (int) round($learningSecondsPeriod / 60),
                 'trend' => 'up',
                 'trendValue' => '0%',
                 'color' => '#0ea5e9',
@@ -811,17 +816,22 @@ class DashboardAdminController extends Controller
                 return [
                     'id' => $course->id,
                     'title' => $course->title,
+                    'enrollments' => $enrollments,
                     'completion_rate' => $completionRate,
                     'rating' => 0, // Fără modul recenzii; vezi `integrations.course_reviews`
                     'dropoff_rate' => $dropoffRate,
                 ];
             })
+            // Ca alerta din lista de cursuri: un curs fără (aproape) niciun cursant are 0% finalizare, dar nu e o problemă.
+            // Toate cursurile, cele mai grave primele (pagina dedicată le arată pe toate, panoul își ia primele).
             ->filter(function($course) {
-                return $course['completion_rate'] < 30 
+                return $course['enrollments'] > 5 && (
+                    $course['completion_rate'] < 30
                     || $course['dropoff_rate'] > 50
-                    || ($course['rating'] > 0 && $course['rating'] < 3);
+                    || ($course['rating'] > 0 && $course['rating'] < 3)
+                );
             })
-            ->take(5)
+            ->sortBy('completion_rate')
             ->values()
             ->toArray();
     }

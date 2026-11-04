@@ -398,3 +398,11 @@
 		width: 100%;
 	}
 }
+
+/* Distanța dintre carduri vine doar din gap: o margine globală pe clasele „…section” se aduna peste el
+   (40px între „Aspect” și „Date personale”, 16px între celelalte). */
+.student-settings-grid > *,
+.student-settings-rail > * {
+	margin-top: 0;
+	margin-bottom: 0;
+}

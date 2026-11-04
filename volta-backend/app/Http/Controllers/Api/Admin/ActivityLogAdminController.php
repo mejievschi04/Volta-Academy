@@ -61,12 +61,12 @@ class ActivityLogAdminController extends Controller
         // Apply filters
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('action', 'like', "%{$search}%")
+                $q->whereContainsText('description', $search)
+                  ->orWhereContainsText('action', $search)
                   ->orWhereIn('user_id', User::query()
                       ->select('id')
-                      ->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%"));
+                      ->whereContainsText('name', $search)
+                      ->orWhereContainsText('email', $search));
             });
         }
 

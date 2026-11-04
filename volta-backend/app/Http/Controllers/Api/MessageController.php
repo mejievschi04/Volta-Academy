@@ -599,8 +599,8 @@ class MessageController extends Controller
         $users = User::where('id', '!=', $user->id)
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($queryBuilder) use ($query) {
-                    $queryBuilder->where('name', 'like', "%{$query}%")
-                                 ->orWhere('email', 'like', "%{$query}%");
+                    $queryBuilder->whereContainsText('name', $query)
+                                 ->orWhereContainsText('email', $query);
                 });
             })
             ->select('id', 'name', 'email', 'avatar', 'role')
