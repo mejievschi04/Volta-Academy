@@ -3040,3 +3040,120 @@ html body .messages-chat-actions-btn.messages-chat-actions-btn.va-btn-delete.va-
 	color: var(--color-error, #dc2626) !important;
 	fill: currentColor;
 }
+
+/*
+ * Evenimente pe telefon: pastilă de calendar (zi + lună) în stânga, titlu, locație și ora alături,
+ * „Înscrie-te” ca pastilă compactă. Data era îngropată într-un rând cu emoji, iar butonul galben pe toată
+ * lățimea făcea fiecare card de ~200px. Pe desktop pastila și ora scurtă rămân ascunse.
+ */
+.events-card-date,
+.events-card-when-short {
+	display: none;
+}
+
+@media (max-width: 640px) {
+	html body .events-grid {
+		gap: 10px !important;
+	}
+
+	html body .events-grid .events-card.va-card-enhanced {
+		display: grid !important;
+		grid-template-columns: 56px minmax(0, 1fr);
+		align-items: start;
+		gap: 12px;
+		overflow: hidden;
+		padding: 12px !important;
+		border-radius: 14px !important;
+	}
+
+	html body .events-card .events-card-thumbnail,
+	html body .events-card .events-card-text,
+	html body .events-card .events-card-when-full {
+		display: none;
+	}
+
+	html body .events-grid .events-card .events-card-date {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 56px;
+		height: 60px;
+		margin: 0 !important;
+		border-radius: 12px;
+		background: var(--color-primary);
+		color: #111827;
+		line-height: 1;
+	}
+
+	/* tema întunecată pune fundal închis pe span-uri: în pastila galbenă ieșeau blocuri negre */
+	html body .events-grid .events-card .events-card-date > span {
+		background: transparent !important;
+		color: #111827 !important;
+	}
+
+	html body .events-card-date-day {
+		font-size: 1.4rem;
+		font-weight: 800;
+	}
+
+	html body .events-card-date-month {
+		margin-top: 3px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	html body .events-grid .events-card .events-card-body {
+		display: flex;
+		flex-direction: column;
+		gap: 4px !important;
+		min-width: 0;
+		padding: 0 !important;
+	}
+
+	html body .events-card-title {
+		margin: 0 !important;
+		font-size: 0.95rem !important;
+		line-height: 1.3 !important;
+		text-align: left !important;
+	}
+
+	html body .events-card-meta {
+		gap: 2px !important;
+		margin: 0 !important;
+	}
+
+	html body .events-card-meta-row {
+		gap: 6px !important;
+		color: var(--text-secondary);
+		font-size: 0.8rem !important;
+	}
+
+	html body .events-card .events-card-when-short {
+		display: inline;
+	}
+
+	html body .events-grid .events-card .events-card-actions {
+		display: flex !important;
+		flex-direction: row !important;
+		flex-wrap: wrap;
+		align-items: center !important;
+		justify-content: flex-start !important;
+		gap: 8px !important;
+		margin: 6px 0 0 !important;
+		padding: 0 !important;
+		border: 0 !important;
+	}
+
+	html body .events-grid .events-card .events-card-actions > button.lms-btn-primary,
+	html body .events-grid .events-card .events-card-actions > button.lms-btn-secondary {
+		width: auto !important;
+		height: 36px !important;
+		min-height: 36px !important;
+		padding: 0 16px !important;
+		border-radius: 999px !important;
+		font-size: 0.82rem !important;
+	}
+}

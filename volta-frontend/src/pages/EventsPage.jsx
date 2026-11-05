@@ -135,6 +135,18 @@ const EventsPage = () => {
 										}}
 									/>
 								)}
+								{(() => {
+									// pastilă de calendar (zi + lună), folosită pe telefon; pe desktop data rămâne în rândul cu ora
+									const start = parseEventDate(event.start_date);
+									return start ? (
+										<div className="events-card-date" aria-hidden>
+											<span className="events-card-date-day">{start.getDate()}</span>
+											<span className="events-card-date-month">
+												{start.toLocaleDateString('ro-RO', { month: 'short' }).replace('.', '')}
+											</span>
+										</div>
+									) : null;
+								})()}
 								<div className="va-card-body events-card-body">
 									<h3 className="va-card-title events-card-title">{event.title}</h3>
 									{details ? (
@@ -155,8 +167,12 @@ const EventsPage = () => {
 										) : null}
 										<div className="events-card-meta-row">
 											<span className="events-card-meta-icon" aria-hidden>🕐</span>
-											<span>
+											<span className="events-card-when-full">
 												{formatDate(event.start_date)}
+												{event.end_date ? ` – ${formatTime(event.end_date)}` : ''}
+											</span>
+											<span className="events-card-when-short">
+												{formatTime(event.start_date)}
 												{event.end_date ? ` – ${formatTime(event.end_date)}` : ''}
 											</span>
 										</div>
