@@ -22,6 +22,9 @@ export const ThemeProvider = ({ children }) => {
 
 	useLayoutEffect(() => {
 		document.documentElement.setAttribute('data-theme', theme);
+		// bara browserului pe telefon (Android) ia culoarea antetului; altfel rămânea neagră și în modul luminos
+		const meta = document.querySelector('meta[name="theme-color"]');
+		if (meta) meta.setAttribute('content', theme === 'dark' ? '#121212' : '#e2e8f0');
 	}, [theme]);
 
 	const setTheme = useCallback((next) => {

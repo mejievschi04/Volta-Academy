@@ -19,6 +19,7 @@ import {
 	normalizeMultiChoiceIndices,
 } from '../utils/examChoiceQuestions';
 import RichTextHtml from '../components/RichTextHtml';
+import { formatPercent } from '../utils/formatPercent';
 import { toImageUrl } from '../utils/imageUrl';
 
 function asArray(value) {
@@ -460,7 +461,7 @@ const ExamResultsPage = () => {
 									<div id={panelId} className="exam-results-course-body">
 										{group.results.map((result) => {
 											const state = getResultState(result);
-											const percent = Math.round(toNumber(result.percentage));
+											const percent = formatPercent(toNumber(result.percentage));
 											const questions = asArray(result?.exam?.questions);
 											const submittedOnly = Boolean(result?.show_only_submitted_answers);
 											return (
@@ -469,7 +470,7 @@ const ExamResultsPage = () => {
 													<div className={`student-exam-result-header ${state.key}`}>
 														<div className="student-exam-result-icon">{state.key === 'passed' ? '✓' : state.key === 'pending' ? '⏳' : '✗'}</div>
 														<div className="student-exam-result-title">
-															{state.key === 'pending' ? state.label : `${percent}% ${state.label}`}
+															{state.key === 'pending' ? state.label : `${percent} ${state.label}`}
 														</div>
 													</div>
 													<div className="student-exam-result-stats">

@@ -199,6 +199,11 @@ const NotificationsDrawer = ({ open, onClose, variant, apiItems, loading, onLoca
 												<div className="va-notif-drawer-row-text">
 													<div className="va-notif-drawer-row-title">{notif.title}</div>
 													{notif.message ? <div className="va-notif-drawer-row-meta">{notif.message}</div> : null}
+													{notif.created_at ? (
+														<div className="va-notif-drawer-row-time">
+															{new Date(notif.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+														</div>
+													) : null}
 												</div>
 											</>
 										);

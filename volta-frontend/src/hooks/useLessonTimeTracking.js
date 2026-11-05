@@ -26,12 +26,14 @@ export function useLessonTimeTracking(lessonId, { userId, enabled = true }) {
 			return undefined;
 		}
 
-		lessonTickLastRef.current = Date.now();
+		lessonTickLastRef.current = document.visibilityState === 'hidden' ? null : Date.now();
 
 		const flushSeconds = async () => {
 			const now = Date.now();
-			const last = lessonTickLastRef.current ?? now;
-			lessonTickLastRef.current = now;
+			const last = lessonTickLastRef.current;
+			// cronometrul e oprit cât aplicația e în fundal (ecran stins, altă aplicație): nu e timp de studiu
+			if (last == null) return;
+			lessonTickLastRef.current = document.visibilityState === 'hidden' ? null : now;
 			const delta = Math.min(MAX_DELTA_SEC, Math.max(0, Math.round((now - last) / 1000)));
 			if (delta < 1) return;
 			try {
@@ -48,7 +50,11 @@ export function useLessonTimeTracking(lessonId, { userId, enabled = true }) {
 
 		const intervalId = setInterval(flushSeconds, FLUSH_INTERVAL_MS);
 		const onVisibility = () => {
-			if (document.visibilityState === 'hidden') flushSeconds();
+			if (document.visibilityState === 'hidden') {
+				flushSeconds();
+			} else if (lessonTickLastRef.current == null) {
+				lessonTickLastRef.current = Date.now();
+			}
 		};
 		const onPageHide = () => {
 			flushSeconds();

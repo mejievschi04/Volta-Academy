@@ -113,6 +113,22 @@ const LessonsPage = () => {
 					return;
 				}
 			}
+			// toate lecțiile terminate (rămâne doar testul): deschide ultima lecție, unde butonul duce la test,
+			// nu prima (cursantul relua cursul de la început deși mai avea doar testul)
+			const allLessonIds = [
+				...rootLessons.map((lesson) => lesson.id),
+				...modules.flatMap((module) => (module.lessons || []).map((lesson) => lesson.id)),
+			];
+			if (allLessonIds.length > 0 && allLessonIds.every((id) => isLessonMarkedComplete(progress, id))) {
+				const lastId = allLessonIds.find((id) => getNextLessonIdAfter(modules, id, rootLessons) === null);
+				if (lastId != null) {
+					setSelectedLessonId(lastId);
+					loadLesson(lastId);
+					const lastModule = modules.find((module) => module.lessons?.some((lesson) => Number(lesson.id) === Number(lastId)));
+					if (lastModule) setExpandedModules(new Set([lastModule.id]));
+					return;
+				}
+			}
 			const firstRootLesson = rootLessons[0];
 			if (firstRootLesson) {
 				setSelectedLessonId(firstRootLesson.id);
@@ -130,7 +146,7 @@ const LessonsPage = () => {
 				}
 			}
 		}
-	}, [loading, modules, rootLessons, selectedLessonId, progress?.next_lesson]);
+	}, [loading, modules, rootLessons, selectedLessonId, progress]);
 
 	// Expand module containing lesson when loading from URL (?lesson=1)
 	useEffect(() => {

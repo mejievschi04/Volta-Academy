@@ -618,17 +618,18 @@
 	place-content: center;
 }
 
+/* bifat: căsuță plină galbenă cu bifă neagră (bifa galbenă pe alb nu se vedea, contrast ~1,1:1) */
 .student-exam-answer-option input[type="checkbox"]:checked {
-	background: var(--bg-elevated);
-	border-color: var(--border-secondary);
+	background: var(--color-brand-primary);
+	border-color: #111827;
 }
 
 .student-exam-answer-option input[type="checkbox"]:checked::after {
 	content: "";
 	width: 10px;
 	height: 5px;
-	border-left: 2px solid var(--color-brand-primary);
-	border-bottom: 2px solid var(--color-brand-primary);
+	border-left: 2px solid #111827;
+	border-bottom: 2px solid #111827;
 	transform: rotate(-45deg) translateY(-1px);
 }
 
@@ -2810,8 +2811,9 @@ body.sidebar-expanded .messages-page {
 	background: unset;
 }
 
+/* fundalul stă doar pe bulă (rotunjită); pe containerul pătrat ieșeau colțuri galbene drepte */
 [data-theme="light"] .messages-message.own {
-	background-color: var(--color-primary);
+	background-color: transparent;
 }
 
 [data-theme="light"] .messages-message.own .messages-message-content {
@@ -2976,7 +2978,8 @@ body.sidebar-expanded .messages-page {
 	justify-content: center;
 }
 
-@media (max-width: 480px) {
+/* până la 640px: butoanele una sub alta, pe toată lățimea (la 481–640 „Înapoi” rămânea singur în dreapta) */
+@media (max-width: 640px) {
 	.student-exam-start {
 		/* 16px până la marginea ecranului: cardul atingea marginile telefonului */
 		width: calc(100% - 32px);
@@ -2991,4 +2994,49 @@ body.sidebar-expanded .messages-page {
 	.student-exam-start-actions .student-exam-btn {
 		width: 100%;
 	}
+}
+
+/* Rezultat pe mobil: întrebarea deschisă apare întreagă în corp, deci nu o mai repetăm în antet */
+.student-exam-feedback-item--collapsible[open] .student-exam-feedback-item-preview {
+	display: none;
+}
+
+/* Statisticile rezultatului pe mobil (2 coloane): un card rămas singur pe rând (ex. doar „Scor”) ocupă toată lățimea */
+@media (max-width: 768px) {
+	.student-exam-page--mobile .student-exam-result-stats > .student-exam-result-stat:last-child:nth-child(odd) {
+		grid-column: 1 / -1;
+	}
+}
+
+/* Potrivire: varianta aleasă lungă se termină cu „…” în loc să fie tăiată brusc */
+.student-exam-matching-select {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+	max-width: 100%;
+}
+
+/* Ștergerea conversației: acțiune rară, deci buton discret (iconiță roșie), nu cerc roșu plin cel mai
+   vizibil din antet. Regula globală (control-system.css) are !important și specificitate (0,3,2), de aici selectorul lung. */
+html body .messages-chat-actions-btn.messages-chat-actions-btn.va-btn-delete.va-btn-danger {
+	width: 40px;
+	height: 40px;
+	min-height: 40px !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border: 1px solid transparent !important;
+	color: var(--color-error, #dc2626) !important;
+	box-shadow: none !important;
+	border-radius: var(--radius-lg) !important;
+}
+
+html body .messages-chat-actions-btn.messages-chat-actions-btn.va-btn-delete.va-btn-danger:hover:not(:disabled),
+html body .messages-chat-actions-btn.messages-chat-actions-btn.va-btn-delete.va-btn-danger:focus-visible {
+	background: color-mix(in srgb, var(--color-error, #dc2626) 10%, transparent) !important;
+	border-color: color-mix(in srgb, var(--color-error, #dc2626) 35%, transparent) !important;
+}
+
+html body .messages-chat-actions-btn.messages-chat-actions-btn.va-btn-delete.va-btn-danger svg {
+	color: var(--color-error, #dc2626) !important;
+	fill: currentColor;
 }

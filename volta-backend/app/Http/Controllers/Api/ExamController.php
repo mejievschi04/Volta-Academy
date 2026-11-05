@@ -1449,15 +1449,19 @@ class ExamController extends Controller
 
         $resolved = $this->resolveExamShowModel((int) $examId, $courseId, $request->query('kind'));
 
-        if ($resolved['test']) {
-            return $this->submitTest($request, $resolved['test'], $user, $courseId);
+        if (! $resolved['test'] && ! $resolved['exam']) {
+            return response()->json(['message' => 'Examen negăsit'], 404);
         }
 
-        if ($resolved['exam']) {
-            return $this->submitExam($request, $resolved['exam'], $user);
-        }
+        $response = $resolved['test']
+            ? $this->submitTest($request, $resolved['test'], $user, $courseId)
+            : $this->submitExam($request, $resolved['exam'], $user);
 
-        return response()->json(['message' => 'Examen negăsit'], 404);
+        // rezultatul poate termina cursul: profilul (și contoarele din „Cursuri”) stătea vechi până la 5 minute
+        \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+        \Illuminate\Support\Facades\Cache::forget("dashboard_user_{$user->id}_stats");
+
+        return $response;
     }
 
     /**

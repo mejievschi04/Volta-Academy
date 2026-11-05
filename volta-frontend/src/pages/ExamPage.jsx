@@ -540,7 +540,8 @@ const ExamPage = () => {
 	const needsManualReview = Boolean(result?.needs_manual_review || result?.status === 'pending_review');
 	const showsPartialManualReview = Boolean(needsManualReview && exam?.manual_review_mode === 'partial');
 	const allowedAttempts = exam?.allowed_attempts ?? exam?.max_attempts;
-	const resultPercent = result?.percentage == null ? null : Math.round(Number(result.percentage));
+	// procent exact, ca pragul (37,5%, nu 38%): rotunjit putea arăta 75% „Nepromovat” la pragul de 75%
+	const resultPercent = result?.percentage == null ? null : formatPercent(result.percentage);
 	const isSequentialNavigation = !submitted;
 	const showOnlySubmittedAnswers = Boolean(exam?.show_only_submitted_answers);
 	const canShowInstantResults = Boolean(submitted && result && (!needsManualReview || showsPartialManualReview));
@@ -686,8 +687,9 @@ const ExamPage = () => {
 			? (hasOptions || isStructured ? 'Răspuns trimis' : 'Tip fără opțiuni')
 			: (isCorrect ? '✓ Corect' : '✗ Incorect');
 		const feedbackToneClass = isCorrect === null ? 'submitted' : (isCorrect ? 'correct' : 'incorrect');
-		const questionPreview =
-			typeof q.text === 'string' && q.text.length > 80 ? `${q.text.slice(0, 80)}…` : q.text;
+		// rezumatul din antet e text simplu (întrebarea poate fi HTML din editor)
+		const questionPlain = typeof q.text === 'string' ? q.text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim() : '';
+		const questionPreview = questionPlain.length > 80 ? `${questionPlain.slice(0, 80)}…` : questionPlain;
 
 		const feedbackBody = (
 			<>
@@ -949,7 +951,7 @@ const ExamPage = () => {
 						<div className="student-exam-result-title">
 							{needsManualReview
 								? 'În curs de corectare'
-								: `${resultPercent}% ${result.passed ? 'Promovat' : 'Nepromovat'}`}
+								: `${resultPercent} ${result.passed ? 'Promovat' : 'Nepromovat'}`}
 						</div>
 						{needsManualReview ? (
 							<div className="student-exam-result-subtitle">

@@ -1,7 +1,7 @@
 import { setVoltCapabilities } from '../utils/voltAvailability';
 import { AuthContext } from './AuthContextShared.js';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { ensureApiCsrfCookie } from '../api';
+import { clearApiCache, ensureApiCsrfCookie, resetSessionExpiredNotice } from '../api';
 import { authService } from '../services/api';
 
 
@@ -109,9 +109,23 @@ export const AuthProvider = ({ children }) => {
 		};
 	}, [checkAuth]);
 
+	// sesiune expirată (401 pe orice cerere): golim utilizatorul, iar rutele protejate duc la /login
+	useEffect(() => {
+		const onExpired = () => {
+			authCheckId.current += 1;
+			clearApiCache();
+			setVoltCapabilities(null);
+			setRawUser(null);
+			setLoading(false);
+		};
+		window.addEventListener('volta:session-expired', onExpired);
+		return () => window.removeEventListener('volta:session-expired', onExpired);
+	}, []);
+
 	const login = async (email, password) => {
 		authCheckId.current += 1;
 		const data = await authService.login(email, password);
+		resetSessionExpiredNotice();
 		setVoltCapabilities(data.user?.capabilities);
 		setRawUser(data.user);
 		setLoading(false);

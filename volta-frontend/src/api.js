@@ -138,6 +138,13 @@ api.interceptors.request.use(
   }
 );
 
+let sessionExpiredAnnounced = false;
+
+/** După o autentificare reușită, o nouă expirare se anunță din nou. */
+export function resetSessionExpiredNotice() {
+  sessionExpiredAnnounced = false;
+}
+
 // Interceptor pentru răspunsuri
 api.interceptors.response.use(
   (response) => {
@@ -172,6 +179,24 @@ api.interceptors.response.use(
     }
 
     const isAuthMe401 = error.response?.status === 401 && error.config?.url === '/auth/me';
+
+    // Sesiune expirată (ex. peste noapte): fără asta paginile rămâneau deschise cu „Unauthenticated.”.
+    // Anunțăm o singură dată; AuthContext golește utilizatorul, iar rutele protejate duc la /login.
+    if (
+      error.response?.status === 401
+      && !isAuthMe401
+      && !/\/(auth\/)?(login|register|logout)\b|csrf-cookie/.test(String(url))
+      && typeof window !== 'undefined'
+      && !sessionExpiredAnnounced
+    ) {
+      sessionExpiredAnnounced = true;
+      try {
+        apiErrorNotifier?.('Sesiunea a expirat. Autentifică-te din nou.', 'warning', 6000);
+      } catch {
+        /* fără toast */
+      }
+      window.dispatchEvent(new CustomEvent('volta:session-expired'));
+    }
     const status = error.response?.status;
     const is5xx = status >= 500 && status < 600;
     const isNetwork = error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
