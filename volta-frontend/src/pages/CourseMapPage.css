@@ -793,3 +793,53 @@ html body .course-map-page-header :is(.course-map-page-back, .course-map-page-he
 	outline: 2px solid #0f172a;
 	outline-offset: 2px;
 }
+
+/* Cursant pe telefon: antetul mapei pe un singur rând (săgeată + titlu), ~64px în loc de ~127px.
+   Butonul păstrează aria-label; eticheta „Înapoi” se ascunde doar vizual. */
+@media (max-width: 640px) {
+	.course-map-page--student .course-map-page-header {
+		padding: 10px 12px !important;
+	}
+
+	.course-map-page--student .course-map-page-header-top {
+		flex-direction: row !important;
+		align-items: center !important;
+		gap: 10px !important;
+	}
+
+	.course-map-page--student .course-map-page-back {
+		flex-shrink: 0;
+		justify-content: center;
+		width: 40px !important;
+		min-width: 40px !important;
+		height: 40px !important;
+		min-height: 40px !important;
+		padding: 0 !important;
+		border-radius: 999px !important;
+	}
+
+	.course-map-page--student .course-map-page-back-label {
+		display: none !important;
+	}
+
+	.course-map-page--student .course-map-page-title-block {
+		flex: 1;
+		min-width: 0;
+		text-align: left !important;
+	}
+
+	.course-map-page--student .course-map-page-title-row {
+		justify-content: flex-start !important;
+	}
+
+	.course-map-page--student .course-map-page-title {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
+		margin: 0 !important;
+		font-size: 1.25rem !important;
+		line-height: 1.2 !important;
+		text-align: left !important;
+	}
+}

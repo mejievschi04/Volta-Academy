@@ -1019,3 +1019,79 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 		grid-template-columns: 1fr;
 	}
 }
+
+/* Cursant pe telefon: „Continuă” și filtrele mai compacte, ca mapele să apară mai sus pe ecran.
+   Filtrele devin pastile pe un rând („64 Toate”), nu cifră deasupra etichetei. */
+@media (max-width: 640px) {
+	.courses-page-resume {
+		gap: 10px !important;
+		padding: 14px 16px !important;
+	}
+
+	.courses-page-resume-copy {
+		gap: 2px !important;
+	}
+
+	.courses-page-resume-kicker {
+		margin: 0 !important;
+		font-size: 0.7rem !important;
+	}
+
+	.courses-page-resume-title {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
+		margin: 2px 0 !important;
+		font-size: 1.05rem !important;
+		line-height: 1.25 !important;
+	}
+
+	.courses-page-resume-meta,
+	.courses-page-resume-lesson {
+		overflow: hidden;
+		margin: 0 !important;
+		font-size: 0.82rem !important;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.courses-page-resume .courses-page-btn {
+		align-self: stretch !important;
+		width: 100% !important;
+		max-width: none !important;
+		height: 44px !important;
+		min-height: 44px !important;
+	}
+
+	.courses-page-student-filters {
+		gap: 8px !important;
+	}
+
+	.courses-page-student-filter {
+		flex-direction: row !important;
+		align-items: center !important;
+		justify-content: center !important;
+		gap: 6px !important;
+		height: 44px !important;
+		min-height: 44px !important;
+		padding: 0 10px !important;
+	}
+
+	.courses-page-student-filter > span {
+		flex: none !important;
+		width: auto !important;
+		min-width: 0 !important;
+		text-align: left !important;
+	}
+
+	.courses-page-student-filter-count,
+	.courses-page-student-filter-label {
+		font-size: 0.85rem !important;
+		line-height: 1 !important;
+	}
+
+	.courses-page-student-filter-count {
+		font-weight: 800 !important;
+	}
+}
