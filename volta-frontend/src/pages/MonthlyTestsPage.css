@@ -202,3 +202,10 @@
 	font-weight: 700;
 	line-height: 1;
 }
+
+/* Pe telefon cardul e pe toată lățimea: 16/7 tăia mult din copertă (sus/jos); 16/9 e formatul copertelor. */
+@media (max-width: 640px) {
+	.monthly-tests-tile-cover {
+		aspect-ratio: 16 / 9;
+	}
+}

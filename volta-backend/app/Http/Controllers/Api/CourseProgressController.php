@@ -573,6 +573,19 @@ class CourseProgressController extends Controller
             $payload
         );
 
+        // prima activitate într-o lecție marchează cursul început: profilul spunea „Nu ai deschis încă
+        // acest curs” până la primul procent de progres, deși cursantul citea deja
+        if (SchemaCache::hasColumn('course_user', 'started_at')) {
+            $marked = DB::table('course_user')
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->whereNull('started_at')
+                ->update(['started_at' => $now]);
+            if ($marked > 0) {
+                \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
+            }
+        }
+
         // Timpul de învățare intră și în statistici (ore pe perioadă, grafic pe ore) din aceeași cerere;
         // înainte frontend-ul trimitea separat /telemetry/events la fiecare tick.
         $addedSeconds = (int) ($validated['add_time_spent_seconds'] ?? 0);

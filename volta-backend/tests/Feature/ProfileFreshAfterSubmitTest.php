@@ -41,4 +41,20 @@ class ProfileFreshAfterSubmitTest extends TestCase
         $after = collect($this->getJson('/api/profile')->assertOk()->json('coursesAssigned'))->firstWhere('id', $course->id);
         $this->assertSame('passed', $after['tests'][0]['status']);
     }
+
+    public function test_first_lesson_activity_marks_the_course_started(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = Course::factory()->published()->create(['workflow_status' => 'published']);
+        DB::table('course_user')->insert(['user_id' => $student->id, 'course_id' => $course->id, 'enrolled' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $lesson = \App\Models\Lesson::create(['course_id' => $course->id, 'title' => 'L1', 'order' => 1, 'status' => 'published', 'content' => '<p>text</p>']);
+
+        $this->actingAs($student, 'sanctum');
+        $status = fn () => collect($this->getJson('/api/profile')->assertOk()->json('coursesAssigned'))->firstWhere('id', $course->id)['status'];
+        $this->assertSame('not_accessed', $status());
+
+        $this->putJson("/api/lessons/{$lesson->id}/progress", ['add_time_spent_seconds' => 5])->assertOk();
+
+        $this->assertSame('in_progress', $status());
+    }
 }

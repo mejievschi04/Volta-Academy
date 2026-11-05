@@ -53,14 +53,18 @@ function sortableCourseId(courseId) {
 	return `course-map-page-course-${courseId}`;
 }
 
-function courseMapCourseSubtitle(course, fmtDur) {
+function courseMapCourseSubtitle(course, fmtDur, { staff = false } = {}) {
 	const dur = fmtDur(course.estimated_duration_minutes);
 	const prog = course.progress_percentage ?? 0;
 	const parts = [];
 	if (dur && dur !== '—') parts.push(dur);
+	// personalul nu parcurge cursurile: progresul lui nu spune nimic despre curs
+	if (staff) return parts.join(' · ') || null;
 	if (Number(prog) >= 100) parts.push('Finalizat');
 	else if (Number(prog) > 0) parts.push(`Progres ${courseProgressLabel(prog)}`);
-	return parts.join(' · ') || 'Curs';
+	// fără progres: starea spune mai mult decât eticheta generică „Curs”
+	else parts.push('Neînceput');
+	return parts.join(' · ');
 }
 
 function CourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {
@@ -115,8 +119,8 @@ function SortableCourseMapCourseCard({
 			<CourseShowcaseCard
 				imageUrl={imageUrl}
 				title={course.title}
-				subtitle={courseMapCourseSubtitle(course, fmtDur)}
-				progress={course.progress_percentage ?? 0}
+				subtitle={courseMapCourseSubtitle(course, fmtDur, { staff: true })}
+				progress={null}
 				themeHsl={themeHsl}
 				showAccentRibbon
 				onOpen={() => onNavigateCourse(course.id)}
