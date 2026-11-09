@@ -378,9 +378,11 @@ a:hover {
 		--transition-smooth: 0ms;
 	}
 
-	*,
-	*::before,
-	*::after {
+	/* Fără animații pe telefon, în afară de ecranele de încărcare (acolo animația arată că aplicația lucrează).
+	   :where păstrează specificitatea zero, ca excepțiile de mai jos să rămână valabile. */
+	:where(:not(.va-loader, .va-loader *, .splash-page, .splash-page *)),
+	:where(:not(.va-loader, .va-loader *, .splash-page, .splash-page *))::before,
+	:where(:not(.va-loader, .va-loader *, .splash-page, .splash-page *))::after {
 		animation: none !important;
 		transition: none !important;
 		backdrop-filter: none !important;

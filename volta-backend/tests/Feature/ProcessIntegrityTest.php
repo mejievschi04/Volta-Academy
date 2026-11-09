@@ -76,6 +76,25 @@ class ProcessIntegrityTest extends TestCase
         $this->assertArrayNotHasKey('correct_answer_indices', $review ?? []);
     }
 
+    public function test_reopened_result_keeps_question_correctness_without_revealing_solutions(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $test = Test::factory()->published()->create([
+            'show_correct_answers' => false, 'randomize_answers' => false, 'randomize_questions' => false,
+        ]);
+        $q = Question::factory()->create([
+            'test_id' => $test->id, 'type' => 'multiple_choice',
+            'answers' => [['text' => 'Corect', 'is_correct' => true], ['text' => 'Greșit', 'is_correct' => false]],
+        ]);
+        $this->actingAs($student, 'sanctum')->getJson("/api/exams/{$test->id}?start=1")->assertOk();
+        $this->postJson("/api/exams/{$test->id}/submit", ['answers' => [$q->id => [0]]])->assertOk();
+
+        $reopened = $this->getJson("/api/exams/{$test->id}")->assertOk()->json('questions.0');
+
+        $this->assertTrue($reopened['is_correct']);
+        $this->assertArrayNotHasKey('correct_answer_indices', $reopened);
+    }
+
     public function test_submission_after_time_limit_is_rejected(): void
     {
         $student = User::factory()->create(['role' => 'student']);

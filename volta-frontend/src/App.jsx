@@ -9,6 +9,7 @@ import AdminRoute from './components/AdminRoute';
 import UserRoute from './components/UserRoute';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import LoadingOverlay from './components/LoadingOverlay';
+import AppLoader from './components/AppLoader';
 const SplashScreen = lazy(() => import('./components/SplashScreen'));
 import GlobalSearch from './components/GlobalSearch';
 import { isVoltEnabled } from './utils/voltAvailability';
@@ -128,7 +129,7 @@ const GuidesPage = lazy(() => import('./pages/GuidesPage'));
 // Loading component (post-login: no full-screen overlay)
 const PageLoader = () => (
 	<div className="va-main" style={{ display: 'grid', placeItems: 'center', minHeight: '40vh' }}>
-		<p>Se încarcă...</p>
+		<AppLoader />
 	</div>
 );
 
@@ -161,11 +162,7 @@ function Layout({ children }) {
 	
 	if (!authContext) {
 		// Context not available yet, show loading
-		return (
-			<div className="va-main" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
-				<p>Se încarcă...</p>
-			</div>
-		);
+		return <AppLoader screen />;
 	}
 	return <AuthenticatedLayout authContext={authContext}>{children}</AuthenticatedLayout>;
 }
@@ -780,15 +777,8 @@ function AuthenticatedLayout({ children, authContext }) {
 				onReady={() => setAdminChromePaintReady(true)}
 			/>
 			{requiresAdminChromePaintHold && !adminChromePaintReady && (
-				<div
-					className="va-admin-chrome-loading-overlay"
-					role="status"
-					aria-live="polite"
-					aria-busy="true"
-					aria-label="Se încarcă interfața"
-				>
-					<div className="va-spinner va-spinner-lg" aria-hidden />
-					<p className="va-admin-chrome-loading-text">Se încarcă interfața…</p>
+				<div className="va-admin-chrome-loading-overlay">
+					<AppLoader label="Se încarcă interfața" />
 				</div>
 			)}
 			{mustChangePassword && (
@@ -2010,7 +2000,7 @@ function SplashEntry() {
 	const appReady = !loading && prefetchDone;
 
 	return (
-		<Suspense fallback={<PageLoader />}><SplashScreen
+		<Suspense fallback={<div className="splash-page" />}><SplashScreen
 			onStart={() => navigate('/login', { replace: true })}
 			appReady={appReady}
 		/></Suspense>

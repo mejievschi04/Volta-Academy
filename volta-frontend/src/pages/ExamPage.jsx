@@ -81,6 +81,16 @@ function normalizeAnswersFromApi(raw, questions) {
 	return next;
 }
 
+/** Serverul nu a trimis soluția: răspunsul nu poate fi notat corect/greșit în interfață. */
+function questionSolutionsHidden(question) {
+	if (!question) return false;
+	if (question.type === 'matching') return !question.matching?.correctMap;
+	if (question.type === 'image_matching') return !question.imageMatching?.correctMap;
+	if (question.type === 'ordering') return !question.ordering?.correctOrder;
+	return Array.isArray(question.options) && question.options.length > 0
+		&& getCorrectChoiceIndices(question).length === 0;
+}
+
 const ExamPage = () => {
 	const params = useParams();
 	const courseId = params.courseId ?? null;
@@ -583,7 +593,7 @@ const ExamPage = () => {
 			if (typeof question?.is_correct === 'boolean') {
 				return question.is_correct ? 'completed' : 'incorrect';
 			}
-			if (showOnlySubmittedAnswers) {
+			if (showOnlySubmittedAnswers || questionSolutionsHidden(question)) {
 				const isAnswered = question
 					? isChoiceAnswered(question, visibleAnswers[questionId])
 					: visibleAnswers[questionId] !== undefined;
@@ -680,7 +690,7 @@ const ExamPage = () => {
 		const isStructured = Boolean(hasMatching || hasImageMatching || hasOrdering);
 		const isCorrect = typeof q.is_correct === 'boolean'
 			? q.is_correct
-			: (showOnlySubmittedAnswers ? null : isQuestionCorrect(q, userAnswer));
+			: ((showOnlySubmittedAnswers || questionSolutionsHidden(q)) ? null : isQuestionCorrect(q, userAnswer));
 		const matchingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
 		const orderingUserValues = Array.isArray(userAnswer) ? userAnswer : [];
 		const statusLabel = isCorrect === null

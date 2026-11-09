@@ -9,6 +9,8 @@
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'light');
         }
+        // Pe „/” urmează ecranul de start închis la culoare; primul loader îl anticipează, ca să nu clipească alb.
+        if (location.pathname === '/') document.documentElement.setAttribute('data-boot', 'splash');
       })();
     </script>
     <meta charset="UTF-8" />
@@ -21,9 +23,113 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     <title>Volta Academy</title>
+    <style>
+      /* Loader-ul de brand (AppLoader.jsx). Stă aici ca să fie vizibil înainte să se încarce JS și CSS. */
+      :root {
+        --va-loader-bg: rgb(248, 250, 252);
+        --va-loader-text: rgb(71, 85, 105);
+        --va-loader-ring: rgba(17, 24, 39, 0.3);
+        --va-loader-tile-border: transparent;
+      }
+      :root[data-theme='dark'] {
+        --va-loader-bg: rgb(15, 23, 42);
+        --va-loader-text: rgb(203, 213, 225);
+        --va-loader-ring: rgba(255, 238, 0, 0.45);
+        --va-loader-tile-border: rgba(255, 255, 255, 0.1);
+      }
+      .va-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        animation: va-loader-in 240ms ease-out 180ms both;
+      }
+      .va-loader--screen {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        background: var(--va-loader-bg);
+        animation: none;
+      }
+      :root[data-boot='splash'] .va-loader--screen {
+        --va-loader-bg: rgb(17, 24, 39);
+        --va-loader-text: rgb(203, 213, 225);
+        --va-loader-ring: rgba(255, 238, 0, 0.45);
+        --va-loader-tile-border: rgba(255, 255, 255, 0.1);
+      }
+      .va-loader__tile {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 76px;
+        border: 1px solid var(--va-loader-tile-border);
+        border-radius: 20px;
+        background: rgb(17, 24, 39);
+      }
+      .va-loader__tile::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border: 2px solid var(--va-loader-ring);
+        border-radius: inherit;
+        opacity: 0;
+        animation: va-loader-ring 1.6s ease-out infinite;
+      }
+      .va-loader__mark {
+        position: relative;
+        overflow: hidden;
+        width: 34px;
+        height: 40px;
+        background: rgba(255, 238, 0, 0.18);
+        /* conturul logo-ului Volta */
+        clip-path: polygon(50% 0, 100% 42.4%, 100% 100%, 50% 57.2%, 0 100%, 0 42.4%);
+      }
+      .va-loader__charge {
+        position: absolute;
+        inset: 0;
+        background: #ffee00;
+        animation: va-loader-charge 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      .va-loader .va-loader__label {
+        margin: 0;
+        color: var(--va-loader-text);
+        font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+      @keyframes va-loader-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes va-loader-charge {
+        0% { opacity: 1; transform: translateY(100%); }
+        60%, 82% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(0); }
+      }
+      @keyframes va-loader-ring {
+        0%, 58% { opacity: 0; transform: scale(1); }
+        62% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.32); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .va-loader { animation: none; }
+        .va-loader__tile::after { animation: none; }
+        .va-loader__charge { animation: none; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="va-loader va-loader--screen" role="status" aria-live="polite">
+        <div class="va-loader__tile" aria-hidden="true">
+          <div class="va-loader__mark"><span class="va-loader__charge"></span></div>
+        </div>
+        <p class="va-loader__label">Se încarcă</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

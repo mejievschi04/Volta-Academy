@@ -1002,10 +1002,10 @@ class ExamController extends Controller
             }
         }
 
-        $submittedOnly = (bool) ($test->show_only_submitted_answers ?? false);
         $showSolutions = $viewingCompleted && $this->shouldRevealExamSolutions($test);
         $storedAnswers = is_array($latestResult?->answers) ? $latestResult->answers : [];
-        $fullWire = ($showSolutions || ($viewingCompleted && $submittedOnly))
+        // Rezultatul redeschis primește aceeași corectitudine pe întrebare ca ecranul de după trimitere.
+        $fullWire = $viewingCompleted
             ? $questions->map(fn ($question) => $this->buildReviewQuestionWire(
                 $test, $question, $user, $attemptNumberForSeed, $storedAnswers
             ))

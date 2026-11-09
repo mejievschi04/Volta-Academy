@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContextShared.js';
 import { isStaffAdminRole } from '../constants/staffRoles';
+import AppLoader from './AppLoader';
 
 const INSTRUCTOR_BLOCKED_PREFIXES = [
 	'/admin/events',
@@ -33,7 +34,7 @@ const AdminRoute = ({ children }) => {
 	const location = useLocation();
 
 	if (loading) {
-		return null;
+		return <AppLoader screen />;
 	}
 
 	if (!user) {

@@ -190,6 +190,8 @@ const CoursesPage = () => {
 		return rows;
 	}, [assignedCourses, completedCourseRows, studentFilter, searchQuery]);
 
+	const allCoursesCompleted = !isAdmin && completedCourseRows.length > 0;
+
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
 			// toate cursurile atribuite: nefinalizate + finalizate (cele două liste nu se suprapun)
@@ -486,12 +488,16 @@ const CoursesPage = () => {
 										<Books size={64} weight="duotone" aria-hidden />
 									</div>
 									<h3 className="courses-page-empty-title">
-										{searchQuery ? 'Nu am găsit mape' : 'Nu există mape disponibile'}
+										{searchQuery
+											? 'Nu am găsit mape'
+											: allCoursesCompleted ? 'Ai finalizat toate cursurile' : 'Nu există mape disponibile'}
 									</h3>
 									<p className="courses-page-empty-text">
 										{searchQuery
 											? 'Încearcă un alt termen de căutare.'
-											: 'Cursurile atribuite apar în mape; cele care nu sunt în nicio mapă apar direct aici.'}
+											: allCoursesCompleted
+												? 'Cursurile terminate le găsești oricând la Finalizate.'
+												: 'Cursurile atribuite apar în mape; cele care nu sunt în nicio mapă apar direct aici.'}
 									</p>
 									{searchQuery ? (
 										<button
@@ -499,6 +505,13 @@ const CoursesPage = () => {
 											onClick={() => setSearchQuery('')}
 										>
 											Golește căutarea
+										</button>
+									) : allCoursesCompleted ? (
+										<button
+											className="courses-page-btn lms-btn-primary courses-page-btn-primary"
+											onClick={() => setStudentFilter('completed')}
+										>
+											Vezi cursurile finalizate
 										</button>
 									) : (
 										isAdmin && (

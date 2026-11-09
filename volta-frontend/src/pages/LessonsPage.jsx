@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
+	ArrowDown,
 	ArrowLeft,
 	ArrowRight,
 	CaretDown,
@@ -36,6 +37,7 @@ import '../components/admin/lessons/video/LessonVideo.css';
 import '../components/admin/lessons/image/LessonImageContent.css';
 import { logger } from '../utils/logger';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { useLessonBarsHidden } from '../hooks/useLessonBarsHidden.js';
 
 const renderTestStatusIcon = (passed, locked = false) => {
 	if (passed) return <Check size={14} weight="bold" aria-hidden />;
@@ -201,6 +203,13 @@ const LessonsPage = () => {
 		enabled: lessonReadyForTracking && !loading,
 	});
 	const canAdvanceLesson = reachedEnd;
+	const barsHidden = useLessonBarsHidden(contentRef, selectedLessonId, lessonReadyForTracking && !loading);
+	const readFirstLabel = (
+		<>
+			<ArrowDown size={20} weight="bold" aria-hidden />
+			<span>Derulează</span>
+		</>
+	);
 
 	const fetchCourseData = async () => {
 		try {
@@ -814,7 +823,7 @@ const LessonsPage = () => {
 			{/* Main Content - Lesson Viewer */}
 			<main className="lessons-page-main-content">
 				{/* Mobil: cuprinsul + poziția în curs, lipite sub bara de sus */}
-				<div className="lessons-page-context-bar">
+				<div className={`lessons-page-context-bar${barsHidden ? ' is-scroll-hidden' : ''}`}>
 					<button
 						type="button"
 						className="lessons-page-sidebar-toggle"
@@ -827,19 +836,19 @@ const LessonsPage = () => {
 					{lessonPosition ? (
 						<div className="lessons-page-context-progress">
 							<span className="lessons-page-context-progress-label">
-								Lecția {lessonPosition.index} din {lessonPosition.total}
+								Lecția {lessonPosition.index} din {lessonPosition.total} · {courseProgressLabel(progress?.progress_percentage)}
 							</span>
 							<div
 								className="lessons-page-context-progress-track"
 								role="progressbar"
-								aria-label="Poziția în curs"
-								aria-valuemin={1}
-								aria-valuemax={lessonPosition.total}
-								aria-valuenow={lessonPosition.index}
+								aria-label="Progresul cursului"
+								aria-valuemin={0}
+								aria-valuemax={100}
+								aria-valuenow={Math.round(Math.min(100, Math.max(0, Number(progress?.progress_percentage) || 0)))}
 							>
 								<div
 									className="lessons-page-context-progress-fill"
-									style={{ width: `${Math.round((lessonPosition.index / lessonPosition.total) * 100)}%` }}
+									style={{ width: `${Math.min(100, Math.max(0, Number(progress?.progress_percentage) || 0))}%` }}
 								/>
 							</div>
 						</div>
@@ -903,6 +912,7 @@ const LessonsPage = () => {
 							className={[
 								'lessons-page-lesson-actions',
 								hasMultipleLessons ? 'lessons-page-lesson-actions--nav' : '',
+								barsHidden ? 'is-scroll-hidden' : '',
 							]
 								.filter(Boolean)
 								.join(' ')}
@@ -925,9 +935,10 @@ const LessonsPage = () => {
 											type="button"
 											disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
 											title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
+									data-read-first={canAdvanceLesson ? undefined : true}
 											onClick={handleFinalizeCourse}
 										>
-											{finalizingCourse ? (
+											{!canAdvanceLesson && !finalizingCourse ? readFirstLabel : finalizingCourse ? (
 												<span>Se procesează…</span>
 											) : (
 												<>
@@ -942,10 +953,13 @@ const LessonsPage = () => {
 											className="lessons-page-nav-btn lms-btn-primary lessons-page-nav-btn--next"
 											disabled={!hasNextLesson || isCompleting || finalizingCourse || !canAdvanceLesson}
 											onClick={handleNextLesson}
-											aria-label="Lecția următoare"
+											aria-label={canAdvanceLesson ? 'Lecția următoare' : 'Derulează până la finalul lecției'}
 											title={canAdvanceLesson ? 'Lecția următoare' : 'Derulează până la finalul lecției'}
+											data-read-first={canAdvanceLesson ? undefined : true}
 										>
-											<span>Următoarea</span><ArrowRight size={22} weight="bold" aria-hidden />
+											{canAdvanceLesson ? (
+												<><span>Următoarea</span><ArrowRight size={22} weight="bold" aria-hidden /></>
+											) : readFirstLabel}
 										</button>
 									)}
 								</>
@@ -955,9 +969,10 @@ const LessonsPage = () => {
 									type="button"
 									disabled={finalizingCourse || isCompleting || !canAdvanceLesson}
 									title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
+									data-read-first={canAdvanceLesson ? undefined : true}
 									onClick={handleFinalizeCourse}
 								>
-									{finalizingCourse ? (
+									{!canAdvanceLesson && !finalizingCourse ? readFirstLabel : finalizingCourse ? (
 										<span>Se procesează…</span>
 									) : (
 										<>

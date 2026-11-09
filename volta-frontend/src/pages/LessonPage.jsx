@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+	ArrowDown,
 	ArrowLeft,
 	ArrowRight,
 	Books,
@@ -482,9 +483,15 @@ const LessonPage = () => {
 							className="lesson-page-btn lms-btn-primary lesson-page-btn-primary"
 							disabled={finalizingCourse || !canAdvanceLesson}
 							title={canAdvanceLesson ? undefined : 'Derulează până la finalul lecției'}
+							data-read-first={canAdvanceLesson ? undefined : true}
 							onClick={isLastLessonInCourse ? handleFinalizeCourse : handleNext}
 						>
-							{isLastLessonInCourse ? (
+							{!canAdvanceLesson && !finalizingCourse ? (
+								<>
+									<ArrowDown size={18} weight="bold" aria-hidden />
+									<span>Derulează</span>
+								</>
+							) : isLastLessonInCourse ? (
 								finalizingCourse ? (
 									<span>Se procesează…</span>
 								) : (
