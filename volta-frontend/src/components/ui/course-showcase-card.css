@@ -201,19 +201,29 @@
 }
 
 /*
- * Cursant pe telefon: listele de cursuri (filtrele din „Cursuri” și cursurile unei mape) devin listă compactă —
- * miniatură în stânga, titlu pe două rânduri, o linie de stare și bară subțire. Cardul mare (~460px, un curs
- * pe ecran) cerea derulare foarte lungă la zeci de cursuri. Tot cardul rămâne apăsabil.
+ * Cursant pe telefon: cursurile stau câte două pe rând, ca mapele.
+ * Tot cardul rămâne apăsabil.
  * !important: stilurile cardului mare și ale plăcilor de mapă au înălțimi fixe cu !important.
  */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
 	:is(.courses-page-student, .course-map-page--student) :is(.courses-page-maps-grid, .course-map-page-grid):has(.course-showcase-card) {
 		display: grid !important;
-		grid-template-columns: 1fr !important;
-		gap: 10px !important;
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: var(--space-4) var(--space-3) !important;
 	}
 
-	:is(.courses-page-student, .course-map-page--student) :is(.course-map-showcase-tile, .course-map-course-card, .course-showcase-card) {
+	/* text centrat ca sub mape; bara apare abia după ce începe cursul */
+	:is(.courses-page-student, .course-map-page--student) :is(.course-showcase-card__title, .course-showcase-card__subtitle) {
+		text-align: center !important;
+	}
+
+	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__progress[aria-valuenow="0"] {
+		display: none !important;
+	}
+}
+
+@media (max-width: 640px) {
+	:is(.courses-page-student, .course-map-page--student) :is(.course-map-showcase-tile, .course-map-course-card) {
 		width: 100% !important;
 		max-width: none !important;
 		height: auto !important;
@@ -221,33 +231,38 @@
 		max-height: none !important;
 	}
 
-	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__hit {
-		display: grid !important;
-		grid-template-columns: 104px minmax(0, 1fr);
-		align-items: center;
-		gap: 12px;
-		padding: 10px !important;
-		height: auto !important;
+	/* înălțime 100%: cele două carduri de pe un rând sunt egale, indiferent cât text au */
+	:is(.courses-page-student, .course-map-page--student) .course-showcase-card {
+		--csc-radius: 12px;
+		width: 100% !important;
+		max-width: none !important;
+		height: 100% !important;
 		min-height: 0 !important;
 		max-height: none !important;
 	}
 
+	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__hit {
+		gap: 0 !important;
+		height: 100% !important;
+		min-height: 0 !important;
+		max-height: none !important;
+		padding: 0 !important;
+	}
+
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__media {
-		width: 104px !important;
-		height: 72px !important;
-		aspect-ratio: auto !important;
+		width: 100% !important;
+		height: auto !important;
+		aspect-ratio: 16 / 10 !important;
 		margin: 0 !important;
-		border-radius: 10px;
-		overflow: hidden;
 	}
 
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__inner {
 		display: flex;
+		flex: 1 1 auto;
 		flex-direction: column;
-		justify-content: center;
 		gap: 4px !important;
 		min-width: 0;
-		padding: 0 !important;
+		padding: 10px 10px 12px !important;
 	}
 
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__title {
@@ -255,21 +270,26 @@
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
 		overflow: hidden;
+		overflow-wrap: anywhere;
 		height: auto !important;
 		min-height: 0 !important;
 		margin: 0 !important;
-		font-size: 0.95rem !important;
+		font-size: 0.9375rem !important;
 		line-height: 1.25 !important;
 	}
 
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__subtitle {
 		min-height: 0 !important;
 		margin: 0 !important;
-		font-size: 0.8rem !important;
+		overflow-wrap: anywhere;
+		font-size: 0.8125rem !important;
+		line-height: 1.3 !important;
 	}
 
+	/* bara stă la baza cardului, aliniată între cele două coloane */
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__progress {
-		margin: 2px 0 0 !important;
+		margin: auto 0 0 !important;
+		padding-top: 6px;
 	}
 
 	:is(.courses-page-student, .course-map-page--student) .course-showcase-card__progress-track {

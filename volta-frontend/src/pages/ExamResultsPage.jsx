@@ -1,9 +1,9 @@
 import '../styles/exam-results-modern.css';
+import EmptyState from '../components/ui/EmptyState';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import TestsSectionTabs from '../components/student/TestsSectionTabs';
 import {
-	ArrowsDownUp,
 	CalendarBlank,
 	CaretDown,
 	CheckCircle,
@@ -404,7 +404,7 @@ const ExamResultsPage = () => {
 						</button>
 					))}
 				</div>
-				<div className="exam-results-button-row exam-results-sort-row" role="group" aria-label="Ordine teste">
+				<div className="exam-results-button-row" role="group" aria-label="Ordine teste">
 					{SORT_FILTERS.map((filter) => (
 						<button
 							key={filter.id}
@@ -417,26 +417,15 @@ const ExamResultsPage = () => {
 						</button>
 					))}
 				</div>
-				<div className="exam-results-search-row">
-					<div className="exam-results-search">
-						<MagnifyingGlass size={18} weight="bold" aria-hidden />
-						<input
-							type="search"
-							value={query}
-							onChange={(event) => setQuery(event.target.value)}
-							placeholder="Caută după test sau curs"
-							aria-label="Caută teste"
-						/>
-					</div>
-					<button
-						type="button"
-						className="exam-results-sort-toggle"
-						onClick={() => setSortBy((current) => (current === 'oldest' ? 'recent' : 'oldest'))}
-						aria-label={`Ordine: ${sortBy === 'oldest' ? 'cele mai vechi' : 'cele mai recente'}. Apasă pentru a schimba.`}
-					>
-						<ArrowsDownUp size={18} weight="bold" aria-hidden />
-						<span>{sortBy === 'oldest' ? 'Vechi' : 'Recente'}</span>
-					</button>
+				<div className="exam-results-search">
+					<MagnifyingGlass size={18} weight="bold" aria-hidden />
+					<input
+						type="search"
+						value={query}
+						onChange={(event) => setQuery(event.target.value)}
+						placeholder="Caută după test sau curs"
+						aria-label="Caută teste"
+					/>
 				</div>
 			</div>
 
@@ -524,18 +513,13 @@ const ExamResultsPage = () => {
 					))}
 				</div>
 			) : (
-				<div className="exam-results-empty">
-					<Eye size={34} weight="duotone" aria-hidden />
-					<div className="exam-results-empty-title">
-						{results.length === 0 ? 'Nu ai rezultate încă' : 'Niciun test pentru filtrele alese'}
-					</div>
-					<div className="exam-results-empty-text">
-						{results.length === 0 ? 'Finalizează un test pentru a vedea scorul aici.' : 'Schimbă filtrul sau căutarea.'}
-					</div>
-					{results.length === 0 && (
-						<Link to="/courses" className="lms-btn-primary">Mergi la cursuri</Link>
-					)}
-				</div>
+				<EmptyState
+					icon={<Eye size={30} weight="bold" />}
+					title={results.length === 0 ? 'Nu ai rezultate încă' : 'Niciun test pentru filtrele alese'}
+					text={results.length === 0 ? 'Finalizează un test pentru a vedea scorul aici.' : 'Schimbă filtrul sau căutarea.'}
+				>
+					{results.length === 0 ? <Link to="/courses" className="lms-btn-primary">Mergi la cursuri</Link> : null}
+				</EmptyState>
 			)}
 		</div>
 	);

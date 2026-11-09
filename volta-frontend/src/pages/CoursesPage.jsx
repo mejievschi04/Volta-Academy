@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
 import { courseMapsService, adminService, coursesService, profileService, dashboardService } from '../services/api';
@@ -20,7 +21,7 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'De făcut', ariaLabel: 'Cursuri de făcut' },
+	{ id: 'maps', label: 'Toate', ariaLabel: 'Cursuri totale' },
 	{ id: 'unfinished', label: 'Nefinalizate', ariaLabel: 'Cursuri nefinalizate' },
 	{ id: 'completed', label: 'Finalizate', ariaLabel: 'Cursuri finalizate', statKey: 'completed' },
 ];
@@ -190,12 +191,10 @@ const CoursesPage = () => {
 		return rows;
 	}, [assignedCourses, completedCourseRows, studentFilter, searchQuery]);
 
-	const allCoursesCompleted = !isAdmin && completedCourseRows.length > 0;
-
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
-			// „De făcut” nu listează cursurile finalizate, deci nici nu le numără
-			return getStudentFilterCount({ id: 'unfinished' });
+			// toate cursurile atribuite: nefinalizate + finalizate (cele două liste nu se suprapun)
+			return getStudentFilterCount({ id: 'unfinished' }) + getStudentFilterCount({ id: 'completed' });
 		}
 		if (filter.id === 'unfinished') {
 			const seen = new Set();
@@ -209,6 +208,9 @@ const CoursesPage = () => {
 		if (filter.id === 'completed') return completedCourseRows.length;
 		return null;
 	};
+
+	const allCoursesCompleted = !isAdmin && completedCourseRows.length > 0
+		&& getStudentFilterCount({ id: 'unfinished' }) === 0;
 
 	const renderAssignedCourseCard = (course, index) => {
 		const status = course.status || studentFilter;
@@ -397,20 +399,16 @@ const CoursesPage = () => {
 							<div className="courses-page-maps-grid">
 								{filteredAssignedCourses.map(renderAssignedCourseCard)}
 								{filteredAssignedCourses.length === 0 ? (
-									<div className="courses-page-empty">
-										<div className="courses-page-empty-icon">
-											<Books size={64} weight="duotone" aria-hidden />
-										</div>
-										<h3 className="courses-page-empty-title">
-											{searchQuery ? 'Nu am găsit cursuri' : 'Niciun curs în această categorie'}
-										</h3>
-										<p className="courses-page-empty-text">
-											{searchQuery
+									<EmptyState
+									className="courses-page-empty"
+									icon={<Books size={30} weight="bold" />}
+									title={searchQuery ? 'Nu am găsit cursuri' : 'Niciun curs în această categorie'}
+									text={searchQuery
 												? 'Încearcă un alt termen de căutare.'
 												: studentFilter === 'unfinished'
 													? 'Cursurile începute sau încă neaccesate vor apărea aici.'
 													: 'Cursurile pe care le finalizezi vor apărea aici.'}
-										</p>
+								>
 										{searchQuery ? (
 											<button
 												className="courses-page-btn courses-page-btn-secondary"
@@ -419,7 +417,7 @@ const CoursesPage = () => {
 												Golește căutarea
 											</button>
 										) : null}
-									</div>
+									</EmptyState>
 								) : null}
 							</div>
 						</section>
@@ -435,8 +433,7 @@ const CoursesPage = () => {
 							) : null}
 							<div className="courses-page-maps-grid">
 							{filteredCourseMaps.map((map, index) => {
-								const accentColor = map.accent_color
-									|| (isAdmin ? COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length] : '#e6d800');
+								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
 								const subtitle = map.description?.trim() ? String(map.description).trim() : null;
 
 								return (
@@ -484,35 +481,24 @@ const CoursesPage = () => {
 								: null}
 
 							{filteredCourseMaps.length === 0 && (isAdmin || filteredStandaloneCourses.length === 0) ? (
-								<div className="courses-page-empty">
-									<div className="courses-page-empty-icon">
-										<Books size={64} weight="duotone" aria-hidden />
-									</div>
-									<h3 className="courses-page-empty-title">
-										{searchQuery
+								<EmptyState
+									className="courses-page-empty"
+									icon={<Books size={30} weight="bold" />}
+									title={searchQuery
 											? 'Nu am găsit mape'
 											: allCoursesCompleted ? 'Ai finalizat toate cursurile' : 'Nu există mape disponibile'}
-									</h3>
-									<p className="courses-page-empty-text">
-										{searchQuery
+									text={searchQuery
 											? 'Încearcă un alt termen de căutare.'
 											: allCoursesCompleted
 												? 'Cursurile terminate le găsești oricând la Finalizate.'
 												: 'Cursurile atribuite apar în mape; cele care nu sunt în nicio mapă apar direct aici.'}
-									</p>
+								>
 									{searchQuery ? (
 										<button
 											className="courses-page-btn courses-page-btn-secondary"
 											onClick={() => setSearchQuery('')}
 										>
 											Golește căutarea
-										</button>
-									) : allCoursesCompleted ? (
-										<button
-											className="courses-page-btn lms-btn-primary courses-page-btn-primary"
-											onClick={() => setStudentFilter('completed')}
-										>
-											Vezi cursurile finalizate
 										</button>
 									) : (
 										isAdmin && (
@@ -525,7 +511,7 @@ const CoursesPage = () => {
 											</button>
 										)
 									)}
-								</div>
+								</EmptyState>
 							) : null}
 						</div>
 						</section>

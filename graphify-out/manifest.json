@@ -36,10 +36,10 @@
     "semantic_hash": "304e50c3f7bc9d323ee05b6ada4b8ba2"
   },
   "scripts/deploy-vps.sh": {
-    "mtime": 1788846597.7575114,
-    "seen": 1790859414.923682,
-    "ast_hash": "e420ce63c16e20e37bf7b6499d8b7c96",
-    "semantic_hash": "e420ce63c16e20e37bf7b6499d8b7c96"
+    "mtime": 1793281133.5580125,
+    "seen": 1793281256.64977,
+    "ast_hash": "0b185fbc1c13878e66e097d54f013454",
+    "semantic_hash": ""
   },
   "scripts/fix-secret-rebase.ps1": {
     "mtime": 1778062990.680298,
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/AchievementController.php": {
-    "mtime": 1790938003.281225,
-    "seen": 1790938125.882096,
-    "ast_hash": "e63f03115027fab46b77c0b13acb3670",
+    "mtime": 1793707908.5212042,
+    "seen": 1793708115.823649,
+    "ast_hash": "4bd556cc5ba45c95ba19066c34435f0b",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/AIExportAdminController.php": {
@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/ActivityLogAdminController.php": {
-    "mtime": 1791182128.5529695,
-    "seen": 1791182447.59844,
-    "ast_hash": "6f5a6068cc546b0a60619eb12894f938",
+    "mtime": 1793799566.0735016,
+    "seen": 1793800297.401336,
+    "ast_hash": "4908dfb522aebc6e11610539f83ff1aa",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/AdminAlertController.php": {
@@ -150,39 +150,39 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/CourseAdminController.php": {
-    "mtime": 1792666439.8105147,
-    "seen": 1792667515.340596,
-    "ast_hash": "954e5941cac08a99eb6bb4e8dea1c1c4",
+    "mtime": 1793801079.1884146,
+    "seen": 1793801175.541074,
+    "ast_hash": "d269bdc613df588c794a1159ffbc7762",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/CourseBuilderController.php": {
-    "mtime": 1792666439.8100126,
-    "seen": 1792667515.340596,
-    "ast_hash": "0089985a6d8cc404074d7701b78b270b",
+    "mtime": 1793711175.806164,
+    "seen": 1793712741.5381498,
+    "ast_hash": "74a789bf2a165926dc2765468e8ab41e",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/CourseMapAdminController.php": {
-    "mtime": 1791376457.4174962,
-    "seen": 1791379821.853055,
-    "ast_hash": "1bea2314d62b04df4205aa53329dd1f7",
+    "mtime": 1793799566.075845,
+    "seen": 1793800297.4013388,
+    "ast_hash": "f8a1e56fba02483396f5ed2f4278099b",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/DashboardAdminController.php": {
-    "mtime": 1792667327.1940331,
-    "seen": 1792667515.340597,
-    "ast_hash": "51870634faa946540431b73e02401576",
+    "mtime": 1793801141.4548728,
+    "seen": 1793801175.541076,
+    "ast_hash": "e8483b7851cb8b55de72b675e3d76041",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/EventAdminController.php": {
-    "mtime": 1791030122.51981,
-    "seen": 1791030425.710926,
-    "ast_hash": "02ef65bb09378a23aee03e8c2606325b",
+    "mtime": 1793799566.0731494,
+    "seen": 1793800297.40134,
+    "ast_hash": "533d827ea62624fd5c2adef012e02c8b",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/ExamAdminController.php": {
-    "mtime": 1793014825.87013,
-    "seen": 1793015474.4696572,
-    "ast_hash": "fc2809158284f75aa21b5f615611b9e5",
+    "mtime": 1793711175.8056865,
+    "seen": 1793712741.538153,
+    "ast_hash": "626e05d0566b5914d64baaf490cfe284",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/LessonAdminController.php": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/MediaAdminController.php": {
-    "mtime": 1792667696.2226088,
-    "seen": 1792668035.797598,
-    "ast_hash": "4222fd3463c3c8cba26184a277b05f7a",
+    "mtime": 1793799566.0761428,
+    "seen": 1793800297.401342,
+    "ast_hash": "f30e2709a1b34141519e615c275cb5af",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/ModuleAdminController.php": {
@@ -204,22 +204,22 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/QuestionAdminController.php": {
-    "mtime": 1792581976.5022693,
-    "seen": 1792582334.052917,
-    "ast_hash": "40447f81205c00e920e5205bbad681f0",
+    "mtime": 1793799566.0739524,
+    "seen": 1793800297.4013429,
+    "ast_hash": "2b408d8a28101bbd3420154327f58930",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/QuestionBankAdminController.php": {
-    "mtime": 1792668203.6941557,
-    "seen": 1792669543.184315,
-    "ast_hash": "f7e06057a7b4b897d84dd9a2b748084d",
+    "mtime": 1793799566.074339,
+    "seen": 1793800297.401344,
+    "ast_hash": "d6b2545aae0f1954728b53cfd120dc90",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/QuestionCatalogAdminController.php": {
-    "mtime": 1789642320.1875246,
-    "seen": 1790859414.923695,
-    "ast_hash": "92cb6e8060f2144a5d77e833d7c890f1",
-    "semantic_hash": "92cb6e8060f2144a5d77e833d7c890f1"
+    "mtime": 1793799566.0747015,
+    "seen": 1793800297.401344,
+    "ast_hash": "1f4be5b7ffd3cba52ab84cf469e9a9ce",
+    "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/RegistrationInvitationAdminController.php": {
     "mtime": 1788865303.832366,
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/StatisticsAdminController.php": {
-    "mtime": 1790938003.2907684,
-    "seen": 1790938125.882106,
-    "ast_hash": "9aac7502e4868bc2517fbaa17aa72847",
+    "mtime": 1793267210.073286,
+    "seen": 1793270771.1972852,
+    "ast_hash": "f294f3f4dd4da8d3fc6b8edd618f3d9e",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/TeamAdminController.php": {
@@ -246,33 +246,33 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/TestAdminController.php": {
-    "mtime": 1792668343.4160657,
-    "seen": 1792669543.184319,
-    "ast_hash": "7ec5da4d2387ae6fddeda2c290942235",
+    "mtime": 1793799566.0750737,
+    "seen": 1793800297.4013472,
+    "ast_hash": "e8bd42a7d5aab336bc1848ad15e4cc89",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/Admin/UserAdminController.php": {
-    "mtime": 1792675688.1355577,
-    "seen": 1792675768.761827,
-    "ast_hash": "846290fe7450c05106259ffb3872e78f",
+    "mtime": 1793700760.008258,
+    "seen": 1793701028.307081,
+    "ast_hash": "8d58489ad916b271c047af2c5a4780d7",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/AuthController.php": {
-    "mtime": 1791057043.3767004,
-    "seen": 1791057205.1485791,
-    "ast_hash": "8935a3b12d2dacbf622c651c358ebf83",
+    "mtime": 1793700760.0084324,
+    "seen": 1793701028.307082,
+    "ast_hash": "4a48a25545b8ffdb9b696181eaeab4a8",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/CourseMapController.php": {
-    "mtime": 1792048961.8211293,
-    "seen": 1792049460.1564329,
-    "ast_hash": "9551a1c6b4b0cd9077dd858846e89df6",
+    "mtime": 1793699520.0054448,
+    "seen": 1793699554.6492002,
+    "ast_hash": "11d9bdd1f79853db3beb933f70c7ab68",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/CourseProgressController.php": {
-    "mtime": 1792667258.6251986,
-    "seen": 1792667515.340608,
-    "ast_hash": "9b5f43e9e4e158b7e9e419c382b01f34",
+    "mtime": 1793859535.6538386,
+    "seen": 1793859562.4352992,
+    "ast_hash": "055787c57bb0c22978cc7fd645419417",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/DashboardController.php": {
@@ -282,15 +282,15 @@
     "semantic_hash": "ad2533424e880c0e748f63f00a75f3a6"
   },
   "volta-backend/app/Http/Controllers/Api/EventController.php": {
-    "mtime": 1791029995.2499557,
-    "seen": 1791030425.710935,
-    "ast_hash": "32e58fcbc0003279d8236f57971a8404",
+    "mtime": 1793700848.0232332,
+    "seen": 1793701028.307085,
+    "ast_hash": "a8adb1fbb4724fd57f947dc43bf51339",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/ExamController.php": {
-    "mtime": 1793014825.8698392,
-    "seen": 1793015474.469667,
-    "ast_hash": "72d96815c3cbc7b35ec6a0f02604f5e3",
+    "mtime": 1794212617.0167542,
+    "seen": 1794214170.4641438,
+    "ast_hash": "2da605b8cae6d3f6e46ad6b5a3f0cf05",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/ExamResultController.php": {
@@ -312,15 +312,15 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/LibraryController.php": {
-    "mtime": 1791376457.4168162,
-    "seen": 1791379821.853069,
-    "ast_hash": "884fd581c849f4cf46ab3368ab3b99bb",
+    "mtime": 1793281031.5236797,
+    "seen": 1793281041.776604,
+    "ast_hash": "362e98341bef74f246c98c3e5fd14165",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/MessageController.php": {
-    "mtime": 1792666433.7106476,
-    "seen": 1792667515.3406122,
-    "ast_hash": "3e7ba7accd628a947b4f5592f6f41fcc",
+    "mtime": 1793799566.072805,
+    "seen": 1793800297.401355,
+    "ast_hash": "be7283e88d62e2c9e33e43b502a2500c",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/NotificationController.php": {
@@ -330,9 +330,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/ProfileController.php": {
-    "mtime": 1791376457.4171805,
-    "seen": 1791379821.85307,
-    "ast_hash": "488c734da174f3a84f8d4e15312d60fe",
+    "mtime": 1793698724.4787514,
+    "seen": 1793698748.915453,
+    "ast_hash": "12018ca72422c365de0f5c5168abf292",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/RegistrationInvitationController.php": {
@@ -348,9 +348,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/StudentDashboardController.php": {
-    "mtime": 1790938003.2714972,
-    "seen": 1790938125.882118,
-    "ast_hash": "96e21881c6e7bf4168ff2cb99ebfcd81",
+    "mtime": 1793711175.8049421,
+    "seen": 1793712741.5381691,
+    "ast_hash": "9a45da7e5bca24bd39107071995be84e",
     "semantic_hash": ""
   },
   "volta-backend/app/Http/Controllers/Api/TelemetryController.php": {
@@ -474,9 +474,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Models/ContentBlock.php": {
-    "mtime": 1790943103.3603535,
-    "seen": 1790943128.732068,
-    "ast_hash": "71261b6131d991fff6a09416cdce9142",
+    "mtime": 1793799814.4244742,
+    "seen": 1793800297.4013739,
+    "ast_hash": "a401a189d2ce0bb7503461a075732226",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/Conversation.php": {
@@ -486,9 +486,9 @@
     "semantic_hash": "3751ec827094b05a466f46ae6dca0917"
   },
   "volta-backend/app/Models/Course.php": {
-    "mtime": 1792667771.7407556,
-    "seen": 1792668035.7976298,
-    "ast_hash": "627e9b63c946639ffe6c19011e527857",
+    "mtime": 1793799814.5384495,
+    "seen": 1793800297.401376,
+    "ast_hash": "68b579568cddfaa617d55f7e61d4a455",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/CourseMap.php": {
@@ -498,10 +498,10 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Models/CourseTest.php": {
-    "mtime": 1778062990.6874065,
-    "seen": 1790859414.923717,
-    "ast_hash": "e4b57db72d94fb7fd5146c72e0135c3e",
-    "semantic_hash": "e4b57db72d94fb7fd5146c72e0135c3e"
+    "mtime": 1793711191.3449907,
+    "seen": 1793712741.538187,
+    "ast_hash": "20259a388345976f0854e7c4b30459ed",
+    "semantic_hash": ""
   },
   "volta-backend/app/Models/CourseVersion.php": {
     "mtime": 1778062990.6874812,
@@ -516,16 +516,16 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Models/Event.php": {
-    "mtime": 1789123652.384645,
-    "seen": 1790859414.923718,
-    "ast_hash": "f315c633a42a45441eeca19a9cf50fca",
-    "semantic_hash": "f315c633a42a45441eeca19a9cf50fca"
+    "mtime": 1793799814.5765736,
+    "seen": 1793800297.4013782,
+    "ast_hash": "8564d0190ce46d848e860980417c5c6d",
+    "semantic_hash": ""
   },
   "volta-backend/app/Models/Exam.php": {
-    "mtime": 1790259183.1220267,
-    "seen": 1790859414.923719,
-    "ast_hash": "6780f8407d8e6842b59ec7c2aaea3490",
-    "semantic_hash": "6780f8407d8e6842b59ec7c2aaea3490"
+    "mtime": 1793711191.3452437,
+    "seen": 1793712741.5381892,
+    "ast_hash": "1fef73f59133026908408d0908d80039",
+    "semantic_hash": ""
   },
   "volta-backend/app/Models/ExamAnswer.php": {
     "mtime": 1778062990.687774,
@@ -540,16 +540,16 @@
     "semantic_hash": "8749c4f194ff84cd27781bdfdb3a0b6c"
   },
   "volta-backend/app/Models/ExamQuestion.php": {
-    "mtime": 1778062990.6878436,
-    "seen": 1790859414.92372,
-    "ast_hash": "ec3a1de862d220ff3911253fc758ace1",
-    "semantic_hash": "ec3a1de862d220ff3911253fc758ace1"
+    "mtime": 1793799814.5003316,
+    "seen": 1793800297.40138,
+    "ast_hash": "af54f18f55d137ddbfad8cb77063f805",
+    "semantic_hash": ""
   },
   "volta-backend/app/Models/ExamResult.php": {
-    "mtime": 1778062990.6879041,
-    "seen": 1790859414.92372,
-    "ast_hash": "81b34ea08aa1c251355e7ed875f382fa",
-    "semantic_hash": "81b34ea08aa1c251355e7ed875f382fa"
+    "mtime": 1793711191.3454096,
+    "seen": 1793712741.538191,
+    "ast_hash": "0f04989c1cc0bc29bc9403a58e42cb9c",
+    "semantic_hash": ""
   },
   "volta-backend/app/Models/GuideItem.php": {
     "mtime": 1792667771.7411153,
@@ -558,9 +558,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Models/Lesson.php": {
-    "mtime": 1790943194.4777746,
-    "seen": 1790943427.2222831,
-    "ast_hash": "62afbe213c4d7c15b7cf74b0ac15441c",
+    "mtime": 1793799814.345559,
+    "seen": 1793800297.401382,
+    "ast_hash": "4989ab672be150697d888def491d7e0f",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/LessonNote.php": {
@@ -570,9 +570,9 @@
     "semantic_hash": "bd52523a550105404c82c07c05101f5b"
   },
   "volta-backend/app/Models/LibraryItem.php": {
-    "mtime": 1792667771.741061,
-    "seen": 1792668035.797638,
-    "ast_hash": "e803156be0e489b14aeefecfd6099079",
+    "mtime": 1793799814.613401,
+    "seen": 1793800297.401383,
+    "ast_hash": "6c684261541b7e02d63449b713b62a5d",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/MediaAsset.php": {
@@ -588,9 +588,9 @@
     "semantic_hash": "6df93f958e34cf81c2defde096d63dab"
   },
   "volta-backend/app/Models/Module.php": {
-    "mtime": 1790943194.4779432,
-    "seen": 1790943427.222285,
-    "ast_hash": "231a1f993d5ff5841d9f7eb140ed9c47",
+    "mtime": 1793799814.3863456,
+    "seen": 1793800297.401385,
+    "ast_hash": "4620b7c24708f441fc18ca95c04bc6e0",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/Notification.php": {
@@ -600,9 +600,9 @@
     "semantic_hash": "b2aad6559f34cafdeaba981326a6831b"
   },
   "volta-backend/app/Models/Question.php": {
-    "mtime": 1790936020.0013802,
-    "seen": 1790936153.799225,
-    "ast_hash": "df1595a158c17f43700638bdab2d17ce",
+    "mtime": 1793799814.462643,
+    "seen": 1793800297.401386,
+    "ast_hash": "93bc3f08c9eca204d699307a56802baf",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/QuestionBank.php": {
@@ -630,21 +630,21 @@
     "semantic_hash": "5ffb641e0023cc19a84111f5e656f981"
   },
   "volta-backend/app/Models/Test.php": {
-    "mtime": 1790936020.002691,
-    "seen": 1790936153.7992268,
-    "ast_hash": "199677247462c162c4d661b2db958fbb",
+    "mtime": 1793711175.8046043,
+    "seen": 1793712741.538199,
+    "ast_hash": "0fc70f998d1ba5e0bb82bab35c24dbfa",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/TestResult.php": {
-    "mtime": 1790936020.003227,
-    "seen": 1790936153.799228,
-    "ast_hash": "c29d2b0b12d14de70fa1bb94aaf91b7b",
+    "mtime": 1793711191.3453372,
+    "seen": 1793712741.538199,
+    "ast_hash": "4afeb1ad6e014cd18b41c008760047bd",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/User.php": {
-    "mtime": 1791447199.0426152,
-    "seen": 1791447389.801313,
-    "ast_hash": "539d2abbe6d266948ca111a307bb8dab",
+    "mtime": 1793698724.4788842,
+    "seen": 1793698748.915482,
+    "ast_hash": "8112076aa839d9d5ecb45e10f957464d",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/UserTestAttemptGrant.php": {
@@ -654,9 +654,9 @@
     "semantic_hash": "34af34aa7dafc5b2f7fb779221486894"
   },
   "volta-backend/app/Providers/AppServiceProvider.php": {
-    "mtime": 1790937987.244531,
-    "seen": 1790938125.882147,
-    "ast_hash": "98cef0982caea4cc57e32b6887d6a320",
+    "mtime": 1793799566.0722344,
+    "seen": 1793800297.4013922,
+    "ast_hash": "5a0c76a28ba83d05013eb75863fbc847",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/AIKnowledgeService.php": {
@@ -666,20 +666,20 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Services/CourseBuilderService.php": {
-    "mtime": 1792048873.2632098,
-    "seen": 1792049460.156469,
-    "ast_hash": "8dce0b3b48e1e9e922d8cc80f0ddf3c1",
+    "mtime": 1793712842.4291189,
+    "seen": 1793712899.513016,
+    "ast_hash": "51d03568365bd19099c1c3d9c3dd9058",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/CourseBuilderValidator.php": {
-    "mtime": 1791372855.3839662,
-    "seen": 1791379821.8531,
-    "ast_hash": "644ad6eec5e40a00f5ac13a0fc2b8265",
+    "mtime": 1793708353.1329913,
+    "seen": 1793708621.808546,
+    "ast_hash": "b4a5d3d50b1b8e7488a54f59acc1f7dc",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/CourseProgressService.php": {
-    "mtime": 1792675616.2360268,
-    "seen": 1792675768.761868,
+    "mtime": 1793697660.8976738,
+    "seen": 1793697664.10677,
     "ast_hash": "f2f8ac6353f9295860d5d3489e0c3ee9",
     "semantic_hash": ""
   },
@@ -690,15 +690,15 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Services/ExamAttemptSessionService.php": {
-    "mtime": 1793014825.8693645,
-    "seen": 1793015474.469704,
-    "ast_hash": "d2cbf5d169a94b60022fdbd1925b166c",
+    "mtime": 1793705114.5657043,
+    "seen": 1793705261.598738,
+    "ast_hash": "b1f7e9777affddb5bc5e496d51da43a9",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/ExamBankQuestionSyncService.php": {
-    "mtime": 1792581979.6652296,
-    "seen": 1792582334.05296,
-    "ast_hash": "e79ceaf14742ec0624a42b850b3a77f4",
+    "mtime": 1793687770.8992844,
+    "seen": 1793687891.8663192,
+    "ast_hash": "e0ea40ec826454bc542c06d01145db24",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/LibraryPdfCoverGenerator.php": {
@@ -720,16 +720,16 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Services/ProgressionEngine.php": {
-    "mtime": 1791024423.213778,
-    "seen": 1791024438.70485,
-    "ast_hash": "410aa9cefca8872c8382e195129abe2f",
+    "mtime": 1793711175.8068643,
+    "seen": 1793712741.538209,
+    "ast_hash": "8c5ab1eae3864f61a26917acd0b90a53",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/PublishedCourseView.php": {
-    "mtime": 1789044605.2586486,
-    "seen": 1790859414.923733,
-    "ast_hash": "8c55190f1d7b054f2a2cf4d8a94a7a8a",
-    "semantic_hash": "8c55190f1d7b054f2a2cf4d8a94a7a8a"
+    "mtime": 1793692486.6499197,
+    "seen": 1793692505.204799,
+    "ast_hash": "625bd2107afef41818b620361b621b8d",
+    "semantic_hash": ""
   },
   "volta-backend/app/Services/RegistrationInvitationService.php": {
     "mtime": 1790938003.315282,
@@ -738,9 +738,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Services/TestAnalyticsService.php": {
-    "mtime": 1792581776.1768718,
-    "seen": 1792582334.052963,
-    "ast_hash": "09e7c7386d1d28e5927021428d6607df",
+    "mtime": 1793802587.3836293,
+    "seen": 1793802616.053869,
+    "ast_hash": "33a2010660862e903f97db6ce6a85544",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/TestAttemptAnswerOrderService.php": {
@@ -750,15 +750,15 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Services/TestAttemptService.php": {
-    "mtime": 1790938003.3076327,
-    "seen": 1790938125.882155,
-    "ast_hash": "7628eecf81ec2864dde92b8fdf7dadf1",
+    "mtime": 1793711175.8070667,
+    "seen": 1793712741.538212,
+    "ast_hash": "2a6cddcc67a5344a7632a675dafc6408",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/TestBuilderService.php": {
-    "mtime": 1792581976.4614842,
-    "seen": 1792582334.0529642,
-    "ast_hash": "f97d9f31ab4cefd85db9347d404dd11f",
+    "mtime": 1793800963.046393,
+    "seen": 1793801175.54113,
+    "ast_hash": "38f7188f1dc1ed187ca7c9cb9afb4ae6",
     "semantic_hash": ""
   },
   "volta-backend/app/Services/TestQuestionSelectionService.php": {
@@ -810,10 +810,10 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Support/CourseMapBuckets.php": {
-    "mtime": 1781765344.1480932,
-    "seen": 1790859414.923739,
-    "ast_hash": "1f1e4ae1501df18f430f0702f79029e6",
-    "semantic_hash": "1f1e4ae1501df18f430f0702f79029e6"
+    "mtime": 1793704138.5238855,
+    "seen": 1793704350.244907,
+    "ast_hash": "723a50ca28f1ed805409c47077e1262f",
+    "semantic_hash": ""
   },
   "volta-backend/app/Support/CourseUserPivot.php": {
     "mtime": 1792580704.2577343,
@@ -828,9 +828,9 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Support/DirectorySearch.php": {
-    "mtime": 1791197553.26149,
-    "seen": 1791197685.1494799,
-    "ast_hash": "a16ee5fea224f91be49e72de624343a3",
+    "mtime": 1793799544.2503238,
+    "seen": 1793800297.401408,
+    "ast_hash": "bdd5504082782afd4267ca0bed0a75d7",
     "semantic_hash": ""
   },
   "volta-backend/app/Support/HtmlSanitizer.php": {
@@ -990,10 +990,10 @@
     "semantic_hash": "dc9c25a79d3cacb8227f1609cb9f89a8"
   },
   "volta-backend/database/factories/CourseFactory.php": {
-    "mtime": 1779862321.2287464,
-    "seen": 1790859414.9237509,
-    "ast_hash": "fa8ac5b7306944e743e5b0a478b49f9c",
-    "semantic_hash": "fa8ac5b7306944e743e5b0a478b49f9c"
+    "mtime": 1793710639.9150665,
+    "seen": 1793710871.564021,
+    "ast_hash": "8f17fbf256b4ecc8c7342ac78a5d2375",
+    "semantic_hash": ""
   },
   "volta-backend/database/factories/QuestionFactory.php": {
     "mtime": 1778062990.6962407,
@@ -1824,10 +1824,10 @@
     "semantic_hash": "7c4ef621bcf558fba40697f959eab4bf"
   },
   "volta-backend/deploy.ps1": {
-    "mtime": 1778062990.7032037,
-    "seen": 1790859414.92381,
-    "ast_hash": "80aae3119e927cecea03b3919d248109",
-    "semantic_hash": "80aae3119e927cecea03b3919d248109"
+    "mtime": 1793281134.173484,
+    "seen": 1793281256.64994,
+    "ast_hash": "76009f7210a6b1f34b982b6714fb7a05",
+    "semantic_hash": ""
   },
   "volta-backend/docker-entrypoint.sh": {
     "mtime": 1791179041.967642,
@@ -1877,30 +1877,6 @@
     "ast_hash": "78f909acc19aea4717eddca5a87c1ba3",
     "semantic_hash": "78f909acc19aea4717eddca5a87c1ba3"
   },
-  "volta-backend/resources/views/certificates/classic.blade.php": {
-    "mtime": 1778062990.7049792,
-    "seen": 1790859414.9238138,
-    "ast_hash": "1d39e96baa68c938cda342cfd32f87e6",
-    "semantic_hash": "1d39e96baa68c938cda342cfd32f87e6"
-  },
-  "volta-backend/resources/views/certificates/course.blade.php": {
-    "mtime": 1778062990.7050583,
-    "seen": 1790859414.9238138,
-    "ast_hash": "d6688e866a8635cae24f07057b9c1872",
-    "semantic_hash": "d6688e866a8635cae24f07057b9c1872"
-  },
-  "volta-backend/resources/views/certificates/modern.blade.php": {
-    "mtime": 1778062990.7051318,
-    "seen": 1790859414.923815,
-    "ast_hash": "62bce2f06c9a864569aa9ad0a486c0bd",
-    "semantic_hash": "62bce2f06c9a864569aa9ad0a486c0bd"
-  },
-  "volta-backend/resources/views/certificates/premium.blade.php": {
-    "mtime": 1778062990.7051969,
-    "seen": 1790859414.923815,
-    "ast_hash": "81111400f03e6521a43a9cea84958118",
-    "semantic_hash": "81111400f03e6521a43a9cea84958118"
-  },
   "volta-backend/resources/views/emails/registration-invitation.blade.php": {
     "mtime": 1789624689.5285454,
     "seen": 1790859414.923817,
@@ -1914,9 +1890,9 @@
     "semantic_hash": "377340616115d1593af31b35fe05d6a5"
   },
   "volta-backend/routes/api.php": {
-    "mtime": 1792669594.149214,
-    "seen": 1792670159.124754,
-    "ast_hash": "fa9fd05c982c33d4272727efe4adb810",
+    "mtime": 1793698108.444664,
+    "seen": 1793698186.045741,
+    "ast_hash": "4196a2111ef9757e3d11189d92f08a54",
     "semantic_hash": ""
   },
   "volta-backend/routes/console.php": {
@@ -1980,10 +1956,10 @@
     "semantic_hash": "95e5de9ce54a66755c081500aeeabbd4"
   },
   "volta-backend/tests/Feature/ConcurrentExamSubmitTest.php": {
-    "mtime": 1789714505.9208639,
-    "seen": 1790859414.923823,
-    "ast_hash": "377b6831eacea3b817355d2aada8be64",
-    "semantic_hash": "377b6831eacea3b817355d2aada8be64"
+    "mtime": 1793705142.3983665,
+    "seen": 1793705261.598853,
+    "ast_hash": "149f5bfb47fdb21aa0f0b2f761093260",
+    "semantic_hash": ""
   },
   "volta-backend/tests/Feature/CourseAndQuestionBankTest.php": {
     "mtime": 1789641489.4758334,
@@ -2010,15 +1986,15 @@
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/CoursePublishTest.php": {
-    "mtime": 1792048873.2878141,
-    "seen": 1792049460.156588,
-    "ast_hash": "76e831b39dd7c21814e4c36b581bb4db",
+    "mtime": 1793708429.1191125,
+    "seen": 1793708621.808681,
+    "ast_hash": "d99b749302356629bfe3071613e44b14",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/CourseVisibilityTest.php": {
-    "mtime": 1791185568.4118915,
-    "seen": 1791197685.149587,
-    "ast_hash": "82fe49baa0bd2636d9bc672ed7b3eacc",
+    "mtime": 1793705142.3955493,
+    "seen": 1793705261.598859,
+    "ast_hash": "bcbb4af4e93686918f7d41cdb5810eaf",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/CsrfTokenResolutionTest.php": {
@@ -2028,9 +2004,9 @@
     "semantic_hash": "e1b5bb1cb8480c6379d763f52e5b564c"
   },
   "volta-backend/tests/Feature/DashboardMetricsTest.php": {
-    "mtime": 1790928162.4644861,
-    "seen": 1790928175.2975879,
-    "ast_hash": "78490f1cc5ab770a60cd02f4ff221ae0",
+    "mtime": 1793801150.013423,
+    "seen": 1793801175.5412512,
+    "ast_hash": "30fc09109b6f9142f6c5b37248409ac3",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/EmailNotificationTest.php": {
@@ -2040,9 +2016,9 @@
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/ExamQuestionFlowTest.php": {
-    "mtime": 1793014845.3172584,
-    "seen": 1793015474.469831,
-    "ast_hash": "377459f18f7658e7936146313fdee703",
+    "mtime": 1793705142.3946686,
+    "seen": 1793705261.5988638,
+    "ast_hash": "d7f49aa10e1366e2c1515cf5d9e449c3",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/ExamResultsApiTest.php": {
@@ -2058,21 +2034,21 @@
     "semantic_hash": "4048ffc700e8497fd8a95b065e028bf0"
   },
   "volta-backend/tests/Feature/GeneralIntegrityTest.php": {
-    "mtime": 1791032201.698624,
-    "seen": 1791032205.473557,
-    "ast_hash": "ae92f0968b0a346292759f4ce54c389e",
+    "mtime": 1793705142.3961885,
+    "seen": 1793705261.598867,
+    "ast_hash": "7b8ac31bf6176fcd77d1cdce074812f1",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/GrantTestExtraAttemptTest.php": {
-    "mtime": 1791033438.7503614,
-    "seen": 1791033488.209114,
-    "ast_hash": "eaeeb570ff7db767beca04d76358210a",
+    "mtime": 1793705142.3978915,
+    "seen": 1793705261.598867,
+    "ast_hash": "c099ad8844ec5bb2ad91596f0b439f5b",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/LearningJourneyTest.php": {
-    "mtime": 1791030366.412865,
-    "seen": 1791030425.7111099,
-    "ast_hash": "9d35932613c64a81e8629b440dcb668a",
+    "mtime": 1793705142.3971398,
+    "seen": 1793705261.598869,
+    "ast_hash": "335bfdb8146bdbfa554048313d1f1dc4",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/LessonCompletionTest.php": {
@@ -2106,9 +2082,9 @@
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/ProcessIntegrityTest.php": {
-    "mtime": 1791030299.2011473,
-    "seen": 1791030425.711114,
-    "ast_hash": "44cf266fc73dc7822528d70b3a99933b",
+    "mtime": 1794212617.1452563,
+    "seen": 1794214170.464323,
+    "ast_hash": "193ab521d00ecd14374fc2d36e9a2301",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/QuestionCatalogTest.php": {
@@ -2172,15 +2148,15 @@
     "semantic_hash": "e7bb66eab09e96e57800d5a3970b0ef3"
   },
   "volta-backend/tests/Feature/TestAnswerIdentityTest.php": {
-    "mtime": 1788959709.0120127,
-    "seen": 1790859414.923841,
-    "ast_hash": "daaaa1575d8d5f9efa02212e437e8a72",
-    "semantic_hash": "daaaa1575d8d5f9efa02212e437e8a72"
+    "mtime": 1793705142.3943264,
+    "seen": 1793705261.598884,
+    "ast_hash": "13d680e10447b09ff7be29556a7814e0",
+    "semantic_hash": ""
   },
   "volta-backend/tests/Feature/TestSubmissionFlowTest.php": {
-    "mtime": 1791030299.2013092,
-    "seen": 1791030425.711122,
-    "ast_hash": "ff016696e924ee840b2a66af0b001a17",
+    "mtime": 1793705142.3964238,
+    "seen": 1793705261.598885,
+    "ast_hash": "771c41f6b078203b3d12c844a3e7e436",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/UserNamesTest.php": {
@@ -2232,22 +2208,22 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/App.jsx": {
-    "mtime": 1792666803.812638,
-    "seen": 1792667515.340822,
-    "ast_hash": "b3d46c590e3ed2165cde2044af461e25",
+    "mtime": 1794214340.1258793,
+    "seen": 1794214859.961032,
+    "ast_hash": "3f3c2e01c397bf5e5d89438c7620b69f",
     "semantic_hash": ""
   },
   "volta-frontend/src/api.js": {
-    "mtime": 1792666897.6430614,
-    "seen": 1792667515.340822,
-    "ast_hash": "249e26e27686443f5c2cc146ce1fe4be",
+    "mtime": 1793858888.9664354,
+    "seen": 1793859343.846016,
+    "ast_hash": "9f128caa0aa5222b7043ef73a8b42a67",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/AdminRoute.jsx": {
-    "mtime": 1789648614.8987691,
-    "seen": 1790859414.923846,
-    "ast_hash": "d23022c1894d11f49668bac2614a93e7",
-    "semantic_hash": "d23022c1894d11f49668bac2614a93e7"
+    "mtime": 1794209932.7962892,
+    "seen": 1794214170.464349,
+    "ast_hash": "553a23e988d855c9975a8590c39bdf9f",
+    "semantic_hash": ""
   },
   "volta-frontend/src/components/AdminStylesLoader.jsx": {
     "mtime": 1791053057.0474465,
@@ -2286,10 +2262,10 @@
     "semantic_hash": "d4824fb0e4b1675744b6b716b3c44d25"
   },
   "volta-frontend/src/components/SplashScreen.jsx": {
-    "mtime": 1789630195.8433852,
-    "seen": 1790859414.9238489,
-    "ast_hash": "fdcf4134a8cd4bc84664f3a0bfa7136a",
-    "semantic_hash": "fdcf4134a8cd4bc84664f3a0bfa7136a"
+    "mtime": 1794210255.3697069,
+    "seen": 1794214170.464354,
+    "ast_hash": "26387a2d370dc2cfe1a968fbccf8f0ae",
+    "semantic_hash": ""
   },
   "volta-frontend/src/components/ThemePreferenceControl.jsx": {
     "mtime": 1789378658.0439863,
@@ -2298,10 +2274,10 @@
     "semantic_hash": "54a239846b713f71b59c00a768d97b7d"
   },
   "volta-frontend/src/components/UserRoute.jsx": {
-    "mtime": 1788846925.4966915,
-    "seen": 1790859414.92385,
-    "ast_hash": "8e84caa13756f3e1c3e0f959fbc6045f",
-    "semantic_hash": "8e84caa13756f3e1c3e0f959fbc6045f"
+    "mtime": 1794209932.8758616,
+    "seen": 1794214170.464355,
+    "ast_hash": "94ec56c65b814c1ad584c19bbfcedf52",
+    "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/ActivityFeed.jsx": {
     "mtime": 1790941638.8570008,
@@ -2322,9 +2298,9 @@
     "semantic_hash": "e4089c79ed7612e86a781077bbab2570"
   },
   "volta-frontend/src/components/admin/AdminTopNavControls.jsx": {
-    "mtime": 1792666820.1998699,
-    "seen": 1792667515.340831,
-    "ast_hash": "e109fd10cab766fda3c4a640602aa839",
+    "mtime": 1793802313.3749704,
+    "seen": 1793802616.054057,
+    "ast_hash": "a6079211498265d8095a8a6cb8f4aa1c",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/AdminViewSwitcher.jsx": {
@@ -2340,9 +2316,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/ProblematicCourses.jsx": {
-    "mtime": 1790941619.9349189,
-    "seen": 1790942960.8003042,
-    "ast_hash": "1f1c3892b07259a2d842fd3c08dd1f9e",
+    "mtime": 1793801149.9933484,
+    "seen": 1793801175.5413032,
+    "ast_hash": "f5ba3c13a24a2bf0dbdc02c0f9f9cc1a",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/TopCourses.jsx": {
@@ -2382,9 +2358,9 @@
     "semantic_hash": "9b0efa8d43ee4f6b9c9a8c5292a511af"
   },
   "volta-frontend/src/components/admin/course-maps/CourseMapHeaderStyleEditor.jsx": {
-    "mtime": 1791048713.5576565,
-    "seen": 1791049287.9150138,
-    "ast_hash": "bb65d1eba0a7626af598773e115045a0",
+    "mtime": 1793701528.9549568,
+    "seen": 1793701905.422383,
+    "ast_hash": "1218fe4913082d8ec487577867881470",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/course-maps/MapCoverFocusEditor.jsx": {
@@ -2412,9 +2388,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/courses/CourseSettingsEditModal.jsx": {
-    "mtime": 1791368176.3589396,
-    "seen": 1791379821.853268,
-    "ast_hash": "214e7e8da995565a1384c18efa316ebe",
+    "mtime": 1793710668.1532915,
+    "seen": 1793710871.564184,
+    "ast_hash": "5b3288c308625f70803b4302c988573d",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/courses/CourseShowcaseQuickActions.jsx": {
@@ -2424,9 +2400,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/courses/InlineTestEditorShell.jsx": {
-    "mtime": 1792581614.0861123,
-    "seen": 1792582334.053134,
-    "ast_hash": "21b4b92d1102c0709a3965e52df0cad3",
+    "mtime": 1793687816.1969125,
+    "seen": 1793687891.8664908,
+    "ast_hash": "52594afc4a37b543cd1c9e104aeff83a",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/courses/OutlineItemMenu.jsx": {
@@ -2436,9 +2412,9 @@
     "semantic_hash": "37e642a55103b3e3dfb6d1f38afb3568"
   },
   "volta-frontend/src/components/admin/courses/PublishCourseModal.jsx": {
-    "mtime": 1791185541.0586889,
-    "seen": 1791197685.149636,
-    "ast_hash": "28f131dc28a435c83bfbdca463a7db49",
+    "mtime": 1793708460.7895248,
+    "seen": 1793708621.808744,
+    "ast_hash": "05184a8139b755eba4df7536765a2a98",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/events/AdminEventDetailModal.jsx": {
@@ -2478,9 +2454,9 @@
     "semantic_hash": "d04d5bf2b5203a0ffa4b44222471f17e"
   },
   "volta-frontend/src/components/admin/exams/ExamContentPicker.jsx": {
-    "mtime": 1793007677.1002014,
-    "seen": 1793008783.719869,
-    "ast_hash": "9822b2ee061078b24a6ef6655b81f1b0",
+    "mtime": 1793282285.636703,
+    "seen": 1793282386.981631,
+    "ast_hash": "b17c1eca7a3fdaf5a1d97e30f73c1284",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/LessonTipTapEditor.jsx": {
@@ -2502,15 +2478,15 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/image/LessonImageExtension.js": {
-    "mtime": 1791374238.0864494,
-    "seen": 1791379821.853276,
-    "ast_hash": "7743d3036be1b909b5e093ea3928d2cf",
+    "mtime": 1793704005.0919216,
+    "seen": 1793704350.2451,
+    "ast_hash": "a1b2343e6fcf1732884e30e58886d72a",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/image/LessonImageNodeView.jsx": {
-    "mtime": 1791374980.79015,
-    "seen": 1791379821.853278,
-    "ast_hash": "5f68a6ac8a62d37d2dac3aaa259ec04c",
+    "mtime": 1793704013.1177013,
+    "seen": 1793704350.245101,
+    "ast_hash": "467e79cc0ad5b3dcd2c972ac7737ed46",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/image/LessonImageResizeHandles.jsx": {
@@ -2526,28 +2502,28 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/manual-review/AdminExamManualReviewPanel.jsx": {
-    "mtime": 1791104571.2879593,
-    "seen": 1791105044.9398558,
-    "ast_hash": "b0f88d6b263a90e05543c3de49a2aecf",
+    "mtime": 1793800230.0366542,
+    "seen": 1793800297.401611,
+    "ast_hash": "e01a57fa2bacf833c304679fff63d25f",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/manual-review/TestManualReviewPanel.jsx": {
-    "mtime": 1791375942.6788929,
-    "seen": 1791379821.853281,
-    "ast_hash": "ab97d885976a5465524d1f871f81482d",
+    "mtime": 1793800230.0325677,
+    "seen": 1793800297.401612,
+    "ast_hash": "88146c6bb41822f7738fefdd39bb72b3",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/Drawer.jsx": {
-    "mtime": 1792581799.2243154,
-    "seen": 1792582334.0531468,
-    "ast_hash": "d9e89e0ad6f173182e92739f480d521a",
+    "mtime": 1793687830.3900394,
+    "seen": 1793687891.866503,
+    "ast_hash": "a3a3ad57baca01109f331ae732666d1e",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/FolderCard.jsx": {
-    "mtime": 1789641242.6926703,
-    "seen": 1790859414.923886,
-    "ast_hash": "d33a3ed2871f6446e6f7bd8ddf841af3",
-    "semantic_hash": "d33a3ed2871f6446e6f7bd8ddf841af3"
+    "mtime": 1793800092.2507987,
+    "seen": 1793800297.401613,
+    "ast_hash": "d08690baabbad179092535aab356be04",
+    "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionBankBuilder.jsx": {
     "mtime": 1792668231.3803046,
@@ -2580,9 +2556,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionBankBuilderSteps/Step2Questions.jsx": {
-    "mtime": 1792582021.8508215,
-    "seen": 1792582334.053151,
-    "ast_hash": "c43778a9a4f9c978a9f9a5c43d63901f",
+    "mtime": 1793687830.3905163,
+    "seen": 1793687891.866506,
+    "ast_hash": "240d699a02605857ed1a6631fa44c031",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionBankBuilderSteps/Step3Review.jsx": {
@@ -2592,15 +2568,15 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionBuilderEditor.jsx": {
-    "mtime": 1792582100.8796308,
-    "seen": 1792582334.053152,
-    "ast_hash": "6be3f687b3559606ad29456a8619e8f8",
+    "mtime": 1793687816.2021387,
+    "seen": 1793687891.866507,
+    "ast_hash": "d306b1d03867af9552e03486cf0fb686",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionCatalogByMap.jsx": {
-    "mtime": 1790932942.527306,
-    "seen": 1790933128.0017338,
-    "ast_hash": "428a1990195652195ffe82832873e08a",
+    "mtime": 1793800092.2504542,
+    "seen": 1793800297.401618,
+    "ast_hash": "ad1e83083694adf41f0d5a5e4db77b44",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/question-banks/QuestionRow.jsx": {
@@ -2610,15 +2586,15 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/tests/PassingScoreByQuestions.jsx": {
-    "mtime": 1790325159.7343194,
-    "seen": 1790859414.9238908,
-    "ast_hash": "e2817c592ce1bfc45099de827ab38f9f",
-    "semantic_hash": "e2817c592ce1bfc45099de827ab38f9f"
+    "mtime": 1793711238.92518,
+    "seen": 1793712741.5384278,
+    "ast_hash": "934411c1e71b4c293d73e533e5cc82a7",
+    "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/tests/TestResultsPanel.jsx": {
-    "mtime": 1793008409.461822,
-    "seen": 1793008783.719882,
-    "ast_hash": "f08543a31f61037958d56b35483dd993",
+    "mtime": 1793268328.4246151,
+    "seen": 1793270771.197524,
+    "ast_hash": "a22adeabb3754a48c470a58e7b6d608f",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/tests/TestResultsPanelShared.js": {
@@ -2688,9 +2664,9 @@
     "semantic_hash": "2894f5704bb468a301f377a09b8632b3"
   },
   "volta-frontend/src/components/common/NotificationsDrawer.jsx": {
-    "mtime": 1791048883.7505527,
-    "seen": 1791049287.915043,
-    "ast_hash": "605a441020f8b1b05145615bc7c8b8d3",
+    "mtime": 1793803849.5843852,
+    "seen": 1793859343.846059,
+    "ast_hash": "a4d16b0c34a9df79304bb72a5c37845a",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/common/ScrollToTop.jsx": {
@@ -2730,15 +2706,15 @@
     "semantic_hash": "527b0e1bea696d888f9621179cd8c770"
   },
   "volta-frontend/src/components/student/ResumeLearningWidget.jsx": {
-    "mtime": 1791187476.3210719,
-    "seen": 1791197685.149662,
-    "ast_hash": "af27b458aa3394e6502f8b30ceed5acc",
+    "mtime": 1793704528.8901734,
+    "seen": 1793704978.086847,
+    "ast_hash": "d0c6c8b287da8f427da5f0ea69d631f7",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/student/StructuredQuestionRenderer.jsx": {
-    "mtime": 1792581648.9460466,
-    "seen": 1792582334.053167,
-    "ast_hash": "a49798c4682f9230c340b8110cc074b4",
+    "mtime": 1793687830.3886716,
+    "seen": 1793687891.8665211,
+    "ast_hash": "1625bdfa78aa680b6b411e39265891d4",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/student/StudentTopNavNotifications.jsx": {
@@ -2748,9 +2724,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/student/TestAttemptFooter.jsx": {
-    "mtime": 1791368568.3439333,
-    "seen": 1791379821.8532999,
-    "ast_hash": "a4385feb4eb2778a92a094423c204087",
+    "mtime": 1794214308.7580712,
+    "seen": 1794214859.961086,
+    "ast_hash": "0ba637c7c3655c4eb9bdf969a1403a7a",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/ui/CourseMapFolderTile.jsx": {
@@ -2772,9 +2748,9 @@
     "semantic_hash": "cf3145640bad44ae5cb2bbb93b7eb057"
   },
   "volta-frontend/src/components/ui/course-showcase-card.jsx": {
-    "mtime": 1792667830.2525952,
-    "seen": 1792668035.797871,
-    "ast_hash": "792a219222847c7817a145faa9fe942c",
+    "mtime": 1793859449.3506143,
+    "seen": 1793859562.4355772,
+    "ast_hash": "e34dfe45004ec06ce02ce23842ad5d2e",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/ui/course-showcase-cardShared.js": {
@@ -2790,9 +2766,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/contexts/AuthContext.jsx": {
-    "mtime": 1790944958.5272927,
-    "seen": 1790945804.216266,
-    "ast_hash": "30f6a693066923a1ebb1d6fed702040b",
+    "mtime": 1793858895.6676862,
+    "seen": 1793859343.846069,
+    "ast_hash": "8540fea2e9de3d21ffb35700c80e743a",
     "semantic_hash": ""
   },
   "volta-frontend/src/contexts/AuthContextShared.js": {
@@ -2802,10 +2778,10 @@
     "semantic_hash": "63c0e7bc353f563396a474d1613bec37"
   },
   "volta-frontend/src/contexts/ThemeContext.jsx": {
-    "mtime": 1788847013.0477698,
-    "seen": 1790859414.923914,
-    "ast_hash": "c6f3dbb293835edd346d3a8b4457860b",
-    "semantic_hash": "c6f3dbb293835edd346d3a8b4457860b"
+    "mtime": 1793803849.5845015,
+    "seen": 1793859343.84607,
+    "ast_hash": "1fb224d5b73ab3b674e911f127e044b1",
+    "semantic_hash": ""
   },
   "volta-frontend/src/contexts/ThemeContextShared.js": {
     "mtime": 1788846925.5601313,
@@ -2856,9 +2832,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/hooks/useLessonTimeTracking.js": {
-    "mtime": 1792667280.1023772,
-    "seen": 1792667515.340887,
-    "ast_hash": "9e7e0bcb4605646085d4d6850133c05a",
+    "mtime": 1793803849.584617,
+    "seen": 1793859343.846076,
+    "ast_hash": "6ffd58827fc996a314254c4fba442814",
     "semantic_hash": ""
   },
   "volta-frontend/src/hooks/useScrollResetOnOpen.js": {
@@ -2892,9 +2868,9 @@
     "semantic_hash": "d88f22c4426e6dc9cb3e9114ab529664"
   },
   "volta-frontend/src/pages/AchievementsPage.jsx": {
-    "mtime": 1791187476.3204439,
-    "seen": 1791197685.149677,
-    "ast_hash": "2cc3d737a61e3600aeec46ea83f650a0",
+    "mtime": 1794214308.659624,
+    "seen": 1794214859.9611032,
+    "ast_hash": "2ca06b9c32ae7c116abdbd7cc5aa7900",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/CompletedCoursesPage.jsx": {
@@ -2904,33 +2880,33 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/CourseMapPage.jsx": {
-    "mtime": 1792048961.8213813,
-    "seen": 1792049460.156682,
-    "ast_hash": "397b62542bd21a56962f7a070bf8428a",
+    "mtime": 1793859444.580577,
+    "seen": 1793859562.435589,
+    "ast_hash": "7190616eaf92be2d5be482ae9e3ca131",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/CoursesPage.jsx": {
-    "mtime": 1791185541.058822,
-    "seen": 1791197685.1496792,
-    "ast_hash": "03ea1b148699879e7bde906695e60206",
+    "mtime": 1794214309.05054,
+    "seen": 1794214859.9611049,
+    "ast_hash": "409db0c81f9c01a6f59a734431abe0b0",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/EventsPage.jsx": {
-    "mtime": 1791187476.3207848,
-    "seen": 1791197685.1496801,
-    "ast_hash": "cc94cdae632fcf8a12a877a90f594b56",
+    "mtime": 1794214309.1516685,
+    "seen": 1794214859.9611049,
+    "ast_hash": "735e673265dec9217aa4b52420df110d",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/ExamPage.jsx": {
-    "mtime": 1792581670.2394538,
-    "seen": 1792582334.053185,
-    "ast_hash": "0a3cced88a0a7a6710a7a49fa4e48fc4",
+    "mtime": 1794214308.9260182,
+    "seen": 1794214859.9611058,
+    "ast_hash": "ec800a31897bd0a46bd003439f7c8df9",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/ExamResultsPage.jsx": {
-    "mtime": 1792581677.2795386,
-    "seen": 1792582334.053186,
-    "ast_hash": "0e1a1c41aa3e258aef2c3999a0f06268",
+    "mtime": 1794214309.3118796,
+    "seen": 1794214859.9611058,
+    "ast_hash": "417a700dfb27bd41e95d2805bc45a410",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/GuidesPage.jsx": {
@@ -2946,15 +2922,15 @@
     "semantic_hash": "ed90c2c7b11cd542bb7c49ea26c9a6b9"
   },
   "volta-frontend/src/pages/LessonPage.jsx": {
-    "mtime": 1791447207.9386318,
-    "seen": 1791447389.8015559,
-    "ast_hash": "e795ee8a38536d3fe8bfc764a2c8c728",
+    "mtime": 1794212617.7668114,
+    "seen": 1794214170.464416,
+    "ast_hash": "8badd7ac32c780d1de6e811d1624df90",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/LessonsPage.jsx": {
-    "mtime": 1791447207.9383523,
-    "seen": 1791447389.8015559,
-    "ast_hash": "0837fa59c3c95c686baf5c869f8dd65c",
+    "mtime": 1794214309.0634968,
+    "seen": 1794214859.961108,
+    "ast_hash": "2cc37c6899cabf9f9c5e58034ec98c28",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/LibraryComposePage.jsx": {
@@ -2982,21 +2958,21 @@
     "semantic_hash": "78ade45297edbd1aa22035589daedefb"
   },
   "volta-frontend/src/pages/MessagesPage.jsx": {
-    "mtime": 1791048713.5652006,
-    "seen": 1791049287.915072,
-    "ast_hash": "be4cf94183ac47dbb8c1202cc0580b3b",
+    "mtime": 1793701571.797496,
+    "seen": 1793701905.4224489,
+    "ast_hash": "74981bee4546aeb3abd01d67255d572a",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/MonthlyTestsPage.jsx": {
-    "mtime": 1790260662.5846527,
-    "seen": 1790859414.9239318,
-    "ast_hash": "c84fef697f89a27559828cbf1368d89e",
-    "semantic_hash": "c84fef697f89a27559828cbf1368d89e"
+    "mtime": 1794214340.0970395,
+    "seen": 1794214859.961112,
+    "ast_hash": "037ec0f6e99df842264c83772e9af633",
+    "semantic_hash": ""
   },
   "volta-frontend/src/pages/ProfilePage.jsx": {
-    "mtime": 1792675677.4172597,
-    "seen": 1792675768.7620878,
-    "ast_hash": "3935b97b83c8f737744d78444dd9431d",
+    "mtime": 1793802241.4145243,
+    "seen": 1793802616.0541272,
+    "ast_hash": "713423f901fe523286cd8b6b64e55e46",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/RegisterPage.jsx": {
@@ -3018,9 +2994,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminActivityLogsPage.jsx": {
-    "mtime": 1791182142.675912,
-    "seen": 1791182447.598708,
-    "ast_hash": "adffbaba90d85bf45be8228a97e5bbe9",
+    "mtime": 1793701575.506488,
+    "seen": 1793701905.422453,
+    "ast_hash": "5f8c3cfd8b86b916a4036d8d6fb5a77e",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminActivityPage.jsx": {
@@ -3042,51 +3018,51 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminContentPage.jsx": {
-    "mtime": 1791031608.9127111,
-    "seen": 1791031766.839193,
-    "ast_hash": "790787c7b70807c28786a75b6d2520d4",
+    "mtime": 1793282244.4646895,
+    "seen": 1793282386.981684,
+    "ast_hash": "15348ee75096bebe01c2c46d52cbab4b",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminCourseBuilderPage.jsx": {
-    "mtime": 1791376039.6323347,
-    "seen": 1791379821.853328,
-    "ast_hash": "d7d0f0d77eb33db998e7ab8814c3ffb4",
+    "mtime": 1793699705.2413273,
+    "seen": 1793699898.118748,
+    "ast_hash": "ff64f9d1a04a14e6b44f8b54d1977b1c",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminCourseDetailPage.jsx": {
-    "mtime": 1791185541.0593374,
-    "seen": 1791197685.149697,
-    "ast_hash": "7be440d4159130975579ab673623e7eb",
+    "mtime": 1793799911.638961,
+    "seen": 1793800297.401665,
+    "ast_hash": "9438858f0be48dcc4b35ca52c611ea05",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminCourseMapsPage.jsx": {
-    "mtime": 1792049062.6793282,
-    "seen": 1792049460.156696,
-    "ast_hash": "99b70a22bfc3b82753c61e695754dbba",
+    "mtime": 1793799620.5812247,
+    "seen": 1793800297.401665,
+    "ast_hash": "b84a58019cb9d2889f4c73f57d4fba1e",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminCoursesPage.jsx": {
-    "mtime": 1791053057.0494618,
-    "seen": 1791053174.815316,
-    "ast_hash": "6dd0b6461ed912abe472c6b8b4668938",
+    "mtime": 1793801087.14697,
+    "seen": 1793801175.541377,
+    "ast_hash": "bf71010e1a6e5bde5a4b11384ea52591",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminDashboardPage.jsx": {
-    "mtime": 1789710468.760901,
-    "seen": 1790859414.923939,
-    "ast_hash": "0b0a730e4ddae4a5ef20836b306b66e1",
-    "semantic_hash": "0b0a730e4ddae4a5ef20836b306b66e1"
+    "mtime": 1793800633.3803399,
+    "seen": 1793800671.693863,
+    "ast_hash": "7cdc2a92bd825f6e3427411bdd4aa481",
+    "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminEventsPage.jsx": {
-    "mtime": 1790933058.955279,
-    "seen": 1790933128.0017989,
-    "ast_hash": "199f8df5813575d24acbeb5592f3684b",
+    "mtime": 1793802285.552456,
+    "seen": 1793802616.054135,
+    "ast_hash": "7215b52333c990f962515a89d9335f15",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminExamsPage.jsx": {
-    "mtime": 1793014834.7577963,
-    "seen": 1793015474.4699469,
-    "ast_hash": "70b33bb2ed1201f59dca91bbc7257e79",
+    "mtime": 1793711261.1248953,
+    "seen": 1793712741.538476,
+    "ast_hash": "7000213bd9e53ed6f2c87d3d9c37e7bb",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminManualReviewPage.jsx": {
@@ -3096,9 +3072,9 @@
     "semantic_hash": "de537969c8a4af0b00818cf3a94697f5"
   },
   "volta-frontend/src/pages/admin/AdminProblematicCoursesPage.jsx": {
-    "mtime": 1790932942.3552067,
-    "seen": 1790933128.0017998,
-    "ast_hash": "d146a887a4078451ee65c844c04af338",
+    "mtime": 1793801149.9914837,
+    "seen": 1793801175.5413802,
+    "ast_hash": "55fa2123d06f90998c114a5e13d61989",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminQuestionBankFolderDetailsPage.jsx": {
@@ -3114,21 +3090,15 @@
     "semantic_hash": "39003b315840852f58597b6fb5255e5c"
   },
   "volta-frontend/src/pages/admin/AdminSettingsPage.jsx": {
-    "mtime": 1792669689.36725,
-    "seen": 1792670159.124898,
-    "ast_hash": "c6ee1e4c30d42d0e0ca2d38b5cbd3287",
+    "mtime": 1793701559.8676603,
+    "seen": 1793701905.422463,
+    "ast_hash": "7c5430e0420915b6358cdd9519793409",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminStatisticsHubPage.jsx": {
-    "mtime": 1792674271.05825,
-    "seen": 1792675768.7620978,
-    "ast_hash": "bf7c406464cdc7e3878f1317c5a57b2b",
-    "semantic_hash": ""
-  },
-  "volta-frontend/src/pages/admin/AdminTasksPage.jsx": {
-    "mtime": 1790932942.3682384,
-    "seen": 1790933128.001803,
-    "ast_hash": "3df78011940c2e06da4f1627f6086575",
+    "mtime": 1793267784.0541549,
+    "seen": 1793270771.197571,
+    "ast_hash": "a22fe43a0c998c212adec87629d42f14",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminTeamsPage.jsx": {
@@ -3144,9 +3114,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminTestsPage.jsx": {
-    "mtime": 1791137530.0112953,
-    "seen": 1791137716.383046,
-    "ast_hash": "4dfe61ed9a7eb3267ba84a1767bf8962",
+    "mtime": 1793282283.958219,
+    "seen": 1793282386.981693,
+    "ast_hash": "bf998f1d4a8a01feaea866b55c3fa997",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminTestsPendingReviewsPage.jsx": {
@@ -3162,15 +3132,15 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/AdminUsersPage.jsx": {
-    "mtime": 1792668433.9657388,
-    "seen": 1792669543.184633,
-    "ast_hash": "c83ea221d49a3113d8ec95adc586d08f",
+    "mtime": 1793701571.797003,
+    "seen": 1793701905.422466,
+    "ast_hash": "1e774888ebf4496b30d37f41234085fc",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/CourseCreationPage.jsx": {
-    "mtime": 1791007765.9826334,
-    "seen": 1791007967.151726,
-    "ast_hash": "0c468e3cddce9350661b1d2e0cc31740",
+    "mtime": 1793710668.153727,
+    "seen": 1793710871.56426,
+    "ast_hash": "e17f935fab04f45a3b9436ed02a3784c",
     "semantic_hash": ""
   },
   "volta-frontend/src/pages/admin/LessonCreatorPage.jsx": {
@@ -3186,9 +3156,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/services/api.js": {
-    "mtime": 1792669675.7437744,
-    "seen": 1792670159.124904,
-    "ast_hash": "0701052782dcac96b83b3d2f805c71cb",
+    "mtime": 1793708460.7892258,
+    "seen": 1793708621.808819,
+    "ast_hash": "fc4af0b4c24aee3d56708e60662d8b4f",
     "semantic_hash": ""
   },
   "volta-frontend/src/services/openaiService.js": {
@@ -3198,9 +3168,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/styles/admin-styles-bundle.js": {
-    "mtime": 1790936142.5363634,
-    "seen": 1790936153.799475,
-    "ast_hash": "48d13f221502125f1f8d7b685e93985d",
+    "mtime": 1793282249.8305008,
+    "seen": 1793282386.981697,
+    "ast_hash": "fe706d787657d288fac94add13c2d8ab",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/activityLogLabels.js": {
@@ -3210,9 +3180,9 @@
     "semantic_hash": "9698802c21fa8aebfa007f631ffc50ed"
   },
   "volta-frontend/src/utils/color.js": {
-    "mtime": 1790936036.5850458,
-    "seen": 1790936153.799476,
-    "ast_hash": "aed0b5506255fb5c80972cb4c2f15add",
+    "mtime": 1793701517.0231314,
+    "seen": 1793701905.422472,
+    "ast_hash": "f9415ffaa6d3dc312ba364ba12e9ac3c",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/courseBuilderTestFlow.js": {
@@ -3252,9 +3222,9 @@
     "semantic_hash": "468a77b4a014779e51ee730664bd4077"
   },
   "volta-frontend/src/utils/examChoiceQuestions.js": {
-    "mtime": 1792581619.6121106,
-    "seen": 1792582334.053215,
-    "ast_hash": "c26b35d2ac9a82f9fba302f6c882cae7",
+    "mtime": 1793269240.6815424,
+    "seen": 1793270771.197584,
+    "ast_hash": "6a6d969ffe8e8f2fa1717bef7b439667",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/getVoltPageContext.js": {
@@ -3330,9 +3300,9 @@
     "semantic_hash": "d67f310cb7766d97dd2d8b1939d06e11"
   },
   "volta-frontend/src/utils/prefetch.js": {
-    "mtime": 1790943831.7584612,
-    "seen": 1790943979.1101341,
-    "ast_hash": "d6d6751f3d363294b87b252e9d5ec9d6",
+    "mtime": 1793282248.9480536,
+    "seen": 1793282386.9817111,
+    "ast_hash": "4cd0e1e79ce9f75fa20eedbe75d69ec0",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/publishCourseIssues.js": {
@@ -3360,9 +3330,9 @@
     "semantic_hash": "7603187892a04d02284612cde9b1301a"
   },
   "volta-frontend/src/utils/statisticsExcelExport.js": {
-    "mtime": 1790945474.5583262,
-    "seen": 1790945804.21632,
-    "ast_hash": "51a69ba254219bf2f60a52f00f6447c3",
+    "mtime": 1793282248.1643512,
+    "seen": 1793282386.9817128,
+    "ast_hash": "8a101d00f82d52d4fd671f64f43c2036",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/teamAccent.js": {
@@ -3396,10 +3366,10 @@
     "semantic_hash": "62bdae57029e4de37b585b82a47fd863"
   },
   "volta-frontend/src/utils/voltCoursePlan.js": {
-    "mtime": 1789108993.9827836,
-    "seen": 1790859414.923965,
-    "ast_hash": "6e0fd3cd5430f3d0d5fed795c7a02b74",
-    "semantic_hash": "6e0fd3cd5430f3d0d5fed795c7a02b74"
+    "mtime": 1793710668.1540318,
+    "seen": 1793710871.564283,
+    "ast_hash": "b5a34406d2e86b5fc7ca385917349dce",
+    "semantic_hash": ""
   },
   "volta-frontend/temp.ps1": {
     "mtime": 1778062990.7359145,
@@ -3408,10 +3378,10 @@
     "semantic_hash": "3d1dd57c9941136e3cce0be2c3bf7d43"
   },
   "volta-frontend/tests/examAnswerIdentity.test.js": {
-    "mtime": 1788959640.0949447,
-    "seen": 1790859414.923966,
-    "ast_hash": "33d04308d6fa23336ccb0071ce935c61",
-    "semantic_hash": "33d04308d6fa23336ccb0071ce935c61"
+    "mtime": 1793269240.682296,
+    "seen": 1793270771.197599,
+    "ast_hash": "3e506b4402f83093ad2da7c17e4fadab",
+    "semantic_hash": ""
   },
   "volta-frontend/tests/lessonImageAttrs.test.js": {
     "mtime": 1791375049.2992687,
@@ -3534,9 +3504,9 @@
     "semantic_hash": ""
   },
   "MIGRARE_VPS.md": {
-    "mtime": 1778062990.679309,
-    "seen": 1790861321.332315,
-    "ast_hash": "4d8388bc7d1c4bf976a271f590a3a2ad",
+    "mtime": 1793281136.426885,
+    "seen": 1793281256.6501172,
+    "ast_hash": "e6f4b9beb383b388e18a658333c8819f",
     "semantic_hash": ""
   },
   "ai.md": {
@@ -3690,9 +3660,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/index.html": {
-    "mtime": 1790933746.3636487,
-    "seen": 1790933770.912701,
-    "ast_hash": "92dd7282cfd102bb9bcc093c460fe284",
+    "mtime": 1794210255.5519583,
+    "seen": 1794214170.4644842,
+    "ast_hash": "be27a301d99a7f08c82559039a07633d",
     "semantic_hash": ""
   },
   "volta-frontend/public/favicon.png": {
@@ -3804,9 +3774,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/e2e/student.spec.js": {
-    "mtime": 1791371319.4832687,
-    "seen": 1791379821.853249,
-    "ast_hash": "5d5ad2648606ac10e4b09edf393e5781",
+    "mtime": 1794214308.8235867,
+    "seen": 1794214859.961028,
+    "ast_hash": "34f80f3219548105ec5520a66f97e9cf",
     "semantic_hash": ""
   },
   "volta-frontend/playwright.config.js": {
@@ -3882,9 +3852,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/e2e/lesson-editor.spec.js": {
-    "mtime": 1791375426.1424346,
-    "seen": 1791379821.853246,
-    "ast_hash": "b27728359291afaa633d04e184235065",
+    "mtime": 1793704083.1556478,
+    "seen": 1793704350.245068,
+    "ast_hash": "fbeb41bde5efea0f9e85bdadcb9a5872",
     "semantic_hash": ""
   },
   "volta-frontend/e2e/fixtures-pixel.png": {
@@ -3936,21 +3906,21 @@
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/CourseEditingWithoutPublishedVersionTest.php": {
-    "mtime": 1791058004.849421,
-    "seen": 1791058212.012785,
-    "ast_hash": "b8386d88abf36d579b2b29b8e599e65c",
+    "mtime": 1793705142.3987122,
+    "seen": 1793705261.598855,
+    "ast_hash": "86b453bfb20f336d13bebf8331d53e45",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/AdminTestPreviewTest.php": {
-    "mtime": 1791447245.2688909,
-    "seen": 1791447389.801437,
-    "ast_hash": "15d69ddce0f920fbe9b2c3d9ce2c06b6",
+    "mtime": 1793705142.3989098,
+    "seen": 1793705261.598848,
+    "ast_hash": "589b051a94f4fe88265656106cf9809a",
     "semantic_hash": ""
   },
   "volta-frontend/e2e/versions.spec.js": {
-    "mtime": 1791092667.8643138,
-    "seen": 1791092835.035035,
-    "ast_hash": "9f1f01f76eab640c923b46f72fc344a5",
+    "mtime": 1793699726.8532076,
+    "seen": 1793699898.1186619,
+    "ast_hash": "af1dc1d5404334f8c0df538879151a92",
     "semantic_hash": ""
   },
   "volta-frontend/src/utils/courseProgressLabel.js": {
@@ -4008,15 +3978,15 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Support/ImageOptimizer.php": {
-    "mtime": 1792667762.2295268,
-    "seen": 1792668035.797662,
-    "ast_hash": "2cc6dd2e94f36c421ecffce047d1c0f8",
+    "mtime": 1793281020.3777134,
+    "seen": 1793281041.776653,
+    "ast_hash": "4012ba50791d0bd1c29e5c34c46e0dc8",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/ImageOptimizerTest.php": {
-    "mtime": 1791376575.0471227,
-    "seen": 1791379821.853225,
-    "ast_hash": "5cd49deec6aa22de53b2f6934ab2772f",
+    "mtime": 1793281021.9576654,
+    "seen": 1793281041.776772,
+    "ast_hash": "dd56dae7365b8c6a1e6791cb64c8c65a",
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/VoltDisabledTest.php": {
@@ -4026,9 +3996,9 @@
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/LessonTextColorButton.jsx": {
-    "mtime": 1791372592.7996428,
-    "seen": 1791379821.853274,
-    "ast_hash": "d74056b8d47b09b087ea15275353974f",
+    "mtime": 1793704079.1693296,
+    "seen": 1793704350.2450979,
+    "ast_hash": "b21a20001514ff08f91fd8f00972f759",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/admin/lessons/image/LessonImageLayoutToolbar.jsx": {
@@ -4110,15 +4080,15 @@
     "semantic_hash": ""
   },
   "volta-backend/app/Console/Commands/ExtractInlineImagesCommand.php": {
-    "mtime": 1792667673.22122,
-    "seen": 1792668035.797586,
-    "ast_hash": "3af62110fa9f11259fa5d4a0d3f6de1a",
+    "mtime": 1793799793.0248325,
+    "seen": 1793800297.401328,
+    "ast_hash": "7ace8479f9474d358dea69f483f58f98",
     "semantic_hash": ""
   },
   "volta-backend/app/Console/Commands/GenerateThumbnailsCommand.php": {
-    "mtime": 1792667785.4063435,
-    "seen": 1792668035.797587,
-    "ast_hash": "72c6c7eeb36e7d7eff5e8ba06fb4fb3d",
+    "mtime": 1793270330.010452,
+    "seen": 1793270771.197271,
+    "ast_hash": "4a544b8173905524b9281bb2a37e68c8",
     "semantic_hash": ""
   },
   "volta-backend/app/Models/Concerns/GeneratesCoverThumbnail.php": {
@@ -4134,9 +4104,9 @@
     "semantic_hash": ""
   },
   "volta-backend/tests/Feature/ExtractInlineImagesTest.php": {
-    "mtime": 1792667651.7187622,
-    "seen": 1792668035.797785,
-    "ast_hash": "8b1033cbf231fdb180424ef4ddeacb7d",
+    "mtime": 1793799830.701742,
+    "seen": 1793800297.4015439,
+    "ast_hash": "e593a00d1b59edf78f34e6396c39e5a1",
     "semantic_hash": ""
   },
   "volta-frontend/src/components/ui/CoverPhoto.jsx": {
@@ -4185,6 +4155,294 @@
     "mtime": 1792669657.6584427,
     "seen": 1792670159.124773,
     "ast_hash": "edc2611f94cbb272039cb1b4c4626409",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Models/UserExamAttemptGrant.php": {
+    "mtime": 1793268224.0223663,
+    "seen": 1793270771.197324,
+    "ast_hash": "2861ffc2173daaa8d903cb81d469d515",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Observers/QuestionObserver.php": {
+    "mtime": 1793020652.0363274,
+    "seen": 1793270771.197325,
+    "ast_hash": "e9e60aa291e8c0669dba9764b047d1ac",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Services/ExamAttemptLimitService.php": {
+    "mtime": 1793268229.331502,
+    "seen": 1793270771.1973288,
+    "ast_hash": "84256216e11df236800c762e5351937a",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_10_29_100000_create_user_exam_attempt_grants_table.php": {
+    "mtime": 1793268224.0205243,
+    "seen": 1793270771.197428,
+    "ast_hash": "40c3919e03049916708d94bb45a9e1cb",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_10_29_110000_add_cover_image_path_to_exams_table.php": {
+    "mtime": 1793270329.973566,
+    "seen": 1793270771.197429,
+    "ast_hash": "503da8bc1518e4f343f19893a75f4933",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/ExamCoverTest.php": {
+    "mtime": 1793270362.720472,
+    "seen": 1793270771.1974568,
+    "ast_hash": "17278acb4b870d1b5dccd7be2ea1f9de",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/ExamExtraAttemptTest.php": {
+    "mtime": 1793705142.3959284,
+    "seen": 1793705261.5988638,
+    "ast_hash": "71726cab802234c4a18ba0b40227b44e",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/admin/exams/ExamCoverField.jsx": {
+    "mtime": 1793270411.0857344,
+    "seen": 1793270771.197508,
+    "ast_hash": "44804f43cb7d44418dd1b5335b940928",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Console/Commands/RecompressImagesCommand.php": {
+    "mtime": 1793692292.8954525,
+    "seen": 1793692349.704627,
+    "ast_hash": "b046d76a7fcd2460aecf3d6454cfe5b2",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Support/QuestionImageUrl.php": {
+    "mtime": 1793687770.675031,
+    "seen": 1793687891.8663318,
+    "ast_hash": "64972783e0a19d6b67d70c88d5a8a469",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Unit/QuestionImageUrlTest.php": {
+    "mtime": 1793687869.093278,
+    "seen": 1793687891.866464,
+    "ast_hash": "f47cc84a4e9bbd72ed9f7d5798b00aaf",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/admin/question-banks/QuestionImageUpload.jsx": {
+    "mtime": 1793687803.2506323,
+    "seen": 1793687891.866508,
+    "ast_hash": "8c119423e15463fd9c525971b6fa5631",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/RecompressImagesCommandTest.php": {
+    "mtime": 1793692325.961385,
+    "seen": 1793692349.7048252,
+    "ast_hash": "15233f5d55cec0c69f6cee0bc0c3f18c",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/HiddenLessonsInPublishedVersionTest.php": {
+    "mtime": 1793697660.8978524,
+    "seen": 1793697664.1069062,
+    "ast_hash": "3ddd555f3cd6d06c2e788b094fa3075c",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/StudentNextLessonTest.php": {
+    "mtime": 1793707950.765632,
+    "seen": 1793708115.8238661,
+    "ast_hash": "63be55763ba928baa5a7e3fc1059ec1b",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/AdminSiteAnalysisFixesTest.php": {
+    "mtime": 1793698718.4742558,
+    "seen": 1793698748.9155982,
+    "ast_hash": "d080b0be9dee9949a0d432ab97faab41",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/CourseMapProgressSpeedTest.php": {
+    "mtime": 1793699518.9686902,
+    "seen": 1793699554.64936,
+    "ast_hash": "1f9fe94a494ca490af91a7f933bcea9d",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/admin/builders/useLeaveGuard.js": {
+    "mtime": 1793699704.052983,
+    "seen": 1793699898.118677,
+    "ast_hash": "6c1b00cd2b25db9151b1eb1c939b06c6",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/EmailCaseTest.php": {
+    "mtime": 1793700753.3790128,
+    "seen": 1793701028.307265,
+    "ast_hash": "ab7c00c10c5402025021443ac3da5b10",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/EventAudienceTest.php": {
+    "mtime": 1793700847.292309,
+    "seen": 1793701028.3072672,
+    "ast_hash": "ca083f939b1d11fc7d1add0fb6b35c94",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_11_04_100000_merge_duplicate_default_course_maps.php": {
+    "mtime": 1793704118.5708334,
+    "seen": 1793704350.245003,
+    "ast_hash": "c3d778a7268c3a5973a962552c69498b",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/DefaultCourseMapTest.php": {
+    "mtime": 1793704137.659622,
+    "seen": 1793704350.245035,
+    "ast_hash": "cf66c6dea742e139ad9392341a2a9eff",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/PublishValidationLessonsTest.php": {
+    "mtime": 1793704175.2011383,
+    "seen": 1793704350.2450502,
+    "ast_hash": "ebf072e41a0fbc8b799599322070d6cf",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Console/Commands/RestoreDraftOnlyCoursesCommand.php": {
+    "mtime": 1793704752.2726014,
+    "seen": 1793704978.086561,
+    "ast_hash": "53b49c3db5a5b132e7ff408ec3da6016",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/RestoreDraftOnlyCoursesCommandTest.php": {
+    "mtime": 1793704752.3391452,
+    "seen": 1793704978.086776,
+    "ast_hash": "8d1048fadd4fc62e2359ff8b56077fc3",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/TestStartScreenTest.php": {
+    "mtime": 1793705176.4728203,
+    "seen": 1793705261.598884,
+    "ast_hash": "253eb112364fac99990ecdf050db386e",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/LockedLessonCompletionTest.php": {
+    "mtime": 1793710329.6348,
+    "seen": 1793710541.680616,
+    "ast_hash": "0ae8fa28c3d0b3126e034aff324eddf8",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_11_04_120000_remove_course_certificates.php": {
+    "mtime": 1793710628.317415,
+    "seen": 1793710871.5640981,
+    "ast_hash": "abd60e62c150faf70303f81da5afaf52",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/CourseCertificateRemovalTest.php": {
+    "mtime": 1793710658.021961,
+    "seen": 1793710871.564119,
+    "ast_hash": "d6113aab1db04830d89db64cdae79212",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_11_04_130000_exact_passing_scores.php": {
+    "mtime": 1793711158.6775565,
+    "seen": 1793712741.538315,
+    "ast_hash": "1727a92b291f86142cf0adad32b8b939",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/ExactPassingScoreTest.php": {
+    "mtime": 1793711216.4795265,
+    "seen": 1793712741.538347,
+    "ast_hash": "f6611465ccad04d1b9e4ceb1f9d921d1",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/utils/formatPercent.js": {
+    "mtime": 1793711238.9091225,
+    "seen": 1793712741.5384939,
+    "ast_hash": "c0662c744b46f2e4654e48be6f826cfd",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_11_04_140000_sync_course_test_passing_scores.php": {
+    "mtime": 1793712822.5739963,
+    "seen": 1793712899.51312,
+    "ast_hash": "4420e38ddb0d7ffcb8735f73c634a109",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/CourseTestPassingScoreSyncTest.php": {
+    "mtime": 1793712881.3867357,
+    "seen": 1793712899.5131469,
+    "ast_hash": "b35db36329adf117cdb81f945450286b",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Models/Concerns/ExtractsInlineImages.php": {
+    "mtime": 1793799772.9063234,
+    "seen": 1793800297.401373,
+    "ast_hash": "41550c4b22318d8c2e5e9cd7e651ed54",
+    "semantic_hash": ""
+  },
+  "volta-backend/app/Support/InlineImageExtractor.php": {
+    "mtime": 1793799772.8752,
+    "seen": 1793800297.40141,
+    "ast_hash": "f3f81a8e1b84e6a29dcdd1c98740e3dc",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/AdminTextSearchTest.php": {
+    "mtime": 1793799899.4832678,
+    "seen": 1793800297.4015229,
+    "ast_hash": "a9c2b983624eaf01fe0b4b9907c55f9b",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/utils/plural.js": {
+    "mtime": 1793800092.2009177,
+    "seen": 1793800297.4016929,
+    "ast_hash": "07c4f6bb0dcc264e3e56caf2503ea621",
+    "semantic_hash": ""
+  },
+  "volta-backend/database/migrations/2026_11_04_150000_exact_rounded_passing_scores.php": {
+    "mtime": 1793800867.9537094,
+    "seen": 1793801175.5412228,
+    "ast_hash": "2e0abc4f56df23c4402ddfcc171ae96c",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/ExactRoundedPassingScoreMigrationTest.php": {
+    "mtime": 1793800970.8483007,
+    "seen": 1793801175.541255,
+    "ast_hash": "c60ed4477eaa760835fa1ab77c099910",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/TestQuestionAnalyticsSnapshotTest.php": {
+    "mtime": 1793802582.4395795,
+    "seen": 1793802616.0540318,
+    "ast_hash": "fe4dd2a62cb001e43dc41bdda2583601",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/admin/AdminGlobalSearch.jsx": {
+    "mtime": 1793802340.2503567,
+    "seen": 1793802616.054056,
+    "ast_hash": "dd6672c46af23562984e1d769aaa2df3",
+    "semantic_hash": ""
+  },
+  "volta-backend/tests/Feature/ProfileFreshAfterSubmitTest.php": {
+    "mtime": 1793859534.960766,
+    "seen": 1793859562.435501,
+    "ast_hash": "442d9708ad8acd65677511b476f31da6",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/AppLoader.jsx": {
+    "mtime": 1794209932.3506894,
+    "seen": 1794214170.46435,
+    "ast_hash": "70f17f35afa109cbda3f102ad88f8729",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/hooks/useLessonBarsHidden.js": {
+    "mtime": 1794212616.9354072,
+    "seen": 1794214170.464407,
+    "ast_hash": "1486279fae949f4e0fc07215ea679360",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/utils/lessonBars.js": {
+    "mtime": 1794212616.897284,
+    "seen": 1794214170.464446,
+    "ast_hash": "6dea11b24f0f703dca7afbd33d946d8a",
+    "semantic_hash": ""
+  },
+  "volta-frontend/tests/lessonBars.test.js": {
+    "mtime": 1794212616.9190276,
+    "seen": 1794214170.464459,
+    "ast_hash": "b9bef0e0edf9f3438720e32a49d063e7",
+    "semantic_hash": ""
+  },
+  "volta-frontend/src/components/student/TestsSectionTabs.jsx": {
+    "mtime": 1794214308.3648245,
+    "seen": 1794214859.961087,
+    "ast_hash": "24dbc456fea1c80a361a50922c5df006",
     "semantic_hash": ""
   }
 }

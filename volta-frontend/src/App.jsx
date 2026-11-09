@@ -755,6 +755,20 @@ function AuthenticatedLayout({ children, authContext }) {
 							<span>{item.label}</span>
 						</NavLink>
 					))}
+					{placement === 'mobile' && user ? (
+						<button
+							type="button"
+							role="menuitem"
+							className="student-more-menu-item student-more-menu-item--logout"
+							onClick={() => {
+								setMoreMenuOpen(false);
+								logout();
+							}}
+						>
+							<SignOut size={20} weight="bold" aria-hidden />
+							<span>Deconectare</span>
+						</button>
+					) : null}
 				</div>
 			) : null}
 		</div>

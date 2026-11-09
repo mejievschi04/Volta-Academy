@@ -55,157 +55,67 @@
 	color: var(--color-error, #ef4444);
 }
 
+/* Pe lună există un singur test: card mare, cu aspect de curs. */
 .monthly-tests-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--space-5);
+	max-width: 720px;
 }
 
-.monthly-tests-tile {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	gap: 14px;
-	width: 100%;
-	min-height: 176px;
-	padding: 18px 18px 16px 22px;
-	text-align: left;
-	font: inherit;
-	border: 1px solid color-mix(in srgb, var(--border-primary) 85%, var(--text-primary) 15%);
-	border-radius: 18px;
-	background:
-		linear-gradient(180deg, color-mix(in srgb, var(--color-brand-primary) 14%, var(--bg-elevated)) 0%, var(--bg-elevated) 46%);
-	color: inherit;
-	cursor: pointer;
-	overflow: hidden;
-	box-shadow:
-		0 1px 2px rgba(15, 23, 42, 0.04),
-		0 12px 28px rgba(15, 23, 42, 0.06);
-	transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-}
-
-.monthly-tests-tile::before {
-	content: '';
-	position: absolute;
-	left: 0;
-	top: 0;
-	bottom: 0;
-	width: 4px;
-	background: var(--color-brand-primary);
-}
-
-.monthly-tests-tile:hover {
-	transform: none;
-	border-color: var(--border-accent);
-	box-shadow:
-		0 1px 2px rgba(15, 23, 42, 0.04),
-		0 18px 36px rgba(15, 23, 42, 0.1);
-}
-
-.monthly-tests-tile:hover .monthly-tests-tile-go {
-	transform: translateX(3px);
-}
-
-.monthly-tests-tile:focus-visible {
-	outline: 2px solid var(--border-focus);
-	outline-offset: 3px;
-}
-
-.monthly-tests-tile-cover {
-	display: block;
-	margin: -18px -18px 0 -22px;
-	aspect-ratio: 16 / 7;
-	overflow: hidden;
-	background: var(--bg-secondary);
-}
-
-.monthly-tests-tile-cover img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.monthly-tests-tile-top {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.monthly-tests-tile-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 44px;
-	height: 44px;
-	flex-shrink: 0;
-	border-radius: 14px;
-	background: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-}
-
-.monthly-tests-tile-go {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 34px;
-	height: 34px;
-	flex-shrink: 0;
-	border-radius: 12px;
-	background: var(--btn-primary-bg);
-	color: var(--btn-primary-text);
-	transition: background 160ms ease, color 160ms ease, transform 160ms ease;
-}
-
-.monthly-tests-tile-copy {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
+.monthly-tests-item {
 	min-width: 0;
 }
 
-.monthly-tests-tile-copy strong {
-	font-size: 1.12rem;
-	line-height: 1.3;
-	letter-spacing: -0.02em;
-	color: var(--text-primary);
+.monthly-tests-page .course-showcase-card {
+	--csc-radius: 16px;
+	--csc-title-lines: 1;
 }
 
-.monthly-tests-tile-desc {
-	color: var(--text-secondary);
-	font-size: 0.92rem;
-	line-height: 1.45;
+/* !important: pe telefon o regulă globală pentru carduri adaugă spațiu în jurul pozei */
+.monthly-tests-page .course-showcase-card__hit {
+	gap: 0 !important;
+	padding: 0 !important;
+}
+
+.monthly-tests-page .course-showcase-card__inner {
+	gap: 10px;
+	padding: 16px 18px 16px;
+}
+
+.monthly-tests-page .course-showcase-card__title {
+	font-size: clamp(1.25rem, 5vw, 1.625rem);
+	line-height: 1.25;
+	-webkit-line-clamp: 3;
+	min-height: 0;
+	overflow-wrap: anywhere;
+}
+
+.monthly-tests-page .course-showcase-card__subtitle {
+	display: block;
+	font-size: 1rem;
+	line-height: 1.4;
+	min-height: 0;
+	overflow: visible;
+}
+
+.monthly-tests-description {
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+	margin-bottom: 4px;
 }
 
-.monthly-tests-tile-chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: auto;
+.monthly-tests-details {
+	display: block;
+	overflow-wrap: anywhere;
 }
 
-.monthly-tests-tile-chip {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 6px 10px;
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--bg-elevated) 6%, var(--bg-secondary, #fff));
-	color: #334155;
-	font-size: 12px;
-	font-weight: 700;
-	line-height: 1;
+.monthly-tests-page .course-showcase-card__footer {
+	padding-top: 12px;
 }
 
-/* Pe telefon cardul e pe toată lățimea: 16/7 tăia mult din copertă (sus/jos); 16/9 e formatul copertelor. */
-@media (max-width: 640px) {
-	.monthly-tests-tile-cover {
-		aspect-ratio: 16 / 9;
-	}
+.monthly-tests-page .course-showcase-card__cta-label {
+	font-size: 0.8125rem;
 }

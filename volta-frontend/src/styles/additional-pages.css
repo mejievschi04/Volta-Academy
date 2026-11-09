@@ -1205,9 +1205,8 @@
 		padding: var(--space-3) var(--space-4) var(--space-2);
 	}
 
-	/* Pe telefon, ieșirea din rezultat e butonul principal din bara de jos */
 	.student-exam-page--results .student-exam-back-link {
-		display: none;
+		margin-bottom: var(--space-3);
 	}
 
 	.student-exam-results {
@@ -1315,7 +1314,7 @@
 	}
 
 	.student-exam-result-stat-label {
-		font-size: 0.625rem;
+		font-size: 0.75rem;
 		letter-spacing: 0.07em;
 	}
 
@@ -1325,7 +1324,7 @@
 
 	.student-exam-feedback-section-title {
 		margin: 0 0 var(--space-3);
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		font-weight: 800;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;

@@ -835,19 +835,19 @@ const LessonsPage = () => {
 					{lessonPosition ? (
 						<div className="lessons-page-context-progress">
 							<span className="lessons-page-context-progress-label">
-								Lecția {lessonPosition.index} din {lessonPosition.total} · {courseProgressLabel(progress?.progress_percentage)}
+								Lecția {lessonPosition.index} din {lessonPosition.total}
 							</span>
 							<div
 								className="lessons-page-context-progress-track"
 								role="progressbar"
-								aria-label="Progresul cursului"
-								aria-valuemin={0}
-								aria-valuemax={100}
-								aria-valuenow={Math.round(Math.min(100, Math.max(0, Number(progress?.progress_percentage) || 0)))}
+								aria-label="Poziția în curs"
+								aria-valuemin={1}
+								aria-valuemax={lessonPosition.total}
+								aria-valuenow={lessonPosition.index}
 							>
 								<div
 									className="lessons-page-context-progress-fill"
-									style={{ width: `${Math.min(100, Math.max(0, Number(progress?.progress_percentage) || 0))}%` }}
+									style={{ width: `${Math.round((lessonPosition.index / lessonPosition.total) * 100)}%` }}
 								/>
 							</div>
 						</div>

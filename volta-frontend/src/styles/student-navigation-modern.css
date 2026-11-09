@@ -126,6 +126,28 @@ html[data-theme='dark'] .student-more-menu-item.active {
 	color: var(--text-primary);
 }
 
+/* Deconectarea e buton, nu link: arată ca restul meniului, separată de navigare. */
+.student-more-menu-item--logout {
+	position: relative;
+	width: 100%;
+	margin-top: 9px;
+	border: 0;
+	background: none;
+	font-family: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.student-more-menu-item--logout::before {
+	content: '';
+	position: absolute;
+	top: -7px;
+	right: 4px;
+	left: 4px;
+	height: 1px;
+	background: var(--border-primary);
+}
+
 .va-shell-topnav .modern-topnav-item,
 .va-shell-topnav .va-topnav-btn {
 	display: flex;

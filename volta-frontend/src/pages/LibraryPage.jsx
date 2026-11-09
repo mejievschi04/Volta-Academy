@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { libraryService } from '../services/api';
 
@@ -8,7 +9,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { UploadSimple, X } from '@phosphor-icons/react';
+import { Books, UploadSimple, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import CoverPhoto from '../components/ui/CoverPhoto';
 
@@ -303,7 +304,7 @@ const LibraryPage = () => {
 				{loading ? (
 					<p className="library-empty">Se încarcă...</p>
 				) : items.length === 0 ? (
-					<p className="library-empty">Nu există încă materiale în bibliotecă.</p>
+					<EmptyState icon={<Books size={30} weight="bold" />} title="Nu există încă materiale" text="Când apar materiale noi, le găsești aici." />
 				) : (
 					<ul className="library-book-grid">
 						{items.map((item) => {

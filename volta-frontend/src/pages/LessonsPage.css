@@ -391,8 +391,8 @@
 }
 
 html[data-theme='dark'] .lessons-page-lesson-viewer {
-	background: #ffffff;
-	color: #000000;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
 }
 
 .lessons-page-lesson-viewer .lessons-page-lesson-header {
@@ -411,9 +411,10 @@ html[data-theme='dark'] .lessons-page-lesson-viewer {
 	background: #ffffff;
 }
 
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-header {
-	background: #ffffff;
-	color: #000000;
+html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-header,
+html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-header:hover {
+	background: var(--bg-elevated);
+	color: var(--text-primary);
 }
 
 .lessons-page-lesson-viewer .lessons-page-lesson-viewer-title {
@@ -433,27 +434,10 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-header 
 	line-height: 1.6;
 }
 
-/* Peste dark-theme.css (h1/div cu !important) */
+/* Peste dark-theme.css (h1/div cu !important); conținutul autorului: vezi „Lecția în tema întunecată” din dark-theme.css */
 html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-viewer-title,
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-viewer-description,
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text,
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content {
-	color: #000000 !important;
-}
-
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text h1:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text h2:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text h3:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text h4:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text p:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-content-text li:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content h1:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content h2:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content h3:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content h4:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content p:not([style*="color"]),
-html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks .lesson-preview-content li:not([style*="color"]) {
-	color: #000000 !important;
+html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-viewer-description {
+	color: var(--text-primary) !important;
 }
 
 .lessons-page-lesson-viewer .lessons-page-lesson-body {
@@ -467,8 +451,8 @@ html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-blocks 
 }
 
 html[data-theme='dark'] .lessons-page-lesson-viewer .lessons-page-lesson-body {
-	background: #ffffff;
-	color: #000000;
+	background: var(--bg-elevated);
+	color: var(--text-primary);
 }
 
 /* Content blocks (student view - no labels) */

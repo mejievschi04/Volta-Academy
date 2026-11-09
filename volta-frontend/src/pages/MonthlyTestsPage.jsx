@@ -1,23 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardText, Clock, ArrowRight, SealCheck, Repeat } from '@phosphor-icons/react';
+import { ClipboardText } from '@phosphor-icons/react';
 import { examService } from '../services/api';
-import { useCoverImage } from '../hooks/useCoverImage';
-import { toImageUrl } from '../utils/imageUrl';
+import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
+import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-cardShared.js';
 import { formatPercent } from '../utils/formatPercent';
 import TestsSectionTabs from '../components/student/TestsSectionTabs';
 import './MonthlyTestsPage.css';
-
-/** Coperta testului lunar: miniatura, apoi originalul; fără copertă cardul rămâne ca înainte. */
-function MonthlyTestCover({ url }) {
-	const cover = useCoverImage(url ? toImageUrl(url) || url : null);
-	if (!cover.src || cover.failed) return null;
-	return (
-		<span className="monthly-tests-tile-cover" aria-hidden>
-			<img src={cover.src} alt="" loading="lazy" decoding="async" onError={cover.onError} />
-		</span>
-	);
-}
 
 const MonthlyTestsPage = () => {
 	const navigate = useNavigate();
@@ -67,11 +57,7 @@ const MonthlyTestsPage = () => {
 			{error ? (
 				<p className="monthly-tests-error" role="alert">{error}</p>
 			) : exams.length === 0 ? (
-				<section className="monthly-tests-empty" aria-label="Teste lunare">
-					<ClipboardText size={36} weight="duotone" aria-hidden />
-					<h2>Nu ai teste lunare momentan</h2>
-					<p>Când un test îți este atribuit, apare aici.</p>
-				</section>
+				<EmptyState icon={<ClipboardText size={30} weight="bold" />} title="Nu ai teste lunare momentan" text="Când un test îți este atribuit, apare aici." />
 			) : (
 				<div className="monthly-tests-grid">
 					{exams.map((exam) => {
@@ -84,50 +70,23 @@ const MonthlyTestsPage = () => {
 							: left === 0
 								? 'Nicio încercare rămasă'
 								: `${left} ${Number(left) === 1 ? 'încercare rămasă' : 'încercări rămase'}`;
+						// încercările întâi: ele contează cel mai mult
+						const details = [attempts, minutes, passing].filter(Boolean).join(' · ');
 						return (
-							<button
-								key={exam.id}
-								type="button"
-								className={`monthly-tests-tile${exam.cover_image_url ? ' has-cover' : ''}`}
-								onClick={() => navigate(`/exams/${exam.id}`)}
-							>
-								<MonthlyTestCover url={exam.cover_image_url} />
-								<span className="monthly-tests-tile-top">
-									<span className="monthly-tests-tile-icon" aria-hidden>
-										<ClipboardText size={22} weight="duotone" />
-									</span>
-									<span className="monthly-tests-tile-go" aria-hidden>
-										<ArrowRight size={16} weight="bold" />
-									</span>
-								</span>
-								<span className="monthly-tests-tile-copy">
-									<strong>{exam.title || 'Test lunar'}</strong>
-									{exam.description ? <span className="monthly-tests-tile-desc">{exam.description}</span> : null}
-								</span>
-								<span className="monthly-tests-tile-chips">
-									{minutes ? (
-										<span className="monthly-tests-tile-chip">
-											<Clock size={14} weight="bold" aria-hidden />
-											{minutes}
-										</span>
+							<article key={exam.id} className="monthly-tests-item">
+								<CourseShowcaseCard
+									imageUrl={exam.cover_image_url || COURSE_SHOWCASE_FALLBACK_IMAGE}
+									title={exam.title || 'Test lunar'}
+									subtitle={details || exam.description ? (
+										<>
+											{exam.description ? <span className="monthly-tests-description">{exam.description}</span> : null}
+											{details ? <span className="monthly-tests-details">{details}</span> : null}
+										</>
 									) : null}
-									{passing ? (
-										<span className="monthly-tests-tile-chip">
-											<SealCheck size={14} weight="bold" aria-hidden />
-											{passing}
-										</span>
-									) : null}
-									{attempts ? (
-										<span className="monthly-tests-tile-chip">
-											<Repeat size={14} weight="bold" aria-hidden />
-											{attempts}
-										</span>
-									) : null}
-									{!minutes && !passing && !attempts ? (
-										<span className="monthly-tests-tile-chip">Deschide testul</span>
-									) : null}
-								</span>
-							</button>
+									onOpen={() => navigate(`/exams/${exam.id}`)}
+									ctaLabel="Deschide testul"
+								/>
+							</article>
 						);
 					})}
 				</div>

@@ -13,6 +13,7 @@ import { useToast } from '../contexts/ToastContextShared.js';
 import { handleApiError } from '../utils/errorHandler';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
+import { WarningCircle } from '@phosphor-icons/react';
 import RichTextHtml from '../components/RichTextHtml';
 import ConfirmModal from '../components/common/ConfirmModal';
 import '../styles/learning-experience.css';
@@ -117,6 +118,7 @@ const ExamPage = () => {
 	const [result, setResult] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [errorLocked, setErrorLocked] = useState(false);
 	const [timeRemaining, setTimeRemaining] = useState(null);
 	const [startTime, setStartTime] = useState(null);
 	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -244,6 +246,7 @@ const ExamPage = () => {
 			setError(null);
 		} catch (err) {
 			const errorMessage = handleApiError(err, 'fetchExam');
+			setErrorLocked(err?.response?.status === 403 && Boolean(err?.response?.data?.locked));
 			setError(errorMessage || 'Testul nu a fost găsit');
 		} finally {
 			setLoading(false);
@@ -592,7 +595,7 @@ const ExamPage = () => {
 	const getQuestionStatus = useCallback((questionId, index) => {
 		if (submitted && result) {
 			const question = exam.questions.find(q => q.id === questionId);
-			if (typeof question?.is_correct === 'boolean') {
+			if (canShowInstantResults && typeof question?.is_correct === 'boolean') {
 				return question.is_correct ? 'completed' : 'incorrect';
 			}
 			if (showOnlySubmittedAnswers || questionSolutionsHidden(question)) {
@@ -612,7 +615,7 @@ const ExamPage = () => {
 		if (isCurrent) return 'current';
 		if (isAnswered) return 'answered';
 		return 'not-started';
-	}, [answers, currentQuestionIndex, submitted, result, exam, isQuestionCorrect, visibleAnswers, showOnlySubmittedAnswers]);
+	}, [answers, currentQuestionIndex, submitted, result, exam, isQuestionCorrect, visibleAnswers, showOnlySubmittedAnswers, canShowInstantResults]);
 
 	if (loading) {
 		return (
@@ -629,8 +632,10 @@ const ExamPage = () => {
 		return (
 			<div className="student-exam-page">
 				<div className="student-exam-error">
+					<WarningCircle size={28} weight="duotone" aria-hidden />
+					<h2>{errorLocked ? 'Test blocat' : 'Testul nu poate fi deschis'}</h2>
 					<p>{error || 'Testul nu a fost găsit'}</p>
-					<Link to={back.to} className="student-exam-btn student-exam-btn-secondary">
+					<Link to={back.to} className="student-exam-btn lms-btn-primary">
 						{back.label}
 					</Link>
 				</div>

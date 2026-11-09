@@ -69,7 +69,7 @@ const CourseMapFolderTile = ({
 					<h3 className="course-map-folder-tile__title">{title || 'Mapa'}</h3>
 					{subtitle ? <p className="course-map-folder-tile__subtitle">{subtitle}</p> : null}
 					<div
-						className={`course-map-folder-tile__progress${normalizedProgress === null ? ' course-map-folder-tile__progress--empty' : ''}`}
+						className={`course-map-folder-tile__progress${normalizedProgress === null ? ' course-map-folder-tile__progress--empty' : ''}${normalizedProgress === 0 ? ' course-map-folder-tile__progress--zero' : ''}`}
 						aria-hidden
 					>
 						<span style={{ width: normalizedProgress !== null ? `${normalizedProgress}%` : '0%' }} />

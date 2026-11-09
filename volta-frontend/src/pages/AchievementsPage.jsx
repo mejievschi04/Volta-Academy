@@ -13,7 +13,15 @@ function formatLearningTime(achievements) {
 	if (Number.isFinite(minutes) && minutes < 60) return `${Math.max(0, minutes)} min`;
 	return `${achievements?.learning_hours || 0}h`;
 }
-import { BookOpenText, GraduationCap, Timer } from '@phosphor-icons/react';
+import { BookOpenText, GraduationCap, Medal, RocketLaunch, Star, Target, Timer } from '@phosphor-icons/react';
+
+/** Serverul trimite etapele cu emoji; pe ecran folosim iconițele aplicației. */
+const MILESTONE_ICONS = { '🎯': Target, '🌟': Star, '🚀': RocketLaunch, '🎓': GraduationCap };
+
+function MilestoneIcon({ emoji }) {
+	const Icon = MILESTONE_ICONS[emoji] || Medal;
+	return <Icon size={22} weight="bold" aria-hidden />;
+}
 
 const AchievementsPage = () => {
 
@@ -98,13 +106,13 @@ const AchievementsPage = () => {
 			{achievements && achievements.milestones && achievements.milestones.length > 0 && (
 				<div className="student-achievements-section">
 					<h2 className="student-achievements-section-title">
-						<span className="student-achievements-section-icon">🎯</span>
+						<span className="student-achievements-section-icon"><Target size={20} weight="bold" aria-hidden /></span>
 						<span>Etape atinse</span>
 					</h2>
 					<div className="student-milestones-timeline">
 						{achievements.milestones.map((milestone, index) => (
 							<div key={index} className="student-milestone-item">
-								<div className="student-milestone-icon">{milestone.icon}</div>
+								<div className="student-milestone-icon"><MilestoneIcon emoji={milestone.icon} /></div>
 								<div className="student-milestone-content">
 									<div className="student-milestone-title">{milestone.title}</div>
 									<div className="student-milestone-description">{milestone.description}</div>

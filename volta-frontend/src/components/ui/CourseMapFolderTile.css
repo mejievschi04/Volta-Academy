@@ -226,68 +226,73 @@
 
 @media (max-width: 768px) {
 	.courses-page-student .course-map-folder-tile {
+		--map-folder-scale: 2.2;
 		max-width: none;
 		width: 100%;
 	}
 
+	/* Folderul crește odată cu coloana: două mape pe rând la orice lățime de telefon */
+	@media (max-width: 600px) {
+		.courses-page-student .course-map-folder-tile {
+			--map-folder-scale: 1.7;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.courses-page-student .course-map-folder-tile {
+			--map-folder-scale: 1.45;
+		}
+	}
+
+	@media (max-width: 400px) {
+		.courses-page-student .course-map-folder-tile {
+			--map-folder-scale: 1.25;
+		}
+	}
+
+	@media (max-width: 340px) {
+		.courses-page-student .course-map-folder-tile {
+			--map-folder-scale: 1.05;
+		}
+	}
+
+	.courses-page-student .course-map-folder-tile__visual .rb-folder-wrap {
+		transform: scale(var(--map-folder-scale)) !important;
+	}
+
 	.courses-page-student .course-map-folder-tile__hit {
 		--course-map-tile-hit-height: auto;
-		flex-direction: row;
-		align-items: center;
 		width: 100%;
 		height: auto;
 		min-height: 0;
 		max-height: none;
-		gap: var(--space-3);
-		padding: var(--space-2) var(--space-3);
+		gap: 4px;
+		padding: 4px 4px 12px;
 	}
 
-	/* [data-theme]: trece peste regulile de temă care fac dala transparentă */
-	[data-theme] .courses-page-student .course-map-folder-tile__hit {
-		border: 1px solid var(--border-primary) !important;
-		border-radius: var(--radius-lg) !important;
-		background: var(--bg-elevated) !important;
-	}
-
-	/* Rând compact, la fel ca rândurile de curs */
 	.courses-page-student .course-map-folder-tile__stage {
-		flex: 0 0 96px;
-		width: 96px;
-		height: 72px;
+		height: calc(84.5px * var(--map-folder-scale));
 	}
 
 	.courses-page-student .course-map-folder-tile__visual {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 96px;
-		height: 72px;
-	}
-
-	.courses-page-student .course-map-folder-tile__visual .rb-folder-wrap {
-		transform: scale(0.72) !important;
-	}
-
-	.courses-page-student .course-map-folder-tile__visual .rb-paper {
-		display: none;
+		width: 100%;
+		height: calc(78.7px * var(--map-folder-scale));
 	}
 
 	.courses-page-student .course-map-folder-tile__meta {
-		flex: 1;
-		min-width: 0;
 		min-height: 0;
 		max-height: none;
-		gap: 4px;
-		align-items: stretch;
-		text-align: left;
+		gap: 8px;
+		align-items: center;
+		text-align: center;
 	}
 
 	.courses-page-student .course-map-folder-tile__title {
 		height: auto;
 		min-height: 0;
 		max-height: none;
-		font-size: 1rem;
-		line-height: 1.25;
+		font-size: clamp(1rem, 4.2vw, 1.4rem);
+		line-height: 1.2;
 		-webkit-line-clamp: 2;
 	}
 
@@ -295,20 +300,21 @@
 		height: auto;
 		min-height: 0;
 		max-height: 1.4em;
-		font-size: 0.875rem;
+		font-size: clamp(0.8125rem, 3.4vw, 1rem);
 		line-height: 1.3;
 		-webkit-line-clamp: 1;
 		color: var(--text-secondary);
 	}
 
 	.courses-page-student .course-map-folder-tile__progress {
-		width: 100%;
+		width: min(160px, 72%);
 		height: 6px;
 		min-height: 6px;
 		margin-top: 2px;
 	}
 
 	.courses-page-student .course-map-folder-tile__progress--empty,
+	.courses-page-student .course-map-folder-tile__progress--zero,
 	.courses-page-student .course-map-folder-tile__footer {
 		display: none;
 	}
@@ -365,10 +371,6 @@
 
 	.course-map-folder-tile__stage {
 		height: 248px;
-	}
-
-	.courses-page-student .course-map-folder-tile__stage {
-		height: 210px;
 	}
 
 	.course-map-folder-tile__visual {

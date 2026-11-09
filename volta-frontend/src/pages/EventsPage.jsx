@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { eventsService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import ConfirmModal from '../components/common/ConfirmModal';
-import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 import { CalendarBlank } from '@phosphor-icons/react';
 
 const parseEventDate = (dateString) => {
@@ -150,8 +150,9 @@ const EventsPage = () => {
 								})()}
 								<div className="va-card-body events-card-body">
 									<h3 className="va-card-title events-card-title">{event.title}</h3>
-									<EventDescriptionExpandable text={details} />
-
+									{details ? (
+										<p className="events-card-text">{details}</p>
+									) : null}
 									<div className="events-card-meta">
 										{event.instructor?.name ? (
 											<div className="events-card-meta-row">
@@ -218,15 +219,7 @@ const EventsPage = () => {
 					})}
 				</div>
 			) : (
-				<div className="va-card">
-					<div className="va-card-body">
-						<div className="empty-state">
-							<div className="empty-state-icon"><CalendarBlank size={56} weight="duotone" aria-hidden /></div>
-							<div className="empty-state-title">Nu există evenimente</div>
-							<div className="empty-state-description">Nu sunt programate evenimente momentan.</div>
-						</div>
-					</div>
-				</div>
+				<EmptyState icon={<CalendarBlank size={30} weight="bold" />} title="Nu există evenimente" text="Nu sunt programate evenimente momentan." />
 			)}
 
 			<ConfirmModal

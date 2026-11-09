@@ -335,3 +335,53 @@ html[data-theme="dark"] .modern-nav-subitem.is-active .modern-nav-item-label {
 }
 
 /* Dropdown notificări (lângă zonă utilizator în topnav): fundal închis */
+
+/*
+ * Lecția în tema întunecată. Culorile autorului (text, evidențieri, tabele) sunt alese pentru fundal alb, așa că
+ * inversăm blocurile de text: negrul devine alb, iar culorile rămân recognoscibile. Blocurile cu imagini sau
+ * video nu se inversează, ca pozele să-și păstreze culorile.
+ */
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) {
+	color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) :is(p, li, h1, h2, h3, h4, h5, h6, span, div, figcaption):not([style*="color"]) {
+	color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])) {
+	filter: invert(1) hue-rotate(180deg);
+}
+
+/* Textul fără culoare de la autor: aproape negru, deci aproape alb după inversare */
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):not(a):not([style^="color"]):not([style*=";color"]):not([style*="; color"]),
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])) *:not(a):not([style^="color"]):not([style*=";color"]):not([style*="; color"]) {
+	color: #141414 !important;
+}
+
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])) a,
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):is(a) {
+	color: #1d4ed8 !important;
+	text-decoration: underline;
+}
+
+/* Blocurile cu imagini nu se inversează întregi: inversăm doar textul colorat de autor din ele, ca să rămână lizibil */
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]) [style*="color"]:not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):not([style*="color"] *) {
+	filter: invert(1) hue-rotate(180deg);
+}
+
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]) [style*="color"]:not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):not([style*="color"] *):not([style^="color"]):not([style*=";color"]):not([style*="; color"]),
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]) [style*="color"]:not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):not([style*="color"] *) *:not([style^="color"]):not([style*=";color"]):not([style*="; color"]) {
+	color: #141414 !important;
+}
+
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > [style*="color"]:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]) {
+	color: var(--text-primary) !important;
+}
+
+/* Fundalurile din temă ar ieși deschise după inversare; rămân doar cele puse de autor și casetele colorate */
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])):is(table, blockquote, pre, code, ul, ol):not([style*="background"]):not([data-callout-box]),
+html[data-theme="dark"] :is(.lessons-page-lesson-viewer .lessons-page-lesson-content-text, .lessons-page-lesson-viewer .lesson-preview-content, .lesson-page-main .lesson-page-content-text, .lesson-page-main .lesson-preview-content) > :not(img, svg, video, iframe, canvas, object, embed, [style*="background-image"]):not(:has(img, svg, video, iframe, canvas, object, embed, [style*="background-image"])) :is(table, thead, tbody, tr, th, td, blockquote, pre, code):not([style*="background"]):not([data-callout-box]) {
+	background: transparent !important;
+	background-color: transparent !important;
+}

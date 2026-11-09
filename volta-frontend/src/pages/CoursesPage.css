@@ -673,29 +673,7 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 
 .courses-page-empty {
 	grid-column: 1 / -1;
-	text-align: center;
-	padding: var(--space-16) var(--space-8);
-	background: var(--bg-elevated);
-	border: 2px dashed var(--border-primary);
-	border-radius: var(--radius-xl);
-	margin-top: var(--space-8);
-}
-
-.courses-page-empty-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 140px;
-	height: 140px;
-	margin: 0 auto var(--space-8);
-	background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1) 0%, rgba(var(--color-primary-rgb), 0.03) 100%);
-	border-radius: 50%;
-	color: var(--text-tertiary);
-	border: 3px solid var(--border-primary);
-}
-
-.courses-page-empty-icon svg {
-	opacity: 0.4;
+	justify-self: center;
 }
 
 .courses-page-empty-title {
@@ -812,11 +790,6 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	.courses-page-empty {
 		padding: var(--space-12) var(--space-4);
 	}
-	
-	.courses-page-empty-icon {
-		width: 100px;
-		height: 100px;
-	}
 }
 
 @media (max-width: 480px) {
@@ -912,11 +885,16 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	}
 
 	.courses-page-student .courses-page-maps-grid {
-		grid-template-columns: 1fr;
-		gap: var(--space-6);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-4) var(--space-3);
 		margin-top: var(--space-4);
 		justify-items: stretch;
 		width: 100%;
+	}
+
+	/* Două pe rând, mape și cursuri; primul curs începe rând nou, ca să nu stea lângă o mapă */
+	.courses-page-student .course-map-showcase-tile:has(.course-map-folder-tile) + .course-map-showcase-tile:has(.course-showcase-card) {
+		grid-column-start: 1;
 	}
 
 	.courses-page-student .course-map-showcase-tile {
@@ -982,7 +960,7 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 }
 
 /* Mobil: două mape pe rând (una singură ocupa jumătate din ecran și cerea derulare lungă).
-   Folderul are dimensiune fixă, așa că îl micșorăm proporțional cu zoom. */
+   Folderul se scalează după lățime în CourseMapFolderTile.css. */
 @media (max-width: 640px) {
 	.courses-page-student .courses-page-maps-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -991,11 +969,6 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 
 	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__stage {
 		width: 100%;
-		height: auto;
-	}
-
-	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__visual {
-		zoom: 0.6;
 	}
 
 	.courses-page-student .courses-page-maps-grid .course-map-folder-tile__title {
@@ -1014,13 +987,6 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 	}
 }
 
-/* Foarte îngust (≤340px): o mapă pe rând, ca titlurile să nu se strângă */
-@media (max-width: 340px) {
-	.courses-page-student .courses-page-maps-grid {
-		grid-template-columns: 1fr;
-	}
-}
-
 /* Cursant pe telefon: „Continuă” și filtrele mai compacte, ca mapele să apară mai sus pe ecran.
    Filtrele devin pastile pe un rând („64 Toate”), nu cifră deasupra etichetei. */
 @media (max-width: 640px) {
@@ -1035,7 +1001,7 @@ html[data-theme='dark'] .courses-page-student-filter.is-active .courses-page-stu
 
 	.courses-page-resume-kicker {
 		margin: 0 !important;
-		font-size: 0.7rem !important;
+		font-size: 0.75rem !important;
 	}
 
 	.courses-page-resume-title {

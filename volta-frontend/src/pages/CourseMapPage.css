@@ -479,16 +479,6 @@
 	transform: translateY(-2px);
 }
 
-.course-map-page-empty {
-	text-align: center;
-	padding: 3rem 1rem;
-	color: var(--text-secondary);
-}
-
-.course-map-page-empty .course-map-page-btn {
-	margin-top: 1rem;
-}
-
 /* Wrapper pentru carduri tip „destination” (CourseShowcaseCard) */
 .course-map-course-card--showcase-wrap {
 	background: transparent;
@@ -614,10 +604,6 @@
 	.course-map-course-card--showcase-wrap .course-showcase-card__hit:hover,
 	.course-map-course-card--showcase-wrap .course-showcase-card__hit:active {
 		transform: none;
-	}
-
-	.course-map-page-empty {
-		padding: var(--space-10) var(--space-3);
 	}
 
 	.course-map-page-btn {

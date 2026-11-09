@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { Link } from 'react-router-dom';
+import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { studentActivityService } from '../services/api';
 import {
 	getFriendlyLogLine,
@@ -162,14 +164,13 @@ const StudentActivityPage = () => {
 					<p>Se încarcă activitatea…</p>
 				</div>
 			) : entries.length === 0 ? (
-				<div className="lms-empty-state va-student-activity-empty">
-					<p className="lms-empty-description">
-						Încă nu ai evenimente înregistrate aici. Înscrie-te la un curs sau finalizează o lecție — activitatea va apărea automat.
-					</p>
-					<Link to="/courses" className="lms-btn-primary">
-						Explorează cursuri
-					</Link>
-				</div>
+				<EmptyState
+					icon={<ClockCounterClockwise size={30} weight="bold" />}
+					title="Încă nu ai activitate"
+					text="Înscrie-te la un curs sau finalizează o lecție și activitatea va apărea automat."
+				>
+					<Link to="/courses" className="lms-btn-primary">Explorează cursuri</Link>
+				</EmptyState>
 			) : (
 				<ul className="va-student-activity-list">
 					{entries.map((entry) => {

@@ -922,10 +922,6 @@
 	text-decoration: underline;
 }
 
-.va-student-activity-empty {
-	margin-top: var(--space-8);
-}
-
 .va-student-activity-pagination {
 	display: flex;
 	align-items: center;
@@ -1584,22 +1580,6 @@ html body .va-profile-section-admin-courses .va-course-card-actions > a + button
 	text-align: center;
 }
 
-.va-up-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 12px;
-	padding: 32px 16px;
-	border: 1px dashed var(--border-secondary);
-	border-radius: 14px;
-	color: var(--text-secondary);
-	text-align: center;
-}
-
-.va-up-empty p {
-	margin: 0;
-}
-
 @media (max-width: 640px) {
 	.va-up-hero,
 	.va-up-courses {
@@ -1793,5 +1773,112 @@ html body .va-profile-section-admin-courses .va-course-card-actions > a + button
 
 	html body .va-up-progress-track {
 		height: 5px !important;
+	}
+}
+
+/* Cursant pe telefon: antet compact, cursurile direct pe pagină, filtre într-un singur control ca la Rezultate. */
+@media (max-width: 768px) {
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-hero {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: 4px 14px;
+		padding: 16px;
+		border-radius: 16px;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-avatar {
+		grid-row: 1 / span 2;
+		width: 64px;
+		height: 64px;
+		font-size: 1.4rem;
+		box-shadow: none;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-name {
+		margin-bottom: 4px;
+		font-size: 1.25rem;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-progress-summary {
+		grid-column: 2;
+		flex-direction: row;
+		align-items: baseline;
+		justify-content: flex-start;
+		gap: 5px;
+		text-align: left;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-progress-summary strong {
+		font-size: 1rem;
+	}
+
+	/* două butoane pe rând; dacă numărul e impar, ultimul ocupă tot rândul (primul copil e câmpul de fișier ascuns) */
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-hero-actions {
+		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+		margin-top: 12px;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-hero-actions > :last-child:nth-child(even) {
+		grid-column: 1 / -1;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-hero-actions > :not(input) {
+		width: 100%;
+		min-width: 0;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-courses {
+		margin-top: var(--space-5);
+		padding: 0;
+		border: 0;
+		background: none;
+		box-shadow: none;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-courses-head {
+		gap: var(--space-3);
+		margin-bottom: var(--space-3);
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-search {
+		min-height: 48px;
+		border-radius: 14px;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-tabs {
+		gap: 4px;
+		margin-bottom: var(--space-4);
+		padding: 4px;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-tabs .va-up-tab.va-up-tab {
+		min-height: 42px !important;
+		padding: 0 12px !important;
+		border: 0 !important;
+		border-radius: 11px !important;
+		font-size: 0.875rem !important;
+		font-weight: 600;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-tabs .va-up-tab.va-up-tab:not(.is-active),
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-tabs .va-up-tab.va-up-tab:not(.is-active):hover {
+		background: transparent !important;
+		color: var(--text-secondary) !important;
+	}
+
+	html body .va-shell-topnav:has(.student-mobile-tabs) .va-up-tabs .va-up-tab.va-up-tab .va-up-tab-count {
+		min-width: 0;
+		height: auto;
+		padding: 0;
+		background: transparent;
+		color: inherit;
+		font-size: 0.875rem;
+		font-weight: 700;
 	}
 }

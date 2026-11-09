@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
 	DndContext,
@@ -16,7 +17,7 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowLeft, Info } from '@phosphor-icons/react';
+import { Books, ArrowLeft, Info } from '@phosphor-icons/react';
 import CourseMapHeaderStyleEditor from '../components/admin/course-maps/CourseMapHeaderStyleEditor';
 import { DragHandle } from '../components/common/DragHandle';
 import {
@@ -370,13 +371,12 @@ const CourseMapPage = () => {
 						</div>
 					)
 				) : (
-					<div className="course-map-page-empty">
-						<p>Nu există cursuri în această mapă.</p>
+					<EmptyState icon={<Books size={30} weight="bold" />} title="Nu există cursuri în această mapă">
 						<button type="button" className="course-map-page-btn" onClick={() => navigate(mapsListPath)}>
 							<ArrowLeft size={18} weight="bold" aria-hidden="true" />
 							{mapsListShortLabel}
 						</button>
-					</div>
+					</EmptyState>
 				)}
 			</div>
 			{publishModal}

@@ -1002,7 +1002,8 @@ class ExamController extends Controller
             }
         }
 
-        $showSolutions = $viewingCompleted && $this->shouldRevealExamSolutions($test);
+        $pendingReview = $viewingCompleted && (bool) ($latestResult->needs_manual_review ?? false);
+        $showSolutions = $viewingCompleted && ! $pendingReview && $this->shouldRevealExamSolutions($test);
         $storedAnswers = is_array($latestResult?->answers) ? $latestResult->answers : [];
         // Rezultatul redeschis primește aceeași corectitudine pe întrebare ca ecranul de după trimitere.
         $fullWire = $viewingCompleted
@@ -1012,7 +1013,9 @@ class ExamController extends Controller
             : $this->transformTestQuestionsWire($questions, $test, $user, $attemptNumberForSeed);
         $transformedQuestions = $showSolutions
             ? $fullWire
-            : $fullWire->map(fn (array $q) => $this->stripWireQuestionSolutionKeys($q))->values();
+            : $fullWire->map(fn (array $q) => $pendingReview
+                ? $this->stripWirePendingReviewKeys($q)
+                : $this->stripWireQuestionSolutionKeys($q))->values();
 
         $hasPassed = $latestResult
             && (float) ($latestResult->percentage ?? 0) >= (float) ($latestResult->passing_score_applied ?? $resolvedPassingScore);
@@ -1106,6 +1109,15 @@ class ExamController extends Controller
             unset($o['correctOrder']);
             $q['ordering'] = $o;
         }
+
+        return $q;
+    }
+
+    /** Cât timp rezultatul așteaptă verificarea manuală, cursantul nu primește nici soluțiile, nici corectitudinea pe întrebare. */
+    protected function stripWirePendingReviewKeys(array $q): array
+    {
+        $q = $this->stripWireQuestionSolutionKeys($q);
+        unset($q['is_correct']);
 
         return $q;
     }
@@ -1892,7 +1904,11 @@ class ExamController extends Controller
                 ->map(fn ($question) => $this->buildReviewQuestionWire($test, $question, $user, $nextAttempt, $answers))
                 ->filter()
                 ->values()
-                ->map(function (array $q) use ($test) {
+                ->map(function (array $q) use ($test, $needsManualReview) {
+                    if ($needsManualReview) {
+                        return $this->stripWirePendingReviewKeys($q);
+                    }
+
                     return $this->shouldRevealExamSolutions($test)
                         ? $q
                         : $this->stripWireQuestionSolutionKeys($q);

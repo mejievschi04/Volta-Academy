@@ -1,5 +1,5 @@
 import '../styles/profile-modern.css';
-import { EnvelopeSimple, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { Books, EnvelopeSimple, MagnifyingGlass, X } from '@phosphor-icons/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import ConfirmModal from '../components/common/ConfirmModal';
+import EmptyState from '../components/ui/EmptyState';
 import { toImageUrl } from '../utils/imageUrl';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 import { nameInitials } from '../utils/initials';
@@ -463,18 +464,18 @@ const ProfilePage = () => {
 						{visibleCourses.map(renderCourseCard)}
 					</div>
 				) : (
-					<div className="va-up-empty">
-						<p>
-							{needle
+					<EmptyState
+						icon={<Books size={30} weight="bold" />}
+						title={needle
 								? `Niciun curs pentru „${courseQuery.trim()}”.`
 								: courseFilter === 'all'
 									? (isViewingOtherUser ? 'Niciun curs atribuit acestui utilizator.' : 'Nu ai cursuri atribuite momentan.')
 									: 'Niciun curs în această categorie.'}
-						</p>
+					>
 						{!isViewingOtherUser && courseFilter === 'all' && !needle ? (
 							<Link to="/courses" className="lms-btn-secondary lms-btn-sm">Explorează cursuri</Link>
 						) : null}
-					</div>
+					</EmptyState>
 				)}
 			</section>
 

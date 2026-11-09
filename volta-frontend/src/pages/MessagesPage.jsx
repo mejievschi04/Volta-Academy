@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import {
 	ArrowLeft,
 	ChatCircleText,
@@ -929,11 +930,11 @@ const MessagesPage = () => {
 
 					<div className="messages-conversations-list">
 						{filteredConversations.length === 0 && !loading ? (
-							<div className="lms-empty-state" style={{ padding: 'var(--space-4)', textAlign: 'center', background: 'transparent', border: 'none' }}>
-								<div className="lms-empty-description" style={{ margin: 0 }}>
-									{searchQuery ? 'Nu s-au găsit conversații' : 'Nu există conversații'}
-								</div>
-							</div>
+							<EmptyState
+								icon={<ChatCircleText size={30} weight="bold" />}
+								title={searchQuery ? 'Nu s-au găsit conversații' : 'Nu există conversații'}
+								text={searchQuery ? 'Încearcă alt nume.' : 'Apasă pe + ca să începi o conversație.'}
+							/>
 						) : (
 							filteredConversations.map((conversation) => {
 							const isActive = selectedConversation?.id === conversation.id;

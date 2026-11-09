@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { guidesService } from '../services/api';
 
 import { useToast } from '../contexts/ToastContextShared.js';
@@ -7,7 +8,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 import Modal from '../components/common/Modal';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
-import { ImageSquare, LinkSimple, Plus, X } from '@phosphor-icons/react';
+import { Compass, ImageSquare, LinkSimple, Plus, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import '../styles/guides-page.css';
 import CoverPhoto from '../components/ui/CoverPhoto';
@@ -215,7 +216,7 @@ const GuidesPage = () => {
 				{loading ? (
 					<p className="library-empty">Se încarcă...</p>
 				) : items.length === 0 ? (
-					<p className="library-empty">Nu există încă ghiduri adăugate.</p>
+					<EmptyState icon={<Compass size={30} weight="bold" />} title="Nu există încă ghiduri" text="Când apar ghiduri noi, le găsești aici." />
 				) : (
 					<ul className="library-book-grid">
 						{items.map((item) => {

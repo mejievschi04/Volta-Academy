@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import EmptyState from '../components/ui/EmptyState';
 import { Link, useNavigate } from 'react-router-dom';
 import { profileService } from '../services/api';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { GraduationCap, ArrowLeft } from '@phosphor-icons/react';
 
 
 
@@ -88,12 +89,9 @@ const CompletedCoursesPage = () => {
 						</div>
 					))
 				) : (
-					<div className="lms-empty-state">
-						<p className="lms-empty-description">Nu ai finalizat niciun curs încă.</p>
-						<Link to="/courses" className="lms-btn-primary">
-							Explorează cursuri
-						</Link>
-					</div>
+					<EmptyState icon={<GraduationCap size={30} weight="bold" />} title="Nu ai finalizat niciun curs încă">
+						<Link to="/courses" className="lms-btn-primary">Explorează cursuri</Link>
+					</EmptyState>
 				)}
 			</div>
 		</div>
