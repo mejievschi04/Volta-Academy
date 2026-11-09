@@ -20,7 +20,7 @@ const COURSE_MAP_ACCENT_COLORS = [
 ];
 
 const STUDENT_COURSE_FILTERS = [
-	{ id: 'maps', label: 'Toate', ariaLabel: 'Cursuri totale' },
+	{ id: 'maps', label: 'De făcut', ariaLabel: 'Cursuri de făcut' },
 	{ id: 'unfinished', label: 'Nefinalizate', ariaLabel: 'Cursuri nefinalizate' },
 	{ id: 'completed', label: 'Finalizate', ariaLabel: 'Cursuri finalizate', statKey: 'completed' },
 ];
@@ -194,8 +194,8 @@ const CoursesPage = () => {
 
 	const getStudentFilterCount = (filter) => {
 		if (filter.id === 'maps') {
-			// toate cursurile atribuite: nefinalizate + finalizate (cele două liste nu se suprapun)
-			return getStudentFilterCount({ id: 'unfinished' }) + getStudentFilterCount({ id: 'completed' });
+			// „De făcut” nu listează cursurile finalizate, deci nici nu le numără
+			return getStudentFilterCount({ id: 'unfinished' });
 		}
 		if (filter.id === 'unfinished') {
 			const seen = new Set();
@@ -435,7 +435,8 @@ const CoursesPage = () => {
 							) : null}
 							<div className="courses-page-maps-grid">
 							{filteredCourseMaps.map((map, index) => {
-								const accentColor = map.accent_color || COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length];
+								const accentColor = map.accent_color
+									|| (isAdmin ? COURSE_MAP_ACCENT_COLORS[index % COURSE_MAP_ACCENT_COLORS.length] : '#e6d800');
 								const subtitle = map.description?.trim() ? String(map.description).trim() : null;
 
 								return (

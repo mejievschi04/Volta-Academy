@@ -1,7 +1,9 @@
 import '../styles/exam-results-modern.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import TestsSectionTabs from '../components/student/TestsSectionTabs';
 import {
+	ArrowsDownUp,
 	CalendarBlank,
 	CaretDown,
 	CheckCircle,
@@ -386,6 +388,8 @@ const ExamResultsPage = () => {
 				</div>
 			)}
 
+			<TestsSectionTabs />
+
 			<div className="exam-results-controls">
 				<div className="exam-results-button-row" role="group" aria-label="Filtru teste">
 					{STATUS_FILTERS.map((filter) => (
@@ -400,7 +404,7 @@ const ExamResultsPage = () => {
 						</button>
 					))}
 				</div>
-				<div className="exam-results-button-row" role="group" aria-label="Ordine teste">
+				<div className="exam-results-button-row exam-results-sort-row" role="group" aria-label="Ordine teste">
 					{SORT_FILTERS.map((filter) => (
 						<button
 							key={filter.id}
@@ -413,15 +417,26 @@ const ExamResultsPage = () => {
 						</button>
 					))}
 				</div>
-				<div className="exam-results-search">
-					<MagnifyingGlass size={18} weight="bold" aria-hidden />
-					<input
-						type="search"
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Caută după test sau curs"
-						aria-label="Caută teste"
-					/>
+				<div className="exam-results-search-row">
+					<div className="exam-results-search">
+						<MagnifyingGlass size={18} weight="bold" aria-hidden />
+						<input
+							type="search"
+							value={query}
+							onChange={(event) => setQuery(event.target.value)}
+							placeholder="Caută după test sau curs"
+							aria-label="Caută teste"
+						/>
+					</div>
+					<button
+						type="button"
+						className="exam-results-sort-toggle"
+						onClick={() => setSortBy((current) => (current === 'oldest' ? 'recent' : 'oldest'))}
+						aria-label={`Ordine: ${sortBy === 'oldest' ? 'cele mai vechi' : 'cele mai recente'}. Apasă pentru a schimba.`}
+					>
+						<ArrowsDownUp size={18} weight="bold" aria-hidden />
+						<span>{sortBy === 'oldest' ? 'Vechi' : 'Recente'}</span>
+					</button>
 				</div>
 			</div>
 

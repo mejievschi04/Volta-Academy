@@ -793,8 +793,7 @@ const LessonsPage = () => {
 					{Array.isArray(course?.exams) &&
 						course.exams.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status)).length > 0 && (
 						<div className="lessons-page-sidebar-tests-section">
-							<div className="lessons-page-sidebar-tests-header">Teste la nivel de curs</div>
-							<p className="lessons-page-sidebar-tests-hint">Legate de acest curs (nu examene independente)</p>
+							<div className="lessons-page-sidebar-tests-header">Testele cursului</div>
 							{course.exams.filter((e) => !e.module_id && isTestVisibleInPlayer(e?.status)).map((exam) => {
 								const tp = getCourseLevelTestProgress(exam.id);
 								const passed = Boolean(tp?.passed);

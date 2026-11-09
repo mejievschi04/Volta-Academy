@@ -1387,7 +1387,21 @@
 
 	/* Title + badge - wrap pe mobile */
 
-	.events-page .va-card-body p,
+	.events-page .event-desc-expand {
+		text-align: left;
+	}
+
+	html body .events-page .event-desc-expand__btn {
+		display: block !important;
+		width: 100% !important;
+		min-height: 44px;
+		margin: 0 !important;
+		padding: 0 !important;
+		text-align: left !important;
+		justify-content: flex-start !important;
+	}
+
+	.events-page .va-card-body p:not(.event-desc-expand__text),
 	.events-page .events-card-text {
 		font-size: var(--font-size-sm) !important;
 		margin: 0 !important;
@@ -2685,7 +2699,7 @@
 	.courses-page-modern.courses-page-student .course-map-folder-tile__title,
 	.courses-page-modern.courses-page-student .course-map-folder-tile__subtitle,
 	.courses-page-modern.courses-page-student .course-map-folder-tile__meta {
-		text-align: center !important;
+		text-align: left !important;
 	}
 
 	.courses-page-modern.courses-page-student .courses-page-empty-title,

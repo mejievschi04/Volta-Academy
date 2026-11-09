@@ -469,12 +469,64 @@
 	box-shadow: none !important;
 }
 
+/* Pe desktop rămân butoanele de ordine; comutatorul compact e doar pentru telefon */
+.exam-results-search-row {
+	display: contents;
+}
+
+.exam-results-sort-toggle {
+	display: none;
+}
+
 /* Mobil: fiecare grup de filtre pe un rând care se derulează, fără cutia gri din jur */
 @media (max-width: 768px) {
 	.exam-results-controls {
 		flex-direction: column;
 		align-items: stretch;
 		gap: var(--space-2);
+	}
+
+	.exam-results-sort-row {
+		display: none !important;
+	}
+
+	.exam-results-search-row {
+		display: flex;
+		align-items: stretch;
+		gap: var(--space-2);
+	}
+
+	.exam-results-controls .exam-results-search-row .exam-results-search {
+		flex: 1 1 0;
+		width: auto;
+		min-width: 0;
+	}
+
+	.exam-results-sort-toggle {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 var(--space-3);
+		border: 1px solid var(--border-secondary);
+		border-radius: var(--radius-lg);
+		background: var(--bg-elevated);
+		color: var(--text-primary);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
+	}
+
+	/* Fără carduri în carduri: conținutul folosește toată lățimea */
+	.exam-results-sections > .exam-results-section {
+		padding: 0;
+		border: 0;
+		background: none;
+		box-shadow: none;
+	}
+
+	.exam-results-course-body {
+		padding: var(--space-2);
 	}
 
 	.exam-results-button-row {

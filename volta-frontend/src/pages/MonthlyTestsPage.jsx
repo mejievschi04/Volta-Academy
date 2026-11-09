@@ -5,6 +5,7 @@ import { examService } from '../services/api';
 import { useCoverImage } from '../hooks/useCoverImage';
 import { toImageUrl } from '../utils/imageUrl';
 import { formatPercent } from '../utils/formatPercent';
+import TestsSectionTabs from '../components/student/TestsSectionTabs';
 import './MonthlyTestsPage.css';
 
 /** Coperta testului lunar: miniatura, apoi originalul; fără copertă cardul rămâne ca înainte. */
@@ -57,9 +58,10 @@ const MonthlyTestsPage = () => {
 
 	return (
 		<div className="monthly-tests-page">
+			<TestsSectionTabs />
 			<header className="monthly-tests-header">
 				<h1 className="monthly-tests-title">Teste lunare</h1>
-				<p className="monthly-tests-subtitle">Examenele pe care le poți susține acum.</p>
+				<p className="monthly-tests-subtitle">Testele pe care le poți susține acum.</p>
 			</header>
 
 			{error ? (
@@ -68,7 +70,7 @@ const MonthlyTestsPage = () => {
 				<section className="monthly-tests-empty" aria-label="Teste lunare">
 					<ClipboardText size={36} weight="duotone" aria-hidden />
 					<h2>Nu ai teste lunare momentan</h2>
-					<p>Când un examen îți este atribuit, apare aici.</p>
+					<p>Când un test îți este atribuit, apare aici.</p>
 				</section>
 			) : (
 				<div className="monthly-tests-grid">

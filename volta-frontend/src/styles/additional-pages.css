@@ -1205,8 +1205,9 @@
 		padding: var(--space-3) var(--space-4) var(--space-2);
 	}
 
+	/* Pe telefon, ieșirea din rezultat e butonul principal din bara de jos */
 	.student-exam-page--results .student-exam-back-link {
-		margin-bottom: var(--space-3);
+		display: none;
 	}
 
 	.student-exam-results {

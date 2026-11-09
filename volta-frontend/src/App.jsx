@@ -503,7 +503,7 @@ function AuthenticatedLayout({ children, authContext }) {
 			path: '/monthly-tests',
 			label: 'Teste lunare',
 			mobileLabel: 'Teste',
-			title: 'Examenele pe care le poți susține',
+			title: 'Testele lunare pe care le poți susține',
 			icon: (
 				<ClipboardText size={20} weight="duotone" aria-hidden />
 			)
@@ -561,7 +561,8 @@ function AuthenticatedLayout({ children, authContext }) {
 	));
 	const mobileMoreNavItems = [
 		navItems.find((item) => item.path === '/profile'),
-		...moreNavItems,
+		// pe telefon rezultatele stau în tabul „Teste”
+		...moreNavItems.filter((item) => item.path !== '/exam-results'),
 	].filter(Boolean);
 	const mobileMoreMenuActive = mobileMoreNavItems.some((item) => (
 		location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
@@ -1287,7 +1288,10 @@ function AuthenticatedLayout({ children, authContext }) {
 								<NavLink
 									key={item.path}
 									to={item.path}
-									className={({ isActive }) => `student-mobile-tab${isActive ? ' active' : ''}`}
+									className={({ isActive }) => {
+										const inTestsSection = item.path === '/monthly-tests' && location.pathname.startsWith('/exam-results');
+										return `student-mobile-tab${isActive || inTestsSection ? ' active' : ''}`;
+									}}
 								>
 									<span className="student-mobile-tab-icon">
 										{item.icon}

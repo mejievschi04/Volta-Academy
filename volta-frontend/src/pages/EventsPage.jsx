@@ -4,6 +4,7 @@ import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import ConfirmModal from '../components/common/ConfirmModal';
+import EventDescriptionExpandable from '../components/common/EventDescriptionExpandable';
 import { CalendarBlank } from '@phosphor-icons/react';
 
 const parseEventDate = (dateString) => {
@@ -149,9 +150,8 @@ const EventsPage = () => {
 								})()}
 								<div className="va-card-body events-card-body">
 									<h3 className="va-card-title events-card-title">{event.title}</h3>
-									{details ? (
-										<p className="events-card-text">{details}</p>
-									) : null}
+									<EventDescriptionExpandable text={details} />
+
 									<div className="events-card-meta">
 										{event.instructor?.name ? (
 											<div className="events-card-meta-row">

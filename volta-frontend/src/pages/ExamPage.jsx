@@ -14,6 +14,7 @@ import { handleApiError } from '../utils/errorHandler';
 import StructuredQuestionRenderer from '../components/student/StructuredQuestionRenderer';
 import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
 import RichTextHtml from '../components/RichTextHtml';
+import ConfirmModal from '../components/common/ConfirmModal';
 import '../styles/learning-experience.css';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
 import {
@@ -109,6 +110,7 @@ const ExamPage = () => {
 	const [exam, setExam] = useState(null);
 	const [answers, setAnswers] = useState({});
 	const [submitted, setSubmitted] = useState(false);
+	const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const submitInFlightRef = useRef(false);
     const latestSubmitRef = useRef(null);
@@ -1007,9 +1009,26 @@ const ExamPage = () => {
 			)}
 			</div>
 
+            <ConfirmModal
+                open={confirmSubmitOpen && !submitted}
+                onClose={() => setConfirmSubmitOpen(false)}
+                onConfirm={() => {
+                    setConfirmSubmitOpen(false);
+                    handleSubmit();
+                }}
+                title="Trimiți testul?"
+                message="După trimitere nu mai poți modifica răspunsurile."
+                confirmLabel="Trimite testul"
+                cancelLabel="Mai verific"
+                variant="primary"
+            />
             <TestAttemptFooter currentIndex={currentQuestionIndex} total={exam.questions.length}
-                onNavigate={scrollToQuestion} onSubmit={handleSubmit} submitting={submitting}
+                onNavigate={scrollToQuestion}
+                onSubmit={() => (timeRemaining === 0 ? handleSubmit() : setConfirmSubmitOpen(true))}
+                submitting={submitting}
                 submitted={submitted}
+                homeTo={isMobile ? back.to : null}
+                homeLabel={isMobile ? back.label : undefined}
                 canSubmit={timeRemaining === 0 || unansweredCount === 0}
                 submitHint={unansweredCount > 0 && timeRemaining !== 0
                     ? `Răspunde la toate întrebările ca să trimiți testul (${unansweredCount} fără răspuns).`

@@ -14,6 +14,8 @@ export default function TestAttemptFooter({
     canGoBack = true,
     canGoNext = true,
     submitted = false,
+    homeTo = null,
+    homeLabel = 'Pagina principală',
     children,
 }) {
     const footerRef = useRef(null);
@@ -64,7 +66,7 @@ export default function TestAttemptFooter({
                 </button>}
                 {children}
                 {submitted && (
-                    <Link to="/courses" className="test-attempt-home-btn">Pagina principală</Link>
+                    <Link to={homeTo || '/courses'} className={homeTo ? 'lms-btn-primary' : 'test-attempt-home-btn'}>{homeLabel}</Link>
                 )}
             </div>
         </footer>

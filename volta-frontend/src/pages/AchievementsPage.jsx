@@ -99,7 +99,7 @@ const AchievementsPage = () => {
 				<div className="student-achievements-section">
 					<h2 className="student-achievements-section-title">
 						<span className="student-achievements-section-icon">🎯</span>
-						<span>Milestone-uri</span>
+						<span>Etape atinse</span>
 					</h2>
 					<div className="student-milestones-timeline">
 						{achievements.milestones.map((milestone, index) => (

@@ -77,6 +77,8 @@ test('cursantul susține testul final și vede rezultatul', async ({ page }) => 
 	await expect(page.getByLabel('4', { exact: true })).toBeChecked();
 
 	await page.getByRole('button', { name: 'Trimite testul' }).click();
+	// trimiterea consumă o încercare, deci cere confirmare
+	await page.getByRole('dialog').getByRole('button', { name: 'Trimite testul' }).click();
 
 	const main = page.locator('main');
 	await expect(main.getByText('Promovat')).toBeVisible();
