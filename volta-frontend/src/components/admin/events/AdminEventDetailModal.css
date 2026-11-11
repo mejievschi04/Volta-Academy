@@ -142,6 +142,38 @@
 	line-height: 1.4;
 }
 
+.aev-detail-questions {
+	margin-top: var(--space-4);
+}
+
+.aev-detail-questions-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.aev-detail-question {
+	padding: var(--space-3);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	background: var(--bg-secondary);
+}
+
+.aev-detail-question p {
+	margin: 0.35rem 0 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--text-primary);
+}
+
+.aev-detail-question-meta {
+	font-size: var(--font-size-xs);
+	color: var(--text-secondary);
+}
+
 .aev-detail-section-title {
 	margin: 0 0 var(--space-3);
 	font-size: var(--font-size-sm);

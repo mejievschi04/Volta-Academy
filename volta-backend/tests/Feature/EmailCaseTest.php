@@ -40,7 +40,7 @@ class EmailCaseTest extends TestCase
             ->assertJsonValidationErrors(['email']);
     }
 
-    public function test_register_with_existing_email_in_other_case_is_a_validation_error(): void
+    public function test_register_is_closed_even_when_the_email_already_exists(): void
     {
         User::factory()->create(['email' => 'ion@example.com']);
 
@@ -48,7 +48,9 @@ class EmailCaseTest extends TestCase
             'name' => 'Ion Popescu',
             'email' => 'Ion@Example.com',
             'password' => 'Password123',
-        ])->assertStatus(422)->assertJsonValidationErrors(['email']);
+        ])->assertForbidden();
+
+        $this->assertSame(1, User::whereRaw('LOWER(email) = ?', ['ion@example.com'])->count());
     }
 
     public function test_admin_cannot_create_a_duplicate_that_differs_only_in_case(): void

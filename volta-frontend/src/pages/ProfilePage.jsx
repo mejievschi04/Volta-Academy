@@ -12,6 +12,8 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyState from '../components/ui/EmptyState';
 import { toImageUrl } from '../utils/imageUrl';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { formatPercent } from '../utils/formatPercent';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { nameInitials } from '../utils/initials';
 
 const AVATAR_EDITOR_SIZE = 280;
@@ -93,9 +95,9 @@ const ProfilePage = () => {
 	const viewerRole = currentUser?.actualRole ?? currentUser?.role;
 	const isViewingOtherUser = Boolean(userId) && ['admin', 'instructor'].includes(viewerRole);
 
-	const fetchData = async () => {
+	const fetchData = async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
+			if (!silent) setLoading(true);
 			let profile;
 
 			if (isViewingOtherUser) {
@@ -109,15 +111,17 @@ const ProfilePage = () => {
 			setProfileData(profile);
 		} catch (err) {
 			console.error('Error fetching profile:', err);
-			setError('Nu s-a putut încărca profilul');
+			if (!silent) setError('Nu s-a putut încărca profilul');
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	};
 
 	useEffect(() => {
 		fetchData();
 	}, [userId, isViewingOtherUser]);
+
+	useRegisterPageRefresh(() => fetchData({ silent: true }));
 
 	const handleMarkCourseCompleted = async (courseId, { confirmed = false } = {}) => {
 		if (!userId || !courseId) return;
@@ -268,9 +272,9 @@ const ProfilePage = () => {
 	};
 
 	const renderTestResult = (test) => {
-		if (test.status === 'passed') return { label: `${test.percentage ?? 0}% · Promovat`, tone: 'passed' };
+		if (test.status === 'passed') return { label: `${formatPercent(test.percentage ?? 0)} · Promovat`, tone: 'passed' };
 		if (test.status === 'pending') return { label: 'În corectare', tone: 'pending' };
-		if (test.attempts_used > 0) return { label: `${test.percentage ?? 0}% · Nepromovat`, tone: 'failed' };
+		if (test.attempts_used > 0) return { label: `${formatPercent(test.percentage ?? 0)} · Nepromovat`, tone: 'failed' };
 		return { label: 'Neînceput', tone: 'idle' };
 	};
 

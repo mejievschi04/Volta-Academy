@@ -28,6 +28,7 @@ import QuestionImageUpload from '../question-banks/QuestionImageUpload';
 import RichTextHtml from '../../RichTextHtml';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
 import PassingScoreByQuestions from '../tests/PassingScoreByQuestions';
+import { formatPercent } from '../../../utils/formatPercent';
 import { normalizePastedHtmlForTestBuilder } from '../../../utils/pasteRichTextColor';
 import Modal from '../../common/Modal';
 import './InlineTestEditorShell.css';
@@ -137,7 +138,7 @@ export default function InlineTestEditorShell({
             </div>
             <div>
               <span>Prag</span>
-              <strong>{Number(inlineTest.passing_score ?? 70)}%</strong>
+              <strong>{formatPercent(inlineTest.passing_score ?? 70)}</strong>
             </div>
             <div>
               <span>Timp</span>

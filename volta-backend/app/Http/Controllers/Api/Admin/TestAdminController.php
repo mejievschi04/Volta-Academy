@@ -503,19 +503,26 @@ class TestAdminController extends Controller
     /**
      * List all attempts for a test (admin review).
      */
-    public function results($id)
+    public function results(Request $request, $id)
     {
         $test = Test::findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
             abort(403, 'Acces interzis. Poți vedea doar rezultatele testelor tale.');
         }
 
-        $rows = TestResult::with(['user:id,name,email'])
+        $query = TestResult::with(['user:id,name,email'])
             ->where('test_id', $test->id)
             ->orderByDesc('completed_at')
-            ->orderByDesc('id')
-            ->get()
-            ->map(function ($row) {
+            ->orderByDesc('id');
+        $this->testAnalyticsService->applyTeamScope(
+            $query,
+            (int) $request->input('team_id') ?: null,
+            $request->boolean('unassigned')
+        );
+        $models = $query->get();
+        $teamNames = $this->testAnalyticsService->teamNamesByUser($models->pluck('user_id'));
+        $rows = $models
+            ->map(function ($row) use ($teamNames) {
                 return [
                     'id' => $row->id,
                     'attempt_number' => $row->attempt_number,
@@ -531,6 +538,7 @@ class TestAdminController extends Controller
                         'id' => $row->user?->id,
                         'name' => $row->user?->name,
                         'email' => $row->user?->email,
+                        'teams' => $teamNames->get((int) $row->user_id, []),
                     ],
                 ];
             });
@@ -541,14 +549,18 @@ class TestAdminController extends Controller
     /**
      * Summary statistics for a test (attempts, averages, pass rate).
      */
-    public function statisticsSummary($id)
+    public function statisticsSummary(Request $request, $id)
     {
         $test = Test::findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
             abort(403, 'Acces interzis. Poți vedea doar statisticile testelor tale.');
         }
 
-        $results = $this->testAnalyticsService->loadResults($test);
+        $results = $this->testAnalyticsService->filterByTeam(
+            $this->testAnalyticsService->loadResults($test),
+            (int) $request->input('team_id') ?: null,
+            $request->boolean('unassigned')
+        );
 
         return response()->json([
             'summary' => $this->testAnalyticsService->buildSummary($test, $results),
@@ -558,14 +570,18 @@ class TestAdminController extends Controller
     /**
      * Item analysis per question for a test.
      */
-    public function questionAnalytics($id)
+    public function questionAnalytics(Request $request, $id)
     {
         $test = Test::with(['questions', 'questionBank.questions'])->findOrFail($id);
         if (auth()->user()->isInstructor() && (int) $test->created_by !== (int) auth()->id()) {
             abort(403, 'Acces interzis. Poți vedea doar statisticile testelor tale.');
         }
 
-        $results = $this->testAnalyticsService->loadResults($test);
+        $results = $this->testAnalyticsService->filterByTeam(
+            $this->testAnalyticsService->loadResults($test),
+            (int) $request->input('team_id') ?: null,
+            $request->boolean('unassigned')
+        );
 
         return response()->json($this->testAnalyticsService->buildQuestionAnalytics($test, $results));
     }

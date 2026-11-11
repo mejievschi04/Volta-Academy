@@ -54,6 +54,6 @@
 
 @media (min-width: 769px) {
 	.lesson-pull-refresh {
-		display: none;
+		top: calc(64px + env(safe-area-inset-top, 0px));
 	}
 }

@@ -418,6 +418,31 @@ class EventAdminController extends Controller
         return $dateTimeString;
     }
 
+    public function questions($id)
+    {
+        if (! auth()->user()->isAdmin()) {
+            abort(403, 'Doar administratorul poate vedea întrebările.');
+        }
+
+        $event = Event::findOrFail($id);
+        $rows = $event->questions()
+            ->with('user:id,name,email')
+            ->latest()
+            ->get()
+            ->map(fn ($question) => [
+                'id' => $question->id,
+                'body' => $question->body,
+                'created_at' => $question->created_at,
+                'user' => [
+                    'id' => $question->user?->id,
+                    'name' => $question->user?->name,
+                    'email' => $question->user?->email,
+                ],
+            ]);
+
+        return response()->json(['data' => $rows]);
+    }
+
     private function normalizeOptionalUrls(Request $request): void
     {
         $clean = [];

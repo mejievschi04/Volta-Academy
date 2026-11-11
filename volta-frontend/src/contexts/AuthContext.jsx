@@ -139,15 +139,6 @@ export const AuthProvider = ({ children }) => {
 		return data;
 	};
 
-	const register = async (name, email, password) => {
-		const data = await authService.register(name, email, password);
-		if (!data.pending_approval && data.user) {
-			setVoltCapabilities(data.user?.capabilities);
-			setRawUser(data.user);
-		}
-		return data;
-	};
-
 	const logout = async () => {
 		await authService.logout();
 		setVoltCapabilities(null);
@@ -161,7 +152,6 @@ export const AuthProvider = ({ children }) => {
 				rawUser,
 				loading,
 				login,
-				register,
 				logout,
 				checkAuth,
 				changePassword,

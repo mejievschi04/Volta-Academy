@@ -24,7 +24,7 @@
 
 @media (max-width: 768px) {
 	/* Buttons - PAGES ONLY (nu meniul). Touch target 44px. */
-	.va-shell-main button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch),
+	.va-shell-main button:not(.admin-activity-logs-item-toggle):not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch),
 	.va-shell-main .btn,
 	.va-shell-main .admin-btn,
 	.va-shell-main .va-btn,
@@ -33,7 +33,7 @@
 	.va-shell-main .admin-btn-secondary,
 	.va-shell-main [role="button"],
 	.va-shell-main a[role="button"],
-	.admin-container button:not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
+	.admin-container button:not(.admin-activity-logs-item-toggle):not(.admin-settings-toggle-switch):not(.admin-exams-header-switch):not(.admin-courses-showcase-publish__switch):not(.va-publish-switch):not(.admin-course-card-action-btn):not(.admin-course-table-action-btn):not(.admin-course-map-delete-btn):not(.admin-course-map-edit-btn):not(.admin-course-map-plus-btn):not(.admin-courses-showcase-edit-btn),
 	.admin-container .btn,
 	.admin-container .admin-btn,
 	.admin-container .va-btn,
@@ -5058,5 +5058,201 @@ html .va-shell .modern-sidebar .modern-nav-item:is(.active, .is-active) svg {
 	.course-map-page--student .course-map-page-content {
 		padding-left: 0 !important;
 		padding-right: 0 !important;
+	}
+}
+
+/* Tabletă, portret: meniul de sus nu încape. Aceeași bară de jos ca pe telefon,
+   cu etichete mai mari și conținutul lăsat pe lățimea tabletei. */
+@media (min-width: 769px) and (max-width: 1099px) {
+	.va-shell-topnav:has(.student-mobile-tabs) {
+		--student-tab-height: calc(72px + env(safe-area-inset-bottom, 0px));
+	}
+
+	.va-shell-topnav .modern-topnav-nav.desktop-only,
+	.va-shell-topnav .va-topnav-nav.desktop-only {
+		display: none;
+	}
+
+	.va-shell-topnav .modern-topnav,
+	.va-shell-topnav .va-topnav {
+		padding: 0 16px;
+		gap: 12px;
+	}
+
+	.va-shell-topnav .admin-topnav-user-info {
+		display: none !important;
+	}
+
+	.va-shell-topnav .admin-topnav-user {
+		gap: 8px;
+		padding: 0;
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+	}
+
+	.va-shell-topnav .admin-topnav-notification-btn,
+	.va-shell-topnav .admin-topnav-logout {
+		width: 44px;
+		height: 44px;
+	}
+
+	.va-shell.va-shell-topnav:has(.student-mobile-tabs):not(:has(.student-exam-page)):not(:has(.lessons-page-lesson-viewer)):not(:has(.messages-page--thread)) .va-shell-main {
+		box-sizing: border-box;
+		padding-bottom: var(--student-tab-height) !important;
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .messages-page {
+		bottom: var(--student-tab-height);
+		height: auto;
+	}
+
+	.va-shell-topnav:has(.student-exam-page),
+	.va-shell-topnav:has(.lessons-page-lesson-viewer),
+	.va-shell-topnav:has(.messages-page--thread) {
+		--student-tab-height: 0px;
+	}
+
+	.va-shell-topnav:has(.student-exam-page) .student-mobile-tabs,
+	.va-shell-topnav:has(.lessons-page-lesson-viewer) .student-mobile-tabs,
+	.va-shell-topnav:has(.messages-page--thread) .student-mobile-tabs {
+		display: none;
+	}
+
+	.student-mobile-tabs {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 990;
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		height: var(--student-tab-height);
+		box-sizing: border-box;
+		padding: 8px max(16px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+		background: var(--bg-elevated);
+		border-top: 1px solid var(--border-primary);
+	}
+
+	.student-mobile-tab {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		width: 100%;
+		min-width: 0;
+		min-height: 48px;
+		padding: 6px 8px;
+		border: 0;
+		border-radius: 14px;
+		background: transparent;
+		color: var(--text-secondary);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1.15;
+		text-decoration: none;
+		cursor: pointer;
+		touch-action: manipulation;
+	}
+
+	.student-mobile-tab-label {
+		display: block;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 13px;
+		line-height: 1.15;
+	}
+
+	.student-mobile-tab.active,
+	.student-mobile-tab.active .student-mobile-tab-label,
+	.student-mobile-tab.active .student-mobile-tab-icon,
+	.student-mobile-tab.active svg {
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
+	}
+
+	.student-mobile-tab.active .student-mobile-tab-label,
+	.student-mobile-tab.active .student-mobile-tab-icon,
+	.student-mobile-tab.active svg {
+		background: transparent;
+	}
+
+	.student-mobile-tabs .student-more-menu-wrap {
+		display: flex;
+		min-width: 0;
+	}
+
+	.student-mobile-tabs .student-more-menu-wrap .student-mobile-tab {
+		flex: 1;
+		width: 100%;
+	}
+
+	.student-more-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 980;
+		border: 0;
+		padding: 0;
+		background: rgba(15, 23, 42, 0.4);
+		cursor: pointer;
+	}
+
+	.student-mobile-tabs .student-more-menu {
+		position: fixed;
+		top: auto;
+		right: max(16px, env(safe-area-inset-right));
+		bottom: var(--student-tab-height);
+		left: auto;
+		width: min(360px, calc(100vw - 32px));
+		min-width: 280px;
+		max-height: min(70dvh, 480px);
+		overflow-y: auto;
+		padding: 10px;
+		border-radius: 16px 16px 0 0;
+		box-shadow: 0 -14px 40px rgba(15, 23, 42, 0.2);
+	}
+
+	.student-mobile-tabs .student-more-menu-item {
+		min-height: 48px;
+		font-size: 1rem;
+	}
+}
+
+/* Tabletă pe lat: meniul de sus rămâne, dar numele și spațiile se strâng ca să încapă. */
+@media (min-width: 1100px) and (max-width: 1279px) {
+	.va-shell-topnav .modern-topnav,
+	.va-shell-topnav .va-topnav {
+		padding: 0 12px;
+		gap: 8px;
+	}
+
+	.va-shell-topnav .modern-topnav-nav,
+	.va-shell-topnav .va-topnav-nav {
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.va-shell-topnav .modern-topnav-item,
+	.va-shell-topnav .va-topnav-btn {
+		padding: 8px 10px;
+		min-height: 44px;
+		font-size: 13px;
+	}
+
+	.va-shell-topnav .admin-topnav-user-info {
+		display: none !important;
+	}
+
+	.va-shell-topnav .admin-topnav-user {
+		gap: 6px;
+		padding-right: 4px;
+		padding-left: 4px;
+	}
+
+	.va-shell-topnav .modern-topnav-right {
+		gap: 8px;
+		flex-shrink: 0;
 	}
 }

@@ -3,14 +3,15 @@
 // STALE_MS instant + reîmprospătare în fundal. Cererile identice în zbor se unesc într-una.
 // Orice POST/PUT/PATCH/DELETE golește cache-ul, ca modificările proprii să apară imediat
 // (în afară de scrierile de fundal marcate cu keepCache).
-// Editoarele (builder, lecție, test), examenele, mesajele și contoarele nu intră aici.
+// Editoarele (builder, lecție, test), corpul lecției, examenele, mesajele și contoarele nu intră aici.
+// Lecția se cere din nou la fiecare deschidere: altfel textul salvat de admin rămâne cel vechi câteva minute.
 const FRESH_MS = 30_000;
 const STALE_MS = 5 * 60_000;
 const CACHEABLE_GET = [
   /^\/admin\/(activity-logs|course-maps|courses|events|exams|media|question-banks|question-catalog\/maps|questions|settings|statistics\/course-test-detail|teams|tests|users|dashboard)$/,
   /^\/admin\/(course-maps|users)\/\d+$/,
   /^\/admin\/(tests|exams)\/\d+\/(statistics|results|question-analytics)$/,
-  /^\/(courses|courses\/standalone|course-maps|course-maps\/\d+|courses\/\d+\/progress|lessons\/\d+|dashboard|student\/dashboard|student\/activity|achievements|events|events\/\d+|library\/items|library\/items\/\d+|guides\/items|profile|exam-results)$/,
+  /^\/(courses|courses\/standalone|course-maps|course-maps\/\d+|courses\/\d+\/progress|dashboard|student\/dashboard|student\/activity|achievements|events|events\/\d+|library\/items|library\/items\/\d+|guides\/items|profile|exam-results)$/,
 ];
 const responseCache = new Map(); // key -> { at, raw }
 const inFlightGets = new Map(); // key -> Promise<raw>

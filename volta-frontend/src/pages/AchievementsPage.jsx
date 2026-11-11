@@ -1,6 +1,7 @@
 import '../styles/achievements-modern.css';
 import React, { useState, useEffect } from 'react';
 import { achievementsService } from '../services/api';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 
 
@@ -30,23 +31,28 @@ const AchievementsPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				const achievementsData = await achievementsService.getAchievements();
-				setAchievements(achievementsData);
-			} catch (err) {
-				logger.error('Error fetching achievements:', err);
+	const fetchData = async ({ silent = false } = {}) => {
+		try {
+			if (!silent) setLoading(true);
+			const achievementsData = await achievementsService.getAchievements();
+			setAchievements(achievementsData);
+		} catch (err) {
+			logger.error('Error fetching achievements:', err);
+			if (!silent) {
 				const errorMessage = 'Nu s-au putut încărca realizările';
 				setError(errorMessage);
 				showError(errorMessage);
-			} finally {
-				setLoading(false);
 			}
-		};
+		} finally {
+			if (!silent) setLoading(false);
+		}
+	};
+
+	useEffect(() => {
 		fetchData();
 	}, []);
+
+	useRegisterPageRefresh(() => fetchData({ silent: true }));
 
 	if (loading) {
 		return (

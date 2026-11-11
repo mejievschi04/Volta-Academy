@@ -16,6 +16,8 @@ import { isVoltEnabled } from './utils/voltAvailability';
 import AdminTopNavControls from './components/admin/AdminTopNavControls';
 import AdminViewSwitcher from './components/admin/AdminViewSwitcher';
 import StudentTopNavNotifications from './components/student/StudentTopNavNotifications';
+import UserPullRefresh from './components/student/UserPullRefresh';
+import { PageRefreshProvider } from './contexts/PageRefreshContext';
 import AdminStylesLoader from './components/AdminStylesLoader';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ScrollToTop from './components/common/ScrollToTop';
@@ -91,7 +93,6 @@ const EventsPage = lazy(() => import('./pages/EventsPage'));
 const MonthlyTestsPage = lazy(() => import('./pages/MonthlyTestsPage'));
 const ExamResultsPage = lazy(() => import('./pages/ExamResultsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const InviteRegisterPage = lazy(() => import('./pages/InviteRegisterPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
@@ -330,13 +331,16 @@ function AuthenticatedLayout({ children, authContext }) {
 		};
 	}, [contentSubmenuOpen, isSidebarExpanded]);
 
-	// Detect mobile viewport
+	// Telefon ≤768, tabletă până la 1099 (bara de jos). De la 1100 rămâne meniul de sus.
 	const [isMobile, setIsMobile] = React.useState(() => window.innerWidth <= 768);
+	const [isStudentTabs, setIsStudentTabs] = React.useState(() => window.innerWidth <= 1099);
 	const [adminTopnavContext, setAdminTopnavContext] = React.useState(null);
 	
 	React.useEffect(() => {
 		const handleResize = () => {
-			setIsMobile(window.innerWidth <= 768);
+			const width = window.innerWidth;
+			setIsMobile(width <= 768);
+			setIsStudentTabs(width <= 1099);
 		};
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);
@@ -741,7 +745,7 @@ function AuthenticatedLayout({ children, authContext }) {
 			</button>
 			{moreMenuOpen ? (
 				<div className="student-more-menu" role="menu">
-					{(placement === 'mobile' ? mobileMoreNavItems : moreNavItems).map((item) => (
+					{(placement === 'desktop' ? moreNavItems : mobileMoreNavItems).map((item) => (
 						<NavLink
 							key={item.path}
 							to={item.path}
@@ -1129,6 +1133,7 @@ function AuthenticatedLayout({ children, authContext }) {
 				</>
 			) : (
 				// Regular users get modern top navigation with sidebar on mobile
+				<PageRefreshProvider>
 				<>
 					{/* Backdrop overlay for mobile */}
 					{isSidebarExpanded && (
@@ -1288,7 +1293,7 @@ function AuthenticatedLayout({ children, authContext }) {
 						</div>
 					</header>
 
-					{isMobile && moreMenuOpen ? (
+					{isStudentTabs && moreMenuOpen ? (
 						<button
 							type="button"
 							className="student-more-menu-backdrop"
@@ -1296,7 +1301,7 @@ function AuthenticatedLayout({ children, authContext }) {
 							onClick={() => setMoreMenuOpen(false)}
 						/>
 					) : null}
-					{isMobile && (
+					{isStudentTabs && (
 						<nav className="student-mobile-tabs" aria-label="Navigare principală">
 							{navItems.filter((item) => item.path !== '/profile').map((item) => (
 								<NavLink
@@ -1314,10 +1319,11 @@ function AuthenticatedLayout({ children, authContext }) {
 									<span className="student-mobile-tab-label">{item.mobileLabel || item.label}</span>
 								</NavLink>
 							))}
-							{renderMoreMenu('mobile')}
+							{renderMoreMenu(isMobile ? 'mobile' : 'tablet')}
 						</nav>
 					)}
 
+					<UserPullRefresh />
 					<div className="va-shell-main va-shell-main-topnav">
 						<main className="va-main">{children}</main>
 					</div>
@@ -1339,6 +1345,7 @@ function AuthenticatedLayout({ children, authContext }) {
 						</BackButton>
 					)}
 				</>
+				</PageRefreshProvider>
 			)}
 
             {user && isTrueAdminAccount && user.role === 'admin' && isVoltEnabled() && (
@@ -1390,7 +1397,7 @@ function App() {
 					{/* Public routes */}
 					<Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
 					<Route path="/register/invite/:token" element={<Suspense fallback={<PageLoader />}><InviteRegisterPage /></Suspense>} />
-					<Route path="/register" element={<Suspense fallback={<PageLoader />}><RegisterPage /></Suspense>} />
+					<Route path="/register" element={<Navigate to="/login" replace />} />
 					
 					{/* Protected routes */}
 					<Route

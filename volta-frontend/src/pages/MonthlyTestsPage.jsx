@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import EmptyState from '../components/ui/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardText } from '@phosphor-icons/react';
@@ -6,6 +6,7 @@ import { examService } from '../services/api';
 import { CourseShowcaseCard } from '../components/ui/course-showcase-card';
 import { COURSE_SHOWCASE_FALLBACK_IMAGE } from '../components/ui/course-showcase-cardShared.js';
 import { formatPercent } from '../utils/formatPercent';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import TestsSectionTabs from '../components/student/TestsSectionTabs';
 import './MonthlyTestsPage.css';
 
@@ -15,25 +16,27 @@ const MonthlyTestsPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	useEffect(() => {
-		let cancelled = false;
-		(async () => {
-			try {
+	const reloadExams = useCallback(async ({ silent = false } = {}) => {
+		try {
+			if (!silent) {
 				setLoading(true);
 				setError(null);
-				const data = await examService.listStandaloneExams();
-				if (!cancelled) setExams(Array.isArray(data) ? data : []);
-			} catch (err) {
-				console.error('Error fetching monthly tests:', err);
-				if (!cancelled) setError('Nu s-au putut încărca testele lunare');
-			} finally {
-				if (!cancelled) setLoading(false);
 			}
-		})();
-		return () => {
-			cancelled = true;
-		};
+			const data = await examService.listStandaloneExams();
+			setExams(Array.isArray(data) ? data : []);
+		} catch (err) {
+			console.error('Error fetching monthly tests:', err);
+			if (!silent) setError('Nu s-au putut încărca testele lunare');
+		} finally {
+			if (!silent) setLoading(false);
+		}
 	}, []);
+
+	useEffect(() => {
+		reloadExams();
+	}, [reloadExams]);
+
+	useRegisterPageRefresh(() => reloadExams({ silent: true }));
 
 	if (loading) {
 		return (

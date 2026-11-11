@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContextShared.js';
 import InlineTestEditorShell from '../../components/admin/courses/InlineTestEditorShell';
 import { useInlineTestEditor } from '../../hooks/useInlineTestEditor';
 import { VOLT_TEST_REFRESH_EVENT } from '../../utils/voltCoursePlan';
+import { formatPercent } from '../../utils/formatPercent';
 import './AdminTestBuilderPage.css';
 import '../../styles/builder-page.css';
 
@@ -96,7 +97,7 @@ export default function AdminTestBuilderPage() {
   const busy = editor.creatingTest || editor.inlineTestSaving || editor.inlinePublishLoading;
   const stats = [
     ['questions', ListNumbers, 'Întrebări', String(editor.inlineQuestions.length)],
-    ['passing', Target, 'Prag de promovare', `${Number(test.passing_score ?? 70)}%`],
+    ['passing', Target, 'Prag de promovare', formatPercent(test.passing_score ?? 70)],
     ['time', Timer, 'Timp', test.time_limit_minutes ? `${test.time_limit_minutes} min` : 'Nelimitat'],
     ['attempts', ArrowsClockwise, 'Încercări', test.max_attempts ? String(test.max_attempts) : 'Fără limită'],
   ];

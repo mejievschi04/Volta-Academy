@@ -3,6 +3,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { Link, useNavigate } from 'react-router-dom';
 import { profileService } from '../services/api';
 import { GraduationCap, ArrowLeft } from '@phosphor-icons/react';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 
 
@@ -13,21 +14,24 @@ const CompletedCoursesPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
+	const fetchCompletedCourses = async ({ silent = false } = {}) => {
+		try {
+			if (!silent) setLoading(true);
+			const profile = await profileService.getProfile();
+			setCoursesCompleted(profile.coursesCompleted || []);
+		} catch (err) {
+			console.error('Error fetching completed courses:', err);
+			if (!silent) setError('Nu s-a putut încărca cursurile finalizate');
+		} finally {
+			if (!silent) setLoading(false);
+		}
+	};
+
 	useEffect(() => {
-		const fetchCompletedCourses = async () => {
-			try {
-				setLoading(true);
-				const profile = await profileService.getProfile();
-				setCoursesCompleted(profile.coursesCompleted || []);
-			} catch (err) {
-				console.error('Error fetching completed courses:', err);
-				setError('Nu s-a putut încărca cursurile finalizate');
-			} finally {
-				setLoading(false);
-			}
-		};
 		fetchCompletedCourses();
 	}, []);
+
+	useRegisterPageRefresh(() => fetchCompletedCourses({ silent: true }));
 
 	if (loading) {
 		return (

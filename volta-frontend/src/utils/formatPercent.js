@@ -1,6 +1,7 @@
-/** Procent exact, cu cel mult 2 zecimale, în format românesc: 77.78 → „77,78%”, 70 → „70%”. */
+/** Procent întreg pentru teste și examene: 77.78 → „78%”, 70 → „70%”. */
 export function formatPercent(value) {
+	if (value === null || value === undefined || value === '') return '—';
 	const number = Number(value);
 	if (!Number.isFinite(number)) return '—';
-	return `${number.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}%`;
+	return `${Math.round(number)}%`;
 }

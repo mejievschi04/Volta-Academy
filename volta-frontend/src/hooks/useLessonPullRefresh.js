@@ -3,10 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 const PULL_MAX = 88;
 const PULL_TRIGGER = 68;
 
-function isMobileLessonViewport() {
-	return window.matchMedia('(max-width: 768px)').matches;
-}
-
 function pageScrollTop() {
 	return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
 }
@@ -25,7 +21,7 @@ function isScrolledToTop(node) {
 }
 
 /**
- * Tragere în jos, doar pe mobil și doar când lecția e deja sus.
+ * Tragere în jos când pagina e deja sus.
  * Arată distanța trasă și pornește reîncărcarea după eliberare.
  */
 export function useLessonPullRefresh(onRefresh) {
@@ -40,8 +36,6 @@ export function useLessonPullRefresh(onRefresh) {
 	onRefreshRef.current = onRefresh;
 
 	useEffect(() => {
-		if (!isMobileLessonViewport()) return undefined;
-
 		const reset = () => {
 			startYRef.current = null;
 			originRef.current = null;
@@ -50,8 +44,8 @@ export function useLessonPullRefresh(onRefresh) {
 		};
 
 		const onStart = (event) => {
-			if (!isMobileLessonViewport() || refreshingRef.current || event.touches.length !== 1) return;
-			if (event.target.closest('button, a, input, textarea, select, .lessons-page-sidebar')) return;
+			if (refreshingRef.current || event.touches.length !== 1) return;
+			if (event.target.closest('button, a, input, textarea, select, .lessons-page-sidebar, .student-mobile-tabs, .va-topnav, .modern-topnav, [role="dialog"]')) return;
 			if (!isScrolledToTop(event.target)) return;
 			originRef.current = event.target;
 			startYRef.current = event.touches[0].clientY;
@@ -59,7 +53,7 @@ export function useLessonPullRefresh(onRefresh) {
 
 		const onMove = (event) => {
 			if (startYRef.current == null || refreshingRef.current) return;
-			if (!isMobileLessonViewport() || !isScrolledToTop(originRef.current)) {
+			if (!isScrolledToTop(originRef.current)) {
 				reset();
 				return;
 			}

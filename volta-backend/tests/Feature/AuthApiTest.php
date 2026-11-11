@@ -19,34 +19,21 @@ class AuthApiTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_register_creates_pending_student_and_returns_pending_response(): void
+    public function test_public_registration_is_closed(): void
     {
         $this->mock(NotificationService::class, function ($mock) {
-            $mock->shouldReceive('notifyRegistrationRequested')->once();
+            $mock->shouldReceive('notifyRegistrationRequested')->never();
         });
 
-        $payload = [
+        $this->postJson('/api/auth/register', [
             'name' => 'Ana Popescu',
             'email' => 'ana.popescu@example.com',
             'password' => 'Password123',
-        ];
+        ])->assertForbidden();
 
-        $response = $this->postJson('/api/auth/register', $payload);
-
-        $response->assertCreated()
-            ->assertJson([
-                'pending_approval' => true,
-            ]);
-
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseMissing('users', [
             'email' => 'ana.popescu@example.com',
-            'name' => 'Ana Popescu',
-            'role' => 'student',
-            'status' => 'pending',
         ]);
-
-        $user = User::where('email', 'ana.popescu@example.com')->firstOrFail();
-        $this->assertTrue(Hash::check('Password123', $user->password));
     }
 
     public function test_login_rejects_pending_accounts(): void

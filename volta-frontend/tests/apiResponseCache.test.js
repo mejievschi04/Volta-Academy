@@ -48,6 +48,7 @@ test('editors, exams, counters and opted-out requests always hit the server', as
 		{ method: 'get', url: '/exams/4' },
 		{ method: 'get', url: '/badges' },
 		{ method: 'get', url: '/courses/7' },
+		{ method: 'get', url: '/lessons/4' },
 		{ method: 'get', url: '/admin/teams', cache: false },
 	];
 

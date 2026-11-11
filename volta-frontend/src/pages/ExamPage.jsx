@@ -555,7 +555,6 @@ const ExamPage = () => {
 	const needsManualReview = Boolean(result?.needs_manual_review || result?.status === 'pending_review');
 	const showsPartialManualReview = Boolean(needsManualReview && exam?.manual_review_mode === 'partial');
 	const allowedAttempts = exam?.allowed_attempts ?? exam?.max_attempts;
-	// procent exact, ca pragul (37,5%, nu 38%): rotunjit putea arăta 75% „Nepromovat” la pragul de 75%
 	const resultPercent = result?.percentage == null ? null : formatPercent(result.percentage);
 	const isSequentialNavigation = !submitted;
 	const showOnlySubmittedAnswers = Boolean(exam?.show_only_submitted_answers);

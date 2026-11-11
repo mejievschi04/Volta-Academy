@@ -6,6 +6,7 @@ use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Statistici test: rezumat, analiză pe întrebări (item analysis), detaliu per încercare.
@@ -28,6 +29,57 @@ class TestAnalyticsService
             ->orderByDesc('completed_at')
             ->orderByDesc('id')
             ->get();
+    }
+
+    public function applyTeamScope($query, ?int $teamId, bool $unassigned, string $column = 'user_id'): void
+    {
+        if ($unassigned) {
+            $query->whereNotIn($column, function ($inner) {
+                $inner->select('user_id')->from('team_user');
+            });
+
+            return;
+        }
+
+        if ($teamId) {
+            $query->whereIn($column, function ($inner) use ($teamId) {
+                $inner->select('user_id')->from('team_user')->where('team_id', $teamId);
+            });
+        }
+    }
+
+    public function filterByTeam(Collection $results, ?int $teamId, bool $unassigned): Collection
+    {
+        if (! $teamId && ! $unassigned) {
+            return $results;
+        }
+
+        if ($unassigned) {
+            $assigned = DB::table('team_user')->pluck('user_id');
+
+            return $results->reject(fn ($row) => $assigned->contains($row->user_id))->values();
+        }
+
+        $ids = DB::table('team_user')->where('team_id', $teamId)->pluck('user_id');
+
+        return $results->whereIn('user_id', $ids->all())->values();
+    }
+
+    /** @return Collection<int, array<int, string>> */
+    public function teamNamesByUser(Collection $userIds): Collection
+    {
+        $ids = $userIds->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return DB::table('team_user')
+            ->join('teams', 'teams.id', '=', 'team_user.team_id')
+            ->whereIn('team_user.user_id', $ids)
+            ->orderBy('teams.name')
+            ->get(['team_user.user_id', 'teams.name'])
+            ->groupBy(fn ($row) => (int) $row->user_id)
+            ->map(fn ($rows) => $rows->pluck('name')->filter()->values()->all());
     }
 
     public function buildSummary(Test $test, Collection $results): array

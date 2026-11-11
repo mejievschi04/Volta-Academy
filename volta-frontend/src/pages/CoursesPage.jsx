@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import EmptyState from '../components/ui/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { Books, MagnifyingGlass, Plus, WarningCircle, X } from '@phosphor-icons/react';
@@ -15,6 +15,7 @@ import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import './CoursesPage.css';
 import '../styles/learning-experience.css';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 const COURSE_MAP_ACCENT_COLORS = [
 	'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#0ea5e9',
@@ -60,16 +61,15 @@ const CoursesPage = () => {
 	const [nextLesson, setNextLesson] = useState(null);
 	const fetchingRef = useRef(false);
 
-	useEffect(() => {
+	const reloadCourses = useCallback(async ({ silent = false } = {}) => {
 		if (fetchingRef.current || authLoading) return;
+		fetchingRef.current = true;
 
-		const fetchCourses = async () => {
-			if (fetchingRef.current) return;
-			fetchingRef.current = true;
-
-			try {
+		try {
+			if (!silent) {
 				setLoading(true);
 				setError(null);
+			}
 
 				if (isAdmin) {
 					const mapsData = await adminService.getCourseMaps({ per_page: 100, include_virtual: 1 });
@@ -112,15 +112,18 @@ const CoursesPage = () => {
 
 			} catch (err) {
 				console.error('Error fetching courses:', err);
-				setError('Nu s-au putut încărca mapele.');
+				if (!silent) setError('Nu s-au putut încărca mapele.');
 			} finally {
-				setLoading(false);
+				if (!silent) setLoading(false);
 				fetchingRef.current = false;
 			}
-		};
-
-		fetchCourses();
 	}, [authLoading, isAdmin]);
+
+	useEffect(() => {
+		reloadCourses();
+	}, [reloadCourses]);
+
+	useRegisterPageRefresh(() => reloadCourses({ silent: true }));
 
 	const filteredCourseMaps = useMemo(() => {
 		let rows = Array.isArray(courseMaps) ? [...courseMaps] : [];

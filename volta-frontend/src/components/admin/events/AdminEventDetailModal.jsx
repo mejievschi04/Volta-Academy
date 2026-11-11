@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UserList, X } from '@phosphor-icons/react';
 import { adminService } from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContextShared.js';
 import EventDescriptionExpandable from '../../common/EventDescriptionExpandable';
 import { useScrollResetOnOpen } from '../../../hooks/useScrollResetOnOpen';
 import AdminEventParticipantsModal from './AdminEventParticipantsModal';
@@ -14,6 +15,13 @@ const TYPE_LABELS = {
 	webinar: 'Webinar',
 	workshop: 'Workshop',
 };
+
+function formatLocalStamp(dateString) {
+	const date = new Date(dateString);
+	if (Number.isNaN(date.getTime())) return parseWallClock(dateString);
+	const pad = (value) => String(value).padStart(2, '0');
+	return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 function parseWallClock(dateString) {
 	if (!dateString) return '—';
@@ -48,10 +56,14 @@ function durationLabel(start, end) {
  * @param {boolean} [props.readOnly]
  */
 const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = false }) => {
+	const { user } = useAuth();
+	const isAdmin = (user?.actualRole ?? user?.role) === 'admin';
 	const [event, setEvent] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [showParticipants, setShowParticipants] = useState(false);
+	const [questions, setQuestions] = useState([]);
+	const [questionsLoading, setQuestionsLoading] = useState(false);
 	const bodyRef = useRef(null);
 	useScrollResetOnOpen(open, bodyRef);
 
@@ -71,10 +83,28 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 		}
 	}, [eventId]);
 
+	const loadQuestions = useCallback(async () => {
+		if (!eventId || !isAdmin) {
+			setQuestions([]);
+			return;
+		}
+		try {
+			setQuestionsLoading(true);
+			const data = await adminService.getEventQuestions(eventId);
+			setQuestions(Array.isArray(data?.data) ? data.data : []);
+		} catch (e) {
+			console.error(e);
+			setQuestions([]);
+		} finally {
+			setQuestionsLoading(false);
+		}
+	}, [eventId, isAdmin]);
+
 	useEffect(() => {
 		if (!open) return;
 		loadEvent();
-	}, [open, loadEvent]);
+		loadQuestions();
+	}, [open, loadEvent, loadQuestions]);
 
 	useEffect(() => {
 		if (!open) setShowParticipants(false);
@@ -202,6 +232,33 @@ const AdminEventDetailModal = ({ open, eventId, onClose, onEdit, readOnly = fals
 										</p>
 									) : null}
 								</div>
+
+								{isAdmin ? (
+									<section className="aev-detail-questions" aria-labelledby="aev-questions-title">
+										<h3 id="aev-questions-title" className="aev-detail-section-title">
+											Întrebări de la utilizatori
+										</h3>
+										{questionsLoading ? (
+											<p className="aev-detail-participants-hint">Se încarcă întrebările…</p>
+										) : questions.length === 0 ? (
+											<p className="aev-detail-participants-hint">Nicio întrebare.</p>
+										) : (
+											<ul className="aev-detail-questions-list">
+												{questions.map((question) => (
+													<li key={question.id} className="aev-detail-question">
+														<div className="aev-detail-question-meta">
+															<strong>{question.user?.name || 'Utilizator'}</strong>
+															{question.user?.email ? ` · ${question.user.email}` : ''}
+															{' · '}
+															{formatLocalStamp(question.created_at)}
+														</div>
+														<p>{question.body}</p>
+													</li>
+												))}
+											</ul>
+										)}
+									</section>
+								) : null}
 
 								{description ? (
 									<section className="aev-detail-desc" aria-labelledby="aev-detail-desc-heading">

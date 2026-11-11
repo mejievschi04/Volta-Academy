@@ -24,12 +24,6 @@ function downloadWorkbook(XLSX, filename, workbook) {
 	XLSX.writeFile(workbook, safeName, { compression: true });
 }
 
-function padRow(cells, width) {
-	const row = cells.slice();
-	while (row.length < width) row.push('');
-	return row;
-}
-
 function computeColumnWidths(rows) {
 	if (!Array.isArray(rows) || rows.length === 0) return [];
 	const colCount = Math.max(...rows.map((row) => row.length));
@@ -100,15 +94,8 @@ export function buildStructuredExcelRows({
 	extraSections = null,
 	extraMeta = null,
 }) {
-	let width = Math.max(tableHeaders.length, 2);
-	if (extraSections) {
-		for (const section of extraSections) {
-			width = Math.max(width, section.headers.length, ...section.rows.map((row) => row.length));
-		}
-	}
-
 	const rows = [];
-	const push = (cells) => rows.push(padRow(cells.map(normalizeCell), width));
+	const push = (cells) => rows.push(cells.map(normalizeCell));
 
 	push(['Volta Academy - Statistica']);
 	push(['Raport', sheetLabel]);

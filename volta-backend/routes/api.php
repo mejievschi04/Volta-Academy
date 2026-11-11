@@ -187,6 +187,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-app'])->group
     // User Events
     Route::post('/events/{id}/register', [EventController::class, 'register'])->whereNumber('id');
     Route::post('/events/{id}/cancel-registration', [EventController::class, 'cancelRegistration'])->whereNumber('id');
+    Route::post('/events/{id}/questions', [EventController::class, 'ask'])->whereNumber('id');
 
     // Admin AI Assistant
     Route::post('/ai/extract-document', [\App\Http\Controllers\AIController::class, 'extractDocumentContext'])->middleware('volt');
@@ -337,6 +338,7 @@ Route::middleware([
     Route::put('/events/{id}', [EventAdminController::class, 'update']);
     Route::delete('/events/{id}', [EventAdminController::class, 'destroy']);
     Route::put('/events/{id}/participants/{userId}/attendance', [EventAdminController::class, 'updateParticipantAttendance']);
+    Route::get('/events/{id}/questions', [EventAdminController::class, 'questions'])->whereNumber('id');
     
     // Teams Management
     Route::get('/teams', [TeamAdminController::class, 'index']);

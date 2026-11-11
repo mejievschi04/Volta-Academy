@@ -12,6 +12,7 @@ import { Compass, ImageSquare, LinkSimple, Plus, X } from '@phosphor-icons/react
 import '../styles/library-page.css';
 import '../styles/guides-page.css';
 import CoverPhoto from '../components/ui/CoverPhoto';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 const COVER_PALETTES = [
 	{ a: '#0c4a6e', b: '#0d9488', accent: '#fcd34d', glow: 'rgba(250, 204, 21, 0.35)' },
@@ -87,9 +88,11 @@ const GuidesPage = () => {
 		[actualRole, user],
 	);
 
-	const load = useCallback(async (p = 1) => {
-		setLoading(true);
-		setError(null);
+	const load = useCallback(async (p = 1, { silent = false } = {}) => {
+		if (!silent) {
+			setLoading(true);
+			setError(null);
+		}
 		try {
 			const data = await guidesService.listItems({ page: p, per_page: 20 });
 			setItems(Array.isArray(data?.data) ? data.data : []);
@@ -97,17 +100,21 @@ const GuidesPage = () => {
 			setPage(p);
 		} catch (err) {
 			logger.error('Guides list', err);
-			setError(err.response?.data?.message || 'Nu s-au putut încărca ghidurile.');
-			setItems([]);
-			setMeta(null);
+			if (!silent) {
+				setError(err.response?.data?.message || 'Nu s-au putut încărca ghidurile.');
+				setItems([]);
+				setMeta(null);
+			}
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
 		load(1);
 	}, [load]);
+
+	useRegisterPageRefresh(() => load(page, { silent: true }));
 
 	const openCreateModal = () => {
 		setEditingItem(null);

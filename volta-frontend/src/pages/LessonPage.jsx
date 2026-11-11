@@ -27,7 +27,7 @@ import { isLessonMarkedComplete } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
 import { normalizeLessonFromApi, lessonLegacyHtml } from '../utils/lessonContent';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
-import LessonPullRefresh from '../components/student/LessonPullRefresh';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import './LessonPage.css';
 import '../components/admin/lessons/callout/LessonCallout.css';
 import '../components/admin/lessons/video/LessonVideo.css';
@@ -321,6 +321,8 @@ const LessonPage = () => {
 		);
 	};
 
+	useRegisterPageRefresh(() => fetchLessonData({ silent: true }));
+
 	if (loading) {
 		return (
 			<div className="lesson-page-modern">
@@ -354,7 +356,6 @@ const LessonPage = () => {
 
 	return (
 		<div className="lesson-page-modern">
-			<LessonPullRefresh onRefresh={() => fetchLessonData({ silent: true })} />
 			<CourseCongratulationsModal
 				open={showCourseCongrats}
 				courseTitle={course?.title}

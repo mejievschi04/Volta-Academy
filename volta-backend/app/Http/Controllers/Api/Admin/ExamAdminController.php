@@ -10,6 +10,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamResult;
 use App\Services\ExamAttemptLimitService;
 use App\Services\ExamBankQuestionSyncService;
+use App\Services\TestAnalyticsService;
 use App\Support\ImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -735,11 +736,18 @@ class ExamAdminController extends Controller
             ? DB::table('user_exam_attempt_grants')->where('exam_id', $exam->id)->pluck('extra_attempts', 'user_id')
             : collect();
 
-        $rows = ExamResult::with(['user:id,name,email'])
+        $query = ExamResult::with(['user:id,name,email'])
             ->where('exam_id', $exam->id)
-            ->orderByDesc('completed_at')
-            ->get()
-            ->map(function ($row) use ($exam, $extraByUser) {
+            ->orderByDesc('completed_at');
+        app(TestAnalyticsService::class)->applyTeamScope(
+            $query,
+            (int) $request->input('team_id') ?: null,
+            $request->boolean('unassigned')
+        );
+        $models = $query->get();
+        $teamNames = app(TestAnalyticsService::class)->teamNamesByUser($models->pluck('user_id'));
+        $rows = $models
+            ->map(function ($row) use ($exam, $extraByUser, $teamNames) {
                 return [
                     'id' => $row->id,
                     'attempt_number' => $row->attempt_number,
@@ -759,6 +767,7 @@ class ExamAdminController extends Controller
                         'id' => $row->user?->id,
                         'name' => $row->user?->name,
                         'email' => $row->user?->email,
+                        'teams' => $teamNames->get((int) $row->user_id, []),
                     ],
                 ];
             });

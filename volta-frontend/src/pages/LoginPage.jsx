@@ -1,6 +1,6 @@
 import '../styles/auth-modern.css';
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
 	ArrowRight,
 	CheckCircle,
@@ -167,16 +167,6 @@ const LoginPage = () => {
 							)}
 						</button>
 					</form>
-
-					{/* Footer */}
-					<div className="modern-auth-footer">
-						<p className="modern-auth-footer-text">
-							Nu ai cont?{' '}
-							<Link to="/register" className="modern-auth-link">
-								Înregistrează-te
-							</Link>
-						</p>
-					</div>
 				</div>
 			</div>
 		</div>

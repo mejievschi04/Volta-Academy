@@ -14,7 +14,6 @@ const AdminSettingsPage = () => {
 	const [exporting, setExporting] = useState(false);
 	const [settings, setSettings] = useState({
 		maintenance_mode: false,
-		registration_enabled: true,
 		email_notifications: true,
 		backup_enabled: true,
 		backup_frequency: 'daily',
@@ -37,7 +36,6 @@ const AdminSettingsPage = () => {
 			setSettings(prev => ({
 				...prev,
 				maintenance_mode: data.maintenance_mode?.value === '1' || data.maintenance_mode?.value === true || prev.maintenance_mode,
-				registration_enabled: data.registration_enabled?.value !== '0' && data.registration_enabled?.value !== false || prev.registration_enabled,
 				email_notifications: data.email_notifications?.value !== '0' && data.email_notifications?.value !== false || prev.email_notifications,
 				backup_enabled: data.backup_enabled?.value !== '0' && data.backup_enabled?.value !== false || prev.backup_enabled,
 				backup_frequency: data.backup_frequency?.value || prev.backup_frequency,
@@ -215,29 +213,6 @@ const AdminSettingsPage = () => {
 							<ThemePreferenceControl className="admin-settings-theme-preference" />
 
 							<div className="admin-settings-toggle-group">
-								<div className="admin-settings-toggle">
-									<div className="admin-settings-toggle-info">
-										<label className="admin-settings-toggle-label">
-											Înregistrări active
-										</label>
-										<p className="admin-settings-toggle-description">
-											Permite utilizatorilor noi să se înregistreze pe platformă
-										</p>
-									</div>
-									<button
-										type="button"
-										className={`admin-settings-toggle-switch ${settings.registration_enabled ? 'active' : ''}`}
-										onClick={() => handleToggle('registration_enabled')}
-										role="switch"
-										aria-checked={Boolean(settings.registration_enabled)}
-										aria-label="Înregistrări active"
-										disabled={readOnly}
-										aria-disabled={readOnly}
-									>
-										<div className="admin-settings-toggle-slider" />
-									</button>
-								</div>
-
 								<div className="admin-settings-toggle">
 									<div className="admin-settings-toggle-info">
 										<label className="admin-settings-toggle-label">

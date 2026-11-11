@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import EmptyState from '../components/ui/EmptyState';
 import { Link } from 'react-router-dom';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { studentActivityService } from '../services/api';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import {
 	getFriendlyLogLine,
+	getGroupedLogLine,
+	groupActivityLogs,
+	activityGroupCount,
 	getActionLabelRo,
 	ACTION_LABELS_RO,
 } from '../utils/activityLogLabels';
@@ -40,6 +44,7 @@ const StudentActivityPage = () => {
 	const [entries, setEntries] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [expandedKey, setExpandedKey] = useState(null);
 	const [scope, setScope] = useState('progress');
 	const [actionFilter, setActionFilter] = useState('');
 	const [pagination, setPagination] = useState({
@@ -49,10 +54,12 @@ const StudentActivityPage = () => {
 		total: 0,
 	});
 
-	const fetchActivity = useCallback(async () => {
+	const fetchActivity = useCallback(async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
-			setError(null);
+			if (!silent) {
+				setLoading(true);
+				setError(null);
+			}
 			const data = await studentActivityService.getActivity({
 				page: pagination.current_page,
 				per_page: pagination.per_page,
@@ -69,10 +76,12 @@ const StudentActivityPage = () => {
 			}));
 		} catch (err) {
 			console.error('Error fetching student activity:', err);
-			setError('Nu s-a putut încărca activitatea.');
-			setEntries([]);
+			if (!silent) {
+				setError('Nu s-a putut încărca activitatea.');
+				setEntries([]);
+			}
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	}, [pagination.current_page, pagination.per_page, scope, actionFilter]);
 
@@ -80,12 +89,27 @@ const StudentActivityPage = () => {
 		fetchActivity();
 	}, [fetchActivity]);
 
+	useRegisterPageRefresh(() => fetchActivity({ silent: true }));
+
+	const groupedEntries = useMemo(
+		() => groupActivityLogs(entries.map((entry) => ({ ...entry, user_id: 'me', user: { name: 'Tu' } }))),
+		[entries],
+	);
+
 	const formatDate = (dateString) => {
 		if (!dateString) return '';
 		return new Intl.DateTimeFormat('ro-RO', {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		}).format(new Date(dateString));
+	};
+
+	const formatTime = (dateString) => {
+		if (!dateString) return '';
+		return new Intl.DateTimeFormat('ro-RO', {
 			hour: '2-digit',
 			minute: '2-digit',
 		}).format(new Date(dateString));
@@ -173,17 +197,15 @@ const StudentActivityPage = () => {
 				</EmptyState>
 			) : (
 				<ul className="va-student-activity-list">
-					{entries.map((entry) => {
-						const line = getFriendlyLogLine({
-							action: entry.action,
-							description: entry.description,
-							new_values: entry.new_values,
-							user: { name: 'Tu' },
-						});
+					{groupedEntries.map((group) => {
+						const entry = group.items[0];
+						const count = activityGroupCount(group);
+						const line = getGroupedLogLine(group);
 						const label = getActionLabelRo(entry.action);
+						const isOpen = expandedKey === group.key;
 
 						return (
-							<li key={entry.id} className="va-student-activity-item">
+							<li key={group.key} className="va-student-activity-item">
 								<span className="va-student-activity-icon" aria-hidden>
 									{getIcon(entry.action)}
 								</span>
@@ -193,13 +215,33 @@ const StudentActivityPage = () => {
 										<time className="va-student-activity-time" dateTime={entry.created_at}>
 											{formatDate(entry.created_at)}
 										</time>
+										{count > 1 ? <span className="va-student-activity-badge">{count} înregistrări</span> : null}
 									</div>
 									<p className="va-student-activity-line">{line}</p>
-									{entry.link && (
+									{count > 1 ? (
+										<button
+											type="button"
+											className="va-student-activity-link"
+											aria-expanded={isOpen}
+											onClick={() => setExpandedKey(isOpen ? null : group.key)}
+										>
+											{isOpen ? 'Ascunde orele' : 'Vezi orele'}
+										</button>
+									) : entry.link ? (
 										<Link to={entry.link} className="va-student-activity-link">
 											Vezi detalii →
 										</Link>
-									)}
+									) : null}
+									{isOpen && count > 1 ? (
+										<ul className="va-student-activity-times">
+											{group.items.map((item) => (
+												<li key={item.id}>
+													<time dateTime={item.created_at}>{formatTime(item.created_at)}</time>
+													<span>{getFriendlyLogLine({ ...item, user: { name: 'Tu' } })}</span>
+												</li>
+											))}
+										</ul>
+									) : null}
 								</div>
 							</li>
 						);

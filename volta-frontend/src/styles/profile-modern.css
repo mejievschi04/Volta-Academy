@@ -883,6 +883,42 @@
 	min-width: 0;
 }
 
+.va-student-activity-times {
+	list-style: none;
+	margin: var(--space-3) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.va-student-activity-times li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: baseline;
+	font-size: var(--font-size-sm);
+}
+
+.va-student-activity-times time {
+	min-width: 4.5rem;
+	font-weight: var(--font-weight-semibold);
+	font-variant-numeric: tabular-nums;
+}
+
+button.va-student-activity-link {
+	background: none !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	min-height: 0 !important;
+	padding: 0 !important;
+	border-radius: 0 !important;
+	color: var(--text-accent) !important;
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+}
+
 .va-student-activity-meta {
 	display: flex;
 	flex-wrap: wrap;

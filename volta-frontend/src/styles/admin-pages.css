@@ -217,7 +217,7 @@
 .admin-activity-logs-list {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-3);
+	gap: var(--space-2);
 }
 
 .admin-activity-logs-item {
@@ -237,12 +237,15 @@
 	width: 100%;
 	margin: 0;
 	padding: 0;
+	min-height: 0;
 	border: none;
+	border-radius: 0;
 	background: transparent;
 	text-align: left;
 	cursor: pointer;
 	color: inherit;
 	font: inherit;
+	line-height: 1.2;
 }
 
 .admin-activity-logs-item-toggle:focus-visible {
@@ -252,13 +255,13 @@
 
 .admin-activity-logs-item-content {
 	display: flex;
-	gap: var(--space-4);
-	padding: var(--space-4) var(--space-5);
-	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.35rem 0.85rem;
+	align-items: center;
 }
 
 .admin-activity-logs-icon {
-	font-size: 1.5rem;
+	font-size: 1rem;
 	line-height: 1;
 	flex-shrink: 0;
 }
@@ -266,29 +269,39 @@
 .admin-activity-logs-main {
 	flex: 1;
 	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .admin-activity-logs-card-header {
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
-	gap: var(--space-2) var(--space-3);
-	margin-bottom: var(--space-2);
+	flex: 1;
+	min-width: 0;
+	margin: 0;
 }
 
 .admin-activity-logs-description {
 	font-weight: var(--font-weight-medium);
+	font-size: 0.9rem;
+	line-height: 1.2;
 	color: var(--text-primary);
-	flex: 1 1 200px;
 	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .admin-activity-logs-meta {
 	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-3);
+	flex-wrap: nowrap;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 0.75rem;
 	font-size: var(--font-size-xs);
 	color: var(--text-secondary);
+	white-space: nowrap;
 }
 
 .admin-activity-logs-meta-item {
@@ -325,6 +338,30 @@
 	color: var(--text-primary);
 	margin: 0 0 var(--space-2);
 	white-space: pre-wrap;
+}
+
+.admin-activity-logs-times {
+	list-style: none;
+	margin: var(--space-3) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.admin-activity-logs-times li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: baseline;
+	font-size: var(--font-size-sm);
+	color: var(--text-primary);
+}
+
+.admin-activity-logs-times time {
+	min-width: 4.5rem;
+	font-weight: var(--font-weight-semibold);
+	font-variant-numeric: tabular-nums;
 }
 
 .admin-activity-logs-empty {

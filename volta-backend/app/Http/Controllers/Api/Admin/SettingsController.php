@@ -82,11 +82,6 @@ class SettingsController extends Controller
             $updated['maintenance_mode'] = $request->maintenance_mode;
         }
 
-        if ($request->has('registration_enabled')) {
-            Setting::set('registration_enabled', $request->registration_enabled ? '1' : '0', 'boolean', 'Înregistrări active');
-            $updated['registration_enabled'] = $request->registration_enabled;
-        }
-
         if ($request->has('email_notifications')) {
             Setting::set('email_notifications', $request->email_notifications ? '1' : '0', 'boolean', 'Notificări email active');
             $updated['email_notifications'] = $request->email_notifications;

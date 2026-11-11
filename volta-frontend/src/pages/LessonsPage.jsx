@@ -26,7 +26,7 @@ import { normalizeRichTextMediaHtml } from '../utils/richTextContent';
 import { useLessonTimeTracking } from '../hooks/useLessonTimeTracking';
 import { useLessonReachedEnd } from '../hooks/useLessonReachedEnd';
 import LessonReadTrackers from '../components/student/LessonReadTrackers';
-import LessonPullRefresh from '../components/student/LessonPullRefresh';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { filterPublishedCourseTests, isPublishedTestStatus } from '../utils/testVisibility';
 import { isLessonMarkedComplete, preserveCompletedLessons } from '../utils/lessonProgress';
 import { scrollAppToTop } from '../utils/scrollToTop';
@@ -67,6 +67,7 @@ const LessonsPage = () => {
 	const { showToast } = useToast();
 	const contentRef = useRef(null);
 	const completedLessonIdsRef = useRef(new Set());
+	const lessonLoadSeq = useRef(0);
 
 	const [course, setCourse] = useState(null);
 	const modules = useMemo(
@@ -238,9 +239,11 @@ const LessonsPage = () => {
 	};
 
 	const loadLesson = async (lessonId) => {
+		const seq = ++lessonLoadSeq.current;
 		try {
 			setCurrentLessonLoading(true);
 			const lessonData = normalizeLessonFromApi(await lessonsService.getById(lessonId));
+			if (seq !== lessonLoadSeq.current) return;
 			setCurrentLesson(lessonData);
 			
 			setIsCompleted(user?.id ? isLessonMarkedComplete(progress, lessonId) : false);
@@ -248,15 +251,17 @@ const LessonsPage = () => {
 			// Update URL without navigation
 			window.history.replaceState({}, '', `/courses/${courseId}?lesson=${lessonId}`);
 		} catch (err) {
+			if (seq !== lessonLoadSeq.current) return;
 			console.error('Error loading lesson:', err);
 			const locked = err?.response?.status === 403 && err?.response?.data?.locked;
 			showToast(locked ? (err.response.data.message || 'Lecția este blocată.') : 'Eroare la încărcarea lecției', 'error');
 		} finally {
-			setCurrentLessonLoading(false);
+			if (seq === lessonLoadSeq.current) setCurrentLessonLoading(false);
 		}
 	};
 
 	const refreshOpenLesson = async () => {
+		const seq = lessonLoadSeq.current;
 		try {
 			const courseData = await coursesService.getById(courseId, courseFetchParams);
 			setCourse(courseData);
@@ -274,6 +279,7 @@ const LessonsPage = () => {
 			}
 			if (selectedLessonId) {
 				const lessonData = normalizeLessonFromApi(await lessonsService.getById(selectedLessonId));
+				if (seq !== lessonLoadSeq.current) return;
 				setCurrentLesson(lessonData);
 				setIsCompleted(user?.id ? isLessonMarkedComplete(progressData, selectedLessonId) : false);
 			}
@@ -281,6 +287,8 @@ const LessonsPage = () => {
 			showToast('Nu s-a putut actualiza lecția', 'error');
 		}
 	};
+
+	useRegisterPageRefresh(refreshOpenLesson);
 
 	const toggleModule = (moduleId) => {
 		const newExpanded = new Set(expandedModules);
@@ -588,7 +596,6 @@ const LessonsPage = () => {
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
-			<LessonPullRefresh onRefresh={refreshOpenLesson} />
 			<CourseCongratulationsModal
 				open={showCourseCongrats}
 				courseTitle={course?.title}

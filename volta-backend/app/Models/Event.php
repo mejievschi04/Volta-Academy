@@ -76,6 +76,11 @@ class Event extends Model
     /**
      * Get all users registered/attended this event
      */
+    public function questions()
+    {
+        return $this->hasMany(EventQuestion::class);
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'event_user')

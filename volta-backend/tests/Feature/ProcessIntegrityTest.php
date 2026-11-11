@@ -39,9 +39,9 @@ class ProcessIntegrityTest extends TestCase
             ->assertJsonPath('account_status', 'suspended');
     }
 
-    public function test_registration_disabled_setting_blocks_public_signup(): void
+    public function test_public_registration_is_closed_even_when_the_old_setting_is_on(): void
     {
-        Setting::set('registration_enabled', '0', 'boolean');
+        Setting::set('registration_enabled', '1', 'boolean');
         $this->mock(NotificationService::class, fn ($mock) => $mock->shouldReceive('notifyRegistrationRequested')->never());
         $this->postJson('/api/auth/register', [
             'name' => 'Audit User', 'email' => 'audit@example.com', 'password' => 'Password123',

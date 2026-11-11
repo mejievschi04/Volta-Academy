@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UserNamesTest extends TestCase
@@ -30,17 +29,12 @@ class UserNamesTest extends TestCase
         ])->assertCreated()->assertJsonPath('user.name', $updatedName);
     }
 
-    public function test_registration_accepts_diacritics_and_still_rejects_markup(): void
+    public function test_public_registration_does_not_create_a_user(): void
     {
-        Mail::fake();
         $this->postJson('/api/auth/register', [
             'name' => 'Ștefan Măriuță', 'email' => 'register@example.test',
             'password' => 'Password123', 'password_confirmation' => 'Password123',
-        ])->assertCreated();
-        $this->assertDatabaseHas('users', ['email' => 'register@example.test', 'name' => 'Ștefan Măriuță']);
-        $this->postJson('/api/auth/register', [
-            'name' => '<b>Ștefan</b>', 'email' => 'markup@example.test',
-            'password' => 'Password123', 'password_confirmation' => 'Password123',
-        ])->assertUnprocessable()->assertJsonValidationErrors('name');
+        ])->assertForbidden();
+        $this->assertDatabaseMissing('users', ['email' => 'register@example.test']);
     }
 }

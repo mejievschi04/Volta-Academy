@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContextShared.js';
 import AdminContentItemCard from '../../components/admin/content/AdminContentItemCard';
 import Modal from '../../components/common/Modal';
 import { TEST_EDITOR_DEFAULT } from '../../utils/testQuestionBuilder';
+import { formatPercent } from '../../utils/formatPercent';
 import '../../styles/admin-content-list.css';
 import './AdminTestsPage.css';
 
@@ -32,7 +33,7 @@ function buildTestMetaLine(item) {
   const questions = item.questions_count ?? item.questions?.length ?? 0;
   const parts = [
     `${questions} întrebări`,
-    `${Number(item.passing_score ?? 70)}% prag`,
+    `${formatPercent(item.passing_score ?? 70)} prag`,
     item.max_attempts != null ? `${item.max_attempts} încercări` : 'Nelimitat',
     item.time_limit_minutes ? `${item.time_limit_minutes} min` : 'Timp nelimitat',
   ].filter(Boolean);

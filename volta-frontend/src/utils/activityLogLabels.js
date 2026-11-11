@@ -1,4 +1,5 @@
 /** Helpers pentru jurnalul de activitate — texte în română, fără coduri brute în UI. */
+import { formatPercent } from './formatPercent';
 
 function stripHtml(html) {
 	if (!html) return '';
@@ -117,15 +118,15 @@ export function getFriendlyLogLine(log) {
 		const ex = nv.exam_title || 'testul';
 		const pct = nv.percentage;
 		return pct != null
-			? `${name} a finalizat testul „${ex}” și a obținut ${pct}%.`
+			? `${name} a finalizat testul „${ex}” și a obținut ${formatPercent(pct)}.`
 			: `${name} a finalizat testul „${ex}”.`;
 	}
 	if (action === 'telemetry.learner_attempt_submitted') {
 		const pct = nv.percentage ?? nv.score_percentage ?? nv.percent;
 		const title = nv.test_title || nv.exam_title;
-		if (title && pct != null) return `${name} a trimis testul „${title}” și a obținut ${pct}%.`;
+		if (title && pct != null) return `${name} a trimis testul „${title}” și a obținut ${formatPercent(pct)}.`;
 		if (title) return `${name} a trimis testul „${title}”.`;
-		if (pct != null) return `${name} a trimis testul și a obținut ${pct}%.`;
+		if (pct != null) return `${name} a trimis testul și a obținut ${formatPercent(pct)}.`;
 		return `${name} a trimis un test.`;
 	}
 	if (action === 'telemetry.learner_attempt_started') {
@@ -156,4 +157,65 @@ export function getFriendlyLogLine(log) {
 		return `${name} — activitate în platformă`;
 	}
 	return desc || `${name} — activitate în platformă`;
+}
+
+function localDayKey(value) {
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return '';
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function storedCount(log) {
+	const count = Number(log?.new_values?.count);
+	return Number.isFinite(count) && count > 1 ? count : 1;
+}
+
+/** Același utilizator, același tip de eveniment, aceeași zi calendaristică. */
+export function groupActivityLogs(logs) {
+	const groups = [];
+	const byKey = new Map();
+	(logs || []).forEach((log) => {
+		const key = `${log.user_id ?? 'none'}|${log.action || ''}|${localDayKey(log.created_at)}`;
+		let group = byKey.get(key);
+		if (!group) {
+			group = { key, items: [] };
+			byKey.set(key, group);
+			groups.push(group);
+		}
+		group.items.push(log);
+	});
+	return groups;
+}
+
+export function activityGroupCount(group) {
+	return (group?.items || []).reduce((sum, log) => sum + storedCount(log), 0);
+}
+
+/** Rândul din listă: o singură activitate păstrează textul ei, repetările devin un total. */
+export function getGroupedLogLine(group) {
+	const items = group?.items || [];
+	const lead = items[0];
+	if (!lead) return '';
+	const count = activityGroupCount(group);
+	if (count <= 1) return getFriendlyLogLine(lead);
+
+	const name = lead.user?.name || 'Un utilizator';
+	const action = lead.action || '';
+	if (action === 'session_started') return `${name} a intrat în aplicație de ${count} ori.`;
+	if (action === 'logged_in') return `${name} s-a autentificat de ${count} ori.`;
+	if (action === 'logged_out') return `${name} s-a deconectat de ${count} ori.`;
+	if (action === 'completed_lesson') return `${name} a finalizat ${count} lecții.`;
+	if (action === 'completed_course') return `${name} a finalizat ${count} cursuri.`;
+	if (action === 'completed_exam' || action === 'telemetry.learner_attempt_submitted') {
+		return `${name} a susținut ${count} teste.`;
+	}
+	if (action === 'telemetry.learner_focus_seconds') {
+		const seconds = items.reduce((sum, log) => sum + Number(log.new_values?.seconds || 0), 0);
+		return seconds > 0
+			? `${name} a petrecut timp pe lecții (${Math.round(seconds / 60)} minute, ${count} înregistrări).`
+			: `${name} a avansat la lecții de ${count} ori.`;
+	}
+	return `${name}: ${getActionLabelRo(action)} · ${count} înregistrări`;
 }

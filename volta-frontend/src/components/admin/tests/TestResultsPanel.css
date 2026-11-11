@@ -50,6 +50,25 @@
 	background: var(--bg-primary);
 }
 
+.admin-test-results-team-filter {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--text-secondary);
+}
+
+.admin-test-results-team-filter select {
+	min-height: 40px;
+	padding: 0 12px;
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-weight: 600;
+}
+
 .admin-test-results-count {
 	color: var(--text-tertiary);
 	font-size: 0.85rem;
@@ -222,6 +241,20 @@
 	min-width: 0;
 	font-weight: var(--font-weight-semibold);
 	color: var(--text-primary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-test-result-card-team {
+	flex: 0 1 180px;
+	min-width: 7rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	font-weight: 600;
 }
 
 .admin-test-result-metric {

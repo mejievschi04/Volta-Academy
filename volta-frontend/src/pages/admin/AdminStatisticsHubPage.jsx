@@ -23,6 +23,46 @@ const MENU_ITEMS = [
 
 const isPendingReview = (row) => Boolean(row.needs_manual_review) && !row.passed;
 
+function teamsRepresented(students, onlyTeamId = '') {
+	const byId = new Map();
+	let unassigned = false;
+	(students || []).forEach((student) => {
+		const teams = Array.isArray(student?.teams) ? student.teams : [];
+		if (teams.length === 0) unassigned = true;
+		teams.forEach((team) => {
+			if (team?.id == null) return;
+			byId.set(String(team.id), team.name || `Echipă #${team.id}`);
+		});
+	});
+	let list = Array.from(byId, ([key, name]) => ({ key, name }))
+		.sort((a, b) => a.name.localeCompare(b.name, 'ro'));
+	if (onlyTeamId === 'none') {
+		return unassigned ? [{ key: 'none', name: 'Fără echipă' }] : [];
+	}
+	if (onlyTeamId) {
+		return list.filter((team) => team.key === String(onlyTeamId));
+	}
+	if (unassigned) list.push({ key: 'none', name: 'Fără echipă' });
+	if (list.length === 0) list.push({ key: '', name: 'Toate echipele' });
+	return list;
+}
+
+function userIdsInTeam(students, team) {
+	if (!team.key) {
+		return new Set((students || []).map((student) => student.id));
+	}
+	return new Set((students || []).filter((student) => {
+		const teams = Array.isArray(student?.teams) ? student.teams : [];
+		if (team.key === 'none') return teams.length === 0;
+		return teams.some((item) => String(item.id) === team.key);
+	}).map((student) => student.id));
+}
+
+function teamNamesOf(student) {
+	const names = (student?.teams || []).map((team) => team?.name).filter(Boolean);
+	return names.length ? names.join(', ') : 'Fără echipă';
+}
+
 const formatLearningDuration = (totalSeconds) => {
 	const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
 	const h = Math.floor(s / 3600);
@@ -51,11 +91,11 @@ const AdminStatisticsHubPage = () => {
 		role: 'button',
 		tabIndex: 0,
 		title: 'Deschide statistica testului',
-		onClick: () => setOpenedTest({ id: row.id, title: row.title }),
+		onClick: () => setOpenedTest({ id: row.id, title: row.title, teamKey: row.teamKey || '' }),
 		onKeyDown: (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
-				setOpenedTest({ id: row.id, title: row.title });
+				setOpenedTest({ id: row.id, title: row.title, teamKey: row.teamKey || '' });
 			}
 		},
 	});
@@ -100,10 +140,11 @@ const AdminStatisticsHubPage = () => {
 			exam_results: allResults.filter((row) => row.kind === 'exam'),
 		};
 		if (!teamId) return base;
-		const selected = Number(teamId);
-		const students = (base.students || []).filter((student) =>
-			(student.teams || []).some((team) => Number(team.id) === selected)
-		);
+		const students = (base.students || []).filter((student) => {
+			const teams = student.teams || [];
+			if (teamId === 'none') return teams.length === 0;
+			return teams.some((team) => String(team.id) === String(teamId));
+		});
 		const ids = new Set(students.map((student) => student.id));
 		return {
 			...base,
@@ -158,9 +199,7 @@ const AdminStatisticsHubPage = () => {
 			const student = studentsMap.get(row.user_id) || {};
 			const userTests = tests.filter((t) => t.user_id === row.user_id);
 			const avg = userTests.length
-				? Math.round(
-					(userTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / userTests.length) * 10
-				) / 10
+				? Math.round(userTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / userTests.length)
 				: 0;
 			return {
 				id: row.user_id,
@@ -234,6 +273,50 @@ const AdminStatisticsHubPage = () => {
 		downloadStructuredExcel(statisticsExcelFilename('progres-elevi'), 'Progres elevi', rows);
 	}, [dateFrom, dateTo, kpis, reportRows]);
 
+	const renderReportFilters = () => (
+		<div className="admin-statistics-toolbar" role="group" aria-label="Filtre raport">
+			<label className="admin-statistics-filter">
+				<span className="va-input-label">Dată început</span>
+				<span className={`admin-statistics-date${dateFrom ? ' has-value' : ''}`}>
+					<input
+						type="date"
+						className="va-input"
+						value={dateFrom}
+						onChange={(e) => setDateFrom(e.target.value)}
+					/>
+					<span className="admin-statistics-date-hint" aria-hidden="true">Alege data</span>
+				</span>
+			</label>
+			<label className="admin-statistics-filter">
+				<span className="va-input-label">Dată sfârșit</span>
+				<span className={`admin-statistics-date${dateTo ? ' has-value' : ''}`}>
+					<input
+						type="date"
+						className="va-input"
+						value={dateTo}
+						onChange={(e) => setDateTo(e.target.value)}
+					/>
+					<span className="admin-statistics-date-hint" aria-hidden="true">Alege data</span>
+				</span>
+			</label>
+			<label className="admin-statistics-filter">
+				<span className="va-input-label">Echipă</span>
+				<select
+					className="va-input"
+					value={teamId}
+					onChange={(e) => setTeamId(e.target.value)}
+					aria-label="Filtrează raportul după echipă"
+				>
+					<option value="">Toate echipele</option>
+					{(statsPayload?.teams || []).map((team) => (
+						<option key={team.id} value={String(team.id)}>{team.name}</option>
+					))}
+					<option value="none">Fără echipă</option>
+				</select>
+			</label>
+		</div>
+	);
+
 	const renderStudentProgress = () => (
 		<div className="admin-statistics-student-progress">
 			<header className="admin-statistics-student-head">
@@ -255,26 +338,7 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateFrom}
-						onChange={(e) => setDateFrom(e.target.value)}
-					/>
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateTo}
-						onChange={(e) => setDateTo(e.target.value)}
-					/>
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-statistics-student-kpis">
 				<article>
@@ -282,19 +346,19 @@ const AdminStatisticsHubPage = () => {
 					<strong>{kpis.totalLearners}</strong>
 				</article>
 				<article>
-					<span>Cursuri (medie)</span>
+					<span>Cursuri, medie</span>
 					<strong>{kpis.avgCourses}</strong>
 				</article>
 				<article>
-					<span>Lecții (medie)</span>
+					<span>Lecții, medie</span>
 					<strong>{kpis.avgLessons}</strong>
 				</article>
 				<article>
-					<span>Teste (medie)</span>
+					<span>Teste, medie</span>
 					<strong>{kpis.avgTests}</strong>
 				</article>
 				<article>
-					<span>Timp studiu (medie)</span>
+					<span>Timp, medie</span>
 					<strong>{formatLearningDuration(kpis.avgLearningSeconds)}</strong>
 				</article>
 			</div>
@@ -309,7 +373,7 @@ const AdminStatisticsHubPage = () => {
 							<th>Teste finalizate</th>
 							<th>Scor mediu (%)</th>
 							<th>Timp studiu</th>
-							<th>Data inregistrarii</th>
+							<th>Înregistrat</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -326,7 +390,7 @@ const AdminStatisticsHubPage = () => {
 								<td>{row.testsCompleted}</td>
 								<td>{row.avgScore}%</td>
 								<td>{formatLearningDuration(row.learningSeconds)}</td>
-								<td>{row.registeredAt ? new Date(row.registeredAt).toLocaleString() : '—'}</td>
+								<td>{row.registeredAt ? new Date(row.registeredAt).toLocaleDateString('ro-RO') : '—'}</td>
 							</tr>
 						))}
 					</tbody>
@@ -357,7 +421,7 @@ const AdminStatisticsHubPage = () => {
 			const completionRate = enrolledCount ? Math.round((completedCount / enrolledCount) * 100) : 0;
 			const courseTests = tests.filter((t) => t.course_id === course.id);
 			const avgScore = courseTests.length
-				? Math.round((courseTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / courseTests.length) * 10) / 10
+				? Math.round(courseTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / courseTests.length)
 				: 0;
 			const totalLearningSec = courseEnrollments.reduce((sum, e) => sum + Number(e.time_spent_seconds ?? 0), 0);
 			const avgLearningSec = enrolledCount ? Math.round(totalLearningSec / enrolledCount) : 0;
@@ -385,7 +449,7 @@ const AdminStatisticsHubPage = () => {
 			? Math.round((courseProgressRows.reduce((sum, r) => sum + r.completionRate, 0) / totalCourses) * 10) / 10
 			: 0;
 		const avgScore = totalCourses
-			? Math.round((courseProgressRows.reduce((sum, r) => sum + r.avgScore, 0) / totalCourses) * 10) / 10
+			? Math.round(courseProgressRows.reduce((sum, r) => sum + r.avgScore, 0) / totalCourses)
 			: 0;
 		return { totalCourses, avgEnrollments, avgCompletion, avgScore };
 	}, [courseProgressRows]);
@@ -450,26 +514,7 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateFrom}
-						onChange={(e) => setDateFrom(e.target.value)}
-					/>
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateTo}
-						onChange={(e) => setDateTo(e.target.value)}
-					/>
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-statistics-student-kpis">
 				<article>
@@ -495,8 +540,8 @@ const AdminStatisticsHubPage = () => {
 					<thead>
 						<tr>
 							<th>Curs</th>
-							<th>Inscrisi</th>
-							<th>Finalizati</th>
+							<th>Înscriși</th>
+							<th>Finalizați</th>
 							<th>Progres mediu (%)</th>
 							<th>Rata finalizare (%)</th>
 							<th>Scor mediu teste (%)</th>
@@ -516,7 +561,7 @@ const AdminStatisticsHubPage = () => {
 								<td>{row.avgScore}%</td>
 								<td>{row.totalLearningTime}</td>
 								<td>{row.avgLearningTime}</td>
-								<td>{row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}</td>
+								<td>{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString('ro-RO') : '—'}</td>
 							</tr>
 						))}
 					</tbody>
@@ -532,6 +577,8 @@ const AdminStatisticsHubPage = () => {
 
 	const testProgressRows = useMemo(() => {
 		const tests = statsData?.test_results || [];
+		const students = statsData?.students || [];
+		const groups = teamsRepresented(students, teamId);
 		const byTest = new Map();
 		tests.forEach((row) => {
 			const key = row.test_id;
@@ -539,43 +586,52 @@ const AdminStatisticsHubPage = () => {
 				byTest.set(key, {
 					test_id: row.test_id,
 					test_title: row.test_title || `Test #${row.test_id}`,
-					attempts: 0,
-					passed: 0,
-					avgScoreSum: 0,
-					lastAt: null,
+					attempts: [],
 				});
 			}
-			const agg = byTest.get(key);
-			agg.attempts += 1;
-			agg.passed += row.passed ? 1 : 0;
-			agg.avgScoreSum += Number(row.percentage ?? 0);
-			if (!agg.lastAt || (row.completed_at && new Date(row.completed_at) > new Date(agg.lastAt))) {
-				agg.lastAt = row.completed_at || agg.lastAt;
-			}
+			byTest.get(key).attempts.push(row);
 		});
 
-		return Array.from(byTest.values()).map((r) => ({
-			id: r.test_id,
-			title: r.test_title,
-			attempts: r.attempts,
-			passed: r.passed,
-			passRate: r.attempts ? Math.round((r.passed / r.attempts) * 100) : 0,
-			avgScore: r.attempts ? Math.round((r.avgScoreSum / r.attempts) * 10) / 10 : 0,
-			lastAt: r.lastAt,
-		}));
+		return groups.flatMap((team) => {
+			const ids = userIdsInTeam(students, team);
+			return Array.from(byTest.values()).flatMap((item) => {
+				const attempts = item.attempts.filter((attempt) => ids.has(attempt.user_id));
+				if (attempts.length === 0) return [];
+				const passed = attempts.filter((attempt) => attempt.passed).length;
+				const lastAt = attempts.reduce(
+					(latest, attempt) => (attempt.completed_at && (!latest || new Date(attempt.completed_at) > new Date(latest)) ? attempt.completed_at : latest),
+					null
+				);
+				return [{
+					id: item.test_id,
+					title: item.test_title,
+					teamKey: team.key,
+					teamName: team.name,
+					attempts: attempts.length,
+					passed,
+					passRate: attempts.length ? Math.round((passed / attempts.length) * 100) : 0,
+					avgScore: attempts.length
+						? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.percentage ?? 0), 0) / attempts.length)
+						: 0,
+					lastAt,
+				}];
+			});
+		});
 	}, [statsData]);
 
 	const testKpis = useMemo(() => {
-		const totalTests = testProgressRows.length;
-		const totalAttempts = testProgressRows.reduce((sum, r) => sum + r.attempts, 0);
-		const avgPassRate = totalTests
-			? Math.round((testProgressRows.reduce((sum, r) => sum + r.passRate, 0) / totalTests) * 10) / 10
+		const tests = statsData?.test_results || [];
+		const passed = tests.filter((row) => row.passed).length;
+		const avgScore = tests.length
+			? Math.round(tests.reduce((sum, row) => sum + Number(row.percentage ?? 0), 0) / tests.length)
 			: 0;
-		const avgScore = totalTests
-			? Math.round((testProgressRows.reduce((sum, r) => sum + r.avgScore, 0) / totalTests) * 10) / 10
-			: 0;
-		return { totalTests, totalAttempts, avgPassRate, avgScore };
-	}, [testProgressRows]);
+		return {
+			totalTests: new Set(tests.map((row) => row.test_id)).size,
+			totalAttempts: tests.length,
+			avgPassRate: tests.length ? Math.round((passed / tests.length) * 100) : 0,
+			avgScore,
+		};
+	}, [statsData]);
 
 	const exportTestProgressCsv = useCallback(() => {
 		const rows = buildStructuredExcelRows({
@@ -591,6 +647,7 @@ const AdminStatisticsHubPage = () => {
 			tableHeaders: [
 				'ID test',
 				'Titlu test',
+				'Echipă',
 				'Încercări',
 				'Promovări (încercări reușite)',
 				'Rată promovare (%)',
@@ -600,6 +657,7 @@ const AdminStatisticsHubPage = () => {
 			tableRows: testProgressRows.map((r) => [
 				r.id,
 				r.title,
+				r.teamName,
 				r.attempts,
 				r.passed,
 				r.passRate,
@@ -616,7 +674,7 @@ const AdminStatisticsHubPage = () => {
 				<div>
 					<h2 className="admin-statistics-section-heading">Raport progres teste</h2>
 					<p className="admin-statistics-section-desc">
-						Statistici pe fiecare test: încercări, rată de promovare și scor mediu.
+						Statistici pe fiecare test și fiecare echipă: încercări, rată de promovare și scor mediu.
 					</p>
 				</div>
 				<div className="admin-statistics-top-actions">
@@ -631,26 +689,7 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateFrom}
-						onChange={(e) => setDateFrom(e.target.value)}
-					/>
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateTo}
-						onChange={(e) => setDateTo(e.target.value)}
-					/>
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-statistics-student-kpis">
 				<article>
@@ -676,22 +715,24 @@ const AdminStatisticsHubPage = () => {
 					<thead>
 						<tr>
 							<th>Test</th>
-							<th>Incercari</th>
-							<th>Promovati</th>
-							<th>Rata promovare (%)</th>
+							<th>Echipă</th>
+							<th>Încercări</th>
+							<th>Promovați</th>
+							<th>Rată promovare (%)</th>
 							<th>Scor mediu (%)</th>
-							<th>Ultima sustinere</th>
+							<th>Ultima susținere</th>
 						</tr>
 					</thead>
 					<tbody>
 						{testProgressRows.map((row) => (
-							<tr key={row.id} {...openTestRowProps(row)}>
+							<tr key={`${row.id}-${row.teamKey}`} {...openTestRowProps(row)}>
 								<td><strong>{row.title}</strong></td>
+								<td>{row.teamName}</td>
 								<td>{row.attempts}</td>
 								<td>{row.passed}</td>
 								<td>{row.passRate}%</td>
 								<td>{row.avgScore}%</td>
-								<td>{row.lastAt ? new Date(row.lastAt).toLocaleString() : '—'}</td>
+								<td>{row.lastAt ? new Date(row.lastAt).toLocaleDateString('ro-RO') : '—'}</td>
 							</tr>
 						))}
 					</tbody>
@@ -734,7 +775,7 @@ const AdminStatisticsHubPage = () => {
 		return Array.from(byUser.values())
 			.map((r) => {
 				const student = studentsMap.get(r.user_id) || {};
-				const avgScore = r.attempts ? Math.round((r.sumScore / r.attempts) * 10) / 10 : 0;
+				const avgScore = r.attempts ? Math.round(r.sumScore / r.attempts) : 0;
 				const passRate = r.attempts ? Math.round((r.passed / r.attempts) * 100) : 0;
 				return {
 					id: r.user_id,
@@ -756,7 +797,7 @@ const AdminStatisticsHubPage = () => {
 
 	const exportTopStudentsCsv = useCallback(() => {
 		const avgTop10 = topPerformers.length
-			? Math.round((topPerformers.reduce((sum, r) => sum + r.avgScore, 0) / topPerformers.length) * 10) / 10
+			? Math.round(topPerformers.reduce((sum, r) => sum + r.avgScore, 0) / topPerformers.length)
 			: 0;
 		const rows = buildStructuredExcelRows({
 			sheetLabel: 'Top 10 studenți',
@@ -826,6 +867,8 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
+			{renderReportFilters()}
+
 			<div className="admin-statistics-student-kpis">
 				<article>
 					<span>Elevi evaluați</span>
@@ -843,7 +886,7 @@ const AdminStatisticsHubPage = () => {
 					<span>Scor mediu top 10</span>
 					<strong>
 						{topPerformers.length
-							? Math.round((topPerformers.reduce((sum, r) => sum + r.avgScore, 0) / topPerformers.length) * 10) / 10
+							? Math.round(topPerformers.reduce((sum, r) => sum + r.avgScore, 0) / topPerformers.length)
 							: 0}
 						%
 					</strong>
@@ -856,7 +899,7 @@ const AdminStatisticsHubPage = () => {
 						<tr>
 							<th>Email</th>
 							<th>Nume complet</th>
-							<th>Data inregistrarii</th>
+							<th>Înregistrat</th>
 							<th>Progres</th>
 							<th>Vizite</th>
 							<th>Distribuiri</th>
@@ -891,7 +934,7 @@ const AdminStatisticsHubPage = () => {
 						{needsAttention.map((row) => (
 							<li key={row.id}>
 								<strong>{row.name}</strong>
-								<span>{row.avgScore}% • {row.attempts} incercari</span>
+								<span>{row.avgScore}% · {row.attempts} încercări</span>
 							</li>
 						))}
 					</ul>
@@ -911,7 +954,7 @@ const AdminStatisticsHubPage = () => {
 			const openedCourses = studentEnrollments.length;
 			const completedCourses = studentEnrollments.filter((e) => e.completed_at).length;
 			const avgScore = studentTests.length
-				? Math.round((studentTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / studentTests.length) * 10) / 10
+				? Math.round(studentTests.reduce((sum, t) => sum + Number(t.percentage ?? 0), 0) / studentTests.length)
 				: 0;
 			const learningSec = studentEnrollments.reduce((sum, e) => sum + Number(e.time_spent_seconds ?? 0), 0);
 
@@ -994,32 +1037,13 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateFrom}
-						onChange={(e) => setDateFrom(e.target.value)}
-					/>
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateTo}
-						onChange={(e) => setDateTo(e.target.value)}
-					/>
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-users-table-wrapper admin-statistics-table-clip">
 				<table className="admin-users-table admin-statistics-student-table">
 					<thead>
 						<tr>
-							<th>Data inregistrarii</th>
+							<th>Înregistrat</th>
 							<th>Email</th>
 							<th>Nume complet</th>
 							<th>Ultima activitate</th>
@@ -1033,10 +1057,10 @@ const AdminStatisticsHubPage = () => {
 					<tbody>
 						{studentsRows.map((row) => (
 							<tr key={row.id}>
-								<td>{row.registeredAt ? row.registeredAt.toLocaleString() : '—'}</td>
+								<td>{row.registeredAt ? row.registeredAt.toLocaleDateString('ro-RO') : '—'}</td>
 								<td>{row.email}</td>
 								<td><strong>{row.name}</strong></td>
-								<td>{row.lastActivity ? row.lastActivity.toLocaleString() : '—'}</td>
+								<td>{row.lastActivity ? row.lastActivity.toLocaleDateString('ro-RO') : '—'}</td>
 								<td>{row.openedCourses}</td>
 								<td>{row.completedCourses}</td>
 								<td>{row.completedTests}</td>
@@ -1148,26 +1172,7 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateFrom}
-						onChange={(e) => setDateFrom(e.target.value)}
-					/>
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input
-						type="date"
-						className="va-input"
-						value={dateTo}
-						onChange={(e) => setDateTo(e.target.value)}
-					/>
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-users-table-wrapper admin-statistics-table-clip">
 				<table className="admin-users-table admin-statistics-student-table">
@@ -1214,7 +1219,7 @@ const AdminStatisticsHubPage = () => {
 	const testsRows = useMemo(() => {
 		const tests = statsData?.test_results || [];
 		const students = statsData?.students || [];
-		const totalStudents = students.length;
+		const groups = teamsRepresented(students, teamId);
 		const byTest = new Map();
 
 		tests.forEach((row) => {
@@ -1229,20 +1234,26 @@ const AdminStatisticsHubPage = () => {
 			byTest.get(key).attempts.push(row);
 		});
 
-		return Array.from(byTest.values()).map((item) => {
-			const attemptedUserIds = new Set(item.attempts.map((a) => a.user_id));
-			const attempted = attemptedUserIds.size;
-			const passed = new Set(item.attempts.filter((a) => a.passed).map((a) => a.user_id)).size;
-			const failed = Math.max(attempted - passed, 0);
-			const notStarted = Math.max(totalStudents - attempted, 0);
-			return {
-				id: item.test_id,
-				title: item.test_title,
-				notStarted,
-				started: attempted,
-				passed,
-				failed,
-			};
+		return groups.flatMap((team) => {
+			const ids = userIdsInTeam(students, team);
+			const teamSize = ids.size;
+			return Array.from(byTest.values()).flatMap((item) => {
+				const attempts = item.attempts.filter((attempt) => ids.has(attempt.user_id));
+				if (attempts.length === 0) return [];
+				const attemptedUserIds = new Set(attempts.map((attempt) => attempt.user_id));
+				const attempted = attemptedUserIds.size;
+				const passed = new Set(attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.user_id)).size;
+				return [{
+					id: item.test_id,
+					title: item.test_title,
+					teamKey: team.key,
+					teamName: team.name,
+					notStarted: Math.max(teamSize - attempted, 0),
+					started: attempted,
+					passed,
+					failed: Math.max(attempted - passed, 0),
+				}];
+			});
 		});
 	}, [statsData]);
 
@@ -1269,6 +1280,7 @@ const AdminStatisticsHubPage = () => {
 				id: row.user_id,
 				name: s.name || `Utilizator #${row.user_id}`,
 				email: s.email || '—',
+				teamName: teamNamesOf(s),
 				attempts: row.attempts,
 				passed: row.passed,
 				failed: Math.max(row.attempts - row.passed, 0),
@@ -1279,7 +1291,7 @@ const AdminStatisticsHubPage = () => {
 	const normalizedTestsSearch = testsSearch.trim().toLowerCase();
 	const filteredTestsRows = useMemo(() => {
 		if (!normalizedTestsSearch) return testsRows;
-		return testsRows.filter((row) => (row.title || '').toLowerCase().includes(normalizedTestsSearch));
+		return testsRows.filter((row) => `${row.title} ${row.teamName}`.toLowerCase().includes(normalizedTestsSearch));
 	}, [testsRows, normalizedTestsSearch]);
 
 	const filteredTestsStudentRows = useMemo(() => {
@@ -1309,6 +1321,7 @@ const AdminStatisticsHubPage = () => {
 			tableHeaders: [
 				'ID test',
 				'Nume test',
+				'Echipă',
 				'Nu au început (elevi)',
 				'Au început (elevi)',
 				'Au finalizat (valoare din raport)',
@@ -1317,6 +1330,7 @@ const AdminStatisticsHubPage = () => {
 			tableRows: filteredTestsRows.map((row) => [
 				row.id,
 				row.title,
+				row.teamName,
 				row.notStarted,
 				row.started,
 				row.passed,
@@ -1325,11 +1339,12 @@ const AdminStatisticsHubPage = () => {
 			extraSections: [
 				{
 					title: 'Elevi — activitate la teste (rânduri filtrate ca în ecran)',
-					headers: ['ID utilizator', 'Nume', 'Email', 'Încercări', 'Promovări', 'Nepromovate'],
+					headers: ['ID utilizator', 'Nume', 'Email', 'Echipă', 'Încercări', 'Promovări', 'Nepromovate'],
 					rows: filteredTestsStudentRows.map((row) => [
 						row.id,
 						row.name,
 						row.email,
+						row.teamName,
 						row.attempts,
 						row.passed,
 						row.failed,
@@ -1354,7 +1369,7 @@ const AdminStatisticsHubPage = () => {
 				<div>
 					<h2 className="admin-statistics-section-heading">Statistică teste</h2>
 					<p className="admin-statistics-section-desc">
-						Detalii pe teste și pe elevi: încercări, promovări și filtre rapide.
+						Detalii pe teste, pe echipe și pe elevi: încercări, promovări și filtre rapide.
 					</p>
 				</div>
 				<div className="admin-statistics-top-actions admin-statistics-top-actions--wrap">
@@ -1379,6 +1394,8 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
+			{renderReportFilters()}
+
 			<div className="admin-statistics-tests-tabs">
 				<button
 					type="button"
@@ -1402,6 +1419,7 @@ const AdminStatisticsHubPage = () => {
 						{testsViewMode === 'tests' ? (
 							<tr>
 								<th>Nume test</th>
+								<th>Echipă</th>
 								<th>Nu au inceput</th>
 								<th>Au inceput</th>
 								<th>Au finalizat</th>
@@ -1411,6 +1429,7 @@ const AdminStatisticsHubPage = () => {
 							<tr>
 								<th>Elev</th>
 								<th>Email</th>
+								<th>Echipă</th>
 								<th>Încercări</th>
 								<th>Finalizate</th>
 								<th>Nepromovate</th>
@@ -1420,8 +1439,9 @@ const AdminStatisticsHubPage = () => {
 					<tbody>
 						{testsViewMode === 'tests'
 							? filteredTestsRows.map((row) => (
-								<tr key={row.id} {...openTestRowProps(row)}>
+								<tr key={`${row.id}-${row.teamKey}`} {...openTestRowProps(row)}>
 									<td><strong>{row.title}</strong></td>
+									<td>{row.teamName}</td>
 									<td>{row.notStarted}</td>
 									<td>{row.started}</td>
 									<td>{row.passed}</td>
@@ -1432,6 +1452,7 @@ const AdminStatisticsHubPage = () => {
 								<tr key={row.id}>
 									<td><strong>{row.name}</strong></td>
 									<td>{row.email}</td>
+									<td>{row.teamName}</td>
 									<td>{row.attempts}</td>
 									<td>{row.passed}</td>
 									<td>{row.failed}</td>
@@ -1453,6 +1474,8 @@ const AdminStatisticsHubPage = () => {
 
 	const examsRows = useMemo(() => {
 		const results = statsData?.exam_results || [];
+		const students = statsData?.students || [];
+		const groups = teamsRepresented(students, teamId);
 		const byExam = new Map();
 		results.forEach((row) => {
 			if (!byExam.has(row.test_id)) {
@@ -1464,32 +1487,39 @@ const AdminStatisticsHubPage = () => {
 			}
 			byExam.get(row.test_id).attempts.push(row);
 		});
-		return Array.from(byExam.values()).map((item) => {
-			const userIds = new Set(item.attempts.map((a) => a.user_id));
-			const passedIds = new Set(item.attempts.filter((a) => a.passed).map((a) => a.user_id));
-			const pendingIds = new Set(
-				item.attempts.filter(isPendingReview).map((a) => a.user_id).filter((id) => !passedIds.has(id))
-			);
-			const graded = item.attempts.filter((a) => !isPendingReview(a));
-			const avgScore = graded.length
-				? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
-				: null;
-			const lastAt = item.attempts.reduce(
-				(latest, a) => (a.completed_at && (!latest || new Date(a.completed_at) > new Date(latest)) ? a.completed_at : latest),
-				null
-			);
-			return {
-				id: item.id,
-				title: item.title,
-				students: userIds.size,
-				attempts: item.attempts.length,
-				passed: passedIds.size,
-				pending: pendingIds.size,
-				failed: Math.max(userIds.size - passedIds.size - pendingIds.size, 0),
-				passRate: userIds.size ? Math.round((passedIds.size / userIds.size) * 100) : 0,
-				avgScore,
-				lastAt,
-			};
+		return groups.flatMap((team) => {
+			const ids = userIdsInTeam(students, team);
+			return Array.from(byExam.values()).flatMap((item) => {
+				const attempts = item.attempts.filter((attempt) => ids.has(attempt.user_id));
+				if (attempts.length === 0) return [];
+				const userIds = new Set(attempts.map((attempt) => attempt.user_id));
+				const passedIds = new Set(attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.user_id));
+				const pendingIds = new Set(
+					attempts.filter(isPendingReview).map((attempt) => attempt.user_id).filter((id) => !passedIds.has(id))
+				);
+				const graded = attempts.filter((attempt) => !isPendingReview(attempt));
+				const avgScore = graded.length
+					? Math.round(graded.reduce((sum, attempt) => sum + Number(attempt.percentage ?? 0), 0) / graded.length)
+					: null;
+				const lastAt = attempts.reduce(
+					(latest, attempt) => (attempt.completed_at && (!latest || new Date(attempt.completed_at) > new Date(latest)) ? attempt.completed_at : latest),
+					null
+				);
+				return [{
+					id: item.id,
+					title: item.title,
+					teamKey: team.key,
+					teamName: team.name,
+					students: userIds.size,
+					attempts: attempts.length,
+					passed: passedIds.size,
+					pending: pendingIds.size,
+					failed: Math.max(userIds.size - passedIds.size - pendingIds.size, 0),
+					passRate: userIds.size ? Math.round((passedIds.size / userIds.size) * 100) : 0,
+					avgScore,
+					lastAt,
+				}];
+			});
 		}).sort((a, b) => new Date(b.lastAt || 0) - new Date(a.lastAt || 0));
 	}, [statsData]);
 
@@ -1515,13 +1545,14 @@ const AdminStatisticsHubPage = () => {
 				id: userId,
 				name: student.name || `Utilizator #${userId}`,
 				email: student.email || '—',
+				teamName: teamNamesOf(student),
 				exams: examIds.size,
 				attempts: attempts.length,
 				passed: passedIds.size,
 				pending: pendingIds.size,
 				failed: Math.max(examIds.size - passedIds.size - pendingIds.size, 0),
 				avgScore: graded.length
-					? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
+					? Math.round(graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length)
 					: null,
 			};
 		});
@@ -1531,20 +1562,20 @@ const AdminStatisticsHubPage = () => {
 		const results = statsData?.exam_results || [];
 		const graded = results.filter((a) => !isPendingReview(a));
 		return {
-			exams: examsRows.length,
+			exams: new Set(results.map((row) => row.test_id)).size,
 			attempts: results.length,
 			pending: results.filter(isPendingReview).length,
 			passRate: graded.length ? Math.round((graded.filter((a) => a.passed).length / graded.length) * 100) : 0,
 			avgScore: graded.length
-				? Math.round((graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length) * 10) / 10
+				? Math.round(graded.reduce((sum, a) => sum + Number(a.percentage ?? 0), 0) / graded.length)
 				: 0,
 		};
-	}, [statsData, examsRows.length]);
+	}, [statsData]);
 
 	const normalizedExamsSearch = examsSearch.trim().toLowerCase();
 	const filteredExamsRows = useMemo(() => {
 		if (!normalizedExamsSearch) return examsRows;
-		return examsRows.filter((row) => (row.title || '').toLowerCase().includes(normalizedExamsSearch));
+		return examsRows.filter((row) => `${row.title} ${row.teamName}`.toLowerCase().includes(normalizedExamsSearch));
 	}, [examsRows, normalizedExamsSearch]);
 
 	const filteredExamsStudentRows = useMemo(() => {
@@ -1554,7 +1585,7 @@ const AdminStatisticsHubPage = () => {
 		);
 	}, [examsStudentRows, normalizedExamsSearch]);
 
-	const formatScore = (value) => (value === null || value === undefined ? '—' : `${value}%`);
+	const formatScore = (value) => (value === null || value === undefined ? '—' : `${Math.round(value)}%`);
 
 	const exportExamsCsv = useCallback(() => {
 		const rows = buildStructuredExcelRows({
@@ -1571,6 +1602,7 @@ const AdminStatisticsHubPage = () => {
 			tableHeaders: [
 				'ID examen',
 				'Examen',
+				'Echipă',
 				'Elevi',
 				'Încercări',
 				'Promovați',
@@ -1583,6 +1615,7 @@ const AdminStatisticsHubPage = () => {
 			tableRows: filteredExamsRows.map((r) => [
 				r.id,
 				r.title,
+				r.teamName,
 				r.students,
 				r.attempts,
 				r.passed,
@@ -1595,11 +1628,12 @@ const AdminStatisticsHubPage = () => {
 			extraSections: [
 				{
 					title: 'Elevi — activitate la examene',
-					headers: ['ID utilizator', 'Nume', 'Email', 'Examene', 'Încercări', 'Promovate', 'Nepromovate', 'În verificare', 'Scor mediu (%)'],
+					headers: ['ID utilizator', 'Nume', 'Email', 'Echipă', 'Examene', 'Încercări', 'Promovate', 'Nepromovate', 'În verificare', 'Scor mediu (%)'],
 					rows: filteredExamsStudentRows.map((r) => [
 						r.id,
 						r.name,
 						r.email,
+						r.teamName,
 						r.exams,
 						r.attempts,
 						r.passed,
@@ -1618,11 +1652,11 @@ const AdminStatisticsHubPage = () => {
 		role: 'button',
 		tabIndex: 0,
 		title: 'Deschide rezultatele examenului',
-		onClick: () => setOpenedExam({ id: row.id, title: row.title }),
+		onClick: () => setOpenedExam({ id: row.id, title: row.title, teamKey: row.teamKey || '' }),
 		onKeyDown: (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
-				setOpenedExam({ id: row.id, title: row.title });
+				setOpenedExam({ id: row.id, title: row.title, teamKey: row.teamKey || '' });
 			}
 		},
 	});
@@ -1633,7 +1667,7 @@ const AdminStatisticsHubPage = () => {
 				<div>
 					<h2 className="admin-statistics-section-heading">Statistică examene</h2>
 					<p className="admin-statistics-section-desc">
-						Rezultatele examenelor, separat de teste: câți elevi au promovat, scorul mediu și încercările în verificare.
+						Rezultatele examenelor, pe fiecare echipă: câți elevi au promovat, scorul mediu și încercările în verificare.
 					</p>
 				</div>
 				<div className="admin-statistics-top-actions admin-statistics-top-actions--wrap">
@@ -1656,16 +1690,7 @@ const AdminStatisticsHubPage = () => {
 				</div>
 			</header>
 
-			<div className="admin-statistics-toolbar" role="group" aria-label="Filtru perioadă">
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată început</span>
-					<input type="date" className="va-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-				</label>
-				<label className="admin-statistics-filter">
-					<span className="va-input-label">Dată sfârșit</span>
-					<input type="date" className="va-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-				</label>
-			</div>
+			{renderReportFilters()}
 
 			<div className="admin-statistics-student-kpis">
 				<article>
@@ -1709,6 +1734,7 @@ const AdminStatisticsHubPage = () => {
 						{examsViewMode === 'exams' ? (
 							<tr>
 								<th>Examen</th>
+								<th>Echipă</th>
 								<th>Elevi</th>
 								<th>Încercări</th>
 								<th>Promovați</th>
@@ -1721,6 +1747,7 @@ const AdminStatisticsHubPage = () => {
 							<tr>
 								<th>Elev</th>
 								<th>Email</th>
+								<th>Echipă</th>
 								<th>Examene</th>
 								<th>Încercări</th>
 								<th>Promovate</th>
@@ -1733,21 +1760,23 @@ const AdminStatisticsHubPage = () => {
 					<tbody>
 						{examsViewMode === 'exams'
 							? filteredExamsRows.map((row) => (
-								<tr key={row.id} {...openExamRowProps(row)}>
+								<tr key={`${row.id}-${row.teamKey}`} {...openExamRowProps(row)}>
 									<td><strong>{row.title}</strong></td>
+									<td>{row.teamName}</td>
 									<td>{row.students}</td>
 									<td>{row.attempts}</td>
 									<td>{row.passed}</td>
 									<td>{row.failed}</td>
 									<td>{row.pending}</td>
 									<td>{formatScore(row.avgScore)}</td>
-									<td>{row.lastAt ? new Date(row.lastAt).toLocaleString() : '—'}</td>
+									<td>{row.lastAt ? new Date(row.lastAt).toLocaleDateString('ro-RO') : '—'}</td>
 								</tr>
 							))
 							: filteredExamsStudentRows.map((row) => (
 								<tr key={row.id}>
 									<td><strong>{row.name}</strong></td>
 									<td>{row.email}</td>
+									<td>{row.teamName}</td>
 									<td>{row.exams}</td>
 									<td>{row.attempts}</td>
 									<td>{row.passed}</td>
@@ -1779,20 +1808,6 @@ const AdminStatisticsHubPage = () => {
 						Rapoarte de progres, cursuri, teste și clasamente — aliniate la datele din platformă
 					</p>
 				</div>
-				<label className="admin-statistics-team-filter">
-					<span className="va-input-label">Echipă</span>
-					<select
-						className="va-input"
-						value={teamId}
-						onChange={(e) => setTeamId(e.target.value)}
-						aria-label="Filtrează statisticile după echipă"
-					>
-						<option value="">Toate echipele</option>
-						{(statsPayload?.teams || []).map((team) => (
-							<option key={team.id} value={team.id}>{team.name}</option>
-						))}
-					</select>
-				</label>
 			</header>
 
 			<div className="admin-statistics-hub-layout">
@@ -1822,7 +1837,12 @@ const AdminStatisticsHubPage = () => {
 				{openedTest && (active === 'tests' || active === 'test-progress') ? (
 					<div className="admin-statistics-test-detail">
 						<BackButton onClick={() => setOpenedTest(null)}>Înapoi la teste</BackButton>
-						<TestStatisticsPanel testId={openedTest.id} testTitle={openedTest.title || 'Test'} />
+						<TestStatisticsPanel
+							testId={openedTest.id}
+							testTitle={openedTest.title || 'Test'}
+							teamKey={openedTest.teamKey || ''}
+							teams={statsPayload?.teams || []}
+						/>
 					</div>
 				) : openedExam && active === 'exams' ? (
 					<div className="admin-statistics-test-detail">
@@ -1833,6 +1853,9 @@ const AdminStatisticsHubPage = () => {
 							entityTitle={openedExam.title || 'Examen'}
 							dateFrom={dateFrom}
 							dateTo={dateTo}
+							teamKey={openedExam.teamKey || ''}
+							teams={statsPayload?.teams || []}
+							showTeamFilter
 						/>
 					</div>
 				) : active === 'student-progress' ? (

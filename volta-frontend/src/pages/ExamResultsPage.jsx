@@ -3,6 +3,7 @@ import EmptyState from '../components/ui/EmptyState';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import TestsSectionTabs from '../components/student/TestsSectionTabs';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import {
 	CalendarBlank,
 	CaretDown,
@@ -306,10 +307,12 @@ const ExamResultsPage = () => {
 		return next;
 	});
 
-	const loadResults = async () => {
+	const loadResults = async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
-			setError(null);
+			if (!silent) {
+				setLoading(true);
+				setError(null);
+			}
 			const data = await examResultsService.getAll({ view: 'cards' });
 			const list = latestResultPerTest(Array.isArray(data) ? data : []);
 			const detailed = await Promise.all(list.map(async (row) => {
@@ -327,9 +330,9 @@ const ExamResultsPage = () => {
 			setResults(detailed);
 		} catch (err) {
 			handleApiError(err, 'fetchExamResults');
-			setError('Nu s-au putut încărca rezultatele testelor.');
+			if (!silent) setError('Nu s-au putut încărca rezultatele testelor.');
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	};
 
@@ -337,6 +340,8 @@ const ExamResultsPage = () => {
 		loadResults();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	useRegisterPageRefresh(() => loadResults({ silent: true }));
 
 	const filteredResults = useMemo(() => {
 		const needle = query.trim().toLowerCase();

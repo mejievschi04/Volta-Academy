@@ -31,6 +31,59 @@ const TEST_DRAG_MIME = 'application/x-volta-course-test';
 // Salvare aproape instantă: o pauză scurtă la scris trimite conținutul (nu câte o cerere la fiecare tastă).
 const LESSON_CONTENT_AUTOSAVE_MS = 500;
 
+function patchLessonListContent(list, lessonId, content, updatedAt) {
+	if (!Array.isArray(list)) return list;
+	let changed = false;
+	const next = list.map((item) => {
+		if (Number(item?.id) !== Number(lessonId)) return item;
+		changed = true;
+		return {
+			...item,
+			content,
+			...(updatedAt ? { updated_at: updatedAt } : {}),
+		};
+	});
+	return changed ? next : list;
+}
+
+function patchModuleLessonContent(list, lessonId, content, updatedAt) {
+	if (!Array.isArray(list)) return list;
+	let changed = false;
+	const next = list.map((moduleItem) => {
+		if (!Array.isArray(moduleItem?.lessons)) return moduleItem;
+		const lessons = patchLessonListContent(moduleItem.lessons, lessonId, content, updatedAt);
+		if (lessons === moduleItem.lessons) return moduleItem;
+		changed = true;
+		return { ...moduleItem, lessons };
+	});
+	return changed ? next : list;
+}
+
+/** Conținutul salvat rămâne în arborele deja încărcat, ca revenirea pe lecție să nu arate textul vechi. */
+function patchLessonContentInStructure(structure, lessonId, content, updatedAt) {
+	if (!structure) return structure;
+	const modules = patchModuleLessonContent(structure.modules, lessonId, content, updatedAt);
+	const rootLessons = patchLessonListContent(structure.root_lessons, lessonId, content, updatedAt);
+	const lessons = patchLessonListContent(structure.lessons, lessonId, content, updatedAt);
+	let course = structure.course;
+	if (structure.course) {
+		const courseModules = patchModuleLessonContent(structure.course.modules, lessonId, content, updatedAt);
+		const courseLessons = patchLessonListContent(structure.course.lessons, lessonId, content, updatedAt);
+		if (courseModules !== structure.course.modules || courseLessons !== structure.course.lessons) {
+			course = { ...structure.course, modules: courseModules, lessons: courseLessons };
+		}
+	}
+	if (
+		modules === structure.modules
+		&& rootLessons === structure.root_lessons
+		&& lessons === structure.lessons
+		&& course === structure.course
+	) {
+		return structure;
+	}
+	return { ...structure, modules, root_lessons: rootLessons, lessons, course };
+}
+
 function getDropTargetLessons(modulesList, rootLessonsList, toModuleId) {
 	if (toModuleId == null) {
 		return rootLessonsList || [];
@@ -99,6 +152,7 @@ const AdminCourseBuilderPage = () => {
 	const [selectedModuleId, setSelectedModuleId] = useState(null);
 	const [selectedLessonId, setSelectedLessonId] = useState(null);
 	const [lessonContent, setLessonContent] = useState('');
+	const [editorLessonId, setEditorLessonId] = useState(null);
 	const [lessonEditorRefreshKey, setLessonEditorRefreshKey] = useState(0);
 	const [lessonSaveStatus, setLessonSaveStatus] = useState(null);
 	const [courseActionLoading, setCourseActionLoading] = useState(false);
@@ -180,6 +234,7 @@ const AdminCourseBuilderPage = () => {
 
 	const contentSaveTimeoutRef = useRef(null);
 	const lastPersistedLessonContentRef = useRef('');
+	const savedLessonContentRef = useRef(new Map());
 	const lastPersistedLessonUpdatedAtRef = useRef(null);
 	const lessonContentSaveChainRef = useRef(Promise.resolve());
 	const inFlightContentSaveRef = useRef(null);
@@ -286,9 +341,15 @@ const AdminCourseBuilderPage = () => {
 				lastPersistedLessonUpdatedAtRef.current = lesson.updated_at;
 			}
 		};
+		const rememberSavedContent = (savedContent, lesson) => {
+			const html = savedContent ?? '';
+			savedLessonContentRef.current.set(Number(lessonId), html);
+			applyLessonTimestamp(lesson);
+			setStructure((prev) => patchLessonContentInStructure(prev, lessonId, html, lesson?.updated_at));
+		};
 		// Serverul trece cursul publicat în „editing” la prima modificare (cursanții văd versiunea publicată
-		// până la „Publică modificările”). Salvarea conținutului nu reîncarcă structura, deci actualizăm aici
-		// starea, altfel builder-ul afișa „Cursanții văd această versiune” și nu oferea butonul de publicare.
+		// până la „Publică modificările”). Conținutul salvat se scrie în arborele deja încărcat, fără un
+		// refetch al cursului, ca schimbarea lecției să arate textul nou.
 		const markUnpublishedEdits = () => setStructure((prev) => (
 			prev?.course?.status === 'published' && prev.course.workflow_status !== 'editing'
 				? { ...prev, course: { ...prev.course, workflow_status: 'editing' } }
@@ -302,7 +363,7 @@ const AdminCourseBuilderPage = () => {
 			try {
 				const response = await send();
 				lastPersistedLessonContentRef.current = content ?? '';
-				applyLessonTimestamp(response?.lesson);
+				rememberSavedContent(content, response?.lesson);
 				markUnpublishedEdits();
 			} catch (e) {
 				const status = e?.response?.status;
@@ -311,7 +372,7 @@ const AdminCourseBuilderPage = () => {
 					applyLessonTimestamp(serverLesson);
 					const retry = await send();
 					lastPersistedLessonContentRef.current = content ?? '';
-					applyLessonTimestamp(retry?.lesson);
+					rememberSavedContent(content, retry?.lesson);
 					markUnpublishedEdits();
 					return;
 				}
@@ -883,6 +944,7 @@ const AdminCourseBuilderPage = () => {
 				return;
 			}
 			Promise.resolve(fetchStructure(true)).finally(() => {
+				savedLessonContentRef.current.clear();
 				setLessonEditorRefreshKey((prev) => prev + 1);
 			});
 		};
@@ -957,11 +1019,14 @@ const AdminCourseBuilderPage = () => {
 	useLayoutEffect(() => {
 		if (selectedLesson?.id == null) {
 			setLessonContent('');
+			setEditorLessonId(null);
 			setLessonSaveStatus(null);
 			return;
 		}
-		const initialContent = selectedLesson?.content || '';
+		const remembered = savedLessonContentRef.current.get(Number(selectedLesson.id));
+		const initialContent = remembered !== undefined ? remembered : (selectedLesson?.content || '');
 		setLessonContent(initialContent);
+		setEditorLessonId(selectedLesson.id);
 		lastPersistedLessonContentRef.current = initialContent;
 		lastPersistedLessonUpdatedAtRef.current = selectedLesson?.updated_at || null;
 		setLessonSaveStatus(null);
@@ -2230,6 +2295,7 @@ const AdminCourseBuilderPage = () => {
 							<>
 								<div className="admin-course-builder-direct-editor-wrap admin-course-builder-direct-editor-wrap-full">
 									<Suspense fallback={<p className="admin-content-list-empty">Se încarcă editorul...</p>}>
+									{Number(editorLessonId) === Number(selectedLesson.id) ? (
 									<LessonTipTapEditor
 										key={`${selectedLesson.id}:${lessonEditorRefreshKey}`}
 										courseId={courseId}
@@ -2284,6 +2350,9 @@ const AdminCourseBuilderPage = () => {
 											</>
 										) : null}
 									/>
+									) : (
+										<p className="admin-content-list-empty">Se încarcă lecția...</p>
+									)}
 									</Suspense>
 								</div>
 							</>

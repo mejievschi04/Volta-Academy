@@ -1,4 +1,5 @@
-import { rowMatchesResultFilters } from './TestResultsPanelShared.js';
+import { rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
+import { formatPercent } from '../../../utils/formatPercent';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminService } from '../../../services/api';
@@ -107,6 +108,9 @@ export default function TestResultsPanel({
 	statusFilter = 'all',
 	dateFrom = '',
 	dateTo = '',
+	teamKey = '',
+	teams = [],
+	showTeamFilter = false,
 }) {
 	const label = kind === 'exam' ? 'examen' : 'test';
 	const title = entityTitle || (kind === 'exam' ? 'Examen' : 'Test');
@@ -126,14 +130,22 @@ export default function TestResultsPanel({
 	const [breakdownData, setBreakdownData] = useState(null);
 	const [breakdownLoading, setBreakdownLoading] = useState(false);
 	const [grantingUserId, setGrantingUserId] = useState(null);
+	const [localTeam, setLocalTeam] = useState(teamKey || '');
+
+	useEffect(() => {
+		setLocalTeam(teamKey || '');
+	}, [teamKey, entityId]);
+
+	const activeTeam = showTeamFilter ? localTeam : (teamKey || '');
 
 	const loadResults = useCallback(async () => {
 		if (!entityId) return;
 		setLoading(true);
 		try {
+			const params = statisticsTeamParams(activeTeam);
 			const data = kind === 'exam'
-				? await adminService.getExamResults(entityId)
-				: await adminService.getTestResults(entityId);
+				? await adminService.getExamResults(entityId, params)
+				: await adminService.getTestResults(entityId, params);
 			setRows(Array.isArray(data) ? data : []);
 		} catch (e) {
 			console.error('Failed to load assessment results:', e);
@@ -142,7 +154,7 @@ export default function TestResultsPanel({
 		} finally {
 			setLoading(false);
 		}
-	}, [entityId, kind, label, showError]);
+	}, [entityId, kind, label, showError, activeTeam]);
 
 	useEffect(() => {
 		loadResults();
@@ -153,7 +165,8 @@ export default function TestResultsPanel({
 		return rows.filter((row) => {
 			if (!rowMatchesResultFilters(row, { statusFilter, dateFrom, dateTo })) return false;
 			if (!needle) return true;
-			const hay = `${row.user?.name || ''} ${row.user?.email || ''}`.toLowerCase();
+			const teams = (row.user?.teams || []).join(' ');
+			const hay = `${row.user?.name || ''} ${row.user?.email || ''} ${teams}`.toLowerCase();
 			return hay.includes(needle);
 		});
 	}, [query, rows, statusFilter, dateFrom, dateTo]);
@@ -316,6 +329,22 @@ export default function TestResultsPanel({
 			) : null}
 
 			<div className="admin-test-results-toolbar">
+				{showTeamFilter ? (
+					<label className="admin-test-results-team-filter">
+						Echipă
+						<select
+							value={localTeam}
+							onChange={(e) => setLocalTeam(e.target.value)}
+							aria-label="Filtrează rezultatele examenului după echipă"
+						>
+							<option value="">Toate echipele</option>
+							{(teams || []).map((team) => (
+								<option key={team.id} value={String(team.id)}>{team.name}</option>
+							))}
+							<option value="none">Fără echipă</option>
+						</select>
+					</label>
+				) : null}
 				<input
 					type="search"
 					placeholder="Caută elev după nume sau email…"
@@ -340,7 +369,7 @@ export default function TestResultsPanel({
 						const rowMax = maxScoreForRow(row, kind);
 						const open = expandedId === row.id;
 						const breakdown = breakdownById[row.id];
-						const percent = row.percentage != null ? `${row.percentage}%` : '—';
+						const percent = formatPercent(row.percentage);
 						const attempt = row.attempt_number != null ? `#${row.attempt_number}` : '—';
 						return (
 							<article key={row.id} className={`admin-test-result-card${open ? ' is-open' : ''}`}>
@@ -352,6 +381,9 @@ export default function TestResultsPanel({
 								>
 									<span className="admin-test-result-card-name">
 										{row.user?.name || row.user?.email || 'Elev'}
+									</span>
+									<span className="admin-test-result-card-team">
+										{(row.user?.teams || []).length ? row.user.teams.join(', ') : 'Fără echipă'}
 									</span>
 									<span className={`admin-test-results-status ${row.passed ? 'is-passed' : row.needs_manual_review ? 'is-pending' : 'is-failed'}`}>
 										{statusLabel(row)}
@@ -463,7 +495,7 @@ export default function TestResultsPanel({
 						{breakdownTarget?.percentage != null ? (
 							<div className="admin-test-breakdown-score">
 								<span>Scor total</span>
-								<strong>{breakdownTarget.percentage}%</strong>
+								<strong>{formatPercent(breakdownTarget.percentage)}</strong>
 							</div>
 						) : null}
 					</header>

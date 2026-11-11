@@ -12,6 +12,7 @@ import { toImageUrl } from '../utils/imageUrl';
 import { Books, UploadSimple, X } from '@phosphor-icons/react';
 import '../styles/library-page.css';
 import CoverPhoto from '../components/ui/CoverPhoto';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 function formatBytes(n) {
 	if (n == null || Number.isNaN(Number(n))) return '—';
@@ -97,9 +98,11 @@ const LibraryPage = () => {
 		[canDeleteItem],
 	);
 
-	const load = useCallback(async (p = 1) => {
-		setLoading(true);
-		setError(null);
+	const load = useCallback(async (p = 1, { silent = false } = {}) => {
+		if (!silent) {
+			setLoading(true);
+			setError(null);
+		}
 		try {
 			const data = await libraryService.listItems({ page: p, per_page: 20 });
 			setItems(Array.isArray(data?.data) ? data.data : []);
@@ -107,17 +110,21 @@ const LibraryPage = () => {
 			setPage(p);
 		} catch (err) {
 			logger.error('Library list', err);
-			setError(err.response?.data?.message || 'Nu s-a putut încărca biblioteca.');
-			setItems([]);
-			setMeta(null);
+			if (!silent) {
+				setError(err.response?.data?.message || 'Nu s-a putut încărca biblioteca.');
+				setItems([]);
+				setMeta(null);
+			}
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
 		load(1);
 	}, [load]);
+
+	useRegisterPageRefresh(() => load(page, { silent: true }));
 
 	useEffect(() => {
 		if (!showUploadModal) {

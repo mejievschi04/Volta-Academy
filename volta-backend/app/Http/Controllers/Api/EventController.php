@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -296,6 +297,39 @@ class EventController extends Controller
             'message' => 'Înscriere anulată',
             'event' => $this->addUserEventData($event),
         ]);
+    }
+
+    /**
+     * Elevul lasă o întrebare la tema evenimentului. Lista o vede doar administratorul.
+     */
+    public function ask(Request $request, $id)
+    {
+        $user = Auth::user();
+        $event = Event::with('teams:id')
+            ->whereIn('status', ['published', 'upcoming', 'live'])
+            ->findOrFail($id);
+
+        $teamIds = $user && method_exists($user, 'teams')
+            ? $user->teams()->pluck('teams.id')->all()
+            : [];
+        if (! $this->eventVisibleToUser($event, $user, $teamIds)) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        $question = EventQuestion::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'body' => trim($data['body']),
+        ]);
+
+        return response()->json([
+            'message' => 'Întrebarea a fost trimisă.',
+            'id' => $question->id,
+        ], 201);
     }
 
     /**

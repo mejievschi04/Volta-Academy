@@ -17,56 +17,9 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // înainte de unique: „Ion@x.com” trecea de verificare când exista „ion@x.com” și cădea în baza de date
-        if (is_string($request->input('email'))) {
-            $request->merge(['email' => strtolower(trim($request->input('email')))]);
-        }
-        $request->validate([
-            'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}0-9\s\-\.]+$/u', // Sanitize name
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => [
-                'required',
-                'string',
-                'min:8', // Increased minimum length
-                'regex:/[a-z]/', // At least one lowercase letter
-                'regex:/[A-Z]/', // At least one uppercase letter
-                'regex:/[0-9]/', // At least one number
-            ],
-        ], [
-            'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
-        ]);
-
-        $registrationEnabled = \App\Models\Setting::get('registration_enabled', true);
-        if ($registrationEnabled === false || $registrationEnabled === 0 || $registrationEnabled === '0') {
-            return response()->json([
-                'message' => 'Înregistrările sunt dezactivate. Folosește o invitație sau contactează un administrator.',
-            ], 403);
-        }
-
-        $user = User::create([
-            'name' => strip_tags($request->name), // Sanitize HTML tags
-            'email' => strtolower(trim($request->email)), // Normalize email
-            'password' => Hash::make($request->password),
-            'role' => 'student',
-            'level' => 1,
-            'points' => 0,
-            'status' => 'pending', // În așteptarea aprobării admin
-        ]);
-
-        // Log registration
-        Log::info('User registered (pending approval)', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'ip' => $request->ip(),
-        ]);
-
-        app(\App\Services\NotificationService::class)->notifyRegistrationRequested($user);
-
-        // Nu facem auto-login - utilizatorul așteaptă aprobarea admin
         return response()->json([
-            'message' => 'Cererea ta de înregistrare a fost trimisă. Un administrator va verifica contul în curând. Vei putea te autentifica după aprobare.',
-            'pending_approval' => true,
-        ], 201);
+            'message' => 'Înregistrările sunt închise. Conturile noi se deschid doar pe invitație.',
+        ], 403);
     }
 
     public function login(Request $request)

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { adminService } from '../../services/api';
 import {
 	getFriendlyLogLine,
+	getGroupedLogLine,
+	groupActivityLogs,
+	activityGroupCount,
 	getActionLabelRo,
 	ACTION_LABELS_RO,
 } from '../../utils/activityLogLabels';
@@ -46,7 +49,7 @@ const AdminActivityLogsPage = () => {
 	const [pagination, setPagination] = useState({
 		current_page: 1,
 		last_page: 1,
-		per_page: 50,
+		per_page: 200,
 		total: 0,
 		total_capped: false,
 	});
@@ -158,6 +161,16 @@ const AdminActivityLogsPage = () => {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		}).format(date);
+	};
+
+	const groupedLogs = useMemo(() => groupActivityLogs(logs), [logs]);
+
+	const formatTime = (dateString) => {
+		const date = new Date(dateString);
+		return new Intl.DateTimeFormat('ro-RO', {
 			hour: '2-digit',
 			minute: '2-digit',
 		}).format(date);
@@ -286,18 +299,20 @@ const AdminActivityLogsPage = () => {
 			</div>
 
 			<div className="admin-activity-logs-list">
-				{logs.length > 0 ? (
+				{groupedLogs.length > 0 ? (
 					<div>
-						{logs.map((log) => {
-							const line = getFriendlyLogLine(log);
-							const isOpen = expandedId === log.id;
+						{groupedLogs.map((group) => {
+							const log = group.items[0];
+							const count = activityGroupCount(group);
+							const line = getGroupedLogLine(group);
+							const isOpen = expandedId === group.key;
 
 							return (
-								<div key={log.id} className="admin-activity-logs-item">
+								<div key={group.key} className="admin-activity-logs-item">
 									<button
 										type="button"
 										className="admin-activity-logs-item-toggle"
-										onClick={() => setExpandedId(isOpen ? null : log.id)}
+										onClick={() => setExpandedId(isOpen ? null : group.key)}
 										aria-expanded={isOpen}
 									>
 										<div className="admin-activity-logs-item-content">
@@ -306,7 +321,7 @@ const AdminActivityLogsPage = () => {
 											</div>
 											<div className="admin-activity-logs-main">
 												<div className="admin-activity-logs-card-header">
-													<span className="admin-activity-logs-description" style={{ fontSize: '1.05rem', lineHeight: 1.45 }}>
+													<span className="admin-activity-logs-description" title={line}>
 														{line}
 													</span>
 												</div>
@@ -318,7 +333,7 @@ const AdminActivityLogsPage = () => {
 													)}
 													<span className="admin-activity-logs-meta-item">{formatDate(log.created_at)}</span>
 													<span className="admin-activity-logs-meta-item admin-activity-logs-chevron">
-														{isOpen ? 'Ascunde' : 'Vezi tot'}
+														{isOpen ? 'Ascunde' : (count > 1 ? 'Vezi orele' : 'Vezi tot')}
 													</span>
 												</div>
 											</div>
@@ -326,24 +341,37 @@ const AdminActivityLogsPage = () => {
 									</button>
 									{isOpen && (
 										<div className="admin-activity-logs-detail">
-											{log.user?.name ? (
-												<p className="admin-activity-logs-detail-desc" style={{ marginTop: 'var(--space-3)' }}>
-													<strong>{log.user.name}</strong>
-													{log.user.email ? (
-														<>
-															{' '}
-															<span className="admin-activity-logs-detail-tech" style={{ fontWeight: 'normal' }}>
-																({log.user.email})
-															</span>
-														</>
+											{count > 1 ? (
+												<ul className="admin-activity-logs-times">
+													{group.items.map((item) => (
+														<li key={item.id}>
+															<time dateTime={item.created_at}>{formatTime(item.created_at)}</time>
+															<span>{getFriendlyLogLine(item)}</span>
+														</li>
+													))}
+												</ul>
+											) : (
+												<>
+													{log.user?.name ? (
+														<p className="admin-activity-logs-detail-desc" style={{ marginTop: 'var(--space-3)' }}>
+															<strong>{log.user.name}</strong>
+															{log.user.email ? (
+																<>
+																	{' '}
+																	<span className="admin-activity-logs-detail-tech" style={{ fontWeight: 'normal' }}>
+																		({log.user.email})
+																	</span>
+																</>
+															) : null}
+														</p>
 													) : null}
-												</p>
-											) : null}
-											{log.action ? (
-												<p className="admin-activity-logs-detail-tech" title={log.action}>
-													Tip înregistrare: <strong>{getActionLabelRo(log.action)}</strong>
-												</p>
-											) : null}
+													{log.action ? (
+														<p className="admin-activity-logs-detail-tech" title={log.action}>
+															Tip înregistrare: <strong>{getActionLabelRo(log.action)}</strong>
+														</p>
+													) : null}
+												</>
+											)}
 										</div>
 									)}
 								</div>

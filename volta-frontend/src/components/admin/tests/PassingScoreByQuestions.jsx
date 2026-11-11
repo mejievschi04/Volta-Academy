@@ -5,7 +5,7 @@ import { formatPercent } from '../../../utils/formatPercent';
 function passingPercentFromCounts(required, total) {
   const t = Math.max(1, Number(total) || 1);
   const r = Math.min(t, Math.max(0, Number(required) || 0));
-  // 2 zecimale, nu rotunjit la întreg: „7 din 9” e 77,78%, iar 78% făcea să pice cine avea exact 7
+  // Pragul salvat rămâne exact (7 din 9 = 77,78), ca promovarea să nu se schimbe. Eticheta se rotunjește la întreg.
   return Math.round((r / t) * 10000) / 100;
 }
 

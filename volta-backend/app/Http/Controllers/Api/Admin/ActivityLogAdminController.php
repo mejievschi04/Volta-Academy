@@ -22,7 +22,7 @@ class ActivityLogAdminController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = min(100, max(1, (int) $request->get('per_page', 50)));
+        $perPage = min(200, max(1, (int) $request->get('per_page', 200)));
         $search = $request->get('search');
         $action = $request->get('action');
         $modelType = $request->get('model_type');

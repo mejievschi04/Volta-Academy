@@ -290,7 +290,11 @@ export const eventsService = {
     const response = await api.post(`/events/${eventId}/cancel-registration`);
     return response.data;
   },
-  
+
+  askQuestion: async (eventId, body) => {
+    const response = await api.post(`/events/${eventId}/questions`, { body });
+    return response.data;
+  },
 };
 
 export const examResultsService = {
@@ -471,13 +475,6 @@ export const guidesService = {
 
 
 export const authService = {
-  register: async (name, email, password) => {
-    await ensureApiCsrfCookie();
-    const response = await api.post('/auth/register', { name, email, password });
-    try { await refreshApiCsrfCookie(); } catch { /* înregistrarea a reușit */ }
-    return response.data;
-  },
-  
   login: async (email, password) => {
     await ensureApiCsrfCookie();
     const response = await api.post('/auth/login', { email, password });
@@ -689,8 +686,8 @@ export const adminService = {
     return response.data;
   },
 
-  getExamResults: async (id) => {
-    const response = await api.get(`/admin/exams/${id}/results`);
+  getExamResults: async (id, params = {}) => {
+    const response = await api.get(`/admin/exams/${id}/results`, { params });
     return response.data;
   },
 
@@ -996,6 +993,11 @@ export const adminService = {
     const response = await api.get(`/admin/events/${id}`);
     return response.data;
   },
+
+  getEventQuestions: async (id) => {
+    const response = await api.get(`/admin/events/${id}/questions`);
+    return response.data;
+  },
   
   createEvent: async (eventData) => {
     await ensureApiCsrfCookie();
@@ -1261,18 +1263,18 @@ export const adminService = {
     return response.data;
   },
 
-  getTestResults: async (testId) => {
-    const response = await api.get(`/admin/tests/${testId}/results`);
+  getTestResults: async (testId, params = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/results`, { params });
     return response.data;
   },
 
-  getTestStatisticsSummary: async (testId) => {
-    const response = await api.get(`/admin/tests/${testId}/statistics`);
+  getTestStatisticsSummary: async (testId, params = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/statistics`, { params });
     return response.data;
   },
 
-  getTestQuestionAnalytics: async (testId) => {
-    const response = await api.get(`/admin/tests/${testId}/question-analytics`);
+  getTestQuestionAnalytics: async (testId, params = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/question-analytics`, { params });
     return response.data;
   },
 

@@ -17,6 +17,7 @@ import {
 	rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { Books, ArrowLeft, Info } from '@phosphor-icons/react';
 import CourseMapHeaderStyleEditor from '../components/admin/course-maps/CourseMapHeaderStyleEditor';
 import { DragHandle } from '../components/common/DragHandle';
@@ -225,32 +226,33 @@ const CourseMapPage = () => {
 		}
 	};
 
-	useEffect(() => {
-		let cancelled = false;
-		const fetchMap = async () => {
-			try {
+	const reloadMap = useCallback(async ({ silent = false } = {}) => {
+		try {
+			if (!silent) {
 				setLoading(true);
 				setError(null);
-				const data = isAdmin
-					? await adminService.getCourseMap(mapId)
-					: await courseMapsService.getMap(mapId);
-				if (!cancelled) {
-					if (data && !isAdmin && !isStudentVisibleMap(data)) {
-						setMap(null);
-						setError('Mapa nu a fost găsită.');
-					} else {
-						setMap(data);
-					}
-				}
-			} catch (err) {
-				if (!cancelled) setError(err.response?.status === 404 ? 'Mapa nu a fost găsită.' : 'Nu s-a putut încărca mapa.');
-			} finally {
-				if (!cancelled) setLoading(false);
 			}
-		};
-		fetchMap();
-		return () => { cancelled = true; };
+			const data = isAdmin
+				? await adminService.getCourseMap(mapId)
+				: await courseMapsService.getMap(mapId);
+			if (data && !isAdmin && !isStudentVisibleMap(data)) {
+				setMap(null);
+				if (!silent) setError('Mapa nu a fost găsită.');
+			} else {
+				setMap(data);
+			}
+		} catch (err) {
+			if (!silent) setError(err.response?.status === 404 ? 'Mapa nu a fost găsită.' : 'Nu s-a putut încărca mapa.');
+		} finally {
+			if (!silent) setLoading(false);
+		}
 	}, [mapId, isAdmin]);
+
+	useEffect(() => {
+		reloadMap();
+	}, [reloadMap]);
+
+	useRegisterPageRefresh(() => reloadMap({ silent: true }));
 
 	if (loading) {
 		return (

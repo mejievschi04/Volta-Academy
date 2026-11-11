@@ -1,3 +1,9 @@
+export function statisticsTeamParams(teamKey) {
+	if (teamKey === 'none') return { unassigned: 1 };
+	if (teamKey) return { team_id: teamKey };
+	return {};
+}
+
 export function rowMatchesResultFilters(row, { statusFilter = 'all', dateFrom = '', dateTo = '' } = {}) {
 	if (statusFilter === 'passed' && !row?.passed) return false;
 	if (statusFilter === 'failed' && (row?.passed || row?.needs_manual_review || row?.status === 'pending_review')) return false;

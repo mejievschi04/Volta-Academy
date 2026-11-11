@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import { messagesService } from '../services/api';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -310,6 +311,22 @@ const MessagesPage = () => {
 			setLoading(false);
 		}
 	};
+
+	useRegisterPageRefresh(async () => {
+		try {
+			const data = await messagesService.getConversations();
+			if (!Array.isArray(data)) return;
+			setConversations(data);
+			setAllConversations(data);
+			const currentId = selectedConversation?.id;
+			if (!currentId) return;
+			const updated = data.find((conversation) => conversation.id === currentId);
+			if (updated) setSelectedConversation(updated);
+			await fetchMessages(currentId, true);
+		} catch (err) {
+			logger.error('Refresh messages', err);
+		}
+	});
 
 	const fetchMessages = async (conversationId, silent = false) => {
 		if (!conversationId) return;

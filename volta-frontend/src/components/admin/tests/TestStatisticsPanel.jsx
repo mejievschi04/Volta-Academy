@@ -29,9 +29,10 @@ import {
 	statisticsExcelFilename,
 } from '../../../utils/statisticsExcelExport';
 import { stripRichTextToPlain } from '../../../utils/richTextContent';
+import { formatPercent } from '../../../utils/formatPercent';
 import RichTextHtml from '../../RichTextHtml';
 import TestResultsPanel from './TestResultsPanel';
-import { rowMatchesResultFilters } from './TestResultsPanelShared.js';
+import { rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
 import './TestStatisticsPanel.css';
 
 const TYPE_LABELS = {
@@ -96,7 +97,7 @@ function KpiCard({ icon: Icon, label, value, hint, accent }) {
 /**
  * Panou statistici test: prezentare generală, elevi, analiză pe întrebări.
  */
-export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
+export default function TestStatisticsPanel({ testId, testTitle = 'Test', teamKey = '', teams = [] }) {
 	const { error: showError } = useToast();
 	const [section, setSection] = useState('overview');
 	const [loading, setLoading] = useState(true);
@@ -106,15 +107,21 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 	const [statusFilter, setStatusFilter] = useState('all');
 	const [dateFrom, setDateFrom] = useState('');
 	const [dateTo, setDateTo] = useState('');
+	const [selectedTeam, setSelectedTeam] = useState(teamKey || '');
+
+	useEffect(() => {
+		setSelectedTeam(teamKey || '');
+	}, [teamKey, testId]);
 
 	const loadStatistics = useCallback(async () => {
 		if (!testId) return;
 		setLoading(true);
+		const params = statisticsTeamParams(selectedTeam);
 		try {
 			const [summaryRes, questionsRes, resultsRes] = await Promise.all([
-				adminService.getTestStatisticsSummary(testId),
-				adminService.getTestQuestionAnalytics(testId),
-				adminService.getTestResults(testId),
+				adminService.getTestStatisticsSummary(testId, params),
+				adminService.getTestQuestionAnalytics(testId, params),
+				adminService.getTestResults(testId, params),
 			]);
 			setSummary(summaryRes?.summary ?? null);
 			setQuestionRows(Array.isArray(questionsRes) ? questionsRes : []);
@@ -128,7 +135,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 		} finally {
 			setLoading(false);
 		}
-	}, [testId, showError]);
+	}, [testId, selectedTeam, showError]);
 
 	useEffect(() => {
 		loadStatistics();
@@ -175,9 +182,9 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 		const kpiEntries = summary ? [
 			['Încercări', summary.attempts_count ?? 0],
 			['Utilizatori unici', summary.unique_students ?? 0],
-			['Rată promovare', passRate != null ? `${passRate}%` : '—'],
-			['Medie procent', summary.average_percentage != null ? `${summary.average_percentage}%` : '—'],
-			['Prag promovare', `${summary.passing_score ?? 70}%`],
+			['Rată promovare', passRate != null ? formatPercent(passRate) : '—'],
+			['Medie procent', formatPercent(summary.average_percentage)],
+			['Prag promovare', formatPercent(summary.passing_score ?? 70)],
 		] : [];
 
 		const studentRows = filteredResultRows.map((row) => [
@@ -187,7 +194,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 			row.attempt_number ?? '—',
 			row.score ?? 0,
 			row.max_score ?? '—',
-			row.percentage != null ? `${row.percentage}%` : '—',
+			formatPercent(row.percentage),
 			row.passed ? 'Promovat' : (row.needs_manual_review ? 'În așteptare' : 'Nepromovat'),
 		]);
 
@@ -214,7 +221,15 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 				headers: ['#', 'Întrebare', 'Tip', 'Prezentări', 'Răspunsuri', 'Omise', 'Rată corect', 'Dificultate'],
 				rows: questionExportRows,
 			}] : null,
-			extraMeta: [['Test', testTitle]],
+			extraMeta: [[
+				'Test',
+				testTitle,
+			], [
+				'Echipă',
+				selectedTeam === 'none'
+					? 'Fără echipă'
+					: ((teams || []).find((team) => String(team.id) === String(selectedTeam))?.name || 'Toate echipele'),
+			]],
 		});
 
 		downloadStructuredExcel(statisticsExcelFilename(slug), `Statistici ${testTitle}`, rows);
@@ -228,8 +243,22 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 				<div className="test-stats__toolbar-copy">
 					<h2>{testTitle}</h2>
 					<p>
-						Rezumat, rezultate pe elevi și analiză detaliată pe fiecare întrebare.
+						Rezumat, rezultate pe elevi și analiză pe întrebări, separate pe echipă.
 					</p>
+					<label className="test-stats__team-filter">
+						Echipă
+						<select
+							value={selectedTeam}
+							onChange={(e) => setSelectedTeam(e.target.value)}
+							aria-label="Filtrează statistica testului după echipă"
+						>
+							<option value="">Toate echipele</option>
+							{(teams || []).map((team) => (
+								<option key={team.id} value={String(team.id)}>{team.name}</option>
+							))}
+							<option value="none">Fără echipă</option>
+						</select>
+					</label>
 				</div>
 				<div className="test-stats__toolbar-actions">
 					<nav className="test-stats__nav" role="tablist" aria-label="Secțiuni statistici">
@@ -284,8 +313,8 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 						<div className="test-stats__kpis">
 							<KpiCard icon={Users} label="Încercări" value={summary.attempts_count} hint={`${summary.unique_students} utilizatori unici`} accent="#6366f1" />
 							<KpiCard icon={CheckCircle} label="Rată promovare" value={passRate != null ? `${passRate}%` : '—'} hint={`${summary.pass_count} promovați`} accent="#10b981" />
-							<KpiCard icon={ChartBar} label="Medie" value={summary.average_percentage != null ? `${summary.average_percentage}%` : '—'} hint={`Scor mediu ${summary.average_score ?? '—'}`} accent="#8b5cf6" />
-							<KpiCard icon={ChartPieSlice} label="Interval" value={`${summary.low_percentage ?? '—'}–${summary.high_percentage ?? '—'}%`} hint={`Prag ${summary.passing_score ?? 70}%`} accent="#0ea5e9" />
+							<KpiCard icon={ChartBar} label="Medie" value={formatPercent(summary.average_percentage)} hint={`Scor mediu ${summary.average_score ?? '—'}`} accent="#8b5cf6" />
+							<KpiCard icon={ChartPieSlice} label="Interval" value={`${formatPercent(summary.low_percentage).replace('%', '')}–${formatPercent(summary.high_percentage)}`} hint={`Prag ${formatPercent(summary.passing_score ?? 70)}`} accent="#0ea5e9" />
 							{summary.pending_review_count > 0 ? (
 								<KpiCard icon={WarningCircle} label="Verificare" value={summary.pending_review_count} hint="Încercări în așteptare" accent="#f59e0b" />
 							) : null}
@@ -404,6 +433,20 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 							</select>
 						</label>
 						<label>
+							Echipă
+							<select
+								value={selectedTeam}
+								onChange={(e) => setSelectedTeam(e.target.value)}
+								aria-label="Alege echipa"
+							>
+								<option value="">Toate echipele</option>
+								{(teams || []).map((team) => (
+									<option key={team.id} value={String(team.id)}>{team.name}</option>
+								))}
+								<option value="none">Fără echipă</option>
+							</select>
+						</label>
+						<label>
 							De la
 							<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
 						</label>
@@ -422,6 +465,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 						statusFilter={statusFilter}
 						dateFrom={dateFrom}
 						dateTo={dateTo}
+						teamKey={selectedTeam}
 					/>
 				</div>
 			) : null}
@@ -481,7 +525,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test' }) {
 															/>
 														</div>
 														<span className="test-stats__option-stat">
-															{opt.count} · {opt.percentage}%
+															{opt.count} · {formatPercent(opt.percentage)}
 														</span>
 													</div>
 												</div>

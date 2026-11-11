@@ -5,7 +5,9 @@ import { eventsService } from '../services/api';
 import { useToast } from '../contexts/ToastContextShared.js';
 import { logger } from '../utils/logger';
 import ConfirmModal from '../components/common/ConfirmModal';
+import Modal from '../components/common/Modal';
 import { CalendarBlank } from '@phosphor-icons/react';
+import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 const parseEventDate = (dateString) => {
 	if (!dateString) return null;
@@ -27,11 +29,16 @@ const EventsPage = () => {
 	const [error, setError] = useState(null);
 	const [cancelTarget, setCancelTarget] = useState(null);
 	const [cancelLoading, setCancelLoading] = useState(false);
+	const [questionTarget, setQuestionTarget] = useState(null);
+	const [questionText, setQuestionText] = useState('');
+	const [questionSending, setQuestionSending] = useState(false);
 
-	const fetchEvents = async () => {
+	const fetchEvents = async ({ silent = false } = {}) => {
 		try {
-			setLoading(true);
-			setError(null);
+			if (!silent) {
+				setLoading(true);
+				setError(null);
+			}
 			const data = await eventsService.getAll();
 			const eventsList = Array.isArray(data) ? data : (data?.data || []);
 			setEvents(
@@ -41,15 +48,17 @@ const EventsPage = () => {
 			);
 		} catch (err) {
 			console.error('Error fetching events:', err);
-			setError('Nu s-au putut încărca evenimentele');
+			if (!silent) setError('Nu s-au putut încărca evenimentele');
 		} finally {
-			setLoading(false);
+			if (!silent) setLoading(false);
 		}
 	};
 
 	useEffect(() => {
 		fetchEvents();
 	}, []);
+
+	useRegisterPageRefresh(() => fetchEvents({ silent: true }));
 
 	const formatDate = (dateString) => {
 		const date = parseEventDate(dateString);
@@ -74,6 +83,28 @@ const EventsPage = () => {
 		} catch (err) {
 			logger.error('Error registering:', err);
 			showError(err.response?.data?.message || 'Eroare la înscriere');
+		}
+	};
+
+	const handleAskQuestion = async () => {
+		if (!questionTarget) return;
+		const body = questionText.trim();
+		if (body.length < 3) {
+			showError('Scrie o întrebare de cel puțin 3 caractere.');
+			return;
+		}
+		setQuestionSending(true);
+		try {
+			await eventsService.askQuestion(questionTarget.id, body);
+			setQuestionTarget(null);
+			setQuestionText('');
+			showSuccess('Întrebarea a fost trimisă.');
+		} catch (err) {
+			logger.error('Error asking event question:', err);
+			const validation = err.response?.data?.errors?.body?.[0];
+			showError(validation || err.response?.data?.message || 'Nu am putut trimite întrebarea');
+		} finally {
+			setQuestionSending(false);
 		}
 	};
 
@@ -212,6 +243,19 @@ const EventsPage = () => {
 												) : null}
 											</>
 										)}
+										{event.status !== 'cancelled' ? (
+											<button
+												type="button"
+												className="lms-btn-secondary"
+												onClick={(e) => {
+													e.stopPropagation();
+													setQuestionText('');
+													setQuestionTarget(event);
+												}}
+											>
+												Întrebare
+											</button>
+										) : null}
 									</div>
 								</div>
 							</article>
@@ -233,6 +277,52 @@ const EventsPage = () => {
 				variant="danger"
 				loading={cancelLoading}
 			/>
+
+			<Modal
+				isOpen={Boolean(questionTarget)}
+				onClose={() => !questionSending && setQuestionTarget(null)}
+				ariaLabelledby="event-question-title"
+				closeOnBackdropClick
+				closeOnEscape
+			>
+				<div className="modal-header">
+					<h2 id="event-question-title" className="modal-title">Întrebare la tema evenimentului</h2>
+				</div>
+				<form
+					className="modal-body events-question-form"
+					onSubmit={(e) => {
+						e.preventDefault();
+						handleAskQuestion();
+					}}
+				>
+					<p className="events-question-event">{questionTarget?.title}</p>
+					<label htmlFor="event-question-body">
+						Întrebarea ta
+						<textarea
+							id="event-question-body"
+							data-modal-initial-focus
+							rows={4}
+							maxLength={2000}
+							value={questionText}
+							onChange={(e) => setQuestionText(e.target.value)}
+							placeholder="Scrie întrebarea despre tema evenimentului"
+						/>
+					</label>
+					<div className="modal-footer">
+						<button
+							type="button"
+							className="lms-btn-secondary"
+							disabled={questionSending}
+							onClick={() => setQuestionTarget(null)}
+						>
+							Renunță
+						</button>
+						<button type="submit" className="lms-btn-primary" disabled={questionSending}>
+							{questionSending ? 'Se trimite…' : 'Trimite'}
+						</button>
+					</div>
+				</form>
+			</Modal>
 		</div>
 	);
 };
