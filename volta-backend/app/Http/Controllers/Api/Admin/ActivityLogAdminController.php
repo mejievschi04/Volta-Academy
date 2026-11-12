@@ -49,7 +49,14 @@ class ActivityLogAdminController extends Controller
         // Only the columns the journal list renders; old_values / user_agent can be large.
         $query = ActivityLog::query()
             ->select(['id', 'user_id', 'action', 'description', 'new_values', 'created_at'])
-            ->with('user:id,name,email');
+            ->with('user:id,name,email')
+            ->whereNotIn('action', [
+                'telemetry.learner_answer_saved',
+                'telemetry.learner_attempt_started',
+                'telemetry.learner_result_viewed',
+                'telemetry.learner_retake_weak_areas_started',
+                'builder.update_lesson',
+            ]);
 
         if ($excludeSelf && ($viewer = $request->user())) {
             $query->where(function ($q) use ($viewer) {

@@ -35,6 +35,7 @@ const STUDENT_FILTER_TITLES = {
 
 function courseIsCompleted(course) {
 	if (!course) return false;
+	if (course.status === 'failed') return false;
 	if (course.status === 'completed') return true;
 	if (course.completed_at) return true;
 	return Number(course.progress_percentage ?? course.progress ?? 0) >= 100;
@@ -57,6 +58,7 @@ const CoursesPage = () => {
 		in_progress: [],
 		not_accessed: [],
 		completed: [],
+		failed: [],
 	});
 	const [nextLesson, setNextLesson] = useState(null);
 	const fetchingRef = useRef(false);
@@ -98,6 +100,7 @@ const CoursesPage = () => {
 							in_progress: profileData.coursesInProgress || profileData.courses_in_progress || [],
 							not_accessed: profileData.coursesNotAccessed || profileData.courses_not_accessed || [],
 							completed: profileData.coursesCompleted || profileData.courses_completed || [],
+							failed: profileData.coursesFailed || profileData.courses_failed || [],
 						});
 					}
 
@@ -173,7 +176,7 @@ const CoursesPage = () => {
 		if (studentFilter !== 'completed' && studentFilter !== 'unfinished') return [];
 		const source = studentFilter === 'completed'
 			? completedCourseRows
-			: [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])].filter(
+			: [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || []), ...(assignedCourses.failed || [])].filter(
 				(course) => !courseIsCompleted(course)
 			);
 		const seen = new Set();
@@ -201,7 +204,7 @@ const CoursesPage = () => {
 		}
 		if (filter.id === 'unfinished') {
 			const seen = new Set();
-			return [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || [])].filter((course) => {
+			return [...(assignedCourses.in_progress || []), ...(assignedCourses.not_accessed || []), ...(assignedCourses.failed || [])].filter((course) => {
 				const id = Number(course?.id);
 				if (!Number.isFinite(id) || seen.has(id) || courseIsCompleted(course)) return false;
 				seen.add(id);
@@ -223,7 +226,8 @@ const CoursesPage = () => {
 		const progress = course.progress_percentage ?? course.progress ?? 0;
 		const subtitleParts = [];
 		if (course.short_description?.trim()) subtitleParts.push(String(course.short_description).trim());
-		if (status === 'completed' || Number(progress) >= 100) subtitleParts.push('Finalizat');
+		if (status === 'failed') subtitleParts.push('Nepromovat');
+		else if (status === 'completed' || Number(progress) >= 100) subtitleParts.push('Finalizat');
 		else if (status === 'in_progress') subtitleParts.push(`Progres ${courseProgressLabel(progress)}`);
 		else subtitleParts.push('Neaccesat');
 		const subtitle = subtitleParts.join(' · ');

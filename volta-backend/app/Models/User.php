@@ -111,4 +111,13 @@ class User extends Authenticatable
         return in_array($this->role ?? '', ['admin', 'analyst', 'instructor'], true);
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if (is_string($user->email)) {
+                $user->email = strtolower(trim($user->email));
+            }
+        });
+    }
+
 }

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Support\ImageOptimizer;
+use App\Support\UserEmail;
 
 class ProfileController extends Controller
 {
@@ -113,19 +114,25 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Neautentificat'], 401);
         }
 
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => UserEmail::normalize($request->input('email'))]);
+        }
+
+        $emailRule = ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)];
+        $emailMessages = ['email.unique' => 'Există deja un cont cu acest email.'];
         $isStudent = ($user->role ?? '') === 'student';
 
         if ($isStudent) {
             $validated = $request->validate([
-                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+                'email' => $emailRule,
                 'bio' => ['nullable', 'string', 'max:2000'],
-            ]);
+            ], $emailMessages);
         } else {
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+                'email' => $emailRule,
                 'bio' => ['nullable', 'string', 'max:2000'],
-            ]);
+            ], $emailMessages);
             $user->name = $validated['name'];
         }
 

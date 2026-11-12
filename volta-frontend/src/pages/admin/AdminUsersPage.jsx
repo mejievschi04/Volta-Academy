@@ -32,6 +32,7 @@ const AdminUsersPage = () => {
 	const [sortOrder, setSortOrder] = useState('asc');
 	const [roleFilter, setRoleFilter] = useState('all');
 	const [statusFilter, setStatusFilter] = useState('all');
+	const [teamFilter, setTeamFilter] = useState('all');
 	const [searchQuery, setSearchQuery] = useState('');
 	// Utilizatorii vin paginat: căutarea, filtrele și sortarea se fac pe server.
 	const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -62,6 +63,7 @@ const AdminUsersPage = () => {
 			const params = { page, per_page: USERS_PAGE_SIZE, sort_by: sortBy, sort_direction: sortOrder };
 			if (statusFilter !== 'all') params.status = statusFilter;
 			if (roleFilter !== 'all') params.role = roleFilter;
+			if (teamFilter !== 'all') params.team_id = teamFilter;
 			if (debouncedSearch) params.search = debouncedSearch;
 			if (usersView === 'trash') params.trashed = 1;
 			const data = await adminService.getUsersPage(params);
@@ -81,7 +83,7 @@ const AdminUsersPage = () => {
                 setHasLoadedUsers(true);
             }
 		}
-	}, [debouncedSearch, page, roleFilter, sortBy, sortOrder, statusFilter, usersView]);
+	}, [debouncedSearch, page, roleFilter, sortBy, sortOrder, statusFilter, teamFilter, usersView]);
 
 	useEffect(() => {
 		const timer = window.setTimeout(() => {
@@ -420,6 +422,21 @@ const AdminUsersPage = () => {
 						<option value="admin">Administratori</option>
 						<option value="instructor">Instructori</option>
 						<option value="analyst">Analiști</option>
+					</select>
+				</div>
+				<div className="admin-users-filter-group">
+					<label className="admin-users-filter-label">Echipă:</label>
+					<select
+						aria-label="Filtrează după echipă"
+						className="admin-users-filter-select"
+						value={teamFilter}
+						onChange={(e) => { setTeamFilter(e.target.value); setPage(1); }}
+					>
+						<option value="all">Toate echipele</option>
+						{[...teams].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ro')).map((team) => (
+							<option key={team.id} value={String(team.id)}>{team.name}</option>
+						))}
+						<option value="none">Fără echipă</option>
 					</select>
 				</div>
 			</div>

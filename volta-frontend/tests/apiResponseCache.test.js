@@ -57,6 +57,22 @@ test('editors, exams, counters and opted-out requests always hit the server', as
 	assert.equal(calls.length, uncached.length * 2);
 });
 
+test('refresh ignores a fresh cache entry and replaces it', async () => {
+	clearApiCache();
+	const { adapter, calls } = fakeAdapter();
+	const cached = withResponseCache(adapter);
+	const config = { method: 'get', url: '/admin/tests/4/statistics' };
+
+	const first = await cached(config);
+	await cached(config);
+	const refreshed = await cached({ ...config, cache: 'refresh' });
+	const after = await cached(config);
+
+	assert.deepEqual(calls, ['get /admin/tests/4/statistics', 'get /admin/tests/4/statistics']);
+	assert.notEqual(JSON.parse(first.data).n, JSON.parse(refreshed.data).n);
+	assert.equal(after.data, refreshed.data);
+});
+
 test('different params are cached separately', async () => {
 	clearApiCache();
 	const { adapter, calls } = fakeAdapter();

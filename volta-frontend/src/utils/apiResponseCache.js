@@ -62,6 +62,11 @@ export function withResponseCache(adapter) {
     const key = cacheKeyFor(config);
     if (!key) return adapter(config);
 
+    // Actualizează: ignoră copia din memorie și o înlocuiește cu răspunsul nou.
+    if (config.cache === "refresh") {
+      return fetchRaw(adapter, config, key).then((raw) => responseFromRaw(raw, config));
+    }
+
     const cached = responseCache.get(key);
     const age = cached ? Date.now() - cached.at : Infinity;
     if (cached && age < STALE_MS) {

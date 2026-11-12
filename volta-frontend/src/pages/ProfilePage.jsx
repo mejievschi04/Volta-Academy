@@ -22,7 +22,7 @@ const AVATAR_OUTPUT_SIZE = 512;
 const COURSE_FILTERS = [
 	{ id: 'all', label: 'Total atribuite', statKey: 'total_assigned' },
 	{ id: 'completed', label: 'Finalizate', statKey: 'completed' },
-	// „Nepromovat” sugera un test picat; aici sunt cursurile începute și neterminate
+	{ id: 'failed', label: 'Nepromovate', statKey: 'failed' },
 	{ id: 'in_progress', label: 'În curs', statKey: 'in_progress' },
 	{ id: 'not_accessed', label: 'Neaccesate', statKey: 'not_accessed' },
 ];
@@ -30,6 +30,7 @@ const COURSE_FILTERS = [
 const COURSE_FILTER_TITLES = {
 	all: 'Toate cursurile atribuite',
 	completed: 'Cursuri finalizate',
+	failed: 'Cursuri cu test nepromovat',
 	in_progress: 'Cursuri nefinalizate',
 	not_accessed: 'Cursuri neaccesate',
 };
@@ -66,12 +67,14 @@ const buildProfileFromCourseData = (user, data) => ({
 	courseStats: data.course_stats || data.courseStats || {
 		total_assigned: 0,
 		completed: 0,
+		failed: 0,
 		in_progress: 0,
 		not_accessed: 0,
 	},
 	coursesAssigned: data.courses_assigned || data.coursesAssigned || [],
 	coursesInProgress: data.courses_in_progress || data.coursesInProgress || [],
 	coursesCompleted: data.courses_completed || data.coursesCompleted || [],
+	coursesFailed: data.courses_failed || data.coursesFailed || [],
 	coursesNotAccessed: data.courses_not_accessed || data.coursesNotAccessed || [],
 });
 
@@ -237,12 +240,14 @@ const ProfilePage = () => {
 
 	const coursesInProgress = profileData.coursesInProgress || [];
 	const coursesCompleted = profileData.coursesCompleted || [];
+	const coursesFailed = profileData.coursesFailed || [];
 	const coursesNotAccessed = profileData.coursesNotAccessed || [];
 	const coursesAssigned = profileData.coursesAssigned || [];
 	const courseStats = profileData.courseStats || {};
 
 	const filteredCourses = (() => {
 		if (courseFilter === 'completed') return coursesCompleted;
+		if (courseFilter === 'failed') return coursesFailed;
 		if (courseFilter === 'in_progress') return coursesInProgress;
 		if (courseFilter === 'not_accessed') return coursesNotAccessed;
 		return coursesAssigned;
@@ -295,7 +300,7 @@ const ProfilePage = () => {
 				<div className="va-up-card-head">
 					<h3 className="va-up-card-title" title={course.title}>{course.title}</h3>
 					<span className={`va-up-status is-${status}`}>
-						{status === 'completed' ? 'Finalizat' : status === 'in_progress' ? 'În curs' : 'Neaccesat'}
+						{status === 'completed' ? 'Finalizat' : status === 'failed' ? 'Nepromovat' : status === 'in_progress' ? 'În curs' : 'Neaccesat'}
 					</span>
 				</div>
 				{course.description ? <p className="va-up-card-desc">{course.description}</p> : null}
@@ -311,7 +316,7 @@ const ProfilePage = () => {
 						</span>
 					</div>
 				) : null}
-				{status === 'completed' && courseTestsNote(course) ? (
+				{(status === 'completed' || status === 'failed') && courseTestsNote(course) ? (
 					<p className="va-up-card-note">{courseTestsNote(course)}</p>
 				) : null}
 				{status === 'not_accessed' ? (
@@ -352,7 +357,7 @@ const ProfilePage = () => {
 					<Link to={courseLink} className={isViewingOtherUser ? 'lms-btn-secondary lms-btn-sm' : 'lms-btn-primary lms-btn-sm'}>
 						{actionLabel}
 					</Link>
-					{viewerRole === 'admin' && (status !== 'completed' || course.manually_completed) ? (
+					{viewerRole === 'admin' && (status !== 'completed' && status !== 'failed' || course.manually_completed) ? (
 						<button
 							type="button"
 							className="lms-btn-primary lms-btn-sm"

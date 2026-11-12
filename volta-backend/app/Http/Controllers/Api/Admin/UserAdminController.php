@@ -55,6 +55,15 @@ class UserAdminController extends Controller
                 $query->where('status', $request->status);
             }
         }
+
+        $teamFilter = (string) $request->input('team_id', '');
+        if ($teamFilter !== '' && $teamFilter !== 'all') {
+            if ($teamFilter === 'none') {
+                $query->whereDoesntHave('teams');
+            } elseif (ctype_digit($teamFilter)) {
+                $query->whereHas('teams', fn ($teams) => $teams->where('teams.id', (int) $teamFilter));
+            }
+        }
         
         // Team members only filter (exclude students)
         if ($request->has('team_members_only') && $request->team_members_only) {
@@ -227,6 +236,7 @@ class UserAdminController extends Controller
 			'team_id' => 'nullable|exists:teams,id',
         ], [
             'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
+            'email.unique' => 'Există deja un cont cu acest email.',
         ]);
 
         // Set default password "volta2026" if not provided
@@ -293,6 +303,8 @@ class UserAdminController extends Controller
             'password' => 'nullable|string|min:6',
             'role' => 'sometimes|required|string|in:student,admin,instructor,analyst',
             'bio' => 'nullable|string|max:1000',
+        ], [
+            'email.unique' => 'Există deja un cont cu acest email.',
         ]);
 
         if (isset($validated['password'])) {

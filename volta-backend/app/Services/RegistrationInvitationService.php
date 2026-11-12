@@ -7,6 +7,7 @@ use App\Models\RegistrationInvitation;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\RegistrationInvitationUrl;
+use App\Support\UserEmail;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -183,7 +184,7 @@ class RegistrationInvitationService
 
     private function assertEmailAvailable(string $email): void
     {
-        if (User::where('email', $email)->exists()) {
+        if (UserEmail::taken($email)) {
             throw ValidationException::withMessages([
                 'email' => ['Există deja un cont cu acest email.'],
             ]);

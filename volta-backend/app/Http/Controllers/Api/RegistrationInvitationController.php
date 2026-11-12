@@ -8,6 +8,7 @@ use App\Services\RegistrationInvitationService;
 use App\Services\UserAssignedCoursesService;
 use App\Support\AuthActivityLogger;
 use App\Support\StudentSessionLogger;
+use App\Support\UserEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +47,7 @@ class RegistrationInvitationController extends Controller
             ], 404);
         }
 
-        if (! $invitation->user_id && User::where('email', $invitation->email)->exists()) {
+        if (! $invitation->user_id && UserEmail::taken($invitation->email)) {
             return response()->json([
                 'message' => 'Există deja un cont cu acest email.',
             ], 422);

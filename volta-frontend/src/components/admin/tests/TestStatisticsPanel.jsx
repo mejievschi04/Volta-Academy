@@ -117,11 +117,12 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test', teamKe
 		if (!testId) return;
 		setLoading(true);
 		const params = statisticsTeamParams(selectedTeam);
+		const fresh = { cache: 'refresh' };
 		try {
 			const [summaryRes, questionsRes, resultsRes] = await Promise.all([
-				adminService.getTestStatisticsSummary(testId, params),
-				adminService.getTestQuestionAnalytics(testId, params),
-				adminService.getTestResults(testId, params),
+				adminService.getTestStatisticsSummary(testId, params, fresh),
+				adminService.getTestQuestionAnalytics(testId, params, fresh),
+				adminService.getTestResults(testId, params, fresh),
 			]);
 			setSummary(summaryRes?.summary ?? null);
 			setQuestionRows(Array.isArray(questionsRes) ? questionsRes : []);
@@ -287,7 +288,7 @@ export default function TestStatisticsPanel({ testId, testTitle = 'Test', teamKe
 					</button>
 					<button
 						type="button"
-						className="test-stats__refresh"
+						className={`test-stats__refresh${loading ? ' is-loading' : ''}`}
 						onClick={loadStatistics}
 						disabled={loading}
 					>

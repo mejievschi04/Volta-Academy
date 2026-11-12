@@ -526,8 +526,23 @@
 		padding: 14px 16px !important;
 	}
 
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-course {
+		border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+	}
+
 	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-course-icon {
-		color: var(--text-secondary);
+		width: 36px;
+		height: 36px;
+		padding: 7px;
+		border-radius: 10px;
+		background: var(--color-primary);
+		color: #111827;
+		box-sizing: border-box;
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-course-count,
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-course-caret {
+		color: var(--text-primary);
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row[aria-label='Filtru teste'] {
@@ -538,14 +553,27 @@
 		gap: 4px;
 		padding: 4px;
 		border-radius: 14px;
-		background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+		background: color-mix(in srgb, var(--text-primary) 12%, var(--bg-secondary));
 		overflow: visible;
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-controls .exam-results-search {
 		order: 2;
 		min-height: 48px;
+		border: 1.5px solid color-mix(in srgb, var(--text-primary) 32%, transparent);
 		border-radius: 14px;
+		background: var(--bg-elevated);
+		color: var(--text-primary);
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-controls .exam-results-search:focus-within {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 40%, transparent);
+	}
+
+	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-controls .exam-results-search input::placeholder {
+		color: var(--text-secondary);
+		opacity: 1;
 	}
 
 	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row[aria-label='Ordine teste'] {
@@ -560,22 +588,22 @@
 	.va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row[aria-label='Ordine teste']::before {
 		content: 'Ordine';
 		margin-right: 6px;
-		color: var(--text-secondary);
+		color: var(--text-primary);
 		font-size: 0.8125rem;
-		font-weight: 600;
+		font-weight: 700;
 	}
 
 	html body .va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row .exam-results-filter-btn.exam-results-filter-btn {
 		min-width: 0;
 		min-height: 40px;
 		padding: 0 6px;
-		border: 0 !important;
+		border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent) !important;
 		border-radius: 11px !important;
-		background: transparent;
+		background: var(--bg-elevated);
 		box-shadow: none;
-		color: var(--text-secondary);
+		color: var(--text-primary);
 		font-size: 0.875rem;
-		font-weight: 600;
+		font-weight: 700;
 		white-space: nowrap;
 	}
 
@@ -584,14 +612,11 @@
 		font-size: 0.8125rem;
 	}
 
-	/* activul din filtru e plin, ca în meniul de jos; cel din ordine doar nuanțat, ca să nu concureze */
 	html body .va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row .exam-results-filter-btn.exam-results-filter-btn.is-active {
+		border-color: var(--text-primary) !important;
+		background: var(--text-primary) !important;
+		background-color: var(--text-primary) !important;
+		color: var(--bg-primary) !important;
 		font-weight: 700;
-	}
-
-	html body .va-shell-topnav:has(.student-mobile-tabs) .exam-results-button-row[aria-label='Ordine teste'] .exam-results-filter-btn.exam-results-filter-btn.is-active {
-		background: color-mix(in srgb, var(--text-primary) 9%, transparent) !important;
-		background-color: color-mix(in srgb, var(--text-primary) 9%, transparent) !important;
-		color: var(--text-primary) !important;
 	}
 }

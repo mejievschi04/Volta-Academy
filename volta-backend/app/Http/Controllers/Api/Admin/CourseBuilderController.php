@@ -323,20 +323,7 @@ class CourseBuilderController extends Controller
         }
         unset($validated['expected_updated_at']);
 
-        $old = $lesson->toArray();
         $lesson = $this->courseBuilderService->updateLesson($lesson, $validated);
-
-        ActivityLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => 'builder.update_lesson',
-            'model_type' => Lesson::class,
-            'model_id' => $lesson->id,
-            'description' => 'Update lesson',
-            'old_values' => $old,
-            'new_values' => $lesson->toArray(),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
 
         return response()->json([
             'lesson' => $lesson->fresh(),

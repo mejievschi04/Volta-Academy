@@ -110,6 +110,14 @@
 	cursor: not-allowed;
 }
 
+.test-stats__refresh.is-loading svg {
+	animation: test-stats-spin 0.7s linear infinite;
+}
+
+@keyframes test-stats-spin {
+	to { transform: rotate(360deg); }
+}
+
 .test-stats__nav {
 	display: inline-flex;
 	flex-wrap: wrap;

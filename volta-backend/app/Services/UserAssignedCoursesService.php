@@ -23,10 +23,11 @@ class UserAssignedCoursesService
 
     /**
      * @return array{
-     *     course_stats: array{total_assigned: int, completed: int, in_progress: int, not_accessed: int},
+     *     course_stats: array{total_assigned: int, completed: int, failed: int, in_progress: int, not_accessed: int},
      *     courses_assigned: array<int, array<string, mixed>>,
      *     courses_in_progress: array<int, array<string, mixed>>,
      *     courses_completed: array<int, array<string, mixed>>,
+     *     courses_failed: array<int, array<string, mixed>>,
      *     courses_not_accessed: array<int, array<string, mixed>>,
      *     completed_quizzes: int,
      *     completed_modules: int,
@@ -127,6 +128,7 @@ class UserAssignedCoursesService
 
         $coursesInProgress = [];
         $coursesCompleted = [];
+        $coursesFailed = [];
         $coursesNotAccessed = [];
         $coursesAssigned = [];
 
@@ -194,7 +196,12 @@ class UserAssignedCoursesService
                 'teacher_name' => $course->teacher?->name,
             ];
 
-            if ($isCompleted) {
+            $testFailed = collect($courseTests)->contains(fn (array $test) => $test['status'] === 'failed');
+
+            if ($isCompleted && $testFailed) {
+                $coursePayload['status'] = 'failed';
+                $coursesFailed[] = $coursePayload;
+            } elseif ($isCompleted) {
                 $coursePayload['status'] = 'completed';
                 $coursesCompleted[] = $coursePayload;
             } elseif ($hasStarted) {
@@ -211,6 +218,7 @@ class UserAssignedCoursesService
         $courseStats = [
             'total_assigned' => count($coursesAssigned),
             'completed' => count($coursesCompleted),
+            'failed' => count($coursesFailed),
             'in_progress' => count($coursesInProgress),
             'not_accessed' => count($coursesNotAccessed),
         ];
@@ -220,6 +228,7 @@ class UserAssignedCoursesService
             'courses_assigned' => $coursesAssigned,
             'courses_in_progress' => $coursesInProgress,
             'courses_completed' => $coursesCompleted,
+            'courses_failed' => $coursesFailed,
             'courses_not_accessed' => $coursesNotAccessed,
             'completed_quizzes' => $completedQuizzes,
             'completed_modules' => $completedModules,

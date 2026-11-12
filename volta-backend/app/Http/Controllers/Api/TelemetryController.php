@@ -40,6 +40,17 @@ class TelemetryController extends Controller
             return response()->json(['ok' => true]);
         }
 
+        // Pași din timpul testului, fără rezultat: umplu jurnalul. Nota rămâne la trimitere.
+        $journalSkipped = [
+            'learner_answer_saved',
+            'learner_attempt_started',
+            'learner_result_viewed',
+            'learner_retake_weak_areas_started',
+        ];
+        if (in_array($validated['event_name'], $journalSkipped, true)) {
+            return response()->json(['ok' => true]);
+        }
+
         if ($validated['event_name'] === 'learner_focus_seconds') {
             $sec = (int) ($request->input('payload.seconds'));
             $lessonId = (int) ($request->input('payload.lesson_id'));

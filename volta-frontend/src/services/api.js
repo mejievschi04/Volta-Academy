@@ -1263,18 +1263,18 @@ export const adminService = {
     return response.data;
   },
 
-  getTestResults: async (testId, params = {}) => {
-    const response = await api.get(`/admin/tests/${testId}/results`, { params });
+  getTestResults: async (testId, params = {}, config = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/results`, { params, ...config });
     return response.data;
   },
 
-  getTestStatisticsSummary: async (testId, params = {}) => {
-    const response = await api.get(`/admin/tests/${testId}/statistics`, { params });
+  getTestStatisticsSummary: async (testId, params = {}, config = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/statistics`, { params, ...config });
     return response.data;
   },
 
-  getTestQuestionAnalytics: async (testId, params = {}) => {
-    const response = await api.get(`/admin/tests/${testId}/question-analytics`, { params });
+  getTestQuestionAnalytics: async (testId, params = {}, config = {}) => {
+    const response = await api.get(`/admin/tests/${testId}/question-analytics`, { params, ...config });
     return response.data;
   },
 

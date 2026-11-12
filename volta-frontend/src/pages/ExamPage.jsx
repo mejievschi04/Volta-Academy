@@ -196,7 +196,6 @@ const ExamPage = () => {
 				setResult(data.latest_result);
 				setSubmitted(true);
 				setAnswers({});
-				void testTelemetryRef.current.trackResultViewed(data.latest_result);
 			} else {
 				testTelemetryRef.current.resetSession();
 				setResult(null);
@@ -323,11 +322,6 @@ const ExamPage = () => {
 	}, [persistProgress]);
 
 	useEffect(() => {
-		if (!exam || submitted) return;
-		testTelemetryRef.current.trackAnswerSaved(answers, exam.questions?.length ?? 0);
-	}, [exam, submitted, answers]);
-
-	useEffect(() => {
 		if (!submitted || !result) return;
 		examPageRef.current?.querySelector('.student-exam-body')?.scrollTo({ top: 0 });
 	}, [submitted, result]);
@@ -422,9 +416,6 @@ const ExamPage = () => {
 			showWarning('Ai atins numărul maxim de încercări pentru acest test.');
 			return;
 		}
-		await testTelemetryRef.current.trackRetakeStarted({
-			remaining_attempts: exam?.remaining_attempts ?? null,
-		});
 		await fetchExamData({ forceFreshAttempt: true });
 	}, [exam, fetchExamData, showWarning]);
 

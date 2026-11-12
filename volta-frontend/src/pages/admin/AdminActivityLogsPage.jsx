@@ -27,11 +27,7 @@ const SIMPLE_EVENT_FILTER_VALUES = [
 	'completed_exam',
 	'enrolled_course',
 	'telemetry.learner_attempt_submitted',
-	'telemetry.learner_attempt_started',
-	'telemetry.learner_result_viewed',
 	'telemetry.learner_focus_seconds',
-	'telemetry.learner_answer_saved',
-	'telemetry.learner_retake_weak_areas_started',
 ];
 
 const SIMPLE_EVENT_TYPES = SIMPLE_EVENT_FILTER_VALUES.map((value) => ({

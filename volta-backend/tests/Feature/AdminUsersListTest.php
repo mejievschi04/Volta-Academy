@@ -41,6 +41,26 @@ class AdminUsersListTest extends TestCase
         $this->assertArrayNotHasKey('courses', $row);
     }
 
+    public function test_list_can_be_filtered_by_team(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $callCenter = \App\Models\Team::create(['name' => 'Call Center', 'owner_id' => $admin->id]);
+        $volta = \App\Models\Team::create(['name' => 'Volta 5', 'owner_id' => $admin->id]);
+        $inCallCenter = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $inVolta = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $withoutTeam = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $inCallCenter->teams()->attach($callCenter->id);
+        $inVolta->teams()->attach($volta->id);
+
+        $this->actingAs($admin, 'sanctum');
+
+        $byTeam = $this->getJson('/api/admin/users?all=1&team_id='.$callCenter->id)->assertOk()->json();
+        $this->assertSame([$inCallCenter->id], collect($byTeam)->where('role', 'student')->pluck('id')->all());
+
+        $none = $this->getJson('/api/admin/users?all=1&team_id=none&role=student')->assertOk()->json();
+        $this->assertSame([$withoutTeam->id], collect($none)->pluck('id')->all());
+    }
+
     public function test_search_finds_users_without_a_team_by_given_name_surname_or_email(): void
     {
         $admin = User::factory()->create([
