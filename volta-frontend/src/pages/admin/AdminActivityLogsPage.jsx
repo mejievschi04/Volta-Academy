@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { adminService } from '../../services/api';
 import { teamAccent } from '../../utils/teamAccent';
 import {
-	getFriendlyLogLine,
-	getGroupedLogLine,
+	getShortGroupLine,
+	getActivityDetailLine,
 	groupActivityLogs,
-	activityGroupCount,
 	getActionLabelRo,
 	ACTION_LABELS_RO,
 } from '../../utils/activityLogLabels';
@@ -331,9 +330,9 @@ const AdminActivityLogsPage = () => {
 					<div>
 						{groupedLogs.map((group) => {
 							const log = group.items[0];
-							const count = activityGroupCount(group);
-							const line = getGroupedLogLine(group);
+							const line = getShortGroupLine(group);
 							const isOpen = expandedId === group.key;
+							const userTeams = (log.user?.teams || []).filter((t) => t?.name);
 
 							return (
 								<div key={group.key} className="admin-activity-logs-item">
@@ -356,8 +355,8 @@ const AdminActivityLogsPage = () => {
 												<div className="admin-activity-logs-meta">
 													{log.user && (
 														<span className="admin-activity-logs-meta-item admin-activity-logs-teams">
-															{Array.isArray(log.user.teams) && log.user.teams.some((t) => t?.name) ? (
-																log.user.teams.filter((t) => t?.name).map((t) => (
+															{userTeams.length > 0 ? (
+																userTeams.map((t) => (
 																	<span key={t.id} className="admin-users-team-chip" title={t.name}>
 																		<span
 																			className="admin-users-team-swatch"
@@ -372,9 +371,9 @@ const AdminActivityLogsPage = () => {
 															)}
 														</span>
 													)}
-													<span className="admin-activity-logs-meta-item">{formatDate(log.created_at)}</span>
+													<span className="admin-activity-logs-meta-item admin-activity-logs-date">{formatDate(log.created_at)}</span>
 													<span className="admin-activity-logs-meta-item admin-activity-logs-chevron">
-														{isOpen ? 'Ascunde' : (count > 1 ? 'Vezi orele' : 'Vezi tot')}
+														{isOpen ? 'Ascunde' : 'Detalii'}
 													</span>
 												</div>
 											</div>
@@ -382,37 +381,20 @@ const AdminActivityLogsPage = () => {
 									</button>
 									{isOpen && (
 										<div className="admin-activity-logs-detail">
-											{count > 1 ? (
-												<ul className="admin-activity-logs-times">
-													{group.items.map((item) => (
-														<li key={item.id}>
-															<time dateTime={item.created_at}>{formatTime(item.created_at)}</time>
-															<span>{getFriendlyLogLine(item)}</span>
-														</li>
-													))}
-												</ul>
-											) : (
-												<>
-													{log.user?.name ? (
-														<p className="admin-activity-logs-detail-desc" style={{ marginTop: 'var(--space-3)' }}>
-															<strong>{log.user.name}</strong>
-															{log.user.email ? (
-																<>
-																	{' '}
-																	<span className="admin-activity-logs-detail-tech" style={{ fontWeight: 'normal' }}>
-																		({log.user.email})
-																	</span>
-																</>
-															) : null}
-														</p>
-													) : null}
-													{log.action ? (
-														<p className="admin-activity-logs-detail-tech" title={log.action}>
-															Tip înregistrare: <strong>{getActionLabelRo(log.action)}</strong>
-														</p>
-													) : null}
-												</>
-											)}
+											<ul className="admin-activity-logs-times">
+												{group.items.map((item) => (
+													<li key={item.id}>
+														<time dateTime={item.created_at}>{formatTime(item.created_at)}</time>
+														<span>{getActivityDetailLine(item)}</span>
+													</li>
+												))}
+											</ul>
+											{log.user?.email || log.action ? (
+												<p className="admin-activity-logs-detail-tech" title={log.action}>
+													{log.user?.email ? <>{log.user.email} · </> : null}
+													{getActionLabelRo(log.action)}
+												</p>
+											) : null}
 										</div>
 									)}
 								</div>

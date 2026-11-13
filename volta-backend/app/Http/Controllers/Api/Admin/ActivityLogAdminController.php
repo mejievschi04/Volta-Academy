@@ -130,32 +130,73 @@ class ActivityLogAdminController extends Controller
             $query->where('created_at', '<', $to->addDay()->startOfDay());
         }
 
+        // Pagina are `per_page` rânduri, iar un rând = același utilizator, aceeași acțiune, aceeași zi
+        // (ex. „a finalizat 5 lecții”). Gruparea se face aici ca să numărăm rânduri, nu evenimente.
+        // created_at e în ora aplicației (Europe/Bucharest), deci DATE() dă ziua locală.
+        $groups = (clone $query)->toBase()->reorder()
+            ->select([
+                'user_id',
+                'action',
+                DB::raw('DATE(created_at) as day'),
+                DB::raw('MAX(created_at) as last_at'),
+                DB::raw('MIN(created_at) as first_at'),
+                DB::raw('MAX(id) as last_id'),
+            ])
+            ->groupBy('user_id', 'action', DB::raw('DATE(created_at)'));
+
         if ($sortBy === 'team') {
             // Echipa A–Z (prima echipă alfabetic, ca în lista de utilizatori; fără echipă la final),
-            // iar în cadrul echipei cele mai noi evenimente primele.
+            // iar în cadrul echipei cele mai noi rânduri primele.
             $teamName = DB::table('team_user')
                 ->join('teams', 'teams.id', '=', 'team_user.team_id')
                 ->whereColumn('team_user.user_id', 'activity_logs.user_id')
                 ->selectRaw("COALESCE(MIN(LOWER(teams.name)), '~')");
-            $query->orderBy($teamName, $sortDir)
-                ->orderBy('created_at', 'desc')
-                ->orderBy('id', 'desc');
+            $groups->orderBy($teamName, $sortDir)->orderBy('last_at', 'desc')->orderBy('last_id', 'desc');
+        } elseif ($sortBy === 'action') {
+            $groups->orderBy('action', $sortDir)->orderBy('last_at', 'desc')->orderBy('last_id', 'desc');
+        } elseif ($sortDir === 'asc') {
+            $groups->orderBy('first_at', 'asc')->orderBy('last_id', 'asc');
         } else {
-            $query->orderBy($sortBy, $sortDir);
-            // Stable order when many rows share the same timestamp
-            $query->orderBy('id', $sortDir);
+            $groups->orderBy('last_at', 'desc')->orderBy('last_id', 'desc');
         }
 
-        // An exact COUNT(*) over the whole journal is the slow part on a large table;
-        // count at most COUNT_CAP + 1 matching rows and report "10.000+" beyond that.
-        $cappedIds = (clone $query)->toBase()->reorder()->select('id')->limit(static::COUNT_CAP + 1);
-        $matched = DB::query()->fromSub($cappedIds, 'capped')->count();
+        // Numărarea exactă pe tot jurnalul e lentă; numărăm cel mult COUNT_CAP + 1 rânduri („10.000+”).
+        $cappedGroups = (clone $groups)->reorder()->limit(static::COUNT_CAP + 1);
+        $matched = DB::query()->fromSub($cappedGroups, 'capped')->count();
         $totalCapped = $matched > static::COUNT_CAP;
         $total = min($matched, static::COUNT_CAP);
         $lastPage = max(1, (int) ceil($total / $perPage));
         $page = min($lastPage, max(1, (int) $request->get('page', 1)));
 
-        $items = $query->forPage($page, $perPage)->get();
+        $pageGroups = $groups->forPage($page, $perPage)->get();
+        $items = collect();
+        if ($pageGroups->isNotEmpty()) {
+            $logs = (clone $query)
+                ->where(function ($q) use ($pageGroups) {
+                    foreach ($pageGroups as $group) {
+                        $day = Carbon::parse((string) $group->day)->startOfDay();
+                        $q->orWhere(function ($g) use ($group, $day) {
+                            $group->user_id === null ? $g->whereNull('user_id') : $g->where('user_id', $group->user_id);
+                            $g->where('action', $group->action)
+                                ->where('created_at', '>=', $day)
+                                ->where('created_at', '<', $day->copy()->addDay());
+                        });
+                    }
+                })
+                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy(fn (ActivityLog $log) => $this->groupKey($log->user_id, $log->action, $log->created_at?->format('Y-m-d')));
+
+            // aceeași ordine ca rândurile; în rând, cel mai nou eveniment primul
+            foreach ($pageGroups as $group) {
+                $key = $this->groupKey($group->user_id, $group->action, Carbon::parse((string) $group->day)->format('Y-m-d'));
+                foreach ($logs->get($key, []) as $log) {
+                    $log->setAttribute('group_key', $key);
+                    $items->push($log);
+                }
+            }
+        }
 
         return response()->json([
             'data' => $this->withContext($items),
@@ -240,6 +281,11 @@ class ActivityLogAdminController extends Controller
         $courseId = $int($nv['course_id'] ?? null) ?? ($type === 'course' ? $int($log->model_id) : null);
 
         return ['lesson_id' => $lessonId, 'test_id' => $testId, 'exam_id' => $examId, 'course_id' => $courseId];
+    }
+
+    protected function groupKey($userId, ?string $action, ?string $day): string
+    {
+        return ($userId ?? 'none').'|'.$action.'|'.$day;
     }
 
     protected function parseDate(string $value): ?Carbon

@@ -351,6 +351,18 @@
 	color: var(--text-secondary);
 }
 
+/* Data și „Detalii” au lățime fixă, ca rândurile să se alinieze ca un tabel */
+.admin-activity-logs-date {
+	min-width: 8.5rem;
+	justify-content: flex-end;
+	font-variant-numeric: tabular-nums;
+}
+
+.admin-activity-logs-meta .admin-activity-logs-chevron {
+	min-width: 3.5rem;
+	justify-content: flex-end;
+}
+
 .admin-activity-logs-chevron {
 	margin-left: auto;
 	color: var(--text-tertiary, var(--text-secondary));

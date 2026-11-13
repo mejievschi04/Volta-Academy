@@ -223,7 +223,8 @@ export function groupActivityLogs(logs) {
 	const groups = [];
 	const byKey = new Map();
 	(logs || []).forEach((log) => {
-		const key = `${log.user_id ?? 'none'}|${log.action || ''}|${localDayKey(log.created_at)}`;
+		// jurnalul admin primește gruparea de la server (rândurile se paginează acolo)
+		const key = log.group_key || `${log.user_id ?? 'none'}|${log.action || ''}|${localDayKey(log.created_at)}`;
 		let group = byKey.get(key);
 		if (!group) {
 			group = { key, items: [] };
@@ -282,4 +283,65 @@ export function getGroupedLogLine(group) {
 			: `${name} a avansat la lecții de ${count} ori.`;
 	}
 	return `${name}: ${getActionLabelRo(action)} · ${count} înregistrări`;
+}
+
+const plural = (n, one, many) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+
+/**
+ * Rândul scurt din jurnalul admin: doar cine și câte („a finalizat 5 lecții”).
+ * Denumirile lecțiilor / testelor apar la deschiderea rândului (getActivityDetailLine).
+ */
+export function getShortGroupLine(group) {
+	const items = group?.items || [];
+	const lead = items[0];
+	if (!lead) return '';
+	const count = activityGroupCount(group);
+	const name = lead.user?.name || 'Un utilizator';
+	const action = lead.action || '';
+	const distinct = (key) => new Set(items.map((log) => logTitles(log)[key] || log.id)).size;
+
+	switch (action) {
+		case 'completed_lesson':
+			return `${name} a finalizat ${plural(count, 'lecție', 'lecții')}`;
+		case 'completed_course':
+			return `${name} a finalizat ${plural(count, 'curs', 'cursuri')}`;
+		case 'enrolled_course':
+			return `${name} s-a înscris la ${plural(count, 'curs', 'cursuri')}`;
+		case 'completed_exam':
+			return `${name} a promovat ${plural(count, 'test', 'teste')}`;
+		case 'telemetry.learner_attempt_submitted': {
+			const pct = lead.new_values?.percentage ?? lead.new_values?.score_percentage ?? lead.new_values?.percent;
+			return count === 1 && pct != null
+				? `${name} a trimis 1 test · ${formatPercent(pct)}`
+				: `${name} a trimis ${plural(count, 'test', 'teste')}`;
+		}
+		case 'telemetry.learner_focus_seconds': {
+			const seconds = items.reduce((sum, log) => sum + Number(log.new_values?.seconds || 0), 0);
+			const time = seconds > 0 ? ` · ${formatMinutes(seconds)}` : '';
+			return `${name} a citit ${plural(distinct('lesson'), 'lecție', 'lecții')}${time}`;
+		}
+		case 'session_started':
+			return count > 1 ? `${name} a intrat în aplicație de ${count} ori` : `${name} a intrat în aplicație`;
+		case 'logged_in':
+			return count > 1 ? `${name} s-a autentificat de ${count} ori` : `${name} s-a autentificat`;
+		case 'logged_out':
+			return count > 1 ? `${name} s-a deconectat de ${count} ori` : `${name} s-a deconectat`;
+		default:
+			return count > 1
+				? `${name}: ${getActionLabelRo(action)} (${count})`
+				: `${name}: ${getActionLabelRo(action)}`;
+	}
+}
+
+/** Linia unui eveniment din rândul deschis: fără numele persoanei (e deja în rând). */
+export function getActivityDetailLine(log) {
+	const name = log?.user?.name || 'Un utilizator';
+	const line = getFriendlyLogLine(log).replace(/\.$/, '');
+	for (const prefix of [`${name}: `, `${name} `]) {
+		if (line.startsWith(prefix)) {
+			const rest = line.slice(prefix.length);
+			return rest.charAt(0).toUpperCase() + rest.slice(1);
+		}
+	}
+	return line;
 }

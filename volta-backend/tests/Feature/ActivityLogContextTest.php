@@ -88,4 +88,31 @@ class ActivityLogContextTest extends TestCase
         $none = $this->getJson('/api/admin/activity-logs?team_id=none')->assertOk()->json('data');
         $this->assertSame([$noTeam->id], array_column($none, 'user_id'));
     }
+
+    public function test_pages_count_rows_not_events(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
+        $ana = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $ion = User::factory()->create(['role' => 'student', 'status' => 'active']);
+
+        // Ana: 5 lecții azi (un rând) + 1 lecție ieri (alt rând); Ion: 1 autentificare (un rând)
+        foreach (range(1, 5) as $i) {
+            ActivityLog::create(['user_id' => $ana->id, 'action' => 'completed_lesson', 'description' => "l{$i}"])
+                ->forceFill(['created_at' => '2026-11-13 09:0'.$i.':00'])->save();
+        }
+        ActivityLog::create(['user_id' => $ana->id, 'action' => 'completed_lesson', 'description' => 'ieri'])
+            ->forceFill(['created_at' => '2026-11-12 18:00:00'])->save();
+        ActivityLog::create(['user_id' => $ion->id, 'action' => 'logged_in', 'description' => 'login'])
+            ->forceFill(['created_at' => '2026-11-13 08:00:00'])->save();
+
+        $first = $this->actingAs($admin)->getJson('/api/admin/activity-logs?per_page=1')->assertOk();
+        $first->assertJsonPath('pagination.total', 3)->assertJsonPath('pagination.last_page', 3);
+        // primul rând (cel mai nou) are toate cele 5 lecții de azi ale Anei
+        $rows = $first->json('data');
+        $this->assertCount(5, $rows);
+        $this->assertSame(["{$ana->id}|completed_lesson|2026-11-13"], array_values(array_unique(array_column($rows, 'group_key'))));
+
+        $third = $this->getJson('/api/admin/activity-logs?per_page=1&page=3')->assertOk()->json('data');
+        $this->assertSame(['ieri'], array_column($third, 'description'));
+    }
 }
