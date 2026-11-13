@@ -456,6 +456,32 @@ class EventAdminController extends Controller
         }
     }
 
+    /**
+     * Tabelul de evidență a prezenței (.xlsx): angajații pe echipe × evenimentele anului.
+     * Doar admin / analist: raportul arată toți angajații.
+     */
+    public function attendanceReport(Request $request, \App\Services\EventAttendanceReportService $report)
+    {
+        $user = $request->user();
+        if (! $user || ! ($user->isAdmin() || $user->isAnalyst())) {
+            abort(403, 'Doar administratorii pot descărca raportul de prezență.');
+        }
+
+        $validated = $request->validate([
+            'year' => 'nullable|integer|min:2000|max:2100',
+        ]);
+        $year = (int) ($validated['year'] ?? now()->year);
+
+        $path = tempnam(sys_get_temp_dir(), 'prezenta_');
+        $report->writeXlsx($year, $path);
+
+        return response()->download(
+            $path,
+            "Prezenta_evenimente_{$year}.xlsx",
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
+    }
+
     private function ensureCanManageEvent(Event $event): void
     {
         $user = auth()->user();

@@ -91,11 +91,11 @@ const AdminStatisticsHubPage = () => {
 		role: 'button',
 		tabIndex: 0,
 		title: 'Deschide statistica testului',
-		onClick: () => setOpenedTest({ id: row.id, title: row.title, teamKey: row.teamKey || '' }),
+		onClick: () => setOpenedTest({ id: row.id, title: row.title }),
 		onKeyDown: (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
-				setOpenedTest({ id: row.id, title: row.title, teamKey: row.teamKey || '' });
+				setOpenedTest({ id: row.id, title: row.title });
 			}
 		},
 	});
@@ -1652,11 +1652,11 @@ const AdminStatisticsHubPage = () => {
 		role: 'button',
 		tabIndex: 0,
 		title: 'Deschide rezultatele examenului',
-		onClick: () => setOpenedExam({ id: row.id, title: row.title, teamKey: row.teamKey || '' }),
+		onClick: () => setOpenedExam({ id: row.id, title: row.title }),
 		onKeyDown: (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
-				setOpenedExam({ id: row.id, title: row.title, teamKey: row.teamKey || '' });
+				setOpenedExam({ id: row.id, title: row.title });
 			}
 		},
 	});
@@ -1840,7 +1840,8 @@ const AdminStatisticsHubPage = () => {
 						<TestStatisticsPanel
 							testId={openedTest.id}
 							testTitle={openedTest.title || 'Test'}
-							teamKey={openedTest.teamKey || ''}
+							// pornește de la filtrul paginii („Toate echipele” implicit), nu de la echipa rândului
+							teamKey={teamId}
 							teams={statsPayload?.teams || []}
 						/>
 					</div>
@@ -1853,7 +1854,7 @@ const AdminStatisticsHubPage = () => {
 							entityTitle={openedExam.title || 'Examen'}
 							dateFrom={dateFrom}
 							dateTo={dateTo}
-							teamKey={openedExam.teamKey || ''}
+							teamKey={teamId}
 							teams={statsPayload?.teams || []}
 							showTeamFilter
 						/>

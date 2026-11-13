@@ -98,6 +98,12 @@ test('rezultatul apare în istoricul testelor', async ({ page }) => {
 	// Rezultatele stau în mape pe curs, închise implicit: testul apare după ce deschizi mapa cursului.
 	const courseFolder = page.getByRole('button', { name: /Curs E2E/ });
 	await expect(courseFolder).toHaveAttribute('aria-expanded', 'false');
+	// Testele din curs și testele lunare sunt în taburi separate; implicit e deschis cel cu rezultate.
+	await expect(page.getByRole('tab', { name: /Teste din cursuri/ })).toHaveAttribute('aria-selected', 'true');
 	await courseFolder.click();
 	await expect(page.getByText('Test final E2E').first()).toBeVisible();
+	// Cardul e compact: întrebările se văd doar după „Vezi răspunsurile”.
+	await expect(page.getByText('Care este capitala României?')).toHaveCount(0);
+	await page.getByRole('button', { name: /Vezi răspunsurile/ }).first().click();
+	await expect(page.getByText('Care este capitala României?').first()).toBeVisible();
 });

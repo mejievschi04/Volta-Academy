@@ -31,8 +31,24 @@ function parseWallClockToMs(dateString) {
 }
 
 const AdminEventsPage = () => {
-	const { canMutateInAdminArea } = useAuth();
+	const { canMutateInAdminArea, user } = useAuth();
 	const { error: showError } = useToast();
+	// Raportul de prezență arată toți angajații: doar admin / analist
+	const canDownloadAttendance = user?.role === 'admin' || user?.role === 'analyst';
+	const currentYear = new Date().getFullYear();
+	const [reportYear, setReportYear] = useState(currentYear);
+	const [reportLoading, setReportLoading] = useState(false);
+	const downloadAttendanceReport = async () => {
+		setReportLoading(true);
+		try {
+			await adminService.downloadEventAttendanceReport(reportYear);
+		} catch (err) {
+			logger.error('Attendance report failed', err);
+			showError('Raportul de prezență nu a putut fi descărcat.');
+		} finally {
+			setReportLoading(false);
+		}
+	};
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -216,18 +232,44 @@ const AdminEventsPage = () => {
 						Listă cu evenimentele active. Calendarul din bară rămâne pentru programare rapidă.
 					</p>
 				</div>
-				{canMutateInAdminArea && (
-					<button
-						type="button"
-						className="lms-btn-primary"
-						onClick={() => {
-							setEditingEvent(null);
-							setShowModal(true);
-						}}
-					>
-						+ Adaugă Eveniment Nou
-					</button>
-				)}
+				<div className="admin-events-header-actions">
+					{canDownloadAttendance && (
+						<div className="admin-events-report">
+							<select
+								className="admin-events-report-year"
+								aria-label="Anul raportului de prezență"
+								value={reportYear}
+								onChange={(e) => setReportYear(Number(e.target.value))}
+								disabled={reportLoading}
+							>
+								{[0, 1, 2, 3].map((back) => (
+									<option key={back} value={currentYear - back}>{currentYear - back}</option>
+								))}
+							</select>
+							<button
+								type="button"
+								className="lms-btn-secondary"
+								onClick={downloadAttendanceReport}
+								disabled={reportLoading}
+								title="Tabel Excel: angajații pe echipe × evenimentele anului, verde = a participat"
+							>
+								{reportLoading ? 'Se generează…' : 'Raport prezență (.xlsx)'}
+							</button>
+						</div>
+					)}
+					{canMutateInAdminArea && (
+						<button
+							type="button"
+							className="lms-btn-primary"
+							onClick={() => {
+								setEditingEvent(null);
+								setShowModal(true);
+							}}
+						>
+							+ Adaugă Eveniment Nou
+						</button>
+					)}
+				</div>
 			</div>
 
 			<div className="admin-courses-toolbar">

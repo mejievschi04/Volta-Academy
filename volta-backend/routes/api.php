@@ -333,6 +333,7 @@ Route::middleware([
     
     // Events Management
     Route::get('/events', [EventAdminController::class, 'index']);
+    Route::get('/events/attendance-report', [EventAdminController::class, 'attendanceReport']);
     Route::get('/events/{id}', [EventAdminController::class, 'show']);
     Route::post('/events', [EventAdminController::class, 'store']);
     Route::put('/events/{id}', [EventAdminController::class, 'update']);

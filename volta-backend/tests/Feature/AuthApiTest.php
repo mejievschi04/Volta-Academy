@@ -121,4 +121,35 @@ class AuthApiTest extends TestCase
             'id' => $tokenId,
         ]);
     }
+
+    public function test_login_keeps_the_user_remembered_across_visits(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'remember@example.com',
+            'password' => Hash::make('Password123'),
+            'role' => 'student',
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'remember@example.com',
+            'password' => 'Password123',
+        ])->assertOk();
+
+        $recaller = \Illuminate\Support\Facades\Auth::guard('web')->getRecallerName();
+        $response->assertCookie($recaller);
+        $this->assertNotNull($user->fresh()->getRememberToken());
+    }
+
+    public function test_admin_password_change_forgets_remembered_devices(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active', 'remember_token' => 'old-device-token']);
+
+        $this->actingAs($admin)
+            ->putJson("/api/admin/users/{$student->id}", ['password' => 'NewPass123'])
+            ->assertOk();
+
+        $this->assertNotSame('old-device-token', $student->fresh()->getRememberToken());
+    }
 }

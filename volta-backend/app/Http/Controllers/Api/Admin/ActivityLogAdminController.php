@@ -22,18 +22,19 @@ class ActivityLogAdminController extends Controller
 
     public function index(Request $request)
     {
-        $perPage = min(200, max(1, (int) $request->get('per_page', 200)));
+        $perPage = min(200, max(1, (int) $request->get('per_page', 100)));
         $search = $request->get('search');
         $action = $request->get('action');
         $modelType = $request->get('model_type');
         $userId = $request->get('user_id');
+        $teamFilter = (string) $request->get('team_id', '');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
         $actionScope = $request->get('action_scope'); // elev_progres | all | telemetry | learner | admin_ops | legacy
         $excludeSelf = $request->boolean('exclude_self', true);
 
         $sortBy = $request->get('sort_by', 'created_at');
-        if (! in_array($sortBy, ['created_at', 'action'], true)) {
+        if (! in_array($sortBy, ['created_at', 'action', 'team'], true)) {
             $sortBy = 'created_at';
         }
         $sortDir = strtolower((string) $request->get('sort_dir', 'desc'));
@@ -48,8 +49,8 @@ class ActivityLogAdminController extends Controller
 
         // Only the columns the journal list renders; old_values / user_agent can be large.
         $query = ActivityLog::query()
-            ->select(['id', 'user_id', 'action', 'description', 'new_values', 'created_at'])
-            ->with('user:id,name,email')
+            ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'description', 'new_values', 'created_at'])
+            ->with(['user:id,name,email', 'user.teams:id,name,accent_color'])
             ->whereNotIn('action', [
                 'telemetry.learner_answer_saved',
                 'telemetry.learner_attempt_started',
@@ -112,6 +113,14 @@ class ActivityLogAdminController extends Controller
             $query->where('user_id', $userId);
         }
 
+        if ($teamFilter !== '' && $teamFilter !== 'all') {
+            if ($teamFilter === 'none') {
+                $query->whereNotIn('user_id', DB::table('team_user')->select('user_id'));
+            } elseif (ctype_digit($teamFilter)) {
+                $query->whereIn('user_id', DB::table('team_user')->where('team_id', (int) $teamFilter)->select('user_id'));
+            }
+        }
+
         // Range on the raw column (not whereDate) so the created_at index is usable.
         if ($dateFrom && ($from = $this->parseDate($dateFrom))) {
             $query->where('created_at', '>=', $from->startOfDay());
@@ -121,9 +130,21 @@ class ActivityLogAdminController extends Controller
             $query->where('created_at', '<', $to->addDay()->startOfDay());
         }
 
-        $query->orderBy($sortBy, $sortDir);
-        // Stable order when many rows share the same timestamp
-        $query->orderBy('id', $sortDir);
+        if ($sortBy === 'team') {
+            // Echipa A–Z (prima echipă alfabetic, ca în lista de utilizatori; fără echipă la final),
+            // iar în cadrul echipei cele mai noi evenimente primele.
+            $teamName = DB::table('team_user')
+                ->join('teams', 'teams.id', '=', 'team_user.team_id')
+                ->whereColumn('team_user.user_id', 'activity_logs.user_id')
+                ->selectRaw("COALESCE(MIN(LOWER(teams.name)), '~')");
+            $query->orderBy($teamName, $sortDir)
+                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc');
+        } else {
+            $query->orderBy($sortBy, $sortDir);
+            // Stable order when many rows share the same timestamp
+            $query->orderBy('id', $sortDir);
+        }
 
         // An exact COUNT(*) over the whole journal is the slow part on a large table;
         // count at most COUNT_CAP + 1 matching rows and report "10.000+" beyond that.
@@ -137,7 +158,7 @@ class ActivityLogAdminController extends Controller
         $items = $query->forPage($page, $perPage)->get();
 
         return response()->json([
-            'data' => $items,
+            'data' => $this->withContext($items),
             'pagination' => [
                 'current_page' => $page,
                 'last_page' => $lastPage,
@@ -157,6 +178,68 @@ class ActivityLogAdminController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Fiecare rând primește titlurile lecției / testului / cursului la care se referă,
+     * ca jurnalul să spună „lecția X”, „testul Y” în loc de „o lecție”, „un test”.
+     * Titlurile se citesc acum (nu din momentul evenimentului), câte o interogare pe tip.
+     */
+    protected function withContext($items): array
+    {
+        $refs = $items->map(fn (ActivityLog $log) => $this->contextRefs($log));
+
+        $lessonIds = $refs->pluck('lesson_id')->filter()->unique()->values();
+        $lessons = $lessonIds->isEmpty() ? collect() : DB::table('lessons')
+            ->leftJoin('modules', 'modules.id', '=', 'lessons.module_id')
+            ->whereIn('lessons.id', $lessonIds)
+            ->get(['lessons.id', 'lessons.title', DB::raw('COALESCE(lessons.course_id, modules.course_id) as course_id')])
+            ->keyBy('id');
+
+        $testIds = $refs->pluck('test_id')->filter()->unique()->values();
+        $tests = $testIds->isEmpty() ? collect() : DB::table('tests')->whereIn('id', $testIds)->pluck('title', 'id');
+
+        $examIds = $refs->pluck('exam_id')->filter()->unique()->values();
+        $exams = $examIds->isEmpty() ? collect() : DB::table('exams')->whereIn('id', $examIds)->pluck('title', 'id');
+
+        $courseIds = $refs->pluck('course_id')
+            ->merge($lessons->pluck('course_id'))
+            ->filter()->unique()->values();
+        $courses = $courseIds->isEmpty() ? collect() : DB::table('courses')->whereIn('id', $courseIds)->pluck('title', 'id');
+
+        return $items->values()->map(function (ActivityLog $log, int $i) use ($refs, $lessons, $tests, $exams, $courses) {
+            $ref = $refs[$i];
+            $lesson = $ref['lesson_id'] ? $lessons->get($ref['lesson_id']) : null;
+            $courseId = $ref['course_id'] ?: ($lesson->course_id ?? null);
+            $testTitle = $ref['test_id'] ? $tests->get($ref['test_id']) : null;
+            if (! $testTitle && $ref['exam_id']) {
+                $testTitle = $exams->get($ref['exam_id']);
+            }
+
+            return $log->toArray() + [
+                'context' => array_filter([
+                    'lesson_title' => $lesson->title ?? null,
+                    'test_title' => $testTitle,
+                    'course_title' => $courseId ? $courses->get($courseId) : null,
+                ], fn ($v) => $v !== null && $v !== ''),
+            ];
+        })->all();
+    }
+
+    /** @return array{lesson_id: ?int, test_id: ?int, exam_id: ?int, course_id: ?int} */
+    protected function contextRefs(ActivityLog $log): array
+    {
+        $nv = is_array($log->new_values) ? $log->new_values : [];
+        $int = fn ($v) => is_numeric($v) && (int) $v > 0 ? (int) $v : null;
+        $type = strtolower(class_basename((string) $log->model_type));
+
+        $lessonId = $int($nv['lesson_id'] ?? null) ?? ($type === 'lesson' ? $int($log->model_id) : null);
+        $testId = $int($nv['test_id'] ?? null) ?? ($type === 'test' ? $int($log->model_id) : null);
+        // completed_exam pentru Test pune id-ul testului în exam_id (model_type = Test)
+        $examId = $testId ? null : ($type === 'exam' ? ($int($nv['exam_id'] ?? null) ?? $int($log->model_id)) : null);
+        $courseId = $int($nv['course_id'] ?? null) ?? ($type === 'course' ? $int($log->model_id) : null);
+
+        return ['lesson_id' => $lessonId, 'test_id' => $testId, 'exam_id' => $examId, 'course_id' => $courseId];
     }
 
     protected function parseDate(string $value): ?Carbon

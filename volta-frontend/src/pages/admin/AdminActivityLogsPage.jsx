@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { adminService } from '../../services/api';
+import { teamAccent } from '../../utils/teamAccent';
 import {
 	getFriendlyLogLine,
 	getGroupedLogLine,
@@ -45,7 +46,7 @@ const AdminActivityLogsPage = () => {
 	const [pagination, setPagination] = useState({
 		current_page: 1,
 		last_page: 1,
-		per_page: 200,
+		per_page: 100,
 		total: 0,
 		total_capped: false,
 	});
@@ -54,10 +55,13 @@ const AdminActivityLogsPage = () => {
 		action: '',
 		action_scope: 'all',
 		user_id: '',
+		team_id: 'all',
 		date_from: '',
 		date_to: '',
+		// desc / asc = după dată; team = grupat pe echipe (A–Z), cele mai noi primele în echipă
 		sort_dir: 'desc',
 	});
+	const [teams, setTeams] = useState([]);
 	const [showMyActions, setShowMyActions] = useState(false);
 	const [searchInput, setSearchInput] = useState('');
 	const searchDebounceRef = useRef(null);
@@ -84,10 +88,11 @@ const AdminActivityLogsPage = () => {
 				action: actionAllowed ? filters.action : undefined,
 				action_scope: filters.action_scope !== 'all' ? filters.action_scope : undefined,
 				user_id: filters.user_id || undefined,
+				team_id: filters.team_id !== 'all' ? filters.team_id : undefined,
 				date_from: filters.date_from || undefined,
 				date_to: filters.date_to || undefined,
-				sort_by: 'created_at',
-				sort_dir: filters.sort_dir,
+				sort_by: filters.sort_dir === 'team' ? 'team' : 'created_at',
+				sort_dir: filters.sort_dir === 'team' ? 'asc' : filters.sort_dir,
 				exclude_self: showMyActions ? 0 : 1,
 			};
 			Object.keys(params).forEach((key) => {
@@ -126,6 +131,18 @@ const AdminActivityLogsPage = () => {
 	}, [fetchLogs]);
 
 	useEffect(() => () => fetchAbortRef.current?.abort(), []);
+
+	useEffect(() => {
+		let cancelled = false;
+		adminService.getTeams()
+			.then((data) => {
+				if (cancelled) return;
+				const list = Array.isArray(data) ? data : (data?.data || []);
+				setTeams([...list].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ro')));
+			})
+			.catch((err) => console.error('Error fetching teams:', err));
+		return () => { cancelled = true; };
+	}, []);
 
 	useEffect(() => {
 		if (searchEffectBoot.current) {
@@ -263,6 +280,20 @@ const AdminActivityLogsPage = () => {
 						</select>
 					</div>
 					<div className="admin-activity-logs-filter-group">
+						<label className="admin-activity-logs-filter-label">Echipă</label>
+						<select aria-label="Echipă"
+							className="admin-activity-logs-filter-input"
+							value={filters.team_id}
+							onChange={(e) => handleFilterChange('team_id', e.target.value)}
+						>
+							<option value="all">Toate echipele</option>
+							{teams.map((team) => (
+								<option key={team.id} value={String(team.id)}>{team.name}</option>
+							))}
+							<option value="none">Fără echipă</option>
+						</select>
+					</div>
+					<div className="admin-activity-logs-filter-group">
 						<label className="admin-activity-logs-filter-label">Ordine în listă</label>
 						<select aria-label="Ordine în listă"
 							className="admin-activity-logs-filter-input"
@@ -271,6 +302,7 @@ const AdminActivityLogsPage = () => {
 						>
 							<option value="desc">Cel mai nou primul</option>
 							<option value="asc">Cel mai vechi primul</option>
+							<option value="team">După echipă (A–Z)</option>
 						</select>
 					</div>
 					<div className="admin-activity-logs-filter-group">
@@ -323,8 +355,21 @@ const AdminActivityLogsPage = () => {
 												</div>
 												<div className="admin-activity-logs-meta">
 													{log.user && (
-														<span className="admin-activity-logs-meta-item">
-															{log.user.email}
+														<span className="admin-activity-logs-meta-item admin-activity-logs-teams">
+															{Array.isArray(log.user.teams) && log.user.teams.some((t) => t?.name) ? (
+																log.user.teams.filter((t) => t?.name).map((t) => (
+																	<span key={t.id} className="admin-users-team-chip" title={t.name}>
+																		<span
+																			className="admin-users-team-swatch"
+																			style={{ background: teamAccent(t) }}
+																			aria-hidden
+																		/>
+																		<span className="admin-users-team-chip-name">{t.name}</span>
+																	</span>
+																))
+															) : (
+																'Fără echipă'
+															)}
 														</span>
 													)}
 													<span className="admin-activity-logs-meta-item">{formatDate(log.created_at)}</span>
@@ -393,6 +438,7 @@ const AdminActivityLogsPage = () => {
 									search: '',
 									action: '',
 									action_scope: 'all',
+									team_id: 'all',
 									date_from: '',
 									date_to: '',
 								}));

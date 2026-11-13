@@ -317,6 +317,12 @@ class UserAdminController extends Controller
 
         $user->update($validated);
 
+        // Parolă schimbată de admin: dispozitivele „ținute minte” trebuie să se logheze din nou
+        if (isset($validated['password'])) {
+            $user->setRememberToken(\Illuminate\Support\Str::random(60));
+            $user->save();
+        }
+
         return response()->json([
             'message' => 'Utilizator actualizat cu succes',
             'user' => $user->load($this->eagerLoadTeamsCourses()),

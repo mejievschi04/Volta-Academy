@@ -59,7 +59,9 @@ class AuthController extends Controller
             }
         }
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Mereu „ține-mă minte”: cursanții nu trebuie să se logheze la fiecare intrare.
+        // Cookie-ul de remember reface sesiunea după expirarea celei de 2 ore; logout îl șterge.
+        if (Auth::attempt($credentials, true)) {
             $request->session()->regenerate();
             
             $user = Auth::user();

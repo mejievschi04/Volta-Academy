@@ -10,6 +10,7 @@ import {
 	CheckCircle,
 	Eye,
 	Folder,
+	HourglassMedium,
 	MagnifyingGlass,
 	WarningCircle,
 	XCircle,
@@ -280,6 +281,62 @@ function QuestionReview({ question, index, result, submittedOnly = false }) {
 	);
 }
 
+/** Card compact: titlu, stare, procent și scor pe un rând; întrebările se deschid la cerere. */
+function ResultCard({ result }) {
+	const [showAnswers, setShowAnswers] = useState(false);
+	const state = getResultState(result);
+	const percent = formatPercent(toNumber(result.percentage));
+	const questions = asArray(result?.exam?.questions);
+	const submittedOnly = Boolean(result?.show_only_submitted_answers);
+	const answersId = `exam-result-answers-${result.type || 'exam'}-${result.id}`;
+	const StateIcon = state.key === 'passed' ? CheckCircle : state.key === 'pending' ? HourglassMedium : XCircle;
+
+	return (
+		<article className={`exam-results-test-card is-${state.key}`}>
+			<div className="exam-results-test-row">
+				<StateIcon size={22} weight="fill" aria-hidden className="exam-results-test-icon" />
+				<div className="exam-results-test-main">
+					<h3 className="exam-results-test-title">{getResultTitle(result)}</h3>
+					<p className="exam-results-test-meta">
+						<span className="exam-results-test-state">{state.label}</span>
+						<span>Scor {toNumber(result.score)} / {toNumber(result.total_points ?? result.max_score)}</span>
+					</p>
+				</div>
+				{state.key !== 'pending' && <span className="exam-results-test-percent">{percent}</span>}
+			</div>
+			{questions.length > 0 ? (
+				<>
+					<button
+						type="button"
+						className="exam-results-test-toggle"
+						aria-expanded={showAnswers}
+						aria-controls={answersId}
+						onClick={() => setShowAnswers((open) => !open)}
+					>
+						{showAnswers ? 'Ascunde răspunsurile' : `Vezi răspunsurile (${questions.length})`}
+						<CaretDown size={14} weight="bold" aria-hidden className="exam-results-test-toggle-caret" />
+					</button>
+					{showAnswers && (
+						<div id={answersId} className="student-exam-final-feedback exam-results-test-answers">
+							{questions.map((question, index) => (
+								<QuestionReview
+									key={question.id ?? index}
+									question={question}
+									index={index}
+									result={result}
+									submittedOnly={submittedOnly}
+								/>
+							))}
+						</div>
+					)}
+				</>
+			) : (
+				<p className="exam-results-test-missing">Detaliile întrebărilor nu sunt disponibile.</p>
+			)}
+		</article>
+	);
+}
+
 const STATUS_FILTERS = [
 	{ id: 'all', label: 'Toate' },
 	{ id: 'passed', label: 'Promovate' },
@@ -299,6 +356,7 @@ const ExamResultsPage = () => {
 	const [filterStatus, setFilterStatus] = useState('all');
 	const [sortBy, setSortBy] = useState('recent');
 	const [openCourses, setOpenCourses] = useState(() => new Set());
+	const [activeSection, setActiveSection] = useState(null);
 
 	const toggleCourse = (key) => setOpenCourses((prev) => {
 		const next = new Set(prev);
@@ -363,10 +421,15 @@ const ExamResultsPage = () => {
 		const monthly = filteredResults.filter(isMonthlyTest);
 		const courseTests = filteredResults.filter((result) => !isMonthlyTest(result));
 		return [
-			{ id: 'monthly', title: 'Teste lunare', groups: groupByMonth(monthly) },
-			{ id: 'courses', title: 'Teste din cursuri', groups: groupByCourse(courseTests) },
-		].filter((section) => section.groups.length > 0);
+			{ id: 'courses', title: 'Teste din cursuri', count: courseTests.length, groups: groupByCourse(courseTests) },
+			{ id: 'monthly', title: 'Teste lunare', count: monthly.length, groups: groupByMonth(monthly) },
+		];
 	}, [filteredResults]);
+	// Implicit: prima secțiune cu rezultate (cursurile, apoi testele lunare)
+	const currentSectionId = activeSection
+		?? resultSections.find((section) => section.count > 0)?.id
+		?? 'courses';
+	const currentSection = resultSections.find((section) => section.id === currentSectionId);
 	const searching = query.trim() !== '';
 
 	if (loading) {
@@ -434,13 +497,34 @@ const ExamResultsPage = () => {
 				</div>
 			</div>
 
-			{filteredResults.length > 0 ? (
-				<div className="exam-results-sections">
+			{results.length > 0 && (
+				<div className="exam-results-section-tabs" role="tablist" aria-label="Tip teste">
 					{resultSections.map((section) => (
-				<section key={section.id} className="exam-results-section" aria-labelledby={`exam-results-section-${section.id}`}>
-					<h2 id={`exam-results-section-${section.id}`} className="exam-results-section-title">{section.title}</h2>
-				<div className="exam-results-stack">
-					{section.groups.map((group) => {
+						<button
+							key={section.id}
+							type="button"
+							role="tab"
+							id={`exam-results-tab-${section.id}`}
+							aria-selected={section.id === currentSectionId}
+							aria-controls="exam-results-section-panel"
+							className={`exam-results-section-tab${section.id === currentSectionId ? ' is-active' : ''}`}
+							onClick={() => setActiveSection(section.id)}
+						>
+							{section.title}
+							<span className="exam-results-section-tab-count">{section.count}</span>
+						</button>
+					))}
+				</div>
+			)}
+
+			{currentSection && currentSection.count > 0 ? (
+				<div
+					id="exam-results-section-panel"
+					role="tabpanel"
+					aria-labelledby={`exam-results-tab-${currentSection.id}`}
+					className="exam-results-stack"
+				>
+					{currentSection.groups.map((group) => {
 						// La căutare mapele se deschid singure, ca rezultatele găsite să fie vizibile.
 						const isOpen = searching || openCourses.has(group.key);
 						const passedCount = group.results.filter((result) => getResultState(result).key === 'passed').length;
@@ -468,60 +552,28 @@ const ExamResultsPage = () => {
 								</button>
 								{isOpen && (
 									<div id={panelId} className="exam-results-course-body">
-										{group.results.map((result) => {
-											const state = getResultState(result);
-											const percent = formatPercent(toNumber(result.percentage));
-											const questions = asArray(result?.exam?.questions);
-											const submittedOnly = Boolean(result?.show_only_submitted_answers);
-											return (
-												<article key={`${result.type || 'exam'}:${result.id}`} className="student-exam-results exam-results-test-card">
-													<h3 className="exam-results-test-title">{getResultTitle(result)}</h3>
-													<div className={`student-exam-result-header ${state.key}`}>
-														<div className="student-exam-result-icon">{state.key === 'passed' ? '✓' : state.key === 'pending' ? '⏳' : '✗'}</div>
-														<div className="student-exam-result-title">
-															{state.key === 'pending' ? state.label : `${percent} ${state.label}`}
-														</div>
-													</div>
-													<div className="student-exam-result-stats">
-														<div className="student-exam-result-stat">
-															<div className="student-exam-result-stat-label">Scor</div>
-															<div className="student-exam-result-stat-value">
-																{toNumber(result.score)} / {toNumber(result.total_points ?? result.max_score)}
-															</div>
-														</div>
-													</div>
-													{questions.length > 0 ? (
-														<div className="student-exam-final-feedback">
-															{questions.map((question, index) => (
-																<QuestionReview
-																	key={question.id ?? index}
-																	question={question}
-																	index={index}
-																	result={result}
-																	submittedOnly={submittedOnly}
-																/>
-															))}
-														</div>
-													) : (
-														<p className="exam-results-test-missing">Detaliile întrebărilor nu sunt disponibile.</p>
-													)}
-												</article>
-											);
-										})}
+										{group.results.map((result) => (
+											<ResultCard key={`${result.type || 'exam'}:${result.id}`} result={result} />
+										))}
 									</div>
 								)}
 							</section>
 						);
 					})}
 				</div>
-				</section>
-					))}
-				</div>
 			) : (
 				<EmptyState
 					icon={<Eye size={30} weight="bold" />}
-					title={results.length === 0 ? 'Nu ai rezultate încă' : 'Niciun test pentru filtrele alese'}
-					text={results.length === 0 ? 'Finalizează un test pentru a vedea scorul aici.' : 'Schimbă filtrul sau căutarea.'}
+					title={results.length === 0
+						? 'Nu ai rezultate încă'
+						: filteredResults.length === 0
+							? 'Niciun test pentru filtrele alese'
+							: `Niciun rezultat la ${currentSection?.title.toLowerCase() ?? 'această secțiune'}`}
+					text={results.length === 0
+						? 'Finalizează un test pentru a vedea scorul aici.'
+						: filteredResults.length === 0
+							? 'Schimbă filtrul sau căutarea.'
+							: 'Rezultatele tale sunt în cealaltă secțiune.'}
 				>
 					{results.length === 0 ? <Link to="/courses" className="lms-btn-primary">Mergi la cursuri</Link> : null}
 				</EmptyState>

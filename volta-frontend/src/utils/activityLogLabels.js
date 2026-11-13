@@ -1,11 +1,41 @@
 /** Helpers pentru jurnalul de activitate — texte în română, fără coduri brute în UI. */
-import { formatPercent } from './formatPercent';
+import { formatPercent } from './formatPercent.js';
 
 function stripHtml(html) {
 	if (!html) return '';
 	const tmp = document.createElement('DIV');
 	tmp.innerHTML = html;
 	return tmp.textContent || tmp.innerText || '';
+}
+
+/** Titlurile lecției / testului / cursului: întâi cele atașate de server, apoi cele salvate la eveniment. */
+function logTitles(log) {
+	const ctx = log?.context && typeof log.context === 'object' ? log.context : {};
+	const nv = log?.new_values && typeof log.new_values === 'object' ? log.new_values : {};
+	return {
+		lesson: ctx.lesson_title || nv.lesson_title || '',
+		test: ctx.test_title || nv.test_title || nv.exam_title || '',
+		course: ctx.course_title || nv.course_title || '',
+	};
+}
+
+const quote = (title) => `„${title}”`;
+const inCourse = (course) => (course ? ` din cursul ${quote(course)}` : '');
+
+function formatMinutes(seconds) {
+	const sec = Number(seconds) || 0;
+	if (sec < 60) return `${sec} secunde`;
+	const min = Math.round(sec / 60);
+	return min === 1 ? '1 minut' : `${min} minute`;
+}
+
+/** „„A”, „B”, „C” și încă 2” — maxim trei titluri, ca rândul să rămână scurt. */
+function titleList(titles, max = 3) {
+	const unique = [...new Set(titles.filter(Boolean))];
+	if (unique.length === 0) return '';
+	const shown = unique.slice(0, max).map(quote).join(', ');
+	const rest = unique.length - max;
+	return rest > 0 ? `${shown} și încă ${rest}` : shown;
 }
 
 /** Denumire afișată în română pentru fiecare cod de acțiune din jurnal. */
@@ -96,6 +126,33 @@ export function getFriendlyLogLine(log) {
 		return `${name}: ${getActionLabelRo(action)}`;
 	}
 
+	// Jurnalul admin (rânduri cu `context`): textul se compune din titluri, ca să spună ce lecție / ce test.
+	// Pagina cursantului nu are `context` și își păstrează descrierile.
+	const t = logTitles(log);
+	const structured = Boolean(log.context);
+	if (structured && action === 'completed_lesson' && t.lesson) {
+		return `${name} a finalizat lecția ${quote(t.lesson)}${inCourse(t.course)}.`;
+	}
+	if (structured && (action === 'completed_course' && t.course)) {
+		return `${name} a finalizat cursul ${quote(t.course)}.`;
+	}
+	if (structured && (action === 'enrolled_course' && t.course)) {
+		return `${name} s-a înscris la cursul ${quote(t.course)}.`;
+	}
+	if (structured && (action === 'completed_exam' || action === 'telemetry.learner_attempt_submitted')) {
+		const pct = nv.percentage ?? nv.score_percentage ?? nv.percent;
+		const verb = action === 'completed_exam' ? 'a promovat' : 'a trimis';
+		const what = t.test ? `testul ${quote(t.test)}` : 'un test';
+		const score = pct != null ? ` — ${formatPercent(pct)}` : '';
+		if (t.test || pct != null) return `${name} ${verb} ${what}${inCourse(t.course)}${score}.`;
+	}
+	if (structured && (action === 'telemetry.learner_focus_seconds')) {
+		const time = nv.seconds ? ` (${formatMinutes(nv.seconds)})` : '';
+		return t.lesson
+			? `${name} a citit lecția ${quote(t.lesson)}${inCourse(t.course)}${time}.`
+			: `${name} a citit o lecție${time}.`;
+	}
+
 	if (desc && !telemetryGeneric) {
 		return desc;
 	}
@@ -107,27 +164,20 @@ export function getFriendlyLogLine(log) {
 		return `${name} s-a deconectat.`;
 	}
 	if (action === 'completed_course') {
-		const title = nv.course_title || 'cursul';
-		return `${name} a finalizat cursul „${title}”.`;
+		return t.course ? `${name} a finalizat cursul ${quote(t.course)}.` : `${name} a finalizat un curs.`;
 	}
 	if (action === 'completed_lesson') {
-		const title = nv.lesson_title || 'lecția';
-		return `${name} a finalizat lecția "${title}".`;
+		return t.lesson ? `${name} a finalizat lecția ${quote(t.lesson)}.` : `${name} a finalizat o lecție.`;
 	}
-	if (action === 'completed_exam') {
-		const ex = nv.exam_title || 'testul';
-		const pct = nv.percentage;
-		return pct != null
-			? `${name} a finalizat testul „${ex}” și a obținut ${formatPercent(pct)}.`
-			: `${name} a finalizat testul „${ex}”.`;
-	}
-	if (action === 'telemetry.learner_attempt_submitted') {
+	if (action === 'completed_exam' || action === 'telemetry.learner_attempt_submitted') {
 		const pct = nv.percentage ?? nv.score_percentage ?? nv.percent;
-		const title = nv.test_title || nv.exam_title;
-		if (title && pct != null) return `${name} a trimis testul „${title}” și a obținut ${formatPercent(pct)}.`;
-		if (title) return `${name} a trimis testul „${title}”.`;
-		if (pct != null) return `${name} a trimis testul și a obținut ${formatPercent(pct)}.`;
-		return `${name} a trimis un test.`;
+		const what = t.test ? `testul ${quote(t.test)}` : 'un test';
+		const verb = action === 'completed_exam' ? 'a finalizat' : 'a trimis';
+		return pct != null ? `${name} ${verb} ${what} și a obținut ${formatPercent(pct)}.` : `${name} ${verb} ${what}.`;
+	}
+	if (action === 'telemetry.learner_focus_seconds') {
+		const sec = nv.seconds;
+		return sec ? `${name} a petrecut timp pe o lecție (${sec} secunde).` : `${name} a avansat la o lecție.`;
 	}
 	if (action === 'telemetry.learner_attempt_started') {
 		return `${name} a început un test.`;
@@ -140,10 +190,6 @@ export function getFriendlyLogLine(log) {
 	}
 	if (action === 'telemetry.learner_retake_weak_areas_started') {
 		return `${name} a reluat testul pe zone slabe.`;
-	}
-	if (action === 'telemetry.learner_focus_seconds') {
-		const sec = nv.seconds;
-		return sec ? `${name} a petrecut timp pe o lecție (${sec} secunde).` : `${name} a avansat la o lecție.`;
 	}
 
 	if (telemetryGeneric) {
@@ -206,6 +252,24 @@ export function getGroupedLogLine(group) {
 	if (action === 'session_started') return `${name} a intrat în aplicație de ${count} ori.`;
 	if (action === 'logged_in') return `${name} s-a autentificat de ${count} ori.`;
 	if (action === 'logged_out') return `${name} s-a deconectat de ${count} ori.`;
+	// Jurnalul admin: grupul numește lecțiile / testele / cursurile din el
+	if (lead.context) {
+		const titles = (key) => titleList(items.map((log) => logTitles(log)[key]));
+		const suffix = (list) => (list ? `: ${list}` : '');
+		if (action === 'completed_lesson') return `${name} a finalizat ${count} lecții${suffix(titles('lesson'))}.`;
+		if (action === 'completed_course') return `${name} a finalizat ${count} cursuri${suffix(titles('course'))}.`;
+		if (action === 'enrolled_course') return `${name} s-a înscris la ${count} cursuri${suffix(titles('course'))}.`;
+		if (action === 'completed_exam') return `${name} a promovat ${count} teste${suffix(titles('test'))}.`;
+		if (action === 'telemetry.learner_attempt_submitted') {
+			return `${name} a trimis ${count} teste${suffix(titles('test'))}.`;
+		}
+		if (action === 'telemetry.learner_focus_seconds') {
+			const seconds = items.reduce((sum, log) => sum + Number(log.new_values?.seconds || 0), 0);
+			const lessons = titles('lesson');
+			const time = seconds > 0 ? ` (${formatMinutes(seconds)} în total)` : '';
+			return lessons ? `${name} a citit${time}: ${lessons}.` : `${name} a citit lecții${time}.`;
+		}
+	}
 	if (action === 'completed_lesson') return `${name} a finalizat ${count} lecții.`;
 	if (action === 'completed_course') return `${name} a finalizat ${count} cursuri.`;
 	if (action === 'completed_exam' || action === 'telemetry.learner_attempt_submitted') {

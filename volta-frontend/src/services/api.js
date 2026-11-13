@@ -994,6 +994,23 @@ export const adminService = {
     return response.data;
   },
 
+  /** Tabelul de evidență a prezenței la evenimente pe un an (.xlsx), salvat direct în browser. */
+  downloadEventAttendanceReport: async (year) => {
+    const response = await api.get('/admin/events/attendance-report', {
+      params: { year },
+      responseType: 'blob',
+      timeout: 2 * 60_000,
+    });
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Prezenta_evenimente_${year}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   getEventQuestions: async (id) => {
     const response = await api.get(`/admin/events/${id}/questions`);
     return response.data;

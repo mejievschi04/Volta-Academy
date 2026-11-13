@@ -66,41 +66,185 @@
 	gap: var(--space-3);
 }
 
-/* Teste lunare (pe luni) deasupra, apoi testele din cursuri (pe cursuri) */
-.exam-results-sections {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-6);
-}
-
-/* Spațiul dintre secțiuni și carduri vine doar din gap: marginile/padding-urile moștenite se adunau
-   peste el (gol de ~100px între „Teste lunare” și „Teste din cursuri”). */
-.exam-results-sections > .exam-results-section {
-	margin: 0;
-	padding-top: 0;
-	padding-bottom: 0;
-}
-
 .exam-results-stack > .exam-results-course {
 	margin-bottom: 0;
 }
 
-.exam-results-section-title {
-	margin: 0 0 var(--space-3);
-	font-size: var(--font-size-lg);
+/* Meniul „Teste din cursuri / Teste lunare” */
+.exam-results-section-tabs {
+	display: flex;
+	gap: 4px;
+	width: fit-content;
+	max-width: 100%;
+	margin-bottom: var(--space-4);
+	padding: 4px;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	background: var(--bg-secondary);
+}
+
+.exam-results-section-tab {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	min-height: 40px;
+	padding: 0.45rem 1rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--text-secondary);
+	font: inherit;
+	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-bold);
+	cursor: pointer;
+}
+
+.exam-results-section-tab:hover {
 	color: var(--text-primary);
 }
 
+.exam-results-section-tab.is-active {
+	background: var(--bg-elevated);
+	border-color: var(--border-primary);
+	color: var(--text-primary);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.exam-results-section-tab-count {
+	min-width: 1.5rem;
+	padding: 0 0.4rem;
+	border-radius: 999px;
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+	font-size: var(--font-size-xs);
+	line-height: 1.5rem;
+	text-align: center;
+}
+
+.exam-results-section-tab.is-active .exam-results-section-tab-count {
+	background: var(--btn-primary-bg);
+	color: var(--btn-primary-text);
+}
+
+/* Card compact pentru un rezultat */
 .exam-results-test-card {
-	margin-bottom: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-primary);
+	border-left-width: 4px;
+	border-radius: var(--radius-md);
+	background: var(--bg-elevated);
+}
+
+.exam-results-test-card.is-passed {
+	border-left-color: var(--color-success);
+}
+
+.exam-results-test-card.is-failed {
+	border-left-color: var(--color-error);
+}
+
+.exam-results-test-card.is-pending {
+	border-left-color: var(--color-warning);
+}
+
+.exam-results-test-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.exam-results-test-icon {
+	flex-shrink: 0;
+}
+
+.is-passed .exam-results-test-icon,
+.is-passed .exam-results-test-state {
+	color: var(--text-success, var(--color-success));
+}
+
+.is-failed .exam-results-test-icon,
+.is-failed .exam-results-test-state {
+	color: var(--color-error);
+}
+
+.is-pending .exam-results-test-icon,
+.is-pending .exam-results-test-state {
+	color: var(--color-warning);
+}
+
+.exam-results-test-main {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .exam-results-test-title {
-	margin: 0 0 var(--space-1);
+	margin: 0;
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-bold);
+	line-height: 1.3;
+	color: var(--text-primary);
+	overflow-wrap: anywhere;
+}
+
+.exam-results-test-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 var(--space-3);
+	margin: 2px 0 0;
+	font-size: var(--font-size-sm);
+	color: var(--text-secondary);
+}
+
+.exam-results-test-state {
+	font-weight: var(--font-weight-bold);
+}
+
+.exam-results-test-percent {
+	flex-shrink: 0;
 	font-size: var(--font-size-xl);
 	font-weight: var(--font-weight-bold);
 	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.exam-results-test-toggle {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	align-self: flex-start;
+	min-height: 32px;
+	padding: 0.25rem 0.6rem;
+	margin-left: calc(22px + var(--space-3) - 0.6rem);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--text-accent, var(--text-primary));
+	font: inherit;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-bold);
+	cursor: pointer;
+}
+
+.exam-results-test-toggle:hover {
+	background: var(--bg-secondary);
+}
+
+.exam-results-test-toggle-caret {
+	transition: transform 0.15s ease;
+}
+
+.exam-results-test-toggle[aria-expanded='true'] .exam-results-test-toggle-caret {
+	transform: rotate(180deg);
+}
+
+.exam-results-test-answers {
+	margin-top: var(--space-1);
 }
 
 .exam-results-course {
@@ -166,7 +310,7 @@
 .exam-results-course-body {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-6);
+	gap: var(--space-2);
 	padding: var(--space-4);
 	border-top: 1px solid var(--border-primary);
 }
@@ -184,6 +328,23 @@
 
 	.exam-results-course-body {
 		padding: var(--space-3);
+	}
+
+	.exam-results-section-tabs {
+		width: 100%;
+	}
+
+	.exam-results-section-tab {
+		flex: 1 1 0;
+		padding-inline: 0.5rem;
+	}
+
+	.exam-results-test-card {
+		padding: var(--space-3);
+	}
+
+	.exam-results-test-toggle {
+		margin-left: -0.6rem;
 	}
 }
 

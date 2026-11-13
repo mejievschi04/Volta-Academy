@@ -120,7 +120,7 @@ class RegistrationInvitationController extends Controller
             ]);
         }
 
-        Auth::login($user);
+        Auth::login($user, true);
         $request->session()->regenerate();
 
         $user->forceFill(['last_login_at' => now()])->save();
