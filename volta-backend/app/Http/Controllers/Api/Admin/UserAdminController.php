@@ -105,6 +105,10 @@ class UserAdminController extends Controller
             ->groupBy('course_id')
             ->pluck('aggregate', 'course_id')
             ->mapWithKeys(fn ($count, $courseId) => [(int) $courseId => (int) $count]);
+        $publishedCourseIds = \App\Models\Course::query()
+            ->where('status', 'published')
+            ->pluck('id')
+            ->mapWithKeys(fn ($courseId) => [(int) $courseId => true]);
         
         // Get paginated users with relationships
         $usersPaginated = $request->boolean('all') ? null : $query->paginate($perPage);
@@ -121,7 +125,7 @@ class UserAdminController extends Controller
             });
         
         // Calculate course statistics for each user (skip admins)
-        $usersWithStats = collect($users)->map(function ($user) use ($moduleCounts, $allProgress) {
+        $usersWithStats = collect($users)->map(function ($user) use ($moduleCounts, $allProgress, $publishedCourseIds) {
             // Skip statistics for admin users
             if ($user->isLearningActivityExempt()) {
                 $user->total_courses = null;
@@ -134,11 +138,15 @@ class UserAdminController extends Controller
             
             $userProgress = $allProgress->get($user->id, collect());
             $completedCourses = 0;
-            $assignedCount = $userProgress->count();
+            $assignedCount = 0;
             $totalModules = 0;
             $completedModules = 0;
             
             foreach ($userProgress as $progress) {
+                if (! $publishedCourseIds->has((int) $progress->course_id)) {
+                    continue;
+                }
+                $assignedCount++;
                 $moduleCount = (int) ($moduleCounts[(int) $progress->course_id] ?? 0);
                 $totalModules += $moduleCount;
                 if ($progress->completed_at) {

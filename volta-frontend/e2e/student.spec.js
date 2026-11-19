@@ -60,6 +60,18 @@ test('testul final se deschide abia după toate lecțiile', async ({ page }) => 
 	await expect(page).toHaveURL(/\/courses\/1\/exams\/1/);
 });
 
+test('„Înapoi” de pe curs nu se întoarce la testul deschis înainte', async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'meniul cursului (cu „Înapoi”) e vizibil direct doar pe desktop');
+	await page.goto('/courses');
+	await page.goto('/courses/1?lesson=3');
+	await page.getByRole('button', { name: 'Urmează testul' }).click();
+	await expect(page).toHaveURL(/\/courses\/1\/exams\/1/);
+	await page.locator('main').getByRole('link', { name: 'Înapoi la curs' }).first().click();
+	await expect(page).toHaveURL(/\/courses\/1(\?|$)/);
+	await page.locator('.lessons-page-sidebar-back-btn').click();
+	await expect(page).toHaveURL(/\/courses$/);
+});
+
 test('cursantul susține testul final și vede rezultatul', async ({ page }) => {
 	await page.goto('/courses/1/exams/1');
 	// ecranul de start: încercarea (și cronometrul) pornește doar la „Începe testul”

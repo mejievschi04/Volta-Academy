@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check } from '@phosphor-icons/react';
+import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check, Eye, EyeSlash } from '@phosphor-icons/react';
 import AdminUserInvitationsPanel from '../../components/admin/users/AdminUserInvitationsPanel';
 import { adminService } from '../../services/api';
 
@@ -27,6 +27,7 @@ const AdminUsersPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
 	const [editingUser, setEditingUser] = useState(null);
 	const [sortBy, setSortBy] = useState('role');
 	const [sortOrder, setSortOrder] = useState('asc');
@@ -144,6 +145,7 @@ const AdminUsersPage = () => {
 			}
 
 			showSuccess(editingUser ? 'Utilizatorul a fost actualizat.' : 'Utilizatorul a fost creat.');
+			setShowPassword(false);
 			setShowModal(false);
 			setEditingUser(null);
 			setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
@@ -187,9 +189,15 @@ const AdminUsersPage = () => {
 		}
 	};
 
+	const closeUserModal = () => {
+		setShowModal(false);
+		setShowPassword(false);
+	};
+
 	const handleEdit = (user) => {
 		setAccessStep(null);
 		setSuspendReason('');
+		setShowPassword(false);
 		setEditingUser(user);
 		setFormData({
 			name: user.name,
@@ -333,6 +341,7 @@ const AdminUsersPage = () => {
 						onClick={() => {
 							setEditingUser(null);
 							setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
+							setShowPassword(false);
 							setShowModal(true);
 						}}
 					>
@@ -685,7 +694,7 @@ const AdminUsersPage = () => {
 			{/* Modal – componentă accesibilă (focus trap, Escape, ARIA) */}
 			<Modal
 				isOpen={showModal}
-				onClose={() => setShowModal(false)}
+				onClose={closeUserModal}
 				ariaLabelledby="admin-users-modal-title"
 				className="admin-users-modal-overlay va-dialog-overlay"
 				unstyledContent
@@ -696,7 +705,7 @@ const AdminUsersPage = () => {
 						<button
 							type="button"
 							className="admin-users-modal-close va-close-btn"
-							onClick={() => setShowModal(false)}
+							onClick={closeUserModal}
 							aria-label="Închide"
 						>
 							<X size={18} weight="bold" aria-hidden="true" />
@@ -753,22 +762,44 @@ const AdminUsersPage = () => {
 								<label htmlFor="admin-users-field-password">
 									Parolă <span className="va-field__optional">{editingUser ? '(lasă gol pentru a nu o schimba)' : '(opțională)'}</span>
 								</label>
-								<input
-									id="admin-users-field-password"
-									type="password"
-									name="managed-user-password"
-									autoComplete="new-password"
-									data-lpignore="true"
-									data-1p-ignore="true"
-									readOnly
-									onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
-									onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
-									className="admin-form-input"
-									value={formData.password}
-									onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-									placeholder={!editingUser ? 'Implicit: volta2026' : 'Neschimbată'}
-									minLength={formData.password ? 6 : undefined}
-								/>
+								<div className="admin-password-field">
+									<input
+										id="admin-users-field-password"
+										type={showPassword ? 'text' : 'password'}
+										name="managed-user-password"
+										autoComplete="new-password"
+										data-lpignore="true"
+										data-1p-ignore="true"
+										readOnly
+										onFocus={(event) => event.currentTarget.removeAttribute('readonly')}
+										onBlur={(event) => event.currentTarget.setAttribute('readonly', '')}
+										className="admin-form-input"
+										value={formData.password}
+										onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+										placeholder={!editingUser ? 'Implicit: volta2026' : 'Neschimbată'}
+										minLength={formData.password ? 6 : undefined}
+									/>
+									<button
+										type="button"
+										className="admin-password-toggle"
+										onClick={(event) => {
+											const input = event.currentTarget.parentElement?.querySelector('input');
+											const typed = input?.value ?? '';
+											if (typed !== formData.password) {
+												setFormData((current) => ({ ...current, password: typed }));
+											}
+											setShowPassword((visible) => !visible);
+										}}
+										aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
+										aria-pressed={showPassword}
+									>
+										{showPassword ? (
+											<EyeSlash size={20} weight="duotone" aria-hidden />
+										) : (
+											<Eye size={20} weight="duotone" aria-hidden />
+										)}
+									</button>
+								</div>
 								{!editingUser ? (
 									<p className="va-field__hint">
 										Dacă rămâne goală, utilizatorul primește parola <strong>volta2026</strong> și o schimbă la prima autentificare.
@@ -898,7 +929,7 @@ const AdminUsersPage = () => {
 						</div>
 					</div>
 					<footer className="va-dialog__footer">
-						<button type="button" className="lms-btn-secondary" onClick={() => setShowModal(false)}>
+						<button type="button" className="lms-btn-secondary" onClick={closeUserModal}>
 							Anulează
 						</button>
 						<button type="submit" className="va-btn-save lms-btn-primary">

@@ -326,6 +326,8 @@ class EventController extends Controller
             'body' => trim($data['body']),
         ]);
 
+        app(\App\Services\NotificationService::class)->notifyEventQuestion($user, $event, $question);
+
         return response()->json([
             'message' => 'Întrebarea a fost trimisă.',
             'id' => $question->id,

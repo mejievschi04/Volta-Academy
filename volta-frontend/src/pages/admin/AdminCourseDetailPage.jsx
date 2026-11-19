@@ -99,7 +99,7 @@ const AdminCourseDetailPage = () => {
 					break;
 				case 'preview':
 					sessionStorage.setItem('studentPreviewFromAdmin', 'true');
-					navigate(`/courses/${course.id}`);
+					navigate(`/courses/${course.id}`, { state: { backTo: `/admin/courses/${course.id}` } });
 					break;
 				case 'edit':
 					navigate(`/admin/courses/${course.id}/builder`);

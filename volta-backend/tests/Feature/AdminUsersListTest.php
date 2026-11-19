@@ -28,8 +28,10 @@ class AdminUsersListTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
-        $course = \App\Models\Course::factory()->create(['teacher_id' => $admin->id]);
+        $course = \App\Models\Course::factory()->published()->create(['teacher_id' => $admin->id]);
+        $draft = \App\Models\Course::factory()->create(['teacher_id' => $admin->id, 'status' => 'draft']);
         $student->assignedCourses()->attach($course->id, ['enrolled' => true]);
+        $student->assignedCourses()->attach($draft->id, ['enrolled' => true]);
 
         $this->actingAs($admin, 'sanctum');
         $row = collect($this->getJson('/api/admin/users?all=1')->assertOk()->json())

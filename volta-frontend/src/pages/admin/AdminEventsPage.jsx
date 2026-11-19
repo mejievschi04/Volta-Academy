@@ -56,7 +56,7 @@ const AdminEventsPage = () => {
 	const [editingEvent, setEditingEvent] = useState(null);
 	const [viewingEventId, setViewingEventId] = useState(null);
 
-	const [searchParams] = useSearchParams();
+	const [searchParams, setSearchParams] = useSearchParams();
 	// căutarea globală din bara de sus deschide pagina cu evenimentul căutat (?search=)
 	const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
 	const [nowTick, setNowTick] = useState(() => Date.now());
@@ -105,6 +105,21 @@ const AdminEventsPage = () => {
 		window.addEventListener('volta-admin-events-refresh', onRefresh);
 		return () => window.removeEventListener('volta-admin-events-refresh', onRefresh);
 	}, [fetchEvents]);
+
+	useEffect(() => {
+		const raw = Number(searchParams.get('event'));
+		if (Number.isFinite(raw) && raw > 0) {
+			setViewingEventId(raw);
+		}
+	}, [searchParams]);
+
+	const closeEventDetail = () => {
+		setViewingEventId(null);
+		if (!searchParams.get('event')) return;
+		const next = new URLSearchParams(searchParams);
+		next.delete('event');
+		setSearchParams(next, { replace: true });
+	};
 
 	const visibleEvents = useMemo(() => {
 		const now = nowTick;
@@ -333,7 +348,7 @@ const AdminEventsPage = () => {
 			<AdminEventDetailModal
 				open={viewingEventId != null}
 				eventId={viewingEventId}
-				onClose={() => setViewingEventId(null)}
+				onClose={closeEventDetail}
 				onEdit={canMutateInAdminArea ? handleEdit : undefined}
 				readOnly={!canMutateInAdminArea}
 			/>

@@ -49,7 +49,9 @@ class UserAssignedCoursesService
             $user->assignedCourses->load(['tests:id,title,max_attempts,passing_score,status,created_by']);
         }
 
-        $courses = $user->assignedCourses;
+        $courses = $user->assignedCourses
+            ->filter(fn ($course) => ($course->status ?? 'draft') === 'published')
+            ->values();
         $courseIds = $courses->pluck('id')->toArray();
 
         $courseProgress = DB::table('course_user')

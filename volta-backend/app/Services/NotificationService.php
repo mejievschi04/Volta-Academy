@@ -3,13 +3,16 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\Event;
+use App\Models\EventQuestion;
 use App\Models\Notification;
 use App\Models\User;
 use App\Support\SchemaCache;
 
 /**
- * Notificările păstrate intenționat: curs atribuit (elev), curs finalizat (staff) și cerere de
- * înregistrare (admin). Publicarea unui curs și mesajele din chat nu mai creează notificări.
+ * Notificările păstrate intenționat: curs atribuit (elev), curs finalizat (staff), cerere de
+ * înregistrare (admin) și întrebare la un eveniment (admin). Publicarea unui curs și mesajele
+ * din chat nu mai creează notificări.
  */
 class NotificationService
 {
@@ -139,6 +142,58 @@ class NotificationService
             $description,
             $actionUrl,
             'Revizuiește cererea'
+        );
+    }
+
+    /**
+     * Anunță administratorii când un utilizator lasă o întrebare la tema unui eveniment.
+     */
+    public function notifyEventQuestion(User $asker, Event $event, EventQuestion $question): void
+    {
+        if (! SchemaCache::hasTable('notifications')) {
+            return;
+        }
+
+        $admins = User::query()
+            ->where('role', 'admin')
+            ->where('id', '!=', $asker->id)
+            ->get();
+
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        $excerpt = trim(preg_replace('/\s+/u', ' ', (string) $question->body) ?? '');
+        if (mb_strlen($excerpt) > 140) {
+            $excerpt = rtrim(mb_substr($excerpt, 0, 137)).'…';
+        }
+
+        $title = 'Întrebare la eveniment';
+        $description = $asker->name.' a întrebat la „'.$event->title.'”: '.$excerpt;
+        $actionUrl = '/admin/events?event='.$event->id;
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'event_question',
+                'title' => $title,
+                'description' => $description,
+                'data' => [
+                    'event_id' => $event->id,
+                    'event_question_id' => $question->id,
+                    'user_id' => $asker->id,
+                ],
+                'action_url' => $actionUrl,
+                'severity' => 'info',
+            ]);
+        }
+
+        $this->emailNotificationService->sendToMany(
+            $admins,
+            $title,
+            $description,
+            $actionUrl,
+            'Vezi întrebarea'
         );
     }
 

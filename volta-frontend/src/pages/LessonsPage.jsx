@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Fragment, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
 	ArrowDown,
 	ArrowLeft,
@@ -38,6 +38,7 @@ import '../components/admin/lessons/image/LessonImageContent.css';
 import { logger } from '../utils/logger';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
 import { useLessonBarsHidden } from '../hooks/useLessonBarsHidden.js';
+import { resolveCourseBackTarget } from '../utils/courseBackTarget.js';
 
 const renderTestStatusIcon = (passed, locked = false) => {
 	if (passed) return <Check size={14} weight="bold" aria-hidden />;
@@ -56,8 +57,13 @@ const LessonsPage = () => {
 	const { courseId } = useParams();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { user } = useAuth();
 	const isPlayerStaff = ['admin', 'instructor', 'analyst'].includes(user?.actualRole || user?.role || '');
+	const backTarget = useMemo(
+		() => resolveCourseBackTarget(courseId, location.state, isPlayerStaff ? `/admin/courses/${courseId}` : '/courses'),
+		[courseId, location.state, isPlayerStaff]
+	);
 	// Staff-ul (și în previzualizarea „cursant”): serverul nu le salvează progresul, deci nu le dă nici testul următor.
 	const isLearningExempt = isLearningExemptRole(user?.actualRole || user?.role);
 	// La previzualizare, staff-ul vede și testele ciornă atașate (marcate „Ciornă”), ca să le poată deschide.
@@ -615,7 +621,7 @@ const LessonsPage = () => {
 					<div className="lessons-page-sidebar-header-actions">
 						<button 
 							className="va-btn-back lessons-page-sidebar-back-btn"
-							onClick={() => navigate(-1)}
+							onClick={() => navigate(backTarget)}
 						>
 							<ArrowLeft size={20} weight="bold" aria-hidden />
 							<span>Înapoi</span>

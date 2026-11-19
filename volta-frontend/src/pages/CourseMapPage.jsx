@@ -187,9 +187,10 @@ const CourseMapPage = () => {
 
 	const navigateToCourse = useCallback(
 		(courseId) => {
-			navigate(isAdmin ? `/admin/courses/${courseId}` : `/courses/${courseId}`);
+			if (isAdmin) navigate(`/admin/courses/${courseId}`);
+			else navigate(`/courses/${courseId}`, { state: { backTo: location.pathname } });
 		},
-		[navigate, isAdmin]
+		[navigate, isAdmin, location.pathname]
 	);
 
 	const mergeCourseIntoLists = useCallback((courseId, updatedCourse) => {

@@ -54,4 +54,20 @@ class FailedCourseNotCountedCompletedTest extends TestCase
         $this->assertSame($failedCourse->id, $data['courses_failed'][0]['id']);
         $this->assertSame('failed', $data['courses_failed'][0]['status']);
     }
+
+    public function test_an_unpublished_course_is_left_out_of_the_user_statistics(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $published = Course::factory()->published()->create(['title' => 'Curs public']);
+        $withdrawn = Course::factory()->create(['title' => 'Curs retras', 'status' => 'draft']);
+        $service = app(UserAssignedCoursesService::class);
+        $service->assignCourseDirectly($student, $published, []);
+        $service->assignCourseDirectly($student, $withdrawn, []);
+
+        $student->unsetRelation('assignedCourses');
+        $data = $service->buildProfileCoursesData($student->fresh());
+
+        $this->assertSame(1, $data['course_stats']['total_assigned']);
+        $this->assertSame([$published->id], collect($data['courses_assigned'])->pluck('id')->all());
+    }
 }

@@ -85,6 +85,7 @@ const CompletedCoursesPage = () => {
 							<div className="va-completed-course-card-actions">
 								<Link
 									to={`/courses/${course.id}`}
+									state={{ backTo: '/completed-courses' }}
 									className="lms-btn-secondary lms-btn-sm"
 								>
 									Revizualizează cursul
