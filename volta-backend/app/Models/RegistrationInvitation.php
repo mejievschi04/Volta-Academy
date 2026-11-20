@@ -7,8 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RegistrationInvitation extends Model
 {
+    /** Adresa internă a linkului universal. Nu este un cont și nu primește email. */
+    public const UNIVERSAL_EMAIL = 'universal@registration.invalid';
+
     protected $fillable = [
         'email',
+        'reusable',
         'token',
         'name',
         'role',
@@ -25,6 +29,7 @@ class RegistrationInvitation extends Model
     ];
 
     protected $casts = [
+        'reusable' => 'boolean',
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
         'email_sent_at' => 'datetime',

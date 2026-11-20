@@ -37,7 +37,7 @@ const emptyInviteForm = {
 	team_id: '',
 };
 
-const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange }) => {
+const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange, onCopyRegistrationLink }) => {
 	const { success: showSuccess, error: showError } = useToast();
 	const [invitations, setInvitations] = useState([]);
 	const [stats, setStats] = useState({ total: 0, pending_email: 0, sent: 0, failed: 0 });
@@ -228,9 +228,9 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 										</div>
 										<h3 className="lms-empty-title">Nicio invitație activă</h3>
 										<p className="lms-empty-description">
-											Generează un link de înregistrare, copiază-l și trimite-l utilizatorului.
+											Linkul este același pentru toți. Copiază-l și trimite-l cui vrei să își creeze cont.
 										</p>
-										<button type="button" className="lms-btn-primary" onClick={() => setShowModal(true)}>
+										<button type="button" className="lms-btn-primary" onClick={onCopyRegistrationLink || (() => setShowModal(true))}>
 											<Copy size={16} weight="bold" aria-hidden />
 											Link de înregistrare
 										</button>

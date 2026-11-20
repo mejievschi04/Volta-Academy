@@ -36,6 +36,7 @@ class RegistrationInvitationService
 
         RegistrationInvitation::query()
             ->where('email', $email)
+            ->where('reusable', false)
             ->whereNull('accepted_at')
             ->delete();
 
@@ -105,6 +106,45 @@ class RegistrationInvitationService
         ];
     }
 
+    /**
+     * Un singur link, mereu același, pe care adminul îl copiază și îl trimite oricui.
+     * Cine îl deschide își alege emailul. Linkul nu se consumă.
+     *
+     * @return array{invitation: RegistrationInvitation, invite_url: string}
+     */
+    public function universalLink(User $admin): array
+    {
+        $invitation = RegistrationInvitation::query()
+            ->where('reusable', true)
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($invitation && ! empty($invitation->encrypted_token)) {
+            return [
+                'invitation' => $invitation,
+                'invite_url' => $this->getInviteUrl($invitation),
+            ];
+        }
+
+        [$plainToken, $inviteUrl] = $this->makeTokenPair();
+        $invitation = RegistrationInvitation::create([
+            'email' => RegistrationInvitation::UNIVERSAL_EMAIL,
+            'reusable' => true,
+            'token' => hash('sha256', $plainToken),
+            'encrypted_token' => Crypt::encryptString($plainToken),
+            'role' => 'student',
+            'invited_by' => $admin->id,
+            'expires_at' => now()->addYears(10),
+            'email_status' => 'skipped',
+        ]);
+
+        return [
+            'invitation' => $invitation,
+            'invite_url' => $inviteUrl,
+        ];
+    }
+
     public function getInviteUrl(RegistrationInvitation $invitation): string
     {
         $this->assertInvitationActive($invitation);
@@ -127,6 +167,7 @@ class RegistrationInvitationService
         }
 
         $query = RegistrationInvitation::query()
+            ->where('reusable', false)
             ->whereNull('accepted_at')
             ->whereNotNull('encrypted_token')
             ->where('expires_at', '>', now())

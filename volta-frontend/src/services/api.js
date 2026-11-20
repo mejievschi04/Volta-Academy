@@ -1182,6 +1182,11 @@ export const adminService = {
     return response.data;
   },
 
+  copyRegistrationLink: async () => {
+    const response = await api.post('/admin/users/registration-link');
+    return response.data;
+  },
+
   sendUserInvitation: async (payload) => {
     const response = await api.post('/admin/users/invitations', payload);
     return response.data;

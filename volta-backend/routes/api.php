@@ -355,6 +355,7 @@ Route::middleware([
     Route::get('/users', [UserAdminController::class, 'index']);
     Route::get('/users/invitations', [RegistrationInvitationAdminController::class, 'index']);
     Route::post('/users/invitations', [RegistrationInvitationAdminController::class, 'store']);
+    Route::post('/users/registration-link', [RegistrationInvitationAdminController::class, 'universal']);
     Route::post('/users/invitations/{id}/resend', [RegistrationInvitationAdminController::class, 'resend']);
     Route::post('/users/invitations/{id}/copy-link', [RegistrationInvitationAdminController::class, 'copyLink']);
     Route::delete('/users/invitations/{id}', [RegistrationInvitationAdminController::class, 'destroy']);

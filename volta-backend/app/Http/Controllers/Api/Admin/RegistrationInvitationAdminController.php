@@ -20,6 +20,7 @@ class RegistrationInvitationAdminController extends Controller
     public function index()
     {
         $invitations = RegistrationInvitation::query()
+            ->where('reusable', false)
             ->whereNull('accepted_at')
             ->where('expires_at', '>', now())
             ->with(['inviter:id,name', 'team:id,name'])
@@ -64,6 +65,15 @@ class RegistrationInvitationAdminController extends Controller
             'invite_url' => $result['invite_url'],
             'invitation' => $this->formatInvitation($invitation),
         ], 201);
+    }
+
+    public function universal(RegistrationInvitationService $invitationService)
+    {
+        $result = $invitationService->universalLink(Auth::user());
+
+        return response()->json([
+            'invite_url' => $result['invite_url'],
+        ]);
     }
 
     public function copyLink(int $id, RegistrationInvitationService $invitationService)

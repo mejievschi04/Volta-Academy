@@ -98,6 +98,55 @@ class RegistrationInvitationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_universal_registration_link_can_be_used_by_more_than_one_person(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $first = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/admin/users/registration-link')
+            ->assertOk();
+        $second = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/admin/users/registration-link')
+            ->assertOk();
+
+        $this->assertSame($first->json('invite_url'), $second->json('invite_url'));
+        $token = basename($first->json('invite_url'));
+        \Illuminate\Support\Facades\Auth::shouldUse('web');
+
+        $this->getJson('/api/auth/invitations/'.$token)
+            ->assertOk()
+            ->assertJsonPath('universal', true)
+            ->assertJsonPath('email', null);
+
+        $this->postJson('/api/auth/invitations/'.$token.'/accept', [
+            'name' => 'Ana Pop',
+            'email' => 'ana@example.test',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ])->assertCreated()->assertJsonPath('user.email', 'ana@example.test');
+
+        $this->postJson('/api/auth/invitations/'.$token.'/accept', [
+            'name' => 'Ion Rusu',
+            'email' => 'ion@example.test',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ])->assertCreated()->assertJsonPath('user.email', 'ion@example.test');
+
+        $this->postJson('/api/auth/invitations/'.$token.'/accept', [
+            'name' => 'Ana Din Nou',
+            'email' => 'ANA@example.test',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ])->assertStatus(422);
+
+        $this->assertNull(RegistrationInvitation::query()->where('reusable', true)->value('accepted_at'));
+        $this->flushSession();
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/users/invitations')
+            ->assertOk()
+            ->assertJsonPath('stats.total', 0);
+    }
+
     public function test_expiry_reminder_is_queued_for_invitations_near_deadline(): void
     {
         Bus::fake([SendRegistrationInvitationEmailJob::class]);

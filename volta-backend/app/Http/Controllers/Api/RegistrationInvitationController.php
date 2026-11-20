@@ -30,7 +30,8 @@ class RegistrationInvitationController extends Controller
 
         return response()->json([
             'valid' => true,
-            'email' => $invitation->email,
+            'universal' => (bool) $invitation->reusable,
+            'email' => $invitation->reusable ? null : $invitation->email,
             'name' => $invitation->name,
             'role' => $invitation->role,
             'expires_at' => $invitation->expires_at?->toIso8601String(),
@@ -47,7 +48,19 @@ class RegistrationInvitationController extends Controller
             ], 404);
         }
 
-        if (! $invitation->user_id && UserEmail::taken($invitation->email)) {
+        $chosenEmail = null;
+        if ($invitation->reusable) {
+            $chosenEmail = UserEmail::normalize((string) $request->input('email'));
+            $request->merge(['email' => $chosenEmail]);
+            $request->validate([
+                'email' => 'required|string|email|max:255',
+            ]);
+            if (UserEmail::taken($chosenEmail)) {
+                return response()->json([
+                    'message' => 'Există deja un cont cu acest email.',
+                ], 422);
+            }
+        } elseif (! $invitation->user_id && UserEmail::taken($invitation->email)) {
             return response()->json([
                 'message' => 'Există deja un cont cu acest email.',
             ], 422);
@@ -68,12 +81,26 @@ class RegistrationInvitationController extends Controller
             'password.regex' => 'Parola trebuie să conțină cel puțin 8 caractere, incluzând o literă mare, o literă mică și o cifră.',
         ]);
 
-        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($token, $validated, $invitationService) {
+        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($token, $validated, $chosenEmail, $invitationService) {
             $invitation = \App\Models\RegistrationInvitation::where('token', hash('sha256', $token))
                 ->whereNull('accepted_at')->where('expires_at', '>', now())->lockForUpdate()->first();
             abort_unless($invitation, 404, 'Linkul de invitație este invalid sau a expirat.');
 
-            if ($invitation->user_id) {
+            if ($invitation->reusable) {
+                if (UserEmail::taken($chosenEmail)) {
+                    abort(422, 'Există deja un cont cu acest email.');
+                }
+                $user = User::create([
+                    'name' => strip_tags($validated['name']),
+                    'email' => $chosenEmail,
+                    'password' => Hash::make($validated['password']),
+                    'role' => $invitation->role ?: 'student',
+                    'level' => 1,
+                    'points' => 0,
+                    'status' => 'active',
+                    'must_change_password' => false,
+                ]);
+            } elseif ($invitation->user_id) {
                 $user = User::lockForUpdate()->find($invitation->user_id);
                 $invitationService->assertUserInvitable($user, $invitation->email);
                 $user->update([
@@ -99,7 +126,9 @@ class RegistrationInvitationController extends Controller
             }
 
             $user->forceFill(['last_login_at' => now()])->save();
-            $invitation->update(['accepted_at' => now(), 'user_id' => $user->id]);
+            if (! $invitation->reusable) {
+                $invitation->update(['accepted_at' => now(), 'user_id' => $user->id]);
+            }
 
             return $user;
         });
@@ -110,7 +139,9 @@ class RegistrationInvitationController extends Controller
                 'action' => 'user_invited',
                 'model_type' => 'User',
                 'model_id' => $user->id,
-                'description' => "{$user->name} și-a activat contul prin invitație email",
+                'description' => $invitation->reusable
+                    ? "{$user->name} și-a creat contul prin linkul de înregistrare"
+                    : "{$user->name} și-a activat contul prin invitație email",
                 'new_values' => [
                     'email' => $user->email,
                     'invited_by' => $invitation->invited_by,

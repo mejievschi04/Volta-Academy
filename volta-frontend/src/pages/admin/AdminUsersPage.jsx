@@ -250,6 +250,20 @@ const AdminUsersPage = () => {
 		}
 	};
 
+	const copyRegistrationLink = async () => {
+		try {
+			const result = await adminService.copyRegistrationLink();
+			if (!result?.invite_url) {
+				showError('Nu s-a putut crea linkul.');
+				return;
+			}
+			await navigator.clipboard.writeText(result.invite_url);
+			showSuccess('Link universal copiat. Îl poți trimite oricui.');
+		} catch (err) {
+			showError(err.response?.data?.message || 'Nu s-a putut copia linkul.');
+		}
+	};
+
 	const handleSendInvitation = async (id) => {
         if (invitingIds.includes(id)) return;
         setInvitingIds((ids) => [...ids, id]);
@@ -321,7 +335,7 @@ const AdminUsersPage = () => {
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
 					<p className="admin-page-subtitle">
 						{usersView === 'invitations'
-							? 'Generează un link, copiază-l și trimite-l utilizatorului.'
+							? 'Un singur link de înregistrare, pentru oricine îl primește.'
 							: 'Gestionează toți utilizatorii din platformă'}
 					</p>
 				</div>
@@ -330,7 +344,7 @@ const AdminUsersPage = () => {
 						<button
 							type="button"
 							className={usersView === 'invitations' ? 'lms-btn-primary' : 'lms-btn-secondary'}
-							onClick={() => { setUsersView('invitations'); setInviteModalOpen(true); }}
+							onClick={copyRegistrationLink}
 						>
 							<Copy size={16} weight="bold" aria-hidden />
 							Link de înregistrare
@@ -393,6 +407,7 @@ const AdminUsersPage = () => {
 					teams={teams}
 					modalOpen={inviteModalOpen}
 					onModalOpenChange={setInviteModalOpen}
+					onCopyRegistrationLink={copyRegistrationLink}
 				/>
 			) : (
 			<>

@@ -21,6 +21,7 @@ const InviteRegisterPage = () => {
 	const [invitation, setInvitation] = useState(null);
 	const [invitationError, setInvitationError] = useState('');
 	const [loadingInvitation, setLoadingInvitation] = useState(true);
+	const [email, setEmail] = useState('');
 	const [name, setName] = useState('');
 	const [password, setPassword] = useState('');
 	const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -69,6 +70,7 @@ const InviteRegisterPage = () => {
 		try {
 			await authService.acceptInvitation(token, {
 				name,
+				email: invitation?.universal ? email : undefined,
 				password,
 				password_confirmation: passwordConfirmation,
 			});
@@ -136,9 +138,11 @@ const InviteRegisterPage = () => {
 						<div className="modern-auth-logo">
 							<img src={logoShort} alt="Volta Academy" className="modern-auth-logo-img" />
 						</div>
-						<h1 className="modern-auth-title">Activează-ți contul</h1>
+						<h1 className="modern-auth-title">{invitation.universal ? 'Creează cont' : 'Activează-ți contul'}</h1>
 						<p className="modern-auth-subtitle">
-							Ai fost invitat(ă) pe Volta Academy. Completează datele pentru a continua.
+							{invitation.universal
+								? 'Completează datele ca să intri pe Volta Academy.'
+								: 'Ai fost invitat(ă) pe Volta Academy. Completează datele pentru a continua.'}
 						</p>
 					</div>
 
@@ -158,9 +162,13 @@ const InviteRegisterPage = () => {
 									type="email"
 									id="email"
 									className="modern-form-input"
-									value={invitation.email}
-									readOnly
-									disabled
+									value={invitation.universal ? email : (invitation.email || '')}
+									onChange={invitation.universal ? (event) => setEmail(event.target.value) : undefined}
+									readOnly={!invitation.universal}
+									disabled={!invitation.universal}
+									required
+									autoComplete="email"
+									placeholder="exemplu@firma.ro"
 								/>
 							</div>
 						</div>
