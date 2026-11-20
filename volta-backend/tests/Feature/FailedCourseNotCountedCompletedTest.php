@@ -55,6 +55,45 @@ class FailedCourseNotCountedCompletedTest extends TestCase
         $this->assertSame('failed', $data['courses_failed'][0]['status']);
     }
 
+    public function test_a_started_course_with_a_failed_test_is_not_in_progress(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $waiting = Course::factory()->published()->create(['title' => 'Test nedat']);
+        $failed = Course::factory()->published()->create(['title' => 'Test picat']);
+        $service = app(UserAssignedCoursesService::class);
+        $service->assignCourseDirectly($student, $waiting, []);
+        $service->assignCourseDirectly($student, $failed, []);
+
+        DB::table('course_user')->where('user_id', $student->id)->update([
+            'progress_percentage' => 90,
+            'started_at' => now(),
+            'completed_at' => null,
+        ]);
+
+        $failedTest = Test::factory()->published()->create(['created_by' => $student->id]);
+        $failed->tests()->attach($failedTest->id, ['scope' => 'course', 'required' => true]);
+        TestResult::create([
+            'test_id' => $failedTest->id,
+            'course_id' => $failed->id,
+            'user_id' => $student->id,
+            'score' => 2,
+            'max_score' => 9,
+            'percentage' => 23,
+            'passed' => false,
+            'attempt_number' => 1,
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $student->unsetRelation('assignedCourses');
+        $data = $service->buildProfileCoursesData($student->fresh());
+
+        $this->assertSame(1, $data['course_stats']['in_progress']);
+        $this->assertSame(1, $data['course_stats']['failed']);
+        $this->assertSame($waiting->id, $data['courses_in_progress'][0]['id']);
+        $this->assertSame($failed->id, $data['courses_failed'][0]['id']);
+    }
+
     public function test_an_unpublished_course_is_left_out_of_the_user_statistics(): void
     {
         $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
@@ -69,5 +108,47 @@ class FailedCourseNotCountedCompletedTest extends TestCase
 
         $this->assertSame(1, $data['course_stats']['total_assigned']);
         $this->assertSame([$published->id], collect($data['courses_assigned'])->pluck('id')->all());
+    }
+
+    public function test_admin_profile_hides_unpublished_courses_from_the_count_and_the_list(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $visible = Course::factory()->published()->create(['title' => 'Curs public']);
+        $withdrawn = Course::factory()->create(['title' => 'Curs retras', 'status' => 'draft']);
+        $service = app(UserAssignedCoursesService::class);
+        $service->assignCourseDirectly($student, $visible, []);
+        $service->assignCourseDirectly($student, $withdrawn, []);
+
+        DB::table('course_user')->where('user_id', $student->id)->update([
+            'progress_percentage' => 90,
+            'started_at' => now(),
+        ]);
+
+        $failedTest = Test::factory()->published()->create(['created_by' => $student->id]);
+        $withdrawn->tests()->attach($failedTest->id, ['scope' => 'course', 'required' => true]);
+        TestResult::create([
+            'test_id' => $failedTest->id,
+            'course_id' => $withdrawn->id,
+            'user_id' => $student->id,
+            'score' => 1,
+            'max_score' => 9,
+            'percentage' => 11,
+            'passed' => false,
+            'attempt_number' => 1,
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/users/'.$student->id)
+            ->assertOk();
+
+        $ids = collect($response->json('courses_assigned'))->pluck('id');
+        $this->assertTrue($ids->contains($visible->id));
+        $this->assertFalse($ids->contains($withdrawn->id));
+        $this->assertSame(0, $response->json('course_stats.failed'));
+        $this->assertSame(1, $response->json('course_stats.total_assigned'));
+        $this->assertSame([], $response->json('courses_failed'));
     }
 }

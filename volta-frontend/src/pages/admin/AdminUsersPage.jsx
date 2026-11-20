@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check, Eye, EyeSlash } from '@phosphor-icons/react';
+import { PencilSimple, Plus, Trash, UsersThree, X, EnvelopeSimple, ArrowCounterClockwise, Check, Eye, EyeSlash, Copy } from '@phosphor-icons/react';
 import AdminUserInvitationsPanel from '../../components/admin/users/AdminUserInvitationsPanel';
 import { adminService } from '../../services/api';
 
@@ -321,32 +321,34 @@ const AdminUsersPage = () => {
 					<h1 className="admin-page-title">Gestionare Utilizatori</h1>
 					<p className="admin-page-subtitle">
 						{usersView === 'invitations'
-							? 'Invită utilizatori pe email și urmărește statusul trimiterii.'
+							? 'Generează un link, copiază-l și trimite-l utilizatorului.'
 							: 'Gestionează toți utilizatorii din platformă'}
 					</p>
 				</div>
-				{usersView === 'invitations' && canMutateInAdminArea && (
-					<button
-						type="button"
-						className="lms-btn-primary"
-						onClick={() => setInviteModalOpen(true)}
-					>
-						<EnvelopeSimple size={16} weight="duotone" aria-hidden />
-						Invitație nouă
-					</button>
-				)}
-				{usersView === 'active' && canMutateInAdminArea && (
-					<button
-						className="lms-btn-primary"
-						onClick={() => {
-							setEditingUser(null);
-							setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
-							setShowPassword(false);
-							setShowModal(true);
-						}}
-					>
-						<Plus size={16} weight="bold" aria-hidden /> Adaugă Utilizator
-					</button>
+				{canMutateInAdminArea && (usersView === 'invitations' || usersView === 'active') && (
+					<div className="admin-users-header-actions">
+						<button
+							type="button"
+							className={usersView === 'invitations' ? 'lms-btn-primary' : 'lms-btn-secondary'}
+							onClick={() => { setUsersView('invitations'); setInviteModalOpen(true); }}
+						>
+							<Copy size={16} weight="bold" aria-hidden />
+							Link de înregistrare
+						</button>
+						{usersView === 'active' && (
+							<button
+								className="lms-btn-primary"
+								onClick={() => {
+									setEditingUser(null);
+									setFormData({ name: '', email: '', password: '', role: 'student', bio: '', team_id: '' });
+									setShowPassword(false);
+									setShowModal(true);
+								}}
+							>
+								<Plus size={16} weight="bold" aria-hidden /> Adaugă Utilizator
+							</button>
+						)}
+					</div>
 				)}
 			</div>
 

@@ -64,18 +64,18 @@ const buildProfileFromCourseData = (user, data) => ({
 			?? 0,
 		progressPercentage: data.completion_percentage ?? data.stats?.progressPercentage ?? 0,
 	},
-	courseStats: data.course_stats || data.courseStats || {
-		total_assigned: 0,
-		completed: 0,
-		failed: 0,
-		in_progress: 0,
-		not_accessed: 0,
-	},
 	coursesAssigned: data.courses_assigned || data.coursesAssigned || [],
 	coursesInProgress: data.courses_in_progress || data.coursesInProgress || [],
 	coursesCompleted: data.courses_completed || data.coursesCompleted || [],
 	coursesFailed: data.courses_failed || data.coursesFailed || [],
 	coursesNotAccessed: data.courses_not_accessed || data.coursesNotAccessed || [],
+	courseStats: {
+		total_assigned: (data.courses_assigned || data.coursesAssigned || []).length,
+		completed: (data.courses_completed || data.coursesCompleted || []).length,
+		failed: (data.courses_failed || data.coursesFailed || []).length,
+		in_progress: (data.courses_in_progress || data.coursesInProgress || []).length,
+		not_accessed: (data.courses_not_accessed || data.coursesNotAccessed || []).length,
+	},
 });
 
 const ProfilePage = () => {
@@ -305,7 +305,7 @@ const ProfilePage = () => {
 				</div>
 				{course.description ? <p className="va-up-card-desc">{course.description}</p> : null}
 
-				{status === 'in_progress' ? (
+				{(status === 'in_progress' || (status === 'failed' && progress < 100)) ? (
 					<div className="va-up-progress">
 						<div className="va-up-progress-track" aria-hidden>
 							<div className="va-up-progress-fill" style={{ width: `${progress}%` }} />
@@ -357,7 +357,7 @@ const ProfilePage = () => {
 					<Link to={courseLink} className={isViewingOtherUser ? 'lms-btn-secondary lms-btn-sm' : 'lms-btn-primary lms-btn-sm'}>
 						{actionLabel}
 					</Link>
-					{viewerRole === 'admin' && (status !== 'completed' && status !== 'failed' || course.manually_completed) ? (
+					{viewerRole === 'admin' && (course.manually_completed || progress < 100) ? (
 						<button
 							type="button"
 							className="lms-btn-primary lms-btn-sm"

@@ -100,8 +100,8 @@ test('cursantul susține testul final și vede rezultatul', async ({ page }) => 
 	await expect(main.getByText('Care este capitala României?').first()).toBeVisible();
 	await expect(main.getByText('Corect', { exact: false }).first()).toBeVisible();
 
-	await main.getByRole('link', { name: 'Înapoi la curs' }).last().click();
-	await expect(page).toHaveURL(/\/courses\/1/);
+	await main.getByRole('link', { name: 'Pagina principală' }).click();
+	await expect(page).toHaveURL(/\/courses$/);
 });
 
 test('rezultatul apare în istoricul testelor', async ({ page }) => {

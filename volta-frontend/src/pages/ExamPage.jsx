@@ -1022,8 +1022,8 @@ const ExamPage = () => {
                 onSubmit={() => (timeRemaining === 0 ? handleSubmit() : setConfirmSubmitOpen(true))}
                 submitting={submitting}
                 submitted={submitted}
-                homeTo={isMobile ? back.to : null}
-                homeLabel={isMobile ? back.label : undefined}
+                homeTo="/courses"
+                homeLabel="Pagina principală"
                 canSubmit={timeRemaining === 0 || unansweredCount === 0}
                 submitHint={unansweredCount > 0 && timeRemaining !== 0
                     ? `Răspunde la toate întrebările ca să trimiți testul (${unansweredCount} fără răspuns).`

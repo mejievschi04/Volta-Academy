@@ -197,6 +197,7 @@ class UserAdminController extends Controller
             $user->completion_percentage = $coursesData['completion_percentage'];
             $user->courses_in_progress = $coursesData['courses_in_progress'];
             $user->courses_completed = $coursesData['courses_completed'];
+            $user->courses_failed = $coursesData['courses_failed'];
             $user->courses_not_accessed = $coursesData['courses_not_accessed'];
             $user->courses_assigned = $coursesData['courses_assigned'];
             $user->course_stats = $coursesData['course_stats'];

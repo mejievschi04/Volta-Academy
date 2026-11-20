@@ -198,9 +198,11 @@ class UserAssignedCoursesService
                 'teacher_name' => $course->teacher?->name,
             ];
 
+            // Testul dat, dar sub prag, e nepromovat chiar dacă lecțiile nu sunt la 100%.
+            // În curs rămâne cursul început al cărui test nu a fost dat încă.
             $testFailed = collect($courseTests)->contains(fn (array $test) => $test['status'] === 'failed');
 
-            if ($isCompleted && $testFailed) {
+            if ($testFailed) {
                 $coursePayload['status'] = 'failed';
                 $coursesFailed[] = $coursePayload;
             } elseif ($isCompleted) {

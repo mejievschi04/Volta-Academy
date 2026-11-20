@@ -5,7 +5,6 @@ import {
 	CircleNotch,
 	Copy,
 	EnvelopeSimple,
-	Plus,
 	Trash,
 	X,
 } from '@phosphor-icons/react';
@@ -83,7 +82,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 		try {
 			await navigator.clipboard.writeText(text);
 			setCopiedId(id);
-			showSuccess('Link copiat.');
+			showSuccess('Link copiat. Trimite-l utilizatorului.');
 			window.setTimeout(() => setCopiedId(null), 2000);
 		} catch {
 			showError('Nu s-a putut copia linkul.');
@@ -125,8 +124,12 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 			} else {
 				fetchInvitations(true);
 			}
-			showSuccess(result.message || 'Invitație creată.');
 			setInviteForm(emptyInviteForm);
+			if (result.invite_url) {
+				await copyText(result.invite_url, 'new');
+			} else {
+				showSuccess('Link generat. Copiază-l și trimite-l utilizatorului.');
+			}
 		} catch (err) {
 			showError(
 				err.response?.data?.message
@@ -225,11 +228,11 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 										</div>
 										<h3 className="lms-empty-title">Nicio invitație activă</h3>
 										<p className="lms-empty-description">
-											Trimite o invitație — linkul poate fi copiat imediat, fără a aștepta emailul.
+											Generează un link de înregistrare, copiază-l și trimite-l utilizatorului.
 										</p>
 										<button type="button" className="lms-btn-primary" onClick={() => setShowModal(true)}>
-											<Plus size={16} weight="bold" aria-hidden />
-											Invitație nouă
+											<Copy size={16} weight="bold" aria-hidden />
+											Link de înregistrare
 										</button>
 									</div>
 								</td>
@@ -265,9 +268,9 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 										</td>
 										<td className="admin-users-table-cell-center">
 											<div className="admin-users-actions admin-invitation-actions">
-												<button title="Copiază linkul invitației" aria-label={`Copiază linkul invitației: ${invitation.email}`}
+												<button title="Copiază linkul de înregistrare" aria-label={`Copiază linkul de înregistrare: ${invitation.email}`}
 													type="button"
-													className="lms-btn-secondary lms-btn-sm admin-users-action-compact"
+													className="lms-btn-secondary lms-btn-sm admin-users-action-compact admin-invitation-copy-btn"
 													disabled={busy}
 													onClick={() => handleCopyLink(invitation.id)}
 												>
@@ -278,7 +281,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 													) : (
 														<Copy size={14} aria-hidden />
 													)}
-
+													{copiedId === invitation.id ? 'Copiat' : 'Copiază link'}
 												</button>
 												<button title="Retrimite emailul" aria-label={`Retrimite emailul: ${invitation.email}`}
 													type="button"
@@ -326,10 +329,10 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 					<div className="admin-users-modal-header">
 						<div className="admin-invite-modal-heading">
 							<span className="admin-invite-modal-icon" aria-hidden>
-								<EnvelopeSimple size={22} weight="duotone" />
+								<Copy size={22} weight="duotone" />
 							</span>
 							<h2 id="admin-invite-modal-title" className="admin-users-modal-title">
-								{createdLink ? 'Invitație creată' : 'Invitație nouă'}
+								Link de înregistrare
 							</h2>
 						</div>
 						<button type="button" className="admin-users-modal-close va-close-btn" onClick={closeModal} aria-label="Închide">
@@ -341,10 +344,10 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 						<>
 							<div className="admin-users-modal-body admin-invite-success-body">
 								<p className="admin-invite-success-text">
-									Invitația este activă. Copiază linkul mai jos sau lasă utilizatorul să primească emailul automat.
+									Linkul este copiat. Trimite-l utilizatorului: își creează contul doar de pe acest link, pentru emailul ales.
 								</p>
 								<label className="admin-form-label" htmlFor="admin-invite-link-copy">
-									Link de activare
+									Link de înregistrare
 								</label>
 								<div className="admin-invite-link-box">
 									<input
@@ -378,7 +381,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 						<>
 							<div className="admin-users-modal-body">
 								<p className="admin-invite-intro">
-									Utilizatorul primește un link pe email pentru a-și crea contul. Poți copia linkul imediat după creare.
+									Pui emailul persoanei, generezi linkul și îl trimiți tu. Contul se creează doar de pe acest link.
 								</p>
 								<form id="admin-invite-form" onSubmit={handleSendInvitation} className="admin-invite-form">
 									<div className="admin-form-group">
@@ -447,7 +450,7 @@ const AdminUserInvitationsPanel = ({ teams = [], modalOpen, onModalOpenChange })
 											Se creează…
 										</>
 									) : (
-										'Creează invitația'
+										'Generează link'
 									)}
 								</button>
 							</div>
