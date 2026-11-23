@@ -42,7 +42,7 @@ class RequiredCourseTestsTest extends TestCase
         $this->assertTrue($service->isCourseComplete($student, $course));
     }
 
-    public function test_passed_flag_below_80_percent_does_not_complete_the_course(): void
+    public function test_passed_result_below_80_percent_completes_the_course(): void
     {
         $student = User::factory()->create(['role' => 'student']);
         $course = Course::factory()->published()->create();
@@ -58,16 +58,16 @@ class RequiredCourseTestsTest extends TestCase
         $test = Test::factory()->published()->create();
         CourseTest::create([
             'course_id' => $course->id, 'test_id' => $test->id,
-            'scope' => 'course', 'required' => false, 'passing_score' => 50, 'order' => 0,
+            'scope' => 'course', 'required' => false, 'passing_score' => 75, 'order' => 0,
         ]);
         TestResult::create([
             'test_id' => $test->id, 'course_id' => $course->id, 'user_id' => $student->id,
-            'score' => 70, 'max_score' => 100, 'percentage' => 70, 'passed' => true,
+            'score' => 75, 'max_score' => 100, 'percentage' => 75, 'passed' => true,
             'attempt_number' => 1, 'answers' => [], 'completed_at' => now(), 'status' => 'completed',
         ]);
         $service = app(CourseProgressService::class);
-        $this->assertFalse($service->isCourseComplete($student, $course));
-        $this->assertLessThan(100, $service->calculateCourseProgress($student, $course));
+        $this->assertTrue($service->isCourseComplete($student, $course));
+        $this->assertSame(100.0, $service->calculateCourseProgress($student, $course));
     }
 
     public function test_stale_completed_at_is_cleared_when_tests_are_not_passed(): void

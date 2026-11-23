@@ -86,7 +86,7 @@ class CourseProgressService
     {
         $query = DB::table('test_results')
             ->where('user_id', $user->id)
-            ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
+            ->where('passed', true)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 
         if (SchemaCache::hasColumn('test_results', 'needs_manual_review')) {
@@ -144,7 +144,6 @@ class CourseProgressService
 
         return $this->progressRowIsComplete($this->lessonProgressMap($user)[$lessonId] ?? null);
     }
-    private const COURSE_COMPLETION_TEST_PERCENT = 80;
 
     private const COURSE_TEST_PROGRESS_SHARE = 10.0;
 
@@ -990,7 +989,7 @@ class CourseProgressService
         $query = DB::table('test_results')
             ->where('user_id', $user->id)
             ->where('test_id', $testId)
-            ->where('percentage', '>=', self::COURSE_COMPLETION_TEST_PERCENT)
+            ->where('passed', true)
             ->whereNotIn('status', ['in_progress', 'pending_review']);
 
         if (SchemaCache::hasColumn('test_results', 'needs_manual_review')) {
