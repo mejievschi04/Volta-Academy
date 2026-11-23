@@ -125,9 +125,9 @@ class TestSubmissionFlowTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $preset = app(TestBuilderService::class)->createTest([
-            'title' => 'Preset nelimitat',
+            'title' => 'Preset o încercare',
         ], $admin);
-        $this->assertNull($preset->fresh()->max_attempts);
+        $this->assertSame(1, (int) $preset->fresh()->max_attempts);
         $this->assertTrue((bool) $preset->show_only_submitted_answers);
         $this->assertFalse((bool) $preset->show_correct_answers);
 
@@ -141,6 +141,12 @@ class TestSubmissionFlowTest extends TestCase
         $this->assertSame(1, (int) $updated->fresh()->max_attempts);
         $cleared = app(TestBuilderService::class)->updateTest($updated, ['max_attempts' => null]);
         $this->assertNull($cleared->fresh()->max_attempts);
+
+        $defaultExam = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/exams', [
+            'title' => 'Examen cu o încercare',
+            'status' => 'draft',
+        ])->assertCreated();
+        $this->assertSame(1, (int) Exam::findOrFail((int) $defaultExam->json('exam.id'))->max_attempts);
 
         $created = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/exams', [
             'title' => 'Examen fără limită',

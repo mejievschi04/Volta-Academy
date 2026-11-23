@@ -31,7 +31,7 @@ class TestBuilderService
             'time_limit_minutes' => $data['time_limit_minutes'] ?? null,
             'max_attempts' => array_key_exists('max_attempts', $data)
                 ? ($data['max_attempts'] === null || $data['max_attempts'] === '' ? null : (int) $data['max_attempts'])
-                : null,
+                : 1,
             'passing_score' => isset($data['passing_score']) ? round((float) $data['passing_score'], 2) : 70,
             'randomize_questions' => (bool)($data['randomize_questions'] ?? false),
             'randomize_answers' => (bool)($data['randomize_answers'] ?? false),

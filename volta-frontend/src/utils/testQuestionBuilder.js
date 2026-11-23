@@ -6,7 +6,7 @@ export const TEST_EDITOR_DEFAULT = {
   status: 'draft',
   question_source: 'direct',
   time_limit_minutes: null,
-  max_attempts: null,
+  max_attempts: 1,
   passing_score: 70,
   randomize_questions: true,
   randomize_answers: true,

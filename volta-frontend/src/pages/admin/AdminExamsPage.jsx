@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
   showCorrectAnswers: false,
   showOnlySubmittedAnswers: true,
   timeLimitMinutes: '',
-  attempts: '',
+  attempts: 1,
   deadlineFlexible: false,
   passingScore: 0,
   navigationMode: 'sequential',

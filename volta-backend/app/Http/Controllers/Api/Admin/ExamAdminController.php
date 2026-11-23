@@ -229,7 +229,7 @@ class ExamAdminController extends Controller
             'max_score' => $validated['max_score'],
             'max_attempts' => array_key_exists('max_attempts', $validated)
                 ? ($validated['max_attempts'] === null ? null : (int) $validated['max_attempts'])
-                : null,
+                : 1,
         ];
         if ($courseId) {
             $examData['course_id'] = $courseId;
