@@ -19,6 +19,7 @@ import './AdminTestsPage.css';
 import './AdminExamsPage.css';
 import '../../styles/test-settings.css';
 import { formatPercent } from '../../utils/formatPercent';
+import { stripRichTextToPlain } from '../../utils/richTextContent';
 import {
   TEST_RESULTS_DISPLAY_OPTIONS,
   getExamResultsDisplayMode,
@@ -1484,7 +1485,7 @@ export default function AdminExamsPage() {
                 <div className="admin-exams-preview-questions">
                   {(Array.isArray(previewData.questions) ? previewData.questions : []).map((question, index) => (
                     <article key={question.id || index} className="admin-exams-preview-question">
-                      <h5>{index + 1}. {question.text}</h5>
+                      <h5>{index + 1}. {stripRichTextToPlain(question.text) || 'Întrebare fără conținut'}</h5>
                       {Array.isArray(question.options) && question.options.length > 0 ? (
                         <ul>
                           {question.options.map((option, optionIndex) => (
@@ -1492,7 +1493,7 @@ export default function AdminExamsPage() {
                               key={`${question.id || index}-${optionIndex}`}
                               className={optionIndex === question.answerIndex ? 'is-correct-answer' : undefined}
                             >
-                              {option}
+                              {stripRichTextToPlain(String(option ?? ''))}
                               {optionIndex === question.answerIndex ? <strong className="admin-exams-preview-correct-label">Răspuns corect</strong> : null}
                             </li>
                           ))}
@@ -1505,7 +1506,7 @@ export default function AdminExamsPage() {
                           <strong>Potriviri corecte:</strong>
                           {question.matching.leftItems.map((item, pairIndex) => (
                             <div key={`${question.id || index}-pair-${item.id}`}>
-                              {item.text} → {question.matching.rightItems?.[pairIndex]?.text || question.matching.rightItems?.[pairIndex]?.image_url || ''}
+                              {stripRichTextToPlain(item.text)} → {stripRichTextToPlain(question.matching.rightItems?.[pairIndex]?.text || '') || question.matching.rightItems?.[pairIndex]?.image_url || ''}
                             </div>
                           ))}
                         </div>
@@ -1513,7 +1514,7 @@ export default function AdminExamsPage() {
                       {question.type === 'ordering' && Array.isArray(question.ordering?.items) ? (
                         <div className="admin-exams-preview-correct-answer">
                           <strong>Ordinea corectă:</strong>
-                          <ol>{question.ordering.items.map((item) => <li key={`${question.id || index}-order-${item.id}`}>{item.text}</li>)}</ol>
+                          <ol>{question.ordering.items.map((item) => <li key={`${question.id || index}-order-${item.id}`}>{stripRichTextToPlain(item.text)}</li>)}</ol>
                         </div>
                       ) : null}
                     </article>

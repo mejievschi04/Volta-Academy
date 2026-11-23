@@ -15,6 +15,7 @@ import StructuredQuestionRenderer from '../components/student/StructuredQuestion
 import ChoiceQuestionOptions from '../components/student/ChoiceQuestionOptions';
 import { WarningCircle } from '@phosphor-icons/react';
 import RichTextHtml from '../components/RichTextHtml';
+import { stripRichTextToPlain } from '../utils/richTextContent';
 import ConfirmModal from '../components/common/ConfirmModal';
 import '../styles/learning-experience.css';
 import { useTestAttemptTelemetry } from '../hooks/useTestAttemptTelemetry';
@@ -695,7 +696,7 @@ const ExamPage = () => {
 			: (isCorrect ? '✓ Corect' : '✗ Incorect');
 		const feedbackToneClass = isCorrect === null ? 'submitted' : (isCorrect ? 'correct' : 'incorrect');
 		// rezumatul din antet e text simplu (întrebarea poate fi HTML din editor)
-		const questionPlain = typeof q.text === 'string' ? q.text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim() : '';
+		const questionPlain = stripRichTextToPlain(typeof q.text === 'string' ? q.text : '');
 		const questionPreview = questionPlain.length > 80 ? `${questionPlain.slice(0, 80)}…` : questionPlain;
 
 		const feedbackBody = (

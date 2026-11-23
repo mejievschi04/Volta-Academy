@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import { DragGripIcon } from '../common/DragGripIcon';
+import { stripRichTextToPlain } from '../../utils/richTextContent';
 import './StructuredQuestionRenderer.css';
 import { toImageUrl } from '../../utils/imageUrl';
 
@@ -121,7 +122,7 @@ function OrderingQuestion({ question, value, onChange, disabled }) {
 							<SortableOrderItem
 								key={item.id}
 								id={String(item.id)}
-								text={item.text}
+								text={stripRichTextToPlain(item.text)}
 								disabled={disabled}
 								canMoveUp={index > 0}
 								canMoveDown={index < orderedItems.length - 1}
@@ -186,7 +187,7 @@ function MatchingQuestion({ question, value, onChange, disabled }) {
 					const selected = current[idx] ?? '';
 					return (
 						<li key={item.id} className={`student-exam-matching-row${selected ? ' is-filled' : ''}`}>
-							<label className="student-exam-matching-prompt" htmlFor={selectId}>{item.text}</label>
+							<label className="student-exam-matching-prompt" htmlFor={selectId}>{stripRichTextToPlain(item.text)}</label>
 							<select
 								id={selectId}
 								className="student-exam-matching-select"
@@ -200,7 +201,7 @@ function MatchingQuestion({ question, value, onChange, disabled }) {
 									const elsewhere = usedAt !== -1 && usedAt !== idx;
 									return (
 										<option key={opt.id} value={String(opt.id)}>
-											{elsewhere ? `${opt.text} (ales la „${leftItems[usedAt]?.text}”)` : opt.text}
+											{elsewhere ? `${stripRichTextToPlain(opt.text)} (ales la „${stripRichTextToPlain(leftItems[usedAt]?.text)}”)` : stripRichTextToPlain(opt.text)}
 										</option>
 									);
 								})}
@@ -243,7 +244,7 @@ function ImageMatchingQuestion({ question, value, onChange, disabled }) {
 					const isTarget = targetRow === index;
 					return (
 						<li key={item.id} className={`student-exam-matching-row${selected ? ' is-filled' : ''}`}>
-							<div className="student-exam-matching-prompt">{item.text}</div>
+							<div className="student-exam-matching-prompt">{stripRichTextToPlain(item.text)}</div>
 							<button
 								type="button"
 								className={`student-exam-matching-slot${selected ? ' is-filled' : ''}${isTarget ? ' is-active' : ''}`}

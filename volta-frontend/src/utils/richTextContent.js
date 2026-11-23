@@ -1,5 +1,19 @@
 import { toImageUrl } from './imageUrl';
 
+/** Spațiile lipite din editor (`&nbsp;`, inclusiv dublu codate) devin spații normale. */
+export function replaceHtmlSpaces(value) {
+	if (!value || typeof value !== 'string') {
+		return '';
+	}
+
+	return value
+		.replace(/&amp;(?:amp;)*nbsp;/gi, ' ')
+		.replace(/&nbsp;/gi, ' ')
+		.replace(/&#0*160;/g, ' ')
+		.replace(/&#x0*a0;/gi, ' ')
+		.replace(/\u00a0/g, ' ');
+}
+
 const EDITOR_CHROME_HINT_SNIPPETS = [
 	'Trage de marginile stânga sau dreapta pentru lățime',
 	'Trage de mânere — sus: decupare, jos/laterale: înălțime',
@@ -72,7 +86,7 @@ export function stripRichTextToPlain(html) {
 		return '';
 	}
 
-	const withBreaks = html
+	const withBreaks = replaceHtmlSpaces(html)
 		.replace(/<br\s*\/?>/gi, '\n')
 		.replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n');
 
@@ -96,7 +110,7 @@ export function normalizeRichTextMediaHtml(html) {
 		return '';
 	}
 
-	const withoutChrome = stripRichTextEditorChrome(html);
+	const withoutChrome = stripRichTextEditorChrome(replaceHtmlSpaces(html));
 
 	return withoutChrome.replace(
 		/(<img\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi,

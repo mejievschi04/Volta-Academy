@@ -1,4 +1,5 @@
 import React from 'react';
+import { stripRichTextToPlain } from '../../../../utils/richTextContent';
 
 const getQuestionTypeLabel = (type) => {
 	const labels = {
@@ -95,7 +96,7 @@ const QuestionBankBuilderStep3 = ({ data, errors }) => {
 									className="admin-question-item"
 								>
 									<div className="admin-question-item-title">
-										#{index + 1}: {question.content || question.text || 'Fără conținut'}
+										#{index + 1}: {stripRichTextToPlain(question.content || question.text) || 'Fără conținut'}
 									</div>
 									<div className="admin-question-item-meta">
 										{question.points || 1} puncte - {getQuestionTypeLabel(question.type)}

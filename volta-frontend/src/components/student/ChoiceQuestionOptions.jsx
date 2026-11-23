@@ -5,6 +5,7 @@ import {
 	isChoiceOptionSelected,
 	toggleMultiChoiceIndex,
 } from '../../utils/examChoiceQuestions';
+import { stripRichTextToPlain } from '../../utils/richTextContent';
 
 export default function ChoiceQuestionOptions({
 	question,
@@ -44,7 +45,7 @@ export default function ChoiceQuestionOptions({
 									}
 								}}
 							/>
-							<span className="student-exam-answer-option-text">{opt}</span>
+							<span className="student-exam-answer-option-text">{stripRichTextToPlain(String(opt ?? '')) || opt}</span>
 						</label>
 					);
 				})}
