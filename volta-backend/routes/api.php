@@ -387,6 +387,7 @@ Route::middleware([
     Route::get('/activity-logs', [ActivityLogAdminController::class, 'index']);
     
     // Exam Manual Review (legacy Exam model)
+    Route::get('/exam-results/{id}/breakdown', [\App\Http\Controllers\Api\ExamResultController::class, 'adminBreakdown'])->whereNumber('id');
     Route::post('/exam-results/{id}/manual-review', [ExamAdminController::class, 'submitManualReview']);
     Route::patch('/exam-results/{id}/score', [ExamAdminController::class, 'updateResultScore']);
     Route::post('/exam-results/{id}/extra-attempt', [ExamAdminController::class, 'grantExtraAttempt']);

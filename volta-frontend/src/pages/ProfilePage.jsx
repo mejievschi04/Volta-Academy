@@ -9,9 +9,11 @@ import { useAuth } from '../contexts/AuthContextShared.js';
 
 import { useToast } from '../contexts/ToastContextShared.js';
 import ConfirmModal from '../components/common/ConfirmModal';
+import AttemptDetailsModal from '../components/admin/tests/AttemptDetailsModal';
 import EmptyState from '../components/ui/EmptyState';
 import { toImageUrl } from '../utils/imageUrl';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseDeadlineLabel } from '../utils/courseDeadline';
 import { formatPercent } from '../utils/formatPercent';
 import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { nameInitials } from '../utils/initials';
@@ -95,6 +97,7 @@ const ProfilePage = () => {
 	const [completingCourseId, setCompletingCourseId] = useState(null);
 	const [resetCourseId, setResetCourseId] = useState(null);
 	const [grantingAttemptKey, setGrantingAttemptKey] = useState(null);
+	const [selectedAttempt, setSelectedAttempt] = useState(null);
 	const viewerRole = currentUser?.actualRole ?? currentUser?.role;
 	const isViewingOtherUser = Boolean(userId) && ['admin', 'instructor'].includes(viewerRole);
 
@@ -121,6 +124,7 @@ const ProfilePage = () => {
 	};
 
 	useEffect(() => {
+		setSelectedAttempt(null);
 		fetchData();
 	}, [userId, isViewingOtherUser]);
 
@@ -279,7 +283,7 @@ const ProfilePage = () => {
 	const renderTestResult = (test) => {
 		if (test.status === 'passed') return { label: `${formatPercent(test.percentage ?? 0)} · Promovat`, tone: 'passed' };
 		if (test.status === 'pending') return { label: 'În corectare', tone: 'pending' };
-		if (test.attempts_used > 0) return { label: `${formatPercent(test.percentage ?? 0)} · Nepromovat`, tone: 'failed' };
+		if (test.status === 'failed') return { label: `${formatPercent(test.percentage ?? 0)} · Nepromovat`, tone: 'failed' };
 		return { label: 'Neînceput', tone: 'idle' };
 	};
 
@@ -294,6 +298,7 @@ const ProfilePage = () => {
 					? 'Vezi cursul'
 					: 'Continuă';
 		const progress = Math.max(0, Math.min(100, Number(course.progress) || 0));
+		const deadlineLabel = courseDeadlineLabel(course);
 
 		return (
 			<article className={`va-up-card is-${status}`} key={course.id}>
@@ -304,6 +309,7 @@ const ProfilePage = () => {
 					</span>
 				</div>
 				{course.description ? <p className="va-up-card-desc">{course.description}</p> : null}
+				{deadlineLabel ? <p className="va-up-card-note">{deadlineLabel}</p> : null}
 
 				{(status === 'in_progress' || (status === 'failed' && progress < 100)) ? (
 					<div className="va-up-progress">
@@ -329,23 +335,41 @@ const ProfilePage = () => {
 					<ul className="va-up-tests">
 						{course.tests.map((test) => {
 							const grantKey = `${course.id}-${test.id}`;
-							const failed = test.status === 'failed' || (!test.passed && test.attempts_used > 0 && test.status !== 'pending');
 							const result = renderTestResult(test);
-							const canGrant = failed && test.max_attempts != null
-								&& (viewerRole !== 'instructor' || Number(test.created_by) === Number(currentUser?.id));
+							const canManageResult = viewerRole === 'admin' || Number(test.created_by) === Number(currentUser?.id);
+							const canGrant = canManageResult && test.status === 'failed' && test.max_attempts != null;
+							const canReview = canManageResult && test.result_id != null;
 							return (
 								<li className="va-up-test" key={test.id}>
 									<span className="va-up-test-title" title={test.title}>{test.title}</span>
 									<span className={`va-up-test-result is-${result.tone}`}>{result.label}</span>
-									{canGrant ? (
-										<button
-											type="button"
-											className="va-up-test-grant"
-											disabled={grantingAttemptKey === grantKey}
-											onClick={() => handleGrantExtraAttempt(course.id, test.id)}
-										>
-											{grantingAttemptKey === grantKey ? 'Se adaugă…' : '+1 încercare'}
-										</button>
+									{canReview || canGrant ? (
+										<div className="va-up-test-actions">
+											{canReview && (
+												<button
+													type="button"
+													className="lms-btn-secondary lms-btn-sm va-up-test-answers"
+													aria-label={`Vezi răspunsurile la ${test.title} din ${course.title}`}
+													onClick={() => setSelectedAttempt({
+														id: test.result_id,
+														title: test.title,
+														user: profileData.user,
+													})}
+												>
+													Vezi răspunsurile
+												</button>
+											)}
+											{canGrant && (
+												<button
+													type="button"
+													className="va-up-test-grant"
+													disabled={grantingAttemptKey === grantKey}
+													onClick={() => handleGrantExtraAttempt(course.id, test.id)}
+												>
+													{grantingAttemptKey === grantKey ? 'Se adaugă…' : '+1 încercare'}
+												</button>
+											)}
+										</div>
 									) : null}
 								</li>
 							);
@@ -487,6 +511,15 @@ const ProfilePage = () => {
 					</EmptyState>
 				)}
 			</section>
+
+			{isViewingOtherUser && selectedAttempt && (
+				<AttemptDetailsModal
+					key={selectedAttempt.id}
+					target={selectedAttempt}
+					title={selectedAttempt.title}
+					onClose={() => setSelectedAttempt(null)}
+				/>
+			)}
 
 			<ConfirmModal
 				open={showRemoveAvatarConfirm}

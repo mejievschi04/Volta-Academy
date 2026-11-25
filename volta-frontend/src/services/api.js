@@ -222,10 +222,11 @@ export const examService = {
     return response.data;
   },
 
-  saveProgress: async (examId, answers, courseId = null, attemptId = null, kind = null) => {
+  saveProgress: async (examId, answers, courseId = null, attemptId = null, kind = null, questionsVersion = null) => {
     const payload = { answers };
     if (courseId) payload.course_id = courseId;
     if (attemptId) payload.attempt_id = attemptId;
+    if (questionsVersion) payload.questions_version = questionsVersion;
     // salvare automată în timpul examenului: nu golește cache-ul de citire
     const response = await api.post(`/exams/${examId}/progress`, payload, { params: kind ? { kind } : {}, keepCache: true });
     return response.data;
@@ -688,6 +689,11 @@ export const adminService = {
 
   getExamResults: async (id, params = {}) => {
     const response = await api.get(`/admin/exams/${id}/results`, { params });
+    return response.data;
+  },
+
+  getExamResultBreakdown: async (resultId) => {
+    const response = await api.get(`/admin/exam-results/${resultId}/breakdown`);
     return response.data;
   },
 

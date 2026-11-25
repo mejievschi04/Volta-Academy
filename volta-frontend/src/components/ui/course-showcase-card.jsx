@@ -31,6 +31,7 @@ const CourseShowcaseCard = React.forwardRef(
 			imageUrl,
 			title,
 			subtitle,
+			deadlineLabel,
 			themeHsl,
 			onOpen,
 			ctaLabel = 'Deschide',
@@ -105,6 +106,7 @@ const CourseShowcaseCard = React.forwardRef(
 					<div className="course-showcase-card__inner va-card-content">
 						<h3 className="course-showcase-card__title va-card-title">{title}</h3>
 						{subtitle ? <p className="course-showcase-card__subtitle va-card-subtitle">{subtitle}</p> : null}
+						{deadlineLabel ? <p className="course-showcase-card__deadline">{deadlineLabel}</p> : null}
 						{normalizedProgress !== null ? (
 							<div className="course-showcase-card__progress va-card-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={normalizedProgress}>
 								<div className="course-showcase-card__progress-track va-card-progress-track">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Eye, EyeSlash, PencilSimple, RocketLaunch, Trash } from '@phosphor-icons/react';
+import { courseDeadlineLabel } from '../../../utils/courseDeadline';
 
 const iconProps = { size: 18, weight: 'bold', 'aria-hidden': true };
 
@@ -13,6 +14,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 	);
 
 	const statusBadge = getStatusBadge(course.status);
+	const deadlineLabel = courseDeadlineLabel(course);
 
 	return (
 		<div className="admin-course-overview">
@@ -75,6 +77,7 @@ const CourseOverview = ({ course, onQuickAction, readOnly = false, showStaffCour
 					)}
 				</div>
 			</div>
+			{deadlineLabel ? <p>{deadlineLabel}</p> : null}
 
 			<div className="admin-course-overview-grid">
 				{/* KPI-uri */}

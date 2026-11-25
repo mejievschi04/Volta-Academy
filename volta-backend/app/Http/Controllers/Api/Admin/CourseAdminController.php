@@ -426,6 +426,7 @@ class CourseAdminController extends Controller
             'objectives' => 'nullable|array',
             'requirements' => 'nullable|array',
             'estimated_duration_hours' => 'nullable|integer|min:1',
+            'deadline_at' => 'nullable|string|date',
             'sequential_unlock' => 'nullable|boolean',
             'min_completion_percentage' => 'nullable|integer|min:0|max:100',
             // SEO & Marketing
@@ -485,6 +486,10 @@ class CourseAdminController extends Controller
             'visibility' => $validated['visibility'] ?? 'public',
             'permissions' => $validated['permissions'] ?? null,
         ];
+
+        if (array_key_exists('deadline_at', $validated)) {
+            $data['deadline_at'] = $validated['deadline_at'];
+        }
 
         // Use CourseBuilderService to create course
         $teacher = isset($validated['teacher_id']) ? User::find($validated['teacher_id']) : $request->user();
@@ -551,6 +556,7 @@ class CourseAdminController extends Controller
             'objectives' => 'nullable|array',
             'requirements' => 'nullable|array',
             'estimated_duration_hours' => 'nullable|integer|min:1',
+            'deadline_at' => 'nullable|string|date',
             'sequential_unlock' => 'nullable|boolean',
             'min_completion_percentage' => 'nullable|integer|min:0|max:100',
             // SEO & Marketing
@@ -602,6 +608,9 @@ class CourseAdminController extends Controller
                     ? $this->normalizeMarketingTags($validated[$field])
                     : $validated[$field];
             }
+        }
+        if (array_key_exists('deadline_at', $validated)) {
+            $data['deadline_at'] = $validated['deadline_at'];
         }
 
         // Force access_type to 'free' and price to 0

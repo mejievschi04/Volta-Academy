@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Support\QuestionImageUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -280,18 +281,21 @@ class TestAnalyticsService
         $questions = $this->attemptQuestions($result, $test);
 
         return $questions->sortBy('order')->values()->map(function (Question $question) use ($result) {
-            $graded = $this->gradeQuestion($result, $question);
+            $graded = $this->gradeQuestion($result, $question, includeAnswers: true);
+            $manual = ($result->manual_review_scores ?? [])[$question->id] ?? [];
 
             return [
                 'question_id' => $question->id,
                 'question_text' => $question->content ?? '',
                 'question_type' => $question->type ?? 'multiple_choice',
                 'points' => (int) ($question->points ?? 1),
-                'points_earned' => $graded['points_earned'] ?? 0,
+                'points_earned' => $manual['score'] ?? ($graded['is_correct'] === null ? null : $graded['points_earned']),
                 'is_correct' => $graded['is_correct'],
                 'has_answer' => $graded['has_answer'] ?? false,
                 'user_answer_summary' => $graded['user_answer_summary'] ?? null,
                 'selected_option_indices' => $graded['selected_display_indices'] ?? [],
+                'review_feedback' => $manual['feedback'] ?? null,
+                ...$graded['answer_details'],
             ];
         })->all();
     }
@@ -365,7 +369,7 @@ class TestAnalyticsService
         return $byId;
     }
 
-    protected function gradeQuestion(TestResult $result, Question $question): array
+    protected function gradeQuestion(TestResult $result, Question $question, bool $includeAnswers = false): array
     {
         $test = $result->test;
         $answers = is_array($result->answers) ? $result->answers : [];
@@ -412,7 +416,7 @@ class TestAnalyticsService
             $userAnswerSummary = $hasAnswer ? 'Ordine trimisă' : null;
         }
 
-        return [
+        $grade = [
             'has_answer' => $hasAnswer,
             'is_correct' => $isCorrect,
             'points_earned' => $pointsEarned,
@@ -420,6 +424,25 @@ class TestAnalyticsService
             'selected_display_indices' => $selectedDisplayIndices,
             'selected_original_indices' => $originalSelected ?? [],
         ];
+        if ($includeAnswers) {
+            $options = [];
+            foreach ($order['display_answers'] ?? [] as $index => $option) {
+                $options[] = [
+                    'text' => $this->answerOrder->answerText($option),
+                    'is_selected' => in_array($index, $selectedDisplayIndices, true),
+                    'is_correct' => in_array($order['display_to_original'][$index], $order['correct_original_indices'], true),
+                ];
+            }
+            $grade['answer_details'] = [
+                'user_answer' => $userAnswer,
+                'answers' => $options,
+                'matching' => $matching ?? null,
+                'imageMatching' => $imageMatching ?? null,
+                'ordering' => $ordering ?? null,
+            ];
+        }
+
+        return $grade;
     }
 
     protected function isSequenceAnswerCorrect(mixed $userAnswer, array $correctSequence): bool
@@ -463,6 +486,7 @@ class TestAnalyticsService
             }
         }
 
+        $leftItems = [];
         $rightItems = [];
         foreach ($pairs as $index => $pair) {
             if (! is_array($pair)) {
@@ -473,11 +497,14 @@ class TestAnalyticsService
             if ($leftText === '' || $rightText === '') {
                 continue;
             }
+            $leftItems[] = ['id' => (string) $index, 'text' => $leftText];
             $rightItems[] = ['id' => (string) $index, 'text' => $rightText];
         }
 
         return [
-            'correctMap' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $rightItems)),
+            'leftItems' => $leftItems,
+            'rightItems' => $rightItems,
+            'correctMap' => array_column($rightItems, 'id'),
         ];
     }
 
@@ -512,20 +539,27 @@ class TestAnalyticsService
         }
 
         return [
-            'correctOrder' => array_values(array_map(static fn ($item) => (string) ($item['id'] ?? ''), $normalized)),
+            'items' => $normalized,
+            'correctOrder' => array_column($normalized, 'id'),
         ];
     }
 
     protected function buildImageMatchingQuestionData(Question $question, Test $test, int $userId, int $attemptNumber): array
     {
         $answers = is_array($question->answers) ? array_values($question->answers) : [];
-        $ids = [];
+        $leftItems = [];
+        $rightItems = [];
         foreach ($answers as $index => $answer) {
             if (!is_array($answer)) continue;
             $left = trim((string) ($answer['left'] ?? $answer['text'] ?? ''));
             $url = trim((string) ($answer['image_url'] ?? $answer['imageUrl'] ?? ''));
-            if ($left !== '' && $url !== '') $ids[] = (string) $index;
+            if ($left === '' || $url === '') {
+                continue;
+            }
+            $id = (string) $index;
+            $leftItems[] = ['id' => $id, 'text' => $left];
+            $rightItems[] = ['id' => $id, 'image_url' => QuestionImageUrl::sanitize($url), 'alt' => $left];
         }
-        return ['correctMap' => $ids];
+        return ['leftItems' => $leftItems, 'rightItems' => $rightItems, 'correctMap' => array_column($rightItems, 'id')];
     }
 }

@@ -181,6 +181,7 @@ const ExamPage = () => {
 			if (data.requires_start) {
 				setResult(null);
 				setSubmitted(false);
+				setAnswers({});
 				setTimeRemaining(null);
 				setStartTime(null);
 				setError(null);
@@ -210,7 +211,13 @@ const ExamPage = () => {
 					try {
 						const raw = sessionStorage.getItem(draftKey);
 						if (raw) {
-							draftAnswers = restoreExamDraftAnswers(raw, data.questions);
+							const version = data.active_attempt?.questions_version;
+							const saved = JSON.parse(raw);
+							if (version && saved?.questionsVersion === version) {
+								draftAnswers = restoreExamDraftAnswers(JSON.stringify(saved.answers), data.questions);
+							} else if (!version && !saved?.questionsVersion) {
+								draftAnswers = restoreExamDraftAnswers(raw, data.questions);
+							}
 						}
 					} catch {
 						draftAnswers = {};
@@ -252,7 +259,7 @@ const ExamPage = () => {
 			setLoading(false);
 			examFetchInFlightRef.current = false;
 		}
-	}, [examId, courseId]);
+	}, [examId, courseId, examKind]);
 
 	useEffect(() => {
 		fetchExamData();
@@ -260,10 +267,11 @@ const ExamPage = () => {
 
 	// Persistă răspunsurile în timp real ca să nu se piardă la ieșire din pagină / refresh (până la trimitere).
 	useEffect(() => {
-		if (!exam || submitted) return;
+		if (!exam || exam.requires_start || submitted) return;
 		const draftKey = buildExamDraftKey(user?.id, courseId, examId);
 		try {
-			sessionStorage.setItem(draftKey, JSON.stringify(answers));
+			const questionsVersion = exam.active_attempt?.questions_version;
+			sessionStorage.setItem(draftKey, JSON.stringify(questionsVersion ? { questionsVersion, answers } : answers));
 		} catch {
 			/* quota / private mode */
 		}
@@ -279,11 +287,12 @@ const ExamPage = () => {
 				courseId || null,
 				exam?.active_attempt?.id ?? null,
 				examKind,
+				exam?.active_attempt?.questions_version,
 			);
 		} catch {
 			/* sessionStorage remains the local fallback */
 		}
-	}, [exam, submitted, examId, courseId]);
+	}, [exam, submitted, examId, courseId, examKind]);
 
 	const scheduleProgressSave = useCallback((nextAnswers) => {
 		if (saveProgressTimerRef.current) {
@@ -371,6 +380,7 @@ const ExamPage = () => {
 
 			const resultData = await examService.submitExam(examId, latestAnswers, courseId || null, {
 				attempt_id: exam?.active_attempt?.id ?? null,
+				questions_version: exam?.active_attempt?.questions_version ?? null,
 				started_at: exam?.active_attempt?.started_at ?? (startTime ? new Date(startTime).toISOString() : null),
 			}, examKind);
 			const submittedResult = resultData.result;
@@ -400,6 +410,11 @@ const ExamPage = () => {
 				/* ignore */
 			}
 		} catch (err) {
+			if (err?.response?.data?.questions_changed) {
+				await fetchExamData();
+				showWarning('Întrebările s-au actualizat. Verifică răspunsurile înainte de trimitere.');
+				return;
+			}
 			const errorMessage = handleApiError(err, 'submitExam');
 			setError(errorMessage
 				? `${errorMessage} Răspunsurile tale sunt păstrate. Poți trimite din nou.`
@@ -408,7 +423,7 @@ const ExamPage = () => {
             submitInFlightRef.current = false;
             setSubmitting(false);
         }
-	}, [examId, answers, exam, courseId, user?.id, submitted, startTime, persistProgress]);
+	}, [examId, answers, exam, courseId, examKind, user?.id, submitted, startTime, persistProgress, fetchExamData, showWarning]);
     latestSubmitRef.current = handleSubmit;
 
 	// Handle retry

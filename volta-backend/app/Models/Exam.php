@@ -90,6 +90,13 @@ class Exam extends Model
         return $this->hasMany(ExamResult::class);
     }
 
+    public function isOwnedByInstructor(User $user): bool
+    {
+        $ownerId = $this->course_id ? $this->course?->teacher_id : ($this->created_by ?? null);
+
+        return $ownerId !== null && (int) $ownerId === (int) $user->id;
+    }
+
     /**
      * Vizibilitate pentru elevi (catalog / acces fără curs).
      * all_students și selected_students rămân pentru examenele salvate înainte de echipe.

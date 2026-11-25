@@ -37,6 +37,7 @@ import '../components/admin/lessons/video/LessonVideo.css';
 import '../components/admin/lessons/image/LessonImageContent.css';
 import { logger } from '../utils/logger';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseDeadlineLabel } from '../utils/courseDeadline';
 import { useLessonBarsHidden } from '../hooks/useLessonBarsHidden.js';
 import { resolveCourseBackTarget } from '../utils/courseBackTarget.js';
 
@@ -599,6 +600,7 @@ const LessonsPage = () => {
 	const hasPreviousLesson = previousLessonTarget != null && !Number.isNaN(previousLessonTarget);
 	const hasNextLesson = typeof nextLessonTarget === 'number' && !Number.isNaN(nextLessonTarget);
 	const lessonPosition = getLessonPosition(modules, selectedLessonId, rootLessons);
+	const deadlineLabel = courseDeadlineLabel(course, { completed: progress?.course_complete });
 
 	return (
 		<div className={`lessons-page-modern lessons-page-player-layout ${sidebarOpen ? 'lessons-page-sidebar-open' : ''}`}>
@@ -866,6 +868,7 @@ const LessonsPage = () => {
 						</div>
 					) : null}
 				</div>
+				{deadlineLabel ? <p className="lessons-page-course-deadline">{deadlineLabel}</p> : null}
 				{currentLessonLoading ? (
 					<div className="lessons-page-lesson-loading">
 						<div className="lessons-page-spinner"></div>

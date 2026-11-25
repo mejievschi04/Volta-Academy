@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
-use Carbon\Carbon;
 
 class EventController extends Controller
 {
@@ -18,17 +17,16 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
+        $now = now();
+        $isHistory = in_array($request->date_filter, ['past', 'completed'], true);
         $query = Event::with(['instructor:id,name,email,avatar', 'course:id,title'])
-            ->where(function ($q) {
-                $q->whereIn('status', ['published', 'upcoming', 'live'])
-                    ->orWhere(function ($dateScoped) {
-                        $dateScoped->whereNotIn('status', ['draft', 'cancelled', 'completed'])
-                            ->whereNotNull('end_date');
-                    });
-            })
-            ->where(function ($q) {
-                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
-            });
+            ->whereNotIn('status', ['draft', 'cancelled']);
+
+        if ($isHistory) {
+            $query->past($now);
+        } else {
+            $query->active($now);
+        }
 
         if (SchemaCache::hasTable('event_team')) {
             $query->with('teams:id,name');
@@ -49,31 +47,21 @@ class EventController extends Controller
             }
         }
 
-        // Date filter: upcoming, live. Past events stay hidden on the student list.
-        if ($request->has('date_filter')) {
-            $now = now();
-            switch ($request->date_filter) {
-                case 'upcoming':
-                    $query->where('start_date', '>', $now);
-                    break;
-                case 'past':
-                case 'completed':
-                    $query->whereRaw('1 = 0');
-                    break;
-                case 'live':
-                    $query->where('start_date', '<=', $now)
-                          ->where('end_date', '>=', $now);
-                    break;
-            }
+        if ($request->date_filter === 'upcoming') {
+            $query->where('start_date', '>', $now);
+        } elseif ($request->date_filter === 'live') {
+            $query->where('start_date', '<=', $now)->where('end_date', '>=', $now);
         }
 
         // Sort
         $sortBy = in_array($request->get('sort_by'), ['start_date', 'end_date', 'title', 'created_at'], true)
             ? $request->get('sort_by')
             : 'start_date';
-        $sortDirection = strtolower((string) $request->get('sort_direction')) === 'desc' ? 'desc' : 'asc';
+        $sortDirection = strtolower((string) $request->get('sort_direction', $isHistory ? 'desc' : 'asc')) === 'desc'
+            ? 'desc'
+            : 'asc';
 
-        $query->orderBy($sortBy, $sortDirection);
+        $query->orderBy($sortBy, $sortDirection)->orderBy('id', $sortDirection);
 
         $perPage = $request->get('per_page', 20);
         $events = $query->paginate($perPage);
@@ -117,19 +105,10 @@ class EventController extends Controller
      */
     public function show($id)
     {
-        $event = Event::with(['instructor', 'course'])
-            ->where(function($q) {
-                $q->where('status', 'published')
-                  ->orWhere('status', 'upcoming')
-                  ->orWhere('status', 'live')
-                  ->orWhere('status', 'completed');
-            })
-            ->findOrFail($id);
-
-        $endRaw = $event->getRawOriginal('end_date') ?? $event->end_date;
-        if ($endRaw && Carbon::parse($endRaw)->lt(now())) {
-            abort(404);
-        }
+        $query = Event::with(['instructor', 'course'])
+            ->whereIn('status', ['published', 'upcoming', 'live', 'completed']);
+        $this->applyAudienceScope($query, Auth::user());
+        $event = $query->findOrFail($id);
 
         // Return raw datetime values
         $event->start_date = $event->getRawOriginal('start_date') ?? $event->start_date;
@@ -179,7 +158,7 @@ class EventController extends Controller
                 if (! $this->eventVisibleToUser($event, $user, $userTeamIds)) {
                     abort(404);
                 }
-                if ($event->end_date && \Carbon\Carbon::parse($event->end_date)->lt(now())) {
+                if ($event->is_completed) {
                     abort(400, 'Evenimentul s-a încheiat');
                 }
 
@@ -262,7 +241,7 @@ class EventController extends Controller
             $event = DB::transaction(function () use ($id, $user) {
                 $event = Event::lockForUpdate()->findOrFail($id);
 
-                if (in_array($event->status, ['cancelled', 'completed'], true)) {
+                if ($event->status === 'cancelled' || $event->is_completed) {
                     abort(400, 'Nu poți anula înscrierea la acest eveniment');
                 }
 
@@ -314,6 +293,9 @@ class EventController extends Controller
             : [];
         if (! $this->eventVisibleToUser($event, $user, $teamIds)) {
             abort(404);
+        }
+        if ($event->is_completed) {
+            abort(400, 'Evenimentul s-a încheiat');
         }
 
         $data = $request->validate([

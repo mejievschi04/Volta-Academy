@@ -11,6 +11,7 @@ const TITLE_ID = 'course-create-title';
 const TITLE_HINT_ID = 'course-create-title-hint';
 const TITLE_ERROR_ID = 'course-create-title-error';
 const DESC_ID = 'course-create-description';
+const DEADLINE_ID = 'course-create-deadline';
 const FORM_ERROR_ID = 'course-create-form-error';
 const PRIMARY_HINT_ID = 'course-create-primary-hint';
 
@@ -22,6 +23,7 @@ const CourseCreationPage = () => {
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
+	const [deadline, setDeadline] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [titleError, setTitleError] = useState('');
@@ -49,6 +51,7 @@ const CourseCreationPage = () => {
 			const payload = {
 				title: t,
 				description: cleanDescription || '',
+				deadline_at: deadline ? new Date(deadline).toISOString() : null,
 				status: 'draft',
 				level: 'beginner',
 				visibility: 'public',
@@ -95,7 +98,7 @@ const CourseCreationPage = () => {
 					</button>
 					<h1 className="course-creation-simple-title">Creează curs nou</h1>
 					<p className="course-creation-simple-subtitle">
-						Completezi titlul și descrierea, apoi continui în Builder.
+						Completează datele cursului, apoi continuă în Builder.
 					</p>
 				</header>
 
@@ -139,6 +142,18 @@ const CourseCreationPage = () => {
 							onChange={(e) => setDescription(e.target.value)}
 							className="course-creation-simple-textarea"
 							rows={4}
+							disabled={loading}
+						/>
+					</div>
+
+					<div className="course-creation-simple-field">
+						<label className="course-creation-simple-label" htmlFor={DEADLINE_ID}>Termen-limită (opțional)</label>
+						<input
+							id={DEADLINE_ID}
+							type="datetime-local"
+							className="course-creation-simple-input"
+							value={deadline}
+							onChange={(e) => setDeadline(e.target.value)}
 							disabled={loading}
 						/>
 					</div>

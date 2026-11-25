@@ -592,7 +592,7 @@ class TestAdminController extends Controller
     public function resultBreakdown($resultId)
     {
         $result = TestResult::with(['test', 'user:id,name,email'])->findOrFail($resultId);
-        if (auth()->user()->isInstructor() && (int) $result->test->created_by !== (int) auth()->id()) {
+        if (auth()->user()->isInstructor() && (int) ($result->test?->created_by ?? 0) !== (int) auth()->id()) {
             abort(403, 'Acces interzis. Poți vedea doar rezultatele testelor tale.');
         }
 
@@ -605,12 +605,15 @@ class TestAdminController extends Controller
                 'percentage' => $result->percentage,
                 'passed' => (bool) $result->passed,
                 'completed_at' => $result->completed_at,
+                'status' => $result->status,
+                'needs_manual_review' => (bool) $result->needs_manual_review,
                 'user' => [
                     'id' => $result->user?->id,
                     'name' => $result->user?->name,
                     'email' => $result->user?->email,
                 ],
             ],
+            'question_snapshot_available' => ! empty($result->question_snapshot),
             'questions' => $this->testAnalyticsService->buildAttemptBreakdown($result),
         ]);
     }

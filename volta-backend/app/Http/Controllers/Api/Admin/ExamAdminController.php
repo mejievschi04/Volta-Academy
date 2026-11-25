@@ -34,20 +34,9 @@ class ExamAdminController extends Controller
     protected function assertExamAccessibleByInstructor(Exam $exam): void
     {
         $user = auth()->user();
-        if (! $user->isInstructor()) {
-            return;
-        }
-        if ($exam->course_id) {
-            $course = $exam->relationLoaded('course') ? $exam->course : $exam->course()->first();
-            if ($course && (int) $course->teacher_id === (int) $user->id) {
-                return;
-            }
+        if ($user->isInstructor() && ! $exam->isOwnedByInstructor($user)) {
             abort(403, 'Acces interzis.');
         }
-        if (SchemaCache::hasColumn('exams', 'created_by') && (int) ($exam->created_by ?? 0) === (int) $user->id) {
-            return;
-        }
-        abort(403, 'Acces interzis.');
     }
 
     public function index(Request $request)
@@ -133,7 +122,7 @@ class ExamAdminController extends Controller
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
                 'matching' => $questionType === 'matching' ? $this->buildPreviewMatchingData($question) : null,
-                'imageMatching' => $questionType === 'image_matching' ? $this->buildPreviewImageMatchingData($question) : null,
+                'imageMatching' => $questionType === 'image_matching' ? $question->imageMatchingData() : null,
                 'ordering' => $questionType === 'ordering' ? $this->buildPreviewOrderingData($question) : null,
             ];
         });
@@ -909,25 +898,6 @@ class ExamAdminController extends Controller
             return ['items' => is_array($items) ? array_values($items) : []];
         }
         return $payload;
-    }
-
-    protected function buildPreviewImageMatchingData(ExamQuestion $question): array
-    {
-        $payload = is_array($question->payload) ? $question->payload : [];
-        $pairs = is_array($payload['pairs'] ?? null) ? array_values($payload['pairs']) : [];
-        $leftItems = [];
-        $rightItems = [];
-        foreach ($pairs as $index => $pair) {
-            if (! is_array($pair)) continue;
-            $label = trim((string) ($pair['left'] ?? $pair['text'] ?? ''));
-            $url = trim((string) ($pair['image_url'] ?? $pair['imageUrl'] ?? ''));
-            $url = \App\Support\QuestionImageUrl::sanitize($url);
-            if ($label === '' || $url === '') continue;
-            $id = (string) $index;
-            $leftItems[] = ['id' => $id, 'text' => $label];
-            $rightItems[] = ['id' => $id, 'image_url' => $url, 'alt' => $label];
-        }
-        return ['leftItems' => $leftItems, 'rightItems' => $rightItems, 'correctMap' => array_column($rightItems, 'id')];
     }
 
     protected function buildPreviewMatchingData(ExamQuestion $question): array

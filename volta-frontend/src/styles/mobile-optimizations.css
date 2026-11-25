@@ -1479,6 +1479,14 @@
 		overflow: hidden;
 	}
 
+	.va-shell:not(.va-shell-topnav) .messages-page {
+		position: fixed;
+		inset: var(--app-header-height, 56px) 0 0;
+		width: 100%;
+		height: calc(100dvh - var(--app-header-height, 56px));
+		border-left: 0;
+	}
+
 	/* messages-container - full height pentru flex children */
 	.messages-container {
 		min-height: 0;

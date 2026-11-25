@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\ExtractsInlineImages;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -51,6 +54,17 @@ class Event extends Model
         // 'start_date' => 'datetime', // Removed to avoid timezone conversion
         // 'end_date' => 'datetime',   // Removed to avoid timezone conversion
     ];
+
+    public function scopeActive(Builder $query, CarbonInterface $now): Builder
+    {
+        return $query->where('status', '!=', 'completed')
+            ->where(fn (Builder $dates) => $dates->whereNull('end_date')->orWhere('end_date', '>=', $now));
+    }
+
+    public function scopePast(Builder $query, CarbonInterface $now): Builder
+    {
+        return $query->where(fn (Builder $events) => $events->where('status', 'completed')->orWhere('end_date', '<', $now));
+    }
 
     /**
      * Get the instructor/speaker for this event
@@ -157,6 +171,10 @@ class Event extends Model
      */
     public function getIsLiveAttribute()
     {
+        if ($this->is_completed) {
+            return false;
+        }
+
         $now = time();
         $start = strtotime($this->start_date);
         $end = strtotime($this->end_date);
@@ -168,7 +186,8 @@ class Event extends Model
      */
     public function getIsCompletedAttribute()
     {
-        return $this->status === 'completed' || strtotime($this->end_date) < time();
+        return $this->status === 'completed'
+            || ($this->end_date && Carbon::parse($this->end_date)->lt(now()->startOfSecond()));
     }
 
     /**

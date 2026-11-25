@@ -1,0 +1,162 @@
+.exam-result-question {
+	padding: var(--space-4);
+	border-radius: 14px;
+	border: 1px solid var(--border-primary);
+	background: var(--bg-elevated);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.exam-result-question.correct {
+	border-color: color-mix(in srgb, var(--color-success) 32%, var(--border-primary));
+}
+
+.exam-result-question.incorrect {
+	border-color: color-mix(in srgb, var(--color-error) 32%, var(--border-primary));
+}
+
+.exam-result-question.pending {
+	border-color: color-mix(in srgb, var(--color-warning) 32%, var(--border-primary));
+}
+
+.exam-result-question-points {
+	flex: 0 0 auto;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
+.exam-result-question-text {
+	margin-bottom: var(--space-3);
+	color: var(--text-primary);
+	font-weight: 700;
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+
+.exam-result-question-text * {
+	font-weight: 700 !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	color: inherit !important;
+	background: transparent !important;
+}
+
+.exam-result-question-text p,
+.exam-result-question-text ul,
+.exam-result-question-text ol {
+	margin: 0 0 0.5em;
+}
+
+.exam-result-answers,
+.exam-result-structured {
+	display: grid;
+	gap: var(--space-2);
+}
+
+.exam-result-answer,
+.exam-result-structured-row,
+.exam-result-open-text-answer {
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--border-primary);
+	background: var(--bg-secondary);
+}
+
+.exam-result-answer {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	padding: var(--space-2);
+}
+
+.exam-result-answer.correct {
+	border-color: color-mix(in srgb, var(--color-success) 32%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-success) 7%, var(--bg-secondary));
+}
+
+.exam-result-answer.user-incorrect {
+	border-color: color-mix(in srgb, var(--color-error) 32%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-error) 7%, var(--bg-secondary));
+}
+
+.exam-result-question.correct .exam-result-structured-row,
+.exam-result-question.correct .exam-result-open-text-answer {
+	border-color: color-mix(in srgb, var(--color-success) 32%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-success) 7%, var(--bg-secondary));
+}
+
+.exam-result-question.incorrect .exam-result-structured-row,
+.exam-result-question.incorrect .exam-result-open-text-answer {
+	border-color: color-mix(in srgb, var(--color-error) 32%, var(--border-primary));
+	background: color-mix(in srgb, var(--color-error) 7%, var(--bg-secondary));
+}
+
+.exam-result-answer-marker {
+	width: 20px;
+	display: inline-flex;
+	justify-content: center;
+	color: var(--exam-results-accent, #5b72ff);
+}
+
+.exam-result-answer.correct .exam-result-answer-marker {
+	color: var(--color-success);
+}
+
+.exam-result-answer.user-incorrect .exam-result-answer-marker {
+	color: var(--color-error);
+}
+
+.exam-result-answer-text {
+	flex: 1;
+	font-size: var(--font-size-sm);
+	line-height: 1.4;
+	color: var(--text-primary);
+}
+
+.exam-result-answer-label {
+	flex: 0 0 auto;
+	padding: 0.2rem 0.45rem;
+	border-radius: var(--radius-sm);
+	background: color-mix(in srgb, var(--color-success) 12%, transparent);
+	color: var(--color-success);
+	font-size: var(--font-size-xs);
+	font-weight: var(--font-weight-bold);
+}
+
+.exam-result-answer-label.user {
+	background: color-mix(in srgb, var(--exam-results-accent, #5b72ff) 12%, transparent);
+	color: var(--exam-results-accent, #5b72ff);
+}
+
+.exam-result-structured-row {
+	display: grid;
+	gap: 0.35rem;
+	padding: var(--space-2);
+	font-size: var(--font-size-sm);
+	line-height: 1.45;
+}
+
+.exam-result-structured-row span,
+.exam-result-open-text-answer {
+	color: var(--text-secondary);
+}
+
+.exam-result-answer-image {
+	display: block;
+	max-width: min(100%, 180px);
+	max-height: 120px;
+	object-fit: cover;
+	border-radius: 6px;
+}
+
+.exam-result-open-text-answer {
+	margin-top: var(--space-2);
+	padding: var(--space-2);
+	font-size: var(--font-size-sm);
+	line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+	.exam-result-answer {
+		flex-wrap: wrap;
+	}
+}

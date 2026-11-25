@@ -222,6 +222,31 @@
 	background: var(--bg-elevated);
 }
 
+.admin-test-result-card-head.has-exam-details {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	padding-right: 14px;
+}
+
+.admin-test-result-exam-details {
+	min-height: 44px;
+}
+
+@media (max-width: 640px) {
+	.has-exam-details .admin-test-result-card-toggle {
+		flex-wrap: wrap;
+	}
+
+	.has-exam-details .admin-test-result-card-name {
+		flex-basis: 100%;
+	}
+
+	.has-exam-details .admin-test-result-card-team {
+		min-width: 0;
+	}
+}
+
 .admin-test-result-card-toggle {
 	width: 100%;
 	display: flex;

@@ -113,7 +113,17 @@ class TestAttemptAnswerOrderService
 
         $displayAnswers = $originalAnswers;
 
-        if (in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
+        $savedOrder = $question->attempt_answer_order ?? null;
+        if (is_array($savedOrder)) {
+            $displayAnswers = [];
+            $displayToOriginal = [];
+            $originalToDisplay = [];
+            foreach ($savedOrder as $displayIndex => $originalIndex) {
+                $displayAnswers[$displayIndex] = $originalAnswers[$originalIndex];
+                $displayToOriginal[$displayIndex] = $originalIndex;
+                $originalToDisplay[$originalIndex] = $displayIndex;
+            }
+        } elseif (in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
             && $test->randomize_answers
             && count($originalAnswers) > 1
         ) {

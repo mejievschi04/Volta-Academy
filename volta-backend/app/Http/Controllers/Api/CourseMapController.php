@@ -332,6 +332,7 @@ class CourseMapController extends Controller
                 'views_count' => \App\Support\CourseViews::countForCourse($course),
                 'progress_percentage' => $p['progress_percentage'],
                 'completed_at' => $p['completed_at'],
+                'deadline_at' => $course->deadline_at,
                 'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
             ];
         })->values();

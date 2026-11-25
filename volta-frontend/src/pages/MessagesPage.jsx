@@ -20,6 +20,9 @@ import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 import { logger } from '../utils/logger';
 import { toImageUrl } from '../utils/imageUrl';
 import ConfirmModal from '../components/common/ConfirmModal';
+import Modal from '../components/common/Modal';
+
+const MIN_GROUP_INVITEES = 2;
 
 const MessagesPage = () => {
 	const { user } = useAuth();
@@ -36,12 +39,11 @@ const MessagesPage = () => {
 	const [showNewConversationModal, setShowNewConversationModal] = useState(false);
 	const [newConversationType, setNewConversationType] = useState('direct');
 	const [newGroupName, setNewGroupName] = useState('');
-	const [newConversationUserId, setNewConversationUserId] = useState('');
-	const [newConversationUserIds, setNewConversationUserIds] = useState([]);
 	const [newConversationSearch, setNewConversationSearch] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [pickedUsers, setPickedUsers] = useState([]);
 	const [loadingUsers, setLoadingUsers] = useState(false);
+	const [creatingConversation, setCreatingConversation] = useState(false);
 	const [showParticipantsModal, setShowParticipantsModal] = useState(false);
 	const [groupParticipants, setGroupParticipants] = useState([]);
 	const [participantsSearch, setParticipantsSearch] = useState('');
@@ -62,6 +64,7 @@ const MessagesPage = () => {
 	const messagesPollBackoffUntilRef = useRef(0);
 	const conversationsPollBackoffUntilRef = useRef(0);
 	const shouldAutoScrollRef = useRef(true);
+	const userSearchRequestRef = useRef(0);
 
 	// Detect mobile viewport
 	useEffect(() => {
@@ -73,7 +76,7 @@ const MessagesPage = () => {
 	}, []);
 
 	useEffect(() => {
-		if (!isMobile || !selectedConversation) {
+		if (!isMobile || (!selectedConversation && !showNewConversationModal)) {
 			document.documentElement.style.removeProperty('--messages-visible-height');
 			document.documentElement.style.removeProperty('--messages-keyboard-inset');
 			document.documentElement.style.removeProperty('--messages-viewport-top');
@@ -89,7 +92,7 @@ const MessagesPage = () => {
 			document.documentElement.style.setProperty('--messages-visible-height', `${visible}px`);
 			document.documentElement.style.setProperty('--messages-viewport-top', `${top}px`);
 			document.documentElement.style.setProperty('--messages-keyboard-inset', `${inset}px`);
-			if (inset > lastInset + 48) {
+			if (!showNewConversationModal && inset > lastInset + 48) {
 				requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ block: 'end' }));
 			}
 			lastInset = inset;
@@ -107,7 +110,7 @@ const MessagesPage = () => {
 			document.documentElement.style.removeProperty('--messages-viewport-top');
 			document.documentElement.style.removeProperty('--messages-keyboard-inset');
 		};
-	}, [isMobile, selectedConversation]);
+	}, [isMobile, selectedConversation, showNewConversationModal]);
 
 	useEffect(() => {
 		fetchConversations();
@@ -607,92 +610,82 @@ const MessagesPage = () => {
 		}
 	};
 
-	const handleNewConversation = async () => {
-		if (newConversationType === 'direct' && !newConversationUserId) {
-			showToast('Selectează un utilizator', 'error');
-			return;
-		}
-		if (newConversationType === 'group' && newConversationUserIds.length < 2) {
-			showToast('Selectează cel puțin 2 participanți pentru grup', 'error');
-			return;
-		}
+	const isNewGroup = newConversationType === 'group';
+	const canCreateConversation = pickedUsers.length >= (isNewGroup ? MIN_GROUP_INVITEES : 1);
 
+	const closeNewConversation = () => {
+		userSearchRequestRef.current += 1;
+		setShowNewConversationModal(false);
+		setNewConversationType('direct');
+		setNewGroupName('');
+		setPickedUsers([]);
+		setNewConversationSearch('');
+		setAvailableUsers([]);
+		setLoadingUsers(false);
+	};
+
+	const handleNewConversation = async (event) => {
+		event.preventDefault();
+		if (creatingConversation || !canCreateConversation) return;
+		setCreatingConversation(true);
 		try {
-			const payload = newConversationType === 'group'
+			const payload = isNewGroup
 				? {
 					type: 'group',
 					name: newGroupName?.trim() || 'Grup nou',
-					participant_ids: newConversationUserIds,
+					participant_ids: pickedUsers.map(({ id }) => id),
 				}
 				: {
 					type: 'direct',
-					participant_id: newConversationUserId,
+					participant_id: pickedUsers[0].id,
 				};
 			const conversation = await messagesService.createConversation(payload);
-			setConversations(prev => [conversation, ...prev]);
+			const addConversation = (previous) => [conversation, ...previous.filter(({ id }) => id !== conversation.id)];
+			setConversations(addConversation);
+			setAllConversations(addConversation);
 			setSelectedConversation(conversation);
-			setShowNewConversationModal(false);
-			setNewConversationType('direct');
-			setNewGroupName('');
-			setNewConversationUserId('');
-			setNewConversationUserIds([]);
-			setPickedUsers([]);
-			setNewConversationSearch('');
-			setAvailableUsers([]);
-			showToast('Conversație creată', 'success');
+			closeNewConversation();
+			showToast(isNewGroup ? 'Grup creat' : 'Conversație creată', 'success');
 		} catch (err) {
 			logger.error('Error creating conversation:', err);
 			const errorMessage = err.response?.data?.message || err.message || 'Eroare la crearea conversației';
 			showToast(errorMessage, 'error');
+		} finally {
+			setCreatingConversation(false);
 		}
 	};
 
 	const handleSearchUsers = async (query) => {
+		const request = ++userSearchRequestRef.current;
 		setNewConversationSearch(query);
+		setAvailableUsers([]);
 		if (!query.trim()) {
-			setAvailableUsers([]);
+			setLoadingUsers(false);
 			return;
 		}
 
 		setLoadingUsers(true);
 		try {
-			const users = await messagesService.getAvailableUsers(query);
-			setAvailableUsers(users);
+			const users = await messagesService.getAvailableUsers(query.trim());
+			if (request === userSearchRequestRef.current) setAvailableUsers(users);
 		} catch (err) {
 			logger.error('Error searching users:', err);
-			setAvailableUsers([]);
 		} finally {
-			setLoadingUsers(false);
+			if (request === userSearchRequestRef.current) setLoadingUsers(false);
 		}
 	};
 
-	const handleSelectUser = (userId) => {
-		const sameId = (id) => String(id) === String(userId);
-		const picked = availableUsers.find((item) => sameId(item.id));
-		if (newConversationType === 'group') {
-			setNewConversationUserIds((prev) => (
-				prev.some(sameId)
-					? prev.filter((id) => !sameId(id))
-					: [...prev, userId]
-			));
+	const handleSelectUser = (person) => {
+		if (isNewGroup) {
 			setPickedUsers((prev) => (
-				prev.some((item) => sameId(item.id))
-					? prev.filter((item) => !sameId(item.id))
-					: (picked ? [...prev, picked] : prev)
+				prev.some(({ id }) => String(id) === String(person.id))
+					? prev.filter(({ id }) => String(id) !== String(person.id))
+					: [...prev, person]
 			));
 		} else {
-			setNewConversationUserId(userId);
-			if (picked) setPickedUsers([picked]);
+			setPickedUsers([person]);
+			handleSearchUsers('');
 		}
-		setNewConversationSearch('');
-		setAvailableUsers([]);
-	};
-
-	const removePickedUser = (userId) => {
-		const sameId = (id) => String(id) === String(userId);
-		setNewConversationUserIds((prev) => prev.filter((id) => !sameId(id)));
-		setPickedUsers((prev) => prev.filter((item) => !sameId(item.id)));
-		if (sameId(newConversationUserId)) setNewConversationUserId('');
 	};
 
 
@@ -922,6 +915,7 @@ const MessagesPage = () => {
 						<button 
 							className="messages-new-conversation-btn" 
 							title="Conversație nouă"
+							aria-label="Conversație nouă"
 							onClick={() => setShowNewConversationModal(true)}
 						>
 							<Plus size={18} weight="bold" aria-hidden />
@@ -1133,201 +1127,156 @@ const MessagesPage = () => {
 				</div>
 			</div>
 
-			{/* New Conversation Modal */}
-			{showNewConversationModal && (
-				<div className="messages-modal-overlay">
-					<div className="messages-modal" onClick={(e) => e.stopPropagation()}>
-						<div className="messages-modal-header">
-							<h3>Conversație nouă</h3>
-							<button 
-								className="messages-modal-close va-close-btn"
-								onClick={() => {
-									setShowNewConversationModal(false);
-									setNewConversationType('direct');
-									setNewGroupName('');
-									setNewConversationUserId('');
-									setNewConversationUserIds([]);
-									setPickedUsers([]);
-									setNewConversationSearch('');
-									setAvailableUsers([]);
-								}}
-								aria-label="Închide"
-							>
-								<X size={18} weight="bold" aria-hidden="true" />
-							</button>
-						</div>
-						<div className="messages-modal-body">
-							<div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+			<Modal
+				isOpen={showNewConversationModal}
+				onClose={() => !creatingConversation && closeNewConversation()}
+				ariaLabelledby="messages-new-conversation-title"
+				closeOnBackdropClick
+				closeOnEscape
+				className="messages-modal-overlay messages-new-conversation-overlay"
+				contentClassName="messages-conversation-dialog"
+				unstyledContent
+			>
+				<form className="messages-modal messages-new-conversation" onSubmit={handleNewConversation}>
+					<div className="messages-modal-header">
+						<h3 id="messages-new-conversation-title">Conversație nouă</h3>
+						<button
+							type="button"
+							className="messages-modal-close va-close-btn"
+							onClick={closeNewConversation}
+							disabled={creatingConversation}
+							aria-label="Închide"
+						>
+							<X size={18} weight="bold" aria-hidden />
+						</button>
+					</div>
+					<div className="messages-modal-body">
+						<div className="messages-conversation-modes" role="group" aria-label="Tip conversație">
+							{[
+								{ id: 'direct', label: 'Direct' },
+								{ id: 'group', label: 'Grup' },
+							].map(({ id, label }) => (
 								<button
+									key={id}
 									type="button"
-									className={`lms-btn-secondary ${newConversationType === 'direct' ? 'active' : ''}`}
+									className={newConversationType === id ? 'lms-btn-primary' : 'lms-btn-secondary'}
+									aria-pressed={newConversationType === id}
+									disabled={creatingConversation}
 									onClick={() => {
-										setNewConversationType('direct');
-										setNewConversationUserIds([]);
+										if (id === newConversationType) return;
+										setNewConversationType(id);
 										setPickedUsers([]);
 										setNewGroupName('');
 									}}
 								>
-									Direct
+									{label}
 								</button>
-								<button
-									type="button"
-									className={`lms-btn-secondary ${newConversationType === 'group' ? 'active' : ''}`}
-									onClick={() => {
-										setNewConversationType('group');
-										setNewConversationUserId('');
-										setPickedUsers([]);
-									}}
-								>
-									Grup
-								</button>
-							</div>
-							{newConversationType === 'group' && (
-								<input
-									type="text"
-									placeholder="Nume grup"
-									className="messages-modal-input"
-									value={newGroupName}
-									onChange={(e) => setNewGroupName(e.target.value)}
-									style={{ marginBottom: 'var(--space-3)' }}
-								/>
-							)}
-							<div style={{ position: 'relative' }}>
-								<input
-									type="text"
-									placeholder="Nume sau email"
-									aria-label={newConversationType === 'group'
-										? 'Caută participanți pentru grup, după nume sau email'
-										: 'Caută utilizator după nume sau email'}
-									className="messages-modal-input"
-									value={newConversationSearch}
-									onChange={(e) => handleSearchUsers(e.target.value)}
-									autoFocus
-								/>
-								{loadingUsers && (
-									<div style={{ 
-										position: 'absolute', 
-										right: 'var(--space-3)', 
-										top: '50%', 
-										transform: 'translateY(-50%)',
-										color: 'var(--text-muted)'
-									}}>
-										<CircleNotch size={14} weight="bold" aria-hidden />
-									</div>
-								)}
-							</div>
-							
-							{availableUsers.length > 0 && (
-								<div className="messages-users-list">
-									{availableUsers.map((user) => (
-										<button
-											type="button"
-											key={user.id}
-											className={`messages-user-item ${
-												newConversationType === 'group'
-													? (newConversationUserIds.includes(user.id) ? 'selected' : '')
-													: (newConversationUserId == user.id ? 'selected' : '')
-											}`}
-											aria-label={`${user.name}, ${user.email}`}
-											onClick={() => handleSelectUser(user.id)}
-										>
-											<div className="messages-user-avatar">
-												{user.avatar ? (
-													<img src={toImageUrl(user.avatar) || user.avatar} alt={user.name} loading="lazy" decoding="async" />
-												) : (
-													<span>{getInitials(user.name)}</span>
-												)}
-											</div>
-											<div className="messages-user-info">
-												<div className="messages-user-name">{user.name}</div>
-												<div className="messages-user-email">{user.email}</div>
-												{user.role && (
-													<div className="messages-user-role">
-														{user.role === 'admin' ? 'Administrator' :
-														 user.role === 'instructor' ? 'Instructor' : 'Utilizator'}
-													</div>
-												)}
-											</div>
-											{((newConversationType === 'group' && newConversationUserIds.includes(user.id)) ||
-												(newConversationType === 'direct' && newConversationUserId == user.id)) && (
-												<div className="messages-user-check">
-													<Check size={14} weight="bold" aria-hidden />
-												</div>
-											)}
-										</button>
-									))}
-								</div>
-							)}
-							
-							{newConversationSearch && !loadingUsers && availableUsers.length === 0 && (
-								<p style={{ 
-									fontSize: 'var(--font-size-xs)', 
-									color: 'var(--text-muted)', 
-									marginTop: 'var(--space-2)',
-									textAlign: 'center'
-								}}>
-									Nu s-au găsit utilizatori
-								</p>
-							)}
-							
-							{newConversationType === 'direct' && newConversationUserId && (
-								<div style={{ 
-									marginTop: 'var(--space-3)',
-									padding: 'var(--space-2)',
-									background: 'var(--bg-tertiary)',
-									borderRadius: 'var(--radius-md)',
-									fontSize: 'var(--font-size-sm)',
-									color: 'var(--text-secondary)'
-								}}>
-									Utilizator selectat: {pickedUsers.find((item) => String(item.id) === String(newConversationUserId))?.name || 'Utilizator'}
-								</div>
-							)}
-							{newConversationType === 'group' && pickedUsers.length > 0 && (
-								<div className="messages-picked-users">
-									{pickedUsers.map((person) => (
+							))}
+						</div>
+						{isNewGroup && (
+							<input
+								type="text"
+								placeholder="Nume grup (opțional)"
+								aria-label="Nume grup (opțional)"
+								className="messages-modal-input messages-group-name-input"
+								value={newGroupName}
+								maxLength={120}
+								disabled={creatingConversation}
+								onChange={(e) => setNewGroupName(e.target.value)}
+							/>
+						)}
+						<input
+							type="search"
+							placeholder="Nume sau email"
+							aria-label={isNewGroup ? 'Caută participanți după nume sau email' : 'Caută utilizator după nume sau email'}
+							aria-describedby={isNewGroup ? 'messages-group-selection-status' : undefined}
+							className="messages-modal-input"
+							value={newConversationSearch}
+							disabled={creatingConversation}
+							onChange={(e) => handleSearchUsers(e.target.value)}
+							data-modal-initial-focus
+						/>
+						{isNewGroup && (
+							<p id="messages-group-selection-status" className="messages-picker-status" role="status">
+								{pickedUsers.length === 0
+									? 'Alege cel puțin două persoane pentru grup.'
+									: pickedUsers.length < MIN_GROUP_INVITEES
+										? 'Mai alege o persoană pentru a crea grupul.'
+										: `${pickedUsers.length} persoane selectate.`}
+							</p>
+						)}
+						{availableUsers.length > 0 && (
+							<div className="messages-users-list" role="group" aria-label="Rezultatele căutării">
+								{availableUsers.map((person) => {
+									const selected = pickedUsers.some(({ id }) => String(id) === String(person.id));
+									return (
 										<button
 											type="button"
 											key={person.id}
-											className="messages-picked-user"
-											onClick={() => removePickedUser(person.id)}
-											aria-label={`Elimină ${person.name}`}
+											className={`messages-user-item${selected ? ' selected' : ''}`}
+											aria-label={`${person.name}, ${person.email}`}
+											aria-pressed={selected}
+											disabled={creatingConversation}
+											onClick={() => handleSelectUser(person)}
 										>
-											<span>{person.name}</span>
-											<X size={14} weight="bold" aria-hidden />
+											<span className="messages-user-avatar" aria-hidden="true">
+												{person.avatar ? (
+													<img src={toImageUrl(person.avatar) || person.avatar} alt="" loading="lazy" decoding="async" />
+												) : getInitials(person.name)}
+											</span>
+											<span className="messages-user-info">
+												<span className="messages-user-name">{person.name}</span>
+												<span className="messages-user-email">{person.email}</span>
+												{person.role && (
+													<span className="messages-user-role">
+														{person.role === 'admin' ? 'Administrator' :
+															person.role === 'instructor' ? 'Instructor' : 'Utilizator'}
+													</span>
+												)}
+											</span>
+											{selected && (
+												<span className="messages-user-check">
+													<Check size={14} weight="bold" aria-hidden />
+												</span>
+											)}
 										</button>
-									))}
-								</div>
-							)}
-						</div>
-						<div className="messages-modal-footer">
-							<button 
-								className="lms-btn-secondary"
-								onClick={() => {
-									setShowNewConversationModal(false);
-									setNewConversationType('direct');
-									setNewGroupName('');
-									setNewConversationUserId('');
-									setNewConversationUserIds([]);
-									setPickedUsers([]);
-									setNewConversationSearch('');
-									setAvailableUsers([]);
-								}}
-							>
-								Anulează
-							</button>
-							<button 
-								className="lms-btn-primary"
-								onClick={handleNewConversation}
-								disabled={newConversationType === 'group'
-									? newConversationUserIds.length < 2
-									: !newConversationUserId}
-							>
-								Creează
-							</button>
-						</div>
+									);
+								})}
+							</div>
+						)}
+						{(loadingUsers || (newConversationSearch.trim() && availableUsers.length === 0)) && (
+							<p className="messages-picker-status" role="status">
+								{loadingUsers ? 'Se caută…' : 'Nu s-au găsit utilizatori.'}
+							</p>
+						)}
+						{pickedUsers.length > 0 && (
+							<div className="messages-picked-users" role="group" aria-label={isNewGroup ? 'Participanți selectați' : 'Utilizator selectat'}>
+								{pickedUsers.map((person) => (
+									<button
+										type="button"
+										key={person.id}
+										className="messages-picked-user"
+										disabled={creatingConversation}
+										onClick={() => setPickedUsers((previous) => previous.filter(({ id }) => id !== person.id))}
+										aria-label={`Elimină ${person.name}`}
+									>
+										<span>{person.name}</span>
+										<X size={14} weight="bold" aria-hidden />
+									</button>
+								))}
+							</div>
+						)}
 					</div>
-				</div>
-			)}
+					<div className="messages-modal-footer">
+						<button type="button" className="lms-btn-secondary" onClick={closeNewConversation} disabled={creatingConversation}>
+							Anulează
+						</button>
+						<button type="submit" className="lms-btn-primary" disabled={creatingConversation || !canCreateConversation}>
+							{creatingConversation ? 'Se creează…' : 'Creează'}
+						</button>
+					</div>
+				</form>
+			</Modal>
 
 			{showParticipantsModal && selectedConversation?.is_group && (
 				<div className="messages-modal-overlay">

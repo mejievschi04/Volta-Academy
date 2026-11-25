@@ -377,6 +377,18 @@
 	color: var(--text-secondary);
 }
 
+.lessons-page-course-deadline {
+	align-self: center;
+	margin: var(--space-3) var(--space-4) 0;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
 /* Foaia lecției (student) — albă, text negru, fără border */
 .lessons-page-lesson-viewer {
 	max-width: 900px;

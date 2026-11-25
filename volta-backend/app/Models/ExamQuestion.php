@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\ExtractsInlineImages;
+use App\Support\QuestionImageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -32,6 +33,30 @@ class ExamQuestion extends Model
     public function requiresManualGrading(): bool
     {
         return false;
+    }
+
+    public function imageMatchingData(): array
+    {
+        $pairs = is_array($this->payload['pairs'] ?? null) ? array_values($this->payload['pairs']) : [];
+        $leftItems = [];
+        $rightItems = [];
+        foreach ($pairs as $index => $pair) {
+            if (! is_array($pair)) {
+                continue;
+            }
+
+            $label = trim((string) ($pair['left'] ?? $pair['text'] ?? $pair['question'] ?? ''));
+            $url = QuestionImageUrl::sanitize($pair['image_url'] ?? $pair['imageUrl'] ?? $pair['image'] ?? '');
+            if ($label === '' || $url === '') {
+                continue;
+            }
+
+            $id = (string) $index;
+            $leftItems[] = ['id' => $id, 'text' => $label];
+            $rightItems[] = ['id' => $id, 'image_url' => $url, 'alt' => $label];
+        }
+
+        return ['leftItems' => $leftItems, 'rightItems' => $rightItems, 'correctMap' => array_column($rightItems, 'id')];
     }
 
     public function exam()

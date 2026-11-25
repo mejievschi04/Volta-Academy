@@ -78,6 +78,77 @@ class EventAudienceTest extends TestCase
         $this->actingAs($this->student, 'sanctum')->postJson("/api/events/{$event->id}/register")->assertStatus(400);
     }
 
+    public function test_student_history_includes_ended_and_completed_events_for_their_audience(): void
+    {
+        $older = $this->event('Eveniment mai vechi', null, -3);
+        $ended = $this->event('Eveniment încheiat', $this->myTeam, -1);
+        $ended->update(['status' => 'live']);
+        $completed = $this->event('Eveniment finalizat', null, 1);
+        $completed->update(['status' => 'completed']);
+        $private = $this->event('Altă echipă', $this->otherTeam, -1);
+        $this->event('Ciornă', null, -1)->update(['status' => 'draft']);
+        $this->event('Anulat', null, -1)->update(['status' => 'cancelled']);
+        $active = $this->event('Eveniment activ', null, 2);
+
+        $this->actingAs($this->student, 'sanctum')
+            ->getJson('/api/events')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $active->id);
+
+        $this->getJson('/api/events?date_filter=past&per_page=2')
+            ->assertOk()
+            ->assertJsonPath('total', 3)
+            ->assertJsonPath('data.0.id', $completed->id)
+            ->assertJsonPath('data.1.id', $ended->id)
+            ->assertJsonPath('data.1.is_completed', true)
+            ->assertJsonPath('data.1.is_live', false);
+        $this->getJson('/api/events?date_filter=past&per_page=2&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $older->id);
+        $this->getJson("/api/events/{$ended->id}")->assertOk();
+        $this->getJson("/api/events/{$private->id}")->assertNotFound();
+    }
+
+    public function test_expired_student_event_preserves_existing_registration(): void
+    {
+        $event = $this->event('Eveniment activ', null, 2);
+        $this->actingAs($this->student, 'sanctum')
+            ->postJson("/api/events/{$event->id}/register")->assertOk();
+
+        $this->travel(3)->days();
+
+        $this->getJson('/api/events?date_filter=past')
+            ->assertOk()
+            ->assertJsonPath('data.0.user_registered', true);
+        $this->postJson("/api/events/{$event->id}/cancel-registration")->assertStatus(400);
+        $this->postJson("/api/events/{$event->id}/questions", ['body' => 'Unde găsesc materialele?'])->assertStatus(400);
+        $this->assertDatabaseHas('event_user', [
+            'event_id' => $event->id,
+            'user_id' => $this->student->id,
+            'registered' => true,
+        ]);
+    }
+
+    public function test_admin_can_search_and_open_past_events(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
+        $ended = $this->event('Instruire încheiată', null, -1);
+        $active = $this->event('Instruire viitoare', null, 1);
+        $this->event('Ciornă instruire', null, -2)->update(['status' => 'draft']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/events?date_filter=past&search=Instruire')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $ended->id);
+        $this->getJson('/api/admin/events?date_filter=active')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $active->id);
+        $this->getJson("/api/admin/events/{$ended->id}")->assertOk();
+    }
+
     public function test_can_register_to_own_team_event(): void
     {
         $event = $this->event('Al meu', $this->myTeam, 3);

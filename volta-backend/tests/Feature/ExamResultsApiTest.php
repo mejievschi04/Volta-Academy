@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\CourseTest;
+use App\Models\Exam;
+use App\Models\ExamResult;
 use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
@@ -14,6 +16,106 @@ use Tests\TestCase;
 class ExamResultsApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_staff_can_review_the_submitted_exam_attempt_after_questions_change(): void
+    {
+        $owner = User::factory()->create(['role' => 'instructor']);
+        $otherInstructor = User::factory()->create(['role' => 'instructor']);
+        $student = User::factory()->create(['role' => 'student']);
+        $analyst = User::factory()->create(['role' => 'analyst']);
+        $exam = Exam::create([
+            'title' => 'Examen cu răspunsuri amestecate',
+            'status' => 'published',
+            'created_by' => $owner->id,
+            'settings' => ['shuffle_answers' => true, 'show_only_submitted_answers' => true],
+        ]);
+        $choice = $exam->questions()->create([
+            'question_text' => 'Întrebarea originală',
+            'question_type' => 'single_choice',
+            'points' => 3,
+            'order' => 0,
+        ]);
+        $correct = $choice->answers()->create(['answer_text' => 'Varianta originală', 'is_correct' => true, 'order' => 0]);
+        $choice->answers()->create(['answer_text' => 'Varianta greșită', 'is_correct' => false, 'order' => 1]);
+        $image = $exam->questions()->create([
+            'question_text' => 'Asociază denumirea cu imaginea',
+            'question_type' => 'image_matching',
+            'payload' => ['pairs' => [
+                ['left' => 'Imaginea A', 'image_url' => '/storage/a.png'],
+                ['left' => 'Imaginea B', 'image_url' => '/storage/b.png'],
+            ]],
+            'points' => 2,
+            'order' => 1,
+        ]);
+        $skipped = $exam->questions()->create([
+            'question_text' => 'Ordonează etapele',
+            'question_type' => 'ordering',
+            'payload' => ['items' => ['Prima', 'A doua']],
+            'points' => 1,
+            'order' => 2,
+        ]);
+
+        $questions = $this->actingAs($student, 'sanctum')
+            ->getJson("/api/exams/{$exam->id}?start=1")->assertOk()->json('questions');
+        $displayedChoice = collect($questions)->firstWhere('id', $choice->id);
+        $resultId = $this->postJson("/api/exams/{$exam->id}/submit", ['answers' => [
+            $choice->id => array_search('Varianta originală', $displayedChoice['options'], true),
+            $image->id => ['1', '0'],
+        ]])->assertOk()->assertJsonPath('result.score', 3)->json('result.id');
+
+        $choice->update(['question_text' => 'Întrebarea editată']);
+        $correct->update(['answer_text' => 'Varianta editată']);
+        $skipped->delete();
+
+        $path = "/api/admin/exam-results/{$resultId}/breakdown";
+        $this->actingAs($student, 'sanctum')->getJson($path)->assertForbidden();
+        $this->actingAs($otherInstructor, 'sanctum')->getJson($path)->assertForbidden();
+        $this->actingAs($analyst, 'sanctum')->getJson($path)->assertOk();
+        $this->actingAs($owner, 'sanctum')->getJson($path)
+            ->assertOk()
+            ->assertJsonPath('question_snapshot_available', true)
+            ->assertJsonCount(3, 'questions')
+            ->assertJsonPath('questions.0.question_text', 'Întrebarea originală')
+            ->assertJsonPath('questions.0.answers.0.text', 'Varianta originală')
+            ->assertJsonPath('questions.0.answers.0.is_selected', true)
+            ->assertJsonPath('questions.0.points_earned', 3)
+            ->assertJsonPath('questions.1.imageMatching.rightItems.1.image_url', '/storage/b.png')
+            ->assertJsonPath('questions.1.user_answer', ['1', '0'])
+            ->assertJsonPath('questions.1.points_earned', 0)
+            ->assertJsonPath('questions.2.question_text', 'Ordonează etapele')
+            ->assertJsonPath('questions.2.has_answer', false);
+    }
+
+    public function test_admin_can_review_a_previous_exam_result_without_a_saved_session(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = User::factory()->create(['role' => 'student']);
+        $exam = Exam::create(['title' => 'Examen anterior']);
+        $question = $exam->questions()->create([
+            'question_text' => 'Alege varianta corectă',
+            'question_type' => 'multiple_choice',
+            'points' => 2,
+        ]);
+        $question->answers()->create(['answer_text' => 'Prima', 'is_correct' => true, 'order' => 0]);
+        $question->answers()->create(['answer_text' => 'A doua', 'is_correct' => true, 'order' => 1]);
+        $result = ExamResult::create([
+            'exam_id' => $exam->id,
+            'user_id' => $student->id,
+            'attempt_number' => 1,
+            'answers' => [$question->id => [0, 1]],
+            'score' => 2,
+            'total_points' => 2,
+            'percentage' => 100,
+            'passed' => true,
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($admin, 'sanctum')->getJson("/api/admin/exam-results/{$result->id}/breakdown")
+            ->assertOk()
+            ->assertJsonPath('question_snapshot_available', false)
+            ->assertJsonPath('questions.0.user_answer_indices', [0, 1])
+            ->assertJsonPath('questions.0.points_earned', 2);
+    }
 
     public function test_exam_results_lists_all_attempts_and_uses_saved_course_context(): void
     {

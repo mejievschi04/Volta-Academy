@@ -61,6 +61,12 @@ class EventAdminController extends Controller
             $query->whereNotIn('status', ['draft']);
         }
 
+        if ($request->date_filter === 'past') {
+            $query->past(now());
+        } elseif ($request->date_filter === 'active') {
+            $query->active(now());
+        }
+
         // Type filter
         if ($request->has('type') && $request->type !== 'all') {
             $query->where('type', $request->type);
@@ -107,7 +113,7 @@ class EventAdminController extends Controller
         }
 
         $perPage = $request->get('per_page', 50);
-        $events = $query->paginate($perPage);
+        $events = $query->orderBy('id', $sortDirection)->paginate($perPage);
 
         // Add metrics to each event
         $events->getCollection()->transform(function($event) {

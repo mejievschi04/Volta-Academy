@@ -6,7 +6,9 @@ use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttemptSession;
 use App\Models\ExamQuestion;
+use App\Models\ExamResult;
 use App\Models\User;
+use App\Support\AttemptQuestionSnapshot;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -18,13 +20,38 @@ class ExamAttemptSessionService
     {
     }
 
-    public function find(Exam $exam, User $user, int $attemptNumber): ?ExamAttemptSession
+    public function find(Exam $exam, User $user, int $attemptNumber, bool $lock = false): ?ExamAttemptSession
     {
         return ExamAttemptSession::query()
             ->where('exam_id', $exam->id)
             ->where('user_id', $user->id)
             ->where('attempt_number', $attemptNumber)
+            ->when($lock, fn ($query) => $query->lockForUpdate())
             ->first();
+    }
+
+    public function refreshOpenQuestions(Exam $exam, User $user, ExamAttemptSession $session): ExamAttemptSession
+    {
+        return DB::transaction(function () use ($exam, $user, $session) {
+            $current = ExamAttemptSession::query()->lockForUpdate()->findOrFail($session->id);
+            $attemptNumber = (int) $current->attempt_number;
+            if (ExamResult::where('exam_id', $exam->id)->where('user_id', $user->id)->where('attempt_number', $attemptNumber)->exists()) {
+                return $current;
+            }
+
+            $exam = $exam->fresh(['questions.answers']);
+            $picked = $this->questionSync->selectForAttempt($exam, (int) $user->id, $attemptNumber);
+            $snapshot = $this->snapshot($picked, $this->answerSeed($exam, (int) $user->id, $attemptNumber));
+            $previous = $current->question_snapshot ?? [];
+            if (AttemptQuestionSnapshot::version($previous) !== AttemptQuestionSnapshot::version($snapshot)) {
+                $current->update([
+                    'question_snapshot' => $snapshot,
+                    'answers' => AttemptQuestionSnapshot::retainAnswers($current->answers ?? [], $previous, $snapshot),
+                ]);
+            }
+
+            return $current;
+        });
     }
 
     /** Câte întrebări ar avea încercarea, fără s-o creeze (ecranul de start al examenului). */

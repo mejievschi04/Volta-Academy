@@ -8,6 +8,7 @@ use App\Models\EventQuestion;
 use App\Models\Notification;
 use App\Models\User;
 use App\Support\SchemaCache;
+use Carbon\CarbonImmutable;
 
 /**
  * Notificările păstrate intenționat: curs atribuit (elev), curs finalizat (staff), cerere de
@@ -33,7 +34,10 @@ class NotificationService
             return;
         }
 
-        $deadline = $this->resolveCourseDeadline($student, $course);
+        $deadlineAt = $course->deadline_at;
+        $deadline = $deadlineAt
+            ? CarbonImmutable::parse($deadlineAt)->timezone(config('app.timezone'))->format('d.m.Y H:i')
+            : null;
         $title = 'Curs nou atribuit';
         $description = 'Ți-a fost atribuit cursul "' . $course->title . '"'
             . ($deadline ? ', de finalizat până la ' . $deadline . '.' : '.');
@@ -50,20 +54,6 @@ class NotificationService
         ]);
 
         $this->emailNotificationService->sendToUser($student, $title, $description, $actionUrl, 'Deschide cursul');
-    }
-
-    private function resolveCourseDeadline(User $student, Course $course): ?string
-    {
-        $settings = is_array($course->settings ?? null) ? $course->settings : [];
-        $raw = $settings['deadline_at'] ?? $course->due_date ?? null;
-        if (! $raw) {
-            return null;
-        }
-        try {
-            return \Carbon\Carbon::parse($raw)->timezone(config('app.timezone'))->format('d.m.Y H:i');
-        } catch (\Throwable) {
-            return is_string($raw) ? $raw : null;
-        }
     }
 
     /**

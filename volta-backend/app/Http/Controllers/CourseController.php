@@ -48,6 +48,7 @@ class CourseController extends Controller
                             'image_url' => $course->image_url ?? null,
                             'reward_points' => $course->reward_points ?? 0,
                             'status' => $course->status ?? 'draft',
+                            'deadline_at' => $course->deadline_at,
                             'modules_count' => $course->modules ? $course->modules->count() : 0,
                             'modules' => $course->modules ? $course->modules->map(function($module) {
                                 return [
@@ -381,6 +382,7 @@ class CourseController extends Controller
                     'views_count' => CourseViews::countForCourse($course),
                     'progress_percentage' => $p['progress_percentage'],
                     'completed_at' => $p['completed_at'],
+                    'deadline_at' => $course->deadline_at,
                     'teacher' => $course->teacher ? ['id' => $course->teacher->id, 'name' => $course->teacher->name] : null,
                 ];
             })->values();

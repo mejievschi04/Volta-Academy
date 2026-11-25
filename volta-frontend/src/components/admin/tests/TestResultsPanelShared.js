@@ -4,6 +4,20 @@ export function statisticsTeamParams(teamKey) {
 	return {};
 }
 
+export function formatResultDate(iso) {
+	if (!iso) return '—';
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return String(iso);
+	return date.toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+export function resultStatusLabel(row) {
+	if (row?.needs_manual_review || row?.status === 'pending' || row?.status === 'pending_review') {
+		return 'În așteptare';
+	}
+	return row?.passed ? 'Promovat' : 'Nepromovat';
+}
+
 export function rowMatchesResultFilters(row, { statusFilter = 'all', dateFrom = '', dateTo = '' } = {}) {
 	if (statusFilter === 'passed' && !row?.passed) return false;
 	if (statusFilter === 'failed' && (row?.passed || row?.needs_manual_review || row?.status === 'pending_review')) return false;

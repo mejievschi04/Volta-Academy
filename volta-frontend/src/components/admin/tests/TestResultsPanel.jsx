@@ -1,4 +1,4 @@
-import { rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
+import { formatResultDate, resultStatusLabel, rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
 import { formatPercent } from '../../../utils/formatPercent';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { useToast } from '../../../contexts/ToastContextShared.js';
 
 import { useAuth } from '../../../contexts/AuthContextShared.js';
 import Modal from '../../common/Modal';
+import AttemptDetailsModal from './AttemptDetailsModal';
 import RichTextHtml from '../../RichTextHtml';
 import './TestResultsPanel.css';
 
@@ -48,23 +49,6 @@ function QuestionBreakdownList({ questions }) {
 			})}
 		</div>
 	);
-}
-
-function formatDate(iso) {
-	if (!iso) return '—';
-	try {
-		return new Date(iso).toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' });
-	} catch {
-		return String(iso);
-	}
-}
-
-function statusLabel(row) {
-	if (row?.needs_manual_review || row?.status === 'pending' || row?.status === 'pending_review') {
-		return 'În așteptare';
-	}
-	if (row?.passed) return 'Promovat';
-	return 'Nepromovat';
 }
 
 function maxScoreForRow(row, kind) {
@@ -127,8 +111,6 @@ export default function TestResultsPanel({
 	const [breakdownById, setBreakdownById] = useState({});
 	const [breakdownLoadingId, setBreakdownLoadingId] = useState(null);
 	const [breakdownTarget, setBreakdownTarget] = useState(null);
-	const [breakdownData, setBreakdownData] = useState(null);
-	const [breakdownLoading, setBreakdownLoading] = useState(false);
 	const [grantingUserId, setGrantingUserId] = useState(null);
 	const [localTeam, setLocalTeam] = useState(teamKey || '');
 
@@ -295,24 +277,6 @@ export default function TestResultsPanel({
 		}
 	};
 
-	const openBreakdown = async (row) => {
-		setBreakdownTarget(row);
-		setBreakdownData(breakdownById[row.id] || null);
-		setBreakdownLoading(!breakdownById[row.id]);
-		const data = await loadBreakdown(row);
-		if (!data) {
-			setBreakdownTarget(null);
-			return;
-		}
-		setBreakdownData(data);
-		setBreakdownLoading(false);
-	};
-
-	const closeBreakdown = () => {
-		if (breakdownLoading) return;
-		setBreakdownTarget(null);
-		setBreakdownData(null);
-	};
 
 	return (
 		<div className={`admin-test-results-panel${embedded ? ' is-embedded' : ''}`}>
@@ -371,43 +335,54 @@ export default function TestResultsPanel({
 						const breakdown = breakdownById[row.id];
 						const percent = formatPercent(row.percentage);
 						const attempt = row.attempt_number != null ? `#${row.attempt_number}` : '—';
+						const userName = row.user?.name || row.user?.email || 'Elev';
 						return (
 							<article key={row.id} className={`admin-test-result-card${open ? ' is-open' : ''}`}>
-								<button
-									type="button"
-									className="admin-test-result-card-toggle"
-									aria-expanded={open}
-									onClick={() => toggleRow(row)}
-								>
-									<span className="admin-test-result-card-name">
-										{row.user?.name || row.user?.email || 'Elev'}
-									</span>
-									<span className="admin-test-result-card-team">
-										{(row.user?.teams || []).length ? row.user.teams.join(', ') : 'Fără echipă'}
-									</span>
-									<span className={`admin-test-results-status ${row.passed ? 'is-passed' : row.needs_manual_review ? 'is-pending' : 'is-failed'}`}>
-										{statusLabel(row)}
-									</span>
-									<span className="admin-test-result-metric" title="Procent, încercare și punctaj">
-										<strong>{percent}</strong>
-										<span>încercarea {attempt}</span>
-										<span>{row.score ?? 0}/{rowMax}</span>
-									</span>
-								</button>
+								<div className={kind === 'exam' ? 'admin-test-result-card-head has-exam-details' : undefined}>
+									<button
+										type="button"
+										className="admin-test-result-card-toggle"
+										aria-expanded={open}
+										onClick={() => toggleRow(row)}
+									>
+										<span className="admin-test-result-card-name">{userName}</span>
+										<span className="admin-test-result-card-team">
+											{(row.user?.teams || []).length ? row.user.teams.join(', ') : 'Fără echipă'}
+										</span>
+										<span className={`admin-test-results-status ${row.passed ? 'is-passed' : row.needs_manual_review ? 'is-pending' : 'is-failed'}`}>
+											{resultStatusLabel(row)}
+										</span>
+										<span className="admin-test-result-metric" title="Procent, încercare și punctaj">
+											<strong>{percent}</strong>
+											<span>încercarea {attempt}</span>
+											<span>{row.score ?? 0}/{rowMax}</span>
+										</span>
+									</button>
+									{kind === 'exam' && (
+										<button
+											type="button"
+											className="admin-btn admin-btn-secondary admin-test-result-exam-details"
+											aria-label={`Detalii pentru ${userName}, încercarea ${attempt}`}
+											onClick={() => setBreakdownTarget(row)}
+										>
+											Detalii
+										</button>
+									)}
+								</div>
 								{open ? (
 									<div className="admin-test-result-card-body">
 										<p className="admin-test-result-card-meta">
 											{row.user?.id ? (
 												<Link to={`/admin/users/${row.user.id}/profile`}>{row.user.email || 'Profil'}</Link>
 											) : (row.user?.email || '—')}
-											<span> · {formatDate(row.completed_at)}</span>
+											<span> · {formatResultDate(row.completed_at)}</span>
 											{kind === 'exam' && row.allowed_attempts != null ? (
 												<span> · încercări permise: {row.allowed_attempts}</span>
 											) : null}
 										</p>
 										<div className="admin-test-results-actions">
 											{showBreakdown && kind === 'test' ? (
-												<button type="button" className="admin-btn admin-btn-secondary admin-test-results-edit" onClick={() => openBreakdown(row)}>
+												<button type="button" className="admin-btn admin-btn-secondary admin-test-results-edit" onClick={() => setBreakdownTarget(row)}>
 													Detalii
 												</button>
 											) : null}
@@ -474,43 +449,16 @@ export default function TestResultsPanel({
 				</div>
 			</Modal>
 
-			<Modal
-				isOpen={Boolean(breakdownTarget)}
-				onClose={closeBreakdown}
-				ariaLabelledby="admin-test-breakdown-modal-title"
-				closeOnBackdropClick
-				closeOnEscape
-				className="admin-test-breakdown-overlay"
-				contentClassName="admin-test-breakdown-dialog"
-			>
-				<div className="admin-test-results-modal admin-test-breakdown-modal">
-					<header className="admin-test-breakdown-head">
-						<div>
-							<span className="admin-test-breakdown-kicker">Rezultatul evaluării</span>
-							<h3 id="admin-test-breakdown-modal-title">Detalii încercare</h3>
-							<p className="admin-test-results-modal-sub">
-								{breakdownTarget?.user?.name || breakdownTarget?.user?.email || 'Utilizator'} · încercarea #{breakdownTarget?.attempt_number ?? '—'}
-							</p>
-						</div>
-						{breakdownTarget?.percentage != null ? (
-							<div className="admin-test-breakdown-score">
-								<span>Scor total</span>
-								<strong>{formatPercent(breakdownTarget.percentage)}</strong>
-							</div>
-						) : null}
-					</header>
-					{breakdownLoading ? (
-						<div className="admin-test-results-empty">Se încarcă răspunsurile…</div>
-					) : (
-						<QuestionBreakdownList questions={breakdownData?.questions || []} />
-					)}
-					<div className="admin-test-results-modal-actions">
-						<button type="button" className="admin-btn admin-btn-secondary" onClick={closeBreakdown} disabled={breakdownLoading}>
-							Închide
-						</button>
-					</div>
-				</div>
-			</Modal>
+			{breakdownTarget && (
+				<AttemptDetailsModal
+					key={breakdownTarget.id}
+					target={breakdownTarget}
+					kind={kind}
+					title={title}
+					cachedBreakdown={kind === 'test' ? breakdownById[breakdownTarget.id] : undefined}
+					onClose={() => setBreakdownTarget(null)}
+				/>
+			)}
 		</div>
 	);
 }

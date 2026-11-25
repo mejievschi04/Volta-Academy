@@ -10,6 +10,7 @@ use App\Models\User; // pentru relația teacher
 use App\Models\Module; // pentru relația modules
 use App\Models\Concerns\InvalidatesTutorKnowledgeCache;
 use App\Support\CourseUserPivot;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
@@ -87,7 +88,22 @@ class Course extends Model
      *
      * @var array
      */
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'deadline_at'];
+
+    public function getDeadlineAtAttribute(): ?string
+    {
+        $settings = $this->settings;
+        $value = array_key_exists('deadline_at', $settings) ? $settings['deadline_at'] : ($this->due_date ?? null);
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->utc()->toIso8601String();
+        } catch (\Carbon\Exceptions\InvalidFormatException) {
+            return null;
+        }
+    }
 
     /**
      * Get the full URL for the course image

@@ -109,6 +109,15 @@
 	min-height: calc(1em * 1.45 * var(--csc-subtitle-lines));
 }
 
+.course-showcase-card__deadline {
+	margin: 0;
+	color: var(--text-primary);
+	font-size: 0.78rem;
+	font-weight: var(--font-weight-semibold);
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
 .course-showcase-card__progress {
 	display: grid;
 	grid-template-columns: 1fr auto;

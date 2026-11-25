@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Question;
 use App\Models\Test;
+use App\Models\TestResult;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -44,5 +45,14 @@ class TestQuestionAnalyticsSnapshotTest extends TestCase
         $counts = collect($row['option_stats'])->pluck('count', 'text')->all();
         $this->assertSame(1, $counts['Verde']);
         $this->assertSame(0, array_sum($counts) - $counts['Verde']);
+
+        $resultId = TestResult::where('test_id', $test->id)->where('user_id', $student->id)->sole()->id;
+        $details = $this->getJson("/api/admin/test-results/{$resultId}/breakdown")->assertOk()
+            ->assertJsonPath('result.user.id', $student->id)
+            ->assertJsonPath('question_snapshot_available', true)
+            ->assertJsonPath('questions.0.points_earned', 1);
+        $options = collect($details->json('questions.0.answers'));
+        $this->assertSame(['Verde'], $options->where('is_selected', true)->pluck('text')->values()->all());
+        $this->assertSame(['Verde'], $options->where('is_correct', true)->pluck('text')->values()->all());
     }
 }

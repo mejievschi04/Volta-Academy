@@ -8,6 +8,7 @@ use App\Models\CourseTest;
 use App\Models\Exam;
 use App\Models\Test;
 use App\Models\ExamResult;
+use App\Models\ExamAttemptSession;
 use App\Models\TestResult;
 use App\Models\ActivityLog;
 use App\Services\ExamAttemptLimitService;
@@ -17,6 +18,7 @@ use App\Services\CourseProgressService;
 use App\Services\TestAttemptAnswerOrderService;
 use App\Services\TestAttemptService;
 use App\Services\TestQuestionSelectionService;
+use App\Support\AttemptQuestionSnapshot;
 use App\Support\LearningVisibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -903,6 +905,12 @@ class ExamController extends Controller
 
         $openAttempt = $this->attemptService
             ->currentOpenAttempt((int) $user->id, (int) $test->id, $courseId);
+        if ($openAttempt) {
+            $openAttempt = $this->attemptService->refreshOpenQuestions($openAttempt);
+            if ($openAttempt->status !== 'in_progress') {
+                $openAttempt = null;
+            }
+        }
 
         $completedAttempts = $this->attemptService
             ->finishedAttempts((int) $user->id, (int) $test->id)
@@ -952,9 +960,6 @@ class ExamController extends Controller
             if ($openAttempt) {
                 $activeAttempt = $openAttempt;
                 $questions = $this->attemptService->hydrateQuestions($openAttempt->question_snapshot);
-                if ($questions->isEmpty()) {
-                    $questions = $this->selectQuestionsForTestAttempt($test, $user, (int) $openAttempt->attempt_number);
-                }
                 $attemptNumberForSeed = max(1, (int) $openAttempt->attempt_number);
             } else {
                 $questions = $this->selectQuestionsForTestAttempt($test, $user, $attemptNumberForSeed);
@@ -1056,6 +1061,7 @@ class ExamController extends Controller
             'active_attempt' => $activeAttempt ? [
                 'id' => $activeAttempt->id,
                 'attempt_token' => $activeAttempt->attempt_token,
+                'questions_version' => AttemptQuestionSnapshot::version($activeAttempt->question_snapshot, 'test:'.$activeAttempt->id),
                 'attempt_number' => $activeAttempt->attempt_number,
                 'started_at' => optional($activeAttempt->started_at)?->toISOString(),
                 'expires_at' => optional($activeAttempt->expires_at)?->toISOString(),
@@ -1308,14 +1314,14 @@ class ExamController extends Controller
             return $blocked;
         }
         $resumeAttempt = ExamResult::where('exam_id', $exam->id)->where('user_id', $user->id)->count() + 1;
-        $canResume = (bool) $this->examAttemptSessionService->find($exam, $user, $resumeAttempt);
+        $openSession = $this->examAttemptSessionService->find($exam, $user, $resumeAttempt);
         if (! $user->isAdmin() && ! $user->isInstructor() && ! $exam->isVisibleToLearner($user)) {
             return response()->json([
                 'message' => 'Nu ai acces la acest examen.',
                 'allowed' => false,
             ], 403);
         }
-        if (! $canResume && ($blocked = $this->gateExamAvailability($exam, $user))) {
+        if (! $openSession && ($blocked = $this->gateExamAvailability($exam, $user))) {
             return $blocked;
         }
 
@@ -1357,7 +1363,7 @@ class ExamController extends Controller
 
         $req = request();
         $forNewAttempt = $req instanceof Request && $req->boolean('new_attempt') && $canRetake;
-        $viewingCompleted = $latestResult && ! $forNewAttempt;
+        $viewingCompleted = $latestResult && ! $forNewAttempt && ! $openSession;
         $attemptNumberForSeed = $viewingCompleted
             ? max(1, (int) $latestResult->attempt_number)
             : max(1, $currentAttempt + 1);
@@ -1368,10 +1374,12 @@ class ExamController extends Controller
         if ($viewingCompleted) {
             $session = $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed);
         } else {
-            $session = $this->examAttemptSessionService->find($exam, $user, $attemptNumberForSeed);
-            if (! $session && $wantsStart) {
+            $session = $openSession;
+            if ($session) {
+                $session = $this->examAttemptSessionService->refreshOpenQuestions($exam, $user, $session);
+            } elseif ($wantsStart) {
                 $session = $this->examAttemptSessionService->ensure($exam, $user, $attemptNumberForSeed);
-            } elseif (! $session) {
+            } else {
                 $requiresStart = true;
                 $questionCount = $this->examAttemptSessionService->questionCountFor($exam, $user, $attemptNumberForSeed);
             }
@@ -1384,7 +1392,7 @@ class ExamController extends Controller
         $fullWire = $requiresStart
             ? collect()
             : $this->transformLegacyExamQuestionsWire($exam, $user, $attemptNumberForSeed, $attemptQuestions);
-        $showSolutions = $latestResult && ! $forNewAttempt && $this->shouldRevealExamSolutions($exam);
+        $showSolutions = $viewingCompleted && $this->shouldRevealExamSolutions($exam);
         $submittedOnly = (bool) ($settings['show_only_submitted_answers'] ?? false);
         $questions = ($showSolutions && ! $submittedOnly)
             ? $fullWire
@@ -1418,6 +1426,7 @@ class ExamController extends Controller
             'questions' => $questions,
             'active_attempt' => (! $viewingCompleted && $session) ? [
                 'attempt_number' => (int) $session->attempt_number,
+                'questions_version' => AttemptQuestionSnapshot::version($session->question_snapshot, 'exam:'.$session->id),
                 'started_at' => optional($session->started_at)?->toISOString(),
                 'expires_at' => optional($session->expires_at)?->toISOString(),
                 'answers' => is_array($session->answers) ? $session->answers : [],
@@ -1467,7 +1476,7 @@ class ExamController extends Controller
 
         $response = $resolved['test']
             ? $this->submitTest($request, $resolved['test'], $user, $courseId)
-            : $this->submitExam($request, $resolved['exam'], $user);
+            : DB::transaction(fn () => $this->submitExam($request, $resolved['exam'], $user));
 
         // rezultatul poate termina cursul: profilul (și contoarele din „Cursuri”) stătea vechi până la 5 minute
         \Illuminate\Support\Facades\Cache::forget("profile_user_{$user->id}");
@@ -1499,17 +1508,21 @@ class ExamController extends Controller
                 if (! $resolved['exam']->isVisibleToLearner($user)) {
                     return response()->json(['message' => 'Nu ai acces la acest examen.'], 403);
                 }
-                $incoming = $request->input('answers', []);
-                $answers = is_array($incoming) ? $incoming : [];
-                $attemptNumber = ExamResult::where('exam_id', $resolved['exam']->id)->where('user_id', $user->id)->count() + 1;
-                $session = $this->examAttemptSessionService->find($resolved['exam'], $user, $attemptNumber);
-                if ($session) {
-                    $this->examAttemptSessionService->rememberAnswers($session, $answers);
-                }
+                return DB::transaction(function () use ($request, $resolved, $user) {
+                    $exam = $resolved['exam'];
+                    $incoming = $request->input('answers', []);
+                    $answers = is_array($incoming) ? $incoming : [];
+                    $attemptNumber = ExamResult::where('exam_id', $exam->id)->where('user_id', $user->id)->count() + 1;
+                    $session = $this->examAttemptSessionService->find($exam, $user, $attemptNumber, lock: true);
+                    if ($stale = $this->staleQuestions($request, $session)) {
+                        return $stale;
+                    }
+                    if ($session && ! ExamResult::where('exam_id', $exam->id)->where('user_id', $user->id)->where('attempt_number', $attemptNumber)->exists()) {
+                        $this->examAttemptSessionService->rememberAnswers($session, $answers);
+                    }
 
-                return response()->json([
-                    'answers' => $answers,
-                ]);
+                    return response()->json(['answers' => $answers]);
+                });
             }
 
             return response()->json([
@@ -1537,39 +1550,51 @@ class ExamController extends Controller
             return response()->json(['answers' => $incoming]);
         }
 
-        $attemptId = $request->input('attempt_id');
-        $openAttempt = null;
-        if ($attemptId) {
-            $openAttempt = TestResult::query()
-                ->where('id', (int) $attemptId)
-                ->where('user_id', $user->id)
-                ->where('test_id', $test->id)
-                ->where('status', 'in_progress')
+        return DB::transaction(function () use ($request, $user, $test, $courseId, $incoming) {
+            $attemptId = $request->input('attempt_id');
+            $openAttempt = $this->attemptService->openAttemptQuery((int) $user->id, (int) $test->id, $courseId)
+                ->when($attemptId, fn ($query) => $query->whereKey((int) $attemptId))
+                ->lockForUpdate()
                 ->first();
-        }
-        if (! $openAttempt) {
-            $openAttempt = $this->attemptService->currentOpenAttempt((int) $user->id, (int) $test->id, $courseId);
-        }
-        if (! $openAttempt) {
-            return response()->json([
-                'message' => 'Deschide testul înainte de a salva răspunsurile.',
-            ], 403);
-        }
-        if ($this->attemptService->attemptHasExpired($openAttempt)) {
-            $this->attemptService->closeExpiredAttempt($openAttempt);
+            if ($stale = $this->staleQuestions($request, $openAttempt)) {
+                return $stale;
+            }
+            if (! $openAttempt) {
+                return response()->json(['message' => 'Deschide testul înainte de a salva răspunsurile.'], 403);
+            }
+            if ($this->attemptService->attemptHasExpired($openAttempt)) {
+                $this->attemptService->closeExpiredAttempt($openAttempt);
+
+                return response()->json([
+                    'message' => 'Limita de timp a testului a expirat.',
+                    'time_expired' => true,
+                ], 403);
+            }
 
             return response()->json([
-                'message' => 'Limita de timp a testului a expirat.',
-                'time_expired' => true,
-            ], 403);
-        }
+                'answers' => $this->attemptService->persistProgressAnswers($openAttempt, $incoming),
+                'attempt_id' => $openAttempt->id,
+            ]);
+        });
+    }
 
-        $answers = $this->attemptService->persistProgressAnswers($openAttempt, $incoming);
+    private function staleQuestions(Request $request, TestResult|ExamAttemptSession|null $attempt): ?JsonResponse
+    {
+        $submittedVersion = $request->input('questions_version');
+        if ($submittedVersion === null) {
+            return null;
+        }
+        if ($attempt && is_string($submittedVersion)) {
+            $kind = $attempt instanceof TestResult ? 'test' : 'exam';
+            if (hash_equals(AttemptQuestionSnapshot::version($attempt->question_snapshot, $kind.':'.$attempt->id), $submittedVersion)) {
+                return null;
+            }
+        }
 
         return response()->json([
-            'answers' => $answers,
-            'attempt_id' => $openAttempt->id,
-        ]);
+            'message' => 'Întrebările s-au actualizat. Redeschide testul pentru a continua.',
+            'questions_changed' => true,
+        ], 409);
     }
     
     /**
@@ -1626,6 +1651,10 @@ class ExamController extends Controller
                 }
             }
 
+            if ($trackLearning && ($stale = $this->staleQuestions($request, $openAttempt))) {
+                return $stale;
+            }
+
             $completedCount = $trackLearning
                 ? $this->attemptService->finishedAttemptCount((int) $user->id, (int) $test->id)
                 : 0;
@@ -1644,7 +1673,7 @@ class ExamController extends Controller
             $questions = $openAttempt
                 ? $this->attemptService->hydrateQuestions($openAttempt->question_snapshot)
                 : collect();
-            if ($questions->isEmpty() && $openAttempt) {
+            if ($questions->isEmpty() && $openAttempt && $openAttempt->question_snapshot === null) {
                 $questions = $this->selectQuestionsForTestAttempt($test, $user, $nextAttempt);
             }
             if ($questions->isEmpty() && ! $trackLearning) {
@@ -2010,7 +2039,7 @@ class ExamController extends Controller
             : true;
         $manualReviewMode = (string) ($settings['manual_review_mode'] ?? 'after_complete');
 
-        $openSession = $this->examAttemptSessionService->find($exam, $user, $nextAttempt);
+        $openSession = $this->examAttemptSessionService->find($exam, $user, $nextAttempt, lock: true);
         if (! $user->isAdmin() && ! $user->isInstructor() && ! $exam->isVisibleToLearner($user)) {
             return response()->json([
                 'message' => 'Nu ai acces la acest examen.',
@@ -2019,6 +2048,9 @@ class ExamController extends Controller
         }
         if (! $openSession && ($blocked = $this->gateExamAvailability($exam, $user))) {
             return $blocked;
+        }
+        if ($trackLearning && ($stale = $this->staleQuestions($request, $openSession))) {
+            return $stale;
         }
 
         $autoGradableTypes = ['multiple_choice', 'single_choice', 'true_false', 'yes_no', 'matching', 'image_matching', 'ordering'];
@@ -2155,7 +2187,7 @@ class ExamController extends Controller
             }
         }
 
-        $reviewQuestions = $this->transformLegacyExamQuestionsWire($exam, $user, $nextAttempt)
+        $reviewQuestions = $this->transformLegacyExamQuestionsWire($exam, $user, $nextAttempt, $attemptQuestions)
             ->values()
             ->map(function (array $q) use ($exam) {
                 return $this->shouldRevealExamSolutions($exam)

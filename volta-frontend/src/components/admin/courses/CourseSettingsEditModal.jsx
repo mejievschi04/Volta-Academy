@@ -5,6 +5,7 @@ import { useToast } from '../../../contexts/ToastContextShared.js';
 import { X } from '@phosphor-icons/react';
 import Modal from '../../common/Modal';
 import { courseCoverSrc } from '../../../utils/imageUrl';
+import { courseDeadlineInputValue } from '../../../utils/courseDeadline';
 import '../../../styles/admin-course-builder.css';
 
 function hydrateDraftFromCourse(course) {
@@ -25,6 +26,7 @@ function hydrateDraftFromCourse(course) {
 		status: currentStatus,
 		visibility: currentVisibility,
 		estimated_duration_hours: currentDuration,
+		deadline_at: courseDeadlineInputValue(course?.deadline_at),
 		sequential_unlock: course?.sequential_unlock !== false,
 		access_type: accessSettings?.type || course?.access_type || 'free',
 		enrollment_type: accessSettings?.enrollment_type || course?.enrollment_type || 'open',
@@ -87,6 +89,10 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 			payload.append('sequential_unlock', courseEditDraft.sequential_unlock !== false ? '1' : '0');
 			if (courseEditDraft.estimated_duration_hours !== '' && courseEditDraft.estimated_duration_hours != null) {
 				payload.append('estimated_duration_hours', String(courseEditDraft.estimated_duration_hours));
+			}
+			if (courseEditDraft.deadline_at !== courseDeadlineInputValue(course.deadline_at)) {
+				const deadline = courseEditDraft.deadline_at;
+				payload.append('deadline_at', deadline ? new Date(deadline).toISOString() : '');
 			}
 			payload.append('access_type', courseEditDraft.access_type || 'free');
 			payload.append('enrollment_type', courseEditDraft.enrollment_type || 'open');
@@ -224,6 +230,19 @@ const CourseSettingsEditModal = ({ open, onClose, course, onSaved }) => {
 									estimated_duration_hours: e.target.value ? parseInt(e.target.value, 10) : '',
 								}))}
 								placeholder="Ex: 12"
+								disabled={courseEditSaving}
+							/>
+						</div>
+
+						<div className="va-field">
+							<label htmlFor="course-settings-edit-deadline">
+								Termen-limită <span className="va-field__optional">(opțional)</span>
+							</label>
+							<input
+								id="course-settings-edit-deadline"
+								type="datetime-local"
+								value={courseEditDraft.deadline_at}
+								onChange={set('deadline_at')}
 								disabled={courseEditSaving}
 							/>
 						</div>

@@ -39,6 +39,7 @@ import { readableTextOn } from '../utils/color';
 import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import './CourseMapPage.css';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseDeadlineLabel } from '../utils/courseDeadline';
 
 /**
  * Pagina unei mape de cursuri (folder).
@@ -78,6 +79,7 @@ function CourseMapCourseCard({ course, fmtDur, onNavigateCourse, themeHsl }) {
 				imageUrl={imageUrl}
 				title={course.title}
 				subtitle={courseMapCourseSubtitle(course, fmtDur)}
+				deadlineLabel={courseDeadlineLabel(course)}
 				progress={course.progress_percentage ?? 0}
 				themeHsl={themeHsl}
 				showAccentRibbon

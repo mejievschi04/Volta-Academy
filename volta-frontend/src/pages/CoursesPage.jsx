@@ -15,6 +15,7 @@ import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import './CoursesPage.css';
 import '../styles/learning-experience.css';
 import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseDeadlineLabel } from '../utils/courseDeadline';
 import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
 const COURSE_MAP_ACCENT_COLORS = [
@@ -244,6 +245,7 @@ const CoursesPage = () => {
 					imageUrl={imageUrl}
 					title={course.title || 'Curs'}
 					subtitle={subtitle}
+					deadlineLabel={courseDeadlineLabel(course)}
 					progress={status === 'in_progress' ? progress : status === 'completed' ? 100 : 0}
 					themeHsl={hexToHslSpace(accentColor)}
 					onOpen={() => navigate(`/courses/${course.id}`)}
@@ -477,6 +479,7 @@ const CoursesPage = () => {
 													imageUrl={imageUrl}
 													title={course.title || 'Curs'}
 													subtitle={subtitle}
+													deadlineLabel={courseDeadlineLabel(course)}
 													progress={course.progress_percentage ?? 0}
 													themeHsl={hexToHslSpace(accentColor)}
 													onOpen={() => navigate(`/courses/${course.id}`)}

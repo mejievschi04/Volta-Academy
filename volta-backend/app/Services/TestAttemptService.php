@@ -7,6 +7,7 @@ use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
 use App\Models\UserTestAttemptGrant;
+use App\Support\AttemptQuestionSnapshot;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -16,6 +17,12 @@ use Illuminate\Support\Str;
 
 class TestAttemptService
 {
+    public function __construct(
+        private TestQuestionSelectionService $questionSelection,
+        private TestAttemptAnswerOrderService $answerOrder,
+    ) {
+    }
+
     public function openAttemptQuery(int $userId, int $testId, ?int $courseId)
     {
         return TestResult::query()
@@ -89,6 +96,47 @@ class TestAttemptService
         })->filter(fn ($q) => (int) $q->id > 0)->values();
     }
 
+    private function snapshotForAttempt(Test $test, int $userId, int $attemptNumber, Collection $questions): array
+    {
+        $questions = $questions->values();
+        $snapshot = $this->snapshotQuestions($questions);
+        foreach ($questions as $index => $question) {
+            if (in_array($question->type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
+                $order = $this->answerOrder->resolveChoiceOrderForAttempt($test, $question, $userId, $attemptNumber);
+                $snapshot[$index]['attempt_answer_order'] = $order['display_to_original'];
+            }
+        }
+
+        return $snapshot;
+    }
+
+    public function refreshOpenQuestions(TestResult $attempt): TestResult
+    {
+        return DB::transaction(function () use ($attempt) {
+            $current = TestResult::query()->lockForUpdate()->findOrFail($attempt->id);
+            if ($current->status !== 'in_progress') {
+                return $current;
+            }
+
+            $test = Test::findOrFail($current->test_id);
+            $userId = (int) $current->user_id;
+            $attemptNumber = (int) $current->attempt_number;
+            $questions = $this->questionSelection->selectForAttempt($test, $userId, $attemptNumber);
+            $snapshot = $this->snapshotForAttempt($test, $userId, $attemptNumber, $questions);
+            $previous = $current->question_snapshot ?? [];
+            if (AttemptQuestionSnapshot::version($previous) !== AttemptQuestionSnapshot::version($snapshot)) {
+                $previousWithOrder = $this->snapshotForAttempt($test, $userId, $attemptNumber, $this->hydrateQuestions($previous));
+                $current->update([
+                    'question_snapshot' => $snapshot,
+                    'answers' => AttemptQuestionSnapshot::retainAnswers($current->answers ?? [], $previousWithOrder, $snapshot),
+                    'max_score' => $questions->sum(fn ($question) => (int) ($question->points ?? 1)),
+                ]);
+            }
+
+            return $current;
+        });
+    }
+
     public function ensureOpenAttempt(Test $test, User $user, ?int $courseId, Collection $questions, int $attemptNumber, float $passingScore): ?TestResult
     {
         try {
@@ -140,7 +188,7 @@ class TestAttemptService
                     'expires_at' => $limitMinutes > 0 ? $startedAt->copy()->addMinutes($limitMinutes) : null,
                     'completed_at' => null,
                     'status' => 'in_progress',
-                    'question_snapshot' => $this->snapshotQuestions($questions),
+                    'question_snapshot' => $this->snapshotForAttempt($test, (int) $user->id, $attemptNumber, $questions),
                     'passing_score_applied' => $passingScore,
                     'attempt_token' => (string) Str::uuid(),
                     'attempt_scope' => $this->openScope((int) $user->id, (int) $test->id, $courseId),

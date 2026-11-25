@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamResult;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Services\ExamAttemptSessionService;
+use App\Services\ExamBankQuestionSyncService;
 use App\Services\TestAttemptAnswerOrderService;
 use App\Services\TestAttemptService;
 use App\Services\TestQuestionSelectionService;
@@ -769,6 +771,53 @@ class ExamResultController extends Controller
             'correct_answer_index' => $correctAnswerIndex,
             'correct_answer_indices' => $correctIndices,
         ];
+    }
+
+    public function adminBreakdown(
+        int $id,
+        ExamAttemptSessionService $sessions,
+        ExamBankQuestionSyncService $questionSync
+    ) {
+        $result = ExamResult::with(['exam.course', 'user:id,name,email'])->findOrFail($id);
+        $exam = $result->exam;
+        abort_unless($exam, 404, 'Examen negăsit.');
+        $viewer = Auth::user();
+        if ($viewer->isInstructor() && ! $exam->isOwnedByInstructor($viewer)) {
+            abort(403, 'Acces interzis.');
+        }
+
+        $answers = $result->answers ?? [];
+        $session = $result->user ? $sessions->find($exam, $result->user, (int) $result->attempt_number) : null;
+        if ($session) {
+            $questions = $sessions->questions($session);
+        } else {
+            $exam->load('questions.answers');
+            $selected = $questionSync->selectForAttempt($exam, (int) $result->user_id, (int) $result->attempt_number);
+            $questions = $selected->concat($exam->questions->whereIn('id', array_keys($answers)))
+                ->unique('id')->values();
+        }
+
+        return response()->json([
+            'question_snapshot_available' => $session !== null,
+            'questions' => $questions->map(function ($question) use ($result, $answers) {
+                $wire = $this->buildLegacyExamQuestionResultWire($result, $question, $answers);
+                $answer = $wire['user_answer'];
+                $hasAnswer = $answer !== null && $answer !== '' && $answer !== [];
+                if ($wire['question_type'] === 'image_matching') {
+                    $wire['imageMatching'] = $question->imageMatchingData();
+                    $wire['is_correct'] = $this->isSequenceAnswerCorrect($answer, $wire['imageMatching']['correctMap']);
+                }
+                $manual = ($result->manual_review_scores ?? [])[$question->id] ?? null;
+                $manualScore = is_array($manual) ? ($manual['score'] ?? null) : $manual;
+                $wire['has_answer'] = $hasAnswer;
+                $wire['points_earned'] = is_numeric($manualScore)
+                    ? (float) $manualScore
+                    : ($wire['is_correct'] === null ? null : ($wire['is_correct'] ? $wire['points'] : 0));
+                $wire['review_feedback'] = is_array($manual) ? ($manual['feedback'] ?? null) : null;
+
+                return $wire;
+            })->values(),
+        ]);
     }
 
     /**

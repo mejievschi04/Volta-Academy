@@ -14,7 +14,9 @@ use App\Models\CourseVersion;
 use App\Models\CourseVersionSnapshot;
 use App\Models\MediaAsset;
 use App\Services\UserAssignedCoursesService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Support\SchemaCache;
 use Illuminate\Support\Facades\Storage;
@@ -278,7 +280,7 @@ class CourseBuilderService
             $newCourse = $source->replicate([
                 'total_enrollments', 'total_revenue', 'average_rating', 'rating_count', 'views_count',
             ]);
-            $newCourse->title = $this->copyTitle((string) $source->title);
+            $newCourse->title = $this->limitCopyTitle('COPIE ' . trim((string) $source->title));
             $newCourse->status = 'draft';
             $newCourse->workflow_status = 'draft';
             $newCourse->image = $this->copyPublicFile($source->image, 'courses');
@@ -370,7 +372,7 @@ class CourseBuilderService
                     continue;
                 }
                 $newTest = $sourceTest->replicate(['attempts_count', 'passes_count', 'average_score']);
-                $newTest->title = $this->copyTitle((string) $sourceTest->title);
+                $newTest->title = $this->limitCopyTitle(trim((string) $sourceTest->title) . ' (copie)');
                 if ($actor) {
                     $newTest->created_by = $actor->id;
                 }
@@ -406,10 +408,8 @@ class CourseBuilderService
         });
     }
 
-    protected function copyTitle(string $title): string
+    protected function limitCopyTitle(string $title): string
     {
-        $title = trim($title) . ' (copie)';
-
         return mb_strlen($title) > 255 ? mb_substr($title, 0, 252) . '...' : $title;
     }
 
@@ -761,24 +761,16 @@ class CourseBuilderService
      */
     public function updateCourse(Course $course, array $data): Course
     {
-        $updateData = [
-            'title' => $data['title'] ?? $course->title,
-            'description' => $data['description'] ?? $course->description,
-            'short_description' => $data['short_description'] ?? $course->short_description,
-            'category' => $data['category'] ?? $course->category,
-            'card_color' => $data['card_color'] ?? $course->card_color,
-            'level' => $data['level'] ?? $course->level,
-            'status' => $data['status'] ?? $course->status,
-            'reward_points' => $data['reward_points'] ?? $course->reward_points,
-        ];
+        $updateData = [];
+        foreach (['title', 'description', 'short_description', 'category', 'card_color', 'level', 'status', 'reward_points'] as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+            }
+        }
         if (array_key_exists('marketing_tags', $data)) {
             $updateData['marketing_tags'] = is_array($data['marketing_tags'])
                 ? $data['marketing_tags']
                 : (array) ($data['marketing_tags'] ?? []);
-        }
-        if (SchemaCache::hasColumn('courses', 'settings')) {
-            $settings = $this->buildSettings($data, $course->settings);
-            $updateData['settings'] = $settings;
         }
         if (array_key_exists('access_type', $data)) {
             $updateData['access_type'] = $data['access_type'];
@@ -800,8 +792,26 @@ class CourseBuilderService
             }
         }
 
-        $this->markPublishedCourseEditing($course->id);
-        $course->update($updateData);
+        $deadlineChanged = DB::transaction(function () use ($course, $data, $updateData) {
+            $current = Course::query()->lockForUpdate()->findOrFail($course->id);
+            $previousDeadline = $current->deadline_at;
+            if (SchemaCache::hasColumn('courses', 'settings')) {
+                $updateData['settings'] = $this->buildSettings($data, $current->settings);
+            }
+            $this->markPublishedCourseEditing($current->id);
+            $current->update($updateData);
+
+            return $previousDeadline !== $current->deadline_at;
+        });
+
+        if ($deadlineChanged && SchemaCache::hasTable('course_user')) {
+            DB::table('course_user')->where('course_id', $course->id)->select('user_id')
+                ->chunkById(500, function ($members) {
+                    foreach ($members as $member) {
+                        Cache::forget("profile_user_{$member->user_id}");
+                    }
+                }, 'user_id');
+        }
 
         return $course->fresh();
     }
@@ -812,6 +822,12 @@ class CourseBuilderService
     protected function buildSettings(array $data, array $existingSettings = []): array
     {
         $settings = $existingSettings;
+
+        if (array_key_exists('deadline_at', $data)) {
+            $settings['deadline_at'] = $data['deadline_at'] === null
+                ? null
+                : CarbonImmutable::parse($data['deadline_at'])->utc()->toIso8601String();
+        }
 
         // Access settings
         if (isset($data['access_type']) || isset($data['price']) || isset($data['currency'])) {

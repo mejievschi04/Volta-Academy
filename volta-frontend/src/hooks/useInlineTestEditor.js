@@ -297,11 +297,12 @@ export function useInlineTestEditor({
     inlineQuestionPendingRef.current = {};
   }, []);
 
-  const handleAddInlineQuestion = useCallback(async (type = 'multiple_choice') => {
+  const handleAddDefaultInlineQuestion = useCallback(async () => {
     const testId = await ensureInlineTestCreated();
     if (!testId) return;
     setAddingQuestion(true);
     try {
+      const type = 'single_choice';
       const created = await adminService.createQuestion(testId, {
         type,
         content: 'Întrebare nouă',
@@ -336,10 +337,6 @@ export function useInlineTestEditor({
       showToast(err?.response?.data?.message || 'Eroare la ștergere.', 'error');
     }
   }, [showToast]);
-
-  const handleAddDefaultInlineQuestion = useCallback(async () => {
-    await handleAddInlineQuestion('multiple_choice');
-  }, [handleAddInlineQuestion]);
 
   const handleInlineQuestionTypeChange = useCallback(async (questionId, nextType) => {
     const id = Number(questionId);

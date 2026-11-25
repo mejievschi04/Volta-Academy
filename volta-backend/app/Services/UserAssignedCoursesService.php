@@ -98,6 +98,7 @@ class UserAssignedCoursesService
 
         $testIds = $courses->flatMap(fn ($course) => $course->relationLoaded('tests') ? $course->tests->pluck('id') : collect())->unique()->values();
         $latestTestResults = collect();
+        $legacyResultsByTest = collect();
         $extraAttemptsByTest = collect();
         if ($testIds->isNotEmpty()) {
             $latestTestResults = TestResult::query()
@@ -108,6 +109,14 @@ class UserAssignedCoursesService
                 ->orderByDesc('id')
                 ->get()
                 ->groupBy(fn ($row) => (int) $row->test_id);
+            $legacyTestIds = $latestTestResults->filter(fn ($rows) => $rows->contains(fn ($row) => $row->course_id === null))->keys();
+            if ($legacyTestIds->isNotEmpty()) {
+                $legacyResultsByTest = DB::table('course_test')
+                    ->whereIn('test_id', $legacyTestIds)
+                    ->groupBy('test_id')
+                    ->havingRaw('COUNT(DISTINCT course_id) = 1')
+                    ->pluck(DB::raw('MIN(course_id)'), 'test_id');
+            }
             if (SchemaCache::hasTable('user_test_attempt_grants')) {
                 $extraAttemptsByTest = UserTestAttemptGrant::query()
                     ->where('user_id', $user->id)
@@ -154,7 +163,10 @@ class UserAssignedCoursesService
             $courseTests = [];
             foreach ($course->tests ?? [] as $test) {
                 $resultsForTest = $latestTestResults->get((int) $test->id) ?? collect();
-                $latestTestResult = $resultsForTest->first();
+                $latestTestResult = $resultsForTest->firstWhere('course_id', $course->id);
+                if (! $latestTestResult && (int) $legacyResultsByTest->get($test->id) === (int) $course->id) {
+                    $latestTestResult = $resultsForTest->first(fn ($row) => $row->course_id === null);
+                }
                 $attemptsUsed = $resultsForTest->count();
                 $passed = (bool) ($latestTestResult?->passed);
                 $percentage = $latestTestResult?->percentage !== null ? (float) $latestTestResult->percentage : null;
@@ -166,6 +178,7 @@ class UserAssignedCoursesService
                 $courseTests[] = [
                     'id' => (int) $test->id,
                     'title' => $test->title ?? 'Test',
+                    'result_id' => $latestTestResult?->id,
                     'max_attempts' => $test->max_attempts,
                     'created_by' => $test->created_by !== null ? (int) $test->created_by : null,
                     'extra_attempts' => $extraAttempts,
@@ -195,6 +208,7 @@ class UserAssignedCoursesService
                 'quizPassed' => $quizPassed,
                 'tests' => $courseTests,
                 'assigned_at' => $assignedAt,
+                'deadline_at' => $course->deadline_at,
                 'teacher_name' => $course->teacher?->name,
             ];
 

@@ -66,7 +66,7 @@ class CourseDuplicateTest extends TestCase
             ->json('course.id');
 
         $copy = Course::findOrFail($copyId);
-        $this->assertSame('Siguranța muncii (copie)', $copy->title);
+        $this->assertSame('COPIE Siguranța muncii', $copy->title);
         $this->assertSame('draft', $copy->status);
         $this->assertSame('draft', $copy->workflow_status);
         $this->assertSame(0, (int) $copy->total_enrollments);

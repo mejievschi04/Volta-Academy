@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/api';
 
@@ -7,28 +7,10 @@ import { logger } from '../../utils/logger';
 import AdminEventListCard from '../../components/admin/events/AdminEventListCard';
 import AdminEventFormModal from '../../components/admin/events/AdminEventFormModal';
 import AdminEventDetailModal from '../../components/admin/events/AdminEventDetailModal';
+import { EventListNavigation, EventListPagination } from '../../components/common/EventListNavigation';
 
 import { useAuth } from '../../contexts/AuthContextShared.js';
 import { scrollElementToTop } from '../../utils/scrollToTop';
-
-/** Parse dată/oră din API (YYYY-MM-DD HH:mm sau T) ca timp local, fără UTC shift. */
-function parseWallClockToMs(dateString) {
-	if (!dateString) return null;
-	const s = String(dateString);
-	const m = s.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-	if (!m) {
-		const t = Date.parse(s);
-		return Number.isFinite(t) ? t : null;
-	}
-	const [, y, mo, d, h, mi] = m;
-	return new Date(
-		parseInt(y, 10),
-		parseInt(mo, 10) - 1,
-		parseInt(d, 10),
-		parseInt(h, 10),
-		parseInt(mi, 10),
-	).getTime();
-}
 
 const AdminEventsPage = () => {
 	const { canMutateInAdminArea, user } = useAuth();
@@ -50,6 +32,11 @@ const AdminEventsPage = () => {
 		}
 	};
 	const [events, setEvents] = useState([]);
+	const [history, setHistory] = useState(false);
+	const [page, setPage] = useState(1);
+	const [lastPage, setLastPage] = useState(1);
+	const [refreshKey, setRefreshKey] = useState(0);
+	const requestId = useRef(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [showModal, setShowModal] = useState(false);
@@ -59,52 +46,68 @@ const AdminEventsPage = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	// căutarea globală din bara de sus deschide pagina cu evenimentul căutat (?search=)
 	const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
-	const [nowTick, setNowTick] = useState(() => Date.now());
-	useEffect(() => {
-		const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
-		return () => window.clearInterval(id);
-	}, []);
-
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 	const eventsPanelRef = useRef(null);
 
 	useLayoutEffect(() => {
 		scrollElementToTop(eventsPanelRef.current);
-	}, []);
+	}, [history, page]);
 
-	const fetchEvents = useCallback(async () => {
+	const fetchEvents = useCallback(async ({ silent = false } = {}) => {
+		const id = ++requestId.current;
 		try {
-			setLoading(true);
+			if (!silent) setLoading(true);
 			const params = {
 				search: searchQuery,
+				date_filter: history ? 'past' : 'active',
 				sort_by: 'start_date',
-				sort_direction: 'asc',
-				per_page: 500,
+				sort_direction: history ? 'desc' : 'asc',
+				per_page: 50,
+				page,
 			};
 			const data = await adminService.getEvents(params);
-			setEvents(Array.isArray(data) ? data : (data?.data || []));
+			if (requestId.current !== id) return;
+			setError(null);
+			const last = data.last_page || 1;
+			setLastPage(last);
+			if (page > last) {
+				setPage(last);
+				return;
+			}
+			setEvents(Array.isArray(data) ? data : (data.data || []));
 		} catch (err) {
 			console.error('Error fetching events:', err);
-			setError('Nu s-au putut încărca evenimentele');
+			if (requestId.current === id && !silent) setError('Nu s-au putut încărca evenimentele');
 		} finally {
-			setLoading(false);
+			if (requestId.current === id) setLoading(false);
 		}
-	}, [searchQuery]);
+	}, [history, page, searchQuery]);
 
 	useEffect(() => {
 		const timeoutId = setTimeout(() => {
 			fetchEvents();
 		}, 300);
-		return () => clearTimeout(timeoutId);
-	}, [fetchEvents]);
+		return () => {
+			clearTimeout(timeoutId);
+			requestId.current += 1;
+		};
+	}, [fetchEvents, refreshKey]);
+
+	useEffect(() => {
+		if (history) return undefined;
+		const id = window.setInterval(() => {
+			if (!document.hidden) fetchEvents({ silent: true });
+		}, 60_000);
+		return () => window.clearInterval(id);
+	}, [fetchEvents, history]);
 
 	useEffect(() => {
 		const onRefresh = () => {
-			fetchEvents();
+			setRefreshKey((key) => key + 1);
 		};
 		window.addEventListener('volta-admin-events-refresh', onRefresh);
 		return () => window.removeEventListener('volta-admin-events-refresh', onRefresh);
-	}, [fetchEvents]);
+	}, []);
 
 	useEffect(() => {
 		const raw = Number(searchParams.get('event'));
@@ -120,16 +123,6 @@ const AdminEventsPage = () => {
 		next.delete('event');
 		setSearchParams(next, { replace: true });
 	};
-
-	const visibleEvents = useMemo(() => {
-		const now = nowTick;
-		return [...events]
-			.filter((ev) => {
-				const endMs = parseWallClockToMs(ev.end_date);
-				return endMs == null || endMs >= now;
-			})
-			.sort((a, b) => (parseWallClockToMs(a.start_date) ?? 0) - (parseWallClockToMs(b.start_date) ?? 0));
-	}, [events, nowTick]);
 
 	const handleView = (event) => {
 		setViewingEventId(event.id);
@@ -151,7 +144,7 @@ const AdminEventsPage = () => {
 		try {
 			await adminService.deleteEvent(showDeleteConfirm);
 			setShowDeleteConfirm(null);
-			fetchEvents();
+			setRefreshKey((key) => key + 1);
 		} catch (err) {
 			logger.error('Error deleting event:', err);
 			showError('Eroare la ștergerea evenimentului');
@@ -225,27 +218,19 @@ const AdminEventsPage = () => {
 		</div>
 	);
 
-	if (loading) {
-		return (
-			<div className="admin-container">
-				<div className="lms-dashboard-loading">
-					<div className="lms-spinner"></div>
-				</div>
-			</div>
-		);
-	}
-
-	const hasAny = visibleEvents.length > 0;
 	const filtersActive = Boolean(searchQuery);
+	const updateSearch = (value) => {
+		if (value === searchQuery) return;
+		setLoading(true);
+		setPage(1);
+		setSearchQuery(value);
+	};
 
 	return (
 		<div className="admin-container admin-events-page">
 			<div className="admin-page-header">
 				<div className="admin-page-header-content">
 					<h1 className="admin-page-title">Gestionare Evenimente</h1>
-					<p className="admin-page-subtitle">
-						Listă cu evenimentele active. Calendarul din bară rămâne pentru programare rapidă.
-					</p>
 				</div>
 				<div className="admin-events-header-actions">
 					{canDownloadAttendance && (
@@ -293,14 +278,14 @@ const AdminEventsPage = () => {
 						type="text"
 						className="admin-search-input"
 						placeholder="Caută evenimente..."
-							aria-label="Caută evenimente"
+						aria-label="Caută evenimente"
 						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						onChange={(e) => updateSearch(e.target.value)}
 					/>
 					{searchQuery && (
 						<button
 							className="admin-search-clear-btn"
-							onClick={() => setSearchQuery('')}
+							onClick={() => updateSearch('')}
 							aria-label="Golește căutarea"
 							type="button"
 						>
@@ -309,6 +294,12 @@ const AdminEventsPage = () => {
 					)}
 				</div>
 			</div>
+			<EventListNavigation history={history} onChange={(nextHistory) => {
+				if (nextHistory === history) return;
+				setLoading(true);
+				setPage(1);
+				setHistory(nextHistory);
+			}} />
 
 			{error && <div className="lms-error-message">{error}</div>}
 
@@ -317,16 +308,21 @@ const AdminEventsPage = () => {
 				id="admin-events-panel"
 				style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
 			>
-				{!hasAny ? (
+				{loading && (
+					<div className="lms-dashboard-loading" role="status" aria-label="Se încarcă evenimentele">
+						<div className="lms-spinner"></div>
+					</div>
+				)}
+				{!loading && !error && (events.length === 0 ? (
 					<div className="lms-empty-state">
 						<div className="lms-empty-icon">📅</div>
-						<h3 className="lms-empty-title">Nu există evenimente</h3>
+						<h3 className="lms-empty-title">{history && !filtersActive ? 'Istoricul este gol' : 'Nu există evenimente'}</h3>
 						<p className="lms-empty-description">
 							{filtersActive
 								? 'Încearcă să modifici căutarea'
-								: 'Creează primul eveniment pentru a începe'}
+								: history ? 'Evenimentele încheiate vor apărea aici.' : 'Nu sunt programate evenimente momentan.'}
 						</p>
-						{!filtersActive && canMutateInAdminArea && (
+						{!history && !filtersActive && canMutateInAdminArea && (
 							<button
 								type="button"
 								className="lms-btn-primary"
@@ -341,7 +337,13 @@ const AdminEventsPage = () => {
 						)}
 					</div>
 				) : (
-					renderEventGrid(visibleEvents)
+					renderEventGrid(events)
+				))}
+				{!error && (
+					<EventListPagination page={page} lastPage={lastPage} loading={loading} onChange={(nextPage) => {
+						setLoading(true);
+						setPage(nextPage);
+					}} />
 				)}
 			</div>
 
@@ -363,7 +365,7 @@ const AdminEventsPage = () => {
 					editingEvent={editingEvent}
 					prefill={null}
 					onSaved={() => {
-						fetchEvents();
+						setRefreshKey((key) => key + 1);
 					}}
 				/>
 			)}

@@ -2093,6 +2093,59 @@ body.sidebar-expanded .messages-page {
 	overflow: hidden;
 }
 
+.messages-conversation-dialog {
+	width: min(100%, 500px);
+}
+
+.messages-new-conversation {
+	width: 100%;
+}
+
+.messages-new-conversation .messages-modal-header,
+.messages-new-conversation .messages-modal-footer {
+	flex-shrink: 0;
+}
+
+.messages-new-conversation .messages-modal-body {
+	min-height: 0;
+}
+
+.messages-conversation-modes {
+	display: flex;
+	gap: var(--space-2);
+	margin-bottom: var(--space-3);
+}
+
+.messages-new-conversation .messages-group-name-input {
+	margin-bottom: var(--space-3);
+}
+
+.messages-picker-status {
+	margin: var(--space-2) 0 0;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+	.messages-new-conversation-overlay.va-modal-overlay {
+		inset: var(--messages-viewport-top, 0px) 0 auto !important;
+		height: var(--messages-visible-height, 100dvh);
+		padding: var(--space-3) !important;
+	}
+
+	.messages-new-conversation {
+		max-height: calc(var(--messages-visible-height, 100dvh) - 2 * var(--space-3));
+	}
+
+	.messages-new-conversation :is(.messages-modal-header, .messages-modal-body, .messages-modal-footer) {
+		padding: var(--space-4);
+	}
+
+	.messages-new-conversation .messages-modal-input {
+		font-size: 16px;
+	}
+}
+
 .messages-modal-header {
 	padding: var(--space-6);
 	border-bottom: 1px solid var(--border-primary);
@@ -2196,6 +2249,18 @@ body.sidebar-expanded .messages-page {
 	gap: var(--space-2);
 	max-height: 300px;
 	overflow-y: auto;
+}
+
+.messages-users-list > .messages-user-item {
+	flex: 0 0 auto;
+	min-height: 44px;
+}
+
+.messages-new-conversation .messages-user-info > span {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .messages-user-item {
