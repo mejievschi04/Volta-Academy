@@ -1131,7 +1131,6 @@ const MessagesPage = () => {
 				isOpen={showNewConversationModal}
 				onClose={() => !creatingConversation && closeNewConversation()}
 				ariaLabelledby="messages-new-conversation-title"
-				closeOnBackdropClick
 				closeOnEscape
 				className="messages-modal-overlay messages-new-conversation-overlay"
 				contentClassName="messages-conversation-dialog"

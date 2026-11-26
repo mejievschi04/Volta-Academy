@@ -36,6 +36,7 @@ const CourseShowcaseCard = React.forwardRef(
 			onOpen,
 			ctaLabel = 'Deschide',
 			progress,
+			progressLabel,
 			topLeftSlot,
 			topRightSlot,
 			footerExtraSlot,
@@ -112,7 +113,7 @@ const CourseShowcaseCard = React.forwardRef(
 								<div className="course-showcase-card__progress-track va-card-progress-track">
 									<div className="course-showcase-card__progress-fill va-card-progress-fill" style={{ width: `${normalizedProgress}%` }} />
 								</div>
-								<span className="course-showcase-card__progress-value va-card-progress-value">{courseProgressLabel(normalizedProgress)}</span>
+								<span className="course-showcase-card__progress-value va-card-progress-value">{progressLabel || courseProgressLabel(normalizedProgress)}</span>
 							</div>
 						) : null}
 						<div className="course-showcase-card__footer va-card-footer">

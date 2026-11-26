@@ -1,5 +1,4 @@
-import { formatResultDate, resultStatusLabel, rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
-import { formatPercent } from '../../../utils/formatPercent';
+import { formatResultDate, resultAttemptOpen, resultPercentLabel, resultStatusLabel, rowMatchesResultFilters, statisticsTeamParams } from './TestResultsPanelShared.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminService } from '../../../services/api';
@@ -333,7 +332,8 @@ export default function TestResultsPanel({
 						const rowMax = maxScoreForRow(row, kind);
 						const open = expandedId === row.id;
 						const breakdown = breakdownById[row.id];
-						const percent = formatPercent(row.percentage);
+						const percent = resultPercentLabel(row);
+						const attemptOpen = resultAttemptOpen(row);
 						const attempt = row.attempt_number != null ? `#${row.attempt_number}` : '—';
 						const userName = row.user?.name || row.user?.email || 'Elev';
 						return (
@@ -349,7 +349,7 @@ export default function TestResultsPanel({
 										<span className="admin-test-result-card-team">
 											{(row.user?.teams || []).length ? row.user.teams.join(', ') : 'Fără echipă'}
 										</span>
-										<span className={`admin-test-results-status ${row.passed ? 'is-passed' : row.needs_manual_review ? 'is-pending' : 'is-failed'}`}>
+										<span className={`admin-test-results-status ${attemptOpen ? 'is-progress' : row.passed ? 'is-passed' : row.needs_manual_review ? 'is-pending' : 'is-failed'}`}>
 											{resultStatusLabel(row)}
 										</span>
 										<span className="admin-test-result-metric" title="Procent, încercare și punctaj">

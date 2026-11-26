@@ -787,11 +787,12 @@ class ExamResultController extends Controller
         }
 
         $answers = $result->answers ?? [];
+        $exam->load('questions.answers');
+        $liveQuestions = $exam->questions->keyBy('id');
         $session = $result->user ? $sessions->find($exam, $result->user, (int) $result->attempt_number) : null;
         if ($session) {
             $questions = $sessions->questions($session);
         } else {
-            $exam->load('questions.answers');
             $selected = $questionSync->selectForAttempt($exam, (int) $result->user_id, (int) $result->attempt_number);
             $questions = $selected->concat($exam->questions->whereIn('id', array_keys($answers)))
                 ->unique('id')->values();
@@ -799,8 +800,11 @@ class ExamResultController extends Controller
 
         return response()->json([
             'question_snapshot_available' => $session !== null,
-            'questions' => $questions->map(function ($question) use ($result, $answers) {
-                $wire = $this->buildLegacyExamQuestionResultWire($result, $question, $answers);
+            'questions' => $questions->map(function ($question) use ($result, $answers, $liveQuestions) {
+                $wire = $this->applyCurrentCorrectAnswers(
+                    $this->buildLegacyExamQuestionResultWire($result, $question, $answers),
+                    $liveQuestions->get($question->id)
+                );
                 $answer = $wire['user_answer'];
                 $hasAnswer = $answer !== null && $answer !== '' && $answer !== [];
                 if ($wire['question_type'] === 'image_matching') {
@@ -818,6 +822,48 @@ class ExamResultController extends Controller
                 return $wire;
             })->values(),
         ]);
+    }
+
+    /**
+     * Variantele corecte din analiză urmează întrebarea de acum, nu doar primul răspuns salvat în încercare.
+     */
+    protected function applyCurrentCorrectAnswers(array $wire, $liveQuestion): array
+    {
+        if (! $liveQuestion || ! is_array($wire['answers'] ?? null)) {
+            return $wire;
+        }
+
+        $type = (string) ($wire['question_type'] ?? $wire['type'] ?? '');
+        if (! in_array($type, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)) {
+            return $wire;
+        }
+
+        $correctTexts = $liveQuestion->answers
+            ->filter(fn ($answer) => (bool) $answer->is_correct)
+            ->map(fn ($answer) => trim((string) $answer->answer_text))
+            ->filter(fn ($text) => $text !== '')
+            ->values()
+            ->all();
+        if ($correctTexts === []) {
+            return $wire;
+        }
+
+        $indices = [];
+        foreach ($wire['answers'] as $index => $row) {
+            $text = trim((string) ($row['answer_text'] ?? $row['text'] ?? ''));
+            $isCorrect = in_array($text, $correctTexts, true);
+            $wire['answers'][$index]['is_correct'] = $isCorrect;
+            if ($isCorrect) {
+                $indices[] = (int) $index;
+            }
+        }
+
+        $wire['correct_answer_indices'] = $indices;
+        $wire['answerIndices'] = $indices;
+        $wire['answerIndex'] = $indices[0] ?? null;
+        $wire['correct_answer_index'] = $indices[0] ?? null;
+
+        return $wire;
     }
 
     /**

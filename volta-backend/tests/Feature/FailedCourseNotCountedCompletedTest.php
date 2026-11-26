@@ -151,4 +151,50 @@ class FailedCourseNotCountedCompletedTest extends TestCase
         $this->assertSame(1, $response->json('course_stats.total_assigned'));
         $this->assertSame([], $response->json('courses_failed'));
     }
+
+    public function test_a_started_course_shows_the_unfinished_test_as_in_progress(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'status' => 'active']);
+        $course = Course::factory()->published()->create([
+            'settings' => ['deadline_at' => now()->addDays(3)->utc()->toIso8601String()],
+        ]);
+        $service = app(UserAssignedCoursesService::class);
+        $service->assignCourseDirectly($student, $course, []);
+        DB::table('course_user')->where('user_id', $student->id)->where('course_id', $course->id)->update([
+            'progress_percentage' => 0,
+            'started_at' => now(),
+            'completed_at' => null,
+        ]);
+        $test = Test::factory()->published()->create(['created_by' => $student->id]);
+        $course->tests()->attach($test->id, ['scope' => 'course', 'required' => true]);
+
+        $student->unsetRelation('assignedCourses');
+        $open = $service->buildProfileCoursesData($student->fresh());
+        $this->assertSame('in_progress', $open['courses_in_progress'][0]['tests'][0]['status']);
+        $this->assertNull($open['courses_in_progress'][0]['tests'][0]['percentage']);
+
+        TestResult::create([
+            'test_id' => $test->id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'score' => 0,
+            'max_score' => 10,
+            'percentage' => 0,
+            'passed' => false,
+            'attempt_number' => 1,
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+
+        $student->unsetRelation('assignedCourses');
+        $attempt = $service->buildProfileCoursesData($student->fresh());
+        $this->assertSame('in_progress', $attempt['courses_in_progress'][0]['tests'][0]['status']);
+        $this->assertNull($attempt['courses_in_progress'][0]['tests'][0]['percentage']);
+
+        $course->update(['settings' => ['deadline_at' => now()->subDay()->utc()->toIso8601String()]]);
+        $student->unsetRelation('assignedCourses');
+        $late = $service->buildProfileCoursesData($student->fresh());
+        $row = collect($late['courses_assigned'])->firstWhere('id', $course->id);
+        $this->assertSame('not_started', $row['tests'][0]['status']);
+    }
 }

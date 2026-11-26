@@ -14,7 +14,7 @@ import { isStudentVisibleMap } from '../utils/courseMapVisibility';
 import ResumeLearningWidget from '../components/student/ResumeLearningWidget';
 import './CoursesPage.css';
 import '../styles/learning-experience.css';
-import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseProgressLabel, courseProgressText } from '../utils/courseProgressLabel.js';
 import { courseDeadlineLabel } from '../utils/courseDeadline';
 import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
 
@@ -229,7 +229,7 @@ const CoursesPage = () => {
 		if (course.short_description?.trim()) subtitleParts.push(String(course.short_description).trim());
 		if (status === 'failed') subtitleParts.push('Nepromovat');
 		else if (status === 'completed' || Number(progress) >= 100) subtitleParts.push('Finalizat');
-		else if (status === 'in_progress') subtitleParts.push(`Progres ${courseProgressLabel(progress)}`);
+		else if (status === 'in_progress') subtitleParts.push(Number(progress) > 0 ? `Progres ${courseProgressLabel(progress)}` : courseProgressText(course, { status, progress }));
 		else subtitleParts.push('Neaccesat');
 		const subtitle = subtitleParts.join(' · ');
 		const ctaLabel = status === 'not_accessed'
@@ -247,6 +247,7 @@ const CoursesPage = () => {
 					subtitle={subtitle}
 					deadlineLabel={courseDeadlineLabel(course)}
 					progress={status === 'in_progress' ? progress : status === 'completed' ? 100 : 0}
+					progressLabel={status === 'in_progress' && Number(progress) <= 0 ? courseProgressText(course, { status, progress }) : undefined}
 					themeHsl={hexToHslSpace(accentColor)}
 					onOpen={() => navigate(`/courses/${course.id}`)}
 					ctaLabel={ctaLabel}

@@ -12,7 +12,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import AttemptDetailsModal from '../components/admin/tests/AttemptDetailsModal';
 import EmptyState from '../components/ui/EmptyState';
 import { toImageUrl } from '../utils/imageUrl';
-import { courseProgressLabel } from '../utils/courseProgressLabel.js';
+import { courseProgressText } from '../utils/courseProgressLabel.js';
 import { courseDeadlineLabel } from '../utils/courseDeadline';
 import { formatPercent } from '../utils/formatPercent';
 import { useRegisterPageRefresh } from '../contexts/PageRefreshContext';
@@ -277,13 +277,15 @@ const ProfilePage = () => {
 		if (tests.every((test) => test.status === 'passed')) return tests.length === 1 ? 'Test: promovat ✓' : 'Teste: promovate ✓';
 		if (tests.some((test) => test.status === 'pending')) return 'Test: în corectare';
 		if (tests.some((test) => test.status === 'failed')) return 'Test: nepromovat';
+		if (tests.some((test) => test.status === 'in_progress')) return 'Test: în progres';
 		return 'Test: neînceput';
 	};
 
 	const renderTestResult = (test) => {
-		if (test.status === 'passed') return { label: `${formatPercent(test.percentage ?? 0)} · Promovat`, tone: 'passed' };
+		if (test.status === 'passed') return { label: `${formatPercent(test.percentage)} · Promovat`, tone: 'passed' };
 		if (test.status === 'pending') return { label: 'În corectare', tone: 'pending' };
-		if (test.status === 'failed') return { label: `${formatPercent(test.percentage ?? 0)} · Nepromovat`, tone: 'failed' };
+		if (test.status === 'in_progress') return { label: 'În progres', tone: 'progress' };
+		if (test.status === 'failed') return { label: `${formatPercent(test.percentage)} · Nepromovat`, tone: 'failed' };
 		return { label: 'Neînceput', tone: 'idle' };
 	};
 
@@ -317,7 +319,7 @@ const ProfilePage = () => {
 							<div className="va-up-progress-fill" style={{ width: `${progress}%` }} />
 						</div>
 						<span className="va-up-progress-label">
-							{progress >= 100 ? 'Finalizat' : courseProgressLabel(course.progress)}
+							{courseProgressText(course, { status, progress })}
 							{course.totalModules ? ` · ${course.completedModules ?? 0}/${course.totalModules} module` : ''}
 						</span>
 					</div>

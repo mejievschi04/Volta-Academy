@@ -401,7 +401,8 @@ class CourseAndQuestionBankTest extends TestCase
             'order' => 0,
             'answers' => [
                 ['text' => 'Corect', 'is_correct' => true, 'order' => 0],
-                ['text' => 'Gresit', 'is_correct' => false, 'order' => 1],
+                ['text' => 'Tot corect', 'is_correct' => true, 'order' => 1],
+                ['text' => 'Gresit', 'is_correct' => false, 'order' => 2],
             ],
         ]);
         Question::factory()->forQuestionBank($bank->id)->create([
@@ -456,11 +457,13 @@ class CourseAndQuestionBankTest extends TestCase
         $this->assertSame('Stanga A', $matching->payload['pairs'][0]['left']);
         $this->assertSame('Dreapta A', $matching->payload['pairs'][0]['right']);
         $this->assertSame('Primul', $ordering->payload['items'][0]);
-        $this->assertSame(2, $choice->answers()->count());
+        $this->assertSame(3, $choice->answers()->count());
 
         $preview = $this->actingAs($admin, 'sanctum')->getJson("/api/admin/exams/{$examId}/preview");
         $preview->assertOk();
         $this->assertContains('matching', array_column($preview->json('questions'), 'type'));
         $this->assertContains('ordering', array_column($preview->json('questions'), 'type'));
+        $choicePreview = collect($preview->json('questions'))->firstWhere('type', 'multiple_choice');
+        $this->assertSame([0, 1], $choicePreview['answerIndices']);
     }
 }

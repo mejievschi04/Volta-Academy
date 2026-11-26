@@ -114,6 +114,8 @@ class ExamResultsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('question_snapshot_available', false)
             ->assertJsonPath('questions.0.user_answer_indices', [0, 1])
+            ->assertJsonPath('questions.0.answers.0.is_correct', true)
+            ->assertJsonPath('questions.0.answers.1.is_correct', true)
             ->assertJsonPath('questions.0.points_earned', 2);
     }
 

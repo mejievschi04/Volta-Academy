@@ -534,6 +534,7 @@ class TestAdminController extends Controller
                     'needs_manual_review' => (bool) ($row->needs_manual_review ?? false),
                     'reviewed_at' => $row->reviewed_at,
                     'status' => $row->status,
+                    'expires_at' => $row->expires_at,
                     'user' => [
                         'id' => $row->user?->id,
                         'name' => $row->user?->name,

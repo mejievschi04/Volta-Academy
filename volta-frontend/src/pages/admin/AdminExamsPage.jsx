@@ -1483,7 +1483,11 @@ export default function AdminExamsPage() {
                   <span>Incercari: {previewData.max_attempts ?? 'Nelimitat'}</span>
                 </div>
                 <div className="admin-exams-preview-questions">
-                  {(Array.isArray(previewData.questions) ? previewData.questions : []).map((question, index) => (
+                  {(Array.isArray(previewData.questions) ? previewData.questions : []).map((question, index) => {
+                    const correctIndices = Array.isArray(question.answerIndices)
+                      ? question.answerIndices.map((value) => Number(value))
+                      : (question.answerIndex == null ? [] : [Number(question.answerIndex)]);
+                    return (
                     <article key={question.id || index} className="admin-exams-preview-question">
                       <h5>{index + 1}. {stripRichTextToPlain(question.text) || 'Întrebare fără conținut'}</h5>
                       {Array.isArray(question.options) && question.options.length > 0 ? (
@@ -1491,10 +1495,10 @@ export default function AdminExamsPage() {
                           {question.options.map((option, optionIndex) => (
                             <li
                               key={`${question.id || index}-${optionIndex}`}
-                              className={optionIndex === question.answerIndex ? 'is-correct-answer' : undefined}
+                              className={correctIndices.includes(optionIndex) ? 'is-correct-answer' : undefined}
                             >
                               {stripRichTextToPlain(String(option ?? ''))}
-                              {optionIndex === question.answerIndex ? <strong className="admin-exams-preview-correct-label">Răspuns corect</strong> : null}
+                              {correctIndices.includes(optionIndex) ? <strong className="admin-exams-preview-correct-label">Răspuns corect</strong> : null}
                             </li>
                           ))}
                         </ul>
@@ -1518,7 +1522,8 @@ export default function AdminExamsPage() {
                         </div>
                       ) : null}
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (

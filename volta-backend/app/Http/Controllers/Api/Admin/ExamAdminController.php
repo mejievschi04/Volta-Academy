@@ -103,12 +103,14 @@ class ExamAdminController extends Controller
         $questions = $exam->questions->sortBy('order')->values()->map(function ($question) {
             $answers = $question->answers->sortBy('order')->values();
             $questionType = $question->question_type ?? 'multiple_choice';
-            $correctAnswerIndex = null;
+            $correctAnswerIndices = [];
             foreach ($answers as $idx => $answer) {
                 if ($answer->is_correct) {
-                    $correctAnswerIndex = $idx;
-                    break;
+                    $correctAnswerIndices[] = $idx;
                 }
+            }
+            if (in_array($questionType, ['single_choice', 'true_false', 'yes_no'], true)) {
+                $correctAnswerIndices = $correctAnswerIndices !== [] ? [$correctAnswerIndices[0]] : [];
             }
 
             return [
@@ -118,7 +120,8 @@ class ExamAdminController extends Controller
                 'options' => in_array($questionType, ['multiple_choice', 'single_choice', 'true_false', 'yes_no'], true)
                     ? $answers->pluck('answer_text')->toArray()
                     : [],
-                'answerIndex' => $correctAnswerIndex,
+                'answerIndex' => $correctAnswerIndices[0] ?? null,
+                'answerIndices' => $correctAnswerIndices,
                 'points' => $question->points ?? 1,
                 'explanation' => $question->explanation ?? null,
                 'matching' => $questionType === 'matching' ? $this->buildPreviewMatchingData($question) : null,

@@ -104,7 +104,6 @@ class UserAssignedCoursesService
             $latestTestResults = TestResult::query()
                 ->where('user_id', $user->id)
                 ->whereIn('test_id', $testIds)
-                ->where('status', '!=', 'in_progress')
                 ->orderByDesc('attempt_number')
                 ->orderByDesc('id')
                 ->get()
@@ -161,15 +160,30 @@ class UserAssignedCoursesService
             $assignedAt = $course->pivot->assigned_at ?? null;
 
             $courseTests = [];
+            $deadlineStillOpen = ! $this->courseDeadlineHasPassed($course);
             foreach ($course->tests ?? [] as $test) {
                 $resultsForTest = $latestTestResults->get((int) $test->id) ?? collect();
-                $latestTestResult = $resultsForTest->firstWhere('course_id', $course->id);
+                $finishedForTest = $resultsForTest->filter(fn ($row) => (string) ($row->status ?? '') !== 'in_progress')->values();
+                $latestTestResult = $finishedForTest->firstWhere('course_id', $course->id);
                 if (! $latestTestResult && (int) $legacyResultsByTest->get($test->id) === (int) $course->id) {
-                    $latestTestResult = $resultsForTest->first(fn ($row) => $row->course_id === null);
+                    $latestTestResult = $finishedForTest->first(fn ($row) => $row->course_id === null);
                 }
-                $attemptsUsed = $resultsForTest->count();
+                $openAttempt = $resultsForTest->first(function ($row) use ($course) {
+                    if ((string) ($row->status ?? '') !== 'in_progress' || ! $this->attemptTimeStillOpen($row)) {
+                        return false;
+                    }
+                    if ((int) ($row->course_id ?? 0) === (int) $course->id) {
+                        return true;
+                    }
+
+                    return $row->course_id === null && (int) $legacyResultsByTest->get($row->test_id) === (int) $course->id;
+                });
+                $attemptsUsed = $finishedForTest->count();
                 $passed = (bool) ($latestTestResult?->passed);
-                $percentage = $latestTestResult?->percentage !== null ? (float) $latestTestResult->percentage : null;
+                $testStatus = $this->profileTestStatus($latestTestResult, $openAttempt, $passed, $hasStarted, $deadlineStillOpen);
+                $percentage = $testStatus === 'in_progress' || $latestTestResult?->percentage === null
+                    ? null
+                    : (float) $latestTestResult->percentage;
                 $extraAttempts = (int) ($extraAttemptsByTest->get($test->id)?->extra_attempts ?? 0);
                 $remaining = $attemptService->remainingAttemptsFor($test, (int) $user->id, $attemptsUsed);
                 if ($passed) {
@@ -186,9 +200,7 @@ class UserAssignedCoursesService
                     'remaining_attempts' => $remaining,
                     'passed' => $passed,
                     'percentage' => $percentage,
-                    'status' => ! $latestTestResult
-                        ? 'not_started'
-                        : ($passed ? 'passed' : ((string) ($latestTestResult->status ?? '') === 'pending_review' || $latestTestResult->needs_manual_review ? 'pending' : 'failed')),
+                    'status' => $testStatus,
                 ];
             }
 
@@ -594,6 +606,49 @@ class UserAssignedCoursesService
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Un test nepromovat încă, cu termenul deschis, nu primește procentul 0 al încercării pornite.
+     */
+    private function profileTestStatus($latest, $openAttempt, bool $passed, bool $hasStarted, bool $deadlineStillOpen): string
+    {
+        if ($passed) {
+            return 'passed';
+        }
+        if ($latest) {
+            $pending = (string) ($latest->status ?? '') === 'pending_review' || (bool) ($latest->needs_manual_review ?? false);
+
+            return $pending ? 'pending' : 'failed';
+        }
+        if ($deadlineStillOpen && ($openAttempt || $hasStarted)) {
+            return 'in_progress';
+        }
+
+        return 'not_started';
+    }
+
+    private function courseDeadlineHasPassed($course): bool
+    {
+        $deadline = $course->deadline_at ?? null;
+        if (! is_string($deadline) || trim($deadline) === '') {
+            return false;
+        }
+
+        try {
+            return \Carbon\CarbonImmutable::parse($deadline)->isPast();
+        } catch (\Carbon\Exceptions\InvalidFormatException) {
+            return false;
+        }
+    }
+
+    private function attemptTimeStillOpen($attempt): bool
+    {
+        if (! $attempt?->expires_at) {
+            return true;
+        }
+
+        return \Carbon\CarbonImmutable::parse($attempt->expires_at)->addSeconds(15)->isFuture();
+    }
+
     private function enrollmentPivot(string $source): array
     {
         $pivot = [
