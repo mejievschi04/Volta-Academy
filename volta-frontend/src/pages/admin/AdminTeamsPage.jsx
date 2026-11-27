@@ -777,6 +777,11 @@ const TeamMemberAssignCoursesModal = ({ team, member, courses, onClose, onSaved 
 
 const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 	const [selectedCourseIds, setSelectedCourseIds] = useState(team.courses?.map(c => c.id) || []);
+	const [courseQuery, setCourseQuery] = useState('');
+	const visibleCourses = useMemo(
+		() => (Array.isArray(courses) ? courses : []).filter((course) => matchesDirectorySearch({ name: course.title }, courseQuery)),
+		[courses, courseQuery],
+	);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -785,7 +790,7 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 
 	return (
 		<div className="admin-team-modal-overlay">
-			<div className="admin-team-modal" onClick={(e) => e.stopPropagation()}>
+			<div className="admin-team-modal admin-team-courses-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="admin-team-modal-header">
 					<div className="admin-team-modal-title-wrap">
 						<span
@@ -808,10 +813,22 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 				<div className="admin-team-modal-body">
 					<form onSubmit={handleSubmit} className="admin-team-modal-form">
 						<div className="admin-form-group">
-							<label className="admin-form-label">Selectează Cursuri</label>
-							<div className="admin-team-modal-list">
-								{courses.map((course) => (
-									<label 
+							<label className="admin-form-label" htmlFor="admin-team-course-search">Selectează Cursuri</label>
+							<input
+								id="admin-team-course-search"
+								type="search"
+								className="admin-users-search-input admin-team-member-search"
+								placeholder="Caută curs după titlu..."
+								value={courseQuery}
+								onChange={(e) => setCourseQuery(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') e.preventDefault();
+								}}
+								aria-label="Caută curs după titlu"
+							/>
+							<div className="admin-team-modal-list admin-team-courses-grid">
+								{visibleCourses.length > 0 ? visibleCourses.map((course) => (
+									<label
 										key={course.id}
 										className={`admin-team-modal-list-item ${selectedCourseIds.includes(course.id) ? 'selected' : ''}`}
 									>
@@ -830,7 +847,13 @@ const TeamCoursesModal = ({ team, courses, onClose, onSave }) => {
 											{course.title}
 										</div>
 									</label>
-								))}
+								)) : (
+									<p className="admin-team-member-search-empty admin-team-courses-empty">
+										{courseQuery.trim()
+											? 'Niciun curs nu corespunde titlului căutat.'
+											: 'Nu există cursuri de atribuit.'}
+									</p>
+								)}
 							</div>
 						</div>
 						<div className="admin-team-modal-footer">

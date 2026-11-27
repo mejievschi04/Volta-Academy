@@ -836,6 +836,31 @@ html[data-theme="dark"] .admin-team-card-compact__avatar svg {
 	max-width: 640px;
 }
 
+.admin-team-courses-modal {
+	max-width: min(960px, calc(100vw - 32px));
+}
+
+.admin-team-modal-list.admin-team-courses-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: start;
+	max-height: min(52vh, 480px);
+}
+
+.admin-team-modal-list.admin-team-courses-grid .admin-team-modal-list-item-label {
+	margin-bottom: 0;
+}
+
+.admin-team-courses-empty {
+	grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+	.admin-team-modal-list.admin-team-courses-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
 .admin-team-card-sortable {
 	position: relative;
 }

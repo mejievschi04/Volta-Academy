@@ -1565,6 +1565,11 @@ export const messagesService = {
     return response.data?.data || response.data;
   },
 
+  getAudience: async () => {
+    const response = await api.get('/messages/audience');
+    return response.data?.data || response.data;
+  },
+
   // Get available users for new conversation
   getAvailableUsers: async (query = '') => {
     try {
@@ -1609,9 +1614,11 @@ export const messagesService = {
     }
   },
 
-  addParticipants: async (conversationId, userIds) => {
+  addParticipants: async (conversationId, userIds, { teamIds = [], includeEveryone = false } = {}) => {
     const response = await api.post(`/messages/conversations/${conversationId}/participants`, {
       user_ids: userIds,
+      team_ids: teamIds,
+      include_everyone: includeEveryone,
     });
     return response.data;
   },

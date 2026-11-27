@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Team;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -363,6 +365,9 @@ class MessageController extends Controller
             'participant_id' => 'nullable|exists:users,id',
             'participant_ids' => 'nullable|array',
             'participant_ids.*' => 'integer|exists:users,id',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'integer|exists:teams,id',
+            'include_everyone' => 'nullable|boolean',
             'name' => 'nullable|string|max:120',
         ]);
 
@@ -376,11 +381,7 @@ class MessageController extends Controller
         $type = (string) ($request->input('type') ?: 'direct');
 
         if ($type === 'group') {
-            $participantIds = collect($request->input('participant_ids', []))
-                ->map(fn ($id) => (int) $id)
-                ->filter(fn ($id) => $id > 0 && $id !== (int) $user->id)
-                ->unique()
-                ->values();
+            $participantIds = $this->resolveInviteeIds($request, $user);
 
             if ($participantIds->count() < 2) {
                 return response()->json([
@@ -589,6 +590,52 @@ class MessageController extends Controller
     }
 
     /**
+     * Echipe și numărul de utilizatori activi, pentru adăugare rapidă în grup.
+     * Doar administratorii văd lista: un student nu poate trage toată organizația într-un chat.
+     */
+    public function audience()
+    {
+        $user = Auth::user();
+        $this->assertCanUseAudience($user);
+
+        $teams = Team::query()
+            ->with(['users' => function ($query) {
+                $query->where(function ($status) {
+                    $status->whereNull('users.status')->orWhere('users.status', 'active');
+                })->select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.role');
+            }])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sort_order']);
+
+        $selfId = (int) $user->id;
+
+        return response()->json([
+            'data' => [
+                'everyone_count' => $this->activeMessagingUsersQuery()->where('id', '!=', $selfId)->count(),
+                'teams' => $teams->map(function (Team $team) use ($selfId) {
+                    $members = $team->users
+                        ->filter(fn (User $member) => (int) $member->id !== $selfId)
+                        ->values();
+
+                    return [
+                        'id' => (int) $team->id,
+                        'name' => $team->name,
+                        'members_count' => $members->count(),
+                        'members' => $members->map(fn (User $member) => [
+                            'id' => (int) $member->id,
+                            'name' => $member->name,
+                            'email' => $member->email,
+                            'avatar' => $member->avatar,
+                            'role' => $member->role,
+                        ])->values(),
+                    ];
+                })->values(),
+            ],
+        ]);
+    }
+
+    /**
      * Get available users for new conversation (users you can message)
      */
     public function getAvailableUsers(Request $request)
@@ -654,8 +701,11 @@ class MessageController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'user_ids' => 'required|array|min:1',
+            'user_ids' => 'nullable|array',
             'user_ids.*' => 'integer|exists:users,id',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'integer|exists:teams,id',
+            'include_everyone' => 'nullable|boolean',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -664,11 +714,12 @@ class MessageController extends Controller
             ], 422);
         }
 
-        $userIds = collect($request->input('user_ids', []))
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->unique()
-            ->values();
+        $userIds = $this->resolveInviteeIds($request, $user);
+        if ($userIds->isEmpty()) {
+            return response()->json([
+                'message' => 'Alege cel puțin o persoană, o echipă sau pe toți.',
+            ], 422);
+        }
 
         $existing = $conversation->participants->pluck('id')->map(fn ($id) => (int) $id)->all();
         $toAttach = $userIds->filter(fn ($id) => !in_array($id, $existing, true))->values();
@@ -888,5 +939,59 @@ class MessageController extends Controller
         $conversation->touch();
 
         return $this->getParticipants($request, $conversation->id);
+    }
+
+    private function assertCanUseAudience(User $user): void
+    {
+        if (! $user->isAdmin()) {
+            abort(403, 'Doar administratorii pot adăuga echipe sau pe toți utilizatorii.');
+        }
+    }
+
+    private function activeMessagingUsersQuery()
+    {
+        return User::query()->where(function ($query) {
+            $query->whereNull('status')->orWhere('status', 'active');
+        });
+    }
+
+    /**
+     * Persoanele din participant_ids / user_ids, plus membrii echipelor și, la cerere, toți utilizatorii activi.
+     */
+    private function resolveInviteeIds(Request $request, User $user): Collection
+    {
+        $ids = collect($request->input('participant_ids', $request->input('user_ids', [])))
+            ->map(fn ($id) => (int) $id);
+
+        $teamIds = collect($request->input('team_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+        $includeEveryone = $request->boolean('include_everyone');
+
+        if ($teamIds->isNotEmpty() || $includeEveryone) {
+            $this->assertCanUseAudience($user);
+        }
+
+        if ($includeEveryone) {
+            $ids = $ids->merge(
+                $this->activeMessagingUsersQuery()->where('id', '!=', $user->id)->pluck('id')
+            );
+        }
+
+        if ($teamIds->isNotEmpty()) {
+            $ids = $ids->merge(
+                $this->activeMessagingUsersQuery()
+                    ->whereHas('teams', fn ($query) => $query->whereIn('teams.id', $teamIds->all()))
+                    ->pluck('id')
+            );
+        }
+
+        return $ids
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0 && $id !== (int) $user->id)
+            ->unique()
+            ->values();
     }
 }

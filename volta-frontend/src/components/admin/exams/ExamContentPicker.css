@@ -93,7 +93,7 @@
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	gap: 12px;
 	align-items: stretch;
-	min-height: min(68vh, 720px);
+	min-height: min(84vh, 1100px);
 }
 
 .exam-picker-browse,
@@ -107,7 +107,7 @@
 .exam-picker-browse {
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
-	min-height: min(68vh, 720px);
+	min-height: min(84vh, 1100px);
 	overflow: hidden;
 }
 
@@ -552,8 +552,8 @@
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr) auto;
 	gap: 12px;
-	min-height: min(68vh, 720px);
-	max-height: min(68vh, 720px);
+	min-height: min(84vh, 1100px);
+	max-height: min(84vh, 1100px);
 	padding: 14px;
 }
 
@@ -625,7 +625,7 @@
 	padding: 0;
 	overflow: auto;
 	display: grid;
-	gap: 8px;
+	gap: 6px;
 	align-content: start;
 }
 
@@ -634,7 +634,7 @@
 	grid-template-columns: auto minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 8px;
-	padding: 8px;
+	padding: 6px 8px;
 	border: 1px solid var(--border-primary);
 	border-radius: 8px;
 	background: var(--bg-primary);
@@ -664,7 +664,7 @@
 	overflow: hidden;
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 1;
 	white-space: normal;
 }
 
@@ -677,7 +677,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
-	min-height: 36px;
+	min-height: 30px;
 	padding: 0 10px;
 	white-space: nowrap;
 }
@@ -686,12 +686,15 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 22px;
+	width: auto;
+	min-width: 28px;
 	height: 22px;
+	padding: 0 6px;
 	border-radius: 999px;
 	background: color-mix(in srgb, var(--color-primary) 22%, var(--bg-elevated));
 	font-size: 0.7rem;
 	font-weight: 800;
+	white-space: nowrap;
 }
 
 .exam-picker-tray-copy {

@@ -612,7 +612,7 @@ export default function ExamContentPicker({
                           <Star size={18} fill={item.is_starred ? 'currentColor' : 'none'} />
                         </span>
                       )}
-                      <button type="button" className="exam-picker-tray-open" onClick={() => openSelectedQuestion(item)}>
+                      <button type="button" className="exam-picker-tray-open" title={stripHtml(item.content) || `Întrebarea ${item.id}`} onClick={() => openSelectedQuestion(item)}>
                         <strong>{stripHtml(item.content) || `Întrebarea ${item.id}`}</strong>
                         <small>{QUESTION_TYPE_LABELS[item.type] || item.type || 'Întrebare'} · {item.origin || 'Selectată'} · Editează</small>
                       </button>

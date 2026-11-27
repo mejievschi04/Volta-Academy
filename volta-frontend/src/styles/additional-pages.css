@@ -2116,6 +2116,22 @@ body.sidebar-expanded .messages-page {
 	margin-bottom: var(--space-3);
 }
 
+.messages-audience {
+	display: grid;
+	gap: 8px;
+	margin-bottom: var(--space-3);
+}
+
+.messages-audience-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.messages-audience-actions .lms-btn-sm {
+	min-height: 36px;
+}
+
 .messages-new-conversation .messages-group-name-input {
 	margin-bottom: var(--space-3);
 }

@@ -104,6 +104,7 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api-messages-read
     Route::get('/messages/conversations/search', [\App\Http\Controllers\Api\MessageController::class, 'searchConversations']);
     Route::get('/messages/conversations/{id}/messages', [\App\Http\Controllers\Api\MessageController::class, 'getMessages']);
     Route::get('/messages/available-users', [\App\Http\Controllers\Api\MessageController::class, 'getAvailableUsers']);
+    Route::get('/messages/audience', [\App\Http\Controllers\Api\MessageController::class, 'audience']);
     Route::post('/messages/conversations/{id}/read', [\App\Http\Controllers\Api\MessageController::class, 'markAsRead']);
 });
 

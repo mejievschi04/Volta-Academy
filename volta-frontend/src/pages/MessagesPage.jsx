@@ -24,6 +24,52 @@ import Modal from '../components/common/Modal';
 
 const MIN_GROUP_INVITEES = 2;
 
+function AudienceQuickAdd({
+	audience,
+	loading,
+	disabled,
+	everyoneActive = false,
+	selectedTeamIds = [],
+	onEveryone,
+	onTeam,
+}) {
+	const teams = Array.isArray(audience?.teams) ? audience.teams : [];
+
+	return (
+		<div className="messages-audience">
+			<div className="messages-group-participants-title">Adaugă rapid</div>
+			{loading && !audience ? <p className="messages-picker-status">Se încarcă echipele…</p> : null}
+			<div className="messages-audience-actions">
+				<button
+					type="button"
+					className={`lms-btn-sm ${everyoneActive ? 'lms-btn-primary' : 'lms-btn-secondary'}`}
+					disabled={disabled || !audience || Number(audience.everyone_count) < 1}
+					onClick={onEveryone}
+				>
+					Toți{audience ? ` · ${audience.everyone_count}` : ''}
+				</button>
+				{teams.map((team) => {
+					const active = selectedTeamIds.some((id) => String(id) === String(team.id));
+					return (
+						<button
+							key={team.id}
+							type="button"
+							className={`lms-btn-sm ${active ? 'lms-btn-primary' : 'lms-btn-secondary'}`}
+							disabled={disabled || everyoneActive || Number(team.members_count) < 1}
+							onClick={() => onTeam(team)}
+						>
+							{team.name} · {team.members_count}
+						</button>
+					);
+				})}
+			</div>
+			{!loading && audience && teams.length === 0 ? (
+				<p className="messages-picker-status">Nu există echipe. Poți adăuga pe toți utilizatorii activi.</p>
+			) : null}
+		</div>
+	);
+}
+
 const MessagesPage = () => {
 	const { user } = useAuth();
 	const { showToast } = useToast();
@@ -42,6 +88,11 @@ const MessagesPage = () => {
 	const [newConversationSearch, setNewConversationSearch] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [pickedUsers, setPickedUsers] = useState([]);
+	const [pickedTeamIds, setPickedTeamIds] = useState([]);
+	const [includeEveryone, setIncludeEveryone] = useState(false);
+	const [audience, setAudience] = useState(null);
+	const [audienceLoading, setAudienceLoading] = useState(false);
+	const [showAddEveryoneConfirm, setShowAddEveryoneConfirm] = useState(false);
 	const [loadingUsers, setLoadingUsers] = useState(false);
 	const [creatingConversation, setCreatingConversation] = useState(false);
 	const [showParticipantsModal, setShowParticipantsModal] = useState(false);
@@ -65,6 +116,7 @@ const MessagesPage = () => {
 	const conversationsPollBackoffUntilRef = useRef(0);
 	const shouldAutoScrollRef = useRef(true);
 	const userSearchRequestRef = useRef(0);
+	const canBulkAdd = user?.role === 'admin';
 
 	// Detect mobile viewport
 	useEffect(() => {
@@ -74,6 +126,26 @@ const MessagesPage = () => {
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);
 	}, []);
+
+	useEffect(() => {
+		if (!canBulkAdd || (!showNewConversationModal && !showParticipantsModal)) return undefined;
+		let cancelled = false;
+		setAudienceLoading(true);
+		messagesService.getAudience()
+			.then((data) => {
+				if (!cancelled) setAudience(data);
+			})
+			.catch((err) => {
+				logger.error('Error loading message audience:', err);
+				if (!cancelled) setAudience(null);
+			})
+			.finally(() => {
+				if (!cancelled) setAudienceLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [canBulkAdd, showNewConversationModal, showParticipantsModal]);
 
 	useEffect(() => {
 		if (!isMobile || (!selectedConversation && !showNewConversationModal)) {
@@ -611,7 +683,28 @@ const MessagesPage = () => {
 	};
 
 	const isNewGroup = newConversationType === 'group';
-	const canCreateConversation = pickedUsers.length >= (isNewGroup ? MIN_GROUP_INVITEES : 1);
+	const selectedTeamMembers = useMemo(() => {
+		if (includeEveryone || !Array.isArray(audience?.teams)) return [];
+		const selected = new Set(pickedTeamIds.map((id) => String(id)));
+		const seen = new Set(pickedUsers.map((person) => String(person.id)));
+		const members = [];
+		audience.teams.forEach((team) => {
+			if (!selected.has(String(team.id))) return;
+			(team.members || []).forEach((member) => {
+				const key = String(member.id);
+				if (seen.has(key)) return;
+				seen.add(key);
+				members.push(member);
+			});
+		});
+		return members;
+	}, [audience, includeEveryone, pickedTeamIds, pickedUsers]);
+	const inviteeCount = includeEveryone
+		? Number(audience?.everyone_count || 0)
+		: pickedUsers.length + selectedTeamMembers.length;
+	const canCreateConversation = isNewGroup
+		? inviteeCount >= MIN_GROUP_INVITEES
+		: pickedUsers.length >= 1;
 
 	const closeNewConversation = () => {
 		userSearchRequestRef.current += 1;
@@ -619,9 +712,22 @@ const MessagesPage = () => {
 		setNewConversationType('direct');
 		setNewGroupName('');
 		setPickedUsers([]);
+		setPickedTeamIds([]);
+		setIncludeEveryone(false);
 		setNewConversationSearch('');
 		setAvailableUsers([]);
 		setLoadingUsers(false);
+	};
+
+	const defaultGroupName = () => {
+		const typed = newGroupName.trim();
+		if (typed) return typed;
+		if (includeEveryone) return 'Toți';
+		if (pickedTeamIds.length === 1 && pickedUsers.length === 0) {
+			const team = (audience?.teams || []).find((item) => String(item.id) === String(pickedTeamIds[0]));
+			if (team?.name) return team.name;
+		}
+		return 'Grup nou';
 	};
 
 	const handleNewConversation = async (event) => {
@@ -632,8 +738,10 @@ const MessagesPage = () => {
 			const payload = isNewGroup
 				? {
 					type: 'group',
-					name: newGroupName?.trim() || 'Grup nou',
-					participant_ids: pickedUsers.map(({ id }) => id),
+					name: defaultGroupName(),
+					participant_ids: includeEveryone ? [] : pickedUsers.map(({ id }) => id),
+					team_ids: includeEveryone ? [] : pickedTeamIds,
+					include_everyone: includeEveryone,
 				}
 				: {
 					type: 'direct',
@@ -814,30 +922,57 @@ const MessagesPage = () => {
 		}
 	};
 
-	const handleAddParticipantToGroup = async (userId) => {
+	const syncGroupParticipants = (updatedParticipants) => {
+		setGroupParticipants(updatedParticipants);
+		setConversations((prev) => prev.map((conv) => conv.id === selectedConversation.id ? {
+			...conv,
+			participants: updatedParticipants.filter((p) => p.id !== user.id),
+		} : conv));
+		setSelectedConversation((prev) => prev ? {
+			...prev,
+			participants: updatedParticipants.filter((p) => p.id !== user.id),
+		} : prev);
+	};
+
+	const handleAddManyToGroup = async ({ userIds = [], teamIds = [], includeEveryone: addEveryone = false, emptyMessage }) => {
 		if (!selectedConversation?.id) return;
 		setUpdatingParticipants(true);
 		try {
-			const res = await messagesService.addParticipants(selectedConversation.id, [userId]);
+			const before = groupParticipants.length;
+			const res = await messagesService.addParticipants(selectedConversation.id, userIds, {
+				teamIds,
+				includeEveryone: addEveryone,
+			});
 			const updatedParticipants = Array.isArray(res?.data) ? res.data : [];
-			setGroupParticipants(updatedParticipants);
-			setParticipantsSearchResults((prev) => prev.filter((u) => u.id !== userId));
-			setConversations((prev) => prev.map((conv) => conv.id === selectedConversation.id ? {
-				...conv,
-				participants: updatedParticipants.filter((p) => p.id !== user.id),
-			} : conv));
-			setSelectedConversation((prev) => prev ? {
-				...prev,
-				participants: updatedParticipants.filter((p) => p.id !== user.id),
-			} : prev);
-			showToast('Participant adăugat', 'success');
+			const addedIds = new Set(updatedParticipants.map((person) => person.id));
+			syncGroupParticipants(updatedParticipants);
+			setParticipantsSearchResults((prev) => prev.filter((person) => !addedIds.has(person.id)));
+			const added = Math.max(0, updatedParticipants.length - before);
+			showToast(
+				added > 0
+					? (added === 1 ? 'Participant adăugat' : `${added} persoane adăugate.`)
+					: (emptyMessage || 'Nimeni nou de adăugat. Toți sunt deja în grup.'),
+				'success',
+			);
 		} catch (err) {
-			logger.error('Error adding participant:', err);
-			showToast(err?.response?.data?.message || 'Nu s-a putut adăuga participantul', 'error');
+			logger.error('Error adding participants:', err);
+			showToast(err?.response?.data?.message || 'Nu s-au putut adăuga participanții', 'error');
 		} finally {
 			setUpdatingParticipants(false);
 		}
 	};
+
+	const handleAddParticipantToGroup = (userId) => handleAddManyToGroup({ userIds: [userId] });
+
+	const handleAddTeamToGroup = (team) => handleAddManyToGroup({
+		teamIds: [team.id],
+		emptyMessage: `Toți membrii din „${team.name}” sunt deja în grup.`,
+	});
+
+	const handleAddEveryoneToGroup = () => handleAddManyToGroup({
+		includeEveryone: true,
+		emptyMessage: 'Toți utilizatorii activi sunt deja în grup.',
+	});
 
 	const handleRemoveParticipantFromGroup = async (targetUserId) => {
 		if (!selectedConversation?.id) return;
@@ -1165,6 +1300,8 @@ const MessagesPage = () => {
 										if (id === newConversationType) return;
 										setNewConversationType(id);
 										setPickedUsers([]);
+										setPickedTeamIds([]);
+										setIncludeEveryone(false);
 										setNewGroupName('');
 									}}
 								>
@@ -1184,6 +1321,26 @@ const MessagesPage = () => {
 								onChange={(e) => setNewGroupName(e.target.value)}
 							/>
 						)}
+						{isNewGroup && canBulkAdd && (
+							<AudienceQuickAdd
+								audience={audience}
+								loading={audienceLoading}
+								disabled={creatingConversation}
+								everyoneActive={includeEveryone}
+								selectedTeamIds={pickedTeamIds}
+								onEveryone={() => {
+									setIncludeEveryone((current) => !current);
+									setPickedTeamIds([]);
+								}}
+								onTeam={(team) => {
+									setPickedTeamIds((current) => (
+										current.some((id) => String(id) === String(team.id))
+											? current.filter((id) => String(id) !== String(team.id))
+											: [...current, team.id]
+									));
+								}}
+							/>
+						)}
 						<input
 							type="search"
 							placeholder="Nume sau email"
@@ -1197,11 +1354,17 @@ const MessagesPage = () => {
 						/>
 						{isNewGroup && (
 							<p id="messages-group-selection-status" className="messages-picker-status" role="status">
-								{pickedUsers.length === 0
-									? 'Alege cel puțin două persoane pentru grup.'
-									: pickedUsers.length < MIN_GROUP_INVITEES
-										? 'Mai alege o persoană pentru a crea grupul.'
-										: `${pickedUsers.length} persoane selectate.`}
+								{includeEveryone
+									? (inviteeCount < MIN_GROUP_INVITEES
+										? 'Nu sunt destui utilizatori activi pentru un grup.'
+										: `Grup cu toți utilizatorii activi (${inviteeCount}).`)
+									: inviteeCount === 0
+										? (canBulkAdd
+											? 'Alege persoane, o echipă sau pe toți.'
+											: 'Alege cel puțin două persoane pentru grup.')
+										: inviteeCount < MIN_GROUP_INVITEES
+											? 'Mai alege o persoană pentru a crea grupul.'
+											: `${inviteeCount} persoane selectate.`}
 							</p>
 						)}
 						{availableUsers.length > 0 && (
@@ -1328,6 +1491,16 @@ const MessagesPage = () => {
 								</div>
 							)}
 
+							{groupModalPermissions.canManageGroup && canBulkAdd && (
+								<AudienceQuickAdd
+									audience={audience}
+									loading={audienceLoading}
+									disabled={updatingParticipants}
+									onEveryone={() => setShowAddEveryoneConfirm(true)}
+									onTeam={handleAddTeamToGroup}
+								/>
+							)}
+
 							{groupModalPermissions.canManageGroup && (
 								<input
 									type="text"
@@ -1438,6 +1611,20 @@ const MessagesPage = () => {
 				</div>
 			)}
 
+			<ConfirmModal
+				open={showAddEveryoneConfirm}
+				onClose={() => !updatingParticipants && setShowAddEveryoneConfirm(false)}
+				onConfirm={() => {
+					setShowAddEveryoneConfirm(false);
+					handleAddEveryoneToGroup();
+				}}
+				title="Adaugi pe toți în grup?"
+				message="Se adaugă toți utilizatorii activi care lipsesc din grup."
+				confirmLabel="Adaugă pe toți"
+				cancelLabel="Anulare"
+				variant="primary"
+				loading={updatingParticipants}
+			/>
 			<ConfirmModal
 				open={showLeaveGroupConfirm}
 				onClose={() => !leavingGroup && setShowLeaveGroupConfirm(false)}

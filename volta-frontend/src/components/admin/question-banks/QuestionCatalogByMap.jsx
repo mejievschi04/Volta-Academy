@@ -23,8 +23,8 @@ export function CatalogGroupCard({ title, description, stats, onOpen, icon, acti
 					{icon}
 				</span>
 				<span className="qb-catalog-tile-copy">
-					<strong>{title}</strong>
-					{description ? <small>{description}</small> : null}
+					<strong title={title || undefined}>{title}</strong>
+					{description ? <small title={description}>{description}</small> : null}
 				</span>
 				<span className="qb-catalog-tile-stats">
 					{stats.map((stat) => (
